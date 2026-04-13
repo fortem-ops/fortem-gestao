@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, ClipboardList, Settings, Activity, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, Activity, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Alunos", url: "/alunos", icon: Users },
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
+  { title: "Agenda", url: "/agenda", icon: CalendarDays },
 ];
 
 const adminItems = [
