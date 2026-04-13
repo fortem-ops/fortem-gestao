@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const PLAN_CONFIG: Record<string, { label: string; duracao: number; servicos: string[] }> = {
   start:   { label: "Start",  duracao: 1,  servicos: [] },
@@ -30,6 +32,9 @@ export const studentSchema = z.object({
   observacoes: z.string().trim().max(1000).or(z.literal("")),
   plano: z.enum(["start", "start+", "power", "pro", "max"]).optional(),
   plano_consultas: z.string().optional(),
+  plano_valor: z.coerce.number().min(0, "Valor deve ser positivo").optional(),
+  plano_data_inicio: z.string().optional(),
+  professor_responsavel_id: z.string().optional(),
 });
 
 export type StudentFormValues = z.infer<typeof studentSchema>;
@@ -50,6 +55,13 @@ export function getPlanDetails(plano?: string, plano_consultas?: string) {
   return { tipo: plano, duracao_meses: cfg.duracao, servicos };
 }
 
+function calcEndDate(startDate: string, durationMonths: number): string {
+  if (!startDate) return "";
+  const d = new Date(startDate + "T00:00:00");
+  d.setMonth(d.getMonth() + durationMonths);
+  return d.toISOString().split("T")[0];
+}
+
 interface StudentFormFieldsProps {
   defaultValues: StudentFormValues;
   onSubmit: (values: StudentFormValues) => Promise<void>;
@@ -60,11 +72,13 @@ interface StudentFormFieldsProps {
 
 function PlanServicesSelector({ control }: { control: any }) {
   const plano = useWatch({ control, name: "plano" });
+  const dataInicio = useWatch({ control, name: "plano_data_inicio" });
   const cfg = plano && plano in PLAN_CONFIG ? PLAN_CONFIG[plano as PlanType] : null;
 
   if (!cfg) return null;
 
   const vigenciaText = cfg.duracao === 1 ? "1 mês" : `${cfg.duracao} meses`;
+  const dataFinal = dataInicio ? calcEndDate(dataInicio, cfg.duracao) : "";
 
   return (
     <div className="space-y-3 rounded-lg border border-border/50 bg-muted/30 p-4">
@@ -72,6 +86,15 @@ function PlanServicesSelector({ control }: { control: any }) {
         <span className="text-sm font-medium text-foreground">Vigência</span>
         <Badge variant="secondary">{vigenciaText}</Badge>
       </div>
+
+      {dataFinal && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-foreground">Data Final</span>
+          <Badge variant="outline">
+            {new Date(dataFinal + "T00:00:00").toLocaleDateString("pt-BR")}
+          </Badge>
+        </div>
+      )}
 
       {cfg.servicos.length > 0 && (
         <div>
@@ -161,6 +184,28 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
     defaultValues,
   });
 
+  const [professors, setProfessors] = useState<{ user_id: string; full_name: string }[]>([]);
+
+  useEffect(() => {
+    async function loadProfessors() {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["professor", "coordenador", "admin"]);
+      if (!roles || roles.length === 0) return;
+
+      const userIds = roles.map((r) => r.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      if (profiles) setProfessors(profiles);
+    }
+    loadProfessors();
+  }, []);
+
+  const plano = form.watch("plano");
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
@@ -233,24 +278,44 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="frequencia_semanal"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Frequência Semanal</FormLabel>
-              <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={String(field.value)}>
-                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                    <SelectItem key={n} value={String(n)}>{n}x por semana</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="frequencia_semanal"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Frequência Semanal</FormLabel>
+                <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={String(field.value)}>
+                  <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n}x por semana</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="professor_responsavel_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Professor Responsável</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {professors.map((p) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
@@ -272,6 +337,43 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
             </FormItem>
           )}
         />
+
+        {plano && (
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="plano_valor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valor do Plano (R$)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0,00"
+                      {...field}
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="plano_data_inicio"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Data Início do Plano</FormLabel>
+                  <FormControl><Input type="date" {...field} value={field.value ?? ""} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
 
         <PlanServicesSelector control={form.control} />
 

@@ -15,13 +15,16 @@ interface EditStudentDialogProps {
 export default function EditStudentDialog({ student, onStudentUpdated }: EditStudentDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [planDefaults, setPlanDefaults] = useState<{ plano?: string; plano_consultas?: string }>({});
+  const [planDefaults, setPlanDefaults] = useState<{
+    plano?: string; plano_consultas?: string;
+    plano_valor?: number; plano_data_inicio?: string;
+  }>({});
 
   useEffect(() => {
     if (!open) return;
     supabase
       .from("planos")
-      .select("tipo, servicos")
+      .select("tipo, servicos, valor, data_inicio")
       .eq("aluno_id", student.id)
       .eq("ativo", true)
       .order("created_at", { ascending: false })
@@ -40,7 +43,12 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
               consultas = "reabilitacao";
             else consultas = "nutricao";
           }
-          setPlanDefaults({ plano: p.tipo, plano_consultas: consultas });
+          setPlanDefaults({
+            plano: p.tipo,
+            plano_consultas: consultas,
+            plano_valor: p.valor ?? undefined,
+            plano_data_inicio: p.data_inicio,
+          });
         } else {
           setPlanDefaults({});
         }
@@ -57,11 +65,16 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
     observacoes: student.observacoes || "",
     plano: planDefaults.plano as any,
     plano_consultas: planDefaults.plano_consultas,
+    plano_valor: planDefaults.plano_valor,
+    plano_data_inicio: planDefaults.plano_data_inicio,
+    professor_responsavel_id: student.responsavel_id || undefined,
   };
 
   async function onSubmit(values: StudentFormValues) {
     setLoading(true);
     try {
+      const responsavelId = values.professor_responsavel_id || student.responsavel_id;
+
       const { error } = await supabase.from("alunos").update({
         nome: values.nome,
         email: values.email || null,
@@ -70,20 +83,21 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
         status: values.status,
         frequencia_semanal: values.frequencia_semanal,
         observacoes: values.observacoes || null,
+        responsavel_id: responsavelId,
       }).eq("id", student.id);
       if (error) throw error;
 
       const plan = getPlanDetails(values.plano, values.plano_consultas);
       if (plan) {
-        // Deactivate old plans
         await supabase.from("planos").update({ ativo: false }).eq("aluno_id", student.id).eq("ativo", true);
-        const today = new Date().toISOString().split("T")[0];
+        const dataInicio = values.plano_data_inicio || new Date().toISOString().split("T")[0];
         await supabase.from("planos").insert({
           aluno_id: student.id,
           tipo: plan.tipo,
-          data_inicio: today,
+          data_inicio: dataInicio,
           duracao_meses: plan.duracao_meses,
           servicos: plan.servicos,
+          valor: values.plano_valor || 0,
           ativo: true,
         });
       }

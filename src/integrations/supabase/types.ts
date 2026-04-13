@@ -235,6 +235,7 @@ export type Database = {
           servicos: string[] | null
           tipo: string
           updated_at: string
+          valor: number | null
         }
         Insert: {
           aluno_id: string
@@ -246,6 +247,7 @@ export type Database = {
           servicos?: string[] | null
           tipo: string
           updated_at?: string
+          valor?: number | null
         }
         Update: {
           aluno_id?: string
@@ -257,6 +259,7 @@ export type Database = {
           servicos?: string[] | null
           tipo?: string
           updated_at?: string
+          valor?: number | null
         }
         Relationships: [
           {
