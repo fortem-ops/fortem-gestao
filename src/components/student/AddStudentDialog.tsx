@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import StudentFormFields, { type StudentFormValues } from "./StudentFormFields";
+import StudentFormFields, { type StudentFormValues, getPlanDetails } from "./StudentFormFields";
 
 interface AddStudentDialogProps {
   onStudentAdded: () => void;
@@ -17,6 +17,7 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
   const defaultValues: StudentFormValues = {
     nome: "", email: "", telefone: "", data_nascimento: "",
     status: "ativo", frequencia_semanal: 3, observacoes: "",
+    plano: undefined, plano_consultas: undefined,
   };
 
   async function onSubmit(values: StudentFormValues) {
@@ -25,7 +26,7 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("Você precisa estar logado."); return; }
 
-      const { error } = await supabase.from("alunos").insert({
+      const { data: aluno, error } = await supabase.from("alunos").insert({
         nome: values.nome,
         email: values.email || null,
         telefone: values.telefone || null,
@@ -34,8 +35,22 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
         frequencia_semanal: values.frequencia_semanal,
         observacoes: values.observacoes || null,
         responsavel_id: user.id,
-      });
+      }).select("id").single();
       if (error) throw error;
+
+      const plan = getPlanDetails(values.plano, values.plano_consultas);
+      if (plan && aluno) {
+        const today = new Date().toISOString().split("T")[0];
+        const { error: planError } = await supabase.from("planos").insert({
+          aluno_id: aluno.id,
+          tipo: plan.tipo,
+          data_inicio: today,
+          duracao_meses: plan.duracao_meses,
+          servicos: plan.servicos,
+          ativo: true,
+        });
+        if (planError) console.error("Erro ao criar plano:", planError);
+      }
 
       toast.success("Aluno cadastrado com sucesso!");
       setOpen(false);
