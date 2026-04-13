@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { type Student, classifyAngle, getClassificationColor } from "@/lib/mock-data";
+import { classifyAngle, getClassificationColor } from "@/lib/mock-data";
+import type { Tables } from "@/integrations/supabase/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -119,7 +120,7 @@ function BodyComposition() {
   );
 }
 
-export function StudentAssessments({ student }: { student: Student }) {
+export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
   return (
     <div className="space-y-4 mt-4">
       <h3 className="font-heading font-semibold text-foreground">Avaliações</h3>

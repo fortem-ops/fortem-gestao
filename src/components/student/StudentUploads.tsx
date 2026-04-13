@@ -1,4 +1,4 @@
-import { type Student } from "@/lib/mock-data";
+import type { Tables } from "@/integrations/supabase/types";
 import { FileText, Image, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -8,7 +8,7 @@ const mockUploads = [
   { id: '3', name: 'postura_lateral.jpg', type: 'Imagem', date: '2026-01-20', author: 'Fisio. Rafael' },
 ];
 
-export function StudentUploads({ student }: { student: Student }) {
+export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
   return (
     <div className="space-y-4 mt-4">
       <div className="flex items-center justify-between">

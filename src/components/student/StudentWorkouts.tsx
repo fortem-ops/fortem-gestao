@@ -1,4 +1,4 @@
-import { type Student } from "@/lib/mock-data";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Plus, Copy, Archive } from "lucide-react";
 
@@ -8,7 +8,7 @@ const mockWorkouts = [
   { id: '3', version: 1, date: '2025-11-01', author: 'Prof. Marina', current: false, description: 'Adaptação inicial' },
 ];
 
-export function StudentWorkouts({ student }: { student: Student }) {
+export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
   return (
     <div className="space-y-4 mt-4">
       <div className="flex items-center justify-between">
