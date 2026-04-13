@@ -6,15 +6,41 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Activity } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { signIn, user } = useAuth();
+  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Redirect if already logged in
+  if (user) {
+    navigate("/", { replace: true });
+    return null;
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/");
+    if (!email || !password) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    const { error } = await signIn(email, password);
+    setLoading(false);
+    if (error) {
+      toast({
+        title: "Erro ao entrar",
+        description: "Email ou senha incorretos.",
+        variant: "destructive",
+      });
+    } else {
+      navigate("/");
+    }
   };
 
   return (
@@ -44,6 +70,7 @@ export default function Login() {
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -54,10 +81,11 @@ export default function Login() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                 />
               </div>
-              <Button type="submit" className="w-full">
-                Entrar
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Entrando..." : "Entrar"}
               </Button>
             </form>
           </CardContent>
