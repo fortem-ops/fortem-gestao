@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_servicos: {
+        Row: {
+          aluno_id: string | null
+          atividade: string
+          created_at: string
+          data_especifica: string | null
+          dia_semana: number
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          local: string
+          observacoes: string | null
+          profissional_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id?: string | null
+          atividade: string
+          created_at?: string
+          data_especifica?: string | null
+          dia_semana: number
+          horario_fim: string
+          horario_inicio: string
+          id?: string
+          local: string
+          observacoes?: string | null
+          profissional_id: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string | null
+          atividade?: string
+          created_at?: string
+          data_especifica?: string | null
+          dia_semana?: number
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          local?: string
+          observacoes?: string | null
+          profissional_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       alunos: {
         Row: {
           created_at: string
