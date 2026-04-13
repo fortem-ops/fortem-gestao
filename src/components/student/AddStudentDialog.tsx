@@ -14,10 +14,14 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const today = new Date().toISOString().split("T")[0];
+
   const defaultValues: StudentFormValues = {
     nome: "", email: "", telefone: "", data_nascimento: "",
     status: "ativo", frequencia_semanal: 3, observacoes: "",
     plano: undefined, plano_consultas: undefined,
+    plano_valor: undefined, plano_data_inicio: today,
+    professor_responsavel_id: undefined,
   };
 
   async function onSubmit(values: StudentFormValues) {
@@ -25,6 +29,8 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("Você precisa estar logado."); return; }
+
+      const responsavelId = values.professor_responsavel_id || user.id;
 
       const { data: aluno, error } = await supabase.from("alunos").insert({
         nome: values.nome,
@@ -34,19 +40,20 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
         status: values.status,
         frequencia_semanal: values.frequencia_semanal,
         observacoes: values.observacoes || null,
-        responsavel_id: user.id,
+        responsavel_id: responsavelId,
       }).select("id").single();
       if (error) throw error;
 
       const plan = getPlanDetails(values.plano, values.plano_consultas);
       if (plan && aluno) {
-        const today = new Date().toISOString().split("T")[0];
+        const dataInicio = values.plano_data_inicio || today;
         const { error: planError } = await supabase.from("planos").insert({
           aluno_id: aluno.id,
           tipo: plan.tipo,
-          data_inicio: today,
+          data_inicio: dataInicio,
           duracao_meses: plan.duracao_meses,
           servicos: plan.servicos,
+          valor: values.plano_valor || 0,
           ativo: true,
         });
         if (planError) console.error("Erro ao criar plano:", planError);
