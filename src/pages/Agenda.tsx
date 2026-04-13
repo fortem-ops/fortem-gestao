@@ -47,10 +47,23 @@ export default function Agenda() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agenda_servicos")
-        .select("*, profiles:profissional_id(full_name)")
+        .select("*")
         .order("horario_inicio");
       if (error) throw error;
-      return data;
+
+      // Fetch profile names separately
+      const profIds = [...new Set(data.map((d: any) => d.profissional_id).filter(Boolean))];
+      let profilesMap: Record<string, string> = {};
+      if (profIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", profIds);
+        if (profiles) {
+          profilesMap = Object.fromEntries(profiles.map((p: any) => [p.user_id, p.full_name]));
+        }
+      }
+      return data.map((d: any) => ({ ...d, profissional_nome: profilesMap[d.profissional_id] || null }));
     },
   });
 
