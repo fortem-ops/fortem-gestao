@@ -10,13 +10,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
-const PLAN_CONFIG = {
+const PLAN_CONFIG: Record<string, { label: string; duracao: number; servicos: string[] }> = {
   start:   { label: "Start",  duracao: 1,  servicos: [] },
   "start+": { label: "Start+", duracao: 12, servicos: ["1 Avaliação Funcional"] },
   power:   { label: "Power",  duracao: 12, servicos: ["1 Avaliação Funcional"] },
   pro:     { label: "Pro",    duracao: 12, servicos: ["2 Avaliação Funcional"] },
   max:     { label: "Max",    duracao: 12, servicos: ["3 Avaliação Funcional", "5 Consultas Nutrição", "5 Consultas Reabilitação"] },
-} as const;
+};
 
 export type PlanType = keyof typeof PLAN_CONFIG;
 
