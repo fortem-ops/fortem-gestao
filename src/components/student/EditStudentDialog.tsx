@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
-import StudentFormFields, { type StudentFormValues } from "./StudentFormFields";
+import StudentFormFields, { type StudentFormValues, getPlanDetails } from "./StudentFormFields";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface EditStudentDialogProps {
@@ -15,6 +15,37 @@ interface EditStudentDialogProps {
 export default function EditStudentDialog({ student, onStudentUpdated }: EditStudentDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [planDefaults, setPlanDefaults] = useState<{ plano?: string; plano_consultas?: string }>({});
+
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from("planos")
+      .select("tipo, servicos")
+      .eq("aluno_id", student.id)
+      .eq("ativo", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const p = data[0];
+          let consultas: string | undefined;
+          const servicos = p.servicos || [];
+          if (p.tipo === "power") {
+            consultas = servicos.some((s: string) => s.includes("Reabilitação")) ? "reabilitacao" : "nutricao";
+          } else if (p.tipo === "pro") {
+            if (servicos.some((s: string) => s.includes("Reabilitação")) && servicos.some((s: string) => s.includes("Nutrição")))
+              consultas = "misto";
+            else if (servicos.some((s: string) => s.includes("Reabilitação")))
+              consultas = "reabilitacao";
+            else consultas = "nutricao";
+          }
+          setPlanDefaults({ plano: p.tipo, plano_consultas: consultas });
+        } else {
+          setPlanDefaults({});
+        }
+      });
+  }, [open, student.id]);
 
   const defaultValues: StudentFormValues = {
     nome: student.nome,
@@ -24,6 +55,8 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
     status: (student.status as "ativo" | "licenca" | "encerrado") || "ativo",
     frequencia_semanal: student.frequencia_semanal || 3,
     observacoes: student.observacoes || "",
+    plano: planDefaults.plano as any,
+    plano_consultas: planDefaults.plano_consultas,
   };
 
   async function onSubmit(values: StudentFormValues) {
@@ -39,6 +72,21 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
         observacoes: values.observacoes || null,
       }).eq("id", student.id);
       if (error) throw error;
+
+      const plan = getPlanDetails(values.plano, values.plano_consultas);
+      if (plan) {
+        // Deactivate old plans
+        await supabase.from("planos").update({ ativo: false }).eq("aluno_id", student.id).eq("ativo", true);
+        const today = new Date().toISOString().split("T")[0];
+        await supabase.from("planos").insert({
+          aluno_id: student.id,
+          tipo: plan.tipo,
+          data_inicio: today,
+          duracao_meses: plan.duracao_meses,
+          servicos: plan.servicos,
+          ativo: true,
+        });
+      }
 
       toast.success("Aluno atualizado com sucesso!");
       setOpen(false);
@@ -60,7 +108,7 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
       <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Editar Aluno</DialogTitle></DialogHeader>
         <StudentFormFields
-          key={student.id + student.updated_at}
+          key={student.id + student.updated_at + JSON.stringify(planDefaults)}
           defaultValues={defaultValues}
           onSubmit={onSubmit}
           loading={loading}
