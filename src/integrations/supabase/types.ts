@@ -237,6 +237,64 @@ export type Database = {
           },
         ]
       }
+      consumo_servicos: {
+        Row: {
+          agenda_id: string | null
+          aluno_id: string
+          created_at: string
+          data_consumo: string
+          id: string
+          observacoes: string | null
+          plano_id: string
+          registrado_por: string
+          tipo_servico: string
+        }
+        Insert: {
+          agenda_id?: string | null
+          aluno_id: string
+          created_at?: string
+          data_consumo?: string
+          id?: string
+          observacoes?: string | null
+          plano_id: string
+          registrado_por: string
+          tipo_servico: string
+        }
+        Update: {
+          agenda_id?: string | null
+          aluno_id?: string
+          created_at?: string
+          data_consumo?: string
+          id?: string
+          observacoes?: string | null
+          plano_id?: string
+          registrado_por?: string
+          tipo_servico?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumo_servicos_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumo_servicos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumo_servicos_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historico_profissional: {
         Row: {
           aluno_id: string
