@@ -1,4 +1,4 @@
-import { type Student } from "@/lib/mock-data";
+import type { Tables } from "@/integrations/supabase/types";
 import { MessageSquare, Stethoscope, Phone, BookOpen } from "lucide-react";
 
 const mockHistory = [
@@ -22,7 +22,7 @@ const categoryColor: Record<string, string> = {
   contato: 'text-muted-foreground',
 };
 
-export function StudentHistory({ student }: { student: Student }) {
+export function StudentHistory({ student }: { student: Tables<"alunos"> }) {
   return (
     <div className="space-y-4 mt-4">
       <h3 className="font-heading font-semibold text-foreground">Histórico Técnico</h3>

@@ -1,10 +1,11 @@
-import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { mockStudents, getRemainingDays } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StudentSummary } from "@/components/student/StudentSummary";
 import { StudentWorkouts } from "@/components/student/StudentWorkouts";
 import { StudentAssessments } from "@/components/student/StudentAssessments";
@@ -12,14 +13,38 @@ import { StudentHistory } from "@/components/student/StudentHistory";
 import { StudentUploads } from "@/components/student/StudentUploads";
 import { StudentPlan } from "@/components/student/StudentPlan";
 import { StudentTasks } from "@/components/student/StudentTasks";
+import EditStudentDialog from "@/components/student/EditStudentDialog";
 
-const statusClass: Record<string, string> = { ativo: 'status-active', licenca: 'status-warning', encerrado: 'status-urgent' };
-const statusLabel: Record<string, string> = { ativo: 'Ativo', licenca: 'Licença', encerrado: 'Encerrado' };
+const statusClass: Record<string, string> = { ativo: "status-active", licenca: "status-warning", encerrado: "status-urgent" };
+const statusLabel: Record<string, string> = { ativo: "Ativo", licenca: "Licença", encerrado: "Encerrado" };
 
 export default function StudentProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const student = mockStudents.find(s => s.id === id);
+
+  const { data: student, isLoading, refetch } = useQuery({
+    queryKey: ["aluno", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("alunos")
+        .select("*")
+        .eq("id", id!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
 
   if (!student) {
     return <div className="text-center py-20 text-muted-foreground">Aluno não encontrado</div>;
@@ -28,16 +53,21 @@ export default function StudentProfile() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/alunos')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/alunos")}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-heading font-bold text-foreground">{student.name}</h1>
-            <Badge variant="outline" className={statusClass[student.status]}>{statusLabel[student.status]}</Badge>
+            <h1 className="text-2xl font-heading font-bold text-foreground">{student.nome}</h1>
+            <Badge variant="outline" className={statusClass[student.status]}>
+              {statusLabel[student.status] || student.status}
+            </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{student.plan} · {student.responsible}</p>
+          <p className="text-sm text-muted-foreground">
+            {student.email || "Sem email"} · {student.frequencia_semanal}x/semana
+          </p>
         </div>
+        <EditStudentDialog student={student} onStudentUpdated={() => refetch()} />
       </div>
 
       <Tabs defaultValue="resumo" className="w-full">
