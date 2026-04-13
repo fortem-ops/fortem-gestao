@@ -172,8 +172,8 @@ export default function Agenda() {
                           <div className="truncate opacity-60">
                             {ev.horario_inicio?.slice(0, 5)} - {ev.horario_fim?.slice(0, 5)}
                           </div>
-                          {ev.profiles?.full_name && (
-                            <div className="truncate opacity-60">{ev.profiles.full_name}</div>
+                          {ev.profissional_nome && (
+                            <div className="truncate opacity-60">{ev.profissional_nome}</div>
                           )}
                           {ev.tipo === "avulso" && (
                             <Badge variant="outline" className="mt-0.5 text-[10px] px-1 py-0">Avulso</Badge>
