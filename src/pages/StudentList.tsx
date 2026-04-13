@@ -1,30 +1,53 @@
 import { useState } from "react";
-import { mockStudents, getRemainingDays, type StudentStatus } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import AddStudentDialog from "@/components/student/AddStudentDialog";
 
-const statusLabel: Record<StudentStatus, string> = { ativo: 'Ativo', licenca: 'Licença', encerrado: 'Encerrado' };
-const statusClass: Record<StudentStatus, string> = { ativo: 'status-active', licenca: 'status-warning', encerrado: 'status-urgent' };
+type Status = "ativo" | "licenca" | "encerrado";
+const statusLabel: Record<Status, string> = { ativo: "Ativo", licenca: "Licença", encerrado: "Encerrado" };
+const statusClass: Record<Status, string> = { ativo: "status-active", licenca: "status-warning", encerrado: "status-urgent" };
 
 export default function StudentList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const navigate = useNavigate();
 
-  const filtered = mockStudents.filter(s => {
-    const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase());
+  const { data: alunos = [], isLoading, refetch } = useQuery({
+    queryKey: ["alunos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("alunos")
+        .select("*")
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filtered = alunos.filter((s) => {
+    const matchSearch =
+      s.nome.toLowerCase().includes(search.toLowerCase()) ||
+      (s.email?.toLowerCase().includes(search.toLowerCase()) ?? false);
     const matchStatus = statusFilter === "todos" || s.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-foreground">Alunos</h1>
-        <p className="text-sm text-muted-foreground mt-1">{mockStudents.length} alunos cadastrados</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-foreground">Alunos</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {alunos.length} aluno{alunos.length !== 1 ? "s" : ""} cadastrado{alunos.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <AddStudentDialog onStudentAdded={() => refetch()} />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -57,16 +80,30 @@ export default function StudentList() {
             <tr className="border-b border-border">
               <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Status</th>
-              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Plano</th>
-              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Responsável</th>
-              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Dias Restantes</th>
-              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Última Avaliação</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Frequência</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Telefone</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Data Nascimento</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((student) => {
-              const remaining = getRemainingDays(student.planStart, student.planDurationMonths);
-              return (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i} className="border-b border-border/50">
+                  <td className="p-4"><Skeleton className="h-5 w-40" /></td>
+                  <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
+                  <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-20" /></td>
+                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-28" /></td>
+                  <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-24" /></td>
+                </tr>
+              ))
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  Nenhum aluno encontrado.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((student) => (
                 <tr
                   key={student.id}
                   onClick={() => navigate(`/alunos/${student.id}`)}
@@ -74,34 +111,33 @@ export default function StudentList() {
                 >
                   <td className="p-4">
                     <div>
-                      <p className="text-sm font-medium text-foreground">{student.name}</p>
-                      <p className="text-xs text-muted-foreground">{student.email}</p>
+                      <p className="text-sm font-medium text-foreground">{student.nome}</p>
+                      <p className="text-xs text-muted-foreground">{student.email || "—"}</p>
                     </div>
                   </td>
                   <td className="p-4 hidden md:table-cell">
-                    <Badge variant="outline" className={`text-xs ${statusClass[student.status]}`}>
-                      {statusLabel[student.status]}
+                    <Badge variant="outline" className={`text-xs ${statusClass[student.status as Status] || ""}`}>
+                      {statusLabel[student.status as Status] || student.status}
                     </Badge>
                   </td>
                   <td className="p-4 hidden md:table-cell">
-                    <span className="text-sm text-foreground">{student.plan}</span>
-                  </td>
-                  <td className="p-4 hidden lg:table-cell">
-                    <span className="text-sm text-muted-foreground">{student.responsible}</span>
-                  </td>
-                  <td className="p-4 hidden lg:table-cell">
-                    <span className={`text-sm ${remaining < 30 ? 'text-destructive' : remaining < 90 ? 'text-warning' : 'text-muted-foreground'}`}>
-                      {remaining > 0 ? `${remaining}d` : 'Vencido'}
+                    <span className="text-sm text-muted-foreground">
+                      {student.frequencia_semanal}x/semana
                     </span>
+                  </td>
+                  <td className="p-4 hidden lg:table-cell">
+                    <span className="text-sm text-muted-foreground">{student.telefone || "—"}</span>
                   </td>
                   <td className="p-4 hidden xl:table-cell">
                     <span className="text-sm text-muted-foreground">
-                      {student.lastAssessment || '—'}
+                      {student.data_nascimento
+                        ? new Date(student.data_nascimento + "T00:00:00").toLocaleDateString("pt-BR")
+                        : "—"}
                     </span>
                   </td>
                 </tr>
-              );
-            })}
+              ))
+            )}
           </tbody>
         </table>
       </div>
