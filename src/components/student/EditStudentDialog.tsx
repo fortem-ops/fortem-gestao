@@ -34,9 +34,9 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
           const p = data[0];
           let consultas: string | undefined;
           const servicos = p.servicos || [];
-          if (p.tipo === "power") {
+          if (p.tipo === "Power") {
             consultas = servicos.some((s: string) => s.includes("Reabilitação")) ? "reabilitacao" : "nutricao";
-          } else if (p.tipo === "pro") {
+          } else if (p.tipo === "Pro") {
             if (servicos.some((s: string) => s.includes("Reabilitação")) && servicos.some((s: string) => s.includes("Nutrição")))
               consultas = "misto";
             else if (servicos.some((s: string) => s.includes("Reabilitação")))
