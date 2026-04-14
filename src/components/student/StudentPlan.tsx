@@ -47,19 +47,34 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       const { data: consumos } = await supabase
         .from("consumo_servicos")
-        .select("tipo_servico")
+        .select("tipo_servico, quantidade, agenda_id")
         .eq("aluno_id", student.id)
         .eq("plano_id", plano.id);
 
       const servicos = plano.servicos || [];
-      const countUsed = (tipo: string) => consumos?.filter((c) => c.tipo_servico === tipo).length || 0;
+
+      // Credits from plan base + purchased services (no agenda = sale/purchase)
+      const countPurchased = (tipo: string) =>
+        consumos?.filter((c) => c.tipo_servico === tipo && !c.agenda_id)
+          .reduce((sum, c) => sum + ((c as any).quantidade ?? 1), 0) || 0;
+
+      // Credits used = linked to agenda (scheduled/consumed)
+      const countUsed = (tipo: string) =>
+        consumos?.filter((c) => c.tipo_servico === tipo && !!c.agenda_id).length || 0;
+
+      const buildCredit = (tipo: string) => ({
+        base: parseServiceCount(servicos, tipo),
+        comprado: countPurchased(tipo),
+        total: parseServiceCount(servicos, tipo) + countPurchased(tipo),
+        usado: countUsed(tipo),
+      });
 
       return {
         ...plano,
         credits: {
-          avalFuncional: { total: parseServiceCount(servicos, "Avaliação Funcional"), usado: countUsed("Avaliação Funcional") },
-          nutricao: { total: parseServiceCount(servicos, "Consultas Nutrição"), usado: countUsed("Consultas Nutrição") },
-          reabilitacao: { total: parseServiceCount(servicos, "Consultas Reabilitação"), usado: countUsed("Consultas Reabilitação") },
+          avalFuncional: buildCredit("Avaliação Funcional"),
+          nutricao: buildCredit("Consultas Nutrição"),
+          reabilitacao: buildCredit("Consultas Reabilitação"),
         },
       };
     },
