@@ -196,7 +196,7 @@ export default function Agenda() {
                         <div
                           key={ev.id}
                           className={`rounded p-1.5 mb-0.5 text-xs border group relative ${ATIVIDADE_COLORS[ev.atividade] || "bg-muted text-foreground border-border"}`}
-                          onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}}
+                          onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}
                         >
                           <div className="font-medium truncate">{ev.atividade}</div>
                           <div className="truncate opacity-75">{ev.local}</div>
