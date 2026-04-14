@@ -160,6 +160,8 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         )}
       </div>
       <p className="text-xs text-muted-foreground">Editável apenas por Coordenação e Administração</p>
+
+      <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
     </div>
   );
 }
