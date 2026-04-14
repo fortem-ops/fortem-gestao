@@ -13,6 +13,7 @@ import { StudentHistory } from "@/components/student/StudentHistory";
 import { StudentUploads } from "@/components/student/StudentUploads";
 import { StudentPlan } from "@/components/student/StudentPlan";
 import { StudentTasks } from "@/components/student/StudentTasks";
+import { StudentNotes } from "@/components/student/StudentNotes";
 import EditStudentDialog from "@/components/student/EditStudentDialog";
 
 const statusClass: Record<string, string> = { ativo: "status-active", licenca: "status-warning", encerrado: "status-urgent" };
@@ -79,6 +80,7 @@ export default function StudentProfile() {
           <TabsTrigger value="uploads">Uploads</TabsTrigger>
           <TabsTrigger value="plano">Plano</TabsTrigger>
           <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
+          <TabsTrigger value="observacoes">Observações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumo"><StudentSummary student={student} /></TabsContent>
@@ -88,6 +90,7 @@ export default function StudentProfile() {
         <TabsContent value="uploads"><StudentUploads student={student} /></TabsContent>
         <TabsContent value="plano"><StudentPlan student={student} /></TabsContent>
         <TabsContent value="tarefas"><StudentTasks student={student} /></TabsContent>
+        <TabsContent value="observacoes"><StudentNotes student={student} /></TabsContent>
       </Tabs>
     </div>
   );
