@@ -246,8 +246,10 @@ export type Database = {
           id: string
           observacoes: string | null
           plano_id: string
+          quantidade: number
           registrado_por: string
           tipo_servico: string
+          valor_unitario: number
         }
         Insert: {
           agenda_id?: string | null
@@ -257,8 +259,10 @@ export type Database = {
           id?: string
           observacoes?: string | null
           plano_id: string
+          quantidade?: number
           registrado_por: string
           tipo_servico: string
+          valor_unitario?: number
         }
         Update: {
           agenda_id?: string | null
@@ -268,8 +272,10 @@ export type Database = {
           id?: string
           observacoes?: string | null
           plano_id?: string
+          quantidade?: number
           registrado_por?: string
           tipo_servico?: string
+          valor_unitario?: number
         }
         Relationships: [
           {
