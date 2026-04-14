@@ -12,9 +12,9 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
 const CATEGORIES = [
-  { value: "observação", label: "Observação", icon: MessageSquare, color: "text-info" },
-  { value: "orientação", label: "Orientação", icon: BookOpen, color: "text-primary" },
-  { value: "intervenção", label: "Intervenção", icon: Stethoscope, color: "text-warning" },
+  { value: "observacao", label: "Observação", icon: MessageSquare, color: "text-info" },
+  { value: "orientacao", label: "Orientação", icon: BookOpen, color: "text-primary" },
+  { value: "intervencao", label: "Intervenção", icon: Stethoscope, color: "text-warning" },
   { value: "contato", label: "Contato", icon: Phone, color: "text-muted-foreground" },
 ];
 
@@ -24,7 +24,7 @@ export function StudentNotes({ student }: { student: Tables<"alunos"> }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [categoria, setCategoria] = useState("observação");
+  const [categoria, setCategoria] = useState("observacao");
   const [descricao, setDescricao] = useState("");
 
   const { data: profiles } = useQuery({
