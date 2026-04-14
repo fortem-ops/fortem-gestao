@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { AssessmentClassification } from "@/lib/mock-data";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface BodyDiagramProps {
   classifications: Record<string, { left: AssessmentClassification | null; right: AssessmentClassification | null }>;
@@ -30,50 +31,72 @@ function avgClassification(left: AssessmentClassification | null, right: Assessm
 }
 
 export function BodyDiagram({ classifications }: BodyDiagramProps) {
+  const [view, setView] = useState<string>("anterior");
+
   const fills = useMemo(() => {
-    const ombro = classifications["Mobilidade Ombro RI"] || { left: null, right: null };
-    const ombroRE = classifications["Mobilidade Ombro RE"] || { left: null, right: null };
-    const shoulderLeft = avgClassification(ombro.left, ombroRE.left);
-    const shoulderRight = avgClassification(ombro.right, ombroRE.right);
-
-    const quadrilRI = classifications["Mobilidade Quadril RI"] || { left: null, right: null };
-    const quadrilRE = classifications["Mobilidade Quadril RE"] || { left: null, right: null };
-    const hipLeft = avgClassification(quadrilRI.left, quadrilRE.left);
-    const hipRight = avgClassification(quadrilRI.right, quadrilRE.right);
-
-    const mmii = classifications["Flexibilidade Posterior MMII"] || { left: null, right: null };
+    // Anterior metrics
+    const ombroRI = classifications["Mobilidade Ombro RI"] || { left: null, right: null };
     const psoas = classifications["Flexibilidade Psoas"] || { left: null, right: null };
     const quads = classifications["Flexibilidade Quadríceps"] || { left: null, right: null };
+    const quadrilRI = classifications["Mobilidade Quadril RI"] || { left: null, right: null };
+
+    // Posterior metrics
+    const ombroRE = classifications["Mobilidade Ombro RE"] || { left: null, right: null };
+    const quadrilRE = classifications["Mobilidade Quadril RE"] || { left: null, right: null };
+    const mmii = classifications["Flexibilidade Posterior MMII"] || { left: null, right: null };
     const toracica = classifications["Mobilidade Torácica"] || { left: null, right: null };
     const tornozelo = classifications["Mobilidade Tornozelo"] || { left: null, right: null };
 
-    return {
-      shoulderLeft: getFill(shoulderLeft),
-      shoulderRight: getFill(shoulderRight),
-      thoracic: getFill(avgClassification(toracica.left, toracica.right)),
-      hipLeft: getFill(hipLeft),
-      hipRight: getFill(hipRight),
-      thighLeft: getFill(avgClassification(quads.left, psoas.left)),
-      thighRight: getFill(avgClassification(quads.right, psoas.right)),
-      calfLeft: getFill(mmii.left),
-      calfRight: getFill(mmii.right),
-      ankleLeft: getFill(tornozelo.left),
-      ankleRight: getFill(tornozelo.right),
-    };
-  }, [classifications]);
+    if (view === "anterior") {
+      return {
+        shoulderLeft: getFill(ombroRI.left),
+        shoulderRight: getFill(ombroRI.right),
+        thoracic: DEFAULT_FILL,
+        hipLeft: getFill(quadrilRI.left),
+        hipRight: getFill(quadrilRI.right),
+        thighLeft: getFill(avgClassification(quads.left, psoas.left)),
+        thighRight: getFill(avgClassification(quads.right, psoas.right)),
+        calfLeft: DEFAULT_FILL,
+        calfRight: DEFAULT_FILL,
+        ankleLeft: DEFAULT_FILL,
+        ankleRight: DEFAULT_FILL,
+      };
+    } else {
+      return {
+        shoulderLeft: getFill(ombroRE.left),
+        shoulderRight: getFill(ombroRE.right),
+        thoracic: getFill(avgClassification(toracica.left, toracica.right)),
+        hipLeft: getFill(quadrilRE.left),
+        hipRight: getFill(quadrilRE.right),
+        thighLeft: DEFAULT_FILL,
+        thighRight: DEFAULT_FILL,
+        calfLeft: getFill(mmii.left),
+        calfRight: getFill(mmii.right),
+        ankleLeft: getFill(tornozelo.left),
+        ankleRight: getFill(tornozelo.right),
+      };
+    }
+  }, [classifications, view]);
 
   return (
     <div className="flex flex-col items-center gap-3">
+      <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v)} size="sm" className="bg-secondary/50 rounded-md p-0.5 border border-border">
+        <ToggleGroupItem value="anterior" className="text-[10px] px-2.5 py-1 h-6 rounded-sm data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+          Anterior
+        </ToggleGroupItem>
+        <ToggleGroupItem value="posterior" className="text-[10px] px-2.5 py-1 h-6 rounded-sm data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+          Posterior
+        </ToggleGroupItem>
+      </ToggleGroup>
+
       <svg viewBox="0 0 200 420" width="180" height="380" className="drop-shadow-lg">
         {/* Head */}
         <ellipse cx="100" cy="32" rx="22" ry="28" fill={DEFAULT_FILL} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" />
-        
         {/* Neck */}
         <rect x="91" y="58" width="18" height="14" rx="4" fill={DEFAULT_FILL} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" />
 
-        {/* Shoulders - Left (viewer's right = body's left) */}
+        {/* Shoulders */}
         <ellipse cx="65" cy="82" rx="18" ry="12" fill={fills.shoulderLeft} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.9" />
-        {/* Shoulders - Right */}
         <ellipse cx="135" cy="82" rx="18" ry="12" fill={fills.shoulderRight} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.9" />
 
         {/* Upper arms */}
@@ -88,39 +111,40 @@ export function BodyDiagram({ classifications }: BodyDiagramProps) {
         <ellipse cx="47" cy="196" rx="8" ry="10" fill={DEFAULT_FILL} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" />
         <ellipse cx="153" cy="196" rx="8" ry="10" fill={DEFAULT_FILL} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" />
 
-        {/* Torso / Thoracic region */}
-        <path d="M72 72 L128 72 L132 90 L134 160 L120 180 L80 180 L66 160 L68 90 Z" 
+        {/* Torso */}
+        <path d="M72 72 L128 72 L132 90 L134 160 L120 180 L80 180 L66 160 L68 90 Z"
               fill={fills.thoracic} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.85" />
 
-        {/* Hip region - Left */}
-        <path d="M80 180 L100 180 L100 210 L78 215 Z" 
+        {/* Hip */}
+        <path d="M80 180 L100 180 L100 210 L78 215 Z"
               fill={fills.hipLeft} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.9" />
-        {/* Hip region - Right */}
-        <path d="M100 180 L120 180 L122 215 L100 210 Z" 
+        <path d="M100 180 L120 180 L122 215 L100 210 Z"
               fill={fills.hipRight} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.9" />
 
-        {/* Thigh - Left */}
-        <path d="M78 215 L100 210 L96 300 L76 300 Z" 
-              fill={fills.thighLeft} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" rx="6" opacity="0.85" />
-        {/* Thigh - Right */}
-        <path d="M100 210 L122 215 L124 300 L104 300 Z" 
-              fill={fills.thighRight} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" rx="6" opacity="0.85" />
+        {/* Thigh */}
+        <path d="M78 215 L100 210 L96 300 L76 300 Z"
+              fill={fills.thighLeft} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.85" />
+        <path d="M100 210 L122 215 L124 300 L104 300 Z"
+              fill={fills.thighRight} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.85" />
 
-        {/* Calf - Left (posterior chain) */}
-        <path d="M76 302 L96 302 L94 370 L78 370 Z" 
+        {/* Calf */}
+        <path d="M76 302 L96 302 L94 370 L78 370 Z"
               fill={fills.calfLeft} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.85" />
-        {/* Calf - Right */}
-        <path d="M104 302 L124 302 L122 370 L106 370 Z" 
+        <path d="M104 302 L124 302 L122 370 L106 370 Z"
               fill={fills.calfRight} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.85" />
 
-        {/* Ankle/Foot - Left */}
+        {/* Ankle */}
         <ellipse cx="86" cy="380" rx="12" ry="8" fill={fills.ankleLeft} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.9" />
-        {/* Ankle/Foot - Right */}
         <ellipse cx="114" cy="380" rx="12" ry="8" fill={fills.ankleRight} stroke="hsl(228, 10%, 35%)" strokeWidth="0.8" opacity="0.9" />
 
-        {/* Labels - side indicators */}
+        {/* Side labels */}
         <text x="47" y="220" textAnchor="middle" fontSize="8" fill="hsl(220, 10%, 55%)" fontFamily="Inter, sans-serif">E</text>
         <text x="153" y="220" textAnchor="middle" fontSize="8" fill="hsl(220, 10%, 55%)" fontFamily="Inter, sans-serif">D</text>
+
+        {/* View label */}
+        <text x="100" y="415" textAnchor="middle" fontSize="9" fill="hsl(220, 10%, 50%)" fontFamily="Inter, sans-serif">
+          {view === "anterior" ? "Vista Anterior" : "Vista Posterior"}
+        </text>
       </svg>
 
       {/* Legend */}
