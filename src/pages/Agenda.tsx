@@ -39,6 +39,7 @@ export default function Agenda() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
+  const [editEvent, setEditEvent] = useState<any>(null);
 
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
@@ -114,13 +115,20 @@ export default function Agenda() {
   };
 
   const handleCellClick = (dayIndex: number, hour: number) => {
+    setEditEvent(null);
     setPrefill({ date: weekDates[dayIndex], hour });
+    setDialogOpen(true);
+  };
+
+  const handleEventClick = (ev: any) => {
+    setEditEvent(ev);
+    setPrefill(null);
     setDialogOpen(true);
   };
 
   const handleOpenChange = (open: boolean) => {
     setDialogOpen(open);
-    if (!open) setPrefill(null);
+    if (!open) { setPrefill(null); setEditEvent(null); }
   };
 
   const prevWeek = () => setWeekStart(addDays(weekStart, -7));
@@ -134,7 +142,7 @@ export default function Agenda() {
           <h1 className="text-2xl font-heading font-bold text-foreground">Agenda de Serviços</h1>
           <p className="text-muted-foreground text-sm">Gerencie os horários das atividades</p>
         </div>
-        <Button onClick={() => { setPrefill(null); setDialogOpen(true); }} className="gap-2">
+        <Button onClick={() => { setPrefill(null); setEditEvent(null); setDialogOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Novo Horário
         </Button>
       </div>
@@ -188,7 +196,7 @@ export default function Agenda() {
                         <div
                           key={ev.id}
                           className={`rounded p-1.5 mb-0.5 text-xs border group relative ${ATIVIDADE_COLORS[ev.atividade] || "bg-muted text-foreground border-border"}`}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}}
                         >
                           <div className="font-medium truncate">{ev.atividade}</div>
                           <div className="truncate opacity-75">{ev.local}</div>
@@ -224,7 +232,7 @@ export default function Agenda() {
         </ScrollArea>
       </div>
 
-      <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} />
+      <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
