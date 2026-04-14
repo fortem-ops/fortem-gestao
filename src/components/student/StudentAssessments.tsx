@@ -129,18 +129,143 @@ function FunctionalAssessment() {
   );
 }
 
+const dobrasLabels = [
+  'Peitoral', 'Axilar média', 'Tríceps', 'Subescapular', 'Abdominal', 'Supra-ilíaca', 'Coxa',
+];
+
+function classifyBF(pct: number, sexo: 'M' | 'F'): { label: string; color: string } {
+  if (sexo === 'M') {
+    if (pct <= 6) return { label: 'Essencial', color: 'text-info' };
+    if (pct <= 13) return { label: 'Excelente', color: 'text-primary' };
+    if (pct <= 17) return { label: 'Bom', color: 'text-primary' };
+    if (pct <= 24) return { label: 'Médio', color: 'text-warning' };
+    return { label: 'Elevado', color: 'text-destructive' };
+  }
+  if (pct <= 13) return { label: 'Essencial', color: 'text-info' };
+  if (pct <= 20) return { label: 'Excelente', color: 'text-primary' };
+  if (pct <= 24) return { label: 'Bom', color: 'text-primary' };
+  if (pct <= 31) return { label: 'Médio', color: 'text-warning' };
+  return { label: 'Elevado', color: 'text-destructive' };
+}
+
 function BodyComposition() {
+  const [sexo, setSexo] = useState<'M' | 'F'>('M');
+  const [idade, setIdade] = useState('');
+  const [peso, setPeso] = useState('');
+  const [altura, setAltura] = useState('');
+  const [dobras, setDobras] = useState<Record<string, string>>({});
+
+  const results = useMemo(() => {
+    const idadeNum = parseFloat(idade);
+    const vals = dobrasLabels.map(d => parseFloat(dobras[d] || ''));
+    if (isNaN(idadeNum) || vals.some(v => isNaN(v))) return null;
+
+    const sigma7 = vals.reduce((a, b) => a + b, 0);
+    let dc: number;
+    if (sexo === 'M') {
+      dc = 1.112 - 0.00043499 * sigma7 + 0.00000055 * sigma7 * sigma7 - 0.00028826 * idadeNum;
+    } else {
+      dc = 1.097 - 0.00046971 * sigma7 + 0.00000056 * sigma7 * sigma7 - 0.00012828 * idadeNum;
+    }
+    const bf = (495 / dc) - 450;
+    const classification = classifyBF(bf, sexo);
+
+    const pesoNum = parseFloat(peso);
+    const alturaNum = parseFloat(altura);
+    const imc = !isNaN(pesoNum) && !isNaN(alturaNum) && alturaNum > 0
+      ? pesoNum / ((alturaNum / 100) ** 2) : null;
+    const massaMagra = !isNaN(pesoNum) ? pesoNum * (1 - bf / 100) : null;
+    const massaGorda = !isNaN(pesoNum) ? pesoNum * (bf / 100) : null;
+
+    return { sigma7, dc, bf, classification, imc, massaMagra, massaGorda };
+  }, [sexo, idade, peso, altura, dobras]);
+
   return (
-    <div className="glass-card rounded-lg p-4 space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {['Peso (kg)', 'Altura (cm)', 'IMC', '% Gordura', 'Massa Magra (kg)', 'Dobras Cutâneas'].map(field => (
-          <div key={field}>
-            <label className="text-xs text-muted-foreground">{field}</label>
-            <Input type="number" placeholder="—" className="mt-1 h-8" />
+    <div className="space-y-6">
+      {/* Dados básicos */}
+      <div className="glass-card rounded-lg p-4">
+        <h4 className="text-sm font-semibold text-foreground mb-3">Dados do Aluno</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <label className="text-xs text-muted-foreground">Sexo</label>
+            <div className="flex gap-2 mt-1">
+              <Button size="sm" variant={sexo === 'M' ? 'default' : 'outline'} className="flex-1 h-8" onClick={() => setSexo('M')}>Masculino</Button>
+              <Button size="sm" variant={sexo === 'F' ? 'default' : 'outline'} className="flex-1 h-8" onClick={() => setSexo('F')}>Feminino</Button>
+            </div>
           </div>
-        ))}
+          <div>
+            <label className="text-xs text-muted-foreground">Idade</label>
+            <Input type="number" className="mt-1 h-8" placeholder="anos" value={idade} onChange={e => setIdade(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Peso (kg)</label>
+            <Input type="number" className="mt-1 h-8" placeholder="kg" value={peso} onChange={e => setPeso(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Altura (cm)</label>
+            <Input type="number" className="mt-1 h-8" placeholder="cm" value={altura} onChange={e => setAltura(e.target.value)} />
+          </div>
+        </div>
       </div>
-      <Button size="sm"><Save className="w-3 h-3 mr-1" /> Salvar</Button>
+
+      {/* 7 Dobras */}
+      <div className="glass-card rounded-lg p-4">
+        <h4 className="text-sm font-semibold text-foreground mb-1">Protocolo de Pollock — 7 Dobras Cutâneas</h4>
+        <p className="text-xs text-muted-foreground mb-3">Insira os valores em milímetros (mm)</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {dobrasLabels.map((d, i) => (
+            <div key={d}>
+              <label className="text-xs text-muted-foreground">{i + 1}. {d}</label>
+              <Input
+                type="number"
+                className="mt-1 h-8"
+                placeholder="mm"
+                value={dobras[d] || ''}
+                onChange={e => setDobras(prev => ({ ...prev, [d]: e.target.value }))}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Resultados */}
+      {results && (
+        <div className="glass-card rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-foreground mb-3">Resultados</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="text-center p-3 rounded-lg bg-secondary/30">
+              <p className="text-xs text-muted-foreground">Σ7 Dobras</p>
+              <p className="text-lg font-bold text-foreground">{results.sigma7.toFixed(1)} <span className="text-xs font-normal">mm</span></p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-secondary/30">
+              <p className="text-xs text-muted-foreground">Densidade Corporal</p>
+              <p className="text-lg font-bold text-foreground">{results.dc.toFixed(4)}</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-secondary/30">
+              <p className="text-xs text-muted-foreground">% Gordura</p>
+              <p className="text-lg font-bold text-foreground">{results.bf.toFixed(1)}%</p>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-secondary/30">
+              <p className="text-xs text-muted-foreground">Classificação</p>
+              <p className={`text-lg font-bold ${results.classification.color}`}>{results.classification.label}</p>
+            </div>
+            {results.imc !== null && (
+              <div className="text-center p-3 rounded-lg bg-secondary/30">
+                <p className="text-xs text-muted-foreground">IMC</p>
+                <p className="text-lg font-bold text-foreground">{results.imc.toFixed(1)}</p>
+              </div>
+            )}
+            {results.massaMagra !== null && (
+              <div className="text-center p-3 rounded-lg bg-secondary/30">
+                <p className="text-xs text-muted-foreground">Massa Magra</p>
+                <p className="text-lg font-bold text-foreground">{results.massaMagra.toFixed(1)} <span className="text-xs font-normal">kg</span></p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Button><Save className="w-4 h-4 mr-2" /> Salvar Avaliação</Button>
     </div>
   );
 }
