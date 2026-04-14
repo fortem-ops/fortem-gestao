@@ -1,9 +1,45 @@
-import { mockStudents, getBirthdaysToday, getBirthdaysMonth } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Cake } from "lucide-react";
 
 export function BirthdaysWidget() {
-  const today = getBirthdaysToday(mockStudents);
-  const month = getBirthdaysMonth(mockStudents).filter(s => !today.includes(s));
+  const { data } = useQuery({
+    queryKey: ["dashboard-birthdays"],
+    queryFn: async () => {
+      const { data: alunos } = await supabase
+        .from("alunos")
+        .select("id, nome, data_nascimento")
+        .eq("status", "ativo")
+        .not("data_nascimento", "is", null);
+
+      const today = new Date();
+      const todayMonth = today.getMonth();
+      const todayDay = today.getDate();
+
+      const todayList: { id: string; nome: string; dia: number }[] = [];
+      const monthList: { id: string; nome: string; dia: number }[] = [];
+
+      (alunos || []).forEach((a) => {
+        if (!a.data_nascimento) return;
+        const bd = new Date(a.data_nascimento + "T00:00:00");
+        const m = bd.getMonth();
+        const d = bd.getDate();
+        if (m === todayMonth) {
+          if (d === todayDay) {
+            todayList.push({ id: a.id, nome: a.nome, dia: d });
+          } else {
+            monthList.push({ id: a.id, nome: a.nome, dia: d });
+          }
+        }
+      });
+
+      monthList.sort((a, b) => a.dia - b.dia);
+      return { today: todayList, month: monthList };
+    },
+  });
+
+  const todayList = data?.today || [];
+  const monthList = data?.month || [];
 
   return (
     <div className="glass-card rounded-lg p-5">
@@ -11,24 +47,21 @@ export function BirthdaysWidget() {
         <Cake className="w-4 h-4 text-primary" />
         Aniversariantes
       </h3>
-      {today.length > 0 && (
+      {todayList.length > 0 && (
         <div className="mb-3">
           <p className="text-xs font-semibold text-primary mb-2">🎂 Hoje</p>
-          {today.map(s => (
-            <p key={s.id} className="text-sm text-foreground">{s.name}</p>
+          {todayList.map((s) => (
+            <p key={s.id} className="text-sm text-foreground">{s.nome}</p>
           ))}
         </div>
       )}
       <div>
         <p className="text-xs font-semibold text-muted-foreground mb-2">Este mês</p>
-        {month.length > 0 ? month.map(s => {
-          const bd = new Date(s.birthDate);
-          return (
-            <p key={s.id} className="text-sm text-foreground">
-              {s.name} <span className="text-muted-foreground">· {bd.getDate()}/{bd.getMonth() + 1}</span>
-            </p>
-          );
-        }) : (
+        {monthList.length > 0 ? monthList.map((s) => (
+          <p key={s.id} className="text-sm text-foreground">
+            {s.nome} <span className="text-muted-foreground">· {s.dia}/{new Date().getMonth() + 1}</span>
+          </p>
+        )) : (
           <p className="text-sm text-muted-foreground">Nenhum aniversariante</p>
         )}
       </div>
