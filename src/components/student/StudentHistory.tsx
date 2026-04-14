@@ -20,7 +20,8 @@ const categoryMeta: Record<string, { icon: React.ElementType; color: string }> =
   upload: { icon: Upload, color: "text-info" },
   avaliação: { icon: ClipboardList, color: "text-warning" },
   agendamento: { icon: CalendarCheck, color: "text-accent-foreground" },
-  observação: { icon: MessageSquare, color: "text-muted-foreground" },
+  observacao: { icon: MessageSquare, color: "text-muted-foreground" },
+  "observação": { icon: MessageSquare, color: "text-muted-foreground" },
 };
 
 export function StudentHistory({ student }: { student: Tables<"alunos"> }) {
@@ -89,11 +90,11 @@ export function StudentHistory({ student }: { student: Tables<"alunos"> }) {
       (historico.data || []).forEach(h => items.push({
         id: `obs-${h.id}`,
         date: h.created_at,
-        category: "observação",
+        category: h.categoria,
         text: h.descricao,
         author: h.autor_id,
-        icon: categoryMeta["observação"].icon,
-        colorClass: categoryMeta["observação"].color,
+        icon: categoryMeta[h.categoria]?.icon || categoryMeta["observacao"].icon,
+        colorClass: categoryMeta[h.categoria]?.color || categoryMeta["observacao"].color,
       }));
 
       items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
