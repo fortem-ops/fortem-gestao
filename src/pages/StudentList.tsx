@@ -54,7 +54,7 @@ export default function StudentList() {
       // Fetch all consumption records
       const { data: consumos } = await supabase
         .from("consumo_servicos")
-        .select("aluno_id, plano_id, tipo_servico")
+        .select("aluno_id, plano_id, tipo_servico, quantidade, agenda_id")
         .in("aluno_id", ids);
 
       // Build a map of credits per student
@@ -63,21 +63,23 @@ export default function StudentList() {
         const plano = planos?.find((p) => p.aluno_id === student.id);
         const studentConsumos = consumos?.filter((c) => c.aluno_id === student.id && c.plano_id === plano?.id) || [];
 
-        const countUsed = (tipo: string) => studentConsumos.filter((c) => c.tipo_servico === tipo).length;
+        const countPurchased = (tipo: string) =>
+          studentConsumos.filter((c) => c.tipo_servico === tipo && !c.agenda_id)
+            .reduce((sum, c) => sum + ((c as any).quantidade ?? 1), 0);
+
+        const countUsed = (tipo: string) =>
+          studentConsumos.filter((c) => c.tipo_servico === tipo && !!c.agenda_id).length;
+
+        const buildCredit = (tipo: string) => {
+          const base = parseServiceCount(plano?.servicos || null, tipo);
+          const comprado = countPurchased(tipo);
+          return { base, comprado, total: base + comprado, usado: countUsed(tipo) };
+        };
 
         creditsMap[student.id] = {
-          avalFuncional: {
-            total: parseServiceCount(plano?.servicos || null, "Avaliação Funcional"),
-            usado: countUsed("Avaliação Funcional"),
-          },
-          nutricao: {
-            total: parseServiceCount(plano?.servicos || null, "Consultas Nutrição"),
-            usado: countUsed("Consultas Nutrição"),
-          },
-          reabilitacao: {
-            total: parseServiceCount(plano?.servicos || null, "Consultas Reabilitação"),
-            usado: countUsed("Consultas Reabilitação"),
-          },
+          avalFuncional: buildCredit("Avaliação Funcional"),
+          nutricao: buildCredit("Consultas Nutrição"),
+          reabilitacao: buildCredit("Consultas Reabilitação"),
         };
       }
 
