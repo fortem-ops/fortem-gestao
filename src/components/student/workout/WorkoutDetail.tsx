@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save } from "lucide-react";
 import { CATEGORY_LABELS, type WorkoutExercise } from "./workoutTemplates";
+import { ExerciseSelector } from "./ExerciseSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
