@@ -9,15 +9,15 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const PLAN_CONFIG: Record<string, { label: string; duracao: number; servicos: string[] }> = {
-  start:   { label: "Start",  duracao: 1,  servicos: [] },
-  "start+": { label: "Start+", duracao: 12, servicos: ["1 Avaliação Funcional"] },
-  power:   { label: "Power",  duracao: 12, servicos: ["1 Avaliação Funcional"] },
-  pro:     { label: "Pro",    duracao: 12, servicos: ["2 Avaliação Funcional"] },
-  max:     { label: "Max",    duracao: 12, servicos: ["3 Avaliação Funcional", "5 Consultas Nutrição", "5 Consultas Reabilitação"] },
+  Start:    { label: "Start",  duracao: 1,  servicos: [] },
+  "Start+": { label: "Start+", duracao: 12, servicos: ["1 Avaliação Funcional"] },
+  Power:    { label: "Power",  duracao: 12, servicos: ["1 Avaliação Funcional"] },
+  Pro:      { label: "Pro",    duracao: 12, servicos: ["2 Avaliação Funcional"] },
+  Max:      { label: "Max",    duracao: 12, servicos: ["3 Avaliação Funcional", "5 Consultas Nutrição", "5 Consultas Reabilitação"] },
 };
 
 export type PlanType = keyof typeof PLAN_CONFIG;
@@ -30,7 +30,7 @@ export const studentSchema = z.object({
   status: z.enum(["ativo", "licenca", "encerrado"]),
   frequencia_semanal: z.coerce.number().int().min(0).max(3),
   observacoes: z.string().trim().max(1000).or(z.literal("")),
-  plano: z.enum(["start", "start+", "power", "pro", "max"]).optional(),
+  plano: z.enum(["Start", "Start+", "Power", "Pro", "Max"]).optional(),
   plano_consultas: z.string().optional(),
   plano_valor: z.coerce.number().min(0, "Valor deve ser positivo").optional(),
   plano_data_inicio: z.string().optional(),
@@ -41,12 +41,12 @@ export type StudentFormValues = z.infer<typeof studentSchema>;
 
 export function getPlanDetails(plano?: string, plano_consultas?: string) {
   if (!plano || !(plano in PLAN_CONFIG)) return null;
-  const cfg = PLAN_CONFIG[plano as PlanType];
+  const cfg = PLAN_CONFIG[plano];
   const servicos = [...cfg.servicos];
 
-  if (plano === "power") {
+  if (plano === "Power") {
     servicos.push(plano_consultas === "reabilitacao" ? "2 Consultas Reabilitação" : "2 Consultas Nutrição");
-  } else if (plano === "pro") {
+  } else if (plano === "Pro") {
     if (plano_consultas === "reabilitacao") servicos.push("4 Consultas Reabilitação");
     else if (plano_consultas === "misto") servicos.push("2 Consultas Nutrição", "2 Consultas Reabilitação");
     else servicos.push("4 Consultas Nutrição");
@@ -73,12 +73,23 @@ interface StudentFormFieldsProps {
 function PlanServicesSelector({ control }: { control: any }) {
   const plano = useWatch({ control, name: "plano" });
   const dataInicio = useWatch({ control, name: "plano_data_inicio" });
-  const cfg = plano && plano in PLAN_CONFIG ? PLAN_CONFIG[plano as PlanType] : null;
+  const planoConsultas = useWatch({ control, name: "plano_consultas" });
+  const cfg = plano && plano in PLAN_CONFIG ? PLAN_CONFIG[plano] : null;
 
   if (!cfg) return null;
 
   const vigenciaText = cfg.duracao === 1 ? "1 mês" : `${cfg.duracao} meses`;
   const dataFinal = dataInicio ? calcEndDate(dataInicio, cfg.duracao) : "";
+
+  // Build full services list including consultas selection
+  const allServices = [...cfg.servicos];
+  if (plano === "Power") {
+    allServices.push(planoConsultas === "reabilitacao" ? "2 Consultas Reabilitação" : "2 Consultas Nutrição");
+  } else if (plano === "Pro") {
+    if (planoConsultas === "reabilitacao") allServices.push("4 Consultas Reabilitação");
+    else if (planoConsultas === "misto") allServices.push("2 Consultas Nutrição", "2 Consultas Reabilitação");
+    else allServices.push("4 Consultas Nutrição");
+  }
 
   return (
     <div className="space-y-3 rounded-lg border border-border/50 bg-muted/30 p-4">
@@ -96,18 +107,7 @@ function PlanServicesSelector({ control }: { control: any }) {
         </div>
       )}
 
-      {cfg.servicos.length > 0 && (
-        <div>
-          <span className="text-sm font-medium text-foreground">Serviços inclusos</span>
-          <ul className="mt-1 space-y-1">
-            {cfg.servicos.map((s) => (
-              <li key={s} className="text-sm text-muted-foreground">• {s}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {plano === "power" && (
+      {plano === "Power" && (
         <FormField
           control={control}
           name="plano_consultas"
@@ -135,7 +135,7 @@ function PlanServicesSelector({ control }: { control: any }) {
         />
       )}
 
-      {plano === "pro" && (
+      {plano === "Pro" && (
         <FormField
           control={control}
           name="plano_consultas"
@@ -167,11 +167,14 @@ function PlanServicesSelector({ control }: { control: any }) {
         />
       )}
 
-      {plano === "max" && (
+      {allServices.length > 0 && (
         <div>
-          <span className="text-sm text-muted-foreground">• 5 Consultas Nutrição</span>
-          <br />
-          <span className="text-sm text-muted-foreground">• 5 Consultas Reabilitação</span>
+          <span className="text-sm font-medium text-foreground">Serviços inclusos</span>
+          <ul className="mt-1 space-y-1">
+            {allServices.map((s) => (
+              <li key={s} className="text-sm text-muted-foreground">• {s}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
@@ -327,11 +330,11 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl><SelectTrigger><SelectValue placeholder="Selecione o plano" /></SelectTrigger></FormControl>
                 <SelectContent>
-                  <SelectItem value="start">Start</SelectItem>
-                  <SelectItem value="start+">Start+</SelectItem>
-                  <SelectItem value="power">Power</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="max">Max</SelectItem>
+                  <SelectItem value="Start">Start</SelectItem>
+                  <SelectItem value="Start+">Start+</SelectItem>
+                  <SelectItem value="Power">Power</SelectItem>
+                  <SelectItem value="Pro">Pro</SelectItem>
+                  <SelectItem value="Max">Max</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
