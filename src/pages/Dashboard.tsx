@@ -2,6 +2,7 @@ import { StatsCards } from "@/components/dashboard/StatsCards";
 import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
 import { TasksWidget } from "@/components/dashboard/TasksWidget";
 import { BirthdaysWidget } from "@/components/dashboard/BirthdaysWidget";
+import { CarteiraWidget } from "@/components/dashboard/CarteiraWidget";
 
 export default function Dashboard() {
   return (
@@ -18,7 +19,8 @@ export default function Dashboard() {
           <AlertsWidget />
           <TasksWidget />
         </div>
-        <div>
+        <div className="space-y-6">
+          <CarteiraWidget />
           <BirthdaysWidget />
         </div>
       </div>
