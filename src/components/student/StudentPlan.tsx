@@ -21,6 +21,16 @@ function calcEndDate(startDate: string, durationMonths: number): string {
 }
 
 export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
+  const { data: isCoordAdmin = false } = useQuery({
+    queryKey: ["is_coord_admin"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user.id });
+      return !!data;
+    },
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["plano_ativo", student.id],
     queryFn: async () => {
