@@ -58,9 +58,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prefill?: { date: Date; hour: number } | null;
+  editEvent?: any | null;
 }
 
-export function AddAgendaDialog({ open, onOpenChange, prefill }: Props) {
+export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -76,9 +77,24 @@ export function AddAgendaDialog({ open, onOpenChange, prefill }: Props) {
   const [alunoId, setAlunoId] = useState("");
   const [alunoSearch, setAlunoSearch] = useState("");
 
-  // Apply prefill when dialog opens with prefill data
+  const isEditing = !!editEvent;
+
+  // Apply prefill or editEvent when dialog opens
   useEffect(() => {
-    if (open && prefill) {
+    if (!open) return;
+    if (editEvent) {
+      setAtividade(editEvent.atividade || "");
+      setLocal(editEvent.local || "");
+      setTipo(editEvent.tipo || "fixo");
+      setDiaSemana(String(editEvent.dia_semana ?? ""));
+      setDataEspecifica(editEvent.data_especifica || "");
+      setHorarioInicio(editEvent.horario_inicio?.slice(0, 5) || "08:00");
+      setHorarioFim(editEvent.horario_fim?.slice(0, 5) || "09:00");
+      setProfissionalId(editEvent.profissional_id || "");
+      setObservacoes(editEvent.observacoes || "");
+      setAlunoId(editEvent.aluno_id || "");
+      setAlunoSearch("");
+    } else if (prefill) {
       const h = String(prefill.hour).padStart(2, "0");
       const hEnd = String(Math.min(prefill.hour + 1, 21)).padStart(2, "0");
       setHorarioInicio(`${h}:00`);
@@ -86,7 +102,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill }: Props) {
       setDiaSemana(String(prefill.date.getDay()));
       setDataEspecifica(format(prefill.date, "yyyy-MM-dd"));
     }
-  }, [open, prefill]);
+  }, [open, prefill, editEvent]);
 
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profiles_all"],
@@ -167,36 +183,47 @@ export function AddAgendaDialog({ open, onOpenChange, prefill }: Props) {
         payload.data_especifica = dataEspecifica;
       }
 
-      const { data: agendaData, error } = await supabase
-        .from("agenda_servicos")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (error) throw error;
+      if (isEditing) {
+        // Update existing event
+        const { error } = await supabase
+          .from("agenda_servicos")
+          .update(payload)
+          .eq("id", editEvent.id);
+        if (error) throw error;
+      } else {
+        // Insert new event
+        const { data: agendaData, error } = await supabase
+          .from("agenda_servicos")
+          .insert(payload)
+          .select("id")
+          .single();
+        if (error) throw error;
 
-      const tipoServico = ATIVIDADE_TO_SERVICO[atividade];
-      if (alunoId && tipoServico && studentCredits?.plano) {
-        const { error: consumoError } = await supabase
-          .from("consumo_servicos")
-          .insert({
-            aluno_id: alunoId,
-            plano_id: studentCredits.plano.id,
-            agenda_id: agendaData.id,
-            tipo_servico: tipoServico,
-            data_consumo: tipo === "avulso" ? dataEspecifica : new Date().toISOString().split("T")[0],
-            registrado_por: user?.id,
-          });
-        if (consumoError) throw consumoError;
+        // Register consumption for new events only
+        const tipoServico = ATIVIDADE_TO_SERVICO[atividade];
+        if (alunoId && tipoServico && studentCredits?.plano) {
+          const { error: consumoError } = await supabase
+            .from("consumo_servicos")
+            .insert({
+              aluno_id: alunoId,
+              plano_id: studentCredits.plano.id,
+              agenda_id: agendaData.id,
+              tipo_servico: tipoServico,
+              data_consumo: tipo === "avulso" ? dataEspecifica : new Date().toISOString().split("T")[0],
+              registrado_por: user?.id,
+            });
+          if (consumoError) throw consumoError;
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       queryClient.invalidateQueries({ queryKey: ["student_credits"] });
-      toast.success("Horário criado com sucesso");
+      toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
       resetForm();
       onOpenChange(false);
     },
-    onError: (e: any) => toast.error("Erro ao criar horário: " + e.message),
+    onError: (e: any) => toast.error((isEditing ? "Erro ao atualizar: " : "Erro ao criar: ") + e.message),
   });
 
   const resetForm = () => {
@@ -222,8 +249,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Horário</DialogTitle>
-          <DialogDescription>Preencha os dados do horário e vincule um aluno se necessário.</DialogDescription>
+          <DialogTitle>{isEditing ? "Editar Horário" : "Novo Horário"}</DialogTitle>
+          <DialogDescription>{isEditing ? "Edite os dados do horário." : "Preencha os dados do horário e vincule um aluno se necessário."}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -392,7 +419,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill }: Props) {
             onClick={() => mutation.mutate()}
             disabled={!canSubmit || mutation.isPending || (!!alunoId && !hasCredits)}
           >
-            {mutation.isPending ? "Salvando..." : "Salvar"}
+            {mutation.isPending ? "Salvando..." : isEditing ? "Salvar Alterações" : "Salvar"}
           </Button>
         </DialogFooter>
       </DialogContent>
