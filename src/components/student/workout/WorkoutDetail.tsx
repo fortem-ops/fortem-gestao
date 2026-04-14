@@ -44,9 +44,9 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onS
     setData(prev => {
       const next = structuredClone(prev);
       if (section === "aquecimento") {
-        (next.aquecimento[exIdx] as Record<string, unknown>)[field] = value;
+        (next.aquecimento[exIdx] as unknown as Record<string, unknown>)[field] = value;
       } else {
-        (next.treinos[treinoIdx].exercicios[exIdx] as Record<string, unknown>)[field] = value;
+        (next.treinos[treinoIdx].exercicios[exIdx] as unknown as Record<string, unknown>)[field] = value;
       }
       return next;
     });
