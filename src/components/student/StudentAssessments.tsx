@@ -111,6 +111,7 @@ function FunctionalAssessment() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="glass-card rounded-lg p-4">
