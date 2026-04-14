@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save } from "lucide-react";
 import { CATEGORY_LABELS, type WorkoutExercise } from "./workoutTemplates";
+import { ExerciseSelector } from "./ExerciseSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -126,11 +127,10 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onS
                       </span>
                     </td>
                     <td className="py-1 px-2">
-                      <Input
+                      <ExerciseSelector
+                        categoria={ex.categoria}
                         value={ex.exercicio}
-                        onChange={e => updateExercise("aquecimento", 0, i, "exercicio", e.target.value)}
-                        className="h-7 text-xs bg-transparent border-none px-1"
-                        placeholder={CATEGORY_LABELS[ex.categoria] || ex.categoria}
+                        onChange={(val) => updateExercise("aquecimento", 0, i, "exercicio", val)}
                         readOnly={readOnly}
                       />
                     </td>
@@ -179,11 +179,10 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onS
                       </span>
                     </td>
                     <td className="py-1 px-2">
-                      <Input
+                      <ExerciseSelector
+                        categoria={ex.categoria}
                         value={ex.exercicio}
-                        onChange={e => updateExercise("treino", tIdx, i, "exercicio", e.target.value)}
-                        className="h-7 text-xs bg-transparent border-none px-1"
-                        placeholder={CATEGORY_LABELS[ex.categoria] || ex.categoria}
+                        onChange={(val) => updateExercise("treino", tIdx, i, "exercicio", val)}
                         readOnly={readOnly}
                       />
                     </td>
