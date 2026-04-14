@@ -47,19 +47,34 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       const { data: consumos } = await supabase
         .from("consumo_servicos")
-        .select("tipo_servico")
+        .select("tipo_servico, quantidade, agenda_id")
         .eq("aluno_id", student.id)
         .eq("plano_id", plano.id);
 
       const servicos = plano.servicos || [];
-      const countUsed = (tipo: string) => consumos?.filter((c) => c.tipo_servico === tipo).length || 0;
+
+      // Credits from plan base + purchased services (no agenda = sale/purchase)
+      const countPurchased = (tipo: string) =>
+        consumos?.filter((c) => c.tipo_servico === tipo && !c.agenda_id)
+          .reduce((sum, c) => sum + ((c as any).quantidade ?? 1), 0) || 0;
+
+      // Credits used = linked to agenda (scheduled/consumed)
+      const countUsed = (tipo: string) =>
+        consumos?.filter((c) => c.tipo_servico === tipo && !!c.agenda_id).length || 0;
+
+      const buildCredit = (tipo: string) => ({
+        base: parseServiceCount(servicos, tipo),
+        comprado: countPurchased(tipo),
+        total: parseServiceCount(servicos, tipo) + countPurchased(tipo),
+        usado: countUsed(tipo),
+      });
 
       return {
         ...plano,
         credits: {
-          avalFuncional: { total: parseServiceCount(servicos, "Avaliação Funcional"), usado: countUsed("Avaliação Funcional") },
-          nutricao: { total: parseServiceCount(servicos, "Consultas Nutrição"), usado: countUsed("Consultas Nutrição") },
-          reabilitacao: { total: parseServiceCount(servicos, "Consultas Reabilitação"), usado: countUsed("Consultas Reabilitação") },
+          avalFuncional: buildCredit("Avaliação Funcional"),
+          nutricao: buildCredit("Consultas Nutrição"),
+          reabilitacao: buildCredit("Consultas Reabilitação"),
         },
       };
     },
@@ -134,7 +149,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
         {serviceItems.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-foreground mb-3">Serviços do Plano</p>
+            <p className="text-sm font-medium text-foreground mb-3">Créditos de Serviços</p>
             <div className="space-y-2">
               {serviceItems.map((s) => {
                 const restante = s.total - s.usado;
@@ -144,18 +159,19 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                       <s.icon className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-foreground">{s.label}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-medium ${restante > 0 ? "text-primary" : "text-destructive"}`}>
-                        {s.usado}/{s.total}
-                      </span>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      {s.base > 0 && <span>Plano: {s.base}</span>}
+                      {s.comprado > 0 && <span className="text-primary">+{s.comprado} comprado{s.comprado !== 1 ? "s" : ""}</span>}
+                      <span className="text-sm font-medium text-foreground">{s.usado}/{s.total} usados</span>
                       <Badge variant="outline" className={`text-xs ${restante > 0 ? "status-active" : "status-urgent"}`}>
-                        {restante > 0 ? `${restante} restante${restante !== 1 ? "s" : ""}` : "Esgotado"}
+                        {restante > 0 ? `${restante} disponível${restante !== 1 ? "eis" : ""}` : "Esgotado"}
                       </Badge>
                     </div>
                   </div>
                 );
               })}
             </div>
+            <p className="text-xs text-muted-foreground mt-2">Créditos são consumidos ao agendar o serviço na agenda.</p>
           </div>
         )}
       </div>
