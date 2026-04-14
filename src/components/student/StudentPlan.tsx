@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { StudentServicos } from "./StudentServicos";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
@@ -20,6 +21,16 @@ function calcEndDate(startDate: string, durationMonths: number): string {
 }
 
 export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
+  const { data: isCoordAdmin = false } = useQuery({
+    queryKey: ["is_coord_admin"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user.id });
+      return !!data;
+    },
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["plano_ativo", student.id],
     queryFn: async () => {
@@ -149,6 +160,8 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         )}
       </div>
       <p className="text-xs text-muted-foreground">Editável apenas por Coordenação e Administração</p>
+
+      <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
     </div>
   );
 }

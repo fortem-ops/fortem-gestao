@@ -78,7 +78,7 @@ export default function StudentProfile() {
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="uploads">Uploads</TabsTrigger>
-          <TabsTrigger value="plano">Plano</TabsTrigger>
+          <TabsTrigger value="plano">Plano/Serviços</TabsTrigger>
           <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
           <TabsTrigger value="observacoes">Observações</TabsTrigger>
         </TabsList>
