@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, Utensils, HeartPulse, Calendar, DollarSign, Clock } from "lucide-react";
+import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
@@ -77,7 +77,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const serviceItems = [
     { label: "Avaliação Funcional", icon: Activity, ...data.credits.avalFuncional },
     { label: "Consultas Nutrição", icon: Utensils, ...data.credits.nutricao },
-    { label: "Consultas Reabilitação", icon: HeartPulse, ...data.credits.reabilitacao },
+    { label: "Consultas Reabilitação", icon: Footprints, ...data.credits.reabilitacao },
   ].filter((s) => s.total > 0);
 
   return (
