@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { StudentServicos } from "./StudentServicos";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
