@@ -24,9 +24,9 @@ function parseServiceCount(servicos: string[] | null, tipoServico: string): numb
 }
 
 interface ServiceCredits {
-  avalFuncional: { total: number; usado: number };
-  nutricao: { total: number; usado: number };
-  reabilitacao: { total: number; usado: number };
+  avalFuncional: { base: number; comprado: number; total: number; usado: number };
+  nutricao: { base: number; comprado: number; total: number; usado: number };
+  reabilitacao: { base: number; comprado: number; total: number; usado: number };
 }
 
 export default function StudentList() {
