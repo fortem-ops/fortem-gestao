@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Activity, Utensils, Footprints } from "lucide-react";
+import { Search, Filter, Activity, Utensils, Footprints, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -158,7 +158,8 @@ export default function StudentList() {
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Status</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Frequência</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Serviços do Plano</th>
-              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Telefone</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Serviços Contratados</th>
+              <th className="text-center text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">WhatsApp</th>
             </tr>
           </thead>
           <tbody>
@@ -169,19 +170,28 @@ export default function StudentList() {
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-20" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-32" /></td>
-                  <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-28" /></td>
+                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-32" /></td>
+                  <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-8" /></td>
                 </tr>
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
                   Nenhum aluno encontrado.
                 </td>
               </tr>
             ) : (
               filtered.map((student) => {
                 const c = student.credits;
-                const hasAnyService = c && (c.avalFuncional.total > 0 || c.nutricao.total > 0 || c.reabilitacao.total > 0);
+                const hasBasePlan = c && (c.avalFuncional.base > 0 || c.nutricao.base > 0 || c.reabilitacao.base > 0);
+                const hasPurchased = c && (c.avalFuncional.comprado > 0 || c.nutricao.comprado > 0 || c.reabilitacao.comprado > 0);
+
+                const formatPhone = (tel: string | null) => {
+                  if (!tel) return null;
+                  return tel.replace(/\D/g, "");
+                };
+                const whatsappNumber = formatPhone(student.telefone);
+
                 return (
                   <tr
                     key={student.id}
@@ -205,18 +215,41 @@ export default function StudentList() {
                       </span>
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      {hasAnyService ? (
+                      {hasBasePlan ? (
                         <div className="flex items-center gap-3">
-                          <CreditBadge total={c.avalFuncional.total} usado={c.avalFuncional.usado} icon={Activity} label="Avaliação Funcional" />
-                          <CreditBadge total={c.nutricao.total} usado={c.nutricao.usado} icon={Utensils} label="Consultas Nutrição" />
-                          <CreditBadge total={c.reabilitacao.total} usado={c.reabilitacao.usado} icon={Footprints} label="Consultas Reabilitação" />
+                          <CreditBadge total={c.avalFuncional.base} usado={c.avalFuncional.usado} icon={Activity} label="Avaliação Funcional (Plano)" />
+                          <CreditBadge total={c.nutricao.base} usado={c.nutricao.usado > c.nutricao.base ? c.nutricao.base : c.nutricao.usado} icon={Utensils} label="Nutrição (Plano)" />
+                          <CreditBadge total={c.reabilitacao.base} usado={c.reabilitacao.usado > c.reabilitacao.base ? c.reabilitacao.base : c.reabilitacao.usado} icon={Footprints} label="Reabilitação (Plano)" />
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="p-4 hidden xl:table-cell">
-                      <span className="text-sm text-muted-foreground">{student.telefone || "—"}</span>
+                    <td className="p-4 hidden lg:table-cell">
+                      {hasPurchased ? (
+                        <div className="flex items-center gap-3">
+                          <CreditBadge total={c.avalFuncional.comprado} usado={Math.max(0, c.avalFuncional.usado - c.avalFuncional.base)} icon={Activity} label="Avaliação Funcional (Contratado)" />
+                          <CreditBadge total={c.nutricao.comprado} usado={Math.max(0, c.nutricao.usado - c.nutricao.base)} icon={Utensils} label="Nutrição (Contratado)" />
+                          <CreditBadge total={c.reabilitacao.comprado} usado={Math.max(0, c.reabilitacao.usado - c.reabilitacao.base)} icon={Footprints} label="Reabilitação (Contratado)" />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="p-4 hidden xl:table-cell text-center">
+                      {whatsappNumber ? (
+                        <a
+                          href={`https://wa.me/55${whatsappNumber}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center justify-center text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <MessageCircle className="h-5 w-5" />
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 );
