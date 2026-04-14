@@ -1,23 +1,54 @@
-import { Settings } from "lucide-react";
+import { Settings, Users, Shield, CreditCard, Briefcase, ClipboardList, Dumbbell } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminUsers } from "@/components/admin/AdminUsers";
+import { AdminPlanos } from "@/components/admin/AdminPlanos";
+import { AdminComingSoon } from "@/components/admin/AdminComingSoon";
+
+const tabs = [
+  { value: "usuarios", label: "Usuários & Permissões", icon: Users },
+  { value: "planos", label: "Planos", icon: CreditCard },
+  { value: "servicos", label: "Serviços", icon: Briefcase },
+  { value: "avaliacoes", label: "Tipos de Avaliação", icon: ClipboardList },
+  { value: "templates", label: "Templates de Treino", icon: Dumbbell },
+];
 
 export default function Admin() {
-  const items = ['Usuários', 'Permissões', 'Planos', 'Serviços', 'Tipos de Avaliação', 'Templates de Treino'];
-
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-foreground">Administração</h1>
+        <h1 className="text-2xl font-heading font-bold text-foreground flex items-center gap-2">
+          <Settings className="w-6 h-6 text-primary" />
+          Administração
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">Somente Coordenação e Administradores</p>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map(item => (
-          <div key={item} className="glass-card rounded-lg p-5 hover:border-primary/30 cursor-pointer transition-colors">
-            <Settings className="w-5 h-5 text-muted-foreground mb-2" />
-            <p className="text-sm font-semibold text-foreground">{item}</p>
-            <p className="text-xs text-muted-foreground mt-1">Gerenciar {item.toLowerCase()}</p>
-          </div>
-        ))}
-      </div>
+
+      <Tabs defaultValue="usuarios" className="w-full">
+        <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-secondary/50 p-1">
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1.5 text-xs">
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent value="usuarios" className="mt-4">
+          <AdminUsers />
+        </TabsContent>
+        <TabsContent value="planos" className="mt-4">
+          <AdminPlanos />
+        </TabsContent>
+        <TabsContent value="servicos" className="mt-4">
+          <AdminComingSoon title="Gerenciar Serviços" />
+        </TabsContent>
+        <TabsContent value="avaliacoes" className="mt-4">
+          <AdminComingSoon title="Tipos de Avaliação" />
+        </TabsContent>
+        <TabsContent value="templates" className="mt-4">
+          <AdminComingSoon title="Templates de Treino" />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
