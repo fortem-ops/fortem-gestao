@@ -1,0 +1,194 @@
+export interface WorkoutExercise {
+  ordem: number;
+  categoria: string;
+  exercicio: string;
+  series: number | string;
+  repeticoes: string;
+  kg?: string;
+  dias?: string[]; // T1, T2, T3, T4
+}
+
+export interface WorkoutSection {
+  nome: string; // e.g. "TREINO 1", "TREINO 2"
+  tipo: string; // "aquecimento" | "forca"
+  exercicios: WorkoutExercise[];
+}
+
+export interface WorkoutTemplate {
+  fase: string;
+  frequencia: string;
+  aquecimento: WorkoutExercise[];
+  treinos: WorkoutSection[];
+}
+
+const fase1Aquecimento: WorkoutExercise[] = [
+  { ordem: 1, categoria: "LIB", exercicio: "", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 2, categoria: "LIB", exercicio: "", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 3, categoria: "LIB", exercicio: "", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 4, categoria: "LIB", exercicio: "", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 5, categoria: "MOB", exercicio: "", series: 1, repeticoes: "10", dias: ["T2","T4"] },
+  { ordem: 6, categoria: "MOB", exercicio: "", series: 1, repeticoes: "15", dias: ["T1","T2","T3","T4"] },
+  { ordem: 7, categoria: "MOB", exercicio: "", series: 1, repeticoes: "15", dias: ["T1","T3"] },
+  { ordem: 8, categoria: "MOB", exercicio: "", series: 1, repeticoes: "15", dias: ["T1","T3"] },
+  { ordem: 9, categoria: "MOB", exercicio: "", series: 1, repeticoes: "15", dias: ["T2","T4"] },
+  { ordem: 10, categoria: "ATI", exercicio: "", series: 1, repeticoes: '20"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 11, categoria: "ATI", exercicio: "", series: 1, repeticoes: '20"', dias: ["T2","T4"] },
+  { ordem: 12, categoria: "ATI", exercicio: "", series: 1, repeticoes: '20"', dias: ["T2","T4"] },
+  { ordem: 13, categoria: "ATI", exercicio: "", series: 1, repeticoes: "20", dias: ["T1","T3"] },
+  { ordem: 14, categoria: "ATI", exercicio: "", series: 1, repeticoes: '45"', dias: ["T1","T3"] },
+];
+
+const fase1Treino1: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DJS", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "PH", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "EP", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
+];
+
+const fase1Treino2: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DQ", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "EH", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "DJA", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "PV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AF", exercicio: "", series: 3, repeticoes: '30"' },
+];
+
+const fase1Treino3: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DJS", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "PH", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "DQ", exercicio: "", series: 3, repeticoes: "15" },
+  { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AH", exercicio: "", series: 3, repeticoes: '30"' },
+];
+
+const fase1Treino4: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DQ", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "EH", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "DJA", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "PV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AR", exercicio: "", series: 3, repeticoes: "10" },
+];
+
+// FASE 2 templates
+const fase2Treino1: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DJS", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "PH", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "EP", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
+  { ordem: 6, categoria: "PREV", exercicio: "", series: 2, repeticoes: "15" },
+];
+
+const fase2Treino2: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DQ", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "EH", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "DJA", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "PV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AF", exercicio: "", series: 3, repeticoes: '30"' },
+  { ordem: 6, categoria: "PREV", exercicio: "", series: 2, repeticoes: "15" },
+];
+
+// FASE 3 templates
+const fase3Treino1: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DJS", exercicio: "", series: 4, repeticoes: "8" },
+  { ordem: 2, categoria: "PH", exercicio: "", series: 4, repeticoes: "8" },
+  { ordem: 3, categoria: "EP", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
+  { ordem: 6, categoria: "PREV", exercicio: "", series: 2, repeticoes: "15" },
+];
+
+const fase3Treino2: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DQ", exercicio: "", series: 4, repeticoes: "8" },
+  { ordem: 2, categoria: "EH", exercicio: "", series: 4, repeticoes: "8" },
+  { ordem: 3, categoria: "DJA", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "PV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AF", exercicio: "", series: 3, repeticoes: '30"' },
+  { ordem: 6, categoria: "PREV", exercicio: "", series: 2, repeticoes: "15" },
+];
+
+// FASE 4 templates
+const fase4Treino1: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DJS", exercicio: "", series: 5, repeticoes: "5" },
+  { ordem: 2, categoria: "PH", exercicio: "", series: 4, repeticoes: "8" },
+  { ordem: 3, categoria: "EP", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
+  { ordem: 6, categoria: "PREV", exercicio: "", series: 2, repeticoes: "15" },
+];
+
+const fase4Treino2: WorkoutExercise[] = [
+  { ordem: 1, categoria: "DQ", exercicio: "", series: 5, repeticoes: "5" },
+  { ordem: 2, categoria: "EH", exercicio: "", series: 4, repeticoes: "8" },
+  { ordem: 3, categoria: "DJA", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "PV", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AF", exercicio: "", series: 3, repeticoes: '30"' },
+  { ordem: 6, categoria: "PREV", exercicio: "", series: 2, repeticoes: "15" },
+];
+
+export const CATEGORY_LABELS: Record<string, string> = {
+  LIB: "Liberação",
+  MOB: "Mobilidade",
+  ATI: "Ativação",
+  DJS: "Dominante Joelho Simétrico",
+  DJA: "Dominante Joelho Assimétrico",
+  DQ: "Dominante Quadril",
+  PH: "Puxar Horizontal",
+  PV: "Puxar Vertical",
+  EH: "Empurrar Horizontal",
+  EV: "Empurrar Vertical",
+  EP: "Extensão Posterior",
+  AH: "Anti-Extensão/Estabilidade Horizontal",
+  AF: "Anti-Flexão Lateral",
+  AR: "Anti-Rotação",
+  PREV: "Preventivo",
+  COND: "Condicionamento",
+};
+
+export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
+  {
+    fase: "Fase 1",
+    frequencia: "4x",
+    aquecimento: fase1Aquecimento,
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: fase1Treino1 },
+      { nome: "Treino 2", tipo: "forca", exercicios: fase1Treino2 },
+      { nome: "Treino 3", tipo: "forca", exercicios: fase1Treino3 },
+      { nome: "Treino 4", tipo: "forca", exercicios: fase1Treino4 },
+    ],
+  },
+  {
+    fase: "Fase 2",
+    frequencia: "4x",
+    aquecimento: fase1Aquecimento,
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: fase2Treino1 },
+      { nome: "Treino 2", tipo: "forca", exercicios: fase2Treino2 },
+      { nome: "Treino 3", tipo: "forca", exercicios: [...fase2Treino1] },
+      { nome: "Treino 4", tipo: "forca", exercicios: [...fase2Treino2] },
+    ],
+  },
+  {
+    fase: "Fase 3",
+    frequencia: "4x",
+    aquecimento: fase1Aquecimento,
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: fase3Treino1 },
+      { nome: "Treino 2", tipo: "forca", exercicios: fase3Treino2 },
+      { nome: "Treino 3", tipo: "forca", exercicios: [...fase3Treino1] },
+      { nome: "Treino 4", tipo: "forca", exercicios: [...fase3Treino2] },
+    ],
+  },
+  {
+    fase: "Fase 4",
+    frequencia: "4x",
+    aquecimento: fase1Aquecimento,
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: fase4Treino1 },
+      { nome: "Treino 2", tipo: "forca", exercicios: fase4Treino2 },
+      { nome: "Treino 3", tipo: "forca", exercicios: [...fase4Treino1] },
+      { nome: "Treino 4", tipo: "forca", exercicios: [...fase4Treino2] },
+    ],
+  },
+];
