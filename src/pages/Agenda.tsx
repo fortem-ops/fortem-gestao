@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { AddAgendaDialog } from "@/components/agenda/AddAgendaDialog";
@@ -21,9 +21,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const DIAS_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const HORAS = Array.from({ length: 16 }, (_, i) => i + 6); // 06:00 to 21:00
+const HORAS = Array.from({ length: 16 }, (_, i) => i + 6);
 
 const ATIVIDADE_COLORS: Record<string, string> = {
   "Nutrição": "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -39,6 +38,7 @@ export default function Agenda() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
 
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
@@ -51,8 +51,9 @@ export default function Agenda() {
         .order("horario_inicio");
       if (error) throw error;
 
-      // Fetch profile names separately
       const profIds = [...new Set(data.map((d: any) => d.profissional_id).filter(Boolean))];
+      const alunoIds = [...new Set(data.map((d: any) => d.aluno_id).filter(Boolean))];
+
       let profilesMap: Record<string, string> = {};
       if (profIds.length > 0) {
         const { data: profiles } = await supabase
@@ -63,7 +64,23 @@ export default function Agenda() {
           profilesMap = Object.fromEntries(profiles.map((p: any) => [p.user_id, p.full_name]));
         }
       }
-      return data.map((d: any) => ({ ...d, profissional_nome: profilesMap[d.profissional_id] || null }));
+
+      let alunosMap: Record<string, string> = {};
+      if (alunoIds.length > 0) {
+        const { data: alunos } = await supabase
+          .from("alunos")
+          .select("id, nome")
+          .in("id", alunoIds);
+        if (alunos) {
+          alunosMap = Object.fromEntries(alunos.map((a: any) => [a.id, a.nome]));
+        }
+      }
+
+      return data.map((d: any) => ({
+        ...d,
+        profissional_nome: profilesMap[d.profissional_id] || null,
+        aluno_nome: d.aluno_id ? alunosMap[d.aluno_id] || null : null,
+      }));
     },
   });
 
@@ -81,9 +98,8 @@ export default function Agenda() {
   });
 
   const getEventsForCell = (dayIndex: number, hour: number) => {
-    // dayIndex: 0=segunda(weekDates[0]) ... 6=domingo(weekDates[6])
     const date = weekDates[dayIndex];
-    const diaSemana = date.getDay(); // 0=dom, 1=seg...
+    const diaSemana = date.getDay();
 
     return agendas.filter((a: any) => {
       const startHour = parseInt(a.horario_inicio?.split(":")[0] || "0");
@@ -92,10 +108,19 @@ export default function Agenda() {
       if (a.tipo === "fixo") {
         return a.dia_semana === diaSemana;
       } else {
-        // avulso - check specific date
         return a.data_especifica && isSameDay(new Date(a.data_especifica + "T12:00:00"), date);
       }
     });
+  };
+
+  const handleCellClick = (dayIndex: number, hour: number) => {
+    setPrefill({ date: weekDates[dayIndex], hour });
+    setDialogOpen(true);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) setPrefill(null);
   };
 
   const prevWeek = () => setWeekStart(addDays(weekStart, -7));
@@ -109,12 +134,11 @@ export default function Agenda() {
           <h1 className="text-2xl font-heading font-bold text-foreground">Agenda de Serviços</h1>
           <p className="text-muted-foreground text-sm">Gerencie os horários das atividades</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="gap-2">
+        <Button onClick={() => { setPrefill(null); setDialogOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Novo Horário
         </Button>
       </div>
 
-      {/* Week navigation */}
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" onClick={prevWeek}>
           <ChevronLeft className="h-4 w-4" />
@@ -128,11 +152,9 @@ export default function Agenda() {
         </span>
       </div>
 
-      {/* Weekly grid */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <ScrollArea className="h-[calc(100vh-240px)]">
           <div className="min-w-[900px]">
-            {/* Header */}
             <div className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border sticky top-0 bg-card z-10">
               <div className="p-2 text-xs text-muted-foreground text-center">Hora</div>
               {weekDates.map((date, i) => {
@@ -148,7 +170,6 @@ export default function Agenda() {
               })}
             </div>
 
-            {/* Time rows */}
             {HORAS.map((hour) => (
               <div key={hour} className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border/50 min-h-[60px]">
                 <div className="p-2 text-xs text-muted-foreground text-right pr-3 pt-1">
@@ -160,18 +181,26 @@ export default function Agenda() {
                   return (
                     <div
                       key={dayIdx}
-                      className={`border-l border-border/50 p-0.5 ${isToday ? "bg-primary/5" : ""}`}
+                      className={`border-l border-border/50 p-0.5 cursor-pointer hover:bg-muted/30 transition-colors ${isToday ? "bg-primary/5" : ""}`}
+                      onClick={() => handleCellClick(dayIdx, hour)}
                     >
                       {events.map((ev: any) => (
                         <div
                           key={ev.id}
-                          className={`rounded p-1.5 mb-0.5 text-xs border cursor-pointer group relative ${ATIVIDADE_COLORS[ev.atividade] || "bg-muted text-foreground border-border"}`}
+                          className={`rounded p-1.5 mb-0.5 text-xs border group relative ${ATIVIDADE_COLORS[ev.atividade] || "bg-muted text-foreground border-border"}`}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <div className="font-medium truncate">{ev.atividade}</div>
                           <div className="truncate opacity-75">{ev.local}</div>
                           <div className="truncate opacity-60">
                             {ev.horario_inicio?.slice(0, 5)} - {ev.horario_fim?.slice(0, 5)}
                           </div>
+                          {ev.aluno_nome && (
+                            <div className="truncate opacity-80 flex items-center gap-1 mt-0.5">
+                              <User className="h-2.5 w-2.5" />
+                              {ev.aluno_nome}
+                            </div>
+                          )}
                           {ev.profissional_nome && (
                             <div className="truncate opacity-60">{ev.profissional_nome}</div>
                           )}
@@ -195,7 +224,7 @@ export default function Agenda() {
         </ScrollArea>
       </div>
 
-      <AddAgendaDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>

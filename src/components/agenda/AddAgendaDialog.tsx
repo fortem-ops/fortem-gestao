@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { format } from "date-fns";
 
 const ATIVIDADES = [
   "Nutrição",
@@ -37,7 +38,6 @@ const DIAS_SEMANA = [
   { value: "0", label: "Domingo" },
 ];
 
-// Maps atividade to the service name pattern in planos.servicos
 const ATIVIDADE_TO_SERVICO: Record<string, string> = {
   "Nutrição": "Consultas Nutrição",
   "Reabilitação": "Consultas Reabilitação",
@@ -48,11 +48,8 @@ const ATIVIDADE_TO_SERVICO: Record<string, string> = {
 function parseServiceCredits(servicos: string[] | null, tipoServico: string): number {
   if (!servicos) return 0;
   for (const s of servicos) {
-    // Format: "3 Avaliação Funcional" or "5 Consultas Nutrição"
     const match = s.match(/^(\d+)\s+(.+)$/);
-    if (match && match[2] === tipoServico) {
-      return parseInt(match[1]);
-    }
+    if (match && match[2] === tipoServico) return parseInt(match[1]);
   }
   return 0;
 }
@@ -60,9 +57,10 @@ function parseServiceCredits(servicos: string[] | null, tipoServico: string): nu
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefill?: { date: Date; hour: number } | null;
 }
 
-export function AddAgendaDialog({ open, onOpenChange }: Props) {
+export function AddAgendaDialog({ open, onOpenChange, prefill }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -77,6 +75,18 @@ export function AddAgendaDialog({ open, onOpenChange }: Props) {
   const [observacoes, setObservacoes] = useState("");
   const [alunoId, setAlunoId] = useState("");
   const [alunoSearch, setAlunoSearch] = useState("");
+
+  // Apply prefill when dialog opens with prefill data
+  useEffect(() => {
+    if (open && prefill) {
+      const h = String(prefill.hour).padStart(2, "0");
+      const hEnd = String(Math.min(prefill.hour + 1, 21)).padStart(2, "0");
+      setHorarioInicio(`${h}:00`);
+      setHorarioFim(`${hEnd}:00`);
+      setDiaSemana(String(prefill.date.getDay()));
+      setDataEspecifica(format(prefill.date, "yyyy-MM-dd"));
+    }
+  }, [open, prefill]);
 
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profiles_all"],
@@ -103,12 +113,10 @@ export function AddAgendaDialog({ open, onOpenChange }: Props) {
     },
   });
 
-  // Get active plan + consumption for selected student
   const { data: studentCredits } = useQuery({
     queryKey: ["student_credits", alunoId, atividade],
     enabled: !!alunoId && !!atividade && !!ATIVIDADE_TO_SERVICO[atividade],
     queryFn: async () => {
-      // Get active plan
       const { data: planos } = await supabase
         .from("planos")
         .select("*")
@@ -122,7 +130,6 @@ export function AddAgendaDialog({ open, onOpenChange }: Props) {
       const tipoServico = ATIVIDADE_TO_SERVICO[atividade];
       const total = parseServiceCredits(plano.servicos, tipoServico);
 
-      // Count consumption
       const { count } = await supabase
         .from("consumo_servicos")
         .select("*", { count: "exact", head: true })
@@ -167,7 +174,6 @@ export function AddAgendaDialog({ open, onOpenChange }: Props) {
         .single();
       if (error) throw error;
 
-      // If student linked and activity has credits, register consumption
       const tipoServico = ATIVIDADE_TO_SERVICO[atividade];
       if (alunoId && tipoServico && studentCredits?.plano) {
         const { error: consumoError } = await supabase
@@ -384,7 +390,7 @@ export function AddAgendaDialog({ open, onOpenChange }: Props) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             onClick={() => mutation.mutate()}
-            disabled={!canSubmit || mutation.isPending || (alunoId && !hasCredits)}
+            disabled={!canSubmit || mutation.isPending || (!!alunoId && !hasCredits)}
           >
             {mutation.isPending ? "Salvando..." : "Salvar"}
           </Button>
