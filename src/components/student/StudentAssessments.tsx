@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { classifyAngle, getClassificationColor } from "@/lib/mock-data";
+import type { AssessmentClassification } from "@/lib/mock-data";
 import type { Tables } from "@/integrations/supabase/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
+import { BodyDiagram } from "./assessment/BodyDiagram";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
@@ -30,9 +32,31 @@ function FunctionalAssessment() {
     }));
   };
 
+  const classifications = useMemo(() => {
+    const result: Record<string, { left: AssessmentClassification | null; right: AssessmentClassification | null }> = {};
+    functionalMetrics.forEach(metric => {
+      const v = values[metric] || { left: '', right: '' };
+      const leftNum = parseInt(v.left);
+      const rightNum = parseInt(v.right);
+      result[metric] = {
+        left: !isNaN(leftNum) ? classifyAngle(metric, leftNum) : null,
+        right: !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null,
+      };
+    });
+    return result;
+  }, [values]);
+
   return (
     <div className="space-y-6">
-      <div className="glass-card rounded-lg overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Body diagram */}
+        <div className="glass-card rounded-lg p-4 flex flex-col items-center justify-center lg:w-64 shrink-0">
+          <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Mapa Corporal</h4>
+          <BodyDiagram classifications={classifications} />
+        </div>
+
+        {/* Table */}
+        <div className="glass-card rounded-lg overflow-hidden flex-1">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
@@ -87,6 +111,7 @@ function FunctionalAssessment() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="glass-card rounded-lg p-4">
