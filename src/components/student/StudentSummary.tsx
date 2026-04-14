@@ -1,14 +1,30 @@
 import type { Tables } from "@/integrations/supabase/types";
-import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, AlertTriangle } from "lucide-react";
+import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type Aluno = Tables<"alunos">;
 
 export function StudentSummary({ student }: { student: Aluno }) {
   const statusMap: Record<string, string> = { ativo: "Ativo", licenca: "Licença", encerrado: "Encerrado" };
 
+  const { data: professor } = useQuery({
+    queryKey: ["professor", student.responsavel_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", student.responsavel_id!)
+        .single();
+      return data;
+    },
+    enabled: !!student.responsavel_id,
+  });
+
   const cards = [
     { label: "Status", value: statusMap[student.status] || student.status, icon: Heart, highlight: student.status !== "ativo" },
     { label: "Frequência", value: `${student.frequencia_semanal || 0}x/semana`, icon: Clock },
+    { label: "Professor", value: professor?.full_name || "Não atribuído", icon: User },
     { label: "Email", value: student.email || "Não informado", icon: ClipboardCheck },
     { label: "Telefone", value: student.telefone || "Não informado", icon: CalendarDays },
     { label: "Data Nascimento", value: student.data_nascimento ? new Date(student.data_nascimento + "T00:00:00").toLocaleDateString("pt-BR") : "Não informada", icon: CalendarDays },
