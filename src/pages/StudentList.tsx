@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Activity, Utensils, HeartPulse } from "lucide-react";
+import { Search, Filter, Activity, Utensils, Footprints } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -207,7 +207,7 @@ export default function StudentList() {
                         <div className="flex items-center gap-3">
                           <CreditBadge total={c.avalFuncional.total} usado={c.avalFuncional.usado} icon={Activity} label="Avaliação Funcional" />
                           <CreditBadge total={c.nutricao.total} usado={c.nutricao.usado} icon={Utensils} label="Consultas Nutrição" />
-                          <CreditBadge total={c.reabilitacao.total} usado={c.reabilitacao.usado} icon={HeartPulse} label="Consultas Reabilitação" />
+                          <CreditBadge total={c.reabilitacao.total} usado={c.reabilitacao.usado} icon={Footprints} label="Consultas Reabilitação" />
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
