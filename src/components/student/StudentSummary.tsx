@@ -1,8 +1,13 @@
 import type { Tables } from "@/integrations/supabase/types";
-import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type Aluno = Tables<"alunos">;
 
