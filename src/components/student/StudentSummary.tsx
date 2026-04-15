@@ -39,7 +39,18 @@ interface Alert {
 
 export function StudentSummary({ student }: { student: Aluno }) {
   const statusMap: Record<string, string> = { ativo: "Ativo", licenca: "Licença", encerrado: "Encerrado" };
+  const queryClient = useQueryClient();
+  const [editingEndDate, setEditingEndDate] = useState(false);
 
+  const { data: isCoordAdmin = false } = useQuery({
+    queryKey: ["is_coord_admin_summary"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user.id });
+      return !!data;
+    },
+  });
   const { data: professor } = useQuery({
     queryKey: ["professor", student.responsavel_id],
     queryFn: async () => {
