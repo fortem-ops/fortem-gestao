@@ -30,6 +30,31 @@ const statusLabel: Record<string, string> = { ativo: "Ativo", licenca: "Licença
 export default function StudentProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [deleting, setDeleting] = useState(false);
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+  });
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("alunos").delete().eq("id", id!);
+      if (error) throw error;
+      toast.success("Aluno excluído com sucesso!");
+      navigate("/alunos");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir aluno.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const { data: student, isLoading, refetch } = useQuery({
     queryKey: ["aluno", id],
