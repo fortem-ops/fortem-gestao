@@ -21,6 +21,7 @@ export default function Dashboard() {
           <TasksWidget />
         </div>
         <div className="space-y-6">
+          <AdminAlertsWidget />
           <CarteiraWidget />
           <BirthdaysWidget />
         </div>
