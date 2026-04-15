@@ -1,11 +1,19 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { StudentSummary } from "@/components/student/StudentSummary";
 import { StudentWorkouts } from "@/components/student/StudentWorkouts";
 import { StudentAssessments } from "@/components/student/StudentAssessments";
@@ -22,6 +30,31 @@ const statusLabel: Record<string, string> = { ativo: "Ativo", licenca: "Licença
 export default function StudentProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [deleting, setDeleting] = useState(false);
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+  });
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("alunos").delete().eq("id", id!);
+      if (error) throw error;
+      toast.success("Aluno excluído com sucesso!");
+      navigate("/alunos");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir aluno.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const { data: student, isLoading, refetch } = useQuery({
     queryKey: ["aluno", id],
@@ -69,6 +102,29 @@ export default function StudentProfile() {
           </p>
         </div>
         <EditStudentDialog student={student} onStudentUpdated={() => refetch()} />
+        {isAdmin && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="icon" title="Excluir aluno">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir aluno</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja excluir <strong>{student.nome}</strong>? Esta ação é irreversível e todos os dados associados serão removidos.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  {deleting ? "Excluindo..." : "Excluir"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       <Tabs defaultValue="resumo" className="w-full">
