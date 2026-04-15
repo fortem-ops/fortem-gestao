@@ -217,9 +217,45 @@ export function StudentSummary({ student }: { student: Aluno }) {
           </div>
           <div className="glass-card rounded-lg p-4">
             <span className="text-xs text-muted-foreground">Data Final</span>
-            <p className="text-sm font-semibold text-foreground mt-1">
-              {planEndDate ? planEndDate.toLocaleDateString("pt-BR") : "—"}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm font-semibold text-foreground">
+                {planEndDate ? planEndDate.toLocaleDateString("pt-BR") : "—"}
+              </p>
+              {isCoordAdmin && plano && (
+                <Popover open={editingEndDate} onOpenChange={setEditingEndDate}>
+                  <PopoverTrigger asChild>
+                    <button className="text-muted-foreground hover:text-primary transition-colors">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={planEndDate || undefined}
+                      onSelect={async (date) => {
+                        if (!date || !plano) return;
+                        const startDate = new Date(plano.data_inicio + "T00:00:00");
+                        const diffMonths = (date.getFullYear() - startDate.getFullYear()) * 12 + (date.getMonth() - startDate.getMonth());
+                        const newDuration = Math.max(1, diffMonths);
+                        const { error } = await supabase
+                          .from("planos")
+                          .update({ duracao_meses: newDuration })
+                          .eq("id", plano.id);
+                        if (error) {
+                          toast.error("Erro ao atualizar data final");
+                        } else {
+                          toast.success("Data final atualizada");
+                          queryClient.invalidateQueries({ queryKey: ["plano_resumo", student.id] });
+                          queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+                        }
+                        setEditingEndDate(false);
+                      }}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
           </div>
           <div className="glass-card rounded-lg p-4">
             <span className="text-xs text-muted-foreground">Valor</span>
