@@ -140,21 +140,26 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         .eq("ativo", true)
         .limit(1);
 
-      if (!planos || planos.length === 0) return { plano: null, total: 0, usado: 0, restante: 0 };
+      if (!planos || planos.length === 0) return { plano: null, total: 0, usado: 0, restante: 0, comprado: 0, base: 0 };
 
       const plano = planos[0];
       const tipoServico = ATIVIDADE_TO_SERVICO[atividade];
-      const total = parseServiceCredits(plano.servicos, tipoServico);
+      const base = parseServiceCredits(plano.servicos, tipoServico);
 
-      const { count } = await supabase
+      const { data: consumos } = await supabase
         .from("consumo_servicos")
-        .select("*", { count: "exact", head: true })
+        .select("agenda_id, quantidade")
         .eq("aluno_id", alunoId)
         .eq("plano_id", plano.id)
         .eq("tipo_servico", tipoServico);
 
-      const usado = count || 0;
-      return { plano, total, usado, restante: total - usado };
+      // Purchased = records without agenda_id (extra credits bought)
+      const comprado = consumos?.filter((c) => !c.agenda_id).reduce((sum, c) => sum + (c.quantidade ?? 1), 0) || 0;
+      // Used = records with agenda_id (scheduled/consumed)
+      const usado = consumos?.filter((c) => !!c.agenda_id).length || 0;
+      const total = base + comprado;
+
+      return { plano, total, usado, restante: total - usado, comprado, base };
     },
   });
 
