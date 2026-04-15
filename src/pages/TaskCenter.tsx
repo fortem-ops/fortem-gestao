@@ -1,53 +1,376 @@
-import { mockTasks } from "@/lib/mock-data";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, AlertCircle, CheckCircle } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
 
-const priorityClass: Record<string, string> = { alta: 'status-urgent', media: 'status-warning', baixa: 'status-info' };
+const priorityClass: Record<string, string> = {
+  alta: "status-urgent",
+  media: "status-warning",
+  baixa: "status-info",
+};
 
-function TaskList({ tasks }: { tasks: typeof mockTasks }) {
-  if (tasks.length === 0) return <p className="text-sm text-muted-foreground text-center py-8">Nenhuma tarefa</p>;
+interface TaskRow {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  prioridade: string;
+  status: string;
+  data_limite: string | null;
+  automatica: boolean;
+  tipo_auto: string | null;
+  aluno_id: string | null;
+  responsavel_id: string;
+  responsavel_nome?: string;
+  aluno_nome?: string;
+  atrasada?: boolean;
+}
+
+function TaskList({
+  tasks,
+  onToggle,
+}: {
+  tasks: TaskRow[];
+  onToggle: (id: string, currentStatus: string) => void;
+}) {
+  const navigate = useNavigate();
+
+  if (tasks.length === 0)
+    return (
+      <p className="text-sm text-muted-foreground text-center py-8">
+        Nenhuma tarefa
+      </p>
+    );
+
   return (
     <div className="space-y-2">
-      {tasks.map(task => (
-        <div key={task.id} className="glass-card rounded-lg p-4 flex items-start gap-3">
-          {task.status === 'atrasada' ? <AlertCircle className="w-4 h-4 text-destructive mt-0.5" /> :
-           task.status === 'concluida' ? <CheckCircle className="w-4 h-4 text-success mt-0.5" /> :
-           <Clock className="w-4 h-4 text-muted-foreground mt-0.5" />}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">{task.title}</p>
-            <p className="text-xs text-muted-foreground">{task.description}</p>
-            <p className="text-xs text-muted-foreground mt-1">{task.responsible} · {task.dueDate} {task.auto && '· Automática'}</p>
+      {tasks.map((task) => {
+        const isOverdue =
+          task.status !== "concluida" &&
+          task.data_limite &&
+          task.data_limite < new Date().toISOString().split("T")[0];
+        const isDone = task.status === "concluida";
+
+        return (
+          <div
+            key={task.id}
+            className="glass-card rounded-lg p-4 flex items-start gap-3"
+          >
+            <button
+              onClick={() => onToggle(task.id, task.status)}
+              className="mt-0.5 shrink-0"
+              title={isDone ? "Reabrir tarefa" : "Concluir tarefa"}
+            >
+              {isOverdue ? (
+                <AlertCircle className="w-4 h-4 text-destructive" />
+              ) : isDone ? (
+                <CheckCircle className="w-4 h-4 text-success" />
+              ) : (
+                <Clock className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            <div
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={() =>
+                task.aluno_id && navigate(`/alunos/${task.aluno_id}`)
+              }
+            >
+              <p
+                className={`text-sm font-medium ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}
+              >
+                {task.titulo}
+              </p>
+              {task.descricao && (
+                <p className="text-xs text-muted-foreground">
+                  {task.descricao}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {task.responsavel_nome || "—"}
+                {task.aluno_nome && ` · ${task.aluno_nome}`}
+                {task.data_limite &&
+                  ` · ${new Date(task.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`}
+                {task.automatica && " · Automática"}
+              </p>
+            </div>
+            <Badge
+              variant="outline"
+              className={`text-xs shrink-0 ${priorityClass[task.prioridade] || ""}`}
+            >
+              {task.prioridade}
+            </Badge>
           </div>
-          <Badge variant="outline" className={`text-xs shrink-0 ${priorityClass[task.priority]}`}>{task.priority}</Badge>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
+function NewTaskDialog({ onCreated }: { onCreated: () => void }) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [titulo, setTitulo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [prioridade, setPrioridade] = useState("media");
+  const [dataLimite, setDataLimite] = useState("");
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles-list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name");
+      return data || [];
+    },
+  });
+
+  const [responsavelId, setResponsavelId] = useState("");
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("tarefas").insert({
+        titulo,
+        descricao: descricao || null,
+        prioridade,
+        data_limite: dataLimite || null,
+        responsavel_id: responsavelId || user!.id,
+        criado_por_id: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Tarefa criada");
+      setOpen(false);
+      setTitulo("");
+      setDescricao("");
+      setPrioridade("media");
+      setDataLimite("");
+      setResponsavelId("");
+      onCreated();
+    },
+    onError: () => toast.error("Erro ao criar tarefa"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Plus className="w-3 h-3 mr-1" /> Nova Tarefa
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nova Tarefa</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Título</Label>
+            <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Prioridade</Label>
+              <Select value={prioridade} onValueChange={setPrioridade}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="baixa">Baixa</SelectItem>
+                  <SelectItem value="media">Média</SelectItem>
+                  <SelectItem value="alta">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Data limite</Label>
+              <Input
+                type="date"
+                value={dataLimite}
+                onChange={(e) => setDataLimite(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Responsável</Label>
+            <Select value={responsavelId} onValueChange={setResponsavelId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {profiles.map((p) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>
+                    {p.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            className="w-full"
+            disabled={!titulo || createMutation.isPending}
+            onClick={() => createMutation.mutate()}
+          >
+            Criar Tarefa
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function TaskCenter() {
-  const pending = mockTasks.filter(t => t.status === 'pendente');
-  const overdue = mockTasks.filter(t => t.status === 'atrasada');
-  const auto = mockTasks.filter(t => t.auto);
+  const queryClient = useQueryClient();
+
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ["tarefas-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tarefas")
+        .select("*")
+        .order("data_limite", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      if (!data?.length) return [];
+
+      const userIds = [
+        ...new Set(data.map((t) => t.responsavel_id)),
+      ];
+      const alunoIds = [
+        ...new Set(data.filter((t) => t.aluno_id).map((t) => t.aluno_id!)),
+      ];
+
+      const [profilesRes, alunosRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds),
+        alunoIds.length
+          ? supabase.from("alunos").select("id, nome").in("id", alunoIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const nameMap: Record<string, string> = {};
+      (profilesRes.data || []).forEach((p) => {
+        nameMap[p.user_id] = p.full_name;
+      });
+      const alunoMap: Record<string, string> = {};
+      (alunosRes.data || []).forEach((a) => {
+        alunoMap[a.id] = a.nome;
+      });
+
+      const todayStr = new Date().toISOString().split("T")[0];
+
+      return data.map((t) => ({
+        ...t,
+        responsavel_nome: nameMap[t.responsavel_id] || "—",
+        aluno_nome: t.aluno_id ? alunoMap[t.aluno_id] || "" : "",
+        atrasada:
+          t.status !== "concluida" && t.data_limite
+            ? t.data_limite < todayStr
+            : false,
+      }));
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({
+      id,
+      newStatus,
+    }: {
+      id: string;
+      newStatus: string;
+    }) => {
+      const { error } = await supabase
+        .from("tarefas")
+        .update({ status: newStatus })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tarefas-all"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
+    },
+    onError: () => toast.error("Erro ao atualizar tarefa"),
+  });
+
+  const handleToggle = (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === "concluida" ? "pendente" : "concluida";
+    toggleMutation.mutate({ id, newStatus });
+  };
+
+  const pending = tasks.filter(
+    (t) => t.status === "pendente" && !t.atrasada
+  );
+  const overdue = tasks.filter(
+    (t) => t.status !== "concluida" && t.atrasada
+  );
+  const done = tasks.filter((t) => t.status === "concluida");
+  const auto = tasks.filter((t) => t.automatica);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-foreground">Central de Tarefas</h1>
-        <p className="text-sm text-muted-foreground mt-1">{mockTasks.length} tarefas no total</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-foreground">
+            Central de Tarefas
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {tasks.length} tarefa(s) no total
+          </p>
+        </div>
+        <NewTaskDialog
+          onCreated={() =>
+            queryClient.invalidateQueries({ queryKey: ["tarefas-all"] })
+          }
+        />
       </div>
       <Tabs defaultValue="pendentes">
         <TabsList className="bg-secondary/50 border border-border">
-          <TabsTrigger value="pendentes">Pendentes ({pending.length})</TabsTrigger>
-          <TabsTrigger value="atrasadas">Atrasadas ({overdue.length})</TabsTrigger>
-          <TabsTrigger value="automaticas">Automáticas ({auto.length})</TabsTrigger>
+          <TabsTrigger value="pendentes">
+            Pendentes ({pending.length})
+          </TabsTrigger>
+          <TabsTrigger value="atrasadas">
+            Atrasadas ({overdue.length})
+          </TabsTrigger>
+          <TabsTrigger value="automaticas">
+            Automáticas ({auto.length})
+          </TabsTrigger>
+          <TabsTrigger value="concluidas">
+            Concluídas ({done.length})
+          </TabsTrigger>
           <TabsTrigger value="todas">Todas</TabsTrigger>
         </TabsList>
-        <TabsContent value="pendentes"><TaskList tasks={pending} /></TabsContent>
-        <TabsContent value="atrasadas"><TaskList tasks={overdue} /></TabsContent>
-        <TabsContent value="automaticas"><TaskList tasks={auto} /></TabsContent>
-        <TabsContent value="todas"><TaskList tasks={mockTasks} /></TabsContent>
+        <TabsContent value="pendentes">
+          <TaskList tasks={pending} onToggle={handleToggle} />
+        </TabsContent>
+        <TabsContent value="atrasadas">
+          <TaskList tasks={overdue} onToggle={handleToggle} />
+        </TabsContent>
+        <TabsContent value="automaticas">
+          <TaskList tasks={auto} onToggle={handleToggle} />
+        </TabsContent>
+        <TabsContent value="concluidas">
+          <TaskList tasks={done} onToggle={handleToggle} />
+        </TabsContent>
+        <TabsContent value="todas">
+          <TaskList tasks={tasks} onToggle={handleToggle} />
+        </TabsContent>
       </Tabs>
     </div>
   );
