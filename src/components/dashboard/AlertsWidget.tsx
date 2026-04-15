@@ -48,8 +48,10 @@ export function AlertsWidget() {
         alunoMap[a.id] = { nome: a.nome, freq: a.frequencia_semanal, status: a.status };
       });
 
-      // 1. Planos vencendo (próximos 30 dias)
-      planos.forEach((p) => {
+      const RECURRING_PLANS = ["Start", "Gympass/Wellhub", "Total Pass"];
+
+      // 1. Planos vencendo (próximos 30 dias) — skip recurring monthly plans
+      planos.filter((p) => !RECURRING_PLANS.includes(p.tipo)).forEach((p) => {
         const start = new Date(p.data_inicio + "T00:00:00");
         const end = new Date(start);
         end.setMonth(end.getMonth() + p.duracao_meses);

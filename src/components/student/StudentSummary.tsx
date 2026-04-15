@@ -110,8 +110,10 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const alerts: Alert[] = [];
   const today = new Date();
 
-  // Plan expiring
-  if (plano) {
+  const RECURRING_PLANS = ["Start", "Gympass/Wellhub", "Total Pass"];
+
+  // Plan expiring (skip recurring monthly plans)
+  if (plano && !RECURRING_PLANS.includes(plano.tipo)) {
     const endDate = calcEndDate(plano.data_inicio, plano.duracao_meses);
     const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / 86400000);
     if (diffDays <= 30) {
