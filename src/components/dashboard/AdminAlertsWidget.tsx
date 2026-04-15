@@ -14,6 +14,7 @@ interface PlanAlert {
 
 export function AdminAlertsWidget() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { data } = useQuery({
     queryKey: ["admin-alerts-planos", user?.id],
