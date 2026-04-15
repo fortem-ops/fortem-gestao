@@ -1,5 +1,6 @@
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
+import { AdminAlertsWidget } from "@/components/dashboard/AdminAlertsWidget";
 import { TasksWidget } from "@/components/dashboard/TasksWidget";
 import { BirthdaysWidget } from "@/components/dashboard/BirthdaysWidget";
 import { CarteiraWidget } from "@/components/dashboard/CarteiraWidget";
