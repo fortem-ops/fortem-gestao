@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Activity, Utensils, Footprints, MessageCircle } from "lucide-react";
+import { Activity, Utensils, Footprints, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import AddStudentDialog from "@/components/student/AddStudentDialog";
+import { StudentListFilters, defaultFilters, type StudentFilters } from "@/components/student/StudentListFilters";
+import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
 
 type Status = "ativo" | "licenca" | "encerrado";
 const statusLabel: Record<Status, string> = { ativo: "Ativo", licenca: "Licença", encerrado: "Encerrado" };
@@ -30,38 +30,47 @@ interface ServiceCredits {
 }
 
 export default function StudentList() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [filters, setFilters] = useState<StudentFilters>(defaultFilters);
   const navigate = useNavigate();
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["all_profiles"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name");
+      return data || [];
+    },
+  });
+
+  const professors = profiles.map((p) => ({ id: p.user_id, name: p.full_name }));
+  const profileMap: Record<string, string> = {};
+  profiles.forEach((p) => { profileMap[p.user_id] = p.full_name; });
 
   const { data: alunos = [], isLoading, refetch } = useQuery({
     queryKey: ["alunos_with_plans"],
     queryFn: async () => {
-      const { data: students, error } = await supabase
-        .from("alunos")
-        .select("*")
-        .order("nome");
+      const { data: students, error } = await supabase.from("alunos").select("*").order("nome");
       if (error) throw error;
 
-      // Fetch active plans for all students
       const ids = students.map((s) => s.id);
-      const { data: planos } = await supabase
-        .from("planos")
-        .select("*")
-        .in("aluno_id", ids)
-        .eq("ativo", true);
-
-      // Fetch all consumption records
+      const { data: planos } = await supabase.from("planos").select("*").in("aluno_id", ids).eq("ativo", true);
       const { data: consumos } = await supabase
         .from("consumo_servicos")
         .select("aluno_id, plano_id, tipo_servico, quantidade, agenda_id")
         .in("aluno_id", ids);
 
-      // Build a map of credits per student
       const creditsMap: Record<string, ServiceCredits> = {};
+      const planEndMap: Record<string, Date | null> = {};
+
       for (const student of students) {
         const plano = planos?.find((p) => p.aluno_id === student.id);
         const studentConsumos = consumos?.filter((c) => c.aluno_id === student.id && c.plano_id === plano?.id) || [];
+
+        // Plan end date
+        if (plano) {
+          planEndMap[student.id] = addMonths(new Date(plano.data_inicio), plano.duracao_meses);
+        } else {
+          planEndMap[student.id] = null;
+        }
 
         const countPurchased = (tipo: string) =>
           studentConsumos.filter((c) => c.tipo_servico === tipo && !c.agenda_id)
@@ -83,16 +92,41 @@ export default function StudentList() {
         };
       }
 
-      return students.map((s) => ({ ...s, credits: creditsMap[s.id] }));
+      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id] }));
     },
   });
 
   const filtered = alunos.filter((s) => {
-    const matchSearch =
-      s.nome.toLowerCase().includes(search.toLowerCase()) ||
-      (s.email?.toLowerCase().includes(search.toLowerCase()) ?? false);
-    const matchStatus = statusFilter === "todos" || s.status === statusFilter;
-    return matchSearch && matchStatus;
+    const c = s.credits;
+    const matchSearch = s.nome.toLowerCase().includes(filters.search.toLowerCase()) ||
+      (s.email?.toLowerCase().includes(filters.search.toLowerCase()) ?? false);
+    const matchStatus = filters.status === "todos" || s.status === filters.status;
+
+    const matchFreq = filters.frequencia === "todos" ||
+      (filters.frequencia === "livre" ? s.frequencia_semanal === 0 : s.frequencia_semanal === parseInt(filters.frequencia));
+
+    const hasBase = c && (c.avalFuncional.base > 0 || c.nutricao.base > 0 || c.reabilitacao.base > 0);
+    const matchSP = filters.servicosPlano === "todos" ||
+      (filters.servicosPlano === "com" ? hasBase : !hasBase);
+
+    const hasPurch = c && (c.avalFuncional.comprado > 0 || c.nutricao.comprado > 0 || c.reabilitacao.comprado > 0);
+    const matchSC = filters.servicosContratados === "todos" ||
+      (filters.servicosContratados === "com" ? hasPurch : !hasPurch);
+
+    const matchProf = filters.professor === "todos" || s.responsavel_id === filters.professor;
+
+    let matchDate = true;
+    if (filters.dataFinalDe && s.planEnd) {
+      matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
+    }
+    if (filters.dataFinalAte && s.planEnd) {
+      matchDate = matchDate && !isAfter(s.planEnd, startOfDay(filters.dataFinalAte));
+    }
+    if ((filters.dataFinalDe || filters.dataFinalAte) && !s.planEnd) {
+      matchDate = false;
+    }
+
+    return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
   });
 
   const CreditBadge = ({ total, usado, icon: Icon, label }: { total: number; usado: number; icon: any; label: string }) => {
@@ -126,39 +160,19 @@ export default function StudentList() {
         <AddStudentDialog onStudentAdded={() => refetch()} />
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome ou email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            <SelectItem value="ativo">Ativos</SelectItem>
-            <SelectItem value="licenca">Licença</SelectItem>
-            <SelectItem value="encerrado">Encerrados</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <StudentListFilters filters={filters} onChange={setFilters} professors={professors} />
 
-      <div className="glass-card rounded-lg overflow-hidden">
+      <div className="glass-card rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
               <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Status</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Frequência</th>
-              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Serviços do Plano</th>
-              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Serviços Contratados</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Professor</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Final Plano</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Serviços do Plano</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Serviços Contratados</th>
               <th className="text-center text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">WhatsApp</th>
             </tr>
           </thead>
@@ -169,14 +183,16 @@ export default function StudentList() {
                   <td className="p-4"><Skeleton className="h-5 w-40" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-20" /></td>
-                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-32" /></td>
-                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-32" /></td>
+                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-24" /></td>
+                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-20" /></td>
+                  <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-32" /></td>
+                  <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-32" /></td>
                   <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-8" /></td>
                 </tr>
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                <td colSpan={8} className="p-8 text-center text-muted-foreground">
                   Nenhum aluno encontrado.
                 </td>
               </tr>
@@ -186,11 +202,14 @@ export default function StudentList() {
                 const hasBasePlan = c && (c.avalFuncional.base > 0 || c.nutricao.base > 0 || c.reabilitacao.base > 0);
                 const hasPurchased = c && (c.avalFuncional.comprado > 0 || c.nutricao.comprado > 0 || c.reabilitacao.comprado > 0);
 
-                const formatPhone = (tel: string | null) => {
-                  if (!tel) return null;
-                  return tel.replace(/\D/g, "");
-                };
-                const whatsappNumber = formatPhone(student.telefone);
+                const whatsappNumber = student.telefone?.replace(/\D/g, "") || null;
+                const professorName = student.responsavel_id ? profileMap[student.responsavel_id] : null;
+
+                const planEndStr = student.planEnd
+                  ? format(student.planEnd, "dd/MM/yyyy")
+                  : null;
+
+                const isPlanExpired = student.planEnd && isBefore(student.planEnd, new Date());
 
                 return (
                   <tr
@@ -215,17 +234,29 @@ export default function StudentList() {
                       </span>
                     </td>
                     <td className="p-4 hidden lg:table-cell">
+                      <span className="text-sm text-muted-foreground">{professorName || "—"}</span>
+                    </td>
+                    <td className="p-4 hidden lg:table-cell">
+                      {planEndStr ? (
+                        <span className={`text-sm ${isPlanExpired ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                          {planEndStr}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="p-4 hidden xl:table-cell">
                       {hasBasePlan ? (
                         <div className="flex items-center gap-3">
                           <CreditBadge total={c.avalFuncional.base} usado={c.avalFuncional.usado} icon={Activity} label="Avaliação Funcional (Plano)" />
-                          <CreditBadge total={c.nutricao.base} usado={c.nutricao.usado > c.nutricao.base ? c.nutricao.base : c.nutricao.usado} icon={Utensils} label="Nutrição (Plano)" />
-                          <CreditBadge total={c.reabilitacao.base} usado={c.reabilitacao.usado > c.reabilitacao.base ? c.reabilitacao.base : c.reabilitacao.usado} icon={Footprints} label="Reabilitação (Plano)" />
+                          <CreditBadge total={c.nutricao.base} usado={Math.min(c.nutricao.usado, c.nutricao.base)} icon={Utensils} label="Nutrição (Plano)" />
+                          <CreditBadge total={c.reabilitacao.base} usado={Math.min(c.reabilitacao.usado, c.reabilitacao.base)} icon={Footprints} label="Reabilitação (Plano)" />
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="p-4 hidden lg:table-cell">
+                    <td className="p-4 hidden xl:table-cell">
                       {hasPurchased ? (
                         <div className="flex items-center gap-3">
                           <CreditBadge total={c.avalFuncional.comprado} usado={Math.max(0, c.avalFuncional.usado - c.avalFuncional.base)} icon={Activity} label="Avaliação Funcional (Contratado)" />
