@@ -1,0 +1,2 @@
+ALTER TABLE public.planos DROP CONSTRAINT planos_tipo_check;
+ALTER TABLE public.planos ADD CONSTRAINT planos_tipo_check CHECK (tipo = ANY (ARRAY['Start'::text, 'Start+'::text, 'Power'::text, 'Pro'::text, 'Max'::text, 'Gympass/Wellhub'::text, 'Total Pass'::text]));
