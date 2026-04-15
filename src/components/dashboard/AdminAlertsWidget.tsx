@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { CalendarClock, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -13,6 +14,7 @@ interface PlanAlert {
 
 export function AdminAlertsWidget() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { data } = useQuery({
     queryKey: ["admin-alerts-planos", user?.id],
@@ -101,7 +103,7 @@ export function AdminAlertsWidget() {
     return alerts.map((a) => {
       const isPast = a.dataFinal < now;
       return (
-        <div key={`${a.alunoId}-${a.dataFinal.toISOString()}`} className="flex items-center justify-between p-2.5 rounded-md bg-secondary/50">
+        <div key={`${a.alunoId}-${a.dataFinal.toISOString()}`} className="flex items-center justify-between p-2.5 rounded-md bg-secondary/50 cursor-pointer hover:bg-secondary/80 transition-colors" onClick={() => navigate(`/alunos/${a.alunoId}`)}>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground truncate">{a.alunoNome}</p>
             <p className="text-xs text-muted-foreground">
