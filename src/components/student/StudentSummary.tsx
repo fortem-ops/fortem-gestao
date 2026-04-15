@@ -180,10 +180,14 @@ export function StudentSummary({ student }: { student: Aluno }) {
           <DollarSign className="w-4 h-4 text-muted-foreground" />
           Plano
         </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="glass-card rounded-lg p-4">
             <span className="text-xs text-muted-foreground">Tipo</span>
             <p className="text-sm font-semibold text-foreground mt-1">{plano?.tipo || "Sem plano"}</p>
+          </div>
+          <div className="glass-card rounded-lg p-4">
+            <span className="text-xs text-muted-foreground">Frequência</span>
+            <p className="text-sm font-semibold text-foreground mt-1">{student.frequencia_semanal || 0}x/semana</p>
           </div>
           <div className="glass-card rounded-lg p-4">
             <span className="text-xs text-muted-foreground">Status</span>
@@ -223,7 +227,6 @@ export function StudentSummary({ student }: { student: Aluno }) {
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">{professor?.full_name || "Não atribuído"}</p>
-              <p className="text-xs text-muted-foreground">Frequência: {student.frequencia_semanal || 0}x/semana</p>
             </div>
           </div>
         </div>
