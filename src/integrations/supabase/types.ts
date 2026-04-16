@@ -344,6 +344,7 @@ export type Database = {
           aluno_id: string
           ativo: boolean
           created_at: string
+          data_fim: string | null
           data_inicio: string
           duracao_meses: number
           id: string
@@ -356,6 +357,7 @@ export type Database = {
           aluno_id: string
           ativo?: boolean
           created_at?: string
+          data_fim?: string | null
           data_inicio: string
           duracao_meses?: number
           id?: string
@@ -368,6 +370,7 @@ export type Database = {
           aluno_id?: string
           ativo?: boolean
           created_at?: string
+          data_fim?: string | null
           data_inicio?: string
           duracao_meses?: number
           id?: string
