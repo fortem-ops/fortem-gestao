@@ -243,7 +243,11 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <div>
               <p className="text-muted-foreground">Término</p>
-              <p className="font-medium text-foreground">{calcEndDate(data.data_inicio, data.duracao_meses)}</p>
+              <p className="font-medium text-foreground">
+                {(data as any).data_fim
+                  ? new Date((data as any).data_fim + "T00:00:00").toLocaleDateString("pt-BR")
+                  : calcEndDate(data.data_inicio, data.duracao_meses)}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-sm">
