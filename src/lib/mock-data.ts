@@ -72,33 +72,42 @@ export const mockTasks: Task[] = [
 ];
 
 // Functional assessment reference tables
-export const assessmentReferences: Record<string, { ranges: [number, number, string][] }> = {
+export const assessmentReferences: Record<string, { ranges: [number, number, string][]; referenceText: string }> = {
   'Mobilidade Tornozelo': {
     ranges: [[0, 25, 'Fraco'], [26, 34, 'Regular'], [35, 39, 'Médio'], [40, 44, 'Bom'], [45, 999, 'Excelente']],
+    referenceText: 'Fraco (≤25°) · Regular (26°–34°) · Médio (35°–39°) · Bom (40°–44°) · Excelente (≥45°)',
   },
   'Mobilidade Quadril RE': {
     ranges: [[0, 35, 'Fraco'], [36, 44, 'Regular'], [45, 49, 'Médio'], [50, 54, 'Bom'], [55, 999, 'Excelente']],
+    referenceText: 'Fraco (≤35°) · Regular (36°–44°) · Médio (45°–49°) · Bom (50°–54°) · Excelente (≥55°)',
   },
   'Mobilidade Quadril RI': {
     ranges: [[0, 20, 'Fraco'], [21, 29, 'Regular'], [30, 34, 'Médio'], [35, 39, 'Bom'], [40, 999, 'Excelente']],
+    referenceText: 'Fraco (≤20°) · Regular (21°–29°) · Médio (30°–34°) · Bom (35°–39°) · Excelente (≥40°)',
   },
   'Mobilidade Ombro RE': {
     ranges: [[0, 65, 'Fraco'], [66, 74, 'Regular'], [75, 79, 'Médio'], [80, 84, 'Bom'], [85, 999, 'Excelente']],
+    referenceText: 'Fraco (≤65°) · Regular (66°–74°) · Médio (75°–79°) · Bom (80°–84°) · Excelente (≥85°)',
   },
   'Mobilidade Ombro RI': {
     ranges: [[0, 45, 'Fraco'], [46, 50, 'Regular'], [51, 64, 'Médio'], [65, 69, 'Bom'], [70, 999, 'Excelente']],
+    referenceText: 'Fraco (≤45°) · Regular (46°–50°) · Médio (51°–64°) · Bom (65°–69°) · Excelente (≥70°)',
   },
   'Mobilidade Torácica': {
     ranges: [[0, 35, 'Fraco'], [36, 44, 'Regular'], [45, 49, 'Médio'], [50, 54, 'Bom'], [55, 999, 'Excelente']],
+    referenceText: 'Fraco (≤35°) · Regular (36°–44°) · Médio (45°–49°) · Bom (50°–54°) · Excelente (≥55°)',
   },
   'Flexibilidade Posterior MMII': {
     ranges: [[0, 65, 'Fraco'], [66, 74, 'Regular'], [75, 79, 'Médio'], [80, 84, 'Bom'], [85, 999, 'Excelente']],
+    referenceText: 'Fraco (≤65°) · Regular (66°–74°) · Médio (75°–79°) · Bom (80°–84°) · Excelente (≥85°)',
   },
   'Flexibilidade Psoas': {
     ranges: [[1, 999, 'Regular'], [0, 0, 'Excelente']],
+    referenceText: 'Excelente (0°) · Regular (>1°)',
   },
   'Flexibilidade Quadríceps': {
     ranges: [[0, 120, 'Fraco'], [121, 130, 'Regular'], [131, 140, 'Médio'], [141, 149, 'Bom'], [150, 999, 'Excelente']],
+    referenceText: 'Fraco (≤120°) · Regular (121°–130°) · Médio (131°–140°) · Bom (141°–149°) · Excelente (≥150°)',
   },
 };
 
