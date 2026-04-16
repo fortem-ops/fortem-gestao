@@ -191,4 +191,84 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
       { nome: "Treino 4", tipo: "forca", exercicios: [...fase4Treino2] },
     ],
   },
+  {
+    fase: "Personalizado",
+    frequencia: "—",
+    aquecimento: [],
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: [{ ordem: 1, categoria: "", exercicio: "", series: 3, repeticoes: "10" }] },
+    ],
+  },
+  {
+    fase: "Planilha 5RM",
+    frequencia: "3x",
+    aquecimento: fase1Aquecimento,
+    treinos: [
+      { nome: "Treino A", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "DJS", exercicio: "", series: 5, repeticoes: "5" },
+        { ordem: 2, categoria: "PH", exercicio: "", series: 5, repeticoes: "5" },
+        { ordem: 3, categoria: "DQ", exercicio: "", series: 5, repeticoes: "5" },
+      ]},
+      { nome: "Treino B", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "EH", exercicio: "", series: 5, repeticoes: "5" },
+        { ordem: 2, categoria: "EV", exercicio: "", series: 5, repeticoes: "5" },
+        { ordem: 3, categoria: "EP", exercicio: "", series: 5, repeticoes: "5" },
+      ]},
+    ],
+  },
+  {
+    fase: "5-3-1",
+    frequencia: "4x",
+    aquecimento: fase1Aquecimento,
+    treinos: [
+      { nome: "Treino 1 — Press", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "EV", exercicio: "", series: 3, repeticoes: "5/3/1" },
+        { ordem: 2, categoria: "PH", exercicio: "", series: 5, repeticoes: "10" },
+        { ordem: 3, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
+      ]},
+      { nome: "Treino 2 — Agachamento", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "DJS", exercicio: "", series: 3, repeticoes: "5/3/1" },
+        { ordem: 2, categoria: "EP", exercicio: "", series: 5, repeticoes: "10" },
+        { ordem: 3, categoria: "AF", exercicio: "", series: 3, repeticoes: '30"' },
+      ]},
+      { nome: "Treino 3 — Supino", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "EH", exercicio: "", series: 3, repeticoes: "5/3/1" },
+        { ordem: 2, categoria: "PV", exercicio: "", series: 5, repeticoes: "10" },
+        { ordem: 3, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
+      ]},
+      { nome: "Treino 4 — Levantamento Terra", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "DQ", exercicio: "", series: 3, repeticoes: "5/3/1" },
+        { ordem: 2, categoria: "DJA", exercicio: "", series: 5, repeticoes: "10" },
+        { ordem: 3, categoria: "AR", exercicio: "", series: 3, repeticoes: "10" },
+      ]},
+    ],
+  },
+  {
+    fase: "M102",
+    frequencia: "3x",
+    aquecimento: fase1Aquecimento,
+    treinos: [
+      { nome: "Treino A", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "DJS", exercicio: "", series: 4, repeticoes: "8" },
+        { ordem: 2, categoria: "PH", exercicio: "", series: 4, repeticoes: "8" },
+        { ordem: 3, categoria: "EP", exercicio: "", series: 3, repeticoes: "12" },
+        { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
+        { ordem: 5, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
+      ]},
+      { nome: "Treino B", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "DQ", exercicio: "", series: 4, repeticoes: "8" },
+        { ordem: 2, categoria: "EH", exercicio: "", series: 4, repeticoes: "8" },
+        { ordem: 3, categoria: "DJA", exercicio: "", series: 3, repeticoes: "10" },
+        { ordem: 4, categoria: "PV", exercicio: "", series: 3, repeticoes: "10" },
+        { ordem: 5, categoria: "AF", exercicio: "", series: 3, repeticoes: '30"' },
+      ]},
+      { nome: "Treino C", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "DJS", exercicio: "", series: 3, repeticoes: "10" },
+        { ordem: 2, categoria: "PH", exercicio: "", series: 3, repeticoes: "10" },
+        { ordem: 3, categoria: "DQ", exercicio: "", series: 3, repeticoes: "12" },
+        { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
+        { ordem: 5, categoria: "AR", exercicio: "", series: 3, repeticoes: "10" },
+      ]},
+    ],
+  },
 ];
