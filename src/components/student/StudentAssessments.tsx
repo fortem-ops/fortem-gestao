@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, ClipboardCheck } from "lucide-react";
+import { Plus, ClipboardCheck, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { AssessmentViewerDialog } from "./assessment/AssessmentViewerDialog";
 
 export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
   const navigate = useNavigate();
+  const [selected, setSelected] = useState<Tables<"avaliacoes"> | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const { data: avaliacoes } = useQuery({
     queryKey: ["avaliacoes-aluno", student.id],
@@ -22,6 +26,11 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
       return data;
     },
   });
+
+  const openViewer = (a: Tables<"avaliacoes">) => {
+    setSelected(a);
+    setViewerOpen(true);
+  };
 
   return (
     <div className="space-y-4 mt-4">
@@ -39,12 +48,16 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
       ) : (
         <div className="space-y-2">
           {avaliacoes.map((a) => (
-            <div key={a.id} className="glass-card rounded-lg p-4 flex items-start gap-3">
+            <button
+              key={a.id}
+              onClick={() => openViewer(a)}
+              className="glass-card rounded-lg p-4 flex items-start gap-3 w-full text-left hover:bg-secondary/30 transition-colors group"
+            >
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <ClipboardCheck className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground capitalize">{a.tipo}</p>
+                <p className="text-sm font-semibold text-foreground capitalize">{a.tipo.replace(/_/g, ' ')}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {format(new Date(a.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                 </p>
@@ -52,10 +65,18 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
                   <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{a.observacoes}</p>
                 )}
               </div>
-            </div>
+              <Eye className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center" />
+            </button>
           ))}
         </div>
       )}
+
+      <AssessmentViewerDialog
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+        avaliacao={selected}
+        student={student}
+      />
     </div>
   );
 }
