@@ -230,26 +230,32 @@ export default function CarteiraAlunos() {
       {/* Grouped list */}
       {isLoading ? (
         <p className="text-muted-foreground text-center py-10">Carregando...</p>
-      ) : Object.keys(grouped).length === 0 ? (
+      ) : grouped.length === 0 ? (
         <p className="text-muted-foreground text-center py-10">Nenhum aluno com plano ativo encontrado</p>
       ) : (
-        Object.entries(grouped).map(([profId, alunos]) => (
+        grouped.map(([profId, alunos]) => (
           <Card key={profId} className="glass-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
                 {profId === "sem-professor" ? "Sem professor atribuído" : profMap[profId] || "Professor desconhecido"}
+                {profId === user?.id && <Badge variant="default" className="text-xs">Você</Badge>}
                 <Badge variant="secondary" className="ml-auto">{alunos.length} aluno(s)</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
                 {alunos.map((aluno) => (
-                  <div key={aluno.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                  <div
+                    key={aluno.id}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/alunos/${aluno.id}`)}
+                  >
                     {isCoordAdmin && (
                       <Checkbox
                         checked={selected.has(aluno.id)}
-                        onCheckedChange={() => toggleSelect(aluno.id)}
+                        onCheckedChange={(e) => { e && e !== true; toggleSelect(aluno.id); }}
+                        onClick={(e) => e.stopPropagation()}
                       />
                     )}
                     <div className="flex-1 min-w-0">
