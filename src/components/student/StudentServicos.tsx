@@ -62,6 +62,23 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
     },
   });
 
+  const { data: usosPorTipo = {} } = useQuery({
+    queryKey: ["consumo_usos_por_tipo", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("consumo_servicos")
+        .select("tipo_servico, quantidade, agenda_id, tipo_registro")
+        .eq("aluno_id", student.id);
+      const map: Record<string, number> = {};
+      (data || []).forEach((c: any) => {
+        if (!!c.agenda_id || c.tipo_registro === "uso_manual") {
+          map[c.tipo_servico] = (map[c.tipo_servico] || 0) + (c.quantidade ?? 1);
+        }
+      });
+      return map;
+    },
+  });
+
   const { data: planoAtivo } = useQuery({
     queryKey: ["plano_ativo_id", student.id],
     queryFn: async () => {
@@ -190,13 +207,26 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {consumos.map((c: any) => {
-                const qty = c.quantidade ?? 1;
-                const unitVal = Number(c.valor_unitario ?? 0);
-                return (
-                  <TableRow key={c.id}>
+              {(() => {
+                const usadoAcumulado: Record<string, number> = {};
+                return consumos.map((c: any) => {
+                  const qty = c.quantidade ?? 1;
+                  const unitVal = Number(c.valor_unitario ?? 0);
+                  const usadoTotal = usosPorTipo[c.tipo_servico] || 0;
+                  const jaConsiderado = usadoAcumulado[c.tipo_servico] || 0;
+                  const consumidoNesteRegistro = Math.max(0, Math.min(qty, usadoTotal - jaConsiderado));
+                  usadoAcumulado[c.tipo_servico] = jaConsiderado + consumidoNesteRegistro;
+                  const totalmenteUsado = consumidoNesteRegistro >= qty;
+                  const rowClass = totalmenteUsado
+                    ? "bg-destructive/10 hover:bg-destructive/15"
+                    : "bg-success/10 hover:bg-success/15";
+                  const badgeClass = totalmenteUsado
+                    ? "border-destructive/40 text-destructive"
+                    : "border-success/40 text-success";
+                  return (
+                  <TableRow key={c.id} className={rowClass}>
                     <TableCell>
-                      <Badge variant="outline">{c.tipo_servico}</Badge>
+                      <Badge variant="outline" className={badgeClass}>{c.tipo_servico}</Badge>
                     </TableCell>
                     <TableCell className="text-center text-sm">{qty}</TableCell>
                     <TableCell className="text-right text-sm">

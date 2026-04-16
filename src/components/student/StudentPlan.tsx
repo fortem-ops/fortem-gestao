@@ -269,11 +269,18 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                 const showHistory = historyService === s.dbLabel;
                 const history = getUsageHistory(s.dbLabel);
 
+                const hasCredit = restante > 0;
+                const rowClass = s.credit.total === 0
+                  ? "border-border/50 bg-muted/20"
+                  : hasCredit
+                    ? "border-success/40 bg-success/10"
+                    : "border-destructive/40 bg-destructive/10";
+
                 return (
                   <div key={s.label} className="space-y-0">
-                    <div className="flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-4 py-2.5">
+                    <div className={`flex items-center justify-between rounded-md border px-4 py-2.5 ${rowClass}`}>
                       <div className="flex items-center gap-2">
-                        <s.icon className="h-4 w-4 text-muted-foreground" />
+                        <s.icon className={`h-4 w-4 ${s.credit.total === 0 ? "text-muted-foreground" : hasCredit ? "text-success" : "text-destructive"}`} />
                         <span className="text-sm text-foreground">{s.label}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
