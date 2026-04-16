@@ -119,8 +119,6 @@ export default function Avaliacoes() {
               student={aluno}
             />
           )}
-            </div>
-          )}
         </>
       )}
     </div>
