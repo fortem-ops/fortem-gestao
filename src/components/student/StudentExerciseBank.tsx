@@ -435,21 +435,68 @@ export function StudentExerciseBank() {
         )}
       </div>
 
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar exercício..."
-          className="pl-9"
-          maxLength={120}
-        />
+      <div className="flex flex-col md:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar exercício..."
+            className="pl-9"
+            maxLength={120}
+          />
+        </div>
+        <Select
+          value={filterGrupo || "__all__"}
+          onValueChange={(v) => {
+            const next = v === "__all__" ? "" : v;
+            setFilterGrupo(next);
+            setFilterSub("");
+          }}
+        >
+          <SelectTrigger className="md:w-56">
+            <SelectValue placeholder="Todos os grupos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos os grupos</SelectItem>
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filterSub || "__all__"}
+          onValueChange={(v) => setFilterSub(v === "__all__" ? "" : v)}
+          disabled={!filterGrupo || filterSubcategorias.length === 0}
+        >
+          <SelectTrigger className="md:w-56">
+            <SelectValue placeholder="Todas as subcategorias" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todas as subcategorias</SelectItem>
+            {filterSubcategorias.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(search || filterGrupo || filterSub) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setSearch(""); setFilterGrupo(""); setFilterSub(""); }}
+          >
+            <X className="w-4 h-4 mr-1" /> Limpar
+          </Button>
+        )}
       </div>
 
-      {search.trim() ? (
+      {(search.trim() || filterGrupo) ? (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            {exerciciosBusca.length} resultado(s) para "{search.trim()}"
+            {exerciciosBusca.length} resultado(s)
+            {search.trim() && <> para "{search.trim()}"</>}
+            {filterGrupo && <> em <strong>{filterGrupo}</strong>{filterSub && <> · {filterSub}</>}</>}
+            {" · ordenados por relevância"}
           </p>
           {exerciciosBusca.length === 0 ? (
             <div className="glass-card rounded-lg p-6 text-center">
