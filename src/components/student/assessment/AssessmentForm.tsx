@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { classifyAngle, getClassificationColor } from "@/lib/mock-data";
+import { classifyAngle, getClassificationColor, assessmentReferences } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import type { Tables } from "@/integrations/supabase/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,51 +45,53 @@ function FunctionalAssessment() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="glass-card rounded-lg p-4 flex flex-col items-center justify-center lg:w-64 shrink-0">
-          <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Mapa Corporal</h4>
-          <BodyDiagram classifications={classifications} />
-        </div>
+      <div className="glass-card rounded-lg p-4 flex flex-col items-center">
+        <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Mapa Corporal</h4>
+        <BodyDiagram classifications={classifications} />
+      </div>
 
-        <div className="glass-card rounded-lg overflow-hidden flex-1">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left text-xs font-medium text-muted-foreground p-3">Métrica</th>
-                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Esquerdo</th>
-                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. E</th>
-                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Direito</th>
-                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. D</th>
-              </tr>
-            </thead>
-            <tbody>
-              {functionalMetrics.map(metric => {
-                const v = values[metric] || { left: '', right: '' };
-                const leftNum = parseInt(v.left);
-                const rightNum = parseInt(v.right);
-                const leftClass = !isNaN(leftNum) ? classifyAngle(metric, leftNum) : null;
-                const rightClass = !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null;
-                return (
-                  <tr key={metric} className="border-b border-border/50">
-                    <td className="p-3 text-sm text-foreground">{metric}</td>
-                    <td className="p-3">
-                      <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.left} onChange={(e) => handleChange(metric, 'left', e.target.value)} placeholder="°" />
-                    </td>
-                    <td className="p-3 text-center">
-                      {leftClass && <span className={`text-xs font-semibold ${getClassificationColor(leftClass)}`}>{leftClass}</span>}
-                    </td>
-                    <td className="p-3">
-                      <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.right} onChange={(e) => handleChange(metric, 'right', e.target.value)} placeholder="°" />
-                    </td>
-                    <td className="p-3 text-center">
-                      {rightClass && <span className={`text-xs font-semibold ${getClassificationColor(rightClass)}`}>{rightClass}</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <div className="glass-card rounded-lg overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground p-3">Métrica</th>
+              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Esquerdo</th>
+              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. E</th>
+              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Direito</th>
+              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. D</th>
+            </tr>
+          </thead>
+          <tbody>
+            {functionalMetrics.map(metric => {
+              const v = values[metric] || { left: '', right: '' };
+              const leftNum = parseInt(v.left);
+              const rightNum = parseInt(v.right);
+              const leftClass = !isNaN(leftNum) ? classifyAngle(metric, leftNum) : null;
+              const rightClass = !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null;
+              const ref = assessmentReferences[metric]?.referenceText;
+              return (
+                <tr key={metric} className="border-b border-border/50">
+                  <td className="p-3">
+                    <p className="text-sm text-foreground">{metric}</p>
+                    {ref && <p className="text-[10px] text-muted-foreground mt-0.5 italic">{ref}</p>}
+                  </td>
+                  <td className="p-3">
+                    <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.left} onChange={(e) => handleChange(metric, 'left', e.target.value)} placeholder="°" />
+                  </td>
+                  <td className="p-3 text-center">
+                    {leftClass && <span className={`text-xs font-semibold ${getClassificationColor(leftClass)}`}>{leftClass}</span>}
+                  </td>
+                  <td className="p-3">
+                    <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.right} onChange={(e) => handleChange(metric, 'right', e.target.value)} placeholder="°" />
+                  </td>
+                  <td className="p-3 text-center">
+                    {rightClass && <span className={`text-xs font-semibold ${getClassificationColor(rightClass)}`}>{rightClass}</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       <div className="glass-card rounded-lg p-4">
