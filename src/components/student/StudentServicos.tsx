@@ -56,6 +56,7 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
         .from("consumo_servicos")
         .select("*")
         .eq("aluno_id", student.id)
+        .eq("tipo_registro", "compra")
         .order("data_consumo", { ascending: false });
       return data || [];
     },
