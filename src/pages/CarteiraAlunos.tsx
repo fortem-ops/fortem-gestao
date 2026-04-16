@@ -11,9 +11,11 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Users, ArrowRightLeft, Search, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 export default function CarteiraAlunos() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterProfessor, setFilterProfessor] = useState<string>("all");
@@ -83,7 +85,7 @@ export default function CarteiraAlunos() {
     });
   }, [studentsWithPlans, search, filterProfessor]);
 
-  // Group by professor
+  // Group by professor, logged-in user first
   const grouped = useMemo(() => {
     const g: Record<string, typeof filtered> = {};
     filtered.forEach((a) => {
@@ -91,8 +93,17 @@ export default function CarteiraAlunos() {
       if (!g[key]) g[key] = [];
       g[key].push(a);
     });
-    return g;
-  }, [filtered]);
+    // Sort: current user's group first
+    const entries = Object.entries(g);
+    entries.sort(([a], [b]) => {
+      if (a === user?.id) return -1;
+      if (b === user?.id) return 1;
+      if (a === "sem-professor") return 1;
+      if (b === "sem-professor") return -1;
+      return 0;
+    });
+    return entries;
+  }, [filtered, user?.id]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -221,26 +232,32 @@ export default function CarteiraAlunos() {
       {/* Grouped list */}
       {isLoading ? (
         <p className="text-muted-foreground text-center py-10">Carregando...</p>
-      ) : Object.keys(grouped).length === 0 ? (
+      ) : grouped.length === 0 ? (
         <p className="text-muted-foreground text-center py-10">Nenhum aluno com plano ativo encontrado</p>
       ) : (
-        Object.entries(grouped).map(([profId, alunos]) => (
+        grouped.map(([profId, alunos]) => (
           <Card key={profId} className="glass-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
                 {profId === "sem-professor" ? "Sem professor atribuído" : profMap[profId] || "Professor desconhecido"}
+                {profId === user?.id && <Badge variant="default" className="text-xs">Você</Badge>}
                 <Badge variant="secondary" className="ml-auto">{alunos.length} aluno(s)</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
                 {alunos.map((aluno) => (
-                  <div key={aluno.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                  <div
+                    key={aluno.id}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/alunos/${aluno.id}`)}
+                  >
                     {isCoordAdmin && (
                       <Checkbox
                         checked={selected.has(aluno.id)}
-                        onCheckedChange={() => toggleSelect(aluno.id)}
+                        onCheckedChange={(e) => { e && e !== true; toggleSelect(aluno.id); }}
+                        onClick={(e) => e.stopPropagation()}
                       />
                     )}
                     <div className="flex-1 min-w-0">
