@@ -221,11 +221,52 @@ export function StudentExerciseBank() {
     }
   };
 
+  const filterSubcategorias = useMemo(() => {
+    if (!filterGrupo) return [] as string[];
+    return CATEGORIES.find((c) => c.name === filterGrupo)?.subcategories ?? [];
+  }, [filterGrupo]);
+
   const exerciciosBusca = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return [];
-    return exercicios.filter((ex) => ex.nome.toLowerCase().includes(q));
-  }, [exercicios, search]);
+    const hasFilters = !!filterGrupo || !!q;
+    if (!hasFilters) return [] as (ExercicioRow & { _score: number })[];
+
+    const scored = exercicios
+      .map((ex) => {
+        // Filtro grupo/subcategoria (obrigatório quando definido)
+        if (filterGrupo) {
+          const matchGrupo = ex.grupos.some(
+            (g) => g.grupo === filterGrupo && (!filterSub || g.subcategoria === filterSub),
+          );
+          if (!matchGrupo) return null;
+        }
+
+        // Score por relevância
+        let score = 0;
+        const nomeLower = ex.nome.toLowerCase();
+        if (q) {
+          if (nomeLower === q) score = 100;
+          else if (nomeLower.startsWith(q)) score = 80;
+          else if (nomeLower.includes(q)) score = 60;
+          else {
+            const matchGrupoTexto = ex.grupos.some(
+              (g) =>
+                g.grupo.toLowerCase().includes(q) ||
+                g.subcategoria.toLowerCase().includes(q),
+            );
+            if (matchGrupoTexto) score = 30;
+            else return null;
+          }
+        } else {
+          score = 50; // sem busca, apenas filtros: ranqueia por nome alfabético
+        }
+        return { ...ex, _score: score };
+      })
+      .filter((x): x is ExercicioRow & { _score: number } => x !== null);
+
+    scored.sort((a, b) => b._score - a._score || a.nome.localeCompare(b.nome));
+    return scored;
+  }, [exercicios, search, filterGrupo, filterSub]);
 
   const exerciciosPorSub = useMemo(() => {
     if (!selectedCategory || !selectedSub) return [];
