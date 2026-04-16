@@ -8,6 +8,7 @@ import { AdminAlertsWidget } from "@/components/dashboard/AdminAlertsWidget";
 import { TasksWidget } from "@/components/dashboard/TasksWidget";
 import { BirthdaysWidget } from "@/components/dashboard/BirthdaysWidget";
 import { CarteiraWidget } from "@/components/dashboard/CarteiraWidget";
+import { PlansDistributionWidget } from "@/components/dashboard/PlansDistributionWidget";
 import {
   Select,
   SelectContent,
@@ -82,6 +83,7 @@ export default function Dashboard() {
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <AlertsWidget professorId={effectiveProfessorId} />
+          {isCoordAdmin && <PlansDistributionWidget />}
           <AdminAlertsWidget />
         </div>
         <div className="space-y-6">
