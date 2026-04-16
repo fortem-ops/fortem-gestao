@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Activity } from "lucide-react";
+import fortemIcon from "@/assets/fortem-icon.png";
+import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -52,12 +53,10 @@ export default function Login() {
       >
         <Card className="w-full max-w-md glass-card">
           <CardHeader className="text-center space-y-4 pb-2">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary flex items-center justify-center">
-              <Activity className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-heading font-bold text-foreground">Fortem</h1>
-              <p className="text-sm text-muted-foreground mt-1">Gestão Técnica</p>
+            <img src={fortemIcon} alt="Fortem" className="mx-auto w-16 h-16 object-contain" />
+            <div className="space-y-2">
+              <img src={fortemWordmark} alt="Fortem" className="mx-auto h-6 object-contain dark:invert" />
+              <p className="text-sm text-muted-foreground">Gestão Técnica</p>
             </div>
           </CardHeader>
           <CardContent>
