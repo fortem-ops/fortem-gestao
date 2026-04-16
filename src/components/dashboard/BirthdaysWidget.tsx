@@ -2,15 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Cake } from "lucide-react";
 
-export function BirthdaysWidget() {
+interface Props {
+  professorId: string | null;
+}
+
+export function BirthdaysWidget({ professorId }: Props) {
   const { data } = useQuery({
-    queryKey: ["dashboard-birthdays"],
+    queryKey: ["dashboard-birthdays", professorId],
     queryFn: async () => {
-      const { data: alunos } = await supabase
+      let q = supabase
         .from("alunos")
-        .select("id, nome, data_nascimento")
+        .select("id, nome, data_nascimento, responsavel_id")
         .eq("status", "ativo")
         .not("data_nascimento", "is", null);
+      if (professorId) q = q.eq("responsavel_id", professorId);
+      const { data: alunos } = await q;
 
       const today = new Date();
       const todayMonth = today.getMonth();

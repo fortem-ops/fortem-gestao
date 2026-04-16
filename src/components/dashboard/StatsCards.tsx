@@ -3,11 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Users, Pause, AlertCircle, Briefcase, CalendarDays, ClipboardList } from "lucide-react";
 import { motion } from "framer-motion";
 
-export function StatsCards() {
+interface Props {
+  professorId: string | null;
+}
+
+export function StatsCards({ professorId }: Props) {
   const { data: alunosStats } = useQuery({
-    queryKey: ["dashboard-alunos-stats"],
+    queryKey: ["dashboard-alunos-stats", professorId],
     queryFn: async () => {
-      const { data } = await supabase.from("alunos").select("id, status");
+      let q = supabase.from("alunos").select("id, status, responsavel_id");
+      if (professorId) q = q.eq("responsavel_id", professorId);
+      const { data } = await q;
       const all = data || [];
       return {
         ativos: all.filter((a) => a.status === "ativo").length,
@@ -18,17 +24,25 @@ export function StatsCards() {
   });
 
   const { data: carteiraStats } = useQuery({
-    queryKey: ["dashboard-carteira-stats"],
+    queryKey: ["dashboard-carteira-stats", professorId],
     queryFn: async () => {
       const { data: planos } = await supabase.from("planos").select("aluno_id").eq("ativo", true);
-      return { comPlano: new Set((planos || []).map((p) => p.aluno_id)).size };
+      if (!planos?.length) return { comPlano: 0 };
+      const alunoIds = [...new Set(planos.map((p) => p.aluno_id))];
+
+      let q = supabase.from("alunos").select("id").in("id", alunoIds).eq("status", "ativo");
+      if (professorId) q = q.eq("responsavel_id", professorId);
+      const { data: alunos } = await q;
+      return { comPlano: (alunos || []).length };
     },
   });
 
   const { data: tarefasStats } = useQuery({
-    queryKey: ["dashboard-tarefas-stats"],
+    queryKey: ["dashboard-tarefas-stats", professorId],
     queryFn: async () => {
-      const { data } = await supabase.from("tarefas").select("id, status, data_limite");
+      let q = supabase.from("tarefas").select("id, status, data_limite, responsavel_id");
+      if (professorId) q = q.eq("responsavel_id", professorId);
+      const { data } = await q;
       const all = data || [];
       const today = new Date().toISOString().split("T")[0];
       return {
@@ -39,15 +53,17 @@ export function StatsCards() {
   });
 
   const { data: agendaStats } = useQuery({
-    queryKey: ["dashboard-agenda-stats"],
+    queryKey: ["dashboard-agenda-stats", professorId],
     queryFn: async () => {
       const today = new Date();
       const diaSemana = today.getDay();
       const todayStr = today.toISOString().split("T")[0];
-      const { data } = await supabase
+      let q = supabase
         .from("agenda_servicos")
-        .select("id, tipo, dia_semana, data_especifica")
+        .select("id, tipo, dia_semana, data_especifica, profissional_id")
         .or(`dia_semana.eq.${diaSemana},data_especifica.eq.${todayStr}`);
+      if (professorId) q = q.eq("profissional_id", professorId);
+      const { data } = await q;
       return { hoje: (data || []).length };
     },
   });
