@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Clock, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 
@@ -10,25 +10,28 @@ const priorityClass: Record<string, string> = {
   baixa: "status-info",
 };
 
-export function TasksWidget() {
+interface Props {
+  professorId: string | null;
+}
+
+export function TasksWidget({ professorId }: Props) {
   const navigate = useNavigate();
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["dashboard-tarefas"],
+    queryKey: ["dashboard-tarefas", professorId],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("tarefas")
         .select("id, titulo, prioridade, status, data_limite, responsavel_id")
         .neq("status", "concluida")
         .order("data_limite", { ascending: true, nullsFirst: false })
         .limit(5);
+      if (professorId) q = q.eq("responsavel_id", professorId);
+      const { data } = await q;
       if (!data?.length) return [];
 
       const userIds = [...new Set(data.map((t) => t.responsavel_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
       const nameMap: Record<string, string> = {};
       (profiles || []).forEach((p) => { nameMap[p.user_id] = p.full_name; });
 

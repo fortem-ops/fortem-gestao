@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, Clock, UserX, FileWarning, RefreshCw } from "lucide-react";
+import { AlertTriangle, Clock, UserX, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Alert {
@@ -12,28 +12,28 @@ interface Alert {
   alunoId?: string;
 }
 
-const WEEKS_BY_FREQ: Record<number, number> = {
-  1: 12,
-  2: 8,
-  3: 6,
-};
-const DEFAULT_WEEKS = 6; // "Livre" or any other
+interface Props {
+  professorId: string | null;
+}
 
-export function AlertsWidget() {
+const WEEKS_BY_FREQ: Record<number, number> = { 1: 12, 2: 8, 3: 6 };
+const DEFAULT_WEEKS = 6;
+const RECURRING_PLANS = ["Start", "Gympass/Wellhub", "Total Pass"];
+
+export function AlertsWidget({ professorId }: Props) {
   const navigate = useNavigate();
 
   const { data: alerts = [] } = useQuery({
-    queryKey: ["dashboard-alerts"],
+    queryKey: ["dashboard-alerts", professorId],
     queryFn: async () => {
       const result: Alert[] = [];
       const today = new Date();
       const in30 = new Date();
       in30.setDate(in30.getDate() + 30);
 
-      // Fetch all needed data in parallel
       const [planosRes, alunosRes, treinosRes, avaliacoesRes] = await Promise.all([
         supabase.from("planos").select("id, aluno_id, tipo, data_inicio, duracao_meses").eq("ativo", true),
-        supabase.from("alunos").select("id, nome, status, frequencia_semanal"),
+        supabase.from("alunos").select("id, nome, status, frequencia_semanal, responsavel_id"),
         supabase.from("treinos").select("id, aluno_id, created_at, status").eq("status", "atual"),
         supabase.from("avaliacoes").select("id, aluno_id, data, tipo").eq("tipo", "funcional").order("data", { ascending: false }),
       ]);
@@ -43,19 +43,21 @@ export function AlertsWidget() {
       const treinos = treinosRes.data || [];
       const avaliacoes = avaliacoesRes.data || [];
 
-      const alunoMap: Record<string, { nome: string; freq: number | null; status: string }> = {};
+      const alunoMap: Record<string, { nome: string; freq: number | null; status: string; responsavel_id: string | null }> = {};
       alunos.forEach((a) => {
-        alunoMap[a.id] = { nome: a.nome, freq: a.frequencia_semanal, status: a.status };
+        alunoMap[a.id] = { nome: a.nome, freq: a.frequencia_semanal, status: a.status, responsavel_id: a.responsavel_id };
       });
 
-      const RECURRING_PLANS = ["Start", "Gympass/Wellhub", "Total Pass"];
+      const isMyStudent = (alunoId: string) => {
+        if (!professorId) return true;
+        return alunoMap[alunoId]?.responsavel_id === professorId;
+      };
 
-      // 1. Planos vencendo (próximos 30 dias) — skip recurring monthly plans
       planos.filter((p) => !RECURRING_PLANS.includes(p.tipo)).forEach((p) => {
+        if (!isMyStudent(p.aluno_id)) return;
         const start = new Date(p.data_inicio + "T00:00:00");
         const end = new Date(start);
         end.setMonth(end.getMonth() + p.duracao_meses);
-
         if (end <= in30 && end >= today) {
           result.push({
             id: `plano-${p.id}`,
@@ -68,35 +70,26 @@ export function AlertsWidget() {
         }
       });
 
-      // 2. Alunos em licença
-      alunos.filter((a) => a.status === "licenca").forEach((a) => {
+      alunos.filter((a) => a.status === "licenca" && isMyStudent(a.id)).forEach((a) => {
         result.push({
-          id: `licenca-${a.id}`,
-          type: "licenca",
-          severity: "atencao",
-          studentName: a.nome,
-          message: "Aluno em licença",
-          alunoId: a.id,
+          id: `licenca-${a.id}`, type: "licenca", severity: "atencao",
+          studentName: a.nome, message: "Aluno em licença", alunoId: a.id,
         });
       });
 
-      // 3. Troca de ficha — baseado na frequência semanal
       treinos.forEach((t) => {
+        if (!isMyStudent(t.aluno_id)) return;
         const aluno = alunoMap[t.aluno_id];
         if (!aluno || aluno.status !== "ativo") return;
-
         const freq = aluno.freq ?? 0;
         const weeksLimit = WEEKS_BY_FREQ[freq] || DEFAULT_WEEKS;
         const treinoDate = new Date(t.created_at);
         const limitDate = new Date(treinoDate);
         limitDate.setDate(limitDate.getDate() + weeksLimit * 7);
-
         const diffDays = Math.ceil((limitDate.getTime() - today.getTime()) / 86400000);
-
         if (diffDays <= 14) {
           result.push({
-            id: `troca-${t.id}`,
-            type: "troca_ficha",
+            id: `troca-${t.id}`, type: "troca_ficha",
             severity: diffDays <= 0 ? "urgente" : "atencao",
             studentName: aluno.nome,
             message: diffDays <= 0
@@ -107,28 +100,20 @@ export function AlertsWidget() {
         }
       });
 
-      // 4. Reavaliação funcional — 4 meses (atenção), 6 meses (urgente)
       const lastAvalByAluno: Record<string, string> = {};
       avaliacoes.forEach((av) => {
-        if (!lastAvalByAluno[av.aluno_id]) {
-          lastAvalByAluno[av.aluno_id] = av.data;
-        }
+        if (!lastAvalByAluno[av.aluno_id]) lastAvalByAluno[av.aluno_id] = av.data;
       });
 
-      alunos.filter((a) => a.status === "ativo").forEach((a) => {
+      alunos.filter((a) => a.status === "ativo" && isMyStudent(a.id)).forEach((a) => {
         const lastDate = lastAvalByAluno[a.id];
         if (!lastDate) return;
-
         const last = new Date(lastDate + "T00:00:00");
-        const months4 = new Date(last);
-        months4.setMonth(months4.getMonth() + 4);
-        const months6 = new Date(last);
-        months6.setMonth(months6.getMonth() + 6);
-
+        const months4 = new Date(last); months4.setMonth(months4.getMonth() + 4);
+        const months6 = new Date(last); months6.setMonth(months6.getMonth() + 6);
         if (today >= months4) {
           result.push({
-            id: `aval-${a.id}`,
-            type: "avaliacao",
+            id: `aval-${a.id}`, type: "avaliacao",
             severity: today >= months6 ? "urgente" : "atencao",
             studentName: a.nome,
             message: today >= months6
@@ -144,16 +129,9 @@ export function AlertsWidget() {
   });
 
   const iconMap: Record<string, React.ElementType> = {
-    plano_vencendo: AlertTriangle,
-    licenca: UserX,
-    troca_ficha: RefreshCw,
-    avaliacao: Clock,
+    plano_vencendo: AlertTriangle, licenca: UserX, troca_ficha: RefreshCw, avaliacao: Clock,
   };
-
-  const severityClass: Record<string, string> = {
-    atencao: "status-warning",
-    urgente: "status-urgent",
-  };
+  const severityClass: Record<string, string> = { atencao: "status-warning", urgente: "status-urgent" };
 
   return (
     <div className="glass-card rounded-lg p-5">
@@ -167,11 +145,7 @@ export function AlertsWidget() {
         ) : alerts.map((alert) => {
           const Icon = iconMap[alert.type] || AlertTriangle;
           return (
-            <div
-              key={alert.id}
-              className="flex items-start gap-3 p-3 rounded-md bg-secondary/50 cursor-pointer hover:bg-secondary/80 transition-colors"
-              onClick={() => alert.alunoId && navigate(`/alunos/${alert.alunoId}`)}
-            >
+            <div key={alert.id} className="flex items-start gap-3 p-3 rounded-md bg-secondary/50 cursor-pointer hover:bg-secondary/80 transition-colors" onClick={() => alert.alunoId && navigate(`/alunos/${alert.alunoId}`)}>
               <div className={`shrink-0 w-8 h-8 rounded-md flex items-center justify-center ${severityClass[alert.severity]}`}>
                 <Icon className="w-4 h-4" />
               </div>
