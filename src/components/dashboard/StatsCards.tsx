@@ -33,7 +33,7 @@ export function StatsCards({ professorId }: Props) {
         (planos || []).forEach((p) => {
           if (seen.has(p.aluno_id)) return;
           seen.add(p.aluno_id);
-          if (PLANOS_AGREGADORES_SET.has(p.tipo)) agregadorCount++;
+          if (PLANOS_AGREGADORES.has(p.tipo)) agregadorCount++;
           else regularCount++;
         });
       }
