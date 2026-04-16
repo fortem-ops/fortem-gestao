@@ -83,7 +83,7 @@ export default function CarteiraAlunos() {
     });
   }, [studentsWithPlans, search, filterProfessor]);
 
-  // Group by professor
+  // Group by professor, logged-in user first
   const grouped = useMemo(() => {
     const g: Record<string, typeof filtered> = {};
     filtered.forEach((a) => {
@@ -91,8 +91,17 @@ export default function CarteiraAlunos() {
       if (!g[key]) g[key] = [];
       g[key].push(a);
     });
-    return g;
-  }, [filtered]);
+    // Sort: current user's group first
+    const entries = Object.entries(g);
+    entries.sort(([a], [b]) => {
+      if (a === user?.id) return -1;
+      if (b === user?.id) return 1;
+      if (a === "sem-professor") return 1;
+      if (b === "sem-professor") return -1;
+      return 0;
+    });
+    return entries;
+  }, [filtered, user?.id]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
