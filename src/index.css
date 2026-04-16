@@ -15,7 +15,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 15%;
 
-    --primary: 142 71% 40%;
+    --primary: 0 72% 51%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 88%;
@@ -41,18 +41,18 @@
 
     --border: 220 13% 82%;
     --input: 220 13% 84%;
-    --ring: 142 71% 40%;
+    --ring: 0 72% 51%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 220 20% 40%;
-    --sidebar-primary: 142 71% 40%;
+    --sidebar-primary: 0 72% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 14% 93%;
     --sidebar-accent-foreground: 220 20% 15%;
     --sidebar-border: 220 13% 85%;
-    --sidebar-ring: 142 71% 40%;
+    --sidebar-ring: 0 72% 51%;
 
     --font-heading: 'DM Sans', sans-serif;
     --font-body: 'Inter', sans-serif;
