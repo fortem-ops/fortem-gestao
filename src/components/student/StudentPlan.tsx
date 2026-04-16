@@ -1,8 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X } from "lucide-react";
+import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
 
@@ -14,19 +18,51 @@ function parseServiceCount(servicos: string[], tipoServico: string): number {
   return 0;
 }
 
+function updateServiceCount(servicos: string[], tipoServico: string, newCount: number): string[] {
+  const updated = servicos.filter((s) => {
+    const match = s.match(/^(\d+)\s+(.+)$/);
+    return !(match && match[2] === tipoServico);
+  });
+  if (newCount > 0) {
+    updated.push(`${newCount} ${tipoServico}`);
+  }
+  return updated;
+}
+
 function calcEndDate(startDate: string, durationMonths: number): string {
   const d = new Date(startDate + "T00:00:00");
   d.setMonth(d.getMonth() + durationMonths);
   return d.toLocaleDateString("pt-BR");
 }
 
+const SERVICE_TYPES = [
+  { key: "avalFuncional", label: "Avaliação Funcional", dbLabel: "Avaliação Funcional", icon: Activity },
+  { key: "nutricao", label: "Consultas Nutrição", dbLabel: "Consultas Nutrição", icon: Utensils },
+  { key: "reabilitacao", label: "Consultas Reabilitação", dbLabel: "Consultas Reabilitação", icon: Footprints },
+];
+
 export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
+  const queryClient = useQueryClient();
+  const [editingService, setEditingService] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState(0);
+  const [saving, setSaving] = useState(false);
+
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
       const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user.id });
+      return !!data;
+    },
+  });
+
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["is_admin_plan"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase.rpc("is_admin", { _user_id: user.id });
       return !!data;
     },
   });
@@ -53,12 +89,10 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       const servicos = plano.servicos || [];
 
-      // Credits from plan base + purchased services (no agenda = sale/purchase)
       const countPurchased = (tipo: string) =>
         consumos?.filter((c) => c.tipo_servico === tipo && !c.agenda_id)
           .reduce((sum, c) => sum + ((c as any).quantidade ?? 1), 0) || 0;
 
-      // Credits used = linked to agenda (scheduled/consumed)
       const countUsed = (tipo: string) =>
         consumos?.filter((c) => c.tipo_servico === tipo && !!c.agenda_id).length || 0;
 
@@ -80,6 +114,26 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     },
   });
 
+  async function handleSaveCredit(dbLabel: string) {
+    if (!data) return;
+    setSaving(true);
+    try {
+      const newServicos = updateServiceCount(data.servicos || [], dbLabel, editValue);
+      const { error } = await supabase
+        .from("planos")
+        .update({ servicos: newServicos })
+        .eq("id", data.id);
+      if (error) throw error;
+      toast.success("Créditos atualizados");
+      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      setEditingService(null);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar créditos");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-4 mt-4">
@@ -100,11 +154,15 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     );
   }
 
-  const serviceItems = [
-    { label: "Avaliação Funcional", icon: Activity, ...data.credits.avalFuncional },
-    { label: "Consultas Nutrição", icon: Utensils, ...data.credits.nutricao },
-    { label: "Consultas Reabilitação", icon: Footprints, ...data.credits.reabilitacao },
-  ].filter((s) => s.total > 0);
+  const serviceItems = SERVICE_TYPES.map((st) => ({
+    ...st,
+    credit: data.credits[st.key as keyof typeof data.credits],
+  }));
+
+  // Show all services (even with 0 credits) if admin, otherwise only those with credits
+  const visibleServices = isAdmin
+    ? serviceItems
+    : serviceItems.filter((s) => s.credit.total > 0);
 
   return (
     <div className="space-y-4 mt-4">
@@ -147,12 +205,14 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
           </div>
         </div>
 
-        {serviceItems.length > 0 && (
+        {visibleServices.length > 0 && (
           <div>
             <p className="text-sm font-medium text-foreground mb-3">Créditos de Serviços</p>
             <div className="space-y-2">
-              {serviceItems.map((s) => {
-                const restante = s.total - s.usado;
+              {visibleServices.map((s) => {
+                const restante = s.credit.total - s.credit.usado;
+                const isEditing = editingService === s.dbLabel;
+
                 return (
                   <div key={s.label} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-4 py-2.5">
                     <div className="flex items-center gap-2">
@@ -160,12 +220,56 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                       <span className="text-sm text-foreground">{s.label}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      {s.base > 0 && <span>Plano: {s.base}</span>}
-                      {s.comprado > 0 && <span className="text-primary">+{s.comprado} comprado{s.comprado !== 1 ? "s" : ""}</span>}
-                      <span className="text-sm font-medium text-foreground">{s.usado}/{s.total} usados</span>
-                      <Badge variant="outline" className={`text-xs ${restante > 0 ? "status-active" : "status-urgent"}`}>
-                        {restante > 0 ? `${restante} disponível${restante !== 1 ? "eis" : ""}` : "Esgotado"}
-                      </Badge>
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">Base:</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={editValue}
+                            onChange={(e) => setEditValue(parseInt(e.target.value) || 0)}
+                            className="w-16 h-7 text-xs"
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-primary"
+                            disabled={saving}
+                            onClick={() => handleSaveCredit(s.dbLabel)}
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => setEditingService(null)}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          {s.credit.base > 0 && <span>Plano: {s.credit.base}</span>}
+                          {s.credit.comprado > 0 && <span className="text-primary">+{s.credit.comprado} comprado{s.credit.comprado !== 1 ? "s" : ""}</span>}
+                          <span className="text-sm font-medium text-foreground">{s.credit.usado}/{s.credit.total} usados</span>
+                          <Badge variant="outline" className={`text-xs ${restante > 0 ? "status-active" : "status-urgent"}`}>
+                            {restante > 0 ? `${restante} disponível${restante !== 1 ? "eis" : ""}` : "Esgotado"}
+                          </Badge>
+                          {isAdmin && (
+                            <button
+                              className="text-muted-foreground hover:text-primary transition-colors ml-1"
+                              onClick={() => {
+                                setEditingService(s.dbLabel);
+                                setEditValue(s.credit.base);
+                              }}
+                              title="Editar créditos base"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 );
