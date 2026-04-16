@@ -123,7 +123,7 @@ export function getClassificationColor(classification: AssessmentClassification)
     case 'Regular': return 'text-warning';
     case 'Médio': return 'text-info';
     case 'Bom': return 'text-success';
-    case 'Excelente': return 'text-primary';
+    case 'Excelente': return 'text-success';
     default: return 'text-muted-foreground';
   }
 }
