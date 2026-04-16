@@ -22,6 +22,7 @@ import { StudentUploads } from "@/components/student/StudentUploads";
 import { StudentPlan } from "@/components/student/StudentPlan";
 import { StudentTasks } from "@/components/student/StudentTasks";
 import { StudentNotes } from "@/components/student/StudentNotes";
+import { StudentExerciseBank } from "@/components/student/StudentExerciseBank";
 import EditStudentDialog from "@/components/student/EditStudentDialog";
 
 const statusClass: Record<string, string> = { ativo: "status-active", licenca: "status-warning", encerrado: "status-urgent" };
