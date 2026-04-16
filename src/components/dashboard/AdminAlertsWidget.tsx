@@ -127,7 +127,7 @@ export function AdminAlertsWidget() {
     enabled: !!user,
   });
 
-  const professors = data || [];
+  const professors = Array.isArray(data) ? data : [];
   const total = professors.reduce((sum, p) => sum + p.mesAnterior.length + p.esteMes.length + p.proximoMes.length, 0);
 
   const now = new Date();
