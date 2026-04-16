@@ -234,6 +234,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
                     <CalendarComponent
                       mode="single"
                       selected={planEndDate || undefined}
+                      defaultMonth={planEndDate || undefined}
                       onSelect={async (date) => {
                         if (!date || !plano) return;
                         const dataFim = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
