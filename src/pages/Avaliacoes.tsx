@@ -8,6 +8,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { AssessmentForm } from "@/components/student/assessment/AssessmentForm";
+import { AssessmentViewerDialog } from "@/components/student/assessment/AssessmentViewerDialog";
+import type { Tables } from "@/integrations/supabase/types";
 
 type View = "select" | "new";
 
