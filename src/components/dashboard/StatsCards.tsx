@@ -34,8 +34,8 @@ export function StatsCards({ professorId }: Props) {
         (planos || []).forEach((p) => {
           if (seen.has(p.aluno_id)) return;
           seen.add(p.aluno_id);
-          if (PLANOS_REGULARES.includes(p.tipo)) regularCount++;
-          else if (PLANOS_AGREGADORES.includes(p.tipo)) agregadorCount++;
+          if (PLANOS_AGREGADORES_SET.has(p.tipo)) agregadorCount++;
+          else regularCount++;
         });
       }
 
@@ -180,12 +180,18 @@ export function StatsCards({ professorId }: Props) {
     },
   });
 
-  const stats = [
+  const row1 = [
     { label: "Alunos Ativos", value: alunosStats?.ativos ?? 0, icon: Users, color: "text-success" },
     { label: "Agregadores", value: alunosStats?.agregadores ?? 0, icon: UserPlus, color: "text-primary" },
     { label: "Em Licença", value: alunosStats?.licenca ?? 0, icon: Pause, color: "text-warning" },
+  ];
+
+  const row2 = [
     { label: "Tarefas Pendentes", value: tarefasStats?.pendentes ?? 0, icon: ClipboardList, color: "text-info" },
     { label: "Tarefas Atrasadas", value: tarefasStats?.atrasadas ?? 0, icon: AlertCircle, color: "text-destructive" },
+  ];
+
+  const row3 = [
     { label: "Avaliações Hoje", value: agendaHojeStats?.avaliacoes ?? 0, icon: ClipboardCheck, color: "text-accent-foreground" },
     { label: "Treino Exp. Hoje", value: agendaHojeStats?.experimentais ?? 0, icon: Dumbbell, color: "text-info" },
     {
@@ -199,26 +205,36 @@ export function StatsCards({ professorId }: Props) {
     },
   ];
 
+  const renderCard = (stat: typeof row1[0] & { subtitle?: string }, i: number) => (
+    <motion.div
+      key={stat.label}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: i * 0.08 }}
+      className="glass-card rounded-lg p-5"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <stat.icon className={`w-5 h-5 ${stat.color}`} />
+      </div>
+      <p className="text-2xl font-heading font-bold text-foreground">{stat.value}</p>
+      <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+      {"subtitle" in stat && stat.subtitle && (
+        <p className="text-[10px] text-muted-foreground mt-0.5">{stat.subtitle}</p>
+      )}
+    </motion.div>
+  );
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
-      {stats.map((stat, i) => (
-        <motion.div
-          key={stat.label}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.08 }}
-          className="glass-card rounded-lg p-5"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <stat.icon className={`w-5 h-5 ${stat.color}`} />
-          </div>
-          <p className="text-2xl font-heading font-bold text-foreground">{stat.value}</p>
-          <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
-          {"subtitle" in stat && stat.subtitle && (
-            <p className="text-[10px] text-muted-foreground mt-0.5">{stat.subtitle}</p>
-          )}
-        </motion.div>
-      ))}
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-4">
+        {row1.map((s, i) => renderCard(s, i))}
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
+        {row2.map((s, i) => renderCard(s, i + row1.length))}
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {row3.map((s, i) => renderCard(s as any, i + row1.length + row2.length))}
+      </div>
     </div>
   );
 }
