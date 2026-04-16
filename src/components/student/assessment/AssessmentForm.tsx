@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { classifyAngle, getClassificationColor } from "@/lib/mock-data";
+import { classifyAngle, getClassificationColor, assessmentReferences } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import type { Tables } from "@/integrations/supabase/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
