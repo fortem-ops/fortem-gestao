@@ -304,6 +304,33 @@ export type Database = {
           },
         ]
       }
+      exercicios_personalizados: {
+        Row: {
+          created_at: string
+          criado_por: string
+          grupos: Json
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por: string
+          grupos?: Json
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string
+          grupos?: Json
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       historico_profissional: {
         Row: {
           aluno_id: string
