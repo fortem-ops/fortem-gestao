@@ -2,12 +2,17 @@ import { useState, useMemo } from "react";
 import { classifyAngle, getClassificationColor, assessmentReferences } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import type { Tables } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Save, FileDown, Loader2 } from "lucide-react";
 import { BodyDiagram } from "./BodyDiagram";
+import { exportAssessmentPDF } from "./exportAssessmentPDF";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
@@ -21,9 +26,25 @@ const functionalMetrics = [
   'Mobilidade Tornozelo',
 ];
 
-function FunctionalAssessment() {
+// Map metric label → DB column suffix (without _esq/_dir)
+const metricColumnMap: Record<string, string> = {
+  'Flexibilidade Posterior MMII': 'flex_mmii',
+  'Mobilidade Ombro RI': 'ombro_ri',
+  'Mobilidade Ombro RE': 'ombro_re',
+  'Flexibilidade Psoas': 'flex_psoas',
+  'Flexibilidade Quadríceps': 'flex_quadriceps',
+  'Mobilidade Quadril RI': 'quadril_ri',
+  'Mobilidade Quadril RE': 'quadril_re',
+  'Mobilidade Torácica': 'toracica',
+  'Mobilidade Tornozelo': 'tornozelo',
+};
+
+function FunctionalAssessment({ student }: { student: Tables<"alunos"> }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
   const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (metric: string, side: 'left' | 'right', val: string) => {
     setValues(prev => ({ ...prev, [metric]: { ...prev[metric], [side]: val } }));
@@ -42,6 +63,82 @@ function FunctionalAssessment() {
     });
     return result;
   }, [values]);
+
+  const buildRows = () => functionalMetrics.map(metric => {
+    const v = values[metric] || { left: '', right: '' };
+    const leftNum = parseInt(v.left);
+    const rightNum = parseInt(v.right);
+    return {
+      metric,
+      left: !isNaN(leftNum) ? leftNum : null,
+      right: !isNaN(rightNum) ? rightNum : null,
+      leftClass: !isNaN(leftNum) ? classifyAngle(metric, leftNum) : null,
+      rightClass: !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null,
+    };
+  });
+
+  const handleSave = async () => {
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+    const rows = buildRows();
+    const hasAny = rows.some(r => r.left !== null || r.right !== null);
+    if (!hasAny) {
+      toast.error("Insira ao menos um valor antes de salvar");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data: aval, error: avalErr } = await supabase
+        .from("avaliacoes")
+        .insert({
+          aluno_id: student.id,
+          avaliador_id: user.id,
+          tipo: "funcional",
+          observacoes: notes || null,
+          dados: { metricas: rows.map(r => ({ ...r })) },
+        })
+        .select()
+        .single();
+      if (avalErr) throw avalErr;
+
+      const funcRow: Record<string, unknown> = { avaliacao_id: aval.id, observacoes: notes || null };
+      rows.forEach(r => {
+        const col = metricColumnMap[r.metric];
+        if (!col) return;
+        funcRow[`${col}_esq`] = r.left;
+        funcRow[`${col}_dir`] = r.right;
+      });
+      const { error: funcErr } = await supabase.from("avaliacao_funcional").insert(funcRow as never);
+      if (funcErr) throw funcErr;
+
+      toast.success("Avaliação funcional salva com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["historico-timeline", student.id] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao salvar";
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    exportAssessmentPDF({
+      student,
+      tipo: "Avaliação Funcional",
+      rows: buildRows().map(r => ({
+        label: r.metric,
+        left: r.left !== null ? `${r.left}°` : "—",
+        leftClass: r.leftClass || "—",
+        right: r.right !== null ? `${r.right}°` : "—",
+        rightClass: r.rightClass || "—",
+      })),
+      notes,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -99,7 +196,15 @@ function FunctionalAssessment() {
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Assimetrias, restrições, prioridades de intervenção..." rows={4} />
       </div>
 
-      <Button><Save className="w-4 h-4 mr-2" /> Salvar Avaliação</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          Salvar Avaliação
+        </Button>
+        <Button variant="outline" onClick={handleExportPDF}>
+          <FileDown className="w-4 h-4 mr-2" /> Exportar PDF
+        </Button>
+      </div>
     </div>
   );
 }
@@ -109,24 +214,27 @@ const dobrasLabels = ['Peitoral', 'Axilar média', 'Tríceps', 'Subescapular', '
 function classifyBF(pct: number, sexo: 'M' | 'F'): { label: string; color: string } {
   if (sexo === 'M') {
     if (pct <= 6) return { label: 'Essencial', color: 'text-info' };
-    if (pct <= 13) return { label: 'Excelente', color: 'text-primary' };
-    if (pct <= 17) return { label: 'Bom', color: 'text-primary' };
+    if (pct <= 13) return { label: 'Excelente', color: 'text-success' };
+    if (pct <= 17) return { label: 'Bom', color: 'text-success' };
     if (pct <= 24) return { label: 'Médio', color: 'text-warning' };
     return { label: 'Elevado', color: 'text-destructive' };
   }
   if (pct <= 13) return { label: 'Essencial', color: 'text-info' };
-  if (pct <= 20) return { label: 'Excelente', color: 'text-primary' };
-  if (pct <= 24) return { label: 'Bom', color: 'text-primary' };
+  if (pct <= 20) return { label: 'Excelente', color: 'text-success' };
+  if (pct <= 24) return { label: 'Bom', color: 'text-success' };
   if (pct <= 31) return { label: 'Médio', color: 'text-warning' };
   return { label: 'Elevado', color: 'text-destructive' };
 }
 
-function BodyComposition() {
+function BodyComposition({ student }: { student: Tables<"alunos"> }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [sexo, setSexo] = useState<'M' | 'F'>('M');
   const [idade, setIdade] = useState('');
   const [peso, setPeso] = useState('');
   const [altura, setAltura] = useState('');
   const [dobras, setDobras] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
   const results = useMemo(() => {
     const idadeNum = parseFloat(idade);
@@ -145,6 +253,55 @@ function BodyComposition() {
     const massaGorda = !isNaN(pesoNum) ? pesoNum * (bf / 100) : null;
     return { sigma7, dc, bf, classification, imc, massaMagra, massaGorda };
   }, [sexo, idade, peso, altura, dobras]);
+
+  const handleSave = async () => {
+    if (!user) { toast.error("Usuário não autenticado"); return; }
+    if (!results) { toast.error("Preencha todos os dados antes de salvar"); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("avaliacoes").insert({
+        aluno_id: student.id,
+        avaliador_id: user.id,
+        tipo: "composicao_corporal",
+        dados: {
+          sexo, idade: parseFloat(idade), peso: parseFloat(peso), altura: parseFloat(altura),
+          dobras, sigma7: results.sigma7, densidade: results.dc, percentual_gordura: results.bf,
+          classificacao: results.classification.label, imc: results.imc,
+          massa_magra: results.massaMagra, massa_gorda: results.massaGorda,
+        },
+      });
+      if (error) throw error;
+      toast.success("Composição corporal salva com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["historico-timeline", student.id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (!results) { toast.error("Preencha todos os dados antes de exportar"); return; }
+    exportAssessmentPDF({
+      student,
+      tipo: "Composição Corporal — Pollock 7 Dobras",
+      rows: [
+        { label: "Sexo", left: sexo === 'M' ? 'Masculino' : 'Feminino', leftClass: '', right: '', rightClass: '' },
+        { label: "Idade", left: `${idade} anos`, leftClass: '', right: '', rightClass: '' },
+        { label: "Peso", left: `${peso} kg`, leftClass: '', right: '', rightClass: '' },
+        { label: "Altura", left: `${altura} cm`, leftClass: '', right: '', rightClass: '' },
+        ...dobrasLabels.map(d => ({ label: `Dobra ${d}`, left: `${dobras[d]} mm`, leftClass: '', right: '', rightClass: '' })),
+        { label: "Σ 7 Dobras", left: `${results.sigma7.toFixed(1)} mm`, leftClass: '', right: '', rightClass: '' },
+        { label: "Densidade Corporal", left: results.dc.toFixed(4), leftClass: '', right: '', rightClass: '' },
+        { label: "% Gordura", left: `${results.bf.toFixed(1)}%`, leftClass: results.classification.label, right: '', rightClass: '' },
+        ...(results.imc !== null ? [{ label: "IMC", left: results.imc.toFixed(1), leftClass: '', right: '', rightClass: '' }] : []),
+        ...(results.massaMagra !== null ? [{ label: "Massa Magra", left: `${results.massaMagra.toFixed(1)} kg`, leftClass: '', right: '', rightClass: '' }] : []),
+        ...(results.massaGorda !== null ? [{ label: "Massa Gorda", left: `${results.massaGorda.toFixed(1)} kg`, leftClass: '', right: '', rightClass: '' }] : []),
+      ],
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -191,12 +348,20 @@ function BodyComposition() {
         </div>
       )}
 
-      <Button><Save className="w-4 h-4 mr-2" /> Salvar Avaliação</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          Salvar Avaliação
+        </Button>
+        <Button variant="outline" onClick={handleExportPDF}>
+          <FileDown className="w-4 h-4 mr-2" /> Exportar PDF
+        </Button>
+      </div>
     </div>
   );
 }
 
-export function AssessmentForm({ student: _student }: { student: Tables<"alunos"> }) {
+export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
   return (
     <Tabs defaultValue="funcional">
       <TabsList className="bg-secondary/50 border border-border">
@@ -208,8 +373,8 @@ export function AssessmentForm({ student: _student }: { student: Tables<"alunos"
         <TabsTrigger value="kinology">Kinology</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="funcional"><FunctionalAssessment /></TabsContent>
-      <TabsContent value="composicao"><BodyComposition /></TabsContent>
+      <TabsContent value="funcional"><FunctionalAssessment student={student} /></TabsContent>
+      <TabsContent value="composicao"><BodyComposition student={student} /></TabsContent>
       <TabsContent value="pliometria"><div className="glass-card rounded-lg p-6 text-center text-muted-foreground">Módulo de pliometria em desenvolvimento</div></TabsContent>
       <TabsContent value="forca"><div className="glass-card rounded-lg p-6 text-center text-muted-foreground">Módulo de força em desenvolvimento</div></TabsContent>
       <TabsContent value="experimental">
