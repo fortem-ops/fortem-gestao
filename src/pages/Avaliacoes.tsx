@@ -20,6 +20,8 @@ export default function Avaliacoes() {
 
   const [alunoId, setAlunoId] = useState<string>(initialAluno);
   const [view, setView] = useState<View>(autoNew && initialAluno ? "new" : "select");
+  const [selectedAval, setSelectedAval] = useState<Tables<"avaliacoes"> | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const { data: aluno } = useQuery({
     queryKey: ["aluno-min-aval", alunoId],
