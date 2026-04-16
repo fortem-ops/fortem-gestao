@@ -7,7 +7,7 @@ import { Plus, ChevronLeft } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StudentPicker } from "@/components/student/StudentPicker";
-import { StudentAssessments } from "@/components/student/StudentAssessments";
+import { AssessmentForm } from "@/components/student/assessment/AssessmentForm";
 
 type View = "select" | "new";
 
@@ -52,7 +52,7 @@ export default function Avaliacoes() {
           </Button>
           <h1 className="text-2xl font-heading font-bold text-foreground">Nova Avaliação — {aluno.nome}</h1>
         </div>
-        <StudentAssessments student={aluno} />
+        <AssessmentForm student={aluno} />
       </div>
     );
   }
