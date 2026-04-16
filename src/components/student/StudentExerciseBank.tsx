@@ -181,7 +181,7 @@ export function StudentExerciseBank() {
       toast.error(result.error.errors[0].message);
       return;
     }
-    createMutation.mutate(result.data);
+    createMutation.mutate({ nome: result.data.nome!, grupos: result.data.grupos as GroupSelection[] });
   };
 
   const toggleGrupo = (grupo: string, checked: boolean) => {
