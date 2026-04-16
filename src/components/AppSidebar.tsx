@@ -1,5 +1,7 @@
-import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, Activity, LogOut, Briefcase, Dumbbell, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import fortemIcon from "@/assets/fortem-icon.png";
+import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -42,11 +44,9 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         <div className="p-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg shrink-0 bg-destructive items-center justify-center flex flex-row">
-            <Activity className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={fortemIcon} alt="Fortem" className="w-8 h-8 shrink-0 object-contain" />
           {!collapsed && (
-            <span className="font-heading font-bold text-lg text-foreground">Fortem</span>
+            <img src={fortemWordmark} alt="Fortem" className="h-5 object-contain dark:invert" />
           )}
         </div>
 
