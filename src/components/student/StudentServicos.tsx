@@ -251,8 +251,9 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                       </TableCell>
                     )}
                   </TableRow>
-                );
-              })}
+                  );
+                });
+              })()}
             </TableBody>
           </Table>
         </div>
