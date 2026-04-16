@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -109,6 +110,8 @@ export function StudentExerciseBank() {
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [filterGrupo, setFilterGrupo] = useState<string>("");
+  const [filterSub, setFilterSub] = useState<string>("");
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string } | null>(null);
 
   // Form state
@@ -219,11 +222,52 @@ export function StudentExerciseBank() {
     }
   };
 
+  const filterSubcategorias = useMemo(() => {
+    if (!filterGrupo) return [] as string[];
+    return CATEGORIES.find((c) => c.name === filterGrupo)?.subcategories ?? [];
+  }, [filterGrupo]);
+
   const exerciciosBusca = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return [];
-    return exercicios.filter((ex) => ex.nome.toLowerCase().includes(q));
-  }, [exercicios, search]);
+    const hasFilters = !!filterGrupo || !!q;
+    if (!hasFilters) return [] as (ExercicioRow & { _score: number })[];
+
+    const scored = exercicios
+      .map((ex) => {
+        // Filtro grupo/subcategoria (obrigatório quando definido)
+        if (filterGrupo) {
+          const matchGrupo = ex.grupos.some(
+            (g) => g.grupo === filterGrupo && (!filterSub || g.subcategoria === filterSub),
+          );
+          if (!matchGrupo) return null;
+        }
+
+        // Score por relevância
+        let score = 0;
+        const nomeLower = ex.nome.toLowerCase();
+        if (q) {
+          if (nomeLower === q) score = 100;
+          else if (nomeLower.startsWith(q)) score = 80;
+          else if (nomeLower.includes(q)) score = 60;
+          else {
+            const matchGrupoTexto = ex.grupos.some(
+              (g) =>
+                g.grupo.toLowerCase().includes(q) ||
+                g.subcategoria.toLowerCase().includes(q),
+            );
+            if (matchGrupoTexto) score = 30;
+            else return null;
+          }
+        } else {
+          score = 50; // sem busca, apenas filtros: ranqueia por nome alfabético
+        }
+        return { ...ex, _score: score };
+      })
+      .filter((x): x is ExercicioRow & { _score: number } => x !== null);
+
+    scored.sort((a, b) => b._score - a._score || a.nome.localeCompare(b.nome));
+    return scored;
+  }, [exercicios, search, filterGrupo, filterSub]);
 
   const exerciciosPorSub = useMemo(() => {
     if (!selectedCategory || !selectedSub) return [];
@@ -391,21 +435,68 @@ export function StudentExerciseBank() {
         )}
       </div>
 
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar exercício..."
-          className="pl-9"
-          maxLength={120}
-        />
+      <div className="flex flex-col md:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar exercício..."
+            className="pl-9"
+            maxLength={120}
+          />
+        </div>
+        <Select
+          value={filterGrupo || "__all__"}
+          onValueChange={(v) => {
+            const next = v === "__all__" ? "" : v;
+            setFilterGrupo(next);
+            setFilterSub("");
+          }}
+        >
+          <SelectTrigger className="md:w-56">
+            <SelectValue placeholder="Todos os grupos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos os grupos</SelectItem>
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filterSub || "__all__"}
+          onValueChange={(v) => setFilterSub(v === "__all__" ? "" : v)}
+          disabled={!filterGrupo || filterSubcategorias.length === 0}
+        >
+          <SelectTrigger className="md:w-56">
+            <SelectValue placeholder="Todas as subcategorias" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todas as subcategorias</SelectItem>
+            {filterSubcategorias.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(search || filterGrupo || filterSub) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setSearch(""); setFilterGrupo(""); setFilterSub(""); }}
+          >
+            <X className="w-4 h-4 mr-1" /> Limpar
+          </Button>
+        )}
       </div>
 
-      {search.trim() ? (
+      {(search.trim() || filterGrupo) ? (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            {exerciciosBusca.length} resultado(s) para "{search.trim()}"
+            {exerciciosBusca.length} resultado(s)
+            {search.trim() && <> para "{search.trim()}"</>}
+            {filterGrupo && <> em <strong>{filterGrupo}</strong>{filterSub && <> · {filterSub}</>}</>}
+            {" · ordenados por relevância"}
           </p>
           {exerciciosBusca.length === 0 ? (
             <div className="glass-card rounded-lg p-6 text-center">
