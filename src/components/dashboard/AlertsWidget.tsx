@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, Clock, UserX, RefreshCw } from "lucide-react";
+import { AlertTriangle, Clock, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Alert {
@@ -18,7 +18,6 @@ interface Props {
 
 const WEEKS_BY_FREQ: Record<number, number> = { 1: 12, 2: 8, 3: 6 };
 const DEFAULT_WEEKS = 6;
-const RECURRING_PLANS = ["Start", "Gympass/Wellhub", "Total Pass"];
 
 export function AlertsWidget({ professorId }: Props) {
   const navigate = useNavigate();
@@ -28,18 +27,14 @@ export function AlertsWidget({ professorId }: Props) {
     queryFn: async () => {
       const result: Alert[] = [];
       const today = new Date();
-      const in30 = new Date();
-      in30.setDate(in30.getDate() + 30);
 
-      const [planosRes, alunosRes, treinosRes, avaliacoesRes] = await Promise.all([
-        supabase.from("planos").select("id, aluno_id, tipo, data_inicio, duracao_meses").eq("ativo", true),
+      const [alunosRes, treinosRes, avaliacoesRes] = await Promise.all([
         supabase.from("alunos").select("id, nome, status, frequencia_semanal, responsavel_id"),
         supabase.from("treinos").select("id, aluno_id, created_at, status").eq("status", "atual"),
         supabase.from("avaliacoes").select("id, aluno_id, data, tipo").eq("tipo", "funcional").order("data", { ascending: false }),
       ]);
 
       const alunos = alunosRes.data || [];
-      const planos = planosRes.data || [];
       const treinos = treinosRes.data || [];
       const avaliacoes = avaliacoesRes.data || [];
 
@@ -53,30 +48,7 @@ export function AlertsWidget({ professorId }: Props) {
         return alunoMap[alunoId]?.responsavel_id === professorId;
       };
 
-      planos.filter((p) => !RECURRING_PLANS.includes(p.tipo)).forEach((p) => {
-        if (!isMyStudent(p.aluno_id)) return;
-        const start = new Date(p.data_inicio + "T00:00:00");
-        const end = new Date(start);
-        end.setMonth(end.getMonth() + p.duracao_meses);
-        if (end <= in30 && end >= today) {
-          result.push({
-            id: `plano-${p.id}`,
-            type: "plano_vencendo",
-            severity: end <= new Date(today.getTime() + 7 * 86400000) ? "urgente" : "atencao",
-            studentName: alunoMap[p.aluno_id]?.nome || "Aluno",
-            message: `Plano ${p.tipo} vence em ${end.toLocaleDateString("pt-BR")}`,
-            alunoId: p.aluno_id,
-          });
-        }
-      });
-
-      alunos.filter((a) => a.status === "licenca" && isMyStudent(a.id)).forEach((a) => {
-        result.push({
-          id: `licenca-${a.id}`, type: "licenca", severity: "atencao",
-          studentName: a.nome, message: "Aluno em licença", alunoId: a.id,
-        });
-      });
-
+      // Troca de ficha
       treinos.forEach((t) => {
         if (!isMyStudent(t.aluno_id)) return;
         const aluno = alunoMap[t.aluno_id];
@@ -100,6 +72,7 @@ export function AlertsWidget({ professorId }: Props) {
         }
       });
 
+      // Reavaliação funcional
       const lastAvalByAluno: Record<string, string> = {};
       avaliacoes.forEach((av) => {
         if (!lastAvalByAluno[av.aluno_id]) lastAvalByAluno[av.aluno_id] = av.data;
@@ -129,7 +102,7 @@ export function AlertsWidget({ professorId }: Props) {
   });
 
   const iconMap: Record<string, React.ElementType> = {
-    plano_vencendo: AlertTriangle, licenca: UserX, troca_ficha: RefreshCw, avaliacao: Clock,
+    troca_ficha: RefreshCw, avaliacao: Clock,
   };
   const severityClass: Record<string, string> = { atencao: "status-warning", urgente: "status-urgent" };
 
