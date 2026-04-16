@@ -7,8 +7,7 @@ interface Props {
   professorId: string | null;
 }
 
-const PLANOS_AGREGADORES_SET = new Set(["Gympass/Wellhub", "Total Pass"]);
-const PLANOS_AGREGADORES = ["Gympass/Wellhub", "Total Pass"];
+const PLANOS_AGREGADORES = new Set(["Gympass/Wellhub", "Total Pass"]);
 
 export function StatsCards({ professorId }: Props) {
   const { data: alunosStats } = useQuery({
