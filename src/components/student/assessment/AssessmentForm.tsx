@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
-import { BodyDiagram } from "./assessment/BodyDiagram";
+import { BodyDiagram } from "./BodyDiagram";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
