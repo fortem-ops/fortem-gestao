@@ -68,7 +68,7 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
           </Button>
           <h3 className="font-heading font-semibold text-foreground">Novo Treino — Selecione a Fase</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {WORKOUT_TEMPLATES.map((tmpl) => (
             <button
               key={tmpl.fase}
