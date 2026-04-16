@@ -271,4 +271,74 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
       ]},
     ],
   },
+  {
+    fase: "Corrida - Fase 1",
+    frequencia: "3x",
+    aquecimento: [],
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Corrida Contínua", series: 1, repeticoes: '20-30min' },
+      ]},
+      { nome: "Treino 2", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Corrida Contínua", series: 1, repeticoes: '25-35min' },
+      ]},
+      { nome: "Treino 3", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Corrida Contínua", series: 1, repeticoes: '30-40min' },
+      ]},
+    ],
+  },
+  {
+    fase: "Corrida - Fase 2",
+    frequencia: "3x",
+    aquecimento: [],
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Intervalado", series: "6-8", repeticoes: '2min rápido / 2min lento' },
+      ]},
+      { nome: "Treino 2", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Corrida Contínua", series: 1, repeticoes: '35-45min' },
+      ]},
+      { nome: "Treino 3", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Tempo Run", series: 1, repeticoes: '20-30min ritmo forte' },
+      ]},
+    ],
+  },
+  {
+    fase: "Corrida - Fase 3",
+    frequencia: "4x",
+    aquecimento: [],
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Intervalado Curto", series: "8-10", repeticoes: '1min forte / 1min lento' },
+      ]},
+      { nome: "Treino 2", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Corrida Contínua", series: 1, repeticoes: '40-50min' },
+      ]},
+      { nome: "Treino 3", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Tempo Run", series: 1, repeticoes: '25-35min ritmo forte' },
+      ]},
+      { nome: "Treino 4", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Long Run", series: 1, repeticoes: '60-90min ritmo leve' },
+      ]},
+    ],
+  },
+  {
+    fase: "Corrida - Fase 4",
+    frequencia: "4x",
+    aquecimento: [],
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Intervalado Intenso", series: "10-12", repeticoes: '400m forte / 200m recuperação' },
+      ]},
+      { nome: "Treino 2", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Corrida Contínua", series: 1, repeticoes: '45-60min' },
+      ]},
+      { nome: "Treino 3", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Fartlek", series: 1, repeticoes: '40min variando ritmos' },
+      ]},
+      { nome: "Treino 4", tipo: "forca", exercicios: [
+        { ordem: 1, categoria: "COND", exercicio: "Long Run", series: 1, repeticoes: '90-120min ritmo leve' },
+      ]},
+    ],
+  },
 ];
