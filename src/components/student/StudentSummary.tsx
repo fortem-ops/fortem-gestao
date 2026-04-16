@@ -183,7 +183,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
     }
   }
 
-  const planEndDate = plano ? calcEndDate(plano.data_inicio, plano.duracao_meses) : null;
+  const planEndDate = plano ? (plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : calcEndDate(plano.data_inicio, plano.duracao_meses)) : null;
 
   const severityClass: Record<string, string> = {
     atencao: "status-warning",
@@ -236,18 +236,10 @@ export function StudentSummary({ student }: { student: Aluno }) {
                       selected={planEndDate || undefined}
                       onSelect={async (date) => {
                         if (!date || !plano) return;
-                        const startDate = new Date(plano.data_inicio + "T00:00:00");
-                        // Calculate difference in months, rounding up to include partial months
-                        const yearDiff = date.getFullYear() - startDate.getFullYear();
-                        const monthDiff = date.getMonth() - startDate.getMonth();
-                        const dayDiff = date.getDate() - startDate.getDate();
-                        let diffMonths = yearDiff * 12 + monthDiff;
-                        if (dayDiff > 0) diffMonths += 1;
-                        if (diffMonths < 1) diffMonths = 1;
-                        const newDuration = diffMonths;
+                        const dataFim = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                         const { error } = await supabase
                           .from("planos")
-                          .update({ duracao_meses: newDuration })
+                          .update({ data_fim: dataFim } as any)
                           .eq("id", plano.id);
                         if (error) {
                           toast.error("Erro ao atualizar data final");
