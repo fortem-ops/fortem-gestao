@@ -109,6 +109,8 @@ export function StudentExerciseBank() {
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [filterGrupo, setFilterGrupo] = useState<string>("");
+  const [filterSub, setFilterSub] = useState<string>("");
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string } | null>(null);
 
   // Form state
