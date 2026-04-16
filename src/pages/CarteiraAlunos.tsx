@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function CarteiraAlunos() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterProfessor, setFilterProfessor] = useState<string>("all");
