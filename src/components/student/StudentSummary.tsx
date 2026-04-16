@@ -237,10 +237,14 @@ export function StudentSummary({ student }: { student: Aluno }) {
                       onSelect={async (date) => {
                         if (!date || !plano) return;
                         const startDate = new Date(plano.data_inicio + "T00:00:00");
-                        let diffMonths = (date.getFullYear() - startDate.getFullYear()) * 12 + (date.getMonth() - startDate.getMonth());
-                        // If selected day is past the start day, round up
-                        if (date.getDate() > startDate.getDate()) diffMonths += 1;
-                        const newDuration = Math.max(1, diffMonths);
+                        // Calculate difference in months, rounding up to include partial months
+                        const yearDiff = date.getFullYear() - startDate.getFullYear();
+                        const monthDiff = date.getMonth() - startDate.getMonth();
+                        const dayDiff = date.getDate() - startDate.getDate();
+                        let diffMonths = yearDiff * 12 + monthDiff;
+                        if (dayDiff > 0) diffMonths += 1;
+                        if (diffMonths < 1) diffMonths = 1;
+                        const newDuration = diffMonths;
                         const { error } = await supabase
                           .from("planos")
                           .update({ duracao_meses: newDuration })
