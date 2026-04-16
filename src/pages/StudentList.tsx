@@ -55,7 +55,7 @@ export default function StudentList() {
       const { data: planos } = await supabase.from("planos").select("*").in("aluno_id", ids).eq("ativo", true);
       const { data: consumos } = await supabase
         .from("consumo_servicos")
-        .select("aluno_id, plano_id, tipo_servico, quantidade, agenda_id")
+        .select("aluno_id, plano_id, tipo_servico, quantidade, agenda_id, tipo_registro")
         .in("aluno_id", ids);
 
       const creditsMap: Record<string, ServiceCredits> = {};
@@ -73,11 +73,11 @@ export default function StudentList() {
         }
 
         const countPurchased = (tipo: string) =>
-          studentConsumos.filter((c) => c.tipo_servico === tipo && !c.agenda_id)
-            .reduce((sum, c) => sum + ((c as any).quantidade ?? 1), 0);
+          studentConsumos.filter((c: any) => c.tipo_servico === tipo && c.tipo_registro === "compra")
+            .reduce((sum: number, c: any) => sum + ((c as any).quantidade ?? 1), 0);
 
         const countUsed = (tipo: string) =>
-          studentConsumos.filter((c) => c.tipo_servico === tipo && !!c.agenda_id).length;
+          studentConsumos.filter((c: any) => c.tipo_servico === tipo && (!!c.agenda_id || (c as any).tipo_registro === "uso_manual")).length;
 
         const buildCredit = (tipo: string) => {
           const base = parseServiceCount(plano?.servicos || null, tipo);
