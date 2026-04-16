@@ -14,6 +14,7 @@ const CATEGORIES = [
   { value: "laudo", label: "Laudo" },
   { value: "foto", label: "Foto" },
   { value: "documento", label: "Documento" },
+  { value: "avaliacao_forca", label: "Avaliação de Força" },
   { value: "outro", label: "Outro" },
 ];
 

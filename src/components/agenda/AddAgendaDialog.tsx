@@ -24,6 +24,7 @@ const ATIVIDADES = [
   "Avaliação Funcional",
   "Avaliação Física",
   "Recovery (Bota de Compressão)",
+  "Treino Experimental",
 ];
 
 const LOCAIS = ["Sala de Nutrição", "Sala de Reabilitação"];

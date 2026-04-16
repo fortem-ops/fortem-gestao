@@ -30,6 +30,7 @@ const ATIVIDADE_COLORS: Record<string, string> = {
   "Avaliação Funcional": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   "Avaliação Física": "bg-amber-500/20 text-amber-400 border-amber-500/30",
   "Recovery (Bota de Compressão)": "bg-rose-500/20 text-rose-400 border-rose-500/30",
+  "Treino Experimental": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
 };
 
 export default function Agenda() {
