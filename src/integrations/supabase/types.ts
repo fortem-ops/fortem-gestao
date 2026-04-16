@@ -248,6 +248,7 @@ export type Database = {
           plano_id: string
           quantidade: number
           registrado_por: string
+          tipo_registro: string
           tipo_servico: string
           valor_unitario: number
         }
@@ -261,6 +262,7 @@ export type Database = {
           plano_id: string
           quantidade?: number
           registrado_por: string
+          tipo_registro?: string
           tipo_servico: string
           valor_unitario?: number
         }
@@ -274,6 +276,7 @@ export type Database = {
           plano_id?: string
           quantidade?: number
           registrado_por?: string
+          tipo_registro?: string
           tipo_servico?: string
           valor_unitario?: number
         }
