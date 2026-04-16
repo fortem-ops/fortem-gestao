@@ -14,6 +14,7 @@ import TaskCenter from "./pages/TaskCenter";
 import Admin from "./pages/Admin";
 import Agenda from "./pages/Agenda";
 import CarteiraAlunos from "./pages/CarteiraAlunos";
+import ExerciseBank from "./pages/ExerciseBank";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/alunos" element={<StudentList />} />
               <Route path="/alunos/:id" element={<StudentProfile />} />
+              <Route path="/exercicios" element={<ExerciseBank />} />
               <Route path="/carteira" element={<CarteiraAlunos />} />
               <Route path="/tarefas" element={<TaskCenter />} />
               <Route path="/agenda" element={<Agenda />} />

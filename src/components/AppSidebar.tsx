@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, Activity, LogOut, Briefcase } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, Activity, LogOut, Briefcase, Dumbbell } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Alunos", url: "/alunos", icon: Users },
+  { title: "Banco de Exercícios", url: "/exercicios", icon: Dumbbell },
   { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
