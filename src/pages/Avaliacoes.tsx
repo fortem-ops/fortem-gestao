@@ -90,10 +90,14 @@ export default function Avaliacoes() {
           ) : (
             <div className="space-y-2">
               {avaliacoes.map((a) => (
-                <div key={a.id} className="glass-card rounded-lg p-4">
+                <button
+                  key={a.id}
+                  onClick={() => { setSelectedAval(a); setViewerOpen(true); }}
+                  className="glass-card rounded-lg p-4 w-full text-left hover:bg-secondary/30 transition-colors"
+                >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-foreground capitalize">{a.tipo}</p>
+                      <p className="text-sm font-semibold text-foreground capitalize">{a.tipo.replace(/_/g, ' ')}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {format(new Date(a.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                       </p>
@@ -102,8 +106,19 @@ export default function Avaliacoes() {
                   {a.observacoes && (
                     <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{a.observacoes}</p>
                   )}
-                </div>
+                </button>
               ))}
+            </div>
+          )}
+
+          {aluno && (
+            <AssessmentViewerDialog
+              open={viewerOpen}
+              onOpenChange={setViewerOpen}
+              avaliacao={selectedAval}
+              student={aluno}
+            />
+          )}
             </div>
           )}
         </>
