@@ -5,7 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
@@ -46,6 +48,10 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [editingService, setEditingService] = useState<string | null>(null);
   const [editValue, setEditValue] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [historyService, setHistoryService] = useState<string | null>(null);
+  const [addUsageOpen, setAddUsageOpen] = useState(false);
+  const [addUsageService, setAddUsageService] = useState("");
+  const [addUsageDate, setAddUsageDate] = useState(new Date().toISOString().split("T")[0]);
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin"],
@@ -83,18 +89,19 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       const { data: consumos } = await supabase
         .from("consumo_servicos")
-        .select("tipo_servico, quantidade, agenda_id")
+        .select("*")
         .eq("aluno_id", student.id)
-        .eq("plano_id", plano.id);
+        .eq("plano_id", plano.id)
+        .order("data_consumo", { ascending: false });
 
       const servicos = plano.servicos || [];
 
       const countPurchased = (tipo: string) =>
-        consumos?.filter((c) => c.tipo_servico === tipo && !c.agenda_id)
-          .reduce((sum, c) => sum + ((c as any).quantidade ?? 1), 0) || 0;
+        consumos?.filter((c: any) => c.tipo_servico === tipo && c.tipo_registro === "compra")
+          .reduce((sum: number, c: any) => sum + (c.quantidade ?? 1), 0) || 0;
 
       const countUsed = (tipo: string) =>
-        consumos?.filter((c) => c.tipo_servico === tipo && !!c.agenda_id).length || 0;
+        consumos?.filter((c: any) => c.tipo_servico === tipo && (!!c.agenda_id || c.tipo_registro === "uso_manual")).length || 0;
 
       const buildCredit = (tipo: string) => ({
         base: parseServiceCount(servicos, tipo),
@@ -105,6 +112,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       return {
         ...plano,
+        consumos: consumos || [],
         credits: {
           avalFuncional: buildCredit("Avaliação Funcional"),
           nutricao: buildCredit("Consultas Nutrição"),
@@ -134,6 +142,44 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     }
   }
 
+  async function handleAddUsage() {
+    if (!data || !addUsageService) return;
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const { error } = await supabase.from("consumo_servicos").insert({
+        aluno_id: student.id,
+        plano_id: data.id,
+        tipo_servico: addUsageService,
+        data_consumo: addUsageDate,
+        quantidade: 1,
+        valor_unitario: 0,
+        registrado_por: user.id,
+        tipo_registro: "uso_manual",
+      } as any);
+      if (error) throw error;
+      toast.success("Utilização registrada");
+      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      setAddUsageOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao registrar utilização");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteUsage(id: string) {
+    try {
+      const { error } = await supabase.from("consumo_servicos").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Registro removido");
+      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao remover registro");
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-4 mt-4">
@@ -159,10 +205,14 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     credit: data.credits[st.key as keyof typeof data.credits],
   }));
 
-  // Show all services (even with 0 credits) if admin, otherwise only those with credits
   const visibleServices = isAdmin
     ? serviceItems
     : serviceItems.filter((s) => s.credit.total > 0);
+
+  const getUsageHistory = (dbLabel: string) =>
+    (data.consumos as any[]).filter(
+      (c) => c.tipo_servico === dbLabel && (!!c.agenda_id || c.tipo_registro === "uso_manual")
+    );
 
   return (
     <div className="space-y-4 mt-4">
@@ -212,65 +262,103 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               {visibleServices.map((s) => {
                 const restante = s.credit.total - s.credit.usado;
                 const isEditing = editingService === s.dbLabel;
+                const showHistory = historyService === s.dbLabel;
+                const history = getUsageHistory(s.dbLabel);
 
                 return (
-                  <div key={s.label} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <s.icon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-foreground">{s.label}</span>
+                  <div key={s.label} className="space-y-0">
+                    <div className="flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <s.icon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-foreground">{s.label}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {isEditing ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs">Base:</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={editValue}
+                              onChange={(e) => setEditValue(parseInt(e.target.value) || 0)}
+                              className="w-16 h-7 text-xs"
+                            />
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" disabled={saving} onClick={() => handleSaveCredit(s.dbLabel)}>
+                              <Check className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingService(null)}>
+                              <X className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            {s.credit.base > 0 && <span>Plano: {s.credit.base}</span>}
+                            {s.credit.comprado > 0 && <span className="text-primary">+{s.credit.comprado} comprado{s.credit.comprado !== 1 ? "s" : ""}</span>}
+                            <span className="text-sm font-medium text-foreground">{s.credit.usado}/{s.credit.total} usados</span>
+                            <Badge variant="outline" className={`text-xs ${restante > 0 ? "status-active" : "status-urgent"}`}>
+                              {restante > 0 ? `${restante} disponível${restante !== 1 ? "eis" : ""}` : "Esgotado"}
+                            </Badge>
+                            {isAdmin && (
+                              <div className="flex items-center gap-1 ml-1">
+                                <button
+                                  className="text-muted-foreground hover:text-primary transition-colors"
+                                  onClick={() => { setEditingService(s.dbLabel); setEditValue(s.credit.base); }}
+                                  title="Editar créditos base"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  className="text-muted-foreground hover:text-primary transition-colors"
+                                  onClick={() => { setAddUsageService(s.dbLabel); setAddUsageDate(new Date().toISOString().split("T")[0]); setAddUsageOpen(true); }}
+                                  title="Registrar utilização"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  className="text-muted-foreground hover:text-primary transition-colors"
+                                  onClick={() => setHistoryService(showHistory ? null : s.dbLabel)}
+                                  title="Histórico de utilização"
+                                >
+                                  <History className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      {isEditing ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs">Base:</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={editValue}
-                            onChange={(e) => setEditValue(parseInt(e.target.value) || 0)}
-                            className="w-16 h-7 text-xs"
-                          />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-primary"
-                            disabled={saving}
-                            onClick={() => handleSaveCredit(s.dbLabel)}
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => setEditingService(null)}
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          {s.credit.base > 0 && <span>Plano: {s.credit.base}</span>}
-                          {s.credit.comprado > 0 && <span className="text-primary">+{s.credit.comprado} comprado{s.credit.comprado !== 1 ? "s" : ""}</span>}
-                          <span className="text-sm font-medium text-foreground">{s.credit.usado}/{s.credit.total} usados</span>
-                          <Badge variant="outline" className={`text-xs ${restante > 0 ? "status-active" : "status-urgent"}`}>
-                            {restante > 0 ? `${restante} disponível${restante !== 1 ? "eis" : ""}` : "Esgotado"}
-                          </Badge>
-                          {isAdmin && (
-                            <button
-                              className="text-muted-foreground hover:text-primary transition-colors ml-1"
-                              onClick={() => {
-                                setEditingService(s.dbLabel);
-                                setEditValue(s.credit.base);
-                              }}
-                              title="Editar créditos base"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
+
+                    {showHistory && (
+                      <div className="border border-t-0 border-border/50 rounded-b-md bg-muted/10 px-4 py-3 space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Histórico de utilização</p>
+                        {history.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">Nenhuma utilização registrada.</p>
+                        ) : (
+                          history.map((h: any) => (
+                            <div key={h.id} className="flex items-center justify-between text-xs py-1 border-b border-border/30 last:border-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-foreground">
+                                  {new Date(h.data_consumo + "T12:00:00").toLocaleDateString("pt-BR")}
+                                </span>
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {h.agenda_id ? "Agenda" : "Manual"}
+                                </Badge>
+                                {h.observacoes && <span className="text-muted-foreground">{h.observacoes}</span>}
+                              </div>
+                              {isAdmin && h.tipo_registro === "uso_manual" && (
+                                <button
+                                  className="text-destructive hover:text-destructive/80 transition-colors"
+                                  onClick={() => handleDeleteUsage(h.id)}
+                                  title="Remover"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -280,6 +368,28 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         )}
       </div>
       <p className="text-xs text-muted-foreground">Editável apenas por Coordenação e Administração</p>
+
+      <Dialog open={addUsageOpen} onOpenChange={setAddUsageOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Utilização de Crédito</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Serviço</Label>
+              <Input value={addUsageService} disabled />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de Utilização</Label>
+              <Input type="date" value={addUsageDate} onChange={(e) => setAddUsageDate(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddUsageOpen(false)}>Cancelar</Button>
+            <Button disabled={saving || !addUsageDate} onClick={handleAddUsage}>Registrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
     </div>
