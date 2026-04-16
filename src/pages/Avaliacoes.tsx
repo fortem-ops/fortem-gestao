@@ -8,6 +8,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { AssessmentForm } from "@/components/student/assessment/AssessmentForm";
+import { AssessmentViewerDialog } from "@/components/student/assessment/AssessmentViewerDialog";
+import type { Tables } from "@/integrations/supabase/types";
 
 type View = "select" | "new";
 
@@ -18,6 +20,8 @@ export default function Avaliacoes() {
 
   const [alunoId, setAlunoId] = useState<string>(initialAluno);
   const [view, setView] = useState<View>(autoNew && initialAluno ? "new" : "select");
+  const [selectedAval, setSelectedAval] = useState<Tables<"avaliacoes"> | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const { data: aluno } = useQuery({
     queryKey: ["aluno-min-aval", alunoId],
@@ -86,10 +90,14 @@ export default function Avaliacoes() {
           ) : (
             <div className="space-y-2">
               {avaliacoes.map((a) => (
-                <div key={a.id} className="glass-card rounded-lg p-4">
+                <button
+                  key={a.id}
+                  onClick={() => { setSelectedAval(a); setViewerOpen(true); }}
+                  className="glass-card rounded-lg p-4 w-full text-left hover:bg-secondary/30 transition-colors"
+                >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-foreground capitalize">{a.tipo}</p>
+                      <p className="text-sm font-semibold text-foreground capitalize">{a.tipo.replace(/_/g, ' ')}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {format(new Date(a.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                       </p>
@@ -98,9 +106,18 @@ export default function Avaliacoes() {
                   {a.observacoes && (
                     <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{a.observacoes}</p>
                   )}
-                </div>
+                </button>
               ))}
             </div>
+          )}
+
+          {aluno && (
+            <AssessmentViewerDialog
+              open={viewerOpen}
+              onOpenChange={setViewerOpen}
+              avaliacao={selectedAval}
+              student={aluno}
+            />
           )}
         </>
       )}
