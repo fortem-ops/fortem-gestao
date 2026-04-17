@@ -176,10 +176,10 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           placeholder="Descrição do treino"
           readOnly={readOnly}
         />
-        <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
+        <Button size="sm" variant="outline" onClick={() => setExportOpen("download")}>
           <FileDown className="w-3 h-3 mr-1" /> PDF
         </Button>
-        <Button size="sm" variant="outline" onClick={() => handleExport("print")}>
+        <Button size="sm" variant="outline" onClick={() => setExportOpen("print")}>
           <Printer className="w-3 h-3 mr-1" /> Imprimir
         </Button>
         {!readOnly && (
