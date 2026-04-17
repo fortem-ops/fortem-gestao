@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getYouTubeEmbedUrl } from "@/lib/youtube";
 import { z } from "zod";
 
 interface Category {
@@ -112,7 +113,7 @@ export function StudentExerciseBank() {
   const [search, setSearch] = useState("");
   const [filterGrupo, setFilterGrupo] = useState<string>("");
   const [filterSub, setFilterSub] = useState<string>("");
-  const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string } | null>(null);
+  const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
 
   // Form state
   const [nome, setNome] = useState("");
@@ -207,7 +208,13 @@ export function StudentExerciseBank() {
 
   const handleOpenVideo = async (ex: ExercicioRow) => {
     if (ex.video_url) {
-      window.open(ex.video_url, "_blank", "noopener,noreferrer");
+      const embed = getYouTubeEmbedUrl(ex.video_url);
+      if (embed) {
+        setVideoPreview({ nome: ex.nome, src: embed, kind: "youtube" });
+      } else {
+        // URL externa não-YouTube: abre em nova aba
+        window.open(ex.video_url, "_blank", "noopener,noreferrer");
+      }
       return;
     }
     if (ex.video_path) {
@@ -218,7 +225,7 @@ export function StudentExerciseBank() {
         toast.error("Falha ao carregar vídeo");
         return;
       }
-      setVideoPreview({ nome: ex.nome, src: data.signedUrl });
+      setVideoPreview({ nome: ex.nome, src: data.signedUrl, kind: "file" });
     }
   };
 
@@ -686,7 +693,19 @@ export function StudentExerciseBank() {
             <DialogTitle>{videoPreview?.nome}</DialogTitle>
           </DialogHeader>
           {videoPreview && (
-            <video src={videoPreview.src} controls className="w-full rounded-md" />
+            videoPreview.kind === "youtube" ? (
+              <div className="aspect-video w-full">
+                <iframe
+                  src={videoPreview.src}
+                  title={videoPreview.nome}
+                  className="w-full h-full rounded-md"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <video src={videoPreview.src} controls className="w-full rounded-md" />
+            )
           )}
         </DialogContent>
       </Dialog>
