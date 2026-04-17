@@ -58,10 +58,13 @@ export function RecordVideoUpload({ taskId, descricao }: Props) {
         .eq("id", exercicioId);
       if (updErr) throw updErr;
 
+      // Conclui todas as tarefas "gravar_video" deste exercício (pode haver
+      // uma por coordenador), não apenas a clicada.
       const { error: taskErr } = await supabase
         .from("tarefas")
         .update({ status: "concluida" })
-        .eq("id", taskId);
+        .eq("tipo_auto", "gravar_video")
+        .eq("descricao", `exercicio_id:${exercicioId}`);
       if (taskErr) throw taskErr;
 
       toast.success("Vídeo enviado e tarefa concluída!");
