@@ -85,13 +85,31 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onS
           .eq("id", treino.id);
         if (error) throw error;
       } else {
+        // Arquiva treinos anteriores 'atual' do mesmo aluno
+        const { error: archiveError } = await supabase
+          .from("treinos")
+          .update({ status: "arquivado", updated_at: new Date().toISOString() })
+          .eq("aluno_id", alunoId)
+          .eq("status", "atual");
+        if (archiveError) throw archiveError;
+
+        // Calcula próxima versão
+        const { data: ultimo } = await supabase
+          .from("treinos")
+          .select("versao")
+          .eq("aluno_id", alunoId)
+          .order("versao", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const proximaVersao = (ultimo?.versao || 0) + 1;
+
         const { error } = await supabase.from("treinos").insert({
           aluno_id: alunoId,
           autor_id: user.id,
           descricao,
           conteudo: data as unknown as Json,
           status: "atual",
-          versao: 1,
+          versao: proximaVersao,
         });
         if (error) throw error;
       }
