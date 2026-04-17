@@ -256,10 +256,10 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   ) => {
     if (items.length === 0) return;
 
-    // Bloco badge
+    // Bloco badge — GRAY (subordinate to the red Treino bar above)
     const badgeW = 16;
     const badgeH = 4.2;
-    doc.setFillColor(...RED);
+    doc.setFillColor(...INK_SOFT);
     doc.rect(mainX, y, badgeW, badgeH, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.5);
@@ -306,10 +306,10 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         fontSize: 6,
         cellPadding: { top: 1.2, bottom: 1.2, left: 1.5, right: 1.5 },
         lineWidth: { bottom: 0.3 },
-        lineColor: RED,
+        lineColor: INK_SOFT,
       },
       columnStyles: {
-        0: { cellWidth: 6, halign: "center", textColor: RED_SOFT, fontStyle: "bold" },
+        0: { cellWidth: 6, halign: "center", textColor: INK_SOFT, fontStyle: "bold" },
         1: { cellWidth: 12, fontStyle: "bold", textColor: INK_SOFT, fontSize: 6.5 },
         2: { cellWidth: "auto" },
         3: { cellWidth: 14, halign: "center" },
@@ -327,22 +327,19 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   };
 
   data.treinos.forEach((tr, idx) => {
-    // Section bar — light surface with bold label
-    const barH = 5.5;
-    doc.setFillColor(...SURFACE);
-    doc.rect(mainX, y, mainW, barH, "F");
-    // Red left tick
+    // Section bar — RED background with white label (highlights the Treino)
+    const barH = 5.8;
     doc.setFillColor(...RED);
-    doc.rect(mainX, y, 1.2, barH, "F");
+    doc.rect(mainX, y, mainW, barH, "F");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...INK);
-    doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 3, y + barH / 2 + 1.1);
+    doc.setFontSize(8);
+    doc.setTextColor(...WHITE);
+    doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.5, y + barH / 2 + 1.2);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
-    doc.setTextColor(...RED);
-    doc.text("FORÇA", mainX + mainW - 2, y + barH / 2 + 1.1, { align: "right" });
+    doc.setFontSize(6.8);
+    doc.setTextColor(...WHITE);
+    doc.text("FORÇA", mainX + mainW - 2, y + barH / 2 + 1.2, { align: "right" });
     y += barH + 1;
 
     const blocoA = tr.exercicios.slice(0, 2);
