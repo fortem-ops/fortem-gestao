@@ -27,12 +27,14 @@ interface WorkoutDetailProps {
   templateData?: WorkoutData;
   fase?: string;
   alunoId: string;
+  /** Optional — needed for the printable PDF (uses the student's name in the header). */
+  student?: { id: string; nome: string };
   onBack: () => void;
   onSaved?: () => void;
   readOnly?: boolean;
 }
 
-export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onSaved, readOnly }: WorkoutDetailProps) {
+export function WorkoutDetail({ treino, templateData, fase, alunoId, student, onBack, onSaved, readOnly }: WorkoutDetailProps) {
   const { user } = useAuth();
   const initialData: WorkoutData = treino?.conteudo
     ? (treino.conteudo as unknown as WorkoutData)
