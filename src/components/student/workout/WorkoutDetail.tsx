@@ -126,9 +126,27 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     }
   };
 
+  const handleExport = async (mode: "download" | "print") => {
+    let aluno = student as { id: string; nome: string } | undefined;
+    if (!aluno) {
+      const { data: a } = await supabase.from("alunos").select("*").eq("id", alunoId).maybeSingle();
+      if (!a) {
+        toast.error("Não foi possível carregar os dados do aluno.");
+        return;
+      }
+      aluno = a;
+    }
+    exportWorkoutPDF({
+      student: aluno as Parameters<typeof exportWorkoutPDF>[0]["student"],
+      descricao: descricao || "PLANILHA DE TREINO",
+      data,
+      print: mode === "print",
+    });
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap print:hidden">
         <Button variant="ghost" size="icon" onClick={onBack}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
@@ -139,6 +157,12 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           placeholder="Descrição do treino"
           readOnly={readOnly}
         />
+        <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
+          <FileDown className="w-3 h-3 mr-1" /> PDF
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => handleExport("print")}>
+          <Printer className="w-3 h-3 mr-1" /> Imprimir
+        </Button>
         {!readOnly && (
           <Button size="sm" onClick={handleSave} disabled={saving}>
             <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar"}
