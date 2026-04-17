@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
@@ -23,6 +23,7 @@ const mainItems = [
   { title: "Alunos", url: "/alunos", icon: Users },
   { title: "Treinos", url: "/treinos", icon: Dumbbell },
   { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
+  { title: "Banco de Treinos", url: "/banco-treinos", icon: Library },
   { title: "Banco de Exercícios", url: "/exercicios", icon: Dumbbell },
   { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },

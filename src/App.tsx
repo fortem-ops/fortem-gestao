@@ -17,6 +17,7 @@ import CarteiraAlunos from "./pages/CarteiraAlunos";
 import ExerciseBank from "./pages/ExerciseBank";
 import Treinos from "./pages/Treinos";
 import Avaliacoes from "./pages/Avaliacoes";
+import BancoTreinos from "./pages/BancoTreinos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/exercicios" element={<ExerciseBank />} />
               <Route path="/treinos" element={<Treinos />} />
               <Route path="/avaliacoes" element={<Avaliacoes />} />
+              <Route path="/banco-treinos" element={<BancoTreinos />} />
               <Route path="/carteira" element={<CarteiraAlunos />} />
               <Route path="/tarefas" element={<TaskCenter />} />
               <Route path="/agenda" element={<Agenda />} />
