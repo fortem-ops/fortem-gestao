@@ -154,12 +154,15 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
       }
       aluno = a;
     }
-    exportWorkoutPDF({
+    // URL pública do treino para o QR Code (abre o perfil do aluno → aba treinos)
+    const appUrl = `${window.location.origin}/alunos/${alunoId}${treino?.id ? `?treino=${treino.id}` : ""}`;
+    await exportWorkoutPDF({
       student: aluno as Parameters<typeof exportWorkoutPDF>[0]["student"],
       descricao: descricao || "PLANILHA DE TREINO",
       data,
       print: mode === "print",
       weeks: weeksCount,
+      qrUrl: appUrl,
     });
   };
 
