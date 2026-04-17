@@ -468,9 +468,23 @@ function TemplateDetail({
 }
 
 export default function BancoTreinos() {
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const canEdit = role === "admin" || role === "coordenador";
+
+  const { data: userRoles = [] } = useQuery({
+    queryKey: ["user-roles", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return (data || []).map((r) => r.role);
+    },
+    staleTime: 5 * 60_000,
+  });
+  const canEdit = userRoles.includes("admin") || userRoles.includes("coordenador");
 
   const [selected, setSelected] = useState<WorkoutTemplate | null>(null);
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
