@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Video } from "lucide-react";
 import { CATEGORY_LABELS, type WorkoutExercise } from "./workoutTemplates";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +49,27 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onS
       } else {
         (next.treinos[treinoIdx].exercicios[exIdx] as unknown as Record<string, unknown>)[field] = value;
       }
+      return next;
+    });
+  };
+
+  // Quando o usuário escolhe um exercício pelo seletor, atualiza nome + vídeo + limpa id antigo.
+  const pickExercise = (
+    section: "aquecimento" | "treino",
+    treinoIdx: number,
+    exIdx: number,
+    nome: string,
+    video?: string | null,
+  ) => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const target = section === "aquecimento"
+        ? next.aquecimento[exIdx]
+        : next.treinos[treinoIdx].exercicios[exIdx];
+      target.exercicio = nome;
+      target.video_url = video ?? null;
+      // exercicio_id não é mais confiável após troca manual; deixa undefined.
+      target.exercicio_id = undefined;
       return next;
     });
   };
