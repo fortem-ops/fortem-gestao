@@ -194,7 +194,7 @@ function ExerciseRow({
               categoria={ex.categoria}
               bank={bank}
               currentId={escolhaEx?.id}
-              canEdit={canEdit && !!match}
+              canEdit={canEdit && candidatesCount > 0}
               onSelect={(b) => onSaveChoice(b)}
               onClear={escolha ? onClearChoice : undefined}
               triggerLabel={<span>{match?.nome || ex.exercicio}</span>}
