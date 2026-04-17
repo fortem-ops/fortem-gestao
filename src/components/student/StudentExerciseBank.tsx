@@ -438,7 +438,10 @@ export function StudentExerciseBank() {
   return (
     <div className="space-y-4 mt-4 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h3 className="text-lg font-heading font-bold text-foreground">Banco de Exercícios</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-heading font-bold text-foreground">Banco de Exercícios</h3>
+          <Badge variant="secondary">{exercicios.length} {exercicios.length === 1 ? "exercício" : "exercícios"}</Badge>
+        </div>
         {isCoordAdmin && (
           <Button onClick={() => setDialogOpen(true)} size="sm">
             <Plus className="w-4 h-4 mr-1" /> Novo Exercício
