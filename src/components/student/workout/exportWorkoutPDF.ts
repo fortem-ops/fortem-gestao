@@ -29,7 +29,7 @@ const DAYS = ["T1", "T2", "T3", "T4"] as const;
  * Generates a single-page A4 portrait PDF mirroring the FORTEM training sheet
  * (header + warm-up table with T1..T4 + multiple TREINO blocks + frequência column).
  */
-export function exportWorkoutPDF({ student, descricao, data, print }: ExportArgs) {
+export function exportWorkoutPDF({ student, descricao, data, print, weeks = 4 }: ExportArgs) {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();   // 210
   const pageH = doc.internal.pageSize.getHeight();  // 297
