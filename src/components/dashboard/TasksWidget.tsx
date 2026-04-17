@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Clock, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -22,7 +23,7 @@ export function TasksWidget({ professorId }: Props) {
     queryFn: async () => {
       let q = supabase
         .from("tarefas")
-        .select("id, titulo, prioridade, status, data_limite, responsavel_id")
+        .select("id, titulo, prioridade, status, data_limite, responsavel_id, descricao, tipo_auto")
         .neq("status", "concluida")
         .order("data_limite", { ascending: true, nullsFirst: false })
         .limit(5);
