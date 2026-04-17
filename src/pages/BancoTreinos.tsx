@@ -1,13 +1,16 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
 import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
@@ -22,6 +25,14 @@ interface BankExercise {
   video_path: string | null;
 }
 
+interface Escolha {
+  id: string;
+  template_fase: string;
+  treino_nome: string;
+  ordem: number;
+  exercicio_id: string;
+}
+
 const PHASE_GROUPS = [
   { label: "Fases", filter: (t: WorkoutTemplate) => /^Fase \d/.test(t.fase) },
   { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "Planilha 5RM", "5-3-1", "M102"].includes(t.fase) },
@@ -29,7 +40,6 @@ const PHASE_GROUPS = [
 ];
 
 function findBankMatch(ex: WorkoutExercise, bank: BankExercise[]): BankExercise | null {
-  // 1) If template has a name, try exact match by name (case-insensitive)
   if (ex.exercicio?.trim()) {
     const nameLower = ex.exercicio.trim().toLowerCase();
     const exact = bank.find((b) => b.nome.trim().toLowerCase() === nameLower);
@@ -47,20 +57,129 @@ function getCandidatesForCode(categoria: string, bank: BankExercise[]): BankExer
   );
 }
 
+function ExercisePicker({
+  categoria,
+  bank,
+  currentId,
+  onSelect,
+  onClear,
+  canEdit,
+  triggerLabel,
+}: {
+  categoria: string;
+  bank: BankExercise[];
+  currentId?: string;
+  onSelect: (ex: BankExercise) => void;
+  onClear?: () => void;
+  canEdit: boolean;
+  triggerLabel: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const candidates = useMemo(() => getCandidatesForCode(categoria, bank), [categoria, bank]);
+  const filtered = useMemo(() => {
+    if (!query) return candidates;
+    const q = query.toLowerCase();
+    return candidates.filter((c) => c.nome.toLowerCase().includes(q));
+  }, [candidates, query]);
+
+  if (!canEdit) {
+    return <>{triggerLabel}</>;
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="text-left hover:underline decoration-dotted underline-offset-2">
+          {triggerLabel}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0" align="start">
+        <div className="p-2 border-b border-border">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Buscar em ${CODE_TO_SUBCATEGORIA[categoria.toUpperCase()] || CODE_TO_GRUPO[categoria.toUpperCase()] || categoria}...`}
+              className="h-8 pl-7 text-xs"
+            />
+          </div>
+        </div>
+        <div className="max-h-64 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+              {candidates.length === 0
+                ? "Nenhum exercício cadastrado nesta categoria."
+                : `Nenhum resultado para "${query}".`}
+            </div>
+          ) : (
+            filtered.map((ex) => {
+              const hasVideo = !!(ex.video_url || ex.video_path);
+              const isSelected = ex.id === currentId;
+              return (
+                <button
+                  key={ex.id}
+                  onClick={() => { onSelect(ex); setOpen(false); }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-accent/50 transition-colors text-left"
+                >
+                  <span className="flex items-center gap-1.5 flex-1 truncate">
+                    {isSelected && <Check className="w-3 h-3 text-success shrink-0" />}
+                    <span className="truncate">{ex.nome}</span>
+                  </span>
+                  {hasVideo && <Video className="w-3 h-3 text-primary shrink-0" />}
+                </button>
+              );
+            })
+          )}
+        </div>
+        {currentId && onClear && (
+          <div className="border-t border-border p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-7 text-xs text-destructive hover:text-destructive"
+              onClick={() => { onClear(); setOpen(false); }}
+            >
+              <X className="w-3 h-3 mr-1" /> Remover escolha
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function ExerciseRow({
   ex,
   bank,
   showDays,
   onOpenVideo,
+  templateFase,
+  treinoNome,
+  escolha,
+  onSaveChoice,
+  onClearChoice,
+  canEdit,
 }: {
   ex: WorkoutExercise;
   bank: BankExercise[];
   showDays?: boolean;
   onOpenVideo: (b: BankExercise) => void;
+  templateFase: string;
+  treinoNome: string;
+  escolha?: Escolha;
+  onSaveChoice: (ex: BankExercise) => void;
+  onClearChoice: () => void;
+  canEdit: boolean;
 }) {
-  const match = findBankMatch(ex, bank);
-  const candidatesCount = ex.exercicio ? 0 : getCandidatesForCode(ex.categoria, bank).length;
+  // Resolve effective exercise: 1) saved choice, 2) name match in template
+  const escolhaEx = escolha ? bank.find((b) => b.id === escolha.exercicio_id) : null;
+  const match = escolhaEx || findBankMatch(ex, bank);
+  const candidatesCount = getCandidatesForCode(ex.categoria, bank).length;
   const hasVideo = match && (match.video_url || match.video_path);
+  const isSlotVazio = !ex.exercicio && !escolhaEx;
 
   return (
     <TableRow>
@@ -69,9 +188,22 @@ function ExerciseRow({
         <Badge variant="outline" className="text-xs">{ex.categoria}</Badge>
       </TableCell>
       <TableCell className="text-sm">
-        {ex.exercicio ? (
-          <div className="flex items-center gap-2">
-            <span>{ex.exercicio}</span>
+        {!isSlotVazio ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <ExercisePicker
+              categoria={ex.categoria}
+              bank={bank}
+              currentId={escolhaEx?.id}
+              canEdit={canEdit && !!match}
+              onSelect={(b) => onSaveChoice(b)}
+              onClear={escolha ? onClearChoice : undefined}
+              triggerLabel={<span>{match?.nome || ex.exercicio}</span>}
+            />
+            {escolhaEx && (
+              <Badge variant="outline" className="text-[10px] border-success/40 text-success">
+                escolhido
+              </Badge>
+            )}
             {match ? (
               hasVideo ? (
                 <button
@@ -93,11 +225,19 @@ function ExerciseRow({
             )}
           </div>
         ) : (
-          <span className="text-muted-foreground italic text-xs">
-            {candidatesCount > 0
-              ? `A definir — ${candidatesCount} opções no Banco`
-              : "A definir"}
-          </span>
+          <ExercisePicker
+            categoria={ex.categoria}
+            bank={bank}
+            canEdit={canEdit && candidatesCount > 0}
+            onSelect={(b) => onSaveChoice(b)}
+            triggerLabel={
+              <span className="text-muted-foreground italic text-xs">
+                {candidatesCount > 0
+                  ? `A definir — ${candidatesCount} opções no Banco`
+                  : "A definir"}
+              </span>
+            }
+          />
         )}
       </TableCell>
       <TableCell className="text-center text-sm">{ex.series}</TableCell>
@@ -120,11 +260,23 @@ function ExerciseTable({
   bank,
   showDays,
   onOpenVideo,
+  templateFase,
+  treinoNome,
+  escolhasMap,
+  onSaveChoice,
+  onClearChoice,
+  canEdit,
 }: {
   exercicios: WorkoutExercise[];
   bank: BankExercise[];
   showDays?: boolean;
   onOpenVideo: (b: BankExercise) => void;
+  templateFase: string;
+  treinoNome: string;
+  escolhasMap: Map<string, Escolha>;
+  onSaveChoice: (ex: WorkoutExercise, treino: string, b: BankExercise) => void;
+  onClearChoice: (ex: WorkoutExercise, treino: string) => void;
+  canEdit: boolean;
 }) {
   if (exercicios.length === 0) {
     return <p className="text-sm text-muted-foreground italic">Sem exercícios cadastrados.</p>;
@@ -143,9 +295,24 @@ function ExerciseTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {exercicios.map((ex, i) => (
-            <ExerciseRow key={i} ex={ex} bank={bank} showDays={showDays} onOpenVideo={onOpenVideo} />
-          ))}
+          {exercicios.map((ex, i) => {
+            const key = `${templateFase}|${treinoNome}|${ex.ordem}`;
+            return (
+              <ExerciseRow
+                key={i}
+                ex={ex}
+                bank={bank}
+                showDays={showDays}
+                onOpenVideo={onOpenVideo}
+                templateFase={templateFase}
+                treinoNome={treinoNome}
+                escolha={escolhasMap.get(key)}
+                onSaveChoice={(b) => onSaveChoice(ex, treinoNome, b)}
+                onClearChoice={() => onClearChoice(ex, treinoNome)}
+                canEdit={canEdit}
+              />
+            );
+          })}
         </TableBody>
       </Table>
     </div>
@@ -157,11 +324,19 @@ function TemplateDetail({
   bank,
   onBack,
   onOpenVideo,
+  escolhasMap,
+  onSaveChoice,
+  onClearChoice,
+  canEdit,
 }: {
   template: WorkoutTemplate;
   bank: BankExercise[];
   onBack: () => void;
   onOpenVideo: (b: BankExercise) => void;
+  escolhasMap: Map<string, Escolha>;
+  onSaveChoice: (ex: WorkoutExercise, treino: string, b: BankExercise) => void;
+  onClearChoice: (ex: WorkoutExercise, treino: string) => void;
+  canEdit: boolean;
 }) {
   const blocks = ["LIB", "MOB", "ATI"] as const;
   const blockLabels: Record<string, string> = { LIB: "Liberação", MOB: "Mobilidade", ATI: "Ativação" };
@@ -172,10 +347,13 @@ function TemplateDetail({
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
         </Button>
-        <div>
+        <div className="flex-1">
           <h2 className="text-2xl font-bold">{template.fase}</h2>
           <p className="text-sm text-muted-foreground">Frequência: {template.frequencia}</p>
         </div>
+        {!canEdit && (
+          <Badge variant="outline" className="text-xs">Somente leitura</Badge>
+        )}
       </div>
 
       {template.aquecimento.length > 0 && (
@@ -194,7 +372,18 @@ function TemplateDetail({
                   <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                     {blockLabels[block]} ({block})
                   </h4>
-                  <ExerciseTable exercicios={items} bank={bank} showDays onOpenVideo={onOpenVideo} />
+                  <ExerciseTable
+                    exercicios={items}
+                    bank={bank}
+                    showDays
+                    onOpenVideo={onOpenVideo}
+                    templateFase={template.fase}
+                    treinoNome="__aquecimento__"
+                    escolhasMap={escolhasMap}
+                    onSaveChoice={onSaveChoice}
+                    onClearChoice={onClearChoice}
+                    canEdit={canEdit}
+                  />
                 </div>
               );
             })}
@@ -223,13 +412,33 @@ function TemplateDetail({
                   {block1.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Bloco 1 (Principais)</h4>
-                      <ExerciseTable exercicios={block1} bank={bank} onOpenVideo={onOpenVideo} />
+                      <ExerciseTable
+                        exercicios={block1}
+                        bank={bank}
+                        onOpenVideo={onOpenVideo}
+                        templateFase={template.fase}
+                        treinoNome={t.nome}
+                        escolhasMap={escolhasMap}
+                        onSaveChoice={onSaveChoice}
+                        onClearChoice={onClearChoice}
+                        canEdit={canEdit}
+                      />
                     </div>
                   )}
                   {block2.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Bloco 2 (Acessórios)</h4>
-                      <ExerciseTable exercicios={block2} bank={bank} onOpenVideo={onOpenVideo} />
+                      <ExerciseTable
+                        exercicios={block2}
+                        bank={bank}
+                        onOpenVideo={onOpenVideo}
+                        templateFase={template.fase}
+                        treinoNome={t.nome}
+                        escolhasMap={escolhasMap}
+                        onSaveChoice={onSaveChoice}
+                        onClearChoice={onClearChoice}
+                        canEdit={canEdit}
+                      />
                     </div>
                   )}
                 </TabsContent>
@@ -259,6 +468,10 @@ function TemplateDetail({
 }
 
 export default function BancoTreinos() {
+  const { user, role } = useAuth();
+  const queryClient = useQueryClient();
+  const canEdit = role === "admin" || role === "coordenador";
+
   const [selected, setSelected] = useState<WorkoutTemplate | null>(null);
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
 
@@ -280,6 +493,81 @@ export default function BancoTreinos() {
     },
     staleTime: 60_000,
   });
+
+  const { data: escolhas = [] } = useQuery({
+    queryKey: ["banco-treinos-escolhas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("banco_treinos_escolhas")
+        .select("id, template_fase, treino_nome, ordem, exercicio_id");
+      if (error) throw error;
+      return (data || []) as Escolha[];
+    },
+    staleTime: 60_000,
+  });
+
+  const escolhasMap = useMemo(() => {
+    const m = new Map<string, Escolha>();
+    escolhas.forEach((e) => m.set(`${e.template_fase}|${e.treino_nome}|${e.ordem}`, e));
+    return m;
+  }, [escolhas]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (payload: {
+      template_fase: string;
+      treino_nome: string;
+      ordem: number;
+      categoria: string;
+      exercicio_id: string;
+    }) => {
+      if (!user) throw new Error("Não autenticado");
+      const { error } = await supabase
+        .from("banco_treinos_escolhas")
+        .upsert(
+          { ...payload, escolhido_por: user.id },
+          { onConflict: "template_fase,treino_nome,ordem" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["banco-treinos-escolhas"] });
+      toast.success("Escolha salva no template");
+    },
+    onError: (e: any) => toast.error(e.message || "Falha ao salvar"),
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: async (payload: { template_fase: string; treino_nome: string; ordem: number }) => {
+      const { error } = await supabase
+        .from("banco_treinos_escolhas")
+        .delete()
+        .match(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["banco-treinos-escolhas"] });
+      toast.success("Escolha removida");
+    },
+    onError: (e: any) => toast.error(e.message || "Falha ao remover"),
+  });
+
+  const handleSaveChoice = (template: WorkoutTemplate, ex: WorkoutExercise, treino: string, b: BankExercise) => {
+    saveMutation.mutate({
+      template_fase: template.fase,
+      treino_nome: treino,
+      ordem: ex.ordem,
+      categoria: ex.categoria,
+      exercicio_id: b.id,
+    });
+  };
+
+  const handleClearChoice = (template: WorkoutTemplate, ex: WorkoutExercise, treino: string) => {
+    clearMutation.mutate({
+      template_fase: template.fase,
+      treino_nome: treino,
+      ordem: ex.ordem,
+    });
+  };
 
   const handleOpenVideo = async (ex: BankExercise) => {
     if (ex.video_url) {
@@ -331,7 +619,16 @@ export default function BancoTreinos() {
   if (selected) {
     return (
       <div className="container mx-auto p-6 max-w-6xl">
-        <TemplateDetail template={selected} bank={bank} onBack={() => setSelected(null)} onOpenVideo={handleOpenVideo} />
+        <TemplateDetail
+          template={selected}
+          bank={bank}
+          onBack={() => setSelected(null)}
+          onOpenVideo={handleOpenVideo}
+          escolhasMap={escolhasMap}
+          onSaveChoice={(ex, treino, b) => handleSaveChoice(selected, ex, treino, b)}
+          onClearChoice={(ex, treino) => handleClearChoice(selected, ex, treino)}
+          canEdit={canEdit}
+        />
         {renderVideoModal()}
       </div>
     );
@@ -346,7 +643,7 @@ export default function BancoTreinos() {
         <div>
           <h1 className="text-3xl font-bold">Banco de Treinos</h1>
           <p className="text-sm text-muted-foreground">
-            Modelos base — exercícios vinculados ao Banco de Exercícios
+            Modelos base — clique em um exercício para escolher do Banco de Exercícios
           </p>
         </div>
       </div>
