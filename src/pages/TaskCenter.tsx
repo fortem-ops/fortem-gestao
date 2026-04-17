@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -90,7 +91,7 @@ function TaskList({
               >
                 {task.titulo}
               </p>
-              {task.descricao && (
+              {task.descricao && task.tipo_auto !== "gravar_video" && (
                 <p className="text-xs text-muted-foreground">
                   {task.descricao}
                 </p>
@@ -103,6 +104,9 @@ function TaskList({
                 {task.automatica && " · Automática"}
               </p>
             </div>
+            {task.tipo_auto === "gravar_video" && !isDone && (
+              <RecordVideoUpload taskId={task.id} descricao={task.descricao} />
+            )}
             <Badge
               variant="outline"
               className={`text-xs shrink-0 ${priorityClass[task.prioridade] || ""}`}

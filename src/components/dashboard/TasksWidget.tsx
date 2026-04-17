@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Clock, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -22,7 +23,7 @@ export function TasksWidget({ professorId }: Props) {
     queryFn: async () => {
       let q = supabase
         .from("tarefas")
-        .select("id, titulo, prioridade, status, data_limite, responsavel_id")
+        .select("id, titulo, prioridade, status, data_limite, responsavel_id, descricao, tipo_auto")
         .neq("status", "concluida")
         .order("data_limite", { ascending: true, nullsFirst: false })
         .limit(5);
@@ -53,19 +54,26 @@ export function TasksWidget({ professorId }: Props) {
         {tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa pendente 🎉</p>
         ) : tasks.map((task) => (
-          <div key={task.id} className="flex items-start gap-3 p-3 rounded-md bg-secondary/50">
+          <div
+            key={task.id}
+            className="flex items-start gap-3 p-3 rounded-md bg-secondary/50"
+            onClick={(e) => e.stopPropagation()}
+          >
             {task.atrasada ? (
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-destructive" />
             ) : (
               <Clock className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
             )}
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate("/tarefas")}>
               <p className="text-sm font-medium text-foreground">{task.titulo}</p>
               <p className="text-xs text-muted-foreground">
                 {task.responsavel_nome}
                 {task.data_limite && ` · ${new Date(task.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`}
               </p>
             </div>
+            {task.tipo_auto === "gravar_video" && (
+              <RecordVideoUpload taskId={task.id} descricao={task.descricao} />
+            )}
             <Badge variant="outline" className={`shrink-0 text-xs ${priorityClass[task.prioridade] || ""}`}>
               {task.prioridade}
             </Badge>
