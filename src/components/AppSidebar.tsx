@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Alunos", url: "/alunos", icon: Users },
-  { title: "Treinos", url: "/treinos", icon: Dumbbell },
   { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
   { title: "Banco de Treinos", url: "/banco-treinos", icon: Library },
   { title: "Banco de Exercícios", url: "/exercicios", icon: Dumbbell },

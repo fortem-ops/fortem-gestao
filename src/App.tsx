@@ -15,7 +15,7 @@ import Admin from "./pages/Admin";
 import Agenda from "./pages/Agenda";
 import CarteiraAlunos from "./pages/CarteiraAlunos";
 import ExerciseBank from "./pages/ExerciseBank";
-import Treinos from "./pages/Treinos";
+
 import Avaliacoes from "./pages/Avaliacoes";
 import BancoTreinos from "./pages/BancoTreinos";
 import NotFound from "./pages/NotFound";
@@ -42,7 +42,7 @@ const App = () => (
               <Route path="/alunos" element={<StudentList />} />
               <Route path="/alunos/:id" element={<StudentProfile />} />
               <Route path="/exercicios" element={<ExerciseBank />} />
-              <Route path="/treinos" element={<Treinos />} />
+              
               <Route path="/avaliacoes" element={<Avaliacoes />} />
               <Route path="/banco-treinos" element={<BancoTreinos />} />
               <Route path="/carteira" element={<CarteiraAlunos />} />
