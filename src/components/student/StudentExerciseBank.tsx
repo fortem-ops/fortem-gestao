@@ -444,7 +444,7 @@ export function StudentExerciseBank() {
           {(() => {
             const semVideo = exercicios.filter(e => !e.video_url && !e.video_path).length;
             return (
-              <Badge variant="outline" className="border-status-warning/40 text-status-warning">
+              <Badge variant="outline" className="border-warning/40 text-warning">
                 {semVideo} sem vídeo
               </Badge>
             );
