@@ -14,6 +14,8 @@ interface ExportArgs {
   data: WorkoutData;
   /** If true, opens the print dialog instead of saving the file. */
   print?: boolean;
+  /** Number of weeks (T1..T4 cycles) to display in the Frequência column. Default 4 (= 16 slots). */
+  weeks?: number;
 }
 
 const RED: [number, number, number] = [220, 38, 38];
