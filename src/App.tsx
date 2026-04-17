@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,21 +7,38 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
+import { Skeleton } from "@/components/ui/skeleton";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import StudentList from "./pages/StudentList";
-import StudentProfile from "./pages/StudentProfile";
-import TaskCenter from "./pages/TaskCenter";
-import Admin from "./pages/Admin";
-import Agenda from "./pages/Agenda";
-import CarteiraAlunos from "./pages/CarteiraAlunos";
-import ExerciseBank from "./pages/ExerciseBank";
 
-import Avaliacoes from "./pages/Avaliacoes";
-import BancoTreinos from "./pages/BancoTreinos";
-import NotFound from "./pages/NotFound";
+// Lazy-loaded routes — keeps initial bundle small and speeds up first paint.
+const StudentList = lazy(() => import("./pages/StudentList"));
+const StudentProfile = lazy(() => import("./pages/StudentProfile"));
+const TaskCenter = lazy(() => import("./pages/TaskCenter"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Agenda = lazy(() => import("./pages/Agenda"));
+const CarteiraAlunos = lazy(() => import("./pages/CarteiraAlunos"));
+const ExerciseBank = lazy(() => import("./pages/ExerciseBank"));
+const Avaliacoes = lazy(() => import("./pages/Avaliacoes"));
+const BancoTreinos = lazy(() => import("./pages/BancoTreinos"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const RouteFallback = () => (
+  <div className="space-y-4 p-2">
+    <Skeleton className="h-8 w-48" />
+    <Skeleton className="h-64 w-full" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,18 +57,87 @@ const App = () => (
               }
             >
               <Route path="/" element={<Dashboard />} />
-              <Route path="/alunos" element={<StudentList />} />
-              <Route path="/alunos/:id" element={<StudentProfile />} />
-              <Route path="/exercicios" element={<ExerciseBank />} />
-              
-              <Route path="/avaliacoes" element={<Avaliacoes />} />
-              <Route path="/banco-treinos" element={<BancoTreinos />} />
-              <Route path="/carteira" element={<CarteiraAlunos />} />
-              <Route path="/tarefas" element={<TaskCenter />} />
-              <Route path="/agenda" element={<Agenda />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route
+                path="/alunos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <StudentList />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/alunos/:id"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <StudentProfile />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/exercicios"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <ExerciseBank />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/avaliacoes"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Avaliacoes />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/banco-treinos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <BancoTreinos />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/carteira"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <CarteiraAlunos />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/tarefas"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <TaskCenter />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/agenda"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Agenda />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Admin />
+                  </Suspense>
+                }
+              />
             </Route>
-            <Route path="*" element={<NotFound />} />
+            <Route
+              path="*"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <NotFound />
+                </Suspense>
+              }
+            />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
