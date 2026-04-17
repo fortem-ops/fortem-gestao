@@ -2,88 +2,23 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Pause, AlertCircle, ClipboardList, Dumbbell, ClipboardCheck, DollarSign, UserPlus } from "lucide-react";
 import { motion } from "framer-motion";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 interface Props {
   professorId: string | null;
 }
 
-const PLANOS_AGREGADORES = new Set(["Gympass/Wellhub", "Total Pass"]);
-
 export function StatsCards({ professorId }: Props) {
-  const { data: alunosStats } = useQuery({
-    queryKey: ["dashboard-alunos-stats", professorId],
-    queryFn: async () => {
-      let q = supabase.from("alunos").select("id, status, responsavel_id");
-      if (professorId) q = q.eq("responsavel_id", professorId);
-      const { data } = await q;
-      const all = data || [];
-      const ativos = all.filter((a) => a.status === "ativo");
-      const ativoIds = ativos.map((a) => a.id);
-
-      // Get planos for active students
-      let regularCount = 0;
-      let agregadorCount = 0;
-      if (ativoIds.length > 0) {
-        const { data: planos } = await supabase
-          .from("planos")
-          .select("aluno_id, tipo")
-          .eq("ativo", true)
-          .in("aluno_id", ativoIds);
-        const seen = new Set<string>();
-        (planos || []).forEach((p) => {
-          if (seen.has(p.aluno_id)) return;
-          seen.add(p.aluno_id);
-          if (PLANOS_AGREGADORES.has(p.tipo)) agregadorCount++;
-          else regularCount++;
-        });
+  // Consolidated query: alunos, tarefas, agenda, aniversariantes via single RPC (cached 60s)
+  const { data: dashboardData } = useDashboardData(professorId);
+  const alunosStats = dashboardData?.alunos;
+  const tarefasStats = dashboardData?.tarefas;
+  const agendaHojeStats = dashboardData?.agenda
+    ? {
+        avaliacoes: dashboardData.agenda.avaliacoes_hoje,
+        experimentais: dashboardData.agenda.experimentais_hoje,
       }
-
-      return {
-        ativos: regularCount,
-        agregadores: agregadorCount,
-        licenca: all.filter((a) => a.status === "licenca").length,
-      };
-    },
-  });
-
-  const { data: tarefasStats } = useQuery({
-    queryKey: ["dashboard-tarefas-stats", professorId],
-    queryFn: async () => {
-      let q = supabase.from("tarefas").select("id, status, data_limite, responsavel_id");
-      if (professorId) q = q.eq("responsavel_id", professorId);
-      const { data } = await q;
-      const all = data || [];
-      const today = new Date().toISOString().split("T")[0];
-      return {
-        pendentes: all.filter((t) => t.status === "pendente").length,
-        atrasadas: all.filter((t) => t.status === "pendente" && t.data_limite && t.data_limite < today).length,
-      };
-    },
-  });
-
-  const { data: agendaHojeStats } = useQuery({
-    queryKey: ["dashboard-agenda-hoje-stats", professorId],
-    queryFn: async () => {
-      const today = new Date();
-      const diaSemana = today.getDay();
-      const todayStr = today.toISOString().split("T")[0];
-
-      let q = supabase
-        .from("agenda_servicos")
-        .select("id, atividade, profissional_id, dia_semana, data_especifica, horario_fim")
-        .or(`dia_semana.eq.${diaSemana},data_especifica.eq.${todayStr}`);
-      if (professorId) q = q.eq("profissional_id", professorId);
-      const { data } = await q;
-      const events = data || [];
-
-      return {
-        avaliacoes: events.filter((e) =>
-          e.atividade === "Avaliação Funcional" || e.atividade === "Avaliação Física"
-        ).length,
-        experimentais: events.filter((e) => e.atividade === "Treino Experimental").length,
-      };
-    },
-  });
+    : undefined;
 
   const { data: comissaoStats } = useQuery({
     queryKey: ["dashboard-comissao-stats", professorId],
