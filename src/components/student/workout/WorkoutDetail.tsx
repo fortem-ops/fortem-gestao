@@ -59,6 +59,8 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
   const [data, setData] = useState<WorkoutData>(initialData);
   const [descricao, setDescricao] = useState(treino?.descricao || fase || "");
   const [saving, setSaving] = useState(false);
+  const [exportOpen, setExportOpen] = useState<null | "download" | "print">(null);
+  const [weeks, setWeeks] = useState<number>(4);
 
   const updateExercise = (section: "aquecimento" | "treino", treinoIdx: number, exIdx: number, field: string, value: string) => {
     setData(prev => {
