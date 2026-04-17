@@ -438,9 +438,17 @@ export function StudentExerciseBank() {
   return (
     <div className="space-y-4 mt-4 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h3 className="text-lg font-heading font-bold text-foreground">Banco de Exercícios</h3>
           <Badge variant="secondary">{exercicios.length} {exercicios.length === 1 ? "exercício" : "exercícios"}</Badge>
+          {(() => {
+            const semVideo = exercicios.filter(e => !e.video_url && !e.video_path).length;
+            return (
+              <Badge variant="outline" className="border-status-warning/40 text-status-warning">
+                {semVideo} sem vídeo
+              </Badge>
+            );
+          })()}
         </div>
         {isCoordAdmin && (
           <Button onClick={() => setDialogOpen(true)} size="sm">
