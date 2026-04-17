@@ -9,6 +9,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
@@ -43,6 +59,8 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
   const [data, setData] = useState<WorkoutData>(initialData);
   const [descricao, setDescricao] = useState(treino?.descricao || fase || "");
   const [saving, setSaving] = useState(false);
+  const [exportOpen, setExportOpen] = useState<null | "download" | "print">(null);
+  const [weeks, setWeeks] = useState<number>(4);
 
   const updateExercise = (section: "aquecimento" | "treino", treinoIdx: number, exIdx: number, field: string, value: string) => {
     setData(prev => {
@@ -126,7 +144,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     }
   };
 
-  const handleExport = async (mode: "download" | "print") => {
+  const handleExport = async (mode: "download" | "print", weeksCount: number) => {
     let aluno = student as { id: string; nome: string } | undefined;
     if (!aluno) {
       const { data: a } = await supabase.from("alunos").select("*").eq("id", alunoId).maybeSingle();
@@ -141,6 +159,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
       descricao: descricao || "PLANILHA DE TREINO",
       data,
       print: mode === "print",
+      weeks: weeksCount,
     });
   };
 
@@ -157,10 +176,10 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           placeholder="Descrição do treino"
           readOnly={readOnly}
         />
-        <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
+        <Button size="sm" variant="outline" onClick={() => setExportOpen("download")}>
           <FileDown className="w-3 h-3 mr-1" /> PDF
         </Button>
-        <Button size="sm" variant="outline" onClick={() => handleExport("print")}>
+        <Button size="sm" variant="outline" onClick={() => setExportOpen("print")}>
           <Printer className="w-3 h-3 mr-1" /> Imprimir
         </Button>
         {!readOnly && (
@@ -341,6 +360,46 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           </div>
         );
       })}
+
+      <Dialog open={exportOpen !== null} onOpenChange={(o) => !o && setExportOpen(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{exportOpen === "print" ? "Imprimir treino" : "Exportar PDF"}</DialogTitle>
+            <DialogDescription>
+              Escolha quantas semanas devem aparecer na coluna Frequência (cada semana = 4 linhas T1–T4).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="weeks-select">Semanas</Label>
+            <Select value={String(weeks)} onValueChange={(v) => setWeeks(Number(v))}>
+              <SelectTrigger id="weeks-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n} {n === 1 ? "semana" : "semanas"} ({n * 4} linhas)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportOpen(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                const mode = exportOpen;
+                setExportOpen(null);
+                if (mode) handleExport(mode, weeks);
+              }}
+            >
+              {exportOpen === "print" ? "Imprimir" : "Gerar PDF"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

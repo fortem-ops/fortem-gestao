@@ -14,6 +14,8 @@ interface ExportArgs {
   data: WorkoutData;
   /** If true, opens the print dialog instead of saving the file. */
   print?: boolean;
+  /** Number of weeks (T1..T4 cycles) to display in the Frequência column. Default 4 (= 16 slots). */
+  weeks?: number;
 }
 
 const RED: [number, number, number] = [220, 38, 38];
@@ -27,7 +29,7 @@ const DAYS = ["T1", "T2", "T3", "T4"] as const;
  * Generates a single-page A4 portrait PDF mirroring the FORTEM training sheet
  * (header + warm-up table with T1..T4 + multiple TREINO blocks + frequência column).
  */
-export function exportWorkoutPDF({ student, descricao, data, print }: ExportArgs) {
+export function exportWorkoutPDF({ student, descricao, data, print, weeks = 4 }: ExportArgs) {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();   // 210
   const pageH = doc.internal.pageSize.getHeight();  // 297
@@ -220,7 +222,8 @@ export function exportWorkoutPDF({ student, descricao, data, print }: ExportArgs
   const freqTopY = marginX + headerH;
   const freqBottomY = pageH - marginX;
   const freqAvailH = freqBottomY - freqTopY;
-  const slotCount = 16;
+  const safeWeeks = Math.max(1, Math.min(12, Math.floor(weeks)));
+  const slotCount = safeWeeks * 4;
   const slotH = freqAvailH / slotCount;
   doc.setDrawColor(...BLACK);
   doc.setLineWidth(0.2);
