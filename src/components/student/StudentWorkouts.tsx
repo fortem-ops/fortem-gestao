@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,7 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dumbbell } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ImportFromBankDialog } from "./workout/ImportFromBankDialog";
+
+// Lazy: this dialog pulls in WORKOUT_TEMPLATES (~30KB) + WorkoutDetail.
+// Only load when the user actually opens the import flow.
+const ImportFromBankDialog = lazy(() =>
+  import("./workout/ImportFromBankDialog").then((m) => ({ default: m.ImportFromBankDialog })),
+);
 
 export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
 
@@ -26,7 +32,9 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
     <div className="space-y-4 mt-4">
       <div className="flex items-center justify-between">
         <h3 className="font-heading font-semibold text-foreground">Histórico de Treinos</h3>
-        <ImportFromBankDialog alunoId={student.id} onSaved={() => refetch()} />
+        <Suspense fallback={null}>
+          <ImportFromBankDialog alunoId={student.id} onSaved={() => refetch()} />
+        </Suspense>
       </div>
 
       {(!treinos || treinos.length === 0) ? (
