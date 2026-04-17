@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Video } from "lucide-react";
 import { CATEGORY_LABELS, type WorkoutExercise } from "./workoutTemplates";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +49,27 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onS
       } else {
         (next.treinos[treinoIdx].exercicios[exIdx] as unknown as Record<string, unknown>)[field] = value;
       }
+      return next;
+    });
+  };
+
+  // Quando o usuário escolhe um exercício pelo seletor, atualiza nome + vídeo + limpa id antigo.
+  const pickExercise = (
+    section: "aquecimento" | "treino",
+    treinoIdx: number,
+    exIdx: number,
+    nome: string,
+    video?: string | null,
+  ) => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const target = section === "aquecimento"
+        ? next.aquecimento[exIdx]
+        : next.treinos[treinoIdx].exercicios[exIdx];
+      target.exercicio = nome;
+      target.video_url = video ?? null;
+      // exercicio_id não é mais confiável após troca manual; deixa undefined.
+      target.exercicio_id = undefined;
       return next;
     });
   };
@@ -143,12 +164,27 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onS
                         <tr key={idx} className="border-b border-border/50">
                           <td className="py-1 px-2 text-muted-foreground">{localIdx + 1}</td>
                           <td className="py-1 px-2">
-                            <ExerciseSelector
-                              categoria={ex.categoria}
-                              value={ex.exercicio}
-                              onChange={(val) => updateExercise("aquecimento", 0, idx, "exercicio", val)}
-                              readOnly={readOnly}
-                            />
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 min-w-0">
+                                <ExerciseSelector
+                                  categoria={ex.categoria}
+                                  value={ex.exercicio}
+                                  onChange={(val, video) => pickExercise("aquecimento", 0, idx, val, video)}
+                                  readOnly={readOnly}
+                                />
+                              </div>
+                              {ex.video_url && (
+                                <a
+                                  href={ex.video_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary shrink-0"
+                                  title="Ver vídeo do exercício"
+                                >
+                                  <Video className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
                           </td>
                           <td className="py-1 px-2 text-center">
                             <Input
@@ -205,12 +241,27 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onS
                         </span>
                       </td>
                       <td className="py-1 px-2">
-                        <ExerciseSelector
-                          categoria={ex.categoria}
-                          value={ex.exercicio}
-                          onChange={(val) => updateExercise("treino", tIdx, idx, "exercicio", val)}
-                          readOnly={readOnly}
-                        />
+                        <div className="flex items-center gap-1">
+                          <div className="flex-1 min-w-0">
+                            <ExerciseSelector
+                              categoria={ex.categoria}
+                              value={ex.exercicio}
+                              onChange={(val, video) => pickExercise("treino", tIdx, idx, val, video)}
+                              readOnly={readOnly}
+                            />
+                          </div>
+                          {ex.video_url && (
+                            <a
+                              href={ex.video_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary shrink-0"
+                              title="Ver vídeo do exercício"
+                            >
+                              <Video className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
                       </td>
                       <td className="py-1 px-2 text-center">{ex.series}</td>
                       <td className="py-1 px-2 text-center">
