@@ -330,7 +330,7 @@ export function StudentExerciseBank() {
             <Video className="w-4 h-4" />
           </button>
         ) : (
-          <span className="text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30 shrink-0">
+          <span className="text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 shrink-0">
             Sem vídeo
           </span>
         )}
