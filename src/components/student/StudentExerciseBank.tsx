@@ -321,7 +321,7 @@ export function StudentExerciseBank() {
             </p>
           )}
         </div>
-        {hasVideo && (
+        {hasVideo ? (
           <button
             onClick={() => handleOpenVideo(ex)}
             className="text-muted-foreground hover:text-primary"
@@ -329,6 +329,10 @@ export function StudentExerciseBank() {
           >
             <Video className="w-4 h-4" />
           </button>
+        ) : (
+          <span className="text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 shrink-0">
+            Sem vídeo
+          </span>
         )}
         {isCoordAdmin && (
           <button
