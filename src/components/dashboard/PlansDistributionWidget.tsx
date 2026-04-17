@@ -67,6 +67,7 @@ export function PlansDistributionWidget() {
 
       return { byPlan, byDuration, total };
     },
+    staleTime: 60_000,
   });
 
   const byPlan = data?.byPlan || [];

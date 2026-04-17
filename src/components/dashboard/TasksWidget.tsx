@@ -42,6 +42,7 @@ export function TasksWidget({ professorId }: Props) {
         atrasada: t.data_limite && t.data_limite < new Date().toISOString().split("T")[0],
       }));
     },
+    staleTime: 60_000,
   });
 
   return (

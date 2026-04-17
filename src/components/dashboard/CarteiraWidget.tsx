@@ -16,6 +16,7 @@ export function CarteiraWidget() {
       return !!data;
     },
     enabled: !!user,
+    staleTime: 5 * 60_000,
   });
 
   const { data: carteiras = [] } = useQuery({
@@ -72,6 +73,7 @@ export function CarteiraWidget() {
       return result;
     },
     enabled: !!user && isCoordAdmin !== undefined,
+    staleTime: 60_000,
   });
 
   const total = carteiras.reduce((sum, c) => sum + c.count, 0);

@@ -1,51 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Cake } from "lucide-react";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 interface Props {
   professorId: string | null;
 }
 
 export function BirthdaysWidget({ professorId }: Props) {
-  const { data } = useQuery({
-    queryKey: ["dashboard-birthdays", professorId],
-    queryFn: async () => {
-      let q = supabase
-        .from("alunos")
-        .select("id, nome, data_nascimento, responsavel_id")
-        .eq("status", "ativo")
-        .not("data_nascimento", "is", null);
-      if (professorId) q = q.eq("responsavel_id", professorId);
-      const { data: alunos } = await q;
-
-      const today = new Date();
-      const todayMonth = today.getMonth();
-      const todayDay = today.getDate();
-
-      const todayList: { id: string; nome: string; dia: number }[] = [];
-      const monthList: { id: string; nome: string; dia: number }[] = [];
-
-      (alunos || []).forEach((a) => {
-        if (!a.data_nascimento) return;
-        const bd = new Date(a.data_nascimento + "T00:00:00");
-        const m = bd.getMonth();
-        const d = bd.getDate();
-        if (m === todayMonth) {
-          if (d === todayDay) {
-            todayList.push({ id: a.id, nome: a.nome, dia: d });
-          } else {
-            monthList.push({ id: a.id, nome: a.nome, dia: d });
-          }
-        }
-      });
-
-      monthList.sort((a, b) => a.dia - b.dia);
-      return { today: todayList, month: monthList };
-    },
-  });
-
-  const todayList = data?.today || [];
-  const monthList = data?.month || [];
+  // Reuses consolidated dashboard RPC (cached 60s) — no extra query.
+  const { data: dashboardData } = useDashboardData(professorId);
+  const todayList = dashboardData?.aniversariantes?.today || [];
+  const monthList = dashboardData?.aniversariantes?.month || [];
 
   return (
     <div className="glass-card rounded-lg p-5">

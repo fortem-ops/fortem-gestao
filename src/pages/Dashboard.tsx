@@ -28,6 +28,7 @@ export default function Dashboard() {
       return !!data;
     },
     enabled: !!user,
+    staleTime: 5 * 60_000,
   });
 
   const { data: professors = [] } = useQuery({
@@ -46,6 +47,7 @@ export default function Dashboard() {
       return (profiles || []).sort((a, b) => a.full_name.localeCompare(b.full_name));
     },
     enabled: !!isCoordAdmin,
+    staleTime: 5 * 60_000,
   });
 
   // The effective professor filter: for professors, always their own ID
