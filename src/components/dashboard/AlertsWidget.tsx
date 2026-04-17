@@ -99,6 +99,7 @@ export function AlertsWidget({ professorId }: Props) {
 
       return result.sort((a, b) => (a.severity === "urgente" ? -1 : 1) - (b.severity === "urgente" ? -1 : 1));
     },
+    staleTime: 60_000,
   });
 
   const iconMap: Record<string, React.ElementType> = {

@@ -125,6 +125,7 @@ export function AdminAlertsWidget() {
       return result;
     },
     enabled: !!user,
+    staleTime: 60_000,
   });
 
   const professors = Array.isArray(data) ? data : [];
