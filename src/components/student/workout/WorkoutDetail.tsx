@@ -144,7 +144,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     }
   };
 
-  const handleExport = async (mode: "download" | "print") => {
+  const handleExport = async (mode: "download" | "print", weeksCount: number) => {
     let aluno = student as { id: string; nome: string } | undefined;
     if (!aluno) {
       const { data: a } = await supabase.from("alunos").select("*").eq("id", alunoId).maybeSingle();
@@ -159,6 +159,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
       descricao: descricao || "PLANILHA DE TREINO",
       data,
       print: mode === "print",
+      weeks: weeksCount,
     });
   };
 
