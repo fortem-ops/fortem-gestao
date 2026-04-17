@@ -90,6 +90,7 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
             <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>}>
               <WorkoutDetail
                 alunoId={student.id}
+                student={{ id: student.id, nome: student.nome }}
                 treino={viewing}
                 onBack={() => setViewing(null)}
                 readOnly
