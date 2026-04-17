@@ -117,6 +117,10 @@ export function exportWorkoutPDF({ student, descricao, data, print }: ExportArgs
       ...buildRows(ati, ["A", "T", "I", "", ""]),
     ];
 
+    // NOTE: jsPDF's built-in Helvetica does not include the ✓ glyph — it renders
+    // as a stray quote. Use "X" so marks are readable in any PDF viewer.
+    const MARK = "X";
+
     autoTable(doc, {
       startY: y,
       margin: { left: mainX, right: pageW - (mainX + mainW) },
@@ -124,23 +128,21 @@ export function exportWorkoutPDF({ student, descricao, data, print }: ExportArgs
       theme: "grid",
       head: [[
         { content: "", styles: { cellWidth: 6 } },
-        { content: "", styles: { cellWidth: 22 } },
         { content: "EXERCICIOS", styles: { halign: "center" } },
-        { content: "T1", styles: { cellWidth: 6, halign: "center" } },
-        { content: "T2", styles: { cellWidth: 6, halign: "center" } },
-        { content: "T3", styles: { cellWidth: 6, halign: "center" } },
-        { content: "T4", styles: { cellWidth: 6, halign: "center" } },
-        { content: "REP.", styles: { cellWidth: 12, halign: "center" } },
-        { content: "KG", styles: { cellWidth: 10, halign: "center" } },
+        { content: "T1", styles: { cellWidth: 7, halign: "center" } },
+        { content: "T2", styles: { cellWidth: 7, halign: "center" } },
+        { content: "T3", styles: { cellWidth: 7, halign: "center" } },
+        { content: "T4", styles: { cellWidth: 7, halign: "center" } },
+        { content: "REP.", styles: { cellWidth: 14, halign: "center" } },
+        { content: "KG", styles: { cellWidth: 12, halign: "center" } },
       ]],
       body: allRows.map(r => [
         r.letterCol,
-        r.code,
         r.nome,
-        r.t.T1 ? "✓" : "",
-        r.t.T2 ? "✓" : "",
-        r.t.T3 ? "✓" : "",
-        r.t.T4 ? "✓" : "",
+        r.t.T1 ? MARK : "",
+        r.t.T2 ? MARK : "",
+        r.t.T3 ? MARK : "",
+        r.t.T4 ? MARK : "",
         r.rep,
         r.kg,
       ]),
@@ -148,14 +150,13 @@ export function exportWorkoutPDF({ student, descricao, data, print }: ExportArgs
       headStyles: { fillColor: WHITE, textColor: BLACK, fontStyle: "bold", lineWidth: 0.1, fontSize: 7.5 },
       columnStyles: {
         0: { cellWidth: 6, halign: "center", fontStyle: "bold" },
-        1: { cellWidth: 22, fontStyle: "bold", fontSize: 7 },
-        2: { cellWidth: "auto" },
-        3: { cellWidth: 6, halign: "center", textColor: [22, 163, 74], fontStyle: "bold" },
-        4: { cellWidth: 6, halign: "center", textColor: [22, 163, 74], fontStyle: "bold" },
-        5: { cellWidth: 6, halign: "center", textColor: [22, 163, 74], fontStyle: "bold" },
-        6: { cellWidth: 6, halign: "center", textColor: [22, 163, 74], fontStyle: "bold" },
+        1: { cellWidth: "auto" },
+        2: { cellWidth: 7, halign: "center", textColor: [22, 163, 74], fontStyle: "bold" },
+        3: { cellWidth: 7, halign: "center", textColor: [22, 163, 74], fontStyle: "bold" },
+        4: { cellWidth: 7, halign: "center", textColor: [22, 163, 74], fontStyle: "bold" },
+        5: { cellWidth: 7, halign: "center", textColor: [22, 163, 74], fontStyle: "bold" },
+        6: { cellWidth: 14, halign: "center" },
         7: { cellWidth: 12, halign: "center" },
-        8: { cellWidth: 10, halign: "center" },
       },
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
