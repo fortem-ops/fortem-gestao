@@ -237,6 +237,50 @@ export type Database = {
           },
         ]
       }
+      banco_treinos_escolhas: {
+        Row: {
+          categoria: string
+          created_at: string
+          escolhido_por: string
+          exercicio_id: string
+          id: string
+          ordem: number
+          template_fase: string
+          treino_nome: string
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          escolhido_por: string
+          exercicio_id: string
+          id?: string
+          ordem: number
+          template_fase: string
+          treino_nome: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          escolhido_por?: string
+          exercicio_id?: string
+          id?: string
+          ordem?: number
+          template_fase?: string
+          treino_nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banco_treinos_escolhas_exercicio_id_fkey"
+            columns: ["exercicio_id"]
+            isOneToOne: false
+            referencedRelation: "exercicios_personalizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumo_servicos: {
         Row: {
           agenda_id: string | null
