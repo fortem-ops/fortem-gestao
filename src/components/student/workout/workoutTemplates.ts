@@ -22,52 +22,55 @@ export interface WorkoutTemplate {
 }
 
 const fase1Aquecimento: WorkoutExercise[] = [
-  { ordem: 1, categoria: "LIB", exercicio: "", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 2, categoria: "LIB", exercicio: "", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 3, categoria: "LIB", exercicio: "", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 4, categoria: "LIB", exercicio: "", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 5, categoria: "MOB", exercicio: "", series: 1, repeticoes: "10", dias: ["T2","T4"] },
-  { ordem: 6, categoria: "MOB", exercicio: "", series: 1, repeticoes: "15", dias: ["T1","T2","T3","T4"] },
-  { ordem: 7, categoria: "MOB", exercicio: "", series: 1, repeticoes: "15", dias: ["T1","T3"] },
-  { ordem: 8, categoria: "MOB", exercicio: "", series: 1, repeticoes: "15", dias: ["T1","T3"] },
-  { ordem: 9, categoria: "MOB", exercicio: "", series: 1, repeticoes: "15", dias: ["T2","T4"] },
-  { ordem: 10, categoria: "ATI", exercicio: "", series: 1, repeticoes: '20"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 11, categoria: "ATI", exercicio: "", series: 1, repeticoes: '20"', dias: ["T2","T4"] },
-  { ordem: 12, categoria: "ATI", exercicio: "", series: 1, repeticoes: '20"', dias: ["T2","T4"] },
-  { ordem: 13, categoria: "ATI", exercicio: "", series: 1, repeticoes: "20", dias: ["T1","T3"] },
-  { ordem: 14, categoria: "ATI", exercicio: "", series: 1, repeticoes: '45"', dias: ["T1","T3"] },
+  // Liberação (LIB) — todos os dias
+  { ordem: 1, categoria: "LIB", exercicio: "Rolinho - Panturrilha", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 2, categoria: "LIB", exercicio: "Rolinho - Anterior, Posterior, Vasto Lateral e Adutor", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 3, categoria: "LIB", exercicio: "Rolinho - Quadril (Glúteos)", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 4, categoria: "LIB", exercicio: "Rolinho - Torácica", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  // Mobilidade (MOB)
+  { ordem: 5, categoria: "MOB", exercicio: "L Tesoura flexão/extensão (pé no chão)", series: 1, repeticoes: "10", dias: ["T2","T4"] },
+  { ordem: 6, categoria: "MOB", exercicio: "Gatinho", series: 1, repeticoes: "15", dias: ["T1","T2","T3","T4"] },
+  { ordem: 7, categoria: "MOB", exercicio: "Rocking", series: 1, repeticoes: "15", dias: ["T1","T3"] },
+  { ordem: 8, categoria: "MOB", exercicio: "Dorsiflexão passiva (na parede)", series: 1, repeticoes: "15", dias: ["T1","T3"] },
+  { ordem: 9, categoria: "MOB", exercicio: "Hip Hinge c/ Mãos na Parede", series: 1, repeticoes: "15", dias: ["T2","T4"] },
+  // Ativação (ATI)
+  { ordem: 10, categoria: "ATI", exercicio: "Prancha Frontal", series: 1, repeticoes: '20"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 11, categoria: "ATI", exercicio: "Ponte Bilateral", series: 1, repeticoes: '20"', dias: ["T2","T4"] },
+  { ordem: 12, categoria: "ATI", exercicio: "Extensão Torácica no Chão", series: 1, repeticoes: '20"', dias: ["T2","T4"] },
+  { ordem: 13, categoria: "ATI", exercicio: "Ativação glúteo c/ band no joelho", series: 1, repeticoes: "20", dias: ["T1","T3"] },
+  { ordem: 14, categoria: "ATI", exercicio: "Fazendeiro Simétrico", series: 1, repeticoes: '45"', dias: ["T1","T3"] },
 ];
 
 const fase1Treino1: WorkoutExercise[] = [
-  { ordem: 1, categoria: "DJS", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 2, categoria: "PH", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 3, categoria: "EP", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 5, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
+  { ordem: 1, categoria: "DJS", exercicio: "Agachamento com Kettlebell/Halter", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "PH", exercicio: "Remada no Cabo Unilateral (SAJ)", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "EP", exercicio: "Flexão de Joelhos na Bola", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "EV", exercicio: "Press na Mina Terrestre (SAJ)", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AH", exercicio: "Dead Bug Alternado", series: 3, repeticoes: "20" },
 ];
 
 const fase1Treino2: WorkoutExercise[] = [
-  { ordem: 1, categoria: "DQ", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 2, categoria: "EH", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 3, categoria: "DJA", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 4, categoria: "PV", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 5, categoria: "AF", exercicio: "", series: 3, repeticoes: '30"' },
+  { ordem: 1, categoria: "DQ", exercicio: "Levantamento Terra com Kettlebell", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "EH", exercicio: "Supino no Rolo com Halteres", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "DJA", exercicio: "Step Up / Step Down Lateral", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "PV", exercicio: "Face Pull (SAJ)", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AF", exercicio: "Prancha Lateral", series: 3, repeticoes: '30"' },
 ];
 
 const fase1Treino3: WorkoutExercise[] = [
-  { ordem: 1, categoria: "DJS", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 2, categoria: "PH", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 3, categoria: "DQ", exercicio: "", series: 3, repeticoes: "15" },
-  { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 5, categoria: "AH", exercicio: "", series: 3, repeticoes: '30"' },
+  { ordem: 1, categoria: "DJS", exercicio: "Agachamento com Kettlebell/Halter", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "PH", exercicio: "Remada no Cabo Bilateral (SAJ)", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "DQ", exercicio: "Elevação de Quadril no Solo/Step", series: 3, repeticoes: "15" },
+  { ordem: 4, categoria: "EV", exercicio: "Press Unilateral (AJ)", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AH", exercicio: "Prancha na Bola", series: 3, repeticoes: '30"' },
 ];
 
 const fase1Treino4: WorkoutExercise[] = [
-  { ordem: 1, categoria: "DQ", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 2, categoria: "EH", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 3, categoria: "DJA", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 4, categoria: "PV", exercicio: "", series: 3, repeticoes: "10" },
-  { ordem: 5, categoria: "AR", exercicio: "", series: 3, repeticoes: "10" },
+  { ordem: 1, categoria: "DQ", exercicio: "Levantamento Terra com Kettlebell", series: 3, repeticoes: "10" },
+  { ordem: 2, categoria: "EH", exercicio: "Apoio", series: 3, repeticoes: "10" },
+  { ordem: 3, categoria: "DJA", exercicio: "Passada Reversa", series: 3, repeticoes: "10" },
+  { ordem: 4, categoria: "PV", exercicio: "Face Pull (SAJ)", series: 3, repeticoes: "10" },
+  { ordem: 5, categoria: "AR", exercicio: "Estabilidade Lateral - (AJ)", series: 3, repeticoes: "10" },
 ];
 
 // FASE 2 templates
