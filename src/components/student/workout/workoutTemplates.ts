@@ -263,34 +263,34 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
   {
     fase: "Fase 2",
     frequencia: "4x",
-    aquecimento: fase1Aquecimento,
+    aquecimento: fase2Aquecimento,
     treinos: [
       { nome: "Treino 1", tipo: "forca", exercicios: fase2Treino1 },
       { nome: "Treino 2", tipo: "forca", exercicios: fase2Treino2 },
-      { nome: "Treino 3", tipo: "forca", exercicios: [...fase2Treino1] },
-      { nome: "Treino 4", tipo: "forca", exercicios: [...fase2Treino2] },
+      { nome: "Treino 3", tipo: "forca", exercicios: fase2Treino3 },
+      { nome: "Treino 4", tipo: "forca", exercicios: fase2Treino4 },
     ],
   },
   {
     fase: "Fase 3",
     frequencia: "4x",
-    aquecimento: fase1Aquecimento,
+    aquecimento: fase3Aquecimento,
     treinos: [
       { nome: "Treino 1", tipo: "forca", exercicios: fase3Treino1 },
       { nome: "Treino 2", tipo: "forca", exercicios: fase3Treino2 },
-      { nome: "Treino 3", tipo: "forca", exercicios: [...fase3Treino1] },
-      { nome: "Treino 4", tipo: "forca", exercicios: [...fase3Treino2] },
+      { nome: "Treino 3", tipo: "forca", exercicios: fase3Treino3 },
+      { nome: "Treino 4", tipo: "forca", exercicios: fase3Treino4 },
     ],
   },
   {
     fase: "Fase 4",
     frequencia: "4x",
-    aquecimento: fase1Aquecimento,
+    aquecimento: fase4Aquecimento,
     treinos: [
       { nome: "Treino 1", tipo: "forca", exercicios: fase4Treino1 },
       { nome: "Treino 2", tipo: "forca", exercicios: fase4Treino2 },
-      { nome: "Treino 3", tipo: "forca", exercicios: [...fase4Treino1] },
-      { nome: "Treino 4", tipo: "forca", exercicios: [...fase4Treino2] },
+      { nome: "Treino 3", tipo: "forca", exercicios: fase4Treino3 },
+      { nome: "Treino 4", tipo: "forca", exercicios: fase4Treino4 },
     ],
   },
   {
