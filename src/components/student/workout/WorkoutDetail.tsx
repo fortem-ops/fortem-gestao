@@ -360,6 +360,46 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           </div>
         );
       })}
+
+      <Dialog open={exportOpen !== null} onOpenChange={(o) => !o && setExportOpen(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{exportOpen === "print" ? "Imprimir treino" : "Exportar PDF"}</DialogTitle>
+            <DialogDescription>
+              Escolha quantas semanas devem aparecer na coluna Frequência (cada semana = 4 linhas T1–T4).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="weeks-select">Semanas</Label>
+            <Select value={String(weeks)} onValueChange={(v) => setWeeks(Number(v))}>
+              <SelectTrigger id="weeks-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n} {n === 1 ? "semana" : "semanas"} ({n * 4} linhas)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportOpen(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                const mode = exportOpen;
+                setExportOpen(null);
+                if (mode) handleExport(mode, weeks);
+              }}
+            >
+              {exportOpen === "print" ? "Imprimir" : "Gerar PDF"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
