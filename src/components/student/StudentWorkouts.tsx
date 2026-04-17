@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Eye, Dumbbell } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ImportFromBankDialog } from "./workout/ImportFromBankDialog";
 
 export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
   const navigate = useNavigate();
 
-  const { data: treinos } = useQuery({
+  const { data: treinos, refetch } = useQuery({
     queryKey: ["treinos", student.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -25,15 +26,17 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
   });
 
   const goPrescribe = () => navigate(`/treinos?aluno=${student.id}&new=1`);
-  const goView = (id: string) => navigate(`/treinos?aluno=${student.id}#${id}`);
 
   return (
     <div className="space-y-4 mt-4">
       <div className="flex items-center justify-between">
         <h3 className="font-heading font-semibold text-foreground">Histórico de Treinos</h3>
-        <Button onClick={goPrescribe} size="sm">
-          <Plus className="w-4 h-4 mr-1" /> Prescrever Treino
-        </Button>
+        <div className="flex items-center gap-2">
+          <ImportFromBankDialog alunoId={student.id} onSaved={() => refetch()} />
+          <Button onClick={goPrescribe} size="sm">
+            <Plus className="w-4 h-4 mr-1" /> Prescrever Treino
+          </Button>
+        </div>
       </div>
 
       {(!treinos || treinos.length === 0) ? (
