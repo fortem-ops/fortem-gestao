@@ -104,113 +104,147 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, onBack, onS
         )}
       </div>
 
-      {/* Aquecimento */}
-      {data.aquecimento.length > 0 && (
-        <div className="glass-card rounded-lg p-4">
-          <h4 className="text-sm font-heading font-semibold text-primary mb-3">AQUECIMENTO</h4>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-left py-1 px-2 w-16">Cat.</th>
-                  <th className="text-left py-1 px-2">Exercício</th>
-                  <th className="text-center py-1 px-2 w-16">Rep.</th>
-                  <th className="text-center py-1 px-2 w-24">Dias</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.aquecimento.map((ex, i) => (
-                  <tr key={i} className="border-b border-border/50">
-                    <td className="py-1 px-2">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary">
-                        {ex.categoria}
-                      </span>
-                    </td>
-                    <td className="py-1 px-2">
-                      <ExerciseSelector
-                        categoria={ex.categoria}
-                        value={ex.exercicio}
-                        onChange={(val) => updateExercise("aquecimento", 0, i, "exercicio", val)}
-                        readOnly={readOnly}
-                      />
-                    </td>
-                    <td className="py-1 px-2 text-center">
-                      <Input
-                        value={ex.repeticoes}
-                        onChange={e => updateExercise("aquecimento", 0, i, "repeticoes", e.target.value)}
-                        className="h-7 text-xs text-center bg-transparent border-none px-1 w-14 mx-auto"
-                        readOnly={readOnly}
-                      />
-                    </td>
-                    <td className="py-1 px-2 text-center text-muted-foreground text-[10px]">
-                      {ex.dias?.join(", ") || "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Aquecimento — separado por blocos LIB / MOB / ATI */}
+      {data.aquecimento.length > 0 && (() => {
+        const blocos: { key: string; label: string; items: { ex: WorkoutExercise; idx: number }[] }[] = [
+          { key: "LIB", label: "LIBERAÇÃO", items: [] },
+          { key: "MOB", label: "MOBILIDADE", items: [] },
+          { key: "ATI", label: "ATIVAÇÃO", items: [] },
+        ];
+        data.aquecimento.forEach((ex, idx) => {
+          const bloco = blocos.find(b => b.key === ex.categoria);
+          if (bloco) bloco.items.push({ ex, idx });
+        });
+        return (
+          <div className="glass-card rounded-lg p-4 space-y-4">
+            <h4 className="text-sm font-heading font-semibold text-primary">AQUECIMENTO</h4>
+            {blocos.filter(b => b.items.length > 0).map(bloco => (
+              <div key={bloco.key} className="space-y-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/15 text-primary">
+                    {bloco.key}
+                  </span>
+                  <span className="text-[11px] font-semibold text-muted-foreground tracking-wide">
+                    {bloco.label}
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border text-muted-foreground">
+                        <th className="text-left py-1 px-2 w-8">#</th>
+                        <th className="text-left py-1 px-2">Exercício</th>
+                        <th className="text-center py-1 px-2 w-16">Rep.</th>
+                        <th className="text-center py-1 px-2 w-24">Dias</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bloco.items.map(({ ex, idx }, localIdx) => (
+                        <tr key={idx} className="border-b border-border/50">
+                          <td className="py-1 px-2 text-muted-foreground">{localIdx + 1}</td>
+                          <td className="py-1 px-2">
+                            <ExerciseSelector
+                              categoria={ex.categoria}
+                              value={ex.exercicio}
+                              onChange={(val) => updateExercise("aquecimento", 0, idx, "exercicio", val)}
+                              readOnly={readOnly}
+                            />
+                          </td>
+                          <td className="py-1 px-2 text-center">
+                            <Input
+                              value={ex.repeticoes}
+                              onChange={e => updateExercise("aquecimento", 0, idx, "repeticoes", e.target.value)}
+                              className="h-7 text-xs text-center bg-transparent border-none px-1 w-14 mx-auto"
+                              readOnly={readOnly}
+                            />
+                          </td>
+                          <td className="py-1 px-2 text-center text-muted-foreground text-[10px]">
+                            {ex.dias?.join(", ") || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      {/* Treinos */}
-      {data.treinos.map((treino, tIdx) => (
-        <div key={tIdx} className="glass-card rounded-lg p-4">
-          <h4 className="text-sm font-heading font-semibold text-foreground mb-3">{treino.nome} — FORÇA</h4>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-left py-1 px-2 w-8">#</th>
-                  <th className="text-left py-1 px-2 w-16">Cat.</th>
-                  <th className="text-left py-1 px-2">Exercício</th>
-                  <th className="text-center py-1 px-2 w-16">Séries</th>
-                  <th className="text-center py-1 px-2 w-16">Rep.</th>
-                  <th className="text-center py-1 px-2 w-16">KG</th>
-                </tr>
-              </thead>
-              <tbody>
-                {treino.exercicios.map((ex, i) => (
-                  <tr key={i} className="border-b border-border/50">
-                    <td className="py-1 px-2 text-muted-foreground">{ex.ordem}</td>
-                    <td className="py-1 px-2">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/50 text-accent-foreground">
-                        {ex.categoria}
-                      </span>
-                    </td>
-                    <td className="py-1 px-2">
-                      <ExerciseSelector
-                        categoria={ex.categoria}
-                        value={ex.exercicio}
-                        onChange={(val) => updateExercise("treino", tIdx, i, "exercicio", val)}
-                        readOnly={readOnly}
-                      />
-                    </td>
-                    <td className="py-1 px-2 text-center">{ex.series}</td>
-                    <td className="py-1 px-2 text-center">
-                      <Input
-                        value={ex.repeticoes}
-                        onChange={e => updateExercise("treino", tIdx, i, "repeticoes", e.target.value)}
-                        className="h-7 text-xs text-center bg-transparent border-none px-1 w-14 mx-auto"
-                        readOnly={readOnly}
-                      />
-                    </td>
-                    <td className="py-1 px-2 text-center">
-                      <Input
-                        value={ex.kg || ""}
-                        onChange={e => updateExercise("treino", tIdx, i, "kg", e.target.value)}
-                        className="h-7 text-xs text-center bg-transparent border-none px-1 w-14 mx-auto"
-                        placeholder="—"
-                        readOnly={readOnly}
-                      />
-                    </td>
+      {/* Treinos — divididos em Bloco A (ex 1-2) e Bloco B (ex 3-5, renumerados 1-3) */}
+      {data.treinos.map((treino, tIdx) => {
+        const blocoA = treino.exercicios.slice(0, 2).map((ex, i) => ({ ex, idx: i, num: i + 1 }));
+        const blocoB = treino.exercicios.slice(2, 5).map((ex, i) => ({ ex, idx: i + 2, num: i + 1 }));
+        const renderBloco = (label: string, items: { ex: WorkoutExercise; idx: number; num: number }[]) => (
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accent text-accent-foreground">
+                BLOCO {label}
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground">
+                    <th className="text-left py-1 px-2 w-8">#</th>
+                    <th className="text-left py-1 px-2 w-16">Cat.</th>
+                    <th className="text-left py-1 px-2">Exercício</th>
+                    <th className="text-center py-1 px-2 w-16">Séries</th>
+                    <th className="text-center py-1 px-2 w-16">Rep.</th>
+                    <th className="text-center py-1 px-2 w-16">KG</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map(({ ex, idx, num }) => (
+                    <tr key={idx} className="border-b border-border/50">
+                      <td className="py-1 px-2 text-muted-foreground">{num}</td>
+                      <td className="py-1 px-2">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/50 text-accent-foreground">
+                          {ex.categoria}
+                        </span>
+                      </td>
+                      <td className="py-1 px-2">
+                        <ExerciseSelector
+                          categoria={ex.categoria}
+                          value={ex.exercicio}
+                          onChange={(val) => updateExercise("treino", tIdx, idx, "exercicio", val)}
+                          readOnly={readOnly}
+                        />
+                      </td>
+                      <td className="py-1 px-2 text-center">{ex.series}</td>
+                      <td className="py-1 px-2 text-center">
+                        <Input
+                          value={ex.repeticoes}
+                          onChange={e => updateExercise("treino", tIdx, idx, "repeticoes", e.target.value)}
+                          className="h-7 text-xs text-center bg-transparent border-none px-1 w-14 mx-auto"
+                          readOnly={readOnly}
+                        />
+                      </td>
+                      <td className="py-1 px-2 text-center">
+                        <Input
+                          value={ex.kg || ""}
+                          onChange={e => updateExercise("treino", tIdx, idx, "kg", e.target.value)}
+                          className="h-7 text-xs text-center bg-transparent border-none px-1 w-14 mx-auto"
+                          placeholder="—"
+                          readOnly={readOnly}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+        return (
+          <div key={tIdx} className="glass-card rounded-lg p-4 space-y-4">
+            <h4 className="text-sm font-heading font-semibold text-foreground">{treino.nome} — FORÇA</h4>
+            {blocoA.length > 0 && renderBloco("A", blocoA)}
+            {blocoB.length > 0 && renderBloco("B", blocoB)}
+          </div>
+        );
+      })}
     </div>
   );
 }
