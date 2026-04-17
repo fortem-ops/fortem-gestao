@@ -6,6 +6,10 @@ export interface WorkoutExercise {
   repeticoes: string;
   kg?: string;
   dias?: string[]; // T1, T2, T3, T4
+  // Vínculo com Banco de Exercícios (preenchido na importação ou ao escolher manualmente)
+  exercicio_id?: string;
+  video_url?: string | null;
+  video_path?: string | null;
 }
 
 export interface WorkoutSection {

@@ -18,6 +18,8 @@ interface Escolha {
 interface BankExercise {
   id: string;
   nome: string;
+  video_url: string | null;
+  video_path: string | null;
 }
 
 interface Props {
@@ -36,19 +38,32 @@ function applyEscolhas(
   escolhas: Escolha[],
   bank: BankExercise[],
 ): { aquecimento: WorkoutExercise[]; treinos: { nome: string; exercicios: WorkoutExercise[] }[] } {
-  const bankMap = new Map(bank.map((b) => [b.id, b.nome]));
-  const escolhaMap = new Map<string, string>();
+  const bankById = new Map(bank.map((b) => [b.id, b]));
+  // Fallback: também resolver por nome (caso o template já traga o nome certo,
+  // sem registro em banco_treinos_escolhas, ainda conseguimos puxar o vídeo).
+  const bankByNome = new Map(bank.map((b) => [b.nome.toLowerCase().trim(), b]));
+
+  const escolhaMap = new Map<string, BankExercise>();
   escolhas
     .filter((e) => e.template_fase === template.fase)
     .forEach((e) => {
-      const nome = bankMap.get(e.exercicio_id);
-      if (nome) escolhaMap.set(`${e.treino_nome}|${e.ordem}`, nome);
+      const b = bankById.get(e.exercicio_id);
+      if (b) escolhaMap.set(`${e.treino_nome}|${e.ordem}`, b);
     });
 
   const applyToList = (treinoNome: string, list: WorkoutExercise[]) =>
     list.map((ex) => {
       const escolhido = escolhaMap.get(`${treinoNome}|${ex.ordem}`);
-      return escolhido ? { ...ex, exercicio: escolhido } : { ...ex };
+      const fallback = !escolhido ? bankByNome.get(ex.exercicio.toLowerCase().trim()) : undefined;
+      const link = escolhido || fallback;
+      if (!link) return { ...ex };
+      return {
+        ...ex,
+        exercicio: link.nome,
+        exercicio_id: link.id,
+        video_url: link.video_url,
+        video_path: link.video_path,
+      };
     });
 
   return {
@@ -70,7 +85,7 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercicios_personalizados")
-        .select("id, nome");
+        .select("id, nome, video_url, video_path");
       if (error) throw error;
       return data as BankExercise[];
     },
