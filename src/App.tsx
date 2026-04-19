@@ -21,6 +21,7 @@ const CarteiraAlunos = lazy(() => import("./pages/CarteiraAlunos"));
 const ExerciseBank = lazy(() => import("./pages/ExerciseBank"));
 const Avaliacoes = lazy(() => import("./pages/Avaliacoes"));
 const BancoTreinos = lazy(() => import("./pages/BancoTreinos"));
+const PublicWorkout = lazy(() => import("./pages/PublicWorkout"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -49,6 +50,15 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            {/* Public, read-only workout view — opened by the QR code printed on the PDF. */}
+            <Route
+              path="/treino/:id"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <PublicWorkout />
+                </Suspense>
+              }
+            />
             <Route
               element={
                 <ProtectedRoute>
