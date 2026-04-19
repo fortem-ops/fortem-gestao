@@ -414,8 +414,6 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // ============================================================
   // OBSERVAÇÕES — manual write area (fills remaining vertical space)
   // ============================================================
-  const footerReserve = 6;
-  const obsTopGap = 2;
   const obsTitleH = 4;
   const obsBottom = pageH - margin - footerReserve;
   const obsTop = y + obsTopGap;
