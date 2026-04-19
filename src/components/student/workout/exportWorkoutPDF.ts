@@ -128,6 +128,67 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   let y = margin + headerH + 4;
 
   // ============================================================
+  // SINGLE-PAGE BUDGET
+  // We must fit: aquecimento (3 sub-blocks) + 4 strength sessions
+  // (each with Bloco A + Bloco B) + a small Observações area + footer.
+  // Compute a vertical scale so the whole content fits on one A4 page.
+  // ============================================================
+  const footerReserve = 6;
+  const obsMinH = 14;          // minimum manual writing area
+  const sectionGap = 1.2;      // gap between sub-blocks
+  const treinoGap = 1;         // gap after each Treino group
+  const obsTopGap = 2;
+
+  // Available vertical space for the body (between header and footer/obs).
+  const bodyTop = y;
+  const bodyBottom = pageH - margin - footerReserve - obsMinH - obsTopGap;
+  const availH = bodyBottom - bodyTop;
+
+  // ---- Estimate raw heights at "nominal" cell padding to derive a scale ----
+  const aqBlocosCount = (["LIB", "MOB", "ATI"] as const).filter(
+    (k) => data.aquecimento.some((ex) => ex.categoria === k),
+  ).length;
+  const aqRowsTotal = data.aquecimento.length;
+
+  let forcaRowsTotal = 0;
+  let forcaBlocosTotal = 0;
+  data.treinos.forEach((tr) => {
+    const a = tr.exercicios.slice(0, 2).length;
+    const b = tr.exercicios.slice(2, 5).length;
+    if (a > 0) { forcaRowsTotal += a; forcaBlocosTotal++; }
+    if (b > 0) { forcaRowsTotal += b; forcaBlocosTotal++; }
+  });
+
+  // Nominal per-row + per-header costs (mm) — must match autoTable styles below.
+  const NOM_ROW = 4.0;          // ~ fontSize 7.2 + padding 1.1*2
+  const NOM_HEAD = 4.4;
+  const NOM_BADGE = 4.2 + 0.8;  // sub-block badge + gap
+  const NOM_TREINO_BAR = 5.8 + 1;
+  const NOM_AQ_LABEL = 8;       // section label height (Aquecimento)
+
+  const aqEst = (aqBlocosCount > 0 ? NOM_AQ_LABEL : 0)
+    + aqBlocosCount * (NOM_BADGE + NOM_HEAD + sectionGap)
+    + aqRowsTotal * NOM_ROW
+    + (aqBlocosCount > 0 ? 1.5 : 0);
+  const forcaEst = data.treinos.length * NOM_TREINO_BAR
+    + forcaBlocosTotal * (NOM_BADGE + NOM_HEAD)
+    + forcaRowsTotal * NOM_ROW
+    + data.treinos.length * treinoGap;
+  const totalEst = aqEst + forcaEst;
+
+  // Scale ≤ 1 — only shrinks (never enlarges) to keep the layout balanced.
+  const scale = Math.max(0.62, Math.min(1, availH / Math.max(totalEst, 1)));
+
+  // Scaled style values (used by every section/table below).
+  const ROW_FONT = Math.max(5.6, 7.2 * scale);
+  const HEAD_FONT = Math.max(5.0, 6.0 * scale);
+  const ROW_PAD = Math.max(0.45, 1.1 * scale);
+  const HEAD_PAD = Math.max(0.5, 1.2 * scale);
+  const BADGE_H = Math.max(3.2, 4.2 * scale);
+  const BAR_H = Math.max(4.6, 5.8 * scale);
+  const TREINO_LABEL_FONT = Math.max(6.5, 8 * scale);
+
+  // ============================================================
   // Helper — section label
   // ============================================================
   const sectionLabel = (label: string, meta?: string) => {
@@ -169,26 +230,27 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
       // Sub-block badge + label
       const badgeW = 14;
-      const badgeH = 4.2;
       doc.setFillColor(...colors.fill);
-      doc.rect(mainX, y, badgeW, badgeH, "F");
+      doc.rect(mainX, y, badgeW, BADGE_H, "F");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
+      doc.setFontSize(Math.max(5.5, 6.5 * scale));
       doc.setTextColor(...colors.text);
-      doc.text(bloco.key, mainX + badgeW / 2, y + badgeH / 2 + 1, { align: "center" });
+      doc.text(bloco.key, mainX + badgeW / 2, y + BADGE_H / 2 + 1, { align: "center" });
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7);
+      doc.setFontSize(Math.max(6, 7 * scale));
       doc.setTextColor(...colors.fill);
-      doc.text(bloco.label, mainX + badgeW + 2, y + badgeH / 2 + 1);
+      doc.text(bloco.label, mainX + badgeW + 2, y + BADGE_H / 2 + 1);
 
-      y += badgeH + 0.8;
+      y += BADGE_H + 0.6;
 
       autoTable(doc, {
         startY: y,
         margin: { left: mainX, right: pageW - (mainX + mainW) },
         tableWidth: mainW,
         theme: "plain",
+        pageBreak: "avoid",
+        rowPageBreak: "avoid",
         head: [[
           { content: "#", styles: { halign: "center" } },
           { content: "EXERCÍCIO", styles: { halign: "left" } },
@@ -208,8 +270,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           String(ex.repeticoes ?? ""),
         ]),
         styles: {
-          fontSize: 7.2,
-          cellPadding: { top: 1.1, bottom: 1.1, left: 1.5, right: 1.5 },
+          fontSize: ROW_FONT,
+          cellPadding: { top: ROW_PAD, bottom: ROW_PAD, left: 1.5, right: 1.5 },
           textColor: INK,
           lineColor: RULE,
           lineWidth: 0,
@@ -218,14 +280,14 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           fillColor: WHITE,
           textColor: INK_MUTED,
           fontStyle: "bold",
-          fontSize: 6,
-          cellPadding: { top: 1.2, bottom: 1.2, left: 1.5, right: 1.5 },
+          fontSize: HEAD_FONT,
+          cellPadding: { top: HEAD_PAD, bottom: HEAD_PAD, left: 1.5, right: 1.5 },
           lineWidth: { bottom: 0.3 },
           lineColor: colors.fill,
         },
         alternateRowStyles: { fillColor: SURFACE },
         columnStyles: {
-          0: { cellWidth: 6, halign: "center", textColor: INK_MUTED, fontSize: 6.5 },
+          0: { cellWidth: 6, halign: "center", textColor: INK_MUTED, fontSize: Math.max(5.2, 6.5 * scale) },
           1: { cellWidth: "auto" },
           2: { cellWidth: 7, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
           3: { cellWidth: 7, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
@@ -240,10 +302,10 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           }
         },
       });
-      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2.5;
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + sectionGap;
     });
 
-    y += 1.5;
+    y += 0.8;
   }
 
   // ============================================================
@@ -258,24 +320,25 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
     // Bloco badge — GRAY (subordinate to the red Treino bar above)
     const badgeW = 16;
-    const badgeH = 4.2;
     doc.setFillColor(...INK_SOFT);
-    doc.rect(mainX, y, badgeW, badgeH, "F");
+    doc.rect(mainX, y, badgeW, BADGE_H, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
+    doc.setFontSize(Math.max(5.5, 6.5 * scale));
     doc.setTextColor(...WHITE);
-    doc.text(`BLOCO ${label}`, mainX + badgeW / 2, y + badgeH / 2 + 1, { align: "center" });
+    doc.text(`BLOCO ${label}`, mainX + badgeW / 2, y + BADGE_H / 2 + 1, { align: "center" });
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
+    doc.setFontSize(Math.max(5, 6 * scale));
     doc.setTextColor(...INK_MUTED);
-    doc.text(label === "A" ? "(2 exercícios)" : "(3 exercícios)", mainX + badgeW + 2, y + badgeH / 2 + 1);
-    y += badgeH + 0.6;
+    doc.text(label === "A" ? "(2 exercícios)" : "(3 exercícios)", mainX + badgeW + 2, y + BADGE_H / 2 + 1);
+    y += BADGE_H + 0.5;
 
     autoTable(doc, {
       startY: y,
       margin: { left: mainX, right: pageW - (mainX + mainW) },
       tableWidth: mainW,
       theme: "plain",
+      pageBreak: "avoid",
+      rowPageBreak: "avoid",
       head: [[
         { content: "#", styles: { halign: "center" } },
         { content: "CAT", styles: { halign: "left" } },
@@ -293,8 +356,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         ex.kg ?? "",
       ]),
       styles: {
-        fontSize: 7.2,
-        cellPadding: { top: 1.1, bottom: 1.1, left: 1.5, right: 1.5 },
+        fontSize: ROW_FONT,
+        cellPadding: { top: ROW_PAD, bottom: ROW_PAD, left: 1.5, right: 1.5 },
         textColor: INK,
         lineColor: RULE,
         lineWidth: 0,
@@ -303,14 +366,14 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         fillColor: WHITE,
         textColor: INK_MUTED,
         fontStyle: "bold",
-        fontSize: 6,
-        cellPadding: { top: 1.2, bottom: 1.2, left: 1.5, right: 1.5 },
+        fontSize: HEAD_FONT,
+        cellPadding: { top: HEAD_PAD, bottom: HEAD_PAD, left: 1.5, right: 1.5 },
         lineWidth: { bottom: 0.3 },
         lineColor: INK_SOFT,
       },
       columnStyles: {
         0: { cellWidth: 6, halign: "center", textColor: INK_SOFT, fontStyle: "bold" },
-        1: { cellWidth: 12, fontStyle: "bold", textColor: INK_SOFT, fontSize: 6.5 },
+        1: { cellWidth: 12, fontStyle: "bold", textColor: INK_SOFT, fontSize: Math.max(5.2, 6.5 * scale) },
         2: { cellWidth: "auto" },
         3: { cellWidth: 14, halign: "center" },
         4: { cellWidth: 12, halign: "center" },
@@ -323,37 +386,34 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         }
       },
     });
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2;
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 1.5;
   };
 
   data.treinos.forEach((tr, idx) => {
     // Section bar — RED background with white label (highlights the Treino)
-    const barH = 5.8;
     doc.setFillColor(...RED);
-    doc.rect(mainX, y, mainW, barH, "F");
+    doc.rect(mainX, y, mainW, BAR_H, "F");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(TREINO_LABEL_FONT);
     doc.setTextColor(...WHITE);
-    doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.5, y + barH / 2 + 1.2);
+    doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.5, y + BAR_H / 2 + 1.2);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.8);
+    doc.setFontSize(Math.max(5.8, 6.8 * scale));
     doc.setTextColor(...WHITE);
-    doc.text("FORÇA", mainX + mainW - 2, y + barH / 2 + 1.2, { align: "right" });
-    y += barH + 1;
+    doc.text("FORÇA", mainX + mainW - 2, y + BAR_H / 2 + 1.2, { align: "right" });
+    y += BAR_H + 0.8;
 
     const blocoA = tr.exercicios.slice(0, 2);
     const blocoB = tr.exercicios.slice(2, 5);
     renderForcaBlock("A", blocoA, 1);
     renderForcaBlock("B", blocoB, 1);
-    y += 1;
+    y += treinoGap;
   });
 
   // ============================================================
   // OBSERVAÇÕES — manual write area (fills remaining vertical space)
   // ============================================================
-  const footerReserve = 6;
-  const obsTopGap = 2;
   const obsTitleH = 4;
   const obsBottom = pageH - margin - footerReserve;
   const obsTop = y + obsTopGap;
