@@ -154,8 +154,11 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
       }
       aluno = a;
     }
-    // URL pública do treino para o QR Code (abre o perfil do aluno → aba treinos)
-    const appUrl = `${window.location.origin}/alunos/${alunoId}${treino?.id ? `?treino=${treino.id}` : ""}`;
+    // URL pública do treino para o QR Code — rota /treino/:id em modo somente leitura,
+    // sem login, para o aluno conferir vídeos pelo celular durante o treino.
+    const appUrl = treino?.id
+      ? `${window.location.origin}/treino/${treino.id}`
+      : `${window.location.origin}/alunos/${alunoId}`;
     await exportWorkoutPDF({
       student: aluno as Parameters<typeof exportWorkoutPDF>[0]["student"],
       descricao: descricao || "PLANILHA DE TREINO",
