@@ -1,36 +1,43 @@
 
 ## Goal
-Adjust the workout PDF so that:
-1. **Observações** has exactly **5 writing lines** (no more, no less).
-2. **Exercise tables (Força blocks A and B)** span the **full width of the red "TREINO X · FORÇA" bar** — currently the table sums to ~121mm but the red bar is ~144mm wide, so columns look narrower than the header.
+Aumentar a fonte dos nomes dos exercícios para que o **Treino 4 encoste no topo da área de Observações**, sem invadi-la, mantendo tudo em **uma única página A4**.
 
-## Current state (from `exportWorkoutPDF.ts`)
+## Análise
 
-- Red bar `TREINO X` uses full `mainW` (≈144mm with current margins/gutter).
-- Força tables column widths sum: `5 + 10 + 74 + 12 + 10 + 10 = 121mm` → leaves ~23mm gap on the right, making the table look narrower than the red bar.
-- Observações draws lines with `lineGap = 4.5` filling all remaining vertical space — variable line count (often 8–15 lines).
+Arquivo único: `src/components/student/workout/exportWorkoutPDF.ts`.
 
-## Changes (single file: `src/components/student/workout/exportWorkoutPDF.ts`)
+Hoje:
+- `scale = clamp(0.46, 0.9, availH / totalEst)` — teto travado em **0.9** impede ocupar todo o espaço útil mesmo quando sobra.
+- `ROW_FONT = max(4.8, 6.8 * scale)` → entre 4.8 e ~6.1pt (muito pequeno).
+- Estimadores `NOM_ROW=5.2`, `NOM_HEAD=5.0`, `layoutSafety=10` são conservadores.
+- Bloco de Observações (5 linhas, ~31mm) e footer já são **fixos** no fundo via `obsBottom = pageH - margin - footerReserve` e `obsTop = obsBottom - obsBlockH` — ou seja, Observações não se move; só precisamos fazer os treinos crescerem para preencher `availH`.
 
-### 1. Force exercise tables to match the red bar width
-- Replace the fixed column widths with **proportional widths that sum to `mainW`**, so the table edges align perfectly with the red `TREINO` bar.
-- Same fix applied to the **warm-up table** (LIB/MOB/ATI) for consistency, since its red-bordered header already targets the same `mainW`.
-- Approach: keep narrow fixed widths for `#`, `CAT`, numeric columns; give all leftover space (`mainW - sumOfFixed`) to the `EXERCÍCIO` column.
+Conclusão: basta **liberar o teto do `scale`** e **subir piso/base de fonte e padding**, recalibrando os nominais para que o estimador continue confiável e nada vaze para a página 2 nem invada Observações.
 
-### 2. Lock Observações to exactly 5 lines
-- Replace the "fill remaining space" loop with a **fixed 5-line block**:
-  - Title row + 5 evenly-spaced writing lines (`lineGap ≈ 5mm`).
-  - Total Observações height becomes a known constant (~32mm).
-- Update the single-page height budget (`obsMinH` / `bodyBottom`) to reserve exactly this fixed block, so the adaptive scaling for warm-up + frequency + 4 treinos accounts for the new fixed footer area.
-- This guarantees the 5 lines never collapse and never expand.
+## Mudanças (apenas constantes em `exportWorkoutPDF.ts`)
 
-### 3. Keep single-page A4 guarantee
-- Recompute `availH` using the new fixed Observações height.
-- Scaling logic (`scale`, `ROW_FONT`, paddings) remains unchanged in shape, just fed the updated budget — content still fits on one page.
+1. **Liberar `scale`**: teto `0.9 → 1.6`. Piso `0.46` mantido.
+2. **Aumentar fontes/paddings de corpo de tabela**:
+   - `ROW_FONT`: `max(4.8, 6.8*scale)` → `max(7.0, 9.5*scale)`
+   - `HEAD_FONT`: `max(4.6, 5.8*scale)` → `max(5.8, 7.2*scale)`
+   - `ROW_PAD`: `max(0.18, 0.8*scale)` → `max(0.6, 1.3*scale)`
+   - `HEAD_PAD`: `max(0.22, 0.85*scale)` → `max(0.5, 1.1*scale)`
+3. **Recalibrar nominais** (estimador conservador, evita overflow):
+   - `NOM_ROW`: 5.2 → **7.2**
+   - `NOM_HEAD`: 5.0 → **6.2**
+   - `NOM_BADGE`: 5.2 → **6.0**
+   - `NOM_TREINO_BAR`: 6.5 → **7.2**
+   - `layoutSafety`: 10 → **8**
+4. **Demais escalados** (badge, barra, labels) ficam como estão — já acompanham `scale` e crescem proporcionalmente.
 
-## Out of scope
-- No color, typography, or content changes.
-- No changes to public `/treino/:id` route, QR code, or weeks selector.
+## Garantia de página única
+- Observações permanece ancorada ao rodapé (intacta).
+- `availH` continua sendo o espaço entre header e topo das Observações.
+- Como o estimador agora é fiel ao novo tamanho de linha, no pior caso (4 treinos × 5 + aquecimento cheio + 12 semanas) `scale` fica próximo de **0.75–0.85** → `ROW_FONT ≈ 7.1–8.1pt` (vs 4.8pt atual).
+- No melhor caso (treinos pequenos) `scale` sobe até **1.6** → `ROW_FONT ≈ 15pt`, fazendo o Treino 4 encostar nas Observações.
 
-## Files touched
-- `src/components/student/workout/exportWorkoutPDF.ts` (only)
+## Fora do escopo
+Cores, layout, QR code, número de linhas das Observações, rota pública.
+
+## Arquivo alterado
+- `src/components/student/workout/exportWorkoutPDF.ts` (somente constantes).
