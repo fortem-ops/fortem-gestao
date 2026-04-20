@@ -134,14 +134,18 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // does not push any block to a second page.
   // ============================================================
   const footerReserve = 5;
-  const obsMinH = 8;
+  // Fixed Observações block: title (~4mm) + gap + 5 writing lines @ 5mm each
+  const OBS_LINE_GAP = 5;
+  const OBS_LINES = 5;
+  const obsTitleH = 4;
+  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~31mm
   const sectionGap = 0.8;
   const treinoGap = 0.6;
   const obsTopGap = 1.5;
   const layoutSafety = 10;
 
   const bodyTop = y;
-  const bodyBottom = pageH - margin - footerReserve - obsMinH - obsTopGap;
+  const bodyBottom = pageH - margin - footerReserve - obsBlockH - obsTopGap;
   const availH = bodyBottom - bodyTop;
 
   const aqBlocosCount = (["LIB", "MOB", "ATI"] as const).filter(
@@ -292,15 +296,19 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           lineColor: colors.fill,
         },
         alternateRowStyles: { fillColor: SURFACE },
-        columnStyles: {
-          0: { cellWidth: 5, halign: "center", textColor: INK_MUTED, fontSize: SMALL_FONT },
-          1: { cellWidth: 78, overflow: "ellipsize" },
-          2: { cellWidth: 6, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-          3: { cellWidth: 6, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-          4: { cellWidth: 6, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-          5: { cellWidth: 6, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-          6: { cellWidth: 11, halign: "right", textColor: INK_SOFT },
-        },
+        columnStyles: (() => {
+          const wNum = 6, wT = 7, wRep = 14;
+          const wEx = mainW - (wNum + wT * 4 + wRep);
+          return {
+            0: { cellWidth: wNum, halign: "center", textColor: INK_MUTED, fontSize: SMALL_FONT },
+            1: { cellWidth: wEx, overflow: "ellipsize" },
+            2: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            3: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            4: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            5: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            6: { cellWidth: wRep, halign: "right", textColor: INK_SOFT },
+          };
+        })(),
         didParseCell: (hookData) => {
           if (hookData.section === "body") {
             hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
@@ -374,14 +382,18 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         lineWidth: { bottom: 0.26 },
         lineColor: INK_SOFT,
       },
-      columnStyles: {
-        0: { cellWidth: 5, halign: "center", textColor: INK_SOFT, fontStyle: "bold" },
-        1: { cellWidth: 10, fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
-        2: { cellWidth: 74, overflow: "ellipsize" },
-        3: { cellWidth: 12, halign: "center" },
-        4: { cellWidth: 10, halign: "center" },
-        5: { cellWidth: 10, halign: "center", textColor: INK_SOFT },
-      },
+      columnStyles: (() => {
+        const wNum = 6, wCat = 11, wSer = 14, wRep = 12, wKg = 12;
+        const wEx = mainW - (wNum + wCat + wSer + wRep + wKg);
+        return {
+          0: { cellWidth: wNum, halign: "center", textColor: INK_SOFT, fontStyle: "bold" },
+          1: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
+          2: { cellWidth: wEx, overflow: "ellipsize" },
+          3: { cellWidth: wSer, halign: "center" },
+          4: { cellWidth: wRep, halign: "center" },
+          5: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
+        };
+      })(),
       didParseCell: (hookData) => {
         if (hookData.section === "body") {
           hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
@@ -414,37 +426,34 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   });
 
   // ============================================================
-  // OBSERVAÇÕES — manual write area (fills remaining vertical space)
+  // OBSERVAÇÕES — fixed 5-line manual write area
   // ============================================================
-  const obsTitleH = 4;
   const obsBottom = pageH - margin - footerReserve;
-  const obsTop = y + obsTopGap;
+  // Anchor obs block to the bottom so it always shows exactly 5 lines
+  const obsTop = obsBottom - obsBlockH;
 
-  if (obsBottom - obsTop > 12) {
-    // Title
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...INK);
-    doc.text("OBSERVAÇÕES", mainX, obsTop + 2.5);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
-    doc.setTextColor(...INK_MUTED);
-    doc.text("(anotações manuais)", mainX + 24, obsTop + 2.5);
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...INK);
+  doc.text("OBSERVAÇÕES", mainX, obsTop + 2.5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6);
+  doc.setTextColor(...INK_MUTED);
+  doc.text("(anotações manuais)", mainX + 24, obsTop + 2.5);
 
-    // Red hairline under title
-    doc.setDrawColor(...RED);
-    doc.setLineWidth(0.3);
-    doc.line(mainX, obsTop + obsTitleH, mainX + mainW, obsTop + obsTitleH);
+  // Red hairline under title
+  doc.setDrawColor(...RED);
+  doc.setLineWidth(0.3);
+  doc.line(mainX, obsTop + obsTitleH, mainX + mainW, obsTop + obsTitleH);
 
-    // Soft writing lines
-    const linesTop = obsTop + obsTitleH + 2;
-    const linesBottom = obsBottom;
-    const lineGap = 4.5;
-    doc.setDrawColor(...RULE);
-    doc.setLineWidth(0.15);
-    for (let ly = linesTop + lineGap; ly <= linesBottom; ly += lineGap) {
-      doc.line(mainX, ly, mainX + mainW, ly);
-    }
+  // Exactly 5 evenly-spaced writing lines
+  const linesTop = obsTop + obsTitleH + 2;
+  doc.setDrawColor(...RULE);
+  doc.setLineWidth(0.15);
+  for (let i = 1; i <= OBS_LINES; i++) {
+    const ly = linesTop + i * OBS_LINE_GAP;
+    doc.line(mainX, ly, mainX + mainW, ly);
   }
 
   // ============================================================
