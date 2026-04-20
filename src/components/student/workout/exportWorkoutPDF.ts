@@ -296,15 +296,19 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           lineColor: colors.fill,
         },
         alternateRowStyles: { fillColor: SURFACE },
-        columnStyles: {
-          0: { cellWidth: 5, halign: "center", textColor: INK_MUTED, fontSize: SMALL_FONT },
-          1: { cellWidth: 78, overflow: "ellipsize" },
-          2: { cellWidth: 6, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-          3: { cellWidth: 6, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-          4: { cellWidth: 6, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-          5: { cellWidth: 6, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-          6: { cellWidth: 11, halign: "right", textColor: INK_SOFT },
-        },
+        columnStyles: (() => {
+          const wNum = 6, wT = 7, wRep = 14;
+          const wEx = mainW - (wNum + wT * 4 + wRep);
+          return {
+            0: { cellWidth: wNum, halign: "center", textColor: INK_MUTED, fontSize: SMALL_FONT },
+            1: { cellWidth: wEx, overflow: "ellipsize" },
+            2: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            3: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            4: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            5: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            6: { cellWidth: wRep, halign: "right", textColor: INK_SOFT },
+          };
+        })(),
         didParseCell: (hookData) => {
           if (hookData.section === "body") {
             hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
