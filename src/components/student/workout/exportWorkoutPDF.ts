@@ -178,14 +178,14 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + forcaBlocosTotal * (NOM_BADGE + NOM_HEAD)
     + forcaRowsTotal * NOM_ROW
     + data.treinos.length * treinoGap;
-  const totalEst = aqEst + forcaEst + layoutSafety;
+  const totalEst = aqEst + forcaEst + 8;
 
-  const scale = Math.max(0.46, Math.min(0.9, availH / Math.max(totalEst, 1)));
+  const scale = Math.max(0.46, Math.min(1.6, availH / Math.max(totalEst, 1)));
 
-  const ROW_FONT = Math.max(4.8, 6.8 * scale);
-  const HEAD_FONT = Math.max(4.6, 5.8 * scale);
-  const ROW_PAD = Math.max(0.18, 0.8 * scale);
-  const HEAD_PAD = Math.max(0.22, 0.85 * scale);
+  const ROW_FONT = Math.max(7.0, 9.5 * scale);
+  const HEAD_FONT = Math.max(5.8, 7.2 * scale);
+  const ROW_PAD = Math.max(0.6, 1.3 * scale);
+  const HEAD_PAD = Math.max(0.5, 1.1 * scale);
   const SIDE_PAD = Math.max(0.6, 1.1 * scale);
   const BADGE_H = Math.max(2.8, 3.8 * scale);
   const BAR_H = Math.max(4.0, 5.1 * scale);
