@@ -134,14 +134,18 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // does not push any block to a second page.
   // ============================================================
   const footerReserve = 5;
-  const obsMinH = 8;
+  // Fixed Observações block: title (~4mm) + gap + 5 writing lines @ 5mm each
+  const OBS_LINE_GAP = 5;
+  const OBS_LINES = 5;
+  const obsTitleH = 4;
+  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~31mm
   const sectionGap = 0.8;
   const treinoGap = 0.6;
   const obsTopGap = 1.5;
   const layoutSafety = 10;
 
   const bodyTop = y;
-  const bodyBottom = pageH - margin - footerReserve - obsMinH - obsTopGap;
+  const bodyBottom = pageH - margin - footerReserve - obsBlockH - obsTopGap;
   const availH = bodyBottom - bodyTop;
 
   const aqBlocosCount = (["LIB", "MOB", "ATI"] as const).filter(
