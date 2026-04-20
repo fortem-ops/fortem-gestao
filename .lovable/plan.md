@@ -1,38 +1,36 @@
 
 ## Goal
-Aumentar a fonte do nome dos exercícios no PDF até que as tabelas se aproximem da área de "Observações", mantendo tudo em **uma única página A4**.
+Adjust the workout PDF so that:
+1. **Observações** has exactly **5 writing lines** (no more, no less).
+2. **Exercise tables (Força blocks A and B)** span the **full width of the red "TREINO X · FORÇA" bar** — currently the table sums to ~121mm but the red bar is ~144mm wide, so columns look narrower than the header.
 
-## Análise do estado atual (`exportWorkoutPDF.ts`)
+## Current state (from `exportWorkoutPDF.ts`)
 
-- `ROW_FONT = Math.max(4.8, 6.8 * scale)` → fonte muito pequena (4.8–6.8pt) no corpo das tabelas.
-- `scale` varia entre **0.46 e 0.9**, calculado por `availH / totalEst`.
-- Como `totalEst` é uma estimativa **conservadora** (margem de segurança grande via `NOM_ROW = 5.2`, `layoutSafety = 10`), o `scale` quase sempre fica abaixo de 1.0 mesmo quando há espaço sobrando.
-- Resultado: sobra espaço em branco entre o último Treino 4 e o bloco de Observações, com fonte minúscula.
+- Red bar `TREINO X` uses full `mainW` (≈144mm with current margins/gutter).
+- Força tables column widths sum: `5 + 10 + 74 + 12 + 10 + 10 = 121mm` → leaves ~23mm gap on the right, making the table look narrower than the red bar.
+- Observações draws lines with `lineGap = 4.5` filling all remaining vertical space — variable line count (often 8–15 lines).
 
-## Mudanças (apenas `src/components/student/workout/exportWorkoutPDF.ts`)
+## Changes (single file: `src/components/student/workout/exportWorkoutPDF.ts`)
 
-### 1. Aumentar a fonte mínima e máxima dos nomes de exercícios
-- Subir o piso e o teto de `ROW_FONT` para que o nome do exercício fique legível mesmo no pior caso (4 treinos cheios + aquecimento completo + 12 semanas de frequência):
-  - `ROW_FONT`: piso **6.5pt**, base **9.0 * scale** (atual 4.8 / 6.8).
-  - `HEAD_FONT`: piso **5.5pt**, base **7.0 * scale**.
-  - `ROW_PAD`: piso **0.55mm**, base **1.2 * scale** (linhas mais altas acompanham a fonte).
-- Manter `overflow: "ellipsize"` para que nomes muito longos não quebrem o layout.
+### 1. Force exercise tables to match the red bar width
+- Replace the fixed column widths with **proportional widths that sum to `mainW`**, so the table edges align perfectly with the red `TREINO` bar.
+- Same fix applied to the **warm-up table** (LIB/MOB/ATI) for consistency, since its red-bordered header already targets the same `mainW`.
+- Approach: keep narrow fixed widths for `#`, `CAT`, numeric columns; give all leftover space (`mainW - sumOfFixed`) to the `EXERCÍCIO` column.
 
-### 2. Permitir `scale` chegar a 1.0+ quando sobra espaço
-- Elevar o teto de `scale` de `0.9` para **`1.15`**, para que em treinos com poucos exercícios o conteúdo realmente preencha a página até a área de Observações.
-- Manter o piso em `0.46` para garantir caber no pior caso.
+### 2. Lock Observações to exactly 5 lines
+- Replace the "fill remaining space" loop with a **fixed 5-line block**:
+  - Title row + 5 evenly-spaced writing lines (`lineGap ≈ 5mm`).
+  - Total Observações height becomes a known constant (~32mm).
+- Update the single-page height budget (`obsMinH` / `bodyBottom`) to reserve exactly this fixed block, so the adaptive scaling for warm-up + frequency + 4 treinos accounts for the new fixed footer area.
+- This guarantees the 5 lines never collapse and never expand.
 
-### 3. Ajustar nominais para refletir as fontes maiores
-- Subir `NOM_ROW` (5.2 → **6.4**) e `NOM_HEAD` (5.0 → **5.8**) para que o estimador continue conservador e nunca empurre conteúdo para a página 2.
-- Reduzir `layoutSafety` de `10` para **6**, já que o estimador agora é mais fiel.
+### 3. Keep single-page A4 guarantee
+- Recompute `availH` using the new fixed Observações height.
+- Scaling logic (`scale`, `ROW_FONT`, paddings) remains unchanged in shape, just fed the updated budget — content still fits on one page.
 
-### 4. Garantia de página única
-- A área de Observações (5 linhas, ~31mm) e o footer continuam fixos.
-- Pior caso testado mentalmente: aquecimento (até 12 itens) + 4 treinos × 5 exercícios = ~32 linhas de corpo. Com `NOM_ROW = 6.4` e `availH ≈ 230mm`, o `scale` resultante fica próximo de **0.75–0.85**, o que dá `ROW_FONT ≈ 7.0–7.6pt` — significativamente maior que os 4.8pt atuais.
-- Melhor caso (poucos exercícios): `scale` sobe até **1.15**, dando `ROW_FONT ≈ 10pt`, preenchendo a página até as Observações.
+## Out of scope
+- No color, typography, or content changes.
+- No changes to public `/treino/:id` route, QR code, or weeks selector.
 
-## Fora do escopo
-- Sem mudanças de cor, layout, QR code, rota pública ou número de linhas das Observações.
-
-## Arquivo alterado
-- `src/components/student/workout/exportWorkoutPDF.ts` (apenas constantes de fonte/padding e limites do `scale`).
+## Files touched
+- `src/components/student/workout/exportWorkoutPDF.ts` (only)

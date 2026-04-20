@@ -142,7 +142,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const sectionGap = 0.8;
   const treinoGap = 0.6;
   const obsTopGap = 1.5;
-  
+  const layoutSafety = 10;
 
   const bodyTop = y;
   const bodyBottom = pageH - margin - footerReserve - obsBlockH - obsTopGap;
@@ -164,8 +164,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   // Conservative nominal heights — intentionally a bit higher than the
   // actual table metrics to leave room for long exercise names.
-  const NOM_ROW = 6.4;
-  const NOM_HEAD = 5.8;
+  const NOM_ROW = 5.2;
+  const NOM_HEAD = 5.0;
   const NOM_BADGE = 5.2;
   const NOM_TREINO_BAR = 6.5;
   const NOM_AQ_LABEL = 9;
@@ -178,13 +178,13 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + forcaBlocosTotal * (NOM_BADGE + NOM_HEAD)
     + forcaRowsTotal * NOM_ROW
     + data.treinos.length * treinoGap;
-  const totalEst = aqEst + forcaEst + 6;
+  const totalEst = aqEst + forcaEst + layoutSafety;
 
-  const scale = Math.max(0.46, Math.min(1.15, availH / Math.max(totalEst, 1)));
+  const scale = Math.max(0.46, Math.min(0.9, availH / Math.max(totalEst, 1)));
 
-  const ROW_FONT = Math.max(6.5, 9.0 * scale);
-  const HEAD_FONT = Math.max(5.5, 7.0 * scale);
-  const ROW_PAD = Math.max(0.55, 1.2 * scale);
+  const ROW_FONT = Math.max(4.8, 6.8 * scale);
+  const HEAD_FONT = Math.max(4.6, 5.8 * scale);
+  const ROW_PAD = Math.max(0.18, 0.8 * scale);
   const HEAD_PAD = Math.max(0.22, 0.85 * scale);
   const SIDE_PAD = Math.max(0.6, 1.1 * scale);
   const BADGE_H = Math.max(2.8, 3.8 * scale);
