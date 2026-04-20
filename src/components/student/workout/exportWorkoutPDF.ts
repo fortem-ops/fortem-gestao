@@ -142,7 +142,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const sectionGap = 0.8;
   const treinoGap = 0.6;
   const obsTopGap = 1.5;
-  const layoutSafety = 10;
+  
 
   const bodyTop = y;
   const bodyBottom = pageH - margin - footerReserve - obsBlockH - obsTopGap;
