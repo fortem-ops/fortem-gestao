@@ -65,6 +65,7 @@ export type Database = {
       alunos: {
         Row: {
           created_at: string
+          current_pipeline_stage_id: string | null
           data_nascimento: string | null
           email: string | null
           foto_url: string | null
@@ -79,6 +80,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_pipeline_stage_id?: string | null
           data_nascimento?: string | null
           email?: string | null
           foto_url?: string | null
@@ -93,6 +95,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_pipeline_stage_id?: string | null
           data_nascimento?: string | null
           email?: string | null
           foto_url?: string | null
@@ -105,7 +108,15 @@ export type Database = {
           telefone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "alunos_current_pipeline_stage_id_fkey"
+            columns: ["current_pipeline_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       avaliacao_funcional: {
         Row: {
@@ -416,6 +427,144 @@ export type Database = {
           },
         ]
       }
+      pipeline_metadata: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          data_prevista_fechamento: string | null
+          last_contact_at: string | null
+          next_followup_at: string | null
+          origem_lead: string | null
+          probabilidade_fechamento: number | null
+          responsavel_comercial_id: string | null
+          temperatura_lead: string | null
+          updated_at: string
+          valor_estimado_plano: number | null
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          data_prevista_fechamento?: string | null
+          last_contact_at?: string | null
+          next_followup_at?: string | null
+          origem_lead?: string | null
+          probabilidade_fechamento?: number | null
+          responsavel_comercial_id?: string | null
+          temperatura_lead?: string | null
+          updated_at?: string
+          valor_estimado_plano?: number | null
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          data_prevista_fechamento?: string | null
+          last_contact_at?: string | null
+          next_followup_at?: string | null
+          origem_lead?: string | null
+          probabilidade_fechamento?: number | null
+          responsavel_comercial_id?: string | null
+          temperatura_lead?: string | null
+          updated_at?: string
+          valor_estimado_plano?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_metadata_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_movements: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          from_stage_id: string | null
+          id: string
+          moved_at: string
+          moved_by_user_id: string | null
+          notes: string | null
+          source: Database["public"]["Enums"]["pipeline_movement_source"]
+          time_in_previous_stage: string | null
+          to_stage_id: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          from_stage_id?: string | null
+          id?: string
+          moved_at?: string
+          moved_by_user_id?: string | null
+          notes?: string | null
+          source?: Database["public"]["Enums"]["pipeline_movement_source"]
+          time_in_previous_stage?: string | null
+          to_stage_id: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          from_stage_id?: string | null
+          id?: string
+          moved_at?: string
+          moved_by_user_id?: string | null
+          notes?: string | null
+          source?: Database["public"]["Enums"]["pipeline_movement_source"]
+          time_in_previous_stage?: string | null
+          to_stage_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_movements_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_movements_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_movements_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stages: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          position: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          position: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
       planos: {
         Row: {
           aluno_id: string
@@ -666,6 +815,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_detect_evasao: { Args: never; Returns: Json }
+      fn_move_pipeline: {
+        Args: {
+          _aluno_id: string
+          _moved_by?: string
+          _notes?: string
+          _source?: Database["public"]["Enums"]["pipeline_movement_source"]
+          _to_stage_name: string
+        }
+        Returns: string
+      }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       has_role: {
         Args: {
@@ -684,6 +844,13 @@ export type Database = {
         | "professor"
         | "nutricionista"
         | "fisioterapeuta"
+      pipeline_movement_source:
+        | "manual"
+        | "auto_avaliacao"
+        | "auto_plano"
+        | "auto_agenda"
+        | "auto_evasao"
+        | "auto_recuperacao"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -817,6 +984,14 @@ export const Constants = {
         "professor",
         "nutricionista",
         "fisioterapeuta",
+      ],
+      pipeline_movement_source: [
+        "manual",
+        "auto_avaliacao",
+        "auto_plano",
+        "auto_agenda",
+        "auto_evasao",
+        "auto_recuperacao",
       ],
     },
   },
