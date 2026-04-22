@@ -22,6 +22,7 @@ const ExerciseBank = lazy(() => import("./pages/ExerciseBank"));
 const Avaliacoes = lazy(() => import("./pages/Avaliacoes"));
 const BancoTreinos = lazy(() => import("./pages/BancoTreinos"));
 const PublicWorkout = lazy(() => import("./pages/PublicWorkout"));
+const Pipeline = lazy(() => import("./pages/Pipeline"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -120,6 +121,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <TaskCenter />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/pipeline"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Pipeline />
                   </Suspense>
                 }
               />

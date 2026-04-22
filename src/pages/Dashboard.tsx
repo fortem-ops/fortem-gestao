@@ -9,6 +9,7 @@ import { TasksWidget } from "@/components/dashboard/TasksWidget";
 import { BirthdaysWidget } from "@/components/dashboard/BirthdaysWidget";
 import { CarteiraWidget } from "@/components/dashboard/CarteiraWidget";
 import { PlansDistributionWidget } from "@/components/dashboard/PlansDistributionWidget";
+import { PipelineWidget } from "@/components/dashboard/PipelineWidget";
 import {
   Select,
   SelectContent,
@@ -89,6 +90,7 @@ export default function Dashboard() {
           <AdminAlertsWidget />
         </div>
         <div className="space-y-6">
+          <PipelineWidget />
           <TasksWidget professorId={effectiveProfessorId} />
           <CarteiraWidget />
           <BirthdaysWidget professorId={effectiveProfessorId} />
