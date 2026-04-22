@@ -37,6 +37,7 @@ export const studentSchema = z.object({
   plano_valor: z.coerce.number().min(0, "Valor deve ser positivo").optional(),
   plano_data_inicio: z.string().optional(),
   professor_responsavel_id: z.string().optional(),
+  origem_lead: z.string().optional(),
 });
 
 export type StudentFormValues = z.infer<typeof studentSchema>;
@@ -384,6 +385,28 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
         )}
 
         <PlanServicesSelector control={form.control} />
+
+        <FormField
+          control={form.control}
+          name="origem_lead"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Origem do lead</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || undefined}>
+                <FormControl><SelectTrigger><SelectValue placeholder="Como nos conheceu?" /></SelectTrigger></FormControl>
+                <SelectContent>
+                  <SelectItem value="Indicação">Indicação</SelectItem>
+                  <SelectItem value="Instagram">Instagram</SelectItem>
+                  <SelectItem value="Google">Google</SelectItem>
+                  <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                  <SelectItem value="Passou em frente">Passou em frente</SelectItem>
+                  <SelectItem value="Outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

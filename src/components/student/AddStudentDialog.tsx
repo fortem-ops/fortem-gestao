@@ -22,6 +22,7 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
     plano: undefined, plano_consultas: undefined,
     plano_valor: undefined, plano_data_inicio: today,
     professor_responsavel_id: undefined,
+    origem_lead: undefined,
   };
 
   async function onSubmit(values: StudentFormValues) {
@@ -57,6 +58,26 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
           ativo: true,
         });
         if (planError) console.error("Erro ao criar plano:", planError);
+      }
+
+      // Pipeline: save metadata (origem) and place into "Novo lead" if no plan was created
+      if (aluno) {
+        if (values.origem_lead) {
+          await supabase.from("pipeline_metadata").upsert({
+            aluno_id: aluno.id,
+            origem_lead: values.origem_lead,
+            responsavel_comercial_id: responsavelId,
+          }, { onConflict: "aluno_id" });
+        }
+        if (!plan) {
+          await supabase.rpc("fn_move_pipeline", {
+            _aluno_id: aluno.id,
+            _to_stage_name: "Novo lead",
+            _source: "manual",
+            _notes: "Criado via cadastro de aluno",
+            _moved_by: user.id,
+          } as any);
+        }
       }
 
       toast.success("Aluno cadastrado com sucesso!");
