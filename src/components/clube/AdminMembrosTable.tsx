@@ -33,7 +33,7 @@ export function AdminMembrosTable() {
     },
   });
 
-  async function updateMembro(id: string, patch: Partial<Row>) {
+  async function updateMembro(id: string, patch: Partial<Database["public"]["Tables"]["clube_fortem_membros"]["Update"]>) {
     const { error } = await supabase.from("clube_fortem_membros").update(patch).eq("id", id);
     if (error) toast.error(error.message);
     else {
