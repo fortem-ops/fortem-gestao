@@ -292,6 +292,124 @@ export type Database = {
           },
         ]
       }
+      beneficios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          descricao: string | null
+          id: string
+          limite_por_periodo: number | null
+          nivel_minimo: Database["public"]["Enums"]["clube_nivel_membro"]
+          parceiro_id: string
+          periodicidade: Database["public"]["Enums"]["beneficio_periodicidade"]
+          regra_uso: string | null
+          tipo: Database["public"]["Enums"]["beneficio_tipo"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          limite_por_periodo?: number | null
+          nivel_minimo?: Database["public"]["Enums"]["clube_nivel_membro"]
+          parceiro_id: string
+          periodicidade?: Database["public"]["Enums"]["beneficio_periodicidade"]
+          regra_uso?: string | null
+          tipo: Database["public"]["Enums"]["beneficio_tipo"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          limite_por_periodo?: number | null
+          nivel_minimo?: Database["public"]["Enums"]["clube_nivel_membro"]
+          parceiro_id?: string
+          periodicidade?: Database["public"]["Enums"]["beneficio_periodicidade"]
+          regra_uso?: string | null
+          tipo?: Database["public"]["Enums"]["beneficio_tipo"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beneficios_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clube_fortem_membros: {
+        Row: {
+          aluno_desde: string
+          aluno_id: string
+          cpf_hash: string
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          fortem_id: string
+          foto_url: string | null
+          id: string
+          nivel_membro: Database["public"]["Enums"]["clube_nivel_membro"]
+          qr_secret: string
+          status_membro: Database["public"]["Enums"]["clube_status_membro"]
+          ultimo_refresh_qr: string | null
+          updated_at: string
+        }
+        Insert: {
+          aluno_desde?: string
+          aluno_id: string
+          cpf_hash: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          fortem_id: string
+          foto_url?: string | null
+          id?: string
+          nivel_membro?: Database["public"]["Enums"]["clube_nivel_membro"]
+          qr_secret?: string
+          status_membro?: Database["public"]["Enums"]["clube_status_membro"]
+          ultimo_refresh_qr?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aluno_desde?: string
+          aluno_id?: string
+          cpf_hash?: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          fortem_id?: string
+          foto_url?: string | null
+          id?: string
+          nivel_membro?: Database["public"]["Enums"]["clube_nivel_membro"]
+          qr_secret?: string
+          status_membro?: Database["public"]["Enums"]["clube_status_membro"]
+          ultimo_refresh_qr?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clube_fortem_membros_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumo_servicos: {
         Row: {
           agenda_id: string | null
@@ -426,6 +544,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      parceiros: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          data_fim_parceria: string | null
+          data_inicio_parceria: string
+          descricao: string | null
+          email_login: string | null
+          id: string
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          modo_validacao: Database["public"]["Enums"]["parceiro_modo_validacao"]
+          nome: string
+          pontuacao_engajamento: number
+          responsavel_contato: string | null
+          responsavel_nome: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria: string
+          created_at?: string
+          data_fim_parceria?: string | null
+          data_inicio_parceria?: string
+          descricao?: string | null
+          email_login?: string | null
+          id?: string
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          modo_validacao?: Database["public"]["Enums"]["parceiro_modo_validacao"]
+          nome: string
+          pontuacao_engajamento?: number
+          responsavel_contato?: string | null
+          responsavel_nome?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          data_fim_parceria?: string | null
+          data_inicio_parceria?: string
+          descricao?: string | null
+          email_login?: string | null
+          id?: string
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          modo_validacao?: Database["public"]["Enums"]["parceiro_modo_validacao"]
+          nome?: string
+          pontuacao_engajamento?: number
+          responsavel_contato?: string | null
+          responsavel_nome?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       pipeline_metadata: {
         Row: {
@@ -648,6 +829,44 @@ export type Database = {
         }
         Relationships: []
       }
+      regras_elegibilidade: {
+        Row: {
+          ativo: boolean
+          beneficio_id: string
+          created_at: string
+          id: string
+          tipo_regra: Database["public"]["Enums"]["regra_elegibilidade_tipo"]
+          updated_at: string
+          valor_regra: string
+        }
+        Insert: {
+          ativo?: boolean
+          beneficio_id: string
+          created_at?: string
+          id?: string
+          tipo_regra: Database["public"]["Enums"]["regra_elegibilidade_tipo"]
+          updated_at?: string
+          valor_regra: string
+        }
+        Update: {
+          ativo?: boolean
+          beneficio_id?: string
+          created_at?: string
+          id?: string
+          tipo_regra?: Database["public"]["Enums"]["regra_elegibilidade_tipo"]
+          updated_at?: string
+          valor_regra?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regras_elegibilidade_beneficio_id_fkey"
+            columns: ["beneficio_id"]
+            isOneToOne: false
+            referencedRelation: "beneficios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarefas: {
         Row: {
           aluno_id: string | null
@@ -810,11 +1029,88 @@ export type Database = {
         }
         Relationships: []
       }
+      uso_beneficios: {
+        Row: {
+          aluno_id: string
+          beneficio_id: string
+          cpf_hash: string
+          created_at: string
+          data_uso: string
+          hora_uso: string
+          id: string
+          motivo_recusa: string | null
+          origem_validacao: Database["public"]["Enums"]["uso_origem_validacao"]
+          parceiro_id: string
+          status_validacao: Database["public"]["Enums"]["uso_status_validacao"]
+          token_validacao: string | null
+          validado_por: string | null
+        }
+        Insert: {
+          aluno_id: string
+          beneficio_id: string
+          cpf_hash: string
+          created_at?: string
+          data_uso?: string
+          hora_uso?: string
+          id?: string
+          motivo_recusa?: string | null
+          origem_validacao?: Database["public"]["Enums"]["uso_origem_validacao"]
+          parceiro_id: string
+          status_validacao: Database["public"]["Enums"]["uso_status_validacao"]
+          token_validacao?: string | null
+          validado_por?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          beneficio_id?: string
+          cpf_hash?: string
+          created_at?: string
+          data_uso?: string
+          hora_uso?: string
+          id?: string
+          motivo_recusa?: string | null
+          origem_validacao?: Database["public"]["Enums"]["uso_origem_validacao"]
+          parceiro_id?: string
+          status_validacao?: Database["public"]["Enums"]["uso_status_validacao"]
+          token_validacao?: string | null
+          validado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uso_beneficios_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uso_beneficios_beneficio_id_fkey"
+            columns: ["beneficio_id"]
+            isOneToOne: false
+            referencedRelation: "beneficios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uso_beneficios_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      fn_clube_dashboard: { Args: { _periodo_dias?: number }; Returns: Json }
+      fn_clube_generate_qr_token: { Args: { _aluno_id: string }; Returns: Json }
+      fn_clube_hash_cpf: { Args: { _cpf: string }; Returns: string }
+      fn_clube_validar_token: {
+        Args: { _beneficio_id: string; _token: string }
+        Returns: Json
+      }
       fn_detect_evasao: { Args: never; Returns: Json }
       fn_move_pipeline: {
         Args: {
@@ -844,6 +1140,16 @@ export type Database = {
         | "professor"
         | "nutricionista"
         | "fisioterapeuta"
+      beneficio_periodicidade: "dia" | "semana" | "mes" | "livre"
+      beneficio_tipo:
+        | "desconto_percentual"
+        | "desconto_valor"
+        | "gratuidade"
+        | "vantagem_exclusiva"
+        | "cashback_futuro"
+      clube_nivel_membro: "start" | "start_plus" | "power" | "pro" | "max"
+      clube_status_membro: "ativo" | "bloqueado" | "inadimplente" | "cancelado"
+      parceiro_modo_validacao: "qr_scan" | "cpf_manual" | "lista_nome"
       pipeline_movement_source:
         | "manual"
         | "auto_avaliacao"
@@ -851,6 +1157,13 @@ export type Database = {
         | "auto_agenda"
         | "auto_evasao"
         | "auto_recuperacao"
+      regra_elegibilidade_tipo:
+        | "plano"
+        | "frequencia_minima"
+        | "status_financeiro"
+        | "tempo_matricula"
+      uso_origem_validacao: "scanner" | "cpf_manual" | "admin"
+      uso_status_validacao: "valido" | "recusado" | "expirado" | "bloqueado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -985,6 +1298,17 @@ export const Constants = {
         "nutricionista",
         "fisioterapeuta",
       ],
+      beneficio_periodicidade: ["dia", "semana", "mes", "livre"],
+      beneficio_tipo: [
+        "desconto_percentual",
+        "desconto_valor",
+        "gratuidade",
+        "vantagem_exclusiva",
+        "cashback_futuro",
+      ],
+      clube_nivel_membro: ["start", "start_plus", "power", "pro", "max"],
+      clube_status_membro: ["ativo", "bloqueado", "inadimplente", "cancelado"],
+      parceiro_modo_validacao: ["qr_scan", "cpf_manual", "lista_nome"],
       pipeline_movement_source: [
         "manual",
         "auto_avaliacao",
@@ -993,6 +1317,14 @@ export const Constants = {
         "auto_evasao",
         "auto_recuperacao",
       ],
+      regra_elegibilidade_tipo: [
+        "plano",
+        "frequencia_minima",
+        "status_financeiro",
+        "tempo_matricula",
+      ],
+      uso_origem_validacao: ["scanner", "cpf_manual", "admin"],
+      uso_status_validacao: ["valido", "recusado", "expirado", "bloqueado"],
     },
   },
 } as const
