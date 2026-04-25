@@ -23,6 +23,9 @@ const Avaliacoes = lazy(() => import("./pages/Avaliacoes"));
 const BancoTreinos = lazy(() => import("./pages/BancoTreinos"));
 const PublicWorkout = lazy(() => import("./pages/PublicWorkout"));
 const Pipeline = lazy(() => import("./pages/Pipeline"));
+const Clube = lazy(() => import("./pages/Clube"));
+const AdminClube = lazy(() => import("./pages/AdminClube"));
+const PartnerScannerPage = lazy(() => import("./pages/PartnerScannerPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -58,6 +61,17 @@ const App = () => (
                 <Suspense fallback={<RouteFallback />}>
                   <PublicWorkout />
                 </Suspense>
+              }
+            />
+            {/* Painel autônomo do parceiro — protegido por auth, mas sem AppLayout (UX kiosk). */}
+            <Route
+              path="/parceiros/scanner"
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<RouteFallback />}>
+                    <PartnerScannerPage />
+                  </Suspense>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -137,6 +151,22 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <Agenda />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/clube"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Clube />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin/clube"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <AdminClube />
                   </Suspense>
                 }
               />
