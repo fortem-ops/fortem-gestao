@@ -355,7 +355,7 @@ export type Database = {
         Row: {
           aluno_desde: string
           aluno_id: string
-          cpf_hash: string
+          cpf_hash: string | null
           created_at: string
           data_fim: string | null
           data_inicio: string
@@ -371,7 +371,7 @@ export type Database = {
         Insert: {
           aluno_desde?: string
           aluno_id: string
-          cpf_hash: string
+          cpf_hash?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
@@ -387,7 +387,7 @@ export type Database = {
         Update: {
           aluno_desde?: string
           aluno_id?: string
-          cpf_hash?: string
+          cpf_hash?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
@@ -1107,6 +1107,8 @@ export type Database = {
       fn_clube_dashboard: { Args: { _periodo_dias?: number }; Returns: Json }
       fn_clube_generate_qr_token: { Args: { _aluno_id: string }; Returns: Json }
       fn_clube_hash_cpf: { Args: { _cpf: string }; Returns: string }
+      fn_clube_nivel_por_plano: { Args: { _aluno_id: string }; Returns: Json }
+      fn_clube_sync_membro: { Args: { _aluno_id: string }; Returns: undefined }
       fn_clube_validar_token: {
         Args: { _beneficio_id: string; _token: string }
         Returns: Json
