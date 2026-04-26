@@ -1,15 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { AdminClubeDashboard } from "@/components/clube/AdminClubeDashboard";
 import { AdminMembrosTable } from "@/components/clube/AdminMembrosTable";
 import { AdminParceirosTable } from "@/components/clube/AdminParceirosTable";
 import { AdminBeneficiosTable } from "@/components/clube/AdminBeneficiosTable";
-import { Sparkles } from "lucide-react";
+import { Sparkles, RefreshCw } from "lucide-react";
 import { Navigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * Painel administrativo do Clube FORTEM (coordenadores e admins).
