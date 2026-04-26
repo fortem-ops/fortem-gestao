@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
  */
 export default function AdminClube() {
   const { user, loading } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: isCoordAdmin, isLoading: checking } = useQuery({
     queryKey: ["admin-clube-access", user?.id],
@@ -26,6 +27,25 @@ export default function AdminClube() {
       return !!data;
     },
     enabled: !!user,
+  });
+
+  const resyncMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("fn_clube_resync_todos");
+      if (error) throw error;
+      return data as { sincronizados: number; executado_em: string };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Re-sincronização concluída",
+        description: `${data.sincronizados} membros atualizados com base nos planos ativos.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["clube-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-membros"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Falha ao re-sincronizar", description: err.message, variant: "destructive" });
+    },
   });
 
   if (loading || checking) return <Skeleton className="h-64" />;
