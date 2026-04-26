@@ -60,13 +60,24 @@ export default function AdminClube() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <header>
-        <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-primary" /> Administração — Clube FORTEM
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Gestão estratégica de membros, parceiros, benefícios e métricas.
-        </p>
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-primary" /> Administração — Clube FORTEM
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gestão estratégica de membros, parceiros, benefícios e métricas.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => resyncMutation.mutate()}
+          disabled={resyncMutation.isPending}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${resyncMutation.isPending ? "animate-spin" : ""}`} />
+          {resyncMutation.isPending ? "Sincronizando..." : "Re-sincronizar membros"}
+        </Button>
       </header>
 
       <Tabs defaultValue="dashboard" className="w-full">
