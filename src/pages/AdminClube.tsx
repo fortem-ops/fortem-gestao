@@ -77,15 +77,18 @@ export default function AdminClube() {
             Gestão estratégica de membros, parceiros, benefícios e métricas.
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => resyncMutation.mutate()}
-          disabled={resyncMutation.isPending}
-          className="gap-2"
-        >
-          <RefreshCw className={`w-4 h-4 ${resyncMutation.isPending ? "animate-spin" : ""}`} />
-          {resyncMutation.isPending ? "Sincronizando..." : "Re-sincronizar membros"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <ClubeAlertasBell />
+          <Button
+            variant="outline"
+            onClick={() => resyncMutation.mutate()}
+            disabled={resyncMutation.isPending}
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${resyncMutation.isPending ? "animate-spin" : ""}`} />
+            {resyncMutation.isPending ? "Sincronizando..." : "Re-sincronizar membros"}
+          </Button>
+        </div>
       </header>
 
       <Tabs defaultValue="dashboard" className="w-full">
