@@ -351,6 +351,45 @@ export type Database = {
           },
         ]
       }
+      clube_alertas: {
+        Row: {
+          aluno_id: string | null
+          created_at: string
+          id: string
+          lido: boolean
+          lido_em: string | null
+          lido_por: string | null
+          mensagem: string
+          payload: Json
+          severidade: Database["public"]["Enums"]["clube_alerta_severidade"]
+          tipo: Database["public"]["Enums"]["clube_alerta_tipo"]
+        }
+        Insert: {
+          aluno_id?: string | null
+          created_at?: string
+          id?: string
+          lido?: boolean
+          lido_em?: string | null
+          lido_por?: string | null
+          mensagem: string
+          payload?: Json
+          severidade?: Database["public"]["Enums"]["clube_alerta_severidade"]
+          tipo: Database["public"]["Enums"]["clube_alerta_tipo"]
+        }
+        Update: {
+          aluno_id?: string | null
+          created_at?: string
+          id?: string
+          lido?: boolean
+          lido_em?: string | null
+          lido_por?: string | null
+          mensagem?: string
+          payload?: Json
+          severidade?: Database["public"]["Enums"]["clube_alerta_severidade"]
+          tipo?: Database["public"]["Enums"]["clube_alerta_tipo"]
+        }
+        Relationships: []
+      }
       clube_fortem_membros: {
         Row: {
           aluno_desde: string
@@ -1104,11 +1143,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_clube_check_divergencias: { Args: never; Returns: Json }
       fn_clube_dashboard: { Args: { _periodo_dias?: number }; Returns: Json }
       fn_clube_generate_qr_token: { Args: { _aluno_id: string }; Returns: Json }
       fn_clube_hash_cpf: { Args: { _cpf: string }; Returns: string }
+      fn_clube_marcar_alerta_lido: {
+        Args: { _alerta_id: string }
+        Returns: undefined
+      }
       fn_clube_nivel_por_plano: { Args: { _aluno_id: string }; Returns: Json }
       fn_clube_resync_todos: { Args: never; Returns: Json }
+      fn_clube_resync_todos_safe: { Args: never; Returns: Json }
       fn_clube_sync_membro: { Args: { _aluno_id: string }; Returns: undefined }
       fn_clube_validar_token: {
         Args: { _beneficio_id: string; _token: string }
@@ -1150,6 +1195,12 @@ export type Database = {
         | "gratuidade"
         | "vantagem_exclusiva"
         | "cashback_futuro"
+      clube_alerta_severidade: "info" | "aviso" | "critico"
+      clube_alerta_tipo:
+        | "cron_falha"
+        | "divergencia_nivel"
+        | "sincronizacao_parcial"
+        | "manual"
       clube_nivel_membro: "start" | "start_plus" | "power" | "pro" | "max"
       clube_status_membro: "ativo" | "bloqueado" | "inadimplente" | "cancelado"
       parceiro_modo_validacao: "qr_scan" | "cpf_manual" | "lista_nome"
@@ -1308,6 +1359,13 @@ export const Constants = {
         "gratuidade",
         "vantagem_exclusiva",
         "cashback_futuro",
+      ],
+      clube_alerta_severidade: ["info", "aviso", "critico"],
+      clube_alerta_tipo: [
+        "cron_falha",
+        "divergencia_nivel",
+        "sincronizacao_parcial",
+        "manual",
       ],
       clube_nivel_membro: ["start", "start_plus", "power", "pro", "max"],
       clube_status_membro: ["ativo", "bloqueado", "inadimplente", "cancelado"],

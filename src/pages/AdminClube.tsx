@@ -9,6 +9,7 @@ import { AdminClubeDashboard } from "@/components/clube/AdminClubeDashboard";
 import { AdminMembrosTable } from "@/components/clube/AdminMembrosTable";
 import { AdminParceirosTable } from "@/components/clube/AdminParceirosTable";
 import { AdminBeneficiosTable } from "@/components/clube/AdminBeneficiosTable";
+import { ClubeAlertasBell } from "@/components/clube/ClubeAlertasBell";
 import { Sparkles, RefreshCw } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -31,17 +32,24 @@ export default function AdminClube() {
 
   const resyncMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("fn_clube_resync_todos");
+      const { data, error } = await supabase.rpc("fn_clube_resync_todos_safe");
       if (error) throw error;
-      return data as { sincronizados: number; executado_em: string };
+      return data as { ok: boolean; resync?: { sincronizados: number }; divergencias?: { divergencias: number }; erro?: string };
     },
     onSuccess: (data) => {
-      toast({
-        title: "Re-sincronização concluída",
-        description: `${data.sincronizados} membros atualizados com base nos planos ativos.`,
-      });
+      if (!data.ok) {
+        toast({ title: "Falha registrada", description: data.erro ?? "Veja o sino de alertas.", variant: "destructive" });
+      } else {
+        const sinc = data.resync?.sincronizados ?? 0;
+        const div = data.divergencias?.divergencias ?? 0;
+        toast({
+          title: "Re-sincronização concluída",
+          description: `${sinc} membros atualizados${div > 0 ? ` · ${div} divergência(s) registrada(s) nos alertas` : ""}.`,
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["clube-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["admin-membros"] });
+      queryClient.invalidateQueries({ queryKey: ["clube-alertas"] });
     },
     onError: (err: any) => {
       toast({ title: "Falha ao re-sincronizar", description: err.message, variant: "destructive" });
@@ -69,15 +77,18 @@ export default function AdminClube() {
             Gestão estratégica de membros, parceiros, benefícios e métricas.
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => resyncMutation.mutate()}
-          disabled={resyncMutation.isPending}
-          className="gap-2"
-        >
-          <RefreshCw className={`w-4 h-4 ${resyncMutation.isPending ? "animate-spin" : ""}`} />
-          {resyncMutation.isPending ? "Sincronizando..." : "Re-sincronizar membros"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <ClubeAlertasBell />
+          <Button
+            variant="outline"
+            onClick={() => resyncMutation.mutate()}
+            disabled={resyncMutation.isPending}
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${resyncMutation.isPending ? "animate-spin" : ""}`} />
+            {resyncMutation.isPending ? "Sincronizando..." : "Re-sincronizar membros"}
+          </Button>
+        </div>
       </header>
 
       <Tabs defaultValue="dashboard" className="w-full">
