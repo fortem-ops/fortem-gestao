@@ -32,17 +32,24 @@ export default function AdminClube() {
 
   const resyncMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("fn_clube_resync_todos");
+      const { data, error } = await supabase.rpc("fn_clube_resync_todos_safe");
       if (error) throw error;
-      return data as { sincronizados: number; executado_em: string };
+      return data as { ok: boolean; resync?: { sincronizados: number }; divergencias?: { divergencias: number }; erro?: string };
     },
     onSuccess: (data) => {
-      toast({
-        title: "Re-sincronização concluída",
-        description: `${data.sincronizados} membros atualizados com base nos planos ativos.`,
-      });
+      if (!data.ok) {
+        toast({ title: "Falha registrada", description: data.erro ?? "Veja o sino de alertas.", variant: "destructive" });
+      } else {
+        const sinc = data.resync?.sincronizados ?? 0;
+        const div = data.divergencias?.divergencias ?? 0;
+        toast({
+          title: "Re-sincronização concluída",
+          description: `${sinc} membros atualizados${div > 0 ? ` · ${div} divergência(s) registrada(s) nos alertas` : ""}.`,
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["clube-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["admin-membros"] });
+      queryClient.invalidateQueries({ queryKey: ["clube-alertas"] });
     },
     onError: (err: any) => {
       toast({ title: "Falha ao re-sincronizar", description: err.message, variant: "destructive" });
