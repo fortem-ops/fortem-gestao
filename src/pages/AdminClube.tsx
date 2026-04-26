@@ -9,6 +9,7 @@ import { AdminClubeDashboard } from "@/components/clube/AdminClubeDashboard";
 import { AdminMembrosTable } from "@/components/clube/AdminMembrosTable";
 import { AdminParceirosTable } from "@/components/clube/AdminParceirosTable";
 import { AdminBeneficiosTable } from "@/components/clube/AdminBeneficiosTable";
+import { ClubeAlertasBell } from "@/components/clube/ClubeAlertasBell";
 import { Sparkles, RefreshCw } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
