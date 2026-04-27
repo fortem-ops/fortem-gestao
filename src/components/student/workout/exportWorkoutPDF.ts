@@ -27,7 +27,7 @@ interface ExportArgs {
 const INK: [number, number, number] = [24, 24, 27];          // zinc-900 — primary text
 const INK_SOFT: [number, number, number] = [82, 82, 91];     // zinc-600 — secondary text
 const INK_MUTED: [number, number, number] = [161, 161, 170]; // zinc-400 — captions
-const RULE: [number, number, number] = [228, 228, 231];      // zinc-200 — dividers
+const RULE: [number, number, number] = [113, 113, 122];      // zinc-500 — dividers (escurecido p/ melhor leitura)
 const SURFACE: [number, number, number] = [244, 244, 245];   // zinc-100 — section bands
 const WHITE: [number, number, number] = [255, 255, 255];
 
@@ -148,7 +148,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Use a conservative estimate plus a safety reserve so autoTable
   // does not push any block to a second page.
   // ============================================================
-  const footerReserve = 5;
+  const footerReserve = 1;
   const sectionGap = 0.8;
   const treinoGap = 0.6;
 
@@ -172,7 +172,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   // Conservative nominal heights — intentionally a bit higher than the
   // actual table metrics to leave room for long exercise names.
-  const NOM_ROW = 9.5;
+  const NOM_ROW = 10.2;
   const NOM_HEAD = 6.2;
   const NOM_BADGE = 6.0;
   const NOM_TREINO_BAR = 7.2;
@@ -192,7 +192,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // a floor-based estimate using the minimum row/head heights the layout
   // will actually clamp to. Whichever is smaller wins, preventing the
   // historical bug where Treino 4 / Bloco B was clipped off page 1.
-  const FLOOR_ROW = 5.6;
+  const FLOOR_ROW = 6.4;
   const FLOOR_HEAD = 3.8;
   const FLOOR_BADGE = 2.6;
   const FLOOR_BAR = 3.8;
@@ -211,8 +211,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const scale = Math.max(0.22, Math.min(1.6, optimisticScale, floorScale));
 
   const ROW_FONT = Math.max(6.4, 9.5 * scale);
-  const EX_NAME_FONT = Math.max(7.6, 11.0 * scale);
-  const NUM_FONT = Math.max(7.4, 10.5 * scale);
+  const EX_NAME_FONT = Math.max(9.0, 12.5 * scale);
+  const NUM_FONT = Math.max(8.6, 12.0 * scale);
   const HEAD_FONT = Math.max(5.4, 7.2 * scale);
   const ROW_PAD = Math.max(0.4, 1.3 * scale);
   const HEAD_PAD = Math.max(0.35, 1.1 * scale);
