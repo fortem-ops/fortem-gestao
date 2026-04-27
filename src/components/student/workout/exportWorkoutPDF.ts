@@ -208,6 +208,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   const ROW_FONT = Math.max(6.4, 9.5 * scale);
   const EX_NAME_FONT = Math.max(7.6, 11.0 * scale);
+  const NUM_FONT = Math.max(7.4, 10.5 * scale);
   const HEAD_FONT = Math.max(5.4, 7.2 * scale);
   const ROW_PAD = Math.max(0.4, 1.3 * scale);
   const HEAD_PAD = Math.max(0.35, 1.1 * scale);
@@ -331,7 +332,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
             3: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
             4: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
             5: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-            6: { cellWidth: wRep, halign: "right", textColor: INK_SOFT },
+            6: { cellWidth: wRep, halign: "right", textColor: INK_SOFT, fontStyle: "bold", fontSize: NUM_FONT },
           };
         })(),
         didParseCell: (hookData) => {
@@ -421,8 +422,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         return {
           0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
           1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
-          2: { cellWidth: wSer, halign: "center" },
-          3: { cellWidth: wRep, halign: "center" },
+          2: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+          3: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
           4: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
         };
       })(),
