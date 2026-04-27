@@ -128,24 +128,53 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   let y = margin + headerH + 3;
 
   // ============================================================
+  // OBSERVAÇÕES — fixed 5-line manual write area (TOP of page)
+  // Rendered between the student header and the warm-up section.
+  // ============================================================
+  const OBS_LINE_GAP = 5;
+  const OBS_LINES = 5;
+  const obsTitleH = 4;
+  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~31mm
+  const obsBottomGap = 2;
+
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...INK);
+  doc.text("OBSERVAÇÕES", mainX, y + 2.5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6);
+  doc.setTextColor(...INK_MUTED);
+  doc.text("(anotações manuais)", mainX + 24, y + 2.5);
+
+  // Red hairline under title
+  doc.setDrawColor(...RED);
+  doc.setLineWidth(0.3);
+  doc.line(mainX, y + obsTitleH, mainX + mainW, y + obsTitleH);
+
+  // Exactly 5 evenly-spaced writing lines
+  const obsLinesTop = y + obsTitleH + 2;
+  doc.setDrawColor(...RULE);
+  doc.setLineWidth(0.15);
+  for (let i = 1; i <= OBS_LINES; i++) {
+    const ly = obsLinesTop + i * OBS_LINE_GAP;
+    doc.line(mainX, ly, mainX + mainW, ly);
+  }
+
+  y += obsBlockH + obsBottomGap;
+
+  // ============================================================
   // SINGLE-PAGE BUDGET
   // Fit aquecimento + frequência + 4 treinos on a single A4 page.
   // Use a conservative estimate plus a safety reserve so autoTable
   // does not push any block to a second page.
   // ============================================================
   const footerReserve = 5;
-  // Fixed Observações block: title (~4mm) + gap + 5 writing lines @ 5mm each
-  const OBS_LINE_GAP = 5;
-  const OBS_LINES = 5;
-  const obsTitleH = 4;
-  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~31mm
   const sectionGap = 0.8;
   const treinoGap = 0.6;
-  const obsTopGap = 1.5;
-  const layoutSafety = 10;
 
   const bodyTop = y;
-  const bodyBottom = pageH - margin - footerReserve - obsBlockH - obsTopGap;
+  const bodyBottom = pageH - margin - footerReserve;
   const availH = bodyBottom - bodyTop;
 
   const aqBlocosCount = (["LIB", "MOB", "ATI"] as const).filter(
