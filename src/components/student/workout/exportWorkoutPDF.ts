@@ -211,8 +211,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const scale = Math.max(0.22, Math.min(1.6, optimisticScale, floorScale));
 
   const ROW_FONT = Math.max(6.4, 9.5 * scale);
-  const EX_NAME_FONT = Math.max(7.6, 12.0 * scale);
-  const NUM_FONT = Math.max(7.6, 12.0 * scale);
+  const EX_NAME_FONT = Math.max(8.4, 12.5 * scale);
+  const NUM_FONT = Math.max(8.4, 12.5 * scale);
   const HEAD_FONT = Math.max(5.4, 7.2 * scale);
   const ROW_PAD = Math.max(0.35, 1.2 * scale);
   const HEAD_PAD = Math.max(0.3, 1.0 * scale);
