@@ -42,7 +42,7 @@ const WARMUP_COLORS: Record<string, { fill: [number, number, number]; text: [num
 };
 
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
-const CHECK = "v"; // check mark glyph that prints reliably in Helvetica
+const CHECK = "•DOT•"; // sentinel — replaced by a red dot in didDrawCell
 
 /**
  * Generates a single-page A4 portrait PDF with a modern, minimal layout.
@@ -207,9 +207,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + forcaBlocosTotal * NOM_HEAD
     + forcaRowsTotal * NOM_ROW
     + data.treinos.length * treinoGap;
-  const totalEst = aqEst + forcaEst + 8;
+  const totalEst = aqEst + forcaEst + 14;
 
-  const scale = Math.max(0.46, Math.min(1.6, availH / Math.max(totalEst, 1)));
+  const scale = Math.max(0.32, Math.min(1.6, availH / Math.max(totalEst, 1)));
 
   const ROW_FONT = Math.max(7.0, 9.5 * scale);
   const HEAD_FONT = Math.max(5.8, 7.2 * scale);
@@ -342,6 +342,29 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           if (hookData.section === "body") {
             hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
             hookData.cell.styles.lineColor = RULE;
+            // T1..T4 columns: hide the sentinel text; the dot is drawn in didDrawCell.
+            if (hookData.column.index >= 2 && hookData.column.index <= 5) {
+              if (hookData.cell.text?.[0] === CHECK) {
+                hookData.cell.text = [""];
+              }
+            }
+          }
+        },
+        didDrawCell: (hookData) => {
+          if (
+            hookData.section === "body" &&
+            hookData.column.index >= 2 &&
+            hookData.column.index <= 5
+          ) {
+            const ex = bloco.items[hookData.row.index];
+            const tKey = (`T${hookData.column.index - 1}`) as "T1" | "T2" | "T3" | "T4";
+            if (ex?.dias?.includes(tKey)) {
+              const cx = hookData.cell.x + hookData.cell.width / 2;
+              const cy = hookData.cell.y + hookData.cell.height / 2;
+              const r = Math.max(0.7, Math.min(1.3, ROW_FONT * 0.13));
+              doc.setFillColor(...RED_SOFT);
+              doc.circle(cx, cy, r, "F");
+            }
           }
         },
       });
@@ -417,31 +440,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.8;
   };
 
-  data.treinos.forEach((tr, idx) => {
-    doc.setFillColor(...RED);
-    doc.rect(mainX, y, mainW, BAR_H, "F");
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(TREINO_LABEL_FONT);
-    doc.setTextColor(...WHITE);
-    doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(Math.max(5.1, 6.0 * scale));
-    doc.setTextColor(...WHITE);
-    doc.text("FORÇA", mainX + mainW - 1.8, y + BAR_H / 2 + 0.95, { align: "right" });
-    y += BAR_H + 0.45;
-
-    const blocoA = tr.exercicios.slice(0, 2);
-    const blocoB = tr.exercicios.slice(2, 5);
-    renderForcaBlock("A", blocoA, 1);
-    renderForcaBlock("B", blocoB, 1);
-    y += treinoGap;
-  });
-
-  // (Observações já renderizado no topo da página)
-
   // ============================================================
-  // FREQUÊNCIA — vertical column, T1..T4 slots
+  // FREQUÊNCIA — drawn BEFORE strength tables so it lives on page 1
+  // even if autoTable temporarily creates a spillover page.
   // ============================================================
   const freqTopY = margin;
   const freqBottomY = pageH - margin - footerReserve;
@@ -470,18 +471,15 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     const week = Math.floor(i / 4) + 1;
     const tNum = (i % 4) + 1;
 
-    // Soft alternating background per week
     if (week % 2 === 0) {
       doc.setFillColor(...RED_TINT);
       doc.rect(freqX, sy, freqColW, slotH, "F");
     }
 
-    // Cell border
     doc.setDrawColor(...RULE);
     doc.setLineWidth(0.15);
     doc.rect(freqX, sy, freqColW, slotH);
 
-    // Week badge on first T of each week
     if (tNum === 1) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(5.5);
@@ -489,18 +487,54 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       doc.text(`SEM ${week}`, freqX + freqColW - 1.5, sy + 2.2, { align: "right" });
     }
 
-    // T-label
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(...INK);
     doc.text(`T${tNum}`, freqX + 2, sy + slotH / 2 + 1.2);
 
-    // Signature line
     doc.setDrawColor(...INK_MUTED);
     doc.setLineWidth(0.1);
     const lineY = sy + slotH - 1.5;
     doc.line(freqX + 7, lineY, freqX + freqColW - 1.5, lineY);
   }
+
+  data.treinos.forEach((tr, idx) => {
+    doc.setFillColor(...RED);
+    doc.rect(mainX, y, mainW, BAR_H, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(TREINO_LABEL_FONT);
+    doc.setTextColor(...WHITE);
+    doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(Math.max(5.1, 6.0 * scale));
+    doc.setTextColor(...WHITE);
+    doc.text("FORÇA", mainX + mainW - 1.8, y + BAR_H / 2 + 0.95, { align: "right" });
+    y += BAR_H + 0.45;
+
+    const blocoA = tr.exercicios.slice(0, 2);
+    const blocoB = tr.exercicios.slice(2, 5);
+    renderForcaBlock("A", blocoA, 1);
+    renderForcaBlock("B", blocoB, 1);
+    y += treinoGap;
+  });
+
+  // (Observações já renderizado no topo da página)
+
+  // (Frequência já renderizada antes dos treinos para garantir página única)
+
+  // ============================================================
+  // SAFETY — guarantee single page: drop any spillover pages so the
+  // final PDF is always a single A4 sheet, no matter what.
+  // ============================================================
+  const totalPages = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+  if (totalPages > 1) {
+    for (let p = totalPages; p > 1; p--) {
+      (doc as unknown as { deletePage: (n: number) => void }).deletePage(p);
+    }
+    (doc as unknown as { setPage: (n: number) => void }).setPage(1);
+  }
+
 
   // ============================================================
   // FOOTER
