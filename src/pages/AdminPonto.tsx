@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Settings } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { AdminPontoConfig } from "@/components/ponto/AdminPontoConfig";
+import { AdminPontoHorarios } from "@/components/ponto/AdminPontoHorarios";
 
 export default function AdminPonto() {
   const { user, loading } = useAuth();
@@ -36,6 +37,7 @@ export default function AdminPonto() {
         </p>
       </header>
       <AdminPontoConfig />
+      <AdminPontoHorarios />
     </div>
   );
 }
