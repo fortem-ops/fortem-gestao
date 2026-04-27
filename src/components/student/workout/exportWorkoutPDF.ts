@@ -110,7 +110,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // OBSERVAÇÕES — fixed 5-line manual write area (TOP of page)
   // Rendered between the student header and the warm-up section.
   // ============================================================
-  const OBS_LINE_GAP = 5;
+  const OBS_LINE_GAP = 4.2;
   const OBS_LINES = 3;
   const obsTitleH = 4;
   const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~21mm
@@ -149,8 +149,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // does not push any block to a second page.
   // ============================================================
   const footerReserve = 1;
-  const sectionGap = 0.8;
-  const treinoGap = 0.6;
+  const sectionGap = 0.6;
+  const treinoGap = 0.4;
 
   const bodyTop = y;
   const bodyBottom = pageH - margin - footerReserve;
@@ -172,7 +172,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   // Conservative nominal heights — intentionally a bit higher than the
   // actual table metrics to leave room for long exercise names.
-  const NOM_ROW = 9.5;
+  const NOM_ROW = 11.0;
   const NOM_HEAD = 6.2;
   const NOM_BADGE = 6.0;
   const NOM_TREINO_BAR = 7.2;
@@ -192,7 +192,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // a floor-based estimate using the minimum row/head heights the layout
   // will actually clamp to. Whichever is smaller wins, preventing the
   // historical bug where Treino 4 / Bloco B was clipped off page 1.
-  const FLOOR_ROW = 6.2;
+  const FLOOR_ROW = 7.0;
   const FLOOR_HEAD = 3.8;
   const FLOOR_BADGE = 2.6;
   const FLOOR_BAR = 3.8;
@@ -204,23 +204,23 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + forcaBlocosTotal * FLOOR_HEAD
     + forcaRowsTotal * FLOOR_ROW
     + data.treinos.length * treinoGap
-    + 10; // global slack
+    + 28; // global slack
 
   const optimisticScale = availH / Math.max(totalEst, 1);
   const floorScale = availH / Math.max(floorEst, 1);
   const scale = Math.max(0.22, Math.min(1.6, optimisticScale, floorScale));
 
   const ROW_FONT = Math.max(6.4, 9.5 * scale);
-  const EX_NAME_FONT = Math.max(7.8, 12.5 * scale);
-  const NUM_FONT = Math.max(7.6, 12.0 * scale);
+  const EX_NAME_FONT = Math.max(8.8, 13.0 * scale);
+  const NUM_FONT = Math.max(8.8, 13.0 * scale);
   const HEAD_FONT = Math.max(5.4, 7.2 * scale);
-  const ROW_PAD = Math.max(0.4, 1.3 * scale);
-  const HEAD_PAD = Math.max(0.35, 1.1 * scale);
+  const ROW_PAD = Math.max(0.35, 1.2 * scale);
+  const HEAD_PAD = Math.max(0.3, 1.0 * scale);
   const SIDE_PAD = Math.max(0.5, 1.1 * scale);
   const BADGE_H = Math.max(2.4, 3.8 * scale);
   const BAR_H = Math.max(3.6, 5.1 * scale);
-  const TREINO_LABEL_FONT = Math.max(5.4, 7.2 * scale);
-  const SECTION_FONT = Math.max(6.0, 7.8 * scale);
+  const TREINO_LABEL_FONT = Math.max(5.6, 7.4 * scale);
+  const SECTION_FONT = Math.max(7.0, 9.0 * scale);
   const META_FONT = Math.max(5.0, 6.5 * scale);
   const BADGE_FONT = Math.max(4.6, 5.9 * scale);
   const SMALL_FONT = Math.max(4.4, 5.4 * scale);
@@ -236,28 +236,27 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Helper — section label
   // ============================================================
   const sectionLabel = (label: string, meta?: string) => {
+    // Barra vermelha (mesmo estilo das barras de Treino) com texto branco
+    doc.setFillColor(...RED);
+    doc.rect(mainX, y, mainW, BAR_H, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(SECTION_FONT);
-    doc.setTextColor(...INK);
-    doc.text(label.toUpperCase(), mainX, y);
+    doc.setTextColor(...WHITE);
+    doc.text(label.toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
     if (meta) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(META_FONT);
-      doc.setTextColor(...INK_MUTED);
-      doc.text(meta, mainX + mainW, y, { align: "right" });
+      doc.setTextColor(...WHITE);
+      doc.text(meta, mainX + mainW - 1.8, y + BAR_H / 2 + 0.95, { align: "right" });
     }
-    y += 1.1;
-    doc.setDrawColor(...RULE);
-    doc.setLineWidth(0.18);
-    doc.line(mainX, y, mainX + mainW, y);
-    y += 1.1;
+    y += BAR_H + 0.45;
   };
 
   // ============================================================
   // AQUECIMENTO — separated by LIB / MOB / ATI sub-blocks
   // ============================================================
   if (data.aquecimento.length > 0) {
-    sectionLabel("Aquecimento", "Liberação · Mobilidade · Ativação");
+    sectionLabel("Aquecimento");
 
     const blocos: { key: "LIB" | "MOB" | "ATI"; label: string; items: WorkoutExercise[] }[] = [
       { key: "LIB", label: "LIBERAÇÃO", items: [] },
@@ -438,7 +437,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         }
       },
     });
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.8;
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.6;
   };
 
   // ============================================================
@@ -507,10 +506,6 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     doc.setFontSize(TREINO_LABEL_FONT);
     doc.setTextColor(...WHITE);
     doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(Math.max(5.1, 6.0 * scale));
-    doc.setTextColor(...WHITE);
-    doc.text("FORÇA", mainX + mainW - 1.8, y + BAR_H / 2 + 0.95, { align: "right" });
     y += BAR_H + 0.45;
 
     const blocoA = tr.exercicios.slice(0, 2);
