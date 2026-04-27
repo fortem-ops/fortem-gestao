@@ -437,7 +437,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         }
       },
     });
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.8;
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.6;
   };
 
   // ============================================================
