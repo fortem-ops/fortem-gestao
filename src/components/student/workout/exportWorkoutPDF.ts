@@ -424,7 +424,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         const wCat = 11, wSer = 16, wRep = 14, wKg = 14;
         const wEx = mainW - (wCat + wSer + wRep + wKg);
         return {
-          0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
+          0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_NAME_FONT },
           1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
           2: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
           3: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
