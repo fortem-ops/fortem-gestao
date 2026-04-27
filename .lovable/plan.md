@@ -1,75 +1,49 @@
+## Problema
+
+O export do PDF de treino está cortando o **Bloco B do Treino 4** porque o orçamento de altura subestima a altura real das tabelas. Quando o conteúdo estoura, a rede de segurança `deletePage` apaga a página 2, removendo o Bloco B junto.
+
 ## Objetivo
 
-Atualizar o PDF exportado em **Treinos** com duas mudanças:
-
-1. **Mover "Observações"** do rodapé para o topo (entre nome do aluno e Aquecimento).
-2. **Limpar visualmente as tabelas de Treino**: remover colunas/cabeçalhos `#` e `EXERCÍCIO` (e os rótulos `BLOCO A`/`BLOCO B`), mantendo apenas `SÉRIES`, `REP` e `KG`.
-
-Tudo continua em **uma única página A4 retrato, sem sobreposições**.
-
-## Layout final
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ FORTEM   [QR]                          ALUNO: NOME         │
-│                                        Descrição · data    │
-├────────────────────────────────────────────────────────────┤
-│ OBSERVAÇÕES (anotações manuais)            <- NOVO TOPO    │
-│ _____________________________________________              │
-│ _____________________________________________  (5 linhas)  │
-│ _____________________________________________              │
-├────────────────────────────────────────────────────────────┤
-│ AQUECIMENTO  · Liberação · Mobilidade · Ativação           │
-│ [LIB] tabela ...                                           │
-│ [MOB] tabela ...                                           │
-│ [ATI] tabela ...                                           │
-├────────────────────────────────────────────────────────────┤
-│ TREINO 1  · FORÇA                                          │
-│   Nome do exercício            SÉRIES   REP   KG           │
-│   Nome do exercício            SÉRIES   REP   KG           │
-│   ...                                                      │
-│ TREINO 2 / 3 / 4                                           │
-├────────────────────────────────────────────────────────────┤
-│ FORTEM Treinamento — gerado automaticamente   data         │
-└────────────────────────────────────────────────────────────┘
-                       (Coluna Frequência permanece à direita)
-```
+1. Corrigir o cálculo de escala em `exportWorkoutPDF.ts` para que **todos os 4 treinos (Bloco A + Bloco B)** caibam completos em uma única página A4.
+2. Adicionar um **teste de regressão automatizado** que falhe se algum treino for cortado, se o PDF tiver mais de uma página, ou se o layout produzir sobreposições.
 
 ## Mudanças no código
 
-Arquivo único: **`src/components/student/workout/exportWorkoutPDF.ts`**
+### 1. `src/components/student/workout/exportWorkoutPDF.ts` — orçamento de altura mais robusto
 
-### 1. Observações no topo
-- **Remover** o bloco `OBSERVAÇÕES` desenhado no fim da função.
-- **Renderizar Observações imediatamente após o cabeçalho** (após `y = margin + headerH + 3;`):
-  - Título **"OBSERVAÇÕES"** + sublinha vermelha (mesmo estilo atual).
-  - **5 linhas horizontais** equiespaçadas (5 mm entre linhas), totalizando ~31 mm.
-  - Avançar `y` para o início do Aquecimento com gap de ~2 mm.
-- **Recalcular o budget de página única**:
-  - `bodyBottom = pageH - margin - footerReserve` (não desconta mais o bloco de observações).
-  - `bodyTop` passa a ser o `y` após Observações; o `scale` adaptativo continua impedindo overflow para uma 2ª página.
+Refatorar o cálculo de `scale` para usar **dois passos**:
 
-### 2. Tabelas de Treino (Força) mais limpas
-Na função `renderForcaBlock`:
-- **Remover o badge `BLOCO A` / `BLOCO B`** e o subtítulo `(2 exercícios)` / `(3 exercícios)` — deixar de desenhar esse bloco visual antes da tabela.
-- **Remover, do `head` da tabela, as colunas `#` e `EXERCÍCIO`** (deixando o cabeçalho como `CAT  SÉRIES  REP  KG`).
-- **Manter o nome do exercício na linha** — apenas o cabeçalho "EXERCÍCIO" é removido; a coluna do nome continua existindo (sem rótulo no topo) para que o aluno saiba o que executar.
-- **Remover a coluna `#`** (numeração) por completo — sem cabeçalho e sem dados.
-- Recalibrar `columnStyles` para distribuir a largura entre `CAT` (estreita), `EXERCÍCIO sem header` (larga), `SÉRIES`, `REP`, `KG`.
-- Renomear cabeçalhos visíveis: `SÉRIES`, `REP`, `KG` (já presentes hoje).
-- **Aquecimento permanece igual** (mantém `T1..T4` e numeração interna do bloco) — a remoção pedida vale só para os blocos de Força/Treino.
-- Ajustar as constantes nominais usadas no cálculo de altura (`NOM_BADGE`, `forcaBlocosTotal` etc.) para refletir que os badges `BLOCO A/B` deixaram de existir, garantindo que o `scale` continue cabendo tudo na página.
+- **Estimativa otimista** (já existente) — assume que altura encolhe linearmente.
+- **Estimativa por piso** (NOVA) — calcula altura mínima usando os pisos efetivos de `Math.max(piso, ...)` que o layout aplica quando `scale` é pequeno. Isso evita que o `scale` seja "alto demais" quando o conteúdo já bateu nos pisos.
 
-### 3. Sem alterações
-- Cabeçalho FORTEM + QR + dados do aluno.
-- Coluna lateral **Frequência** (T1..T4 por semana).
-- Blocos de **Aquecimento** (LIB/MOB/ATI) — mantêm numeração e cabeçalhos atuais.
-- Rodapé.
+```text
+scale = max(0.22, min(1.6, optimisticScale, floorScale))
+```
+
+Também **abaixar os pisos mínimos** das fontes/paddings (`ROW_FONT 7.0 → 6.4`, `ROW_PAD 0.6 → 0.4`, etc.) para liberar mais espaço quando precisar comprimir treinos longos. A legibilidade fica preservada (6.4 pt ainda lê bem em A4).
+
+Resultado: cenário típico (14 aquecimento + 4×5 força = 34 linhas) cabe folgado; cenários extremos comprimem ao limite mas nunca cortam.
+
+### 2. `src/components/student/workout/exportWorkoutPDF.test.ts` — teste de regressão
+
+Novo arquivo de teste Vitest cobrindo:
+
+- **Página única**: `doc.getNumberOfPages() === 1` no cenário cheio (14 aquecimento + 4 treinos × 5 exercícios).
+- **Treino 4 completo**: parsea o PDF (via `doc.output("arraybuffer")` + leitura de strings) e verifica que **todos os 5 nomes de exercício do Treino 4** aparecem (incluindo os 3 do Bloco B).
+- **Sem sobreposições verticais**: instrumenta `autoTable` para coletar `lastAutoTable.finalY` após cada tabela e valida que cada `startY` da próxima tabela é `>=` ao `finalY` anterior.
+- **Frequência presente**: verifica que o texto "FREQUÊNCIA" foi escrito no PDF.
+- **Bolinhas vermelhas**: valida que o sentinel `"v"` legacy não está mais sendo escrito como texto (T1..T4 do aquecimento renderizam apenas círculos).
+
+Como o `jspdf` precisa de canvas/DOM, o teste usa o ambiente `jsdom` já configurado em `vitest.config.ts`. O mock de `HTMLCanvasElement.prototype.getContext` retorna stubs no-op suficientes para o `jspdf` rodar headless.
+
+### 3. Cobertura mínima do mock de canvas
+
+Adicionar em `src/test/setup.ts` um polyfill leve de `HTMLCanvasElement.prototype.getContext` retornando um objeto com os métodos que o jspdf chama (vazios). Isso é necessário porque o `qrcode` (usado para o QR no header) tenta criar um canvas; alternativamente, o teste pode passar `qrUrl: undefined` para pular essa rota e simplificar.
 
 ## Critérios de aceite
 
-- [ ] PDF tem **Observações no topo**, entre nome do aluno e Aquecimento.
-- [ ] Tabelas de Treino **não exibem** mais `#`, `EXERCÍCIO`, `BLOCO A`, `BLOCO B`.
-- [ ] Tabelas de Treino **mantêm** `SÉRIES`, `REP`, `KG` (e o nome do exercício na linha).
-- [ ] Aquecimento permanece com seu layout atual (LIB/MOB/ATI + T1..T4).
-- [ ] Continua em **uma única página**, sem sobreposições e sem colidir com a coluna Frequência.
+- [ ] `bunx vitest run src/components/student/workout/exportWorkoutPDF.test.ts` passa.
+- [ ] Cenário com 4 treinos × 5 exercícios + 14 aquecimentos gera PDF de **1 página**.
+- [ ] Os 5 exercícios do Treino 4 aparecem no PDF.
+- [ ] Nenhuma tabela começa antes do `finalY` da anterior (sem sobreposição).
+- [ ] Build TypeScript continua passando.
