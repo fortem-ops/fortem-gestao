@@ -573,6 +573,10 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const safeName = student.nome.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const filename = `treino-${safeName}.pdf`;
 
+  if (returnDoc) {
+    return doc;
+  }
+
   if (print) {
     doc.autoPrint();
     const blobUrl = doc.output("bloburl");
