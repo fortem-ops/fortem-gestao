@@ -204,7 +204,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + aqRowsTotal * NOM_ROW
     + (aqBlocosCount > 0 ? 1 : 0);
   const forcaEst = data.treinos.length * NOM_TREINO_BAR
-    + forcaBlocosTotal * (NOM_BADGE + NOM_HEAD)
+    + forcaBlocosTotal * NOM_HEAD
     + forcaRowsTotal * NOM_ROW
     + data.treinos.length * treinoGap;
   const totalEst = aqEst + forcaEst + 8;
