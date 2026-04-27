@@ -835,6 +835,240 @@ export type Database = {
           },
         ]
       }
+      ponto_ajustes_log: {
+        Row: {
+          campo: string
+          created_at: string
+          id: string
+          jornada_id: string
+          motivo: string
+          responsavel_id: string
+          usuario_alvo_id: string
+          valor_antes: string | null
+          valor_depois: string | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string
+          id?: string
+          jornada_id: string
+          motivo: string
+          responsavel_id: string
+          usuario_alvo_id: string
+          valor_antes?: string | null
+          valor_depois?: string | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string
+          id?: string
+          jornada_id?: string
+          motivo?: string
+          responsavel_id?: string
+          usuario_alvo_id?: string
+          valor_antes?: string | null
+          valor_depois?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_ajustes_log_jornada_id_fkey"
+            columns: ["jornada_id"]
+            isOneToOne: false
+            referencedRelation: "ponto_jornadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_configuracoes: {
+        Row: {
+          carga_diaria_min: number
+          created_at: string
+          id: string
+          intervalo_minimo_min: number
+          intervalo_obrigatorio: boolean
+          tolerancia_min: number
+          updated_at: string
+          usuario_id: string | null
+        }
+        Insert: {
+          carga_diaria_min?: number
+          created_at?: string
+          id?: string
+          intervalo_minimo_min?: number
+          intervalo_obrigatorio?: boolean
+          tolerancia_min?: number
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          carga_diaria_min?: number
+          created_at?: string
+          id?: string
+          intervalo_minimo_min?: number
+          intervalo_obrigatorio?: boolean
+          tolerancia_min?: number
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      ponto_eventos: {
+        Row: {
+          created_at: string
+          data_hora: string
+          dispositivo: string | null
+          id: string
+          jornada_id: string | null
+          latitude: number | null
+          longitude: number | null
+          observacao: string | null
+          origem: Database["public"]["Enums"]["ponto_origem"]
+          tipo: Database["public"]["Enums"]["ponto_evento_tipo"]
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_hora?: string
+          dispositivo?: string | null
+          id?: string
+          jornada_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["ponto_origem"]
+          tipo: Database["public"]["Enums"]["ponto_evento_tipo"]
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          data_hora?: string
+          dispositivo?: string | null
+          id?: string
+          jornada_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["ponto_origem"]
+          tipo?: Database["public"]["Enums"]["ponto_evento_tipo"]
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_eventos_jornada_id_fkey"
+            columns: ["jornada_id"]
+            isOneToOne: false
+            referencedRelation: "ponto_jornadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_fechamentos_mensais: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          id: string
+          mes: string
+          minutos_extras: number
+          minutos_faltantes: number
+          observacao: string | null
+          pendencias_count: number
+          status: Database["public"]["Enums"]["ponto_fechamento_status"]
+          total_minutos: number
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          mes: string
+          minutos_extras?: number
+          minutos_faltantes?: number
+          observacao?: string | null
+          pendencias_count?: number
+          status?: Database["public"]["Enums"]["ponto_fechamento_status"]
+          total_minutos?: number
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          mes?: string
+          minutos_extras?: number
+          minutos_faltantes?: number
+          observacao?: string | null
+          pendencias_count?: number
+          status?: Database["public"]["Enums"]["ponto_fechamento_status"]
+          total_minutos?: number
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
+      ponto_jornadas: {
+        Row: {
+          created_at: string
+          data: string
+          entrada: string | null
+          fechamento_id: string | null
+          id: string
+          intervalo_fim: string | null
+          intervalo_inicio: string | null
+          minutos_intervalo: number | null
+          minutos_trabalhados: number | null
+          observacao: string | null
+          saida: string | null
+          status: Database["public"]["Enums"]["ponto_jornada_status"]
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          entrada?: string | null
+          fechamento_id?: string | null
+          id?: string
+          intervalo_fim?: string | null
+          intervalo_inicio?: string | null
+          minutos_intervalo?: number | null
+          minutos_trabalhados?: number | null
+          observacao?: string | null
+          saida?: string | null
+          status?: Database["public"]["Enums"]["ponto_jornada_status"]
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          entrada?: string | null
+          fechamento_id?: string | null
+          id?: string
+          intervalo_fim?: string | null
+          intervalo_inicio?: string | null
+          minutos_intervalo?: number | null
+          minutos_trabalhados?: number | null
+          observacao?: string | null
+          saida?: string | null
+          status?: Database["public"]["Enums"]["ponto_jornada_status"]
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_jornadas_fechamento_fk"
+            columns: ["fechamento_id"]
+            isOneToOne: false
+            referencedRelation: "ponto_fechamentos_mensais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1170,6 +1404,39 @@ export type Database = {
         }
         Returns: string
       }
+      fn_ponto_ajustar_jornada: {
+        Args: {
+          _campo: string
+          _jornada_id: string
+          _motivo: string
+          _novo_valor: string
+        }
+        Returns: Json
+      }
+      fn_ponto_aprovar_fechamento: {
+        Args: { _fechamento_id: string }
+        Returns: Json
+      }
+      fn_ponto_calcular_fechamento: {
+        Args: { _mes: string; _user_id: string }
+        Returns: Json
+      }
+      fn_ponto_dashboard_coordenador: {
+        Args: { _data?: string }
+        Returns: Json
+      }
+      fn_ponto_estado_atual: { Args: { _user_id?: string }; Returns: Json }
+      fn_ponto_gerar_fechamentos_mes: { Args: { _mes: string }; Returns: Json }
+      fn_ponto_registrar: {
+        Args: {
+          _dispositivo?: string
+          _lat?: number
+          _lng?: number
+          _observacao?: string
+          _tipo: Database["public"]["Enums"]["ponto_evento_tipo"]
+        }
+        Returns: Json
+      }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       has_role: {
         Args: {
@@ -1211,6 +1478,18 @@ export type Database = {
         | "auto_agenda"
         | "auto_evasao"
         | "auto_recuperacao"
+      ponto_evento_tipo:
+        | "entrada"
+        | "intervalo_inicio"
+        | "intervalo_fim"
+        | "saida"
+      ponto_fechamento_status: "aberto" | "em_revisao" | "aprovado"
+      ponto_jornada_status:
+        | "em_andamento"
+        | "em_intervalo"
+        | "encerrada"
+        | "bloqueada"
+      ponto_origem: "web" | "mobile" | "ajuste_manual"
       regra_elegibilidade_tipo:
         | "plano"
         | "frequencia_minima"
@@ -1378,6 +1657,20 @@ export const Constants = {
         "auto_evasao",
         "auto_recuperacao",
       ],
+      ponto_evento_tipo: [
+        "entrada",
+        "intervalo_inicio",
+        "intervalo_fim",
+        "saida",
+      ],
+      ponto_fechamento_status: ["aberto", "em_revisao", "aprovado"],
+      ponto_jornada_status: [
+        "em_andamento",
+        "em_intervalo",
+        "encerrada",
+        "bloqueada",
+      ],
+      ponto_origem: ["web", "mobile", "ajuste_manual"],
       regra_elegibilidade_tipo: [
         "plano",
         "frequencia_minima",
