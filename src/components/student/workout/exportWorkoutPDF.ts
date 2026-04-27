@@ -440,6 +440,64 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.8;
   };
 
+  // ============================================================
+  // FREQUÊNCIA — drawn BEFORE strength tables so it lives on page 1
+  // even if autoTable temporarily creates a spillover page.
+  // ============================================================
+  const freqTopY = margin;
+  const freqBottomY = pageH - margin - footerReserve;
+  const safeWeeks = Math.max(1, Math.min(12, Math.floor(weeks)));
+  const slotCount = safeWeeks * 4;
+
+  // Column header (red)
+  const freqHeaderH = 10;
+  doc.setFillColor(...RED);
+  doc.rect(freqX, freqTopY, freqColW, freqHeaderH, "F");
+  doc.setTextColor(...WHITE);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.text("FREQUÊNCIA", freqX + freqColW / 2, freqTopY + 4.2, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5.8);
+  doc.text(`${safeWeeks} ${safeWeeks === 1 ? "SEMANA" : "SEMANAS"}`, freqX + freqColW / 2, freqTopY + 7.6, { align: "center" });
+
+  // Slots
+  const slotsTop = freqTopY + freqHeaderH + 1;
+  const slotsAvailH = freqBottomY - slotsTop;
+  const slotH = slotsAvailH / slotCount;
+
+  for (let i = 0; i < slotCount; i++) {
+    const sy = slotsTop + i * slotH;
+    const week = Math.floor(i / 4) + 1;
+    const tNum = (i % 4) + 1;
+
+    if (week % 2 === 0) {
+      doc.setFillColor(...RED_TINT);
+      doc.rect(freqX, sy, freqColW, slotH, "F");
+    }
+
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.15);
+    doc.rect(freqX, sy, freqColW, slotH);
+
+    if (tNum === 1) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(5.5);
+      doc.setTextColor(...RED);
+      doc.text(`SEM ${week}`, freqX + freqColW - 1.5, sy + 2.2, { align: "right" });
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...INK);
+    doc.text(`T${tNum}`, freqX + 2, sy + slotH / 2 + 1.2);
+
+    doc.setDrawColor(...INK_MUTED);
+    doc.setLineWidth(0.1);
+    const lineY = sy + slotH - 1.5;
+    doc.line(freqX + 7, lineY, freqX + freqColW - 1.5, lineY);
+  }
+
   data.treinos.forEach((tr, idx) => {
     doc.setFillColor(...RED);
     doc.rect(mainX, y, mainW, BAR_H, "F");
