@@ -52,7 +52,7 @@ const CHECK = "•DOT•"; // sentinel — replaced by a red dot in didDrawCell
  * strength sessions split into Bloco A (ex 1-2) and Bloco B (ex 3-5),
  * a Frequência column, and a manual Observações area.
  */
-export async function exportWorkoutPDF({ student, descricao, data, print, weeks = 4, qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
+export async function exportWorkoutPDF({ student, descricao, data, print, weeks = 4, qrUrl: _qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();   // 210
   const pageH = doc.internal.pageSize.getHeight();  // 297
