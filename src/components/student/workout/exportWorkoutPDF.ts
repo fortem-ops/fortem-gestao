@@ -207,9 +207,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + forcaBlocosTotal * NOM_HEAD
     + forcaRowsTotal * NOM_ROW
     + data.treinos.length * treinoGap;
-  const totalEst = aqEst + forcaEst + 8;
+  const totalEst = aqEst + forcaEst + 14;
 
-  const scale = Math.max(0.46, Math.min(1.6, availH / Math.max(totalEst, 1)));
+  const scale = Math.max(0.32, Math.min(1.6, availH / Math.max(totalEst, 1)));
 
   const ROW_FONT = Math.max(7.0, 9.5 * scale);
   const HEAD_FONT = Math.max(5.8, 7.2 * scale);
