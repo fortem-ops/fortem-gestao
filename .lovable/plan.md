@@ -1,18 +1,48 @@
-## Concluído — Ajustes no PDF de treino
+# Ajustes finais no PDF do treino
 
-Aplicado em `src/components/student/workout/exportWorkoutPDF.ts`:
+Alterações em `src/components/student/workout/exportWorkoutPDF.ts`:
 
-1. **QR Code removido** — bloco do header e import `qrcode` apagados; param `qrUrl` mantido por compatibilidade.
-2. **Logo FORTEM como imagem** — `src/assets/fortem-logo-pdf.png` importado e renderizado via `doc.addImage` no canto superior esquerdo (32×8mm).
-3. **Tagline removida** — "TREINAMENTO · PLANILHA TÉCNICA" não aparece mais.
-4. **Observações 3 linhas** — `OBS_LINES = 3`, libera ~10mm.
-5. **Fonte dos exercícios maior** — `EX_NAME_FONT = max(7.6, 11.0 × scale)` em **bold**, aplicado só na coluna do exercício (índice 1) tanto em aquecimento quanto em força.
-6. **Página única garantida** — `NOM_ROW` ajustado para 9.5 (orçamento otimista mais conservador) para que `scale` aperte o suficiente; rede de segurança `deletePage` permanece.
+## 1. Remover rodapé
+Apagar o bloco do footer que escreve:
+- "FORTEM Treinamento — documento gerado automaticamente"
+- A data atual à direita
 
-### Testes
-`src/components/student/workout/exportWorkoutPDF.test.ts` — 7 testes passando, incluindo 2 novos:
-- Não renderiza o texto "ORTEM" (validando que o logo é imagem).
-- Não renderiza o texto "TREINAMENTO" (tagline removida).
+Isso libera ~5mm de espaço vertical, então também reduzir `footerReserve` de `5` para `1` para o conteúdo poder respirar mais.
 
-### QA visual
-PDF gerado e inspecionado: 1 página A4, todos 4 treinos completos (Bloco A + B do Treino 4 visível), Frequência à direita, dots vermelhos T1-T4, Observações com 3 linhas, sem QR, sem tagline, nomes dos exercícios destacados em bold maior.
+## 2. Aumentar fontes (exercícios, séries, repetições, CAT)
+Subir os valores nominais e os pisos (floors) usados na lógica de scaling:
+
+- `EX_NAME_FONT`: nominal **11.0 → 12.5**, floor **7.6 → 9.0**
+- `NUM_FONT` (séries / repetições): nominal **10.5 → 12.0**, floor **7.4 → 8.6**
+- Coluna **CAT** (atualmente usa `SMALL_FONT` ~5.4pt): trocar para `EX_NAME_FONT` com `fontStyle: "bold"` para igualar exercícios/repetições.
+
+Como o scaling de página única é dirigido pelos pisos, ajustar também:
+- `FLOOR_ROW`: **5.6 → 6.4** (linhas precisam acomodar fontes maiores)
+- `NOM_ROW`: **9.5 → 10.2**
+
+A lógica de duas passadas (`optimisticScale` × `floorScale`) continua garantindo que tudo cabe em uma única página A4.
+
+## 3. Escurecer as linhas (réguas) mantendo cinza
+Atualmente:
+- `RULE: [228, 228, 231]` (zinc-200) — usado nos divisores horizontais entre linhas das tabelas e no traço sob "OBSERVAÇÕES".
+
+Trocar `RULE` para um cinza mais escuro mantendo a família zinc:
+- `RULE: [228, 228, 231] → [113, 113, 122]` (zinc-500)
+
+Isso escurece automaticamente:
+- Divisores entre linhas das tabelas (aquecimento + força)
+- Linha sob o título "OBSERVAÇÕES" (na verdade essa já é vermelha, sem efeito)
+- Linhas manuais de escrita das observações
+- Bordas dos slots da coluna "FREQUÊNCIA"
+- Régua fina sob os labels das seções
+
+As linhas alternadas de fundo (`SURFACE` zinc-100) e o texto cinza claro (`INK_MUTED`) permanecem como estão para preservar hierarquia visual.
+
+## 4. Validação
+Rodar `src/components/student/workout/exportWorkoutPDF.test.ts` para confirmar que:
+- O PDF continua em **uma única página A4**
+- Treino 4 / Bloco B continua presente
+- Não há regressão na geração
+
+## Resumo dos arquivos editados
+- `src/components/student/workout/exportWorkoutPDF.ts` (única alteração)
