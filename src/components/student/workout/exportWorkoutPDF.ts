@@ -128,24 +128,53 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   let y = margin + headerH + 3;
 
   // ============================================================
+  // OBSERVAÇÕES — fixed 5-line manual write area (TOP of page)
+  // Rendered between the student header and the warm-up section.
+  // ============================================================
+  const OBS_LINE_GAP = 5;
+  const OBS_LINES = 5;
+  const obsTitleH = 4;
+  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~31mm
+  const obsBottomGap = 2;
+
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...INK);
+  doc.text("OBSERVAÇÕES", mainX, y + 2.5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6);
+  doc.setTextColor(...INK_MUTED);
+  doc.text("(anotações manuais)", mainX + 24, y + 2.5);
+
+  // Red hairline under title
+  doc.setDrawColor(...RED);
+  doc.setLineWidth(0.3);
+  doc.line(mainX, y + obsTitleH, mainX + mainW, y + obsTitleH);
+
+  // Exactly 5 evenly-spaced writing lines
+  const obsLinesTop = y + obsTitleH + 2;
+  doc.setDrawColor(...RULE);
+  doc.setLineWidth(0.15);
+  for (let i = 1; i <= OBS_LINES; i++) {
+    const ly = obsLinesTop + i * OBS_LINE_GAP;
+    doc.line(mainX, ly, mainX + mainW, ly);
+  }
+
+  y += obsBlockH + obsBottomGap;
+
+  // ============================================================
   // SINGLE-PAGE BUDGET
   // Fit aquecimento + frequência + 4 treinos on a single A4 page.
   // Use a conservative estimate plus a safety reserve so autoTable
   // does not push any block to a second page.
   // ============================================================
   const footerReserve = 5;
-  // Fixed Observações block: title (~4mm) + gap + 5 writing lines @ 5mm each
-  const OBS_LINE_GAP = 5;
-  const OBS_LINES = 5;
-  const obsTitleH = 4;
-  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~31mm
   const sectionGap = 0.8;
   const treinoGap = 0.6;
-  const obsTopGap = 1.5;
-  const layoutSafety = 10;
 
   const bodyTop = y;
-  const bodyBottom = pageH - margin - footerReserve - obsBlockH - obsTopGap;
+  const bodyBottom = pageH - margin - footerReserve;
   const availH = bodyBottom - bodyTop;
 
   const aqBlocosCount = (["LIB", "MOB", "ATI"] as const).filter(
@@ -175,7 +204,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + aqRowsTotal * NOM_ROW
     + (aqBlocosCount > 0 ? 1 : 0);
   const forcaEst = data.treinos.length * NOM_TREINO_BAR
-    + forcaBlocosTotal * (NOM_BADGE + NOM_HEAD)
+    + forcaBlocosTotal * NOM_HEAD
     + forcaRowsTotal * NOM_ROW
     + data.treinos.length * treinoGap;
   const totalEst = aqEst + forcaEst + 8;
@@ -326,24 +355,11 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // TREINOS — split into Bloco A (ex 1-2) and Bloco B (ex 3-5)
   // ============================================================
   const renderForcaBlock = (
-    label: "A" | "B",
+    _label: "A" | "B",
     items: WorkoutExercise[],
-    startNum: number,
+    _startNum: number,
   ) => {
     if (items.length === 0) return;
-
-    const badgeW = 14;
-    doc.setFillColor(...INK_SOFT);
-    doc.rect(mainX, y, badgeW, BADGE_H, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(BADGE_FONT);
-    doc.setTextColor(...WHITE);
-    doc.text(`BLOCO ${label}`, mainX + badgeW / 2, y + BADGE_H / 2 + 0.9, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(SMALL_FONT);
-    doc.setTextColor(...INK_MUTED);
-    doc.text(label === "A" ? "(2 exercícios)" : "(3 exercícios)", mainX + badgeW + 1.5, y + BADGE_H / 2 + 0.9);
-    y += BADGE_H + 0.35;
 
     autoTable(doc, {
       startY: y,
@@ -353,15 +369,13 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       pageBreak: "avoid",
       rowPageBreak: "avoid",
       head: [[
-        { content: "#", styles: { halign: "center" } },
         { content: "CAT", styles: { halign: "left" } },
-        { content: "EXERCÍCIO", styles: { halign: "left" } },
+        { content: "", styles: { halign: "left" } },
         { content: "SÉRIES", styles: { halign: "center" } },
         { content: "REP", styles: { halign: "center" } },
         { content: "KG", styles: { halign: "center" } },
       ]],
-      body: items.map((ex, i) => [
-        String(startNum + i),
+      body: items.map((ex) => [
         ex.categoria ?? "",
         ex.exercicio,
         String(ex.series ?? ""),
@@ -383,15 +397,14 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         lineColor: INK_SOFT,
       },
       columnStyles: (() => {
-        const wNum = 6, wCat = 11, wSer = 14, wRep = 12, wKg = 12;
-        const wEx = mainW - (wNum + wCat + wSer + wRep + wKg);
+        const wCat = 11, wSer = 16, wRep = 14, wKg = 14;
+        const wEx = mainW - (wCat + wSer + wRep + wKg);
         return {
-          0: { cellWidth: wNum, halign: "center", textColor: INK_SOFT, fontStyle: "bold" },
-          1: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
-          2: { cellWidth: wEx, overflow: "ellipsize" },
-          3: { cellWidth: wSer, halign: "center" },
-          4: { cellWidth: wRep, halign: "center" },
-          5: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
+          0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
+          1: { cellWidth: wEx, overflow: "ellipsize" },
+          2: { cellWidth: wSer, halign: "center" },
+          3: { cellWidth: wRep, halign: "center" },
+          4: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
         };
       })(),
       didParseCell: (hookData) => {
@@ -425,36 +438,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     y += treinoGap;
   });
 
-  // ============================================================
-  // OBSERVAÇÕES — fixed 5-line manual write area
-  // ============================================================
-  const obsBottom = pageH - margin - footerReserve;
-  // Anchor obs block to the bottom so it always shows exactly 5 lines
-  const obsTop = obsBottom - obsBlockH;
-
-  // Title
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(...INK);
-  doc.text("OBSERVAÇÕES", mainX, obsTop + 2.5);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6);
-  doc.setTextColor(...INK_MUTED);
-  doc.text("(anotações manuais)", mainX + 24, obsTop + 2.5);
-
-  // Red hairline under title
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(0.3);
-  doc.line(mainX, obsTop + obsTitleH, mainX + mainW, obsTop + obsTitleH);
-
-  // Exactly 5 evenly-spaced writing lines
-  const linesTop = obsTop + obsTitleH + 2;
-  doc.setDrawColor(...RULE);
-  doc.setLineWidth(0.15);
-  for (let i = 1; i <= OBS_LINES; i++) {
-    const ly = linesTop + i * OBS_LINE_GAP;
-    doc.line(mainX, ly, mainX + mainW, ly);
-  }
+  // (Observações já renderizado no topo da página)
 
   // ============================================================
   // FREQUÊNCIA — vertical column, T1..T4 slots
