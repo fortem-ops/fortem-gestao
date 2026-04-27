@@ -19,6 +19,8 @@ interface ExportArgs {
   weeks?: number;
   /** URL encoded into the header QR Code (opens the workout in the app). */
   qrUrl?: string;
+  /** When true, skips the save/print step and returns the jsPDF instance for inspection (used by tests). */
+  returnDoc?: boolean;
 }
 
 // Palette: red accent + grayscale (prints clean in B&W).
