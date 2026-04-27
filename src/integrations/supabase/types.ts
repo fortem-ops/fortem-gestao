@@ -1010,6 +1010,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ponto_horarios_professor: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dia_semana: number
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          intervalo_min: number
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dia_semana: number
+          horario_fim: string
+          horario_inicio: string
+          id?: string
+          intervalo_min?: number
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dia_semana?: number
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          intervalo_min?: number
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       ponto_jornadas: {
         Row: {
           created_at: string
