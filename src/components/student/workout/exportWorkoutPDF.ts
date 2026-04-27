@@ -172,7 +172,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   // Conservative nominal heights — intentionally a bit higher than the
   // actual table metrics to leave room for long exercise names.
-  const NOM_ROW = 9.5;
+  const NOM_ROW = 11.0;
   const NOM_HEAD = 6.2;
   const NOM_BADGE = 6.0;
   const NOM_TREINO_BAR = 7.2;
