@@ -342,6 +342,29 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           if (hookData.section === "body") {
             hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
             hookData.cell.styles.lineColor = RULE;
+            // T1..T4 columns: hide the sentinel text; the dot is drawn in didDrawCell.
+            if (hookData.column.index >= 2 && hookData.column.index <= 5) {
+              if (hookData.cell.text?.[0] === CHECK) {
+                hookData.cell.text = [""];
+              }
+            }
+          }
+        },
+        didDrawCell: (hookData) => {
+          if (
+            hookData.section === "body" &&
+            hookData.column.index >= 2 &&
+            hookData.column.index <= 5
+          ) {
+            const ex = bloco.items[hookData.row.index];
+            const tKey = (`T${hookData.column.index - 1}`) as "T1" | "T2" | "T3" | "T4";
+            if (ex?.dias?.includes(tKey)) {
+              const cx = hookData.cell.x + hookData.cell.width / 2;
+              const cy = hookData.cell.y + hookData.cell.height / 2;
+              const r = Math.max(0.7, Math.min(1.3, ROW_FONT * 0.13));
+              doc.setFillColor(...RED_SOFT);
+              doc.circle(cx, cy, r, "F");
+            }
           }
         },
       });
