@@ -523,6 +523,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // SAFETY — guarantee single page: drop any spillover pages so the
   // final PDF is always a single A4 sheet, no matter what.
   // ============================================================
+  console.error("scale=", scale, "ROW_FONT=", ROW_FONT, "EX_NAME_FONT=", EX_NAME_FONT, "PRE-DELETE pages:", (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages());
   const totalPages = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
   if (totalPages > 1) {
     for (let p = totalPages; p > 1; p--) {
