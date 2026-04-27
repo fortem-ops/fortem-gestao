@@ -236,21 +236,20 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Helper — section label
   // ============================================================
   const sectionLabel = (label: string, meta?: string) => {
+    // Barra vermelha (mesmo estilo das barras de Treino) com texto branco
+    doc.setFillColor(...RED);
+    doc.rect(mainX, y, mainW, BAR_H, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(SECTION_FONT);
-    doc.setTextColor(...INK);
-    doc.text(label.toUpperCase(), mainX, y);
+    doc.setTextColor(...WHITE);
+    doc.text(label.toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
     if (meta) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(META_FONT);
-      doc.setTextColor(...INK_MUTED);
-      doc.text(meta, mainX + mainW, y, { align: "right" });
+      doc.setTextColor(...WHITE);
+      doc.text(meta, mainX + mainW - 1.8, y + BAR_H / 2 + 0.95, { align: "right" });
     }
-    y += 1.1;
-    doc.setDrawColor(...RULE);
-    doc.setLineWidth(0.18);
-    doc.line(mainX, y, mainX + mainW, y);
-    y += 1.1;
+    y += BAR_H + 0.45;
   };
 
   // ============================================================
