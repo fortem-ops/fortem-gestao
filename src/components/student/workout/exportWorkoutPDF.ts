@@ -42,7 +42,7 @@ const WARMUP_COLORS: Record<string, { fill: [number, number, number]; text: [num
 };
 
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
-const CHECK = "v"; // check mark glyph that prints reliably in Helvetica
+const CHECK = "•DOT•"; // sentinel — replaced by a red dot in didDrawCell
 
 /**
  * Generates a single-page A4 portrait PDF with a modern, minimal layout.
