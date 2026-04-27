@@ -1,9 +1,11 @@
-import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -27,13 +29,20 @@ const mainItems = [
   { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
   { title: "Clube FORTEM", url: "/clube", icon: Sparkles },
+  { title: "Ponto", url: "/ponto", icon: Clock },
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
+];
+
+const coordPontoItems = [
+  { title: "Equipe (Ponto)", url: "/ponto/equipe", icon: Users2 },
+  { title: "Fechamento Ponto", url: "/ponto/fechamento", icon: FileCheck2 },
 ];
 
 const adminItems = [
   { title: "Administração", url: "/admin", icon: Settings },
   { title: "Admin Clube", url: "/admin/clube", icon: Sparkles },
+  { title: "Admin Ponto", url: "/admin/ponto", icon: Clock },
   { title: "Painel Parceiro", url: "/parceiros/scanner", icon: ScanLine },
 ];
 
@@ -43,6 +52,16 @@ export function AppSidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const isActive = (path: string) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
+
+  const { data: isCoordAdmin } = useQuery({
+    queryKey: ["sidebar-coord-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
 
   return (
     <Sidebar collapsible="icon">
@@ -62,6 +81,16 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end={item.url === "/"} activeClassName="bg-sidebar-accent text-sidebar-primary">
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              {isCoordAdmin && coordPontoItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url} activeClassName="bg-sidebar-accent text-sidebar-primary">
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>

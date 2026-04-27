@@ -1,178 +1,128 @@
+## Módulo PONTO — registro de jornada para professores
 
-## Objetivo
-Adicionar o módulo **Clube FORTEM** como camada de benefícios sobre os cadastros existentes. MVP funcional: carteirinha digital com QR rotativo, painel de parceiros com scanner, motor de validação automática, dashboard estratégico. Sem duplicar `alunos`, `planos` ou `responsaveis`.
+Sistema de batida de ponto para professores, com dashboard em tempo real para coordenadores, ajustes auditados e fechamento mensal aprovado.
 
-## Banco de dados (migrations)
+## Escopo desta entrega (MVP + Geolocalização)
 
-### Enums novos
-- `clube_status_membro`: `ativo | bloqueado | inadimplente | cancelado`
-- `clube_nivel_membro`: `start | start_plus | power | pro | max`
-- `parceiro_modo_validacao`: `qr_scan | cpf_manual | lista_nome`
-- `beneficio_tipo`: `desconto_percentual | desconto_valor | gratuidade | vantagem_exclusiva | cashback_futuro`
-- `beneficio_periodicidade`: `dia | semana | mes | livre`
-- `uso_status_validacao`: `valido | recusado | expirado | bloqueado`
-- `uso_origem_validacao`: `scanner | cpf_manual | admin`
-- `regra_elegibilidade_tipo`: `plano | frequencia_minima | status_financeiro | tempo_matricula`
+Inclui: botão inteligente, jornada/intervalo, geolocalização opcional ao bater, dashboard coordenador, ajustes manuais com log, fechamento mensal via cron + aprovação, configuração por usuário com fallback global, relatórios básicos.
 
-### Novas tabelas
+Fora deste escopo: IA de sugestão automática de correção, cruzamento com Agenda, score de consistência, integração financeira/folha. Ficam para fase 2.
 
-**`clube_fortem_membros`** (1:1 com `alunos`)
-- `id`, `aluno_id` (FK alunos, UNIQUE), `cpf_hash` (text, UNIQUE — sha256 do CPF), `status_membro` (enum, default `ativo`), `data_inicio`, `data_fim`, `nivel_membro` (enum, default `start`), `qr_secret` (text — segredo HMAC por membro), `ultimo_refresh_qr` (timestamptz), `fortem_id` (text UNIQUE — formato `FORTEM ID 000482`, gerado via sequence), `foto_url` (text, opcional), `aluno_desde` (date, default created_at), `created_at`, `updated_at`.
+## 1. Banco de dados
 
-**`parceiros`**
-- `id`, `nome`, `categoria`, `descricao`, `logo_url`, `responsavel_nome`, `responsavel_contato`, `email_login` (UNIQUE), `user_id` (FK auth.users, nullable — vínculo com conta de login), `ativo` (bool default true), `data_inicio_parceria`, `data_fim_parceria`, `modo_validacao` (enum default `qr_scan`), `pontuacao_engajamento` (int default 0), `latitude` (numeric, opcional para geolocalização), `longitude` (numeric, opcional), `created_at`, `updated_at`.
-- **Sem `senha_hash`** — autenticação via Supabase Auth (campo `user_id`).
+### Enums
+- `ponto_evento_tipo`: `entrada | intervalo_inicio | intervalo_fim | saida`
+- `ponto_jornada_status`: `em_andamento | em_intervalo | encerrada | bloqueada`
+- `ponto_origem`: `web | mobile | ajuste_manual`
+- `ponto_fechamento_status`: `aberto | em_revisao | aprovado`
 
-**`beneficios`**
-- `id`, `parceiro_id` (FK), `titulo`, `descricao`, `tipo` (enum), `regra_uso` (text — ex.: "20% off acima de R$50"), `limite_por_periodo` (int), `periodicidade` (enum), `nivel_minimo` (enum nivel_membro default `start`), `ativo` (bool), `data_inicio`, `data_fim`, `created_at`, `updated_at`.
+### Tabelas
 
-**`uso_beneficios`**
-- `id`, `aluno_id` (FK), `cpf_hash`, `beneficio_id` (FK), `parceiro_id` (FK), `validado_por` (FK auth.users — usuário do parceiro que validou), `data_uso` (date), `hora_uso` (time), `status_validacao` (enum), `motivo_recusa` (text, nullable), `token_validacao` (text — token consumido), `origem_validacao` (enum), `created_at`.
+**`ponto_eventos`** (registros brutos imutáveis)
+- `id`, `usuario_id` (uuid → auth.users), `jornada_id` (uuid → ponto_jornadas, nullable até consolidar), `tipo` (enum), `data_hora` (timestamptz default now()), `origem` (enum), `latitude` numeric, `longitude` numeric, `dispositivo` text (user-agent resumido), `observacao` text, `created_at`.
+- Índices: `(usuario_id, data_hora desc)`, `(jornada_id)`.
 
-**`regras_elegibilidade`**
-- `id`, `beneficio_id` (FK), `tipo_regra` (enum), `valor_regra` (text — ex.: "30" para 30 dias, "ativo" para status), `ativo`, `created_at`, `updated_at`.
+**`ponto_jornadas`** (consolidação por dia/usuário)
+- `id`, `usuario_id`, `data` (date), `entrada` timestamptz, `intervalo_inicio` timestamptz, `intervalo_fim` timestamptz, `saida` timestamptz, `minutos_trabalhados` int generated, `minutos_intervalo` int generated, `status` enum, `observacao` text, `fechamento_id` uuid (nullable), `created_at`, `updated_at`.
+- UNIQUE `(usuario_id, data)`.
 
-### Alterações em tabelas existentes
-- Nenhuma. `clube_fortem_membros.aluno_id` referencia `alunos.id`. CPF fica só no hash (não vai para `alunos`).
+**`ponto_configuracoes`** (por usuário, com fallback global)
+- `id`, `usuario_id` uuid nullable (NULL = configuração global padrão), `carga_diaria_min` int default 480, `intervalo_minimo_min` int default 30, `intervalo_obrigatorio` bool default false, `tolerancia_min` int default 10, `created_at`, `updated_at`.
+- UNIQUE parcial: um único registro com `usuario_id IS NULL` (global).
 
-### Índices
-- `clube_fortem_membros(cpf_hash)`, `(aluno_id)`, `(fortem_id)`
-- `uso_beneficios(aluno_id)`, `(parceiro_id)`, `(beneficio_id)`, `(data_uso)`
-- `beneficios(parceiro_id)`, `(ativo)`
-- `regras_elegibilidade(beneficio_id)`
+**`ponto_fechamentos_mensais`**
+- `id`, `usuario_id`, `mes` date (sempre dia 1), `total_minutos` int, `minutos_extras` int, `minutos_faltantes` int, `pendencias_count` int, `status` enum default `aberto`, `aprovado_por` uuid, `aprovado_em` timestamptz, `observacao` text, `created_at`, `updated_at`.
+- UNIQUE `(usuario_id, mes)`.
+
+**`ponto_ajustes_log`** (auditoria de qualquer alteração feita por coordenador)
+- `id`, `jornada_id`, `usuario_alvo_id`, `responsavel_id` (quem ajustou), `campo` text, `valor_antes` text, `valor_depois` text, `motivo` text NOT NULL, `created_at`.
+
+### Funções (SECURITY DEFINER, search_path=public)
+
+- **`fn_ponto_estado_atual(_user_id uuid)`** → jsonb com `{status, jornada_id, ultimo_evento, proxima_acao}` (calcula qual botão mostrar).
+- **`fn_ponto_registrar(_tipo, _lat, _lng, _observacao, _dispositivo)`** → valida transição válida (não pode `entrada` se já em jornada; não pode `saida` sem entrada; etc), insere em `ponto_eventos`, faz upsert em `ponto_jornadas` do dia, retorna jsonb com novo estado.
+- **`fn_ponto_dashboard_coordenador(_data date, _professor_ids uuid[])`** → retorna jsonb com lista de professores + status do dia + horas + flags de inconsistência.
+- **`fn_ponto_ajustar_jornada(_jornada_id, _campo, _novo_valor, _motivo)`** → valida que jornada não está em fechamento aprovado, escreve em `ponto_ajustes_log`, atualiza jornada. Apenas coord/admin.
+- **`fn_ponto_calcular_fechamento(_user_id, _mes date)`** → consolida horas, extras, déficit, pendências (jornadas sem saída, intervalo ausente quando obrigatório). Idempotente, faz upsert em `ponto_fechamentos_mensais`.
+- **`fn_ponto_aprovar_fechamento(_fechamento_id)`** → marca status `aprovado`, vincula `fechamento_id` em todas as jornadas do mês, bloqueia edição via trigger. Apenas coord/admin.
+- **`fn_ponto_gerar_fechamentos_mes(_mes date)`** → cria/atualiza fechamentos para todos os professores do mês indicado e cria tarefa "Fechamento de Ponto - <mês>" para cada coordenador.
+
+### Triggers
+- `update_updated_at_column` em jornadas, configurações, fechamentos.
+- `trg_ponto_bloquear_edicao_apos_aprovado` em `ponto_jornadas` BEFORE UPDATE: se a jornada tem `fechamento_id` e o fechamento está `aprovado`, rejeita.
 
 ### RLS
 
-**`clube_fortem_membros`**
-- SELECT autenticado (necessário para parceiros validarem após resolver token); UPDATE coord/admin; INSERT coord/admin; DELETE admin.
+- **`ponto_eventos`**: SELECT próprio OR coord/admin. INSERT próprio (só via `fn_ponto_registrar`). Sem UPDATE/DELETE.
+- **`ponto_jornadas`**: SELECT próprio OR coord/admin. UPDATE só coord/admin via função de ajuste. Sem DELETE.
+- **`ponto_configuracoes`**: SELECT autenticado (lê própria + global). INSERT/UPDATE/DELETE só admin.
+- **`ponto_fechamentos_mensais`**: SELECT próprio OR coord/admin. UPDATE só coord/admin. Sem DELETE.
+- **`ponto_ajustes_log`**: SELECT próprio (alvo) OR coord/admin. INSERT só via função.
 
-**`parceiros`**
-- SELECT autenticado (alunos veem lista); INSERT/UPDATE/DELETE coord/admin OU `user_id = auth.uid()` (parceiro edita o próprio perfil exceto `ativo`/`pontuacao_engajamento`).
+### Cron (job pg_cron, dia 1 de cada mês às 02:00)
+Chama `fn_ponto_gerar_fechamentos_mes(date_trunc('month', now() - interval '1 day'))`. Cria automaticamente uma tarefa em `tarefas` para cada coordenador com título "Fechamento de Ponto — <Mês/Ano>" e prioridade alta.
 
-**`beneficios`**
-- SELECT autenticado; INSERT/UPDATE coord/admin OU dono do parceiro (`parceiros.user_id = auth.uid()`); DELETE coord/admin.
+## 2. Frontend
 
-**`uso_beneficios`**
-- SELECT autenticado (aluno vê só os próprios via filtro client; parceiro vê os próprios; coord/admin vê tudo) — política: `aluno_id IN (SELECT id FROM alunos WHERE responsavel_id = auth.uid())` OR `validado_por = auth.uid()` OR `is_coordinator_or_admin(auth.uid())`.
-- INSERT autenticado com `validado_por = auth.uid()`.
-- Sem UPDATE/DELETE (registro imutável).
+### Rotas novas (`src/App.tsx`)
+- `/ponto` — tela do professor (botão inteligente + resumo do dia + histórico).
+- `/ponto/equipe` — dashboard coordenador (tempo real).
+- `/ponto/fechamento` — tela de fechamento mensal (coordenador).
+- `/admin/ponto` — configurações globais e por usuário (admin).
 
-**`regras_elegibilidade`**
-- SELECT autenticado; INSERT/UPDATE/DELETE coord/admin.
+### Sidebar (`src/components/AppSidebar.tsx`)
+- Adicionar "Ponto" (ícone `Clock`) no grupo Principal — visível a todos.
+- Adicionar "Equipe (Ponto)" e "Fechamento" no grupo Principal apenas para coord/admin (filtro client-side via `is_coordinator_or_admin`).
+- Adicionar "Admin Ponto" no grupo Sistema.
 
-### Funções (SECURITY DEFINER)
+### Componentes (`src/components/ponto/`)
 
-**`fn_clube_hash_cpf(_cpf text) returns text`** — `encode(digest(regexp_replace(_cpf,'[^0-9]','','g'), 'sha256'), 'hex')`. Usa extensão `pgcrypto`.
-
-**`fn_clube_generate_qr_token(_aluno_id uuid) returns jsonb`** — gera token HMAC com expiração 30s:
-- Carrega `qr_secret` e `cpf_hash` do membro.
-- Payload: `{aluno_id, cpf_hash, exp: now+30s, nonce}`.
-- Token = base64url(payload) + "." + base64url(hmac_sha256(payload, qr_secret)).
-- Atualiza `ultimo_refresh_qr`.
-- Retorna `{token, expires_at, fortem_id, nivel_membro, status_membro}`.
-- Verificação RLS: só o próprio aluno (via `responsavel_id`/auth) ou coord/admin pode chamar.
-
-**`fn_clube_validar_token(_token text, _beneficio_id uuid) returns jsonb`** — motor de validação:
-1. Decodifica token, verifica HMAC e expiração.
-2. Resolve `aluno_id` via `cpf_hash`.
-3. Checa status do membro (`ativo`?).
-4. Checa benefício vigente (`ativo` + datas).
-5. Checa nível compatível (`nivel_membro >= beneficio.nivel_minimo`).
-6. Checa limite de uso no período (consulta `uso_beneficios` por `periodicidade`).
-7. Avalia regras de elegibilidade (plano ativo, tempo de matrícula via `aluno_desde`, status financeiro via `planos.ativo`).
-8. Se aprovado: insere em `uso_beneficios` com `status_validacao='valido'`, incrementa `parceiros.pontuacao_engajamento`, retorna sucesso + dados do aluno.
-9. Se recusado: insere com `status_validacao='recusado'` + `motivo_recusa`, retorna falha.
-
-**`fn_clube_sync_status_financeiro()`** — chamada por trigger em `planos`: marca `clube_fortem_membros.status_membro = 'inadimplente'` se nenhum plano ativo para o aluno; marca `'ativo'` quando volta a ter plano. Trigger AFTER INSERT/UPDATE em `planos`.
-
-**`fn_clube_dashboard(_periodo_dias int default 30) returns jsonb`** — métricas: usos no período, ranking parceiros (top 5), alunos ativos no clube, taxa de ativação (membros / total alunos), benefício mais usado, uso por categoria.
-
-### Triggers
-- `update_updated_at_column` em todas as 5 novas tabelas.
-- `fn_clube_sync_status_financeiro` em `planos` (AFTER INSERT/UPDATE).
-
-### Sequence
-- `clube_fortem_id_seq` para gerar `fortem_id` formatado (`FORTEM ID ${lpad(nextval, 6, '0')}`) via trigger BEFORE INSERT em `clube_fortem_membros`.
-
-### Extensão
-- Habilitar `pgcrypto` (para `digest` e `gen_random_bytes`).
-
-## Frontend
-
-### Novas rotas
-- `/clube` → painel do aluno (carteirinha + lista de parceiros + histórico).
-- `/parceiros/scanner` → painel do parceiro (login + scanner QR + validação).
-- `/admin/clube` → gestão admin (membros, parceiros, benefícios, dashboard estratégico).
-
-Adicionar item no `AppSidebar.tsx` com ícone `Sparkles` ("Clube FORTEM") visível para alunos/admin; rota de parceiro fica fora da sidebar (área separada).
-
-### Componentes novos (`src/components/clube/`)
-- **`MembershipCard.tsx`** — carteirinha digital wallet-style. Frente: header "CLUBE FORTEM", nome, badge de nível ("POWER MEMBER"), status (verde/vermelho), QR code grande dinâmico, FORTEM ID no rodapé. Verso (flip animation): foto, "Aluno desde", validade, status financeiro, categoria, contato, botão "Parceiros próximos", termos. Cores aplicadas conforme paleta por nível (start/start+/power/pro/max).
-- **`MembershipQR.tsx`** — gera QR via `fn_clube_generate_qr_token`, refresh automático a cada 25s (antes da expiração de 30s), barra de progresso visual. Usa lib `qrcode.react`.
-- **`PartnersList.tsx`** — lista de parceiros ativos com filtro por categoria, card com logo, nome, benefícios disponíveis para o nível do aluno. Botão favorito (localStorage).
-- **`BenefitHistory.tsx`** — histórico de usos do aluno (data, parceiro, benefício, status).
-- **`PartnerScanner.tsx`** — scanner QR via `html5-qrcode`. Após leitura: chama `fn_clube_validar_token`, mostra modal com nome do aluno, status, benefícios disponíveis, botão "VALIDAR". Resultado animado (check verde / X vermelho + motivo).
-- **`PartnerManualValidation.tsx`** — fallback para validação manual por CPF (modo `cpf_manual`).
-- **`AdminClubeDashboard.tsx`** — KPIs: usos no mês, ranking parceiros, alunos ativos, taxa ativação, benefício top, gráfico por categoria.
-- **`AdminMembrosTable.tsx`** — listagem de membros com ações: ativar/bloquear/cancelar, alterar nível, reset QR secret.
-- **`AdminParceirosTable.tsx`** — CRUD parceiros + criar conta de login (cria usuário Supabase Auth e vincula `parceiros.user_id`).
-- **`AdminBeneficiosTable.tsx`** — CRUD benefícios com regras de elegibilidade aninhadas.
+- **`BotaoInteligente.tsx`** — consome `fn_ponto_estado_atual`, mostra um único botão grande contextual (Iniciar jornada / Iniciar intervalo / Finalizar intervalo / Encerrar jornada). Pede `navigator.geolocation.getCurrentPosition` no clique (com fallback silencioso se negado). Confirma via dialog quando encerra jornada.
+- **`StatusJornadaCard.tsx`** — bloco superior com status visual ("🟢 Em jornada desde 06:32"), tempo decorrido em tempo real (tick a cada 30s).
+- **`ResumoDoDia.tsx`** — entrada / intervalo / saída / horas hoje + campo "Adicionar observação" (atualiza última jornada).
+- **`HistoricoJornadas.tsx`** — lista paginada das últimas 14 jornadas do professor com horas e status.
+- **`EquipeAoVivoTable.tsx`** — tabela do dashboard coordenador com filtros (data, professor), badges de status, botão "Ajustar".
+- **`AjustarJornadaDialog.tsx`** — coord/admin edita entrada/intervalo/saída com motivo obrigatório; grava em `ponto_ajustes_log`.
+- **`FechamentoMensalTable.tsx`** — lista por professor com horas, extras, déficit, pendências; botão "Revisar" abre detalhe; botão "Aprovar fechamento" (com confirmação dura: "após aprovar não será possível editar").
+- **`AdminPontoConfig.tsx`** — form para configuração global + tabela de overrides por usuário.
 
 ### Páginas
-- **`src/pages/ClubeFortem.tsx`** — aluno: tabs "Carteirinha", "Parceiros", "Histórico". Estados visuais: ativo/bloqueado/inadimplente/cancelado.
-- **`src/pages/ParceiroScanner.tsx`** — parceiro: login dedicado (Supabase Auth) + scanner. Layout standalone (sem sidebar do staff).
-- **`src/pages/AdminClube.tsx`** — admin: tabs Dashboard, Membros, Parceiros, Benefícios.
+
+- **`src/pages/Ponto.tsx`** — tela do professor. Layout simples: status grande no topo, botão inteligente, resumo do dia, histórico abaixo.
+- **`src/pages/PontoEquipe.tsx`** — dashboard coord com cards-resumo (ativos / não iniciaram / inconsistência) e a tabela ao vivo. Realtime via Supabase channel em `ponto_eventos`.
+- **`src/pages/PontoFechamento.tsx`** — seletor de mês + tabela de fechamento + ação aprovar.
+- **`src/pages/AdminPonto.tsx`** — configurações.
 
 ### Integrações com telas existentes
-- **`StudentProfile.tsx`** — nova aba "Clube FORTEM": status do membro, nível, FORTEM ID, botão "Ativar membro" (se ainda não tem). Coord/admin pode alterar nível e status.
-- **`AddStudentDialog.tsx`** — campo opcional "CPF" (usado só para gerar `cpf_hash` ao ativar membro; não armazenado em `alunos`).
-- **`Dashboard.tsx`** — novo widget `ClubeFortemWidget`: alunos ativos no clube, usos hoje, parceiro destaque do mês.
-
-### Cores por nível (Tailwind tokens custom em `src/index.css` + helper)
-```ts
-// src/lib/clube.ts
-export const NIVEL_THEME = {
-  start: { bg: "#FFFFFF", text: "#111111", accent: "#E10600" },
-  start_plus: { bg: "#F2F2F2", text: "#111111", accent: "#E10600" },
-  power: { bg: "#6B6B6B", text: "#FFFFFF", accent: "#E10600" },
-  pro: { bg: "#000000", text: "#FFFFFF", accent: "#E10600" },
-  max: { bg: "#050505", text: "#FFFFFF", accent: "#FF2A2A", metallic: "#A6A6A6" },
-};
-```
+- **`Dashboard.tsx`**: novo widget `PontoWidget` (lateral direita, abaixo de `ClubeWidget`) — para professor mostra "Você está em jornada há 3h12" + atalho; para coord mostra "X em jornada · Y pendentes".
 
 ### Permissões UI
-- Aluno (logado): vê só própria carteirinha e benefícios.
-- Parceiro (logado via `parceiros.user_id`): vê só scanner + histórico de validações próprias.
-- Coord/Admin: gestão completa via `/admin/clube`.
+- Professor: vê apenas próprio `/ponto` e widget. Tentar acessar `/ponto/equipe` redireciona.
+- Coord: tudo + `/ponto/equipe` e `/ponto/fechamento`.
+- Admin: tudo + `/admin/ponto`.
 
-### Dependências novas
-- `qrcode.react` — geração QR na carteirinha.
-- `html5-qrcode` — leitor de câmera no scanner.
+### Realtime
+Habilitar `ALTER PUBLICATION supabase_realtime ADD TABLE public.ponto_eventos, public.ponto_jornadas;` e usar canal único na tela `/ponto/equipe` para refresh automático.
 
-## Wallet nativo (Apple/Google) — fora desta entrega
-PWA com QR dinâmico web cobre o MVP. Geração de `.pkpass` (Apple Wallet) e Google Wallet API exigem certificado Apple Developer + chave Google Pay e ficam para fase 2.
+### Detalhes técnicos relevantes
 
-## Geolocalização "parceiros próximos"
-MVP usa apenas filtro por distância client-side via `navigator.geolocation` (campos `latitude/longitude` em `parceiros`). Notificações silenciosas e geofencing reais ficam para fase Wallet nativo.
-
-## Fora de escopo (nesta entrega)
-- Geração `.pkpass` / Google Wallet API.
-- Notificações push baseadas em geolocalização.
-- Cashback efetivo (campo `cashback_futuro` armazenado mas não processado).
-- App separado de parceiros (usa mesma plataforma web).
-- Avaliação de aluno sobre parceiro (entra na fase 2 da `pontuacao_engajamento`).
+- Cálculo de horas: `minutos_trabalhados = (saida - entrada) - (intervalo_fim - intervalo_inicio)`, em minutos, via `GENERATED ALWAYS AS … STORED` (com `extract(epoch …)/60`).
+- Geolocalização: chamada client-side com timeout 5s; se falhar, registra evento sem coordenadas. Não bloqueia.
+- Dispositivo: enviado pelo client como `navigator.userAgent.slice(0,200)`.
+- Pendências detectadas por `fn_ponto_calcular_fechamento`: jornadas sem `saida`, intervalo ausente quando `intervalo_obrigatorio=true`, intervalo abaixo do `intervalo_minimo_min`.
+- Bloqueio pós-aprovação: enforced no banco via trigger; UI esconde botões de ajuste quando `fechamento_id IS NOT NULL` e fechamento aprovado.
 
 ## Arquivos tocados
-- Migration SQL única: enums, 5 tabelas, sequence, índices, funções, triggers, RLS, extensão pgcrypto.
-- `src/pages/ClubeFortem.tsx` (novo).
-- `src/pages/ParceiroScanner.tsx` (novo).
-- `src/pages/AdminClube.tsx` (novo).
-- `src/components/clube/*` (9 novos componentes listados acima).
-- `src/components/dashboard/ClubeFortemWidget.tsx` (novo).
-- `src/lib/clube.ts` (novo — helpers de tema, formatação, hash client-side).
-- `src/components/AppSidebar.tsx` (item Clube FORTEM + item Admin > Clube).
-- `src/App.tsx` (3 novas rotas, sendo `/parceiros/scanner` com layout próprio).
-- `src/pages/StudentProfile.tsx` (aba "Clube FORTEM").
-- `src/components/student/AddStudentDialog.tsx` + `StudentFormFields.tsx` (campo CPF opcional).
-- `src/pages/Dashboard.tsx` (widget).
-- `package.json` (`qrcode.react`, `html5-qrcode`).
+
+**Migration única**: enums, 5 tabelas, índices, funções, triggers, RLS, cron job, realtime publication, semente da configuração global default.
+
+**Novos**:
+- `src/pages/Ponto.tsx`, `src/pages/PontoEquipe.tsx`, `src/pages/PontoFechamento.tsx`, `src/pages/AdminPonto.tsx`
+- `src/components/ponto/BotaoInteligente.tsx`, `StatusJornadaCard.tsx`, `ResumoDoDia.tsx`, `HistoricoJornadas.tsx`, `EquipeAoVivoTable.tsx`, `AjustarJornadaDialog.tsx`, `FechamentoMensalTable.tsx`, `AdminPontoConfig.tsx`
+- `src/components/dashboard/PontoWidget.tsx`
+- `src/lib/ponto.ts` (helpers de formatação de duração, mapeamento de status → label/cor)
+
+**Editados**:
+- `src/App.tsx` (4 rotas novas, lazy-loaded)
+- `src/components/AppSidebar.tsx` (3 itens novos com gating por role)
+- `src/pages/Dashboard.tsx` (insere `PontoWidget`)
