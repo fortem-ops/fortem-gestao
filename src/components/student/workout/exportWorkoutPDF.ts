@@ -521,67 +521,20 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   // (Observações já renderizado no topo da página)
 
+  // (Frequência já renderizada antes dos treinos para garantir página única)
+
   // ============================================================
-  // FREQUÊNCIA — vertical column, T1..T4 slots
+  // SAFETY — guarantee single page: drop any spillover pages so the
+  // final PDF is always a single A4 sheet, no matter what.
   // ============================================================
-  const freqTopY = margin;
-  const freqBottomY = pageH - margin - footerReserve;
-  const safeWeeks = Math.max(1, Math.min(12, Math.floor(weeks)));
-  const slotCount = safeWeeks * 4;
-
-  // Column header (red)
-  const freqHeaderH = 10;
-  doc.setFillColor(...RED);
-  doc.rect(freqX, freqTopY, freqColW, freqHeaderH, "F");
-  doc.setTextColor(...WHITE);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.text("FREQUÊNCIA", freqX + freqColW / 2, freqTopY + 4.2, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(5.8);
-  doc.text(`${safeWeeks} ${safeWeeks === 1 ? "SEMANA" : "SEMANAS"}`, freqX + freqColW / 2, freqTopY + 7.6, { align: "center" });
-
-  // Slots
-  const slotsTop = freqTopY + freqHeaderH + 1;
-  const slotsAvailH = freqBottomY - slotsTop;
-  const slotH = slotsAvailH / slotCount;
-
-  for (let i = 0; i < slotCount; i++) {
-    const sy = slotsTop + i * slotH;
-    const week = Math.floor(i / 4) + 1;
-    const tNum = (i % 4) + 1;
-
-    // Soft alternating background per week
-    if (week % 2 === 0) {
-      doc.setFillColor(...RED_TINT);
-      doc.rect(freqX, sy, freqColW, slotH, "F");
+  const totalPages = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+  if (totalPages > 1) {
+    for (let p = totalPages; p > 1; p--) {
+      (doc as unknown as { deletePage: (n: number) => void }).deletePage(p);
     }
-
-    // Cell border
-    doc.setDrawColor(...RULE);
-    doc.setLineWidth(0.15);
-    doc.rect(freqX, sy, freqColW, slotH);
-
-    // Week badge on first T of each week
-    if (tNum === 1) {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(5.5);
-      doc.setTextColor(...RED);
-      doc.text(`SEM ${week}`, freqX + freqColW - 1.5, sy + 2.2, { align: "right" });
-    }
-
-    // T-label
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...INK);
-    doc.text(`T${tNum}`, freqX + 2, sy + slotH / 2 + 1.2);
-
-    // Signature line
-    doc.setDrawColor(...INK_MUTED);
-    doc.setLineWidth(0.1);
-    const lineY = sy + slotH - 1.5;
-    doc.line(freqX + 7, lineY, freqX + freqColW - 1.5, lineY);
+    (doc as unknown as { setPage: (n: number) => void }).setPage(1);
   }
+
 
   // ============================================================
   // FOOTER
