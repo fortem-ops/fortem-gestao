@@ -155,6 +155,32 @@ describe("exportWorkoutPDF — single-page regression", () => {
     expect(page1Stream).toMatch(/SEMANAS|SEMANA/);
   });
 
+  it("does not render the wordmark text 'ORTEM' (logo image is used instead)", async () => {
+    const doc = (await exportWorkoutPDF({
+      student: fakeStudent,
+      descricao: "FASE 1",
+      data: fullData,
+      returnDoc: true,
+    })) as unknown as JsPDFLike;
+
+    const page1Stream = collectPageStream(doc, 1);
+    // The old text wordmark "ORTEM" must not appear as drawn text.
+    // (The student name "Aluno Regressão Teste" does not contain "ORTEM".)
+    expect(page1Stream).not.toMatch(/\(ORTEM\)/);
+  });
+
+  it("does not render the removed tagline 'TREINAMENTO'", async () => {
+    const doc = (await exportWorkoutPDF({
+      student: fakeStudent,
+      descricao: "FASE 1",
+      data: fullData,
+      returnDoc: true,
+    })) as unknown as JsPDFLike;
+
+    const page1Stream = collectPageStream(doc, 1);
+    expect(page1Stream).not.toMatch(/TREINAMENTO/);
+  });
+
   it("does not emit the legacy 'v' check glyph in T1..T4 columns", async () => {
     const doc = (await exportWorkoutPDF({
       student: fakeStudent,
