@@ -1,49 +1,18 @@
-## Problema
+## Concluído — Ajustes no PDF de treino
 
-O export do PDF de treino está cortando o **Bloco B do Treino 4** porque o orçamento de altura subestima a altura real das tabelas. Quando o conteúdo estoura, a rede de segurança `deletePage` apaga a página 2, removendo o Bloco B junto.
+Aplicado em `src/components/student/workout/exportWorkoutPDF.ts`:
 
-## Objetivo
+1. **QR Code removido** — bloco do header e import `qrcode` apagados; param `qrUrl` mantido por compatibilidade.
+2. **Logo FORTEM como imagem** — `src/assets/fortem-logo-pdf.png` importado e renderizado via `doc.addImage` no canto superior esquerdo (32×8mm).
+3. **Tagline removida** — "TREINAMENTO · PLANILHA TÉCNICA" não aparece mais.
+4. **Observações 3 linhas** — `OBS_LINES = 3`, libera ~10mm.
+5. **Fonte dos exercícios maior** — `EX_NAME_FONT = max(7.6, 11.0 × scale)` em **bold**, aplicado só na coluna do exercício (índice 1) tanto em aquecimento quanto em força.
+6. **Página única garantida** — `NOM_ROW` ajustado para 9.5 (orçamento otimista mais conservador) para que `scale` aperte o suficiente; rede de segurança `deletePage` permanece.
 
-1. Corrigir o cálculo de escala em `exportWorkoutPDF.ts` para que **todos os 4 treinos (Bloco A + Bloco B)** caibam completos em uma única página A4.
-2. Adicionar um **teste de regressão automatizado** que falhe se algum treino for cortado, se o PDF tiver mais de uma página, ou se o layout produzir sobreposições.
+### Testes
+`src/components/student/workout/exportWorkoutPDF.test.ts` — 7 testes passando, incluindo 2 novos:
+- Não renderiza o texto "ORTEM" (validando que o logo é imagem).
+- Não renderiza o texto "TREINAMENTO" (tagline removida).
 
-## Mudanças no código
-
-### 1. `src/components/student/workout/exportWorkoutPDF.ts` — orçamento de altura mais robusto
-
-Refatorar o cálculo de `scale` para usar **dois passos**:
-
-- **Estimativa otimista** (já existente) — assume que altura encolhe linearmente.
-- **Estimativa por piso** (NOVA) — calcula altura mínima usando os pisos efetivos de `Math.max(piso, ...)` que o layout aplica quando `scale` é pequeno. Isso evita que o `scale` seja "alto demais" quando o conteúdo já bateu nos pisos.
-
-```text
-scale = max(0.22, min(1.6, optimisticScale, floorScale))
-```
-
-Também **abaixar os pisos mínimos** das fontes/paddings (`ROW_FONT 7.0 → 6.4`, `ROW_PAD 0.6 → 0.4`, etc.) para liberar mais espaço quando precisar comprimir treinos longos. A legibilidade fica preservada (6.4 pt ainda lê bem em A4).
-
-Resultado: cenário típico (14 aquecimento + 4×5 força = 34 linhas) cabe folgado; cenários extremos comprimem ao limite mas nunca cortam.
-
-### 2. `src/components/student/workout/exportWorkoutPDF.test.ts` — teste de regressão
-
-Novo arquivo de teste Vitest cobrindo:
-
-- **Página única**: `doc.getNumberOfPages() === 1` no cenário cheio (14 aquecimento + 4 treinos × 5 exercícios).
-- **Treino 4 completo**: parsea o PDF (via `doc.output("arraybuffer")` + leitura de strings) e verifica que **todos os 5 nomes de exercício do Treino 4** aparecem (incluindo os 3 do Bloco B).
-- **Sem sobreposições verticais**: instrumenta `autoTable` para coletar `lastAutoTable.finalY` após cada tabela e valida que cada `startY` da próxima tabela é `>=` ao `finalY` anterior.
-- **Frequência presente**: verifica que o texto "FREQUÊNCIA" foi escrito no PDF.
-- **Bolinhas vermelhas**: valida que o sentinel `"v"` legacy não está mais sendo escrito como texto (T1..T4 do aquecimento renderizam apenas círculos).
-
-Como o `jspdf` precisa de canvas/DOM, o teste usa o ambiente `jsdom` já configurado em `vitest.config.ts`. O mock de `HTMLCanvasElement.prototype.getContext` retorna stubs no-op suficientes para o `jspdf` rodar headless.
-
-### 3. Cobertura mínima do mock de canvas
-
-Adicionar em `src/test/setup.ts` um polyfill leve de `HTMLCanvasElement.prototype.getContext` retornando um objeto com os métodos que o jspdf chama (vazios). Isso é necessário porque o `qrcode` (usado para o QR no header) tenta criar um canvas; alternativamente, o teste pode passar `qrUrl: undefined` para pular essa rota e simplificar.
-
-## Critérios de aceite
-
-- [ ] `bunx vitest run src/components/student/workout/exportWorkoutPDF.test.ts` passa.
-- [ ] Cenário com 4 treinos × 5 exercícios + 14 aquecimentos gera PDF de **1 página**.
-- [ ] Os 5 exercícios do Treino 4 aparecem no PDF.
-- [ ] Nenhuma tabela começa antes do `finalY` da anterior (sem sobreposição).
-- [ ] Build TypeScript continua passando.
+### QA visual
+PDF gerado e inspecionado: 1 página A4, todos 4 treinos completos (Bloco A + B do Treino 4 visível), Frequência à direita, dots vermelhos T1-T4, Observações com 3 linhas, sem QR, sem tagline, nomes dos exercícios destacados em bold maior.

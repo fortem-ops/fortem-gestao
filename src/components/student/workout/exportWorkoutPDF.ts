@@ -1,8 +1,8 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import QRCode from "qrcode";
 import type { Tables } from "@/integrations/supabase/types";
 import type { WorkoutExercise } from "./workoutTemplates";
+import fortemLogo from "@/assets/fortem-logo-pdf.png";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
@@ -52,7 +52,7 @@ const CHECK = "•DOT•"; // sentinel — replaced by a red dot in didDrawCell
  * strength sessions split into Bloco A (ex 1-2) and Bloco B (ex 3-5),
  * a Frequência column, and a manual Observações area.
  */
-export async function exportWorkoutPDF({ student, descricao, data, print, weeks = 4, qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
+export async function exportWorkoutPDF({ student, descricao, data, print, weeks = 4, qrUrl: _qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();   // 210
   const pageH = doc.internal.pageSize.getHeight();  // 297
@@ -69,42 +69,15 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // HEADER — wordmark + student identity + QR code
   // ============================================================
   const headerH = 20;
-  const qrSize = 16;
 
-  // Wordmark (red accent on the F)
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.setTextColor(...RED);
-  doc.text("F", mainX, margin + 7);
-  const fW = doc.getTextWidth("F");
-  doc.setTextColor(...INK);
-  doc.text("ORTEM", mainX + fW, margin + 7);
-
-  // Tagline
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
-  doc.setTextColor(...INK_MUTED);
-  doc.text("TREINAMENTO  ·  PLANILHA TÉCNICA", mainX, margin + 11);
-
-  // QR Code (centered in header)
-  if (qrUrl) {
-    try {
-      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-        margin: 0,
-        width: 256,
-        color: { dark: "#18181b", light: "#ffffff" },
-      });
-      const qrX = mainX + mainW / 2 - qrSize / 2;
-      const qrY = margin - 1;
-      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(5.2);
-      doc.setTextColor(...INK_MUTED);
-      doc.text("VÍDEOS NO APP", qrX + qrSize / 2, qrY + qrSize + 2, { align: "center" });
-    } catch {
-      // silent fail — QR is decorative
-    }
+  // Wordmark — logo image (replaces text "FORTEM")
+  try {
+    doc.addImage(fortemLogo, "PNG", mainX, margin + 1, 32, 8);
+  } catch {
+    // silent fail — fallback to no logo
   }
+
+  // (Tagline removida) — header agora tem apenas logo + identidade do aluno
 
   // Right-aligned: student block
   doc.setFont("helvetica", "normal");
@@ -134,9 +107,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Rendered between the student header and the warm-up section.
   // ============================================================
   const OBS_LINE_GAP = 5;
-  const OBS_LINES = 5;
+  const OBS_LINES = 3;
   const obsTitleH = 4;
-  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~31mm
+  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~21mm
   const obsBottomGap = 2;
 
   // Title
@@ -195,7 +168,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   // Conservative nominal heights — intentionally a bit higher than the
   // actual table metrics to leave room for long exercise names.
-  const NOM_ROW = 7.2;
+  const NOM_ROW = 9.5;
   const NOM_HEAD = 6.2;
   const NOM_BADGE = 6.0;
   const NOM_TREINO_BAR = 7.2;
@@ -215,7 +188,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // a floor-based estimate using the minimum row/head heights the layout
   // will actually clamp to. Whichever is smaller wins, preventing the
   // historical bug where Treino 4 / Bloco B was clipped off page 1.
-  const FLOOR_ROW = 4.6;
+  const FLOOR_ROW = 5.6;
   const FLOOR_HEAD = 3.8;
   const FLOOR_BADGE = 2.6;
   const FLOOR_BAR = 3.8;
@@ -234,6 +207,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const scale = Math.max(0.22, Math.min(1.6, optimisticScale, floorScale));
 
   const ROW_FONT = Math.max(6.4, 9.5 * scale);
+  const EX_NAME_FONT = Math.max(7.6, 11.0 * scale);
   const HEAD_FONT = Math.max(5.4, 7.2 * scale);
   const ROW_PAD = Math.max(0.4, 1.3 * scale);
   const HEAD_PAD = Math.max(0.35, 1.1 * scale);
@@ -352,7 +326,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           const wEx = mainW - (wNum + wT * 4 + wRep);
           return {
             0: { cellWidth: wNum, halign: "center", textColor: INK_MUTED, fontSize: SMALL_FONT },
-            1: { cellWidth: wEx, overflow: "ellipsize" },
+            1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
             2: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
             3: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
             4: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
@@ -446,7 +420,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         const wEx = mainW - (wCat + wSer + wRep + wKg);
         return {
           0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
-          1: { cellWidth: wEx, overflow: "ellipsize" },
+          1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
           2: { cellWidth: wSer, halign: "center" },
           3: { cellWidth: wRep, halign: "center" },
           4: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
