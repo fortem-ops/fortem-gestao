@@ -107,9 +107,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Rendered between the student header and the warm-up section.
   // ============================================================
   const OBS_LINE_GAP = 5;
-  const OBS_LINES = 5;
+  const OBS_LINES = 3;
   const obsTitleH = 4;
-  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~31mm
+  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~21mm
   const obsBottomGap = 2;
 
   // Title
