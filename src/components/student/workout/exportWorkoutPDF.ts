@@ -69,42 +69,15 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // HEADER — wordmark + student identity + QR code
   // ============================================================
   const headerH = 20;
-  const qrSize = 16;
 
-  // Wordmark (red accent on the F)
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.setTextColor(...RED);
-  doc.text("F", mainX, margin + 7);
-  const fW = doc.getTextWidth("F");
-  doc.setTextColor(...INK);
-  doc.text("ORTEM", mainX + fW, margin + 7);
-
-  // Tagline
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
-  doc.setTextColor(...INK_MUTED);
-  doc.text("TREINAMENTO  ·  PLANILHA TÉCNICA", mainX, margin + 11);
-
-  // QR Code (centered in header)
-  if (qrUrl) {
-    try {
-      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-        margin: 0,
-        width: 256,
-        color: { dark: "#18181b", light: "#ffffff" },
-      });
-      const qrX = mainX + mainW / 2 - qrSize / 2;
-      const qrY = margin - 1;
-      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(5.2);
-      doc.setTextColor(...INK_MUTED);
-      doc.text("VÍDEOS NO APP", qrX + qrSize / 2, qrY + qrSize + 2, { align: "center" });
-    } catch {
-      // silent fail — QR is decorative
-    }
+  // Wordmark — logo image (replaces text "FORTEM")
+  try {
+    doc.addImage(fortemLogo, "PNG", mainX, margin + 1, 32, 8);
+  } catch {
+    // silent fail — fallback to no logo
   }
+
+  // (Tagline removida) — header agora tem apenas logo + identidade do aluno
 
   // Right-aligned: student block
   doc.setFont("helvetica", "normal");
