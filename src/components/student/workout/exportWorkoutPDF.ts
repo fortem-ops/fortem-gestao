@@ -506,10 +506,6 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     doc.setFontSize(TREINO_LABEL_FONT);
     doc.setTextColor(...WHITE);
     doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(Math.max(5.1, 6.0 * scale));
-    doc.setTextColor(...WHITE);
-    doc.text("FORÇA", mainX + mainW - 1.8, y + BAR_H / 2 + 0.95, { align: "right" });
     y += BAR_H + 0.45;
 
     const blocoA = tr.exercicios.slice(0, 2);
