@@ -172,7 +172,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   // Conservative nominal heights — intentionally a bit higher than the
   // actual table metrics to leave room for long exercise names.
-  const NOM_ROW = 10.2;
+  const NOM_ROW = 9.5;
   const NOM_HEAD = 6.2;
   const NOM_BADGE = 6.0;
   const NOM_TREINO_BAR = 7.2;
@@ -192,7 +192,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // a floor-based estimate using the minimum row/head heights the layout
   // will actually clamp to. Whichever is smaller wins, preventing the
   // historical bug where Treino 4 / Bloco B was clipped off page 1.
-  const FLOOR_ROW = 7.2;
+  const FLOOR_ROW = 5.6;
   const FLOOR_HEAD = 3.8;
   const FLOOR_BADGE = 2.6;
   const FLOOR_BAR = 3.8;
@@ -211,8 +211,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const scale = Math.max(0.22, Math.min(1.6, optimisticScale, floorScale));
 
   const ROW_FONT = Math.max(6.4, 9.5 * scale);
-  const EX_NAME_FONT = Math.max(9.0, 12.5 * scale);
-  const NUM_FONT = Math.max(8.6, 12.0 * scale);
+  const EX_NAME_FONT = Math.max(7.8, 12.5 * scale);
+  const NUM_FONT = Math.max(7.6, 12.0 * scale);
   const HEAD_FONT = Math.max(5.4, 7.2 * scale);
   const ROW_PAD = Math.max(0.4, 1.3 * scale);
   const HEAD_PAD = Math.max(0.35, 1.1 * scale);
