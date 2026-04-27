@@ -1,8 +1,8 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import QRCode from "qrcode";
 import type { Tables } from "@/integrations/supabase/types";
 import type { WorkoutExercise } from "./workoutTemplates";
+import fortemLogo from "@/assets/fortem-logo-pdf.png";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
