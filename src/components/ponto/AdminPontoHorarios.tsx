@@ -1,0 +1,241 @@
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "@/hooks/use-toast";
+import { Save, Trash2, Calendar } from "lucide-react";
+
+const DIAS = [
+  { val: 1, label: "Segunda" },
+  { val: 2, label: "Terça" },
+  { val: 3, label: "Quarta" },
+  { val: 4, label: "Quinta" },
+  { val: 5, label: "Sexta" },
+  { val: 6, label: "Sábado" },
+];
+
+// 06:00 → 21:15 em passos de 15 min
+const HORARIOS = (() => {
+  const out: string[] = [];
+  for (let h = 6; h <= 21; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      if (h === 21 && m > 15) break;
+      out.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    }
+  }
+  return out;
+})();
+
+interface HorarioRow {
+  id: string;
+  usuario_id: string;
+  dia_semana: number;
+  horario_inicio: string;
+  horario_fim: string;
+  intervalo_min: number;
+  ativo: boolean;
+}
+
+export function AdminPontoHorarios() {
+  const qc = useQueryClient();
+  const [profSelecionado, setProfSelecionado] = useState<string>("");
+
+  const { data: professores = [], isLoading: loadingProfs } = useQuery({
+    queryKey: ["ponto-professores-list"],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "professor");
+      const ids = (roles ?? []).map((r) => r.user_id);
+      if (!ids.length) return [];
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+      return (profs ?? []).sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
+    },
+  });
+
+  const { data: horarios = [], isLoading: loadingHorarios } = useQuery({
+    queryKey: ["ponto-horarios", profSelecionado],
+    enabled: !!profSelecionado,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ponto_horarios_professor")
+        .select("*")
+        .eq("usuario_id", profSelecionado)
+        .order("dia_semana");
+      if (error) throw error;
+      return data as HorarioRow[];
+    },
+  });
+
+  const upsert = useMutation({
+    mutationFn: async (row: Partial<HorarioRow>) => {
+      const { error } = await supabase.from("ponto_horarios_professor").upsert(
+        {
+          usuario_id: profSelecionado,
+          dia_semana: row.dia_semana!,
+          horario_inicio: row.horario_inicio!,
+          horario_fim: row.horario_fim!,
+          intervalo_min: row.intervalo_min ?? 0,
+          ativo: row.ativo ?? true,
+        },
+        { onConflict: "usuario_id,dia_semana" }
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Horário salvo" });
+      qc.invalidateQueries({ queryKey: ["ponto-horarios", profSelecionado] });
+    },
+    onError: (e: any) => toast({ title: "Falha ao salvar", description: e.message, variant: "destructive" }),
+  });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("ponto_horarios_professor").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Horário removido" });
+      qc.invalidateQueries({ queryKey: ["ponto-horarios", profSelecionado] });
+    },
+  });
+
+  const horariosPorDia = useMemo(() => {
+    const map = new Map<number, HorarioRow>();
+    horarios.forEach((h) => map.set(h.dia_semana, h));
+    return map;
+  }, [horarios]);
+
+  return (
+    <Card className="p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <Calendar className="w-5 h-5 text-primary" />
+        <h3 className="font-heading font-semibold text-lg">Horários por professor</h3>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Defina a janela de trabalho (06:00–21:15) para cada dia da semana (segunda a sábado) e se haverá intervalo de 15 minutos.
+      </p>
+
+      <div className="max-w-sm">
+        <Label className="text-xs">Professor</Label>
+        <Select value={profSelecionado} onValueChange={setProfSelecionado}>
+          <SelectTrigger>
+            <SelectValue placeholder={loadingProfs ? "Carregando…" : "Selecionar professor"} />
+          </SelectTrigger>
+          <SelectContent>
+            {professores.map((p: any) => (
+              <SelectItem key={p.user_id} value={p.user_id}>
+                {p.full_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {!profSelecionado ? (
+        <p className="text-sm text-muted-foreground py-6 text-center">Selecione um professor para configurar os horários.</p>
+      ) : loadingHorarios ? (
+        <Skeleton className="h-64" />
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[120px]">Dia</TableHead>
+              <TableHead>Início</TableHead>
+              <TableHead>Fim</TableHead>
+              <TableHead>Intervalo</TableHead>
+              <TableHead>Ativo</TableHead>
+              <TableHead className="text-right"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {DIAS.map((dia) => (
+              <DiaRow
+                key={dia.val}
+                dia={dia}
+                row={horariosPorDia.get(dia.val)}
+                onSave={(r) => upsert.mutate({ ...r, dia_semana: dia.val })}
+                onDelete={(id) => del.mutate(id)}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </Card>
+  );
+}
+
+function DiaRow({
+  dia,
+  row,
+  onSave,
+  onDelete,
+}: {
+  dia: { val: number; label: string };
+  row?: HorarioRow;
+  onSave: (r: Partial<HorarioRow>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [inicio, setInicio] = useState(row?.horario_inicio?.slice(0, 5) ?? "06:00");
+  const [fim, setFim] = useState(row?.horario_fim?.slice(0, 5) ?? "12:00");
+  const [intervalo, setIntervalo] = useState<number>(row?.intervalo_min ?? 0);
+  const [ativo, setAtivo] = useState<boolean>(row?.ativo ?? true);
+
+  const valido = fim > inicio;
+
+  return (
+    <TableRow>
+      <TableCell className="font-medium">{dia.label}</TableCell>
+      <TableCell>
+        <Select value={inicio} onValueChange={setInicio}>
+          <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-64">
+            {HORARIOS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
+        <Select value={fim} onValueChange={setFim}>
+          <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-64">
+            {HORARIOS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
+        <Select value={String(intervalo)} onValueChange={(v) => setIntervalo(Number(v))}>
+          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">Sem intervalo</SelectItem>
+            <SelectItem value="15">15 minutos</SelectItem>
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
+        <Switch checked={ativo} onCheckedChange={setAtivo} />
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex gap-1 justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!valido}
+            onClick={() => onSave({ horario_inicio: inicio, horario_fim: fim, intervalo_min: intervalo, ativo })}
+            className="gap-1"
+          >
+            <Save className="w-3.5 h-3.5" /> Salvar
+          </Button>
+          {row && (
+            <Button size="sm" variant="ghost" onClick={() => onDelete(row.id)}>
+              <Trash2 className="w-4 h-4 text-destructive" />
+            </Button>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
