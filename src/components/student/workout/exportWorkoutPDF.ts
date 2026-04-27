@@ -149,8 +149,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // does not push any block to a second page.
   // ============================================================
   const footerReserve = 1;
-  const sectionGap = 0.8;
-  const treinoGap = 0.6;
+  const sectionGap = 0.6;
+  const treinoGap = 0.4;
 
   const bodyTop = y;
   const bodyBottom = pageH - margin - footerReserve;
