@@ -26,6 +26,10 @@ const Pipeline = lazy(() => import("./pages/Pipeline"));
 const Clube = lazy(() => import("./pages/Clube"));
 const AdminClube = lazy(() => import("./pages/AdminClube"));
 const PartnerScannerPage = lazy(() => import("./pages/PartnerScannerPage"));
+const Ponto = lazy(() => import("./pages/Ponto"));
+const PontoEquipe = lazy(() => import("./pages/PontoEquipe"));
+const PontoFechamento = lazy(() => import("./pages/PontoFechamento"));
+const AdminPonto = lazy(() => import("./pages/AdminPonto"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -167,6 +171,38 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <AdminClube />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/ponto"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Ponto />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/ponto/equipe"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PontoEquipe />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/ponto/fechamento"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <PontoFechamento />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin/ponto"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <AdminPonto />
                   </Suspense>
                 }
               />
