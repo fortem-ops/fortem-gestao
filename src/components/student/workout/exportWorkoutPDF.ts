@@ -355,24 +355,11 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // TREINOS — split into Bloco A (ex 1-2) and Bloco B (ex 3-5)
   // ============================================================
   const renderForcaBlock = (
-    label: "A" | "B",
+    _label: "A" | "B",
     items: WorkoutExercise[],
-    startNum: number,
+    _startNum: number,
   ) => {
     if (items.length === 0) return;
-
-    const badgeW = 14;
-    doc.setFillColor(...INK_SOFT);
-    doc.rect(mainX, y, badgeW, BADGE_H, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(BADGE_FONT);
-    doc.setTextColor(...WHITE);
-    doc.text(`BLOCO ${label}`, mainX + badgeW / 2, y + BADGE_H / 2 + 0.9, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(SMALL_FONT);
-    doc.setTextColor(...INK_MUTED);
-    doc.text(label === "A" ? "(2 exercícios)" : "(3 exercícios)", mainX + badgeW + 1.5, y + BADGE_H / 2 + 0.9);
-    y += BADGE_H + 0.35;
 
     autoTable(doc, {
       startY: y,
@@ -382,15 +369,13 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       pageBreak: "avoid",
       rowPageBreak: "avoid",
       head: [[
-        { content: "#", styles: { halign: "center" } },
         { content: "CAT", styles: { halign: "left" } },
-        { content: "EXERCÍCIO", styles: { halign: "left" } },
+        { content: "", styles: { halign: "left" } },
         { content: "SÉRIES", styles: { halign: "center" } },
         { content: "REP", styles: { halign: "center" } },
         { content: "KG", styles: { halign: "center" } },
       ]],
-      body: items.map((ex, i) => [
-        String(startNum + i),
+      body: items.map((ex) => [
         ex.categoria ?? "",
         ex.exercicio,
         String(ex.series ?? ""),
@@ -412,15 +397,14 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         lineColor: INK_SOFT,
       },
       columnStyles: (() => {
-        const wNum = 6, wCat = 11, wSer = 14, wRep = 12, wKg = 12;
-        const wEx = mainW - (wNum + wCat + wSer + wRep + wKg);
+        const wCat = 11, wSer = 16, wRep = 14, wKg = 14;
+        const wEx = mainW - (wCat + wSer + wRep + wKg);
         return {
-          0: { cellWidth: wNum, halign: "center", textColor: INK_SOFT, fontStyle: "bold" },
-          1: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
-          2: { cellWidth: wEx, overflow: "ellipsize" },
-          3: { cellWidth: wSer, halign: "center" },
-          4: { cellWidth: wRep, halign: "center" },
-          5: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
+          0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
+          1: { cellWidth: wEx, overflow: "ellipsize" },
+          2: { cellWidth: wSer, halign: "center" },
+          3: { cellWidth: wRep, halign: "center" },
+          4: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
         };
       })(),
       didParseCell: (hookData) => {
