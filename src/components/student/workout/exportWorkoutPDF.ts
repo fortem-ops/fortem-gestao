@@ -438,36 +438,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     y += treinoGap;
   });
 
-  // ============================================================
-  // OBSERVAÇÕES — fixed 5-line manual write area
-  // ============================================================
-  const obsBottom = pageH - margin - footerReserve;
-  // Anchor obs block to the bottom so it always shows exactly 5 lines
-  const obsTop = obsBottom - obsBlockH;
-
-  // Title
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(...INK);
-  doc.text("OBSERVAÇÕES", mainX, obsTop + 2.5);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6);
-  doc.setTextColor(...INK_MUTED);
-  doc.text("(anotações manuais)", mainX + 24, obsTop + 2.5);
-
-  // Red hairline under title
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(0.3);
-  doc.line(mainX, obsTop + obsTitleH, mainX + mainW, obsTop + obsTitleH);
-
-  // Exactly 5 evenly-spaced writing lines
-  const linesTop = obsTop + obsTitleH + 2;
-  doc.setDrawColor(...RULE);
-  doc.setLineWidth(0.15);
-  for (let i = 1; i <= OBS_LINES; i++) {
-    const ly = linesTop + i * OBS_LINE_GAP;
-    doc.line(mainX, ly, mainX + mainW, ly);
-  }
+  // (Observações já renderizado no topo da página)
 
   // ============================================================
   // FREQUÊNCIA — vertical column, T1..T4 slots
