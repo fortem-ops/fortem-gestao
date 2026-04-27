@@ -192,7 +192,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // a floor-based estimate using the minimum row/head heights the layout
   // will actually clamp to. Whichever is smaller wins, preventing the
   // historical bug where Treino 4 / Bloco B was clipped off page 1.
-  const FLOOR_ROW = 6.2;
+  const FLOOR_ROW = 7.0;
   const FLOOR_HEAD = 3.8;
   const FLOOR_BADGE = 2.6;
   const FLOOR_BAR = 3.8;
@@ -204,7 +204,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + forcaBlocosTotal * FLOOR_HEAD
     + forcaRowsTotal * FLOOR_ROW
     + data.treinos.length * treinoGap
-    + 10; // global slack
+    + 14; // global slack
 
   const optimisticScale = availH / Math.max(totalEst, 1);
   const floorScale = availH / Math.max(floorEst, 1);
