@@ -256,7 +256,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // AQUECIMENTO — separated by LIB / MOB / ATI sub-blocks
   // ============================================================
   if (data.aquecimento.length > 0) {
-    sectionLabel("Aquecimento", "Liberação · Mobilidade · Ativação");
+    sectionLabel("Aquecimento");
 
     const blocos: { key: "LIB" | "MOB" | "ATI"; label: string; items: WorkoutExercise[] }[] = [
       { key: "LIB", label: "LIBERAÇÃO", items: [] },
