@@ -71,8 +71,12 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const headerH = 20;
 
   // Wordmark — logo image (replaces text "FORTEM")
+  // Mantém a proporção original do PNG (1920x357 ≈ 5.378:1) para não comprimir
   try {
-    doc.addImage(fortemLogo, "PNG", mainX, margin + 1, 32, 8);
+    const LOGO_H = 8;
+    const LOGO_RATIO = 1920 / 357;
+    const LOGO_W = LOGO_H * LOGO_RATIO; // ~43mm
+    doc.addImage(fortemLogo, "PNG", mainX, margin + 1, LOGO_W, LOGO_H);
   } catch {
     // silent fail — fallback to no logo
   }
