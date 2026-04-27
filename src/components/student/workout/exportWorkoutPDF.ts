@@ -537,14 +537,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   }
 
 
-  // ============================================================
-  // FOOTER
-  // ============================================================
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(5.8);
-  doc.setTextColor(...INK_MUTED);
-  doc.text("FORTEM Treinamento — documento gerado automaticamente", margin, pageH - 4);
-  doc.text(today, pageW - margin, pageH - 4, { align: "right" });
+  // (Rodapé removido a pedido do usuário)
 
   // ============================================================
   // OUTPUT
