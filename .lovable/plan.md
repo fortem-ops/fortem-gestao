@@ -1,48 +1,56 @@
-# Ajustes finais no PDF do treino
+## Ajustes no PDF de treino
 
-Alterações em `src/components/student/workout/exportWorkoutPDF.ts`:
+Quatro mudanças no arquivo `src/components/student/workout/exportWorkoutPDF.ts`, mantendo o requisito de página única (Treino 4 completo, sem quebra).
 
-## 1. Remover rodapé
-Apagar o bloco do footer que escreve:
-- "FORTEM Treinamento — documento gerado automaticamente"
-- A data atual à direita
+### 1. Remover subtítulo do "Aquecimento"
+Na chamada `sectionLabel("Aquecimento", "Liberação · Mobilidade · Ativação")`, remover o segundo argumento. Passa a ser apenas `sectionLabel("Aquecimento")`.
 
-Isso libera ~5mm de espaço vertical, então também reduzir `footerReserve` de `5` para `1` para o conteúdo poder respirar mais.
+### 2. Título "AQUECIMENTO" como barra vermelha (igual aos treinos)
+Refatorar o helper `sectionLabel` para desenhar uma barra vermelha de fundo cheio (mesmo estilo da barra "TREINO N"):
 
-## 2. Aumentar fontes (exercícios, séries, repetições, CAT)
-Subir os valores nominais e os pisos (floors) usados na lógica de scaling:
+- Desenhar retângulo com `doc.setFillColor(...RED)` e altura igual a `BAR_H`, ocupando toda a largura `mainW`.
+- Texto do título em **branco** (`WHITE`), bold, alinhado à esquerda com pequeno padding (`mainX + 2.2`), centralizado verticalmente na barra.
+- Se houver `meta` (segundo argumento), desenhar também em branco à direita — mas neste caso será omitido (item 1).
+- **Remover** a linha hairline cinza desenhada abaixo do título.
+- Avançar `y += BAR_H + 0.45` (mesmo espaçamento usado após a barra dos treinos), em vez do `y += 1.1` × 2 atual.
 
-- `EX_NAME_FONT`: nominal **11.0 → 12.5**, floor **7.6 → 9.0**
-- `NUM_FONT` (séries / repetições): nominal **10.5 → 12.0**, floor **7.4 → 8.6**
-- Coluna **CAT** (atualmente usa `SMALL_FONT` ~5.4pt): trocar para `EX_NAME_FONT` com `fontStyle: "bold"` para igualar exercícios/repetições.
+### 3. Barras "TREINO 1–4": vermelho mantido + remover "FORÇA"
+A barra dos treinos já é vermelha. A mudança é remover o rótulo "FORÇA" alinhado à direita dentro dessa barra (bloco que faz `doc.text("FORÇA", mainX + mainW - 1.8, ...)`).
 
-Como o scaling de página única é dirigido pelos pisos, ajustar também:
-- `FLOOR_ROW`: **5.6 → 6.4** (linhas precisam acomodar fontes maiores)
-- `NOM_ROW`: **9.5 → 10.2**
+### 4. Aumentar a fonte geral mantendo página única
 
-A lógica de duas passadas (`optimisticScale` × `floorScale`) continua garantindo que tudo cabe em uma única página A4.
+Estratégia: subir os "pisos" (`Math.max(floor, nominal*scale)`) das fontes de conteúdo, e compensar o orçamento vertical para não estourar a página no Treino 4 com 5 exercícios.
 
-## 3. Escurecer as linhas (réguas) mantendo cinza
-Atualmente:
-- `RULE: [228, 228, 231]` (zinc-200) — usado nos divisores horizontais entre linhas das tabelas e no traço sob "OBSERVAÇÕES".
+Mudanças nas constantes (sem alterar a lógica de "two-pass scaling"):
 
-Trocar `RULE` para um cinza mais escuro mantendo a família zinc:
-- `RULE: [228, 228, 231] → [113, 113, 122]` (zinc-500)
+- `EX_NAME_FONT`: piso `7.8 → 9.0`, nominal `12.5 → 13.5`
+- `NUM_FONT` (séries/reps): piso `7.6 → 9.0`, nominal `12.0 → 13.5`
+- `ROW_FONT` (linhas do aquecimento): piso `6.4 → 7.6`, nominal `9.5 → 11.0`
+- `HEAD_FONT` (cabeçalhos de tabela): piso `5.4 → 6.2`, nominal `7.2 → 8.2`
+- `SECTION_FONT` (texto "AQUECIMENTO" na barra vermelha): piso `6.0 → 7.0`, nominal `7.8 → 9.0`
+- `TREINO_LABEL_FONT` (texto "TREINO N"): piso `5.4 → 6.6`, nominal `7.2 → 8.4`
+- Manter os demais (META_FONT, BADGE_FONT, SMALL_FONT) — não impactam legibilidade dos exercícios.
 
-Isso escurece automaticamente:
-- Divisores entre linhas das tabelas (aquecimento + força)
-- Linha sob o título "OBSERVAÇÕES" (na verdade essa já é vermelha, sem efeito)
-- Linhas manuais de escrita das observações
-- Bordas dos slots da coluna "FREQUÊNCIA"
-- Régua fina sob os labels das seções
+Compensação no orçamento de altura (para garantir cabimento):
 
-As linhas alternadas de fundo (`SURFACE` zinc-100) e o texto cinza claro (`INK_MUTED`) permanecem como estão para preservar hierarquia visual.
+- `NOM_ROW`: `10.2 → 11.0` e `FLOOR_ROW`: `6.2 → 7.0`
+- `BADGE_H` piso `2.4 → 2.8`
+- `BAR_H` piso `3.6 → 4.2`
+- Reduzir o ar entre seções para abrir espaço:
+  - `sectionGap`: `0.8 → 0.6`
+  - `treinoGap`: `0.6 → 0.4`
+  - Espaço extra após renderizar bloco de força: `+ 0.8 → + 0.6`
+  - Bloco de Observações: `OBS_LINE_GAP` `5 → 4.2`
+- Aumentar o `slack` global em `floorEst` de `10 → 14`, garantindo que o pior caso (Treino 4 com 5 exercícios + nomes longos) ainda caiba.
 
-## 4. Validação
-Rodar `src/components/student/workout/exportWorkoutPDF.test.ts` para confirmar que:
-- O PDF continua em **uma única página A4**
-- Treino 4 / Bloco B continua presente
-- Não há regressão na geração
+### Validação
+Rodar a suíte `src/components/student/workout/exportWorkoutPDF.test.ts` (já cobre):
+- página única;
+- Treino 4 com Bloco A + Bloco B totalmente renderizados;
+- Frequência na página 1;
+- variante "stress" com nomes extra-longos.
 
-## Resumo dos arquivos editados
-- `src/components/student/workout/exportWorkoutPDF.ts` (única alteração)
+Se algum teste falhar, recalibrar o slack de `floorEst` para `16` e/ou reduzir 0.5pt em `EX_NAME_FONT` nominal, sempre re-executando até passarem todos.
+
+### Arquivo afetado
+- `src/components/student/workout/exportWorkoutPDF.ts`
