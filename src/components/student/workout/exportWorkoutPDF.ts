@@ -209,20 +209,40 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + data.treinos.length * treinoGap;
   const totalEst = aqEst + forcaEst + 14;
 
-  const scale = Math.max(0.32, Math.min(1.6, availH / Math.max(totalEst, 1)));
+  // Two-pass scale: never trust an optimistic estimate alone — also compute
+  // a floor-based estimate using the minimum row/head heights the layout
+  // will actually clamp to. Whichever is smaller wins, preventing the
+  // historical bug where Treino 4 / Bloco B was clipped off page 1.
+  const FLOOR_ROW = 4.6;
+  const FLOOR_HEAD = 3.8;
+  const FLOOR_BADGE = 2.6;
+  const FLOOR_BAR = 3.8;
+  const FLOOR_AQ_LABEL = 5;
+  const floorEst = (aqBlocosCount > 0 ? FLOOR_AQ_LABEL : 0)
+    + aqBlocosCount * (FLOOR_BADGE + FLOOR_HEAD + sectionGap)
+    + aqRowsTotal * FLOOR_ROW
+    + data.treinos.length * FLOOR_BAR
+    + forcaBlocosTotal * FLOOR_HEAD
+    + forcaRowsTotal * FLOOR_ROW
+    + data.treinos.length * treinoGap
+    + 6; // global slack
 
-  const ROW_FONT = Math.max(7.0, 9.5 * scale);
-  const HEAD_FONT = Math.max(5.8, 7.2 * scale);
-  const ROW_PAD = Math.max(0.6, 1.3 * scale);
-  const HEAD_PAD = Math.max(0.5, 1.1 * scale);
-  const SIDE_PAD = Math.max(0.6, 1.1 * scale);
-  const BADGE_H = Math.max(2.8, 3.8 * scale);
-  const BAR_H = Math.max(4.0, 5.1 * scale);
-  const TREINO_LABEL_FONT = Math.max(5.8, 7.2 * scale);
-  const SECTION_FONT = Math.max(6.4, 7.8 * scale);
-  const META_FONT = Math.max(5.2, 6.5 * scale);
-  const BADGE_FONT = Math.max(4.9, 5.9 * scale);
-  const SMALL_FONT = Math.max(4.6, 5.4 * scale);
+  const optimisticScale = availH / Math.max(totalEst, 1);
+  const floorScale = availH / Math.max(floorEst, 1);
+  const scale = Math.max(0.22, Math.min(1.6, optimisticScale, floorScale));
+
+  const ROW_FONT = Math.max(6.4, 9.5 * scale);
+  const HEAD_FONT = Math.max(5.4, 7.2 * scale);
+  const ROW_PAD = Math.max(0.4, 1.3 * scale);
+  const HEAD_PAD = Math.max(0.35, 1.1 * scale);
+  const SIDE_PAD = Math.max(0.5, 1.1 * scale);
+  const BADGE_H = Math.max(2.4, 3.8 * scale);
+  const BAR_H = Math.max(3.6, 5.1 * scale);
+  const TREINO_LABEL_FONT = Math.max(5.4, 7.2 * scale);
+  const SECTION_FONT = Math.max(6.0, 7.8 * scale);
+  const META_FONT = Math.max(5.0, 6.5 * scale);
+  const BADGE_FONT = Math.max(4.6, 5.9 * scale);
+  const SMALL_FONT = Math.max(4.4, 5.4 * scale);
   const bodyTextStyles = {
     textColor: INK,
     lineColor: RULE,
