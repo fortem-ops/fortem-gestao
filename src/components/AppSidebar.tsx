@@ -53,6 +53,16 @@ export function AppSidebar() {
   const { signOut, user } = useAuth();
   const isActive = (path: string) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
 
+  const { data: isCoordAdmin } = useQuery({
+    queryKey: ["sidebar-coord-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -71,6 +81,16 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end={item.url === "/"} activeClassName="bg-sidebar-accent text-sidebar-primary">
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              {isCoordAdmin && coordPontoItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <NavLink to={item.url} activeClassName="bg-sidebar-accent text-sidebar-primary">
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
