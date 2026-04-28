@@ -708,8 +708,8 @@ export function PersonalizadoEditor({
         ))}
       </div>
 
-      {/* Treinos */}
-      <div className="glass-card rounded-lg p-4 space-y-4">
+      {/* Treinos — colunas lado a lado, layout estilo Fases */}
+      <div className="glass-card rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-heading font-semibold text-primary">FORÇA</h4>
           <Button size="sm" variant="outline" onClick={addTreino}>
@@ -717,67 +717,31 @@ export function PersonalizadoEditor({
           </Button>
         </div>
 
-        {data.treinos.map((tr, ti) => (
-          <div key={ti} className="rounded-lg border border-border p-3 space-y-3 bg-card/30">
-            <div className="flex items-center gap-2">
-              <Input
-                value={tr.nome}
-                onChange={(e) => updateTreinoNome(ti, e.target.value)}
-                className="h-7 max-w-[180px] text-sm font-semibold"
+        <div className="overflow-x-auto -mx-1 px-1">
+          <div
+            className="grid gap-3"
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(1, data.treinos.length)}, minmax(360px, 1fr))`,
+            }}
+          >
+            {data.treinos.map((tr, ti) => (
+              <TreinoColumn
+                key={ti}
+                treino={tr}
+                ti={ti}
+                canRemoveTreino={data.treinos.length > 1}
+                onUpdateNome={(v) => updateTreinoNome(ti, v)}
+                onAddBloco={() => addBloco(ti)}
+                onRemoveTreino={() => removeTreino(ti)}
+                onUpdateBlocoNome={(bi, v) => updateBlocoNome(ti, bi, v)}
+                onRemoveBloco={(bi) => removeBloco(ti, bi)}
+                onAddExercicio={(bi, tipo) => addExercicio(ti, bi, tipo)}
+                onRemoveExercicio={(bi, ei) => removeExercicio(ti, bi, ei)}
+                onUpdateExercicio={(bi, ei, patch) => updateExercicio(ti, bi, ei, patch)}
               />
-              <Button size="sm" variant="ghost" onClick={() => addBloco(ti)} className="h-7">
-                <Plus className="w-3 h-3 mr-1" /> Bloco
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 text-destructive ml-auto"
-                onClick={() => removeTreino(ti)}
-                disabled={data.treinos.length === 1}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            </div>
-
-            {tr.blocos.map((bl, bi) => (
-              <div key={bi} className="rounded border border-border/50 p-2 space-y-2 bg-background/40">
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={bl.nome}
-                    onChange={(e) => updateBlocoNome(ti, bi, e.target.value)}
-                    className="h-6 max-w-[140px] text-xs font-semibold"
-                  />
-                  <NewExerciseButton onAdd={(tipo) => addExercicio(ti, bi, tipo)} />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-destructive ml-auto"
-                    onClick={() => removeBloco(ti, bi)}
-                    disabled={tr.blocos.length === 1}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-
-                {bl.exercicios.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground italic px-1">Nenhum exercício. Use “+ Exercício”.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {bl.exercicios.map((ex, ei) => (
-                      <ExercicioRow
-                        key={ei}
-                        ex={ex}
-                        index={ei}
-                        onRemove={() => removeExercicio(ti, bi, ei)}
-                        onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
             ))}
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Observações */}
