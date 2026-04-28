@@ -742,6 +742,7 @@ export default function BancoTreinos() {
           escolhasMap={escolhasMap}
           onSaveChoice={(ex, treino, b) => handleSaveChoice(selected, ex, treino, b)}
           onClearChoice={(ex, treino) => handleClearChoice(selected, ex, treino)}
+          onSaveOverride={(ex, treino, patch) => handleSaveOverride(selected, ex, treino, patch)}
           canEdit={canEdit}
         />
         {renderVideoModal()}
