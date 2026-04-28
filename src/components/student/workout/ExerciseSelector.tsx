@@ -9,6 +9,12 @@ interface ExerciseSelectorProps {
   value: string;
   onChange: (value: string, video?: string | null) => void;
   readOnly?: boolean;
+  /** Sobrescreve a subcategoria derivada do código (usado em LIB/MOB/ATI). */
+  subcategoria?: string;
+  /** Desabilita o input quando true (ex: subcategoria ainda não escolhida). */
+  disabled?: boolean;
+  /** Placeholder customizado. */
+  placeholder?: string;
 }
 
 interface GroupSelection { grupo: string; subcategoria: string }
