@@ -272,7 +272,7 @@ export function AdminBeneficiosTable() {
                   </div>
                 </TableCell>
                 <TableCell className="text-xs">
-                  {b.limite_por_periodo ? `${b.limite_por_periodo}/${PERIODO_LABEL[b.periodicidade]}` : "Livre"}
+                  {b.limite_por_periodo ? `${b.limite_por_periodo} usos` : "Livre"}
                 </TableCell>
                 <TableCell>{b.ativo ? <Badge variant="default">Sim</Badge> : <Badge variant="secondary">Não</Badge>}</TableCell>
                 <TableCell>
