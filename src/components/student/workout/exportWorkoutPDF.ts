@@ -457,7 +457,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           // Quebra de bloco: linha superior mais marcada + um pequeno respiro.
           if (ex?.blocoStart && hookData.row.index > 0) {
             hookData.cell.styles.lineWidth = { top: 0.5, bottom: 0.08 } as unknown as number;
-            hookData.cell.styles.lineColor = RED;
+            hookData.cell.styles.lineColor = INK;
             hookData.cell.styles.cellPadding = {
               top: ROW_PAD + 1.4,
               bottom: ROW_PAD,
@@ -481,7 +481,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         if (ex.blocoStart && hookData.row.index > 0 && hookData.column.index === 0) {
           doc.setFont("helvetica", "bold");
           doc.setFontSize(Math.max(4.6, BADGE_FONT));
-          doc.setTextColor(...RED);
+          doc.setTextColor(...INK);
           doc.text(
             ex.blocoStart.toUpperCase(),
             hookData.cell.x + 1.2,
