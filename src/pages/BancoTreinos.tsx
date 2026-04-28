@@ -558,6 +558,7 @@ function TemplateDetail({
                     onClearChoice={onClearChoice}
                         onSaveOverride={onSaveOverride}
                     canEdit={canEdit}
+                    aquecimentoBloco={block}
                   />
                 </div>
               );
