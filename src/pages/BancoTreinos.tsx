@@ -63,9 +63,13 @@ function findBankMatch(ex: WorkoutExercise, bank: BankExercise[]): BankExercise 
   return null;
 }
 
-function getCandidatesForCode(categoria: string, bank: BankExercise[]): BankExercise[] {
+function getCandidatesForCode(
+  categoria: string,
+  bank: BankExercise[],
+  subOverride?: string,
+): BankExercise[] {
   const grupo = CODE_TO_GRUPO[categoria.toUpperCase()];
-  const sub = CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
+  const sub = subOverride ?? CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
   if (!grupo) return [];
   return bank.filter((ex) =>
     ex.grupos.some((g) => g.grupo === grupo && (!sub || g.subcategoria === sub)),
