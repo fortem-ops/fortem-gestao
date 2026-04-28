@@ -397,7 +397,6 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       head: [[
         { content: "CAT", styles: { halign: "left" } },
         { content: "", styles: { halign: "left" } },
-        { content: "SEMANA", styles: { halign: "center" } },
         { content: "SÉRIES", styles: { halign: "center" } },
         { content: "REP", styles: { halign: "center" } },
         { content: "KG", styles: { halign: "center" } },
@@ -405,19 +404,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       body: items.map((ex) => {
         const isDynChild = typeof ex.dinamicoIndex === "number" && ex.dinamicoIndex > 0;
         const catCell = isDynChild ? "" : (ex.categoria ?? "");
-        const maxWeeks = Math.max(1, Math.min(12, Math.floor(weeks)));
-        const semanas = typeof ex.dinamicoIndex === "number"
-          ? (() => {
-              const parity = ex.dinamicoIndex % 2 === 0 ? 1 : 2; // start at week 1 or 2
-              const list: number[] = [];
-              for (let w = parity; w <= maxWeeks; w += 2) list.push(w);
-              return list.join(", ");
-            })()
-          : "";
         return [
           catCell,
           ex.exercicio,
-          semanas,
           String(ex.series ?? ""),
           String(ex.repeticoes ?? ""),
           ex.kg ?? "",
