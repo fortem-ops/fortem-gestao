@@ -10,11 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check } from "lucide-react";
+import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
 import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
 import { toast } from "sonner";
+import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
+import { emptyPersonalizado, type PersonalizadoConteudo } from "@/components/student/workout/personalizadoTypes";
 
 interface GroupSelection { grupo: string; subcategoria: string }
 interface BankExercise {
@@ -488,6 +490,36 @@ export default function BancoTreinos() {
 
   const [selected, setSelected] = useState<WorkoutTemplate | null>(null);
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
+  const [personalizadoOpen, setPersonalizadoOpen] = useState<
+    | null
+    | { mode: "new" }
+    | { mode: "edit"; id: string; nome: string; conteudo: PersonalizadoConteudo }
+  >(null);
+
+  const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
+    queryKey: ["banco-treinos-personalizados"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("banco_treinos_personalizados")
+        .select("id, nome, conteudo, criado_por, updated_at")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30_000,
+  });
+
+  const handleDeleteModelo = async (id: string) => {
+    if (!confirm("Excluir este modelo personalizado?")) return;
+    const { error } = await supabase.from("banco_treinos_personalizados").delete().eq("id", id);
+    if (error) {
+      toast.error("Falha ao excluir: " + error.message);
+      return;
+    }
+    toast.success("Modelo excluído");
+    refetchModelos();
+  };
+
 
   const { data: bank = [] } = useQuery({
     queryKey: ["exercicios-bank-templates"],
@@ -630,6 +662,20 @@ export default function BancoTreinos() {
     </Dialog>
   );
 
+  if (personalizadoOpen) {
+    return (
+      <div className="container mx-auto p-6 max-w-6xl">
+        <PersonalizadoEditor
+          initial={personalizadoOpen.mode === "edit" ? personalizadoOpen.conteudo : emptyPersonalizado()}
+          initialName={personalizadoOpen.mode === "edit" ? personalizadoOpen.nome : "Modelo Personalizado"}
+          modeloId={personalizadoOpen.mode === "edit" ? personalizadoOpen.id : undefined}
+          onBack={() => setPersonalizadoOpen(null)}
+          onSaved={() => { refetchModelos(); }}
+        />
+      </div>
+    );
+  }
+
   if (selected) {
     return (
       <div className="container mx-auto p-6 max-w-6xl">
@@ -647,6 +693,7 @@ export default function BancoTreinos() {
       </div>
     );
   }
+
 
   return (
     <div className="container mx-auto p-6 max-w-6xl animate-fade-in">
@@ -676,12 +723,20 @@ export default function BancoTreinos() {
                   <Card
                     key={template.fase}
                     className="cursor-pointer hover:border-primary transition-colors group"
-                    onClick={() => setSelected(template)}
+                    onClick={() => {
+                      if (template.fase === "Personalizado") {
+                        setPersonalizadoOpen({ mode: "new" });
+                      } else {
+                        setSelected(template);
+                      }
+                    }}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                          <Dumbbell className="h-5 w-5 text-primary" />
+                          {template.fase === "Personalizado"
+                            ? <Sparkles className="h-5 w-5 text-primary" />
+                            : <Dumbbell className="h-5 w-5 text-primary" />}
                         </div>
                         <Badge variant="outline">{template.frequencia}</Badge>
                       </div>
@@ -701,6 +756,61 @@ export default function BancoTreinos() {
             </section>
           );
         })}
+
+        {modelosPersonalizados.length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
+              Meus modelos personalizados
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {modelosPersonalizados.map((m) => {
+                const conteudo = (m.conteudo as unknown) as PersonalizadoConteudo;
+                const isOwner = m.criado_por === user?.id;
+                return (
+                  <Card key={m.id} className="hover:border-primary transition-colors group">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                          <Sparkles className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {(isOwner || canEdit) && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-destructive"
+                                onClick={() => handleDeleteModelo(m.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <CardTitle className="text-lg mt-3 cursor-pointer" onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}>
+                        {m.nome}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xs text-muted-foreground">
+                        {conteudo?.treinos?.length || 0} treinos · atualizado {new Date(m.updated_at).toLocaleDateString("pt-BR")}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
 
       {renderVideoModal()}

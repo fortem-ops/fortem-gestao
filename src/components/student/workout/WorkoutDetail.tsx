@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
+import { PersonalizadoEditor } from "./PersonalizadoEditor";
+import { isPersonalizadoContent } from "./personalizadoTypes";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +54,22 @@ interface WorkoutDetailProps {
 
 export function WorkoutDetail({ treino, templateData, fase, alunoId, student, onBack, onSaved, readOnly }: WorkoutDetailProps) {
   const { user } = useAuth();
+
+  // Se o treino salvo é Personalizado (shape novo), abre o editor dedicado.
+  if (treino?.conteudo && isPersonalizadoContent(treino.conteudo)) {
+    return (
+      <PersonalizadoEditor
+        initial={treino.conteudo.estrutura}
+        initialName={treino.descricao}
+        alunoId={alunoId}
+        alunoNome={student?.nome}
+        treinoId={treino.id}
+        onBack={onBack}
+        onSaved={onSaved}
+      />
+    );
+  }
+
   const initialData: WorkoutData = treino?.conteudo
     ? (treino.conteudo as unknown as WorkoutData)
     : templateData || { aquecimento: [], treinos: [] };
