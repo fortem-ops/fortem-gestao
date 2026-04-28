@@ -470,9 +470,28 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           }
         }
       },
-      didDrawCell: (_hookData) => {
-        // Barra vertical e rótulo "BLOCO X" removidos a pedido do usuário.
-        return;
+      didDrawCell: (hookData) => {
+        if (hookData.section !== "body") return;
+        const rowIdx = hookData.row.index;
+        const ex = items[rowIdx];
+        const next = items[rowIdx + 1];
+        const isLastOfBlock = !next || !!next.blocoStart;
+        if (!isLastOfBlock) {
+          const x1 = hookData.cell.x;
+          const x2 = hookData.cell.x + hookData.cell.width;
+          const yLine = hookData.cell.y + hookData.cell.height;
+          doc.setDrawColor(...RULE);
+          doc.setLineWidth(0.12);
+          doc.line(x1, yLine, x2, yLine);
+        }
+        if (ex?.blocoStart && rowIdx > 0) {
+          const x1 = hookData.cell.x;
+          const x2 = hookData.cell.x + hookData.cell.width;
+          const yTop = hookData.cell.y;
+          doc.setDrawColor(...INK);
+          doc.setLineWidth(0.5);
+          doc.line(x1, yTop, x2, yTop);
+        }
       },
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.6;
