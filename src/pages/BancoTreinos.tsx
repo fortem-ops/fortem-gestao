@@ -433,6 +433,7 @@ function ExerciseTable({
   onClearChoice,
   onSaveOverride,
   canEdit,
+  aquecimentoBloco,
 }: {
   exercicios: WorkoutExercise[];
   bank: BankExercise[];
