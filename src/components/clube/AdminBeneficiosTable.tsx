@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -46,7 +47,7 @@ const emptyForm = {
   regra_uso: "",
   limite_por_periodo: "",
   periodicidade: "livre" as Periodicidade,
-  nivel_minimo: "start" as NivelMembro,
+  niveis_permitidos: ["start"] as NivelMembro[],
   ativo: true,
 };
 
@@ -95,7 +96,7 @@ export function AdminBeneficiosTable() {
       regra_uso: b.regra_uso || "",
       limite_por_periodo: b.limite_por_periodo?.toString() || "",
       periodicidade: b.periodicidade,
-      nivel_minimo: b.nivel_minimo,
+      niveis_permitidos: (b.niveis_permitidos?.length ? b.niveis_permitidos : ["start"]) as NivelMembro[],
       ativo: b.ativo,
     });
     setOpen(true);
@@ -104,6 +105,10 @@ export function AdminBeneficiosTable() {
   async function save() {
     if (!form.parceiro_id || !form.titulo) {
       toast.error("Parceiro e título são obrigatórios.");
+      return;
+    }
+    if (!form.niveis_permitidos.length) {
+      toast.error("Selecione pelo menos um nível com acesso.");
       return;
     }
     setSaving(true);
@@ -116,7 +121,7 @@ export function AdminBeneficiosTable() {
         regra_uso: form.regra_uso || null,
         limite_por_periodo: form.limite_por_periodo ? Number(form.limite_por_periodo) : null,
         periodicidade: form.periodicidade,
-        nivel_minimo: form.nivel_minimo,
+        niveis_permitidos: form.niveis_permitidos,
         ativo: form.ativo,
       };
       const { error } = form.id
@@ -166,28 +171,39 @@ export function AdminBeneficiosTable() {
                 <Label>Descrição</Label>
                 <Textarea rows={2} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Tipo</Label>
-                  <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
-                        <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Nível mínimo</Label>
-                  <Select value={form.nivel_minimo} onValueChange={(v) => setForm({ ...form, nivel_minimo: v as NivelMembro })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {NIVEIS.map((n) => (
-                        <SelectItem key={n} value={n}>{NIVEL_LABEL[n]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div>
+                <Label>Tipo</Label>
+                <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Tipo })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TIPO_LABEL) as Tipo[]).map((t) => (
+                      <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Níveis com acesso *</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1.5 p-3 rounded-md border">
+                  {NIVEIS.map((n) => {
+                    const checked = form.niveis_permitidos.includes(n);
+                    return (
+                      <label key={n} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            setForm((f) => ({
+                              ...f,
+                              niveis_permitidos: v
+                                ? [...f.niveis_permitidos, n]
+                                : f.niveis_permitidos.filter((x) => x !== n),
+                            }));
+                          }}
+                        />
+                        {NIVEL_LABEL[n]}
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
               <div>
@@ -241,7 +257,7 @@ export function AdminBeneficiosTable() {
               <TableHead>Título</TableHead>
               <TableHead>Parceiro</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead>Nível mín.</TableHead>
+              <TableHead>Níveis</TableHead>
               <TableHead>Limite</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead></TableHead>
@@ -253,7 +269,17 @@ export function AdminBeneficiosTable() {
                 <TableCell className="font-medium">{b.titulo}</TableCell>
                 <TableCell>{b.parceiro_nome}</TableCell>
                 <TableCell className="text-xs">{TIPO_LABEL[b.tipo]}</TableCell>
-                <TableCell><Badge variant="outline">{NIVEL_LABEL[b.nivel_minimo]}</Badge></TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {b.niveis_permitidos?.length === NIVEIS.length ? (
+                      <Badge variant="outline">Todos</Badge>
+                    ) : (
+                      (b.niveis_permitidos || []).map((n) => (
+                        <Badge key={n} variant="outline" className="text-[10px]">{NIVEL_LABEL[n as NivelMembro]}</Badge>
+                      ))
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-xs">
                   {b.limite_por_periodo ? `${b.limite_por_periodo}/${PERIODO_LABEL[b.periodicidade]}` : "Livre"}
                 </TableCell>
