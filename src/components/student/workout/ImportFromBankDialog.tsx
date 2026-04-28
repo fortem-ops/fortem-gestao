@@ -67,29 +67,44 @@ function applyEscolhas(
   const bankByNome = new Map(bank.map((b) => [b.nome.toLowerCase().trim(), b]));
 
   const escolhaMap = new Map<string, BankExercise>();
+  const overrideMap = new Map<string, string>();
   escolhas
     .filter((e) => e.template_fase === template.fase)
     .forEach((e) => {
-      const b = bankById.get(e.exercicio_id);
-      if (b) escolhaMap.set(`${e.treino_nome}|${e.ordem}`, b);
+      const key = `${e.treino_nome}|${e.ordem}`;
+      if (e.exercicio_id) {
+        const b = bankById.get(e.exercicio_id);
+        if (b) escolhaMap.set(key, b);
+      }
+      if (e.categoria_override) overrideMap.set(key, e.categoria_override);
     });
 
   const applyToList = (treinoNome: string, list: WorkoutExercise[]) =>
     list.map((ex) => {
-      const escolhido = escolhaMap.get(`${treinoNome}|${ex.ordem}`);
+      const key = `${treinoNome}|${ex.ordem}`;
+      const escolhido = escolhaMap.get(key);
       const fallback = !escolhido ? bankByNome.get(ex.exercicio.toLowerCase().trim()) : undefined;
       const link = escolhido || fallback;
-      if (!link) return { ...ex };
-      // Para linhas de aquecimento (LIB/MOB/ATI), tenta resolver subcategoria do banco
-      // se o template ainda não trouxer uma — mantém retrocompatibilidade.
-      const sub = ex.subcategoria || pickSubcategoria(ex.categoria, link.grupos);
-      return {
+
+      // Subcategoria efetiva: override (editado em Banco de Treinos) tem prioridade,
+      // depois a do template, e por último o que é resolvido a partir do banco.
+      const overrideSub = treinoNome === "__aquecimento__" ? overrideMap.get(key) : undefined;
+      const sub =
+        overrideSub ||
+        ex.subcategoria ||
+        (link ? pickSubcategoria(ex.categoria, link.grupos) : undefined);
+
+      const base: WorkoutExercise = {
         ...ex,
+        ...(sub ? { subcategoria: sub } : {}),
+      };
+      if (!link) return base;
+      return {
+        ...base,
         exercicio: link.nome,
         exercicio_id: link.id,
         video_url: link.video_url,
         video_path: link.video_path,
-        ...(sub ? { subcategoria: sub } : {}),
       };
     });
 
