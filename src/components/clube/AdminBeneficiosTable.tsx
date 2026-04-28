@@ -238,6 +238,35 @@ export function AdminBeneficiosTable() {
                 </Select>
               </div>
               <div>
+                <Label>Periodicidade (validade)</Label>
+                <Select
+                  value={form.validade_opcao}
+                  onValueChange={(v) => setForm({ ...form, validade_opcao: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {VALIDADE_PRESETS.map((d) => (
+                      <SelectItem key={d} value={String(d)}>{d} dias</SelectItem>
+                    ))}
+                    <SelectItem value="custom">Personalizado (dias)</SelectItem>
+                    <SelectItem value="sem_prazo">Sem prazo de validade</SelectItem>
+                  </SelectContent>
+                </Select>
+                {form.validade_opcao === "custom" && (
+                  <Input
+                    type="number"
+                    min={1}
+                    className="mt-2"
+                    placeholder="Quantidade de dias"
+                    value={form.validade_dias_custom}
+                    onChange={(e) => setForm({ ...form, validade_dias_custom: e.target.value })}
+                  />
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Após o prazo, o benefício expira automaticamente. Não há renovação.
+                </p>
+              </div>
+              <div>
                 <Label>Níveis com acesso *</Label>
                 <div className="grid grid-cols-2 gap-2 mt-1.5 p-3 rounded-md border">
                   {NIVEIS.map((n) => {
