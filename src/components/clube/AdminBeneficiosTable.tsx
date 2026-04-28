@@ -334,41 +334,51 @@ export function AdminBeneficiosTable() {
               <TableHead>Tipo</TableHead>
               <TableHead>Níveis</TableHead>
               <TableHead>Limite</TableHead>
+              <TableHead>Validade</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.map((b) => (
-              <TableRow key={b.id}>
-                <TableCell className="font-medium">{b.titulo}</TableCell>
-                <TableCell>{b.parceiro_nome}</TableCell>
-                <TableCell className="text-xs">{TIPO_LABEL[b.tipo]}</TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {b.niveis_permitidos?.length === NIVEIS.length ? (
-                      <Badge variant="outline">Todos</Badge>
-                    ) : (
-                      (b.niveis_permitidos || []).map((n) => (
-                        <Badge key={n} variant="outline" className="text-[10px]">{NIVEL_LABEL[n as NivelMembro]}</Badge>
-                      ))
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-xs">
-                  {b.limite_por_periodo ? `${b.limite_por_periodo} usos` : "Livre"}
-                </TableCell>
-                <TableCell>{b.ativo ? <Badge variant="default">Sim</Badge> : <Badge variant="secondary">Não</Badge>}</TableCell>
-                <TableCell>
-                  <Button size="icon" variant="ghost" onClick={() => openEdit(b)}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {data?.map((b) => {
+              const dias = b.data_fim ? diffDays(b.data_inicio, b.data_fim) : null;
+              const validadeLabel = dias === null
+                ? "Sem prazo"
+                : VALIDADE_PRESETS.includes(dias)
+                  ? `${dias} dias`
+                  : `${dias} dias (até ${new Date(b.data_fim + "T00:00:00").toLocaleDateString("pt-BR")})`;
+              return (
+                <TableRow key={b.id}>
+                  <TableCell className="font-medium">{b.titulo}</TableCell>
+                  <TableCell>{b.parceiro_nome}</TableCell>
+                  <TableCell className="text-xs">{TIPO_LABEL[b.tipo]}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {b.niveis_permitidos?.length === NIVEIS.length ? (
+                        <Badge variant="outline">Todos</Badge>
+                      ) : (
+                        (b.niveis_permitidos || []).map((n) => (
+                          <Badge key={n} variant="outline" className="text-[10px]">{NIVEL_LABEL[n as NivelMembro]}</Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {b.limite_por_periodo ? `${b.limite_por_periodo} usos` : "Livre"}
+                  </TableCell>
+                  <TableCell className="text-xs">{validadeLabel}</TableCell>
+                  <TableCell>{b.ativo ? <Badge variant="default">Sim</Badge> : <Badge variant="secondary">Não</Badge>}</TableCell>
+                  <TableCell>
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(b)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             {!data?.length && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhum benefício cadastrado.
                 </TableCell>
               </TableRow>
