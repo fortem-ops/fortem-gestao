@@ -28,7 +28,7 @@ const INK: [number, number, number] = [24, 24, 27];          // zinc-900 — pri
 const INK_SOFT: [number, number, number] = [82, 82, 91];     // zinc-600 — secondary text
 const INK_MUTED: [number, number, number] = [161, 161, 170]; // zinc-400 — captions
 const RULE: [number, number, number] = [113, 113, 122];      // zinc-500 — dividers (escurecido p/ melhor leitura)
-const SURFACE: [number, number, number] = [244, 244, 245];   // zinc-100 — section bands
+const SURFACE: [number, number, number] = [212, 212, 216];   // zinc-300 — section bands (darker)
 const WHITE: [number, number, number] = [255, 255, 255];
 
 // Red family — the single brand accent.
@@ -343,8 +343,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         })(),
         didParseCell: (hookData) => {
           if (hookData.section === "body") {
-            const isLastRow = hookData.row.index === bloco.items.length - 1;
-            hookData.cell.styles.lineWidth = { bottom: isLastRow ? 0 : 0.08 } as unknown as number;
+            hookData.cell.styles.lineWidth = 0;
             hookData.cell.styles.lineColor = RULE;
             // T1..T4 columns: hide the sentinel text; the dot is drawn in didDrawCell.
             if (hookData.column.index >= 3 && hookData.column.index <= 6) {
@@ -446,19 +445,21 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       })(),
       didParseCell: (hookData) => {
         if (hookData.section === "body") {
-          const isLastRow = hookData.row.index === items.length - 1;
-          hookData.cell.styles.lineWidth = { bottom: isLastRow ? 0 : 0.08 } as unknown as number;
+          const rowIdx = hookData.row.index;
+          const ex = items[rowIdx];
+          const next = items[rowIdx + 1];
+          const isLastOfBlock = !next || !!next.blocoStart;
+          hookData.cell.styles.lineWidth = { bottom: isLastOfBlock ? 0 : 0.08 } as unknown as number;
           hookData.cell.styles.lineColor = RULE;
           // Linhas pertencentes a um grupo dinâmico: pintar fundo conforme a
           // semana correspondente (espelhando a coluna Frequência).
-          const ex = items[hookData.row.index];
           if (ex && typeof ex.dinamicoIndex === "number") {
             const isOdd = ex.dinamicoIndex % 2 === 1;
             hookData.cell.styles.fillColor = isOdd ? RED_TINT : WHITE;
           }
           // Quebra de bloco: linha superior mais marcada + um pequeno respiro.
-          if (ex?.blocoStart && hookData.row.index > 0) {
-            hookData.cell.styles.lineWidth = { top: 0.5, bottom: isLastRow ? 0 : 0.08 } as unknown as number;
+          if (ex?.blocoStart && rowIdx > 0) {
+            hookData.cell.styles.lineWidth = { top: 0.5, bottom: isLastOfBlock ? 0 : 0.08 } as unknown as number;
             hookData.cell.styles.lineColor = INK;
             hookData.cell.styles.cellPadding = {
               top: ROW_PAD + 1.4,
