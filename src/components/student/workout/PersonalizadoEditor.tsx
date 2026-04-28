@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -85,17 +85,23 @@ export function PersonalizadoEditor({
   onSaved,
 }: Props) {
   const { user } = useAuth();
-  const [data, setData] = useState<PersonalizadoConteudo>(initial ?? emptyPersonalizado());
-  const [name, setName] = useState(initialName ?? (alunoId ? "Treino Personalizado" : "Modelo Personalizado"));
+  // IMPORTANT: `initial` and `initialName` are treated as initializers only.
+  // We deliberately do NOT sync with later prop changes — re-syncing causes
+  // the editor to wipe the user's in-progress prescription whenever the
+  // parent re-renders (e.g. on browser tab focus, query refetch, or any
+  // upstream state change that produces a new object reference).
+  // The editor identity is tied to `modeloId`/`treinoId` via the parent's
+  // conditional rendering, so a true "load different record" path naturally
+  // remounts this component and re-initializes state from scratch.
+  const [data, setData] = useState<PersonalizadoConteudo>(() => initial ?? emptyPersonalizado());
+  const [name, setName] = useState(
+    () => initialName ?? (alunoId ? "Treino Personalizado" : "Modelo Personalizado"),
+  );
   const [saving, setSaving] = useState(false);
   const [exportOpen, setExportOpen] = useState<null | "download" | "print">(null);
   const [weeks, setWeeks] = useState(4);
   const [applyOpen, setApplyOpen] = useState(false);
   const [pickedAluno, setPickedAluno] = useState("");
-
-  useEffect(() => {
-    if (initial) setData(initial);
-  }, [initial]);
 
   const isAluno = !!alunoId;
 
