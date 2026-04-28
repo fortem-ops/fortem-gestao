@@ -164,10 +164,10 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   let forcaRowsTotal = 0;
   let forcaBlocosTotal = 0;
   data.treinos.forEach((tr) => {
-    const a = tr.exercicios.slice(0, 2).length;
-    const b = tr.exercicios.slice(2, 5).length;
-    if (a > 0) { forcaRowsTotal += a; forcaBlocosTotal++; }
-    if (b > 0) { forcaRowsTotal += b; forcaBlocosTotal++; }
+    if (tr.exercicios.length > 0) {
+      forcaRowsTotal += tr.exercicios.length;
+      forcaBlocosTotal++;
+    }
   });
 
   // Conservative nominal heights — intentionally a bit higher than the
