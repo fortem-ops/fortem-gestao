@@ -264,7 +264,29 @@ function ExerciseRow({
     <TableRow>
       <TableCell className="font-mono text-xs text-muted-foreground">{ex.ordem}</TableCell>
       <TableCell>
-        {canEdit ? (
+        {aquecimentoBloco ? (
+          canEdit ? (
+            <select
+              value={effSubcategoria || ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                onSaveOverride({
+                  categoria_override: !v || v === (defaultSubcategoria ?? "") ? null : v,
+                });
+              }}
+              className="bg-background border border-input rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring max-w-[180px]"
+            >
+              {!effSubcategoria && <option value="">Selecione...</option>}
+              {AQUECIMENTO_SUBCATEGORIAS[aquecimentoBloco].map((sub) => (
+                <option key={sub} value={sub}>{sub}</option>
+              ))}
+            </select>
+          ) : (
+            <Badge variant="outline" className="text-xs">
+              {effSubcategoria || "—"}
+            </Badge>
+          )
+        ) : canEdit ? (
           <select
             value={effCategoria}
             onChange={(e) => {
@@ -285,7 +307,8 @@ function ExerciseRow({
         {!isSlotVazio ? (
           <div className="flex items-center gap-2 flex-wrap">
             <ExercisePicker
-              categoria={effCategoria}
+              categoria={aquecimentoBloco ?? effCategoria}
+              subcategoriaOverride={aquecimentoBloco ? (effSubcategoria || undefined) : undefined}
               bank={bank}
               currentId={escolhaEx?.id}
               canEdit={canEdit && candidatesCount > 0}
@@ -320,7 +343,8 @@ function ExerciseRow({
           </div>
         ) : (
           <ExercisePicker
-            categoria={effCategoria}
+            categoria={aquecimentoBloco ?? effCategoria}
+            subcategoriaOverride={aquecimentoBloco ? (effSubcategoria || undefined) : undefined}
             bank={bank}
             canEdit={canEdit && candidatesCount > 0}
             onSelect={(b) => onSaveChoice(b)}
@@ -328,7 +352,9 @@ function ExerciseRow({
               <span className="text-muted-foreground italic text-xs">
                 {candidatesCount > 0
                   ? `A definir — ${candidatesCount} opções no Banco`
-                  : "A definir"}
+                  : aquecimentoBloco && !effSubcategoria
+                    ? "Escolha uma subcategoria"
+                    : "A definir"}
               </span>
             }
           />
