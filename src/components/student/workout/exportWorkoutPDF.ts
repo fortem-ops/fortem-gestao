@@ -111,9 +111,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Rendered between the student header and the warm-up section.
   // ============================================================
   const OBS_LINE_GAP = 4.2;
-  const OBS_LINES = 3;
+  const OBS_LINES = 4;
   const obsTitleH = 4;
-  const obsBlockH = obsTitleH + 2 + OBS_LINE_GAP * OBS_LINES; // ~21mm
+  const obsBlockH = obsTitleH + OBS_LINE_GAP * OBS_LINES;
   const obsBottomGap = 2;
 
   // Title
@@ -122,15 +122,11 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   doc.setTextColor(...INK);
   doc.text("OBSERVAÇÕES", mainX, y + 2.5);
 
-  // Black hairline under title (also serves as a writing line)
+  // Writing lines (black), evenly spaced — first line sits one gap below title
   doc.setDrawColor(...INK);
   doc.setLineWidth(0.15);
-  const titleLineY = y + obsTitleH + 2 + OBS_LINE_GAP;
-  doc.line(mainX, titleLineY, mainX + mainW, titleLineY);
-
-  // Additional evenly-spaced writing lines below
-  for (let i = 2; i <= OBS_LINES; i++) {
-    const ly = y + obsTitleH + 2 + i * OBS_LINE_GAP;
+  for (let i = 1; i <= OBS_LINES; i++) {
+    const ly = y + obsTitleH + i * OBS_LINE_GAP;
     doc.line(mainX, ly, mainX + mainW, ly);
   }
 
