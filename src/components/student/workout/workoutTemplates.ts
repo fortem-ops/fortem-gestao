@@ -16,6 +16,8 @@ export interface WorkoutExercise {
   dinamicoIndex?: number;
   dinamicoTotal?: number;
   dinamicoTag?: "I/P" | "ROT";
+  /** Quando definido, marca o início de um novo bloco de prescrição (ex.: "Bloco A"). */
+  blocoStart?: string;
 }
 
 export interface WorkoutSection {

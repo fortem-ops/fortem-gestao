@@ -450,17 +450,39 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
             const isOdd = ex.dinamicoIndex % 2 === 1;
             hookData.cell.styles.fillColor = isOdd ? RED_TINT : WHITE;
           }
+          // Quebra de bloco: linha superior mais marcada + um pequeno respiro.
+          if (ex?.blocoStart && hookData.row.index > 0) {
+            hookData.cell.styles.lineWidth = { top: 0.5, bottom: 0.08 } as unknown as number;
+            hookData.cell.styles.lineColor = RED;
+            hookData.cell.styles.cellPadding = {
+              top: ROW_PAD + 1.4,
+              bottom: ROW_PAD,
+              left: SIDE_PAD,
+              right: SIDE_PAD,
+            } as unknown as number;
+          }
         }
       },
       didDrawCell: (hookData) => {
         if (hookData.section !== "body") return;
         const ex = items[hookData.row.index];
-        if (!ex || typeof ex.dinamicoIndex !== "number") return;
-        // Barra vertical vermelha à esquerda agrupando as variantes.
-        if (hookData.column.index === 0) {
+        if (!ex) return;
+        // Barra vertical vermelha à esquerda agrupando as variantes do dinâmico.
+        if (typeof ex.dinamicoIndex === "number" && hookData.column.index === 0) {
           const barW = 0.6;
           doc.setFillColor(...RED_SOFT);
           doc.rect(hookData.cell.x, hookData.cell.y, barW, hookData.cell.height, "F");
+        }
+        // Rótulo do bloco (ex.: "BLOCO A") junto à quebra.
+        if (ex.blocoStart && hookData.row.index > 0 && hookData.column.index === 0) {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(Math.max(4.6, BADGE_FONT));
+          doc.setTextColor(...RED);
+          doc.text(
+            ex.blocoStart.toUpperCase(),
+            hookData.cell.x + 1.2,
+            hookData.cell.y + 2.2,
+          );
         }
       },
     });
