@@ -397,7 +397,6 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       head: [[
         { content: "CAT", styles: { halign: "left" } },
         { content: "", styles: { halign: "left" } },
-        { content: "SEMANA", styles: { halign: "center" } },
         { content: "SÉRIES", styles: { halign: "center" } },
         { content: "REP", styles: { halign: "center" } },
         { content: "KG", styles: { halign: "center" } },
@@ -405,19 +404,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       body: items.map((ex) => {
         const isDynChild = typeof ex.dinamicoIndex === "number" && ex.dinamicoIndex > 0;
         const catCell = isDynChild ? "" : (ex.categoria ?? "");
-        const maxWeeks = Math.max(1, Math.min(12, Math.floor(weeks)));
-        const semanas = typeof ex.dinamicoIndex === "number"
-          ? (() => {
-              const parity = ex.dinamicoIndex % 2 === 0 ? 1 : 2; // start at week 1 or 2
-              const list: number[] = [];
-              for (let w = parity; w <= maxWeeks; w += 2) list.push(w);
-              return list.join(", ");
-            })()
-          : "";
         return [
           catCell,
           ex.exercicio,
-          semanas,
           String(ex.series ?? ""),
           String(ex.repeticoes ?? ""),
           ex.kg ?? "",
@@ -438,15 +427,14 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         lineColor: INK_SOFT,
       },
       columnStyles: (() => {
-        const wCat = 9, wSem = 22, wSer = 14, wRep = 20, wKg = 12;
-        const wEx = mainW - (wCat + wSem + wSer + wRep + wKg);
+        const wCat = 9, wSer = 18, wRep = 22, wKg = 14;
+        const wEx = mainW - (wCat + wSer + wRep + wKg);
         return {
           0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_NAME_FONT },
           1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
-          2: { cellWidth: wSem, halign: "center", fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
-          3: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
-          4: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
-          5: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
+          2: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+          3: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+          4: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
         };
       })(),
       didParseCell: (hookData) => {
@@ -571,7 +559,13 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
     y += BAR_H + 0.45;
 
-    renderForcaBlock("A", tr.exercicios, 1);
+    // Auto-inject bloco break at exercise 3 (Bloco B) when none is set,
+    // so all 4 fases (TREINO 1-4) show the visual block separation.
+    const hasExplicitBloco = tr.exercicios.some((ex, i) => i > 0 && ex.blocoStart);
+    const exerciciosComBloco = hasExplicitBloco
+      ? tr.exercicios
+      : tr.exercicios.map((ex, i) => (i === 2 ? { ...ex, blocoStart: "B" } : ex));
+    renderForcaBlock("A", exerciciosComBloco, 1);
     y += treinoGap;
   });
 
