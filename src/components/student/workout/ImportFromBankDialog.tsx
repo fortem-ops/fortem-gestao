@@ -15,11 +15,33 @@ interface Escolha {
   exercicio_id: string;
 }
 
+interface BankExerciseGrupo {
+  grupo: string;
+  subcategoria: string;
+}
+
 interface BankExercise {
   id: string;
   nome: string;
   video_url: string | null;
   video_path: string | null;
+  grupos: BankExerciseGrupo[];
+}
+
+const CATEGORIA_TO_GRUPO: Record<string, string> = {
+  LIB: "Liberação Miofascial",
+  MOB: "Mobilidade Articular",
+  ATI: "Ativação Muscular",
+};
+
+function pickSubcategoria(
+  categoria: string | undefined,
+  grupos: BankExerciseGrupo[] | undefined,
+): string | undefined {
+  if (!categoria || !grupos?.length) return undefined;
+  const target = CATEGORIA_TO_GRUPO[categoria];
+  if (!target) return undefined;
+  return grupos.find((g) => g.grupo === target)?.subcategoria;
 }
 
 interface Props {
@@ -57,12 +79,16 @@ function applyEscolhas(
       const fallback = !escolhido ? bankByNome.get(ex.exercicio.toLowerCase().trim()) : undefined;
       const link = escolhido || fallback;
       if (!link) return { ...ex };
+      // Para linhas de aquecimento (LIB/MOB/ATI), tenta resolver subcategoria do banco
+      // se o template ainda não trouxer uma — mantém retrocompatibilidade.
+      const sub = ex.subcategoria || pickSubcategoria(ex.categoria, link.grupos);
       return {
         ...ex,
         exercicio: link.nome,
         exercicio_id: link.id,
         video_url: link.video_url,
         video_path: link.video_path,
+        ...(sub ? { subcategoria: sub } : {}),
       };
     });
 
@@ -85,9 +111,15 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercicios_personalizados")
-        .select("id, nome, video_url, video_path");
+        .select("id, nome, video_url, video_path, grupos");
       if (error) throw error;
-      return data as BankExercise[];
+      return (data || []).map((r) => ({
+        id: r.id,
+        nome: r.nome,
+        video_url: r.video_url,
+        video_path: r.video_path,
+        grupos: ((r.grupos as unknown) as BankExerciseGrupo[]) || [],
+      })) as BankExercise[];
     },
   });
 
