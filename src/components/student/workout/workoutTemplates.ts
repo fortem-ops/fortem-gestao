@@ -183,21 +183,21 @@ const fase3Treino4: WorkoutExercise[] = [
 
 // =================== FASE 4 ===================
 const fase4Aquecimento: WorkoutExercise[] = [
-  { ordem: 1, categoria: "LIB", exercicio: "03. Rolinho panturrilha - ativo + mov.", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 2, categoria: "LIB", exercicio: "01. Rolinho - anterior, posterior, vasto lateral e adutor", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 3, categoria: "LIB", exercicio: "01. Rolinho - quadril (glúteos)", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 4, categoria: "LIB", exercicio: "01. Rolinho - torácica", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 5, categoria: "LIB", exercicio: "08. Alongamento anterior coxa + isquiotibiais (SAJ)", series: 1, repeticoes: "10", dias: ["T1","T2","T3","T4"] },
-  { ordem: 6, categoria: "MOB", exercicio: "04. Dorsiflexão passiva c/ step + KTB", series: 1, repeticoes: "15", dias: ["T1","T3"] },
-  { ordem: 7, categoria: "MOB", exercicio: "04. Rotação externa de quadril 3 apoios (SAJ)", series: 1, repeticoes: "15", dias: ["T2","T4"] },
-  { ordem: 8, categoria: "MOB", exercicio: "09. Rotação torácica na parede c/ apoio interno no joelho (SAJ)", series: 1, repeticoes: "15", dias: ["T2","T4"] },
-  { ordem: 9, categoria: "MOB", exercicio: "11. Goblet (ênfase na rotação externa do quadril)", series: 1, repeticoes: "10", dias: ["T1","T3"] },
-  { ordem: 10, categoria: "MOB", exercicio: "05. Rooftop", series: 1, repeticoes: "10", dias: ["T2","T4"] },
-  { ordem: 11, categoria: "ATI", exercicio: "02- 4 apoios (alternando braços)", series: 1, repeticoes: "10", dias: ["T1","T3"] },
-  { ordem: 12, categoria: "ATI", exercicio: "04- Ativação muscular do ombro em Y c/ bastão (hip hinge)", series: 1, repeticoes: "10", dias: ["T1","T3"] },
-  { ordem: 13, categoria: "ATI", exercicio: "09- Lunge press halter / KTB", series: 1, repeticoes: "10", dias: ["T2","T4"] },
-  { ordem: 14, categoria: "ATI", exercicio: "04- Fazendeiro rack / lunge", series: 1, repeticoes: '45"', dias: ["T1","T3"] },
-  { ordem: 15, categoria: "ATI", exercicio: "04- Swing", series: 2, repeticoes: "8", dias: ["T2","T4"] },
+  { ordem: 1, categoria: "LIB", subcategoria: "Pé/Tornozelo", exercicio: "03. Rolinho panturrilha - ativo + mov.", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 2, categoria: "LIB", subcategoria: "Joelho/Coxa", exercicio: "01. Rolinho - anterior, posterior, vasto lateral e adutor", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 3, categoria: "LIB", subcategoria: "Quadril", exercicio: "01. Rolinho - quadril (glúteos)", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 4, categoria: "LIB", subcategoria: "Torácica", exercicio: "01. Rolinho - torácica", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 5, categoria: "LIB", subcategoria: "Joelho/Coxa", exercicio: "08. Alongamento anterior coxa + isquiotibiais (SAJ)", series: 1, repeticoes: "10", dias: ["T1","T2","T3","T4"] },
+  { ordem: 6, categoria: "MOB", subcategoria: "Pé/Tornozelo", exercicio: "04. Dorsiflexão passiva c/ step + KTB", series: 1, repeticoes: "15", dias: ["T1","T3"] },
+  { ordem: 7, categoria: "MOB", subcategoria: "Quadril RE", exercicio: "04. Rotação externa de quadril 3 apoios (SAJ)", series: 1, repeticoes: "15", dias: ["T2","T4"] },
+  { ordem: 8, categoria: "MOB", subcategoria: "Torácica Rotação", exercicio: "09. Rotação torácica na parede c/ apoio interno no joelho (SAJ)", series: 1, repeticoes: "15", dias: ["T2","T4"] },
+  { ordem: 9, categoria: "MOB", subcategoria: "Quadril RE", exercicio: "11. Goblet (ênfase na rotação externa do quadril)", series: 1, repeticoes: "10", dias: ["T1","T3"] },
+  { ordem: 10, categoria: "MOB", subcategoria: "Glenoumeral", exercicio: "05. Rooftop", series: 1, repeticoes: "10", dias: ["T2","T4"] },
+  { ordem: 11, categoria: "ATI", subcategoria: "Estabilidade Escapular", exercicio: "02- 4 apoios (alternando braços)", series: 1, repeticoes: "10", dias: ["T1","T3"] },
+  { ordem: 12, categoria: "ATI", subcategoria: "Ombro/Escápula", exercicio: "04- Ativação muscular do ombro em Y c/ bastão (hip hinge)", series: 1, repeticoes: "10", dias: ["T1","T3"] },
+  { ordem: 13, categoria: "ATI", subcategoria: "Padrão Geral", exercicio: "09- Lunge press halter / KTB", series: 1, repeticoes: "10", dias: ["T2","T4"] },
+  { ordem: 14, categoria: "ATI", subcategoria: "Padrão Geral", exercicio: "04- Fazendeiro rack / lunge", series: 1, repeticoes: '45"', dias: ["T1","T3"] },
+  { ordem: 15, categoria: "ATI", subcategoria: "Kettlebell", exercicio: "04- Swing", series: 2, repeticoes: "8", dias: ["T2","T4"] },
 ];
 
 const fase4Treino1: WorkoutExercise[] = [
