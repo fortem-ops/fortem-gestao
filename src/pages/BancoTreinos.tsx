@@ -200,9 +200,8 @@ function ExerciseRow({
   // Local state for text inputs (commit on blur / Enter)
   const [seriesInput, setSeriesInput] = useState(String(effSeries ?? ""));
   const [repsInput, setRepsInput] = useState(String(effReps ?? ""));
-  // Sync when external value changes
-  useMemo(() => { setSeriesInput(String(effSeries ?? "")); return null; }, [effSeries]);
-  useMemo(() => { setRepsInput(String(effReps ?? "")); return null; }, [effReps]);
+  useEffect(() => { setSeriesInput(String(effSeries ?? "")); }, [effSeries]);
+  useEffect(() => { setRepsInput(String(effReps ?? "")); }, [effReps]);
 
   const escolhaEx = escolha?.exercicio_id ? bank.find((b) => b.id === escolha.exercicio_id) : null;
   const match = escolhaEx || findBankMatch(ex, bank);
