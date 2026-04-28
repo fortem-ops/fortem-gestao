@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,8 +32,21 @@ interface Escolha {
   template_fase: string;
   treino_nome: string;
   ordem: number;
-  exercicio_id: string;
+  exercicio_id: string | null;
+  categoria_override: string | null;
+  series_override: number | null;
+  repeticoes_override: string | null;
+  dias_override: string[] | null;
 }
+
+type OverridePatch = {
+  categoria_override?: string | null;
+  series_override?: number | null;
+  repeticoes_override?: string | null;
+  dias_override?: string[] | null;
+};
+
+const DAY_OPTIONS = ["T1", "T2", "T3", "T4"] as const;
 
 const PHASE_GROUPS = [
   { label: "Fases", filter: (t: WorkoutTemplate) => /^Fase \d/.test(t.fase) },
@@ -163,6 +176,7 @@ function ExerciseRow({
   escolha,
   onSaveChoice,
   onClearChoice,
+  onSaveOverride,
   canEdit,
 }: {
   ex: WorkoutExercise;
@@ -174,31 +188,86 @@ function ExerciseRow({
   escolha?: Escolha;
   onSaveChoice: (ex: BankExercise) => void;
   onClearChoice: () => void;
+  onSaveOverride: (patch: OverridePatch) => void;
   canEdit: boolean;
 }) {
-  // Resolve effective exercise: 1) saved choice, 2) name match in template
-  const escolhaEx = escolha ? bank.find((b) => b.id === escolha.exercicio_id) : null;
+  // Effective values: override > template
+  const effCategoria = escolha?.categoria_override ?? ex.categoria;
+  const effSeries = escolha?.series_override ?? ex.series;
+  const effReps = escolha?.repeticoes_override ?? ex.repeticoes;
+  const effDias = escolha?.dias_override ?? ex.dias ?? [];
+
+  // Local state for text inputs (commit on blur / Enter)
+  const [seriesInput, setSeriesInput] = useState(String(effSeries ?? ""));
+  const [repsInput, setRepsInput] = useState(String(effReps ?? ""));
+  useEffect(() => { setSeriesInput(String(effSeries ?? "")); }, [effSeries]);
+  useEffect(() => { setRepsInput(String(effReps ?? "")); }, [effReps]);
+
+  const escolhaEx = escolha?.exercicio_id ? bank.find((b) => b.id === escolha.exercicio_id) : null;
   const match = escolhaEx || findBankMatch(ex, bank);
-  const candidatesCount = getCandidatesForCode(ex.categoria, bank).length;
+  const candidatesCount = getCandidatesForCode(effCategoria, bank).length;
   const hasVideo = match && (match.video_url || match.video_path);
   const isSlotVazio = !ex.exercicio && !escolhaEx;
+
+  const commitSeries = () => {
+    const trimmed = seriesInput.trim();
+    const num = trimmed === "" ? null : Number(trimmed);
+    if (num !== null && (Number.isNaN(num) || num < 0)) {
+      setSeriesInput(String(effSeries ?? ""));
+      return;
+    }
+    const newVal = num;
+    const oldVal = escolha?.series_override ?? Number(ex.series);
+    if (newVal === oldVal || (newVal === Number(ex.series) && escolha?.series_override == null)) return;
+    onSaveOverride({ series_override: newVal });
+  };
+
+  const commitReps = () => {
+    const trimmed = repsInput.trim();
+    const newVal = trimmed === "" ? null : trimmed;
+    const oldVal = escolha?.repeticoes_override ?? String(ex.repeticoes ?? "");
+    if (newVal === oldVal || (newVal === String(ex.repeticoes ?? "") && escolha?.repeticoes_override == null)) return;
+    onSaveOverride({ repeticoes_override: newVal });
+  };
+
+  const toggleDia = (dia: string) => {
+    const current = effDias;
+    const next = current.includes(dia) ? current.filter((d) => d !== dia) : [...current, dia];
+    next.sort();
+    onSaveOverride({ dias_override: next });
+  };
 
   return (
     <TableRow>
       <TableCell className="font-mono text-xs text-muted-foreground">{ex.ordem}</TableCell>
       <TableCell>
-        <Badge variant="outline" className="text-xs">{ex.categoria}</Badge>
+        {canEdit ? (
+          <select
+            value={effCategoria}
+            onChange={(e) => {
+              const v = e.target.value;
+              onSaveOverride({ categoria_override: v === ex.categoria ? null : v });
+            }}
+            className="bg-background border border-input rounded px-1.5 py-0.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            {Object.keys(CATEGORY_LABELS).map((code) => (
+              <option key={code} value={code}>{code}</option>
+            ))}
+          </select>
+        ) : (
+          <Badge variant="outline" className="text-xs">{effCategoria}</Badge>
+        )}
       </TableCell>
       <TableCell className="text-sm">
         {!isSlotVazio ? (
           <div className="flex items-center gap-2 flex-wrap">
             <ExercisePicker
-              categoria={ex.categoria}
+              categoria={effCategoria}
               bank={bank}
               currentId={escolhaEx?.id}
               canEdit={canEdit && candidatesCount > 0}
               onSelect={(b) => onSaveChoice(b)}
-              onClear={escolha ? onClearChoice : undefined}
+              onClear={escolhaEx ? onClearChoice : undefined}
               triggerLabel={<span>{match?.nome || ex.exercicio}</span>}
             />
             {escolhaEx && (
@@ -228,7 +297,7 @@ function ExerciseRow({
           </div>
         ) : (
           <ExercisePicker
-            categoria={ex.categoria}
+            categoria={effCategoria}
             bank={bank}
             canEdit={canEdit && candidatesCount > 0}
             onSelect={(b) => onSaveChoice(b)}
@@ -242,20 +311,66 @@ function ExerciseRow({
           />
         )}
       </TableCell>
-      <TableCell className="text-center text-sm">{ex.series}</TableCell>
-      <TableCell className="text-center text-sm">{ex.repeticoes}</TableCell>
+      <TableCell className="text-center text-sm">
+        {canEdit ? (
+          <Input
+            value={seriesInput}
+            onChange={(e) => setSeriesInput(e.target.value)}
+            onBlur={commitSeries}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            inputMode="numeric"
+            className="h-7 w-14 mx-auto text-center text-xs px-1"
+          />
+        ) : (
+          effSeries
+        )}
+      </TableCell>
+      <TableCell className="text-center text-sm">
+        {canEdit ? (
+          <Input
+            value={repsInput}
+            onChange={(e) => setRepsInput(e.target.value)}
+            onBlur={commitReps}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            className="h-7 w-20 mx-auto text-center text-xs px-1"
+          />
+        ) : (
+          effReps
+        )}
+      </TableCell>
       {showDays && (
         <TableCell className="text-center">
           <div className="flex gap-1 justify-center flex-wrap">
-            {(ex.dias || []).map(d => (
-              <Badge key={d} variant="secondary" className="text-[10px] px-1.5 py-0">{d}</Badge>
-            ))}
+            {DAY_OPTIONS.map((d) => {
+              const active = effDias.includes(d);
+              if (!canEdit) {
+                return active ? (
+                  <Badge key={d} variant="secondary" className="text-[10px] px-1.5 py-0">{d}</Badge>
+                ) : null;
+              }
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => toggleDia(d)}
+                  className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                    active
+                      ? "bg-primary/15 border-primary/40 text-primary"
+                      : "bg-transparent border-border text-muted-foreground hover:bg-accent/40"
+                  }`}
+                >
+                  {d}
+                </button>
+              );
+            })}
           </div>
         </TableCell>
       )}
     </TableRow>
   );
 }
+
+
 
 function ExerciseTable({
   exercicios,
@@ -267,6 +382,7 @@ function ExerciseTable({
   escolhasMap,
   onSaveChoice,
   onClearChoice,
+  onSaveOverride,
   canEdit,
 }: {
   exercicios: WorkoutExercise[];
@@ -278,6 +394,7 @@ function ExerciseTable({
   escolhasMap: Map<string, Escolha>;
   onSaveChoice: (ex: WorkoutExercise, treino: string, b: BankExercise) => void;
   onClearChoice: (ex: WorkoutExercise, treino: string) => void;
+  onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
 }) {
   if (exercicios.length === 0) {
@@ -293,7 +410,7 @@ function ExerciseTable({
             <TableHead>Exercício</TableHead>
             <TableHead className="w-20 text-center">Séries</TableHead>
             <TableHead className="w-24 text-center">Reps</TableHead>
-            {showDays && <TableHead className="w-32 text-center">Dias</TableHead>}
+            {showDays && <TableHead className="w-36 text-center">Dias</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -311,6 +428,7 @@ function ExerciseTable({
                 escolha={escolhasMap.get(key)}
                 onSaveChoice={(b) => onSaveChoice(ex, treinoNome, b)}
                 onClearChoice={() => onClearChoice(ex, treinoNome)}
+                onSaveOverride={(patch) => onSaveOverride(ex, treinoNome, patch)}
                 canEdit={canEdit}
               />
             );
@@ -329,6 +447,7 @@ function TemplateDetail({
   escolhasMap,
   onSaveChoice,
   onClearChoice,
+  onSaveOverride,
   canEdit,
 }: {
   template: WorkoutTemplate;
@@ -338,6 +457,7 @@ function TemplateDetail({
   escolhasMap: Map<string, Escolha>;
   onSaveChoice: (ex: WorkoutExercise, treino: string, b: BankExercise) => void;
   onClearChoice: (ex: WorkoutExercise, treino: string) => void;
+  onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
 }) {
   const blocks = ["LIB", "MOB", "ATI"] as const;
@@ -384,6 +504,7 @@ function TemplateDetail({
                     escolhasMap={escolhasMap}
                     onSaveChoice={onSaveChoice}
                     onClearChoice={onClearChoice}
+                        onSaveOverride={onSaveOverride}
                     canEdit={canEdit}
                   />
                 </div>
@@ -423,6 +544,7 @@ function TemplateDetail({
                         escolhasMap={escolhasMap}
                         onSaveChoice={onSaveChoice}
                         onClearChoice={onClearChoice}
+                        onSaveOverride={onSaveOverride}
                         canEdit={canEdit}
                       />
                     </div>
@@ -439,6 +561,7 @@ function TemplateDetail({
                         escolhasMap={escolhasMap}
                         onSaveChoice={onSaveChoice}
                         onClearChoice={onClearChoice}
+                        onSaveOverride={onSaveOverride}
                         canEdit={canEdit}
                       />
                     </div>
@@ -545,7 +668,7 @@ export default function BancoTreinos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("banco_treinos_escolhas")
-        .select("id, template_fase, treino_nome, ordem, exercicio_id");
+        .select("id, template_fase, treino_nome, ordem, exercicio_id, categoria_override, series_override, repeticoes_override, dias_override");
       if (error) throw error;
       return (data || []) as Escolha[];
     },
@@ -597,6 +720,37 @@ export default function BancoTreinos() {
     onError: (e: any) => toast.error(e.message || "Falha ao remover"),
   });
 
+  const overrideMutation = useMutation({
+    mutationFn: async (payload: {
+      template_fase: string;
+      treino_nome: string;
+      ordem: number;
+      categoria: string;
+      patch: OverridePatch;
+    }) => {
+      if (!user) throw new Error("Não autenticado");
+      const { template_fase, treino_nome, ordem, categoria, patch } = payload;
+      const { error } = await supabase
+        .from("banco_treinos_escolhas")
+        .upsert(
+          {
+            template_fase,
+            treino_nome,
+            ordem,
+            categoria,
+            escolhido_por: user.id,
+            ...patch,
+          },
+          { onConflict: "template_fase,treino_nome,ordem" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["banco-treinos-escolhas"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Falha ao salvar alteração"),
+  });
+
   const handleSaveChoice = (template: WorkoutTemplate, ex: WorkoutExercise, treino: string, b: BankExercise) => {
     saveMutation.mutate({
       template_fase: template.fase,
@@ -614,6 +768,17 @@ export default function BancoTreinos() {
       ordem: ex.ordem,
     });
   };
+
+  const handleSaveOverride = (template: WorkoutTemplate, ex: WorkoutExercise, treino: string, patch: OverridePatch) => {
+    overrideMutation.mutate({
+      template_fase: template.fase,
+      treino_nome: treino,
+      ordem: ex.ordem,
+      categoria: ex.categoria,
+      patch,
+    });
+  };
+
 
   const handleOpenVideo = async (ex: BankExercise) => {
     if (ex.video_url) {
@@ -687,6 +852,7 @@ export default function BancoTreinos() {
           escolhasMap={escolhasMap}
           onSaveChoice={(ex, treino, b) => handleSaveChoice(selected, ex, treino, b)}
           onClearChoice={(ex, treino) => handleClearChoice(selected, ex, treino)}
+          onSaveOverride={(ex, treino, patch) => handleSaveOverride(selected, ex, treino, patch)}
           canEdit={canEdit}
         />
         {renderVideoModal()}
