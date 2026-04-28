@@ -120,7 +120,9 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
   const treinos = c.treinos.map((tr) => {
     const exercicios: WorkoutExercise[] = [];
     let n = 1;
-    tr.blocos.forEach((bloco) => {
+    tr.blocos.forEach((bloco, blocoIdx) => {
+      let firstOfBloco = true;
+      const blocoLabel = bloco.nome || `Bloco ${String.fromCharCode(65 + blocoIdx)}`;
       bloco.exercicios.forEach((ex) => {
         if (ex.tipo === "simples") {
           exercicios.push({
@@ -131,7 +133,9 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
             repeticoes: ex.repeticoes || "",
             exercicio_id: ex.exercicio_id || undefined,
             video_url: ex.video_url || null,
+            blocoStart: firstOfBloco ? blocoLabel : undefined,
           });
+          firstOfBloco = false;
         } else {
           // Dinâmico → uma linha por variante (para o PDF/renderer alternar
           // cores por semana, espelhando o bloco de Frequência).
@@ -155,8 +159,10 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
               dinamicoIndex: i,
               dinamicoTotal: variantes.length,
               dinamicoTag: i === 0 ? tag : undefined,
+              blocoStart: firstOfBloco && i === 0 ? blocoLabel : undefined,
             });
           });
+          firstOfBloco = false;
         }
       });
     });
