@@ -1,31 +1,23 @@
-# Substituir "Nível mínimo" por "Níveis específicos" (multi-seleção)
+# Limite total na vigência (sem renovação por período)
 
-O campo "Nível mínimo" do cadastro de benefícios será substituído por "Níveis com acesso", onde você marca um ou mais níveis (incluindo AGREGADOR). Apenas membros nos níveis marcados poderão usar o benefício.
+Hoje, em "Novo benefício", o `Limite por período` reinicia a cada janela do campo `Periodicidade` (dia/semana/mês). O usuário quer que o limite seja **total dentro da vigência do benefício** — uma vez atingido, não renova.
 
-## Mudanças no banco
+## Mudanças
 
-- Adicionar coluna `niveis_permitidos clube_nivel_membro[] NOT NULL DEFAULT '{}'` na tabela `beneficios`.
-- Migrar dados existentes: para cada benefício, preencher `niveis_permitidos` com todos os níveis ≥ `nivel_minimo` atual (preserva comportamento dos benefícios já cadastrados).
-- Remover a coluna `nivel_minimo` (e o default).
-- Atualizar `fn_clube_validar_token`: substituir o teste de `array_position(...)` por `_membro.nivel_membro = ANY(_beneficio.niveis_permitidos)` (com motivo "Nível sem acesso ao benefício").
+### Banco — `fn_clube_validar_token`
+- Substituir o cálculo de `_periodo_inicio` (hoje baseado em `date_trunc(periodicidade, now())`) por:
+  - Contar `uso_beneficios` válidos do mesmo aluno + benefício desde `_beneficio.data_inicio` (sem upper bound — vigência aberta) ou até `_beneficio.data_fim + 1 dia` se preenchida.
+- Mensagem de recusa: `"Limite de usos do benefício atingido"`.
+- Manter colunas `periodicidade` e `limite_por_periodo` no schema (sem mudança estrutural) para não quebrar tipos gerados.
 
-## Mudanças no frontend
+### `src/components/clube/AdminBeneficiosTable.tsx`
+- Remover o campo "Periodicidade" do diálogo.
+- Renomear o label de `limite_por_periodo` para **"Limite total de usos"** (input numérico, opcional → ilimitado).
+- Texto auxiliar abaixo do campo: "Limite válido para toda a vigência do benefício; não renova."
+- No `save()`, enviar `periodicidade: 'livre'` por padrão (campo segue existindo no banco, apenas não é mais editável).
+- Na tabela de listagem, trocar a coluna **"Limite"** para mostrar `"5 usos"` (ou `"Livre"`), sem mais o sufixo `/Mensal` etc.
 
-### `AdminBeneficiosTable.tsx`
-- Trocar o select único por um grupo de **Checkboxes** com todos os níveis (`agregador`, `start`, `start_plus`, `power`, `pro`, `max`), usando `NIVEL_LABEL`.
-- Estado do form: `niveis_permitidos: NivelMembro[]` (default `["start"]`).
-- Validação no `save()`: exigir pelo menos um nível marcado.
-- Na tabela de listagem, exibir os níveis como múltiplos badges (ou "Todos" quando todos estiverem marcados).
-
-### `PartnersList.tsx`
-- Substituir filtro por `NIVEL_RANK` por:  
-  `benefs.filter((b) => b.niveis_permitidos.includes(nivelAluno))`.
-- No badge de cada benefício, mostrar lista compacta dos níveis (ou ocultar quando todos os níveis tiverem acesso).
-
-### `src/integrations/supabase/types.ts`
-- Será regenerado automaticamente após a migração; não editar à mão.
-
-## Itens fora do escopo
-
-- Não mexemos em outras telas, RLS ou cadastro de membros.
-- Benefícios existentes continuam acessíveis aos mesmos níveis (graças ao backfill).
+## Fora do escopo
+- Não adicionamos DatePickers de vigência (pedido cancelado anteriormente).
+- Não removemos colunas do banco — só ajustamos a função de validação e a UI do admin.
+- `PartnersList.tsx` não exibe periodicidade hoje; nada a alterar lá.
