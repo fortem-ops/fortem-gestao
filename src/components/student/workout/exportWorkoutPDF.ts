@@ -38,9 +38,9 @@ const RED_TINT: [number, number, number] = [254, 226, 226];  // red-100 — soft
 
 // Warm-up block accents (Red, Black/Ink, Gray) — keeps the brand palette.
 const WARMUP_COLORS: Record<string, { fill: [number, number, number]; text: [number, number, number] }> = {
-  LIB: { fill: RED, text: WHITE },          // Liberação — RED
+  LIB: { fill: INK, text: WHITE },          // Liberação — BLACK
   MOB: { fill: INK, text: WHITE },          // Mobilidade — BLACK
-  ATI: { fill: INK_MUTED, text: INK },      // Ativação — GRAY
+  ATI: { fill: INK, text: WHITE },          // Ativação — BLACK
 };
 
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
