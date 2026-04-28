@@ -401,13 +401,19 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         { content: "REP", styles: { halign: "center" } },
         { content: "KG", styles: { halign: "center" } },
       ]],
-      body: items.map((ex) => [
-        (ex.categoria ?? "") + (ex.dinamicoTag ? ` · ${ex.dinamicoTag}` : ""),
-        ex.exercicio,
-        String(ex.series ?? ""),
-        String(ex.repeticoes ?? ""),
-        ex.kg ?? "",
-      ]),
+      body: items.map((ex) => {
+        const isDynChild = typeof ex.dinamicoIndex === "number" && ex.dinamicoIndex > 0;
+        const catCell = isDynChild
+          ? ""
+          : (ex.categoria ?? "") + (ex.dinamicoTag ? ` · ${ex.dinamicoTag}` : "");
+        return [
+          catCell,
+          ex.exercicio,
+          String(ex.series ?? ""),
+          String(ex.repeticoes ?? ""),
+          ex.kg ?? "",
+        ];
+      }),
       styles: {
         ...bodyTextStyles,
         fontSize: ROW_FONT,
