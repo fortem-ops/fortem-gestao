@@ -343,7 +343,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         })(),
         didParseCell: (hookData) => {
           if (hookData.section === "body") {
-            hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
+            const isLastRow = hookData.row.index === bloco.items.length - 1;
+            hookData.cell.styles.lineWidth = { bottom: isLastRow ? 0 : 0.08 } as unknown as number;
             hookData.cell.styles.lineColor = RULE;
             // T1..T4 columns: hide the sentinel text; the dot is drawn in didDrawCell.
             if (hookData.column.index >= 3 && hookData.column.index <= 6) {
