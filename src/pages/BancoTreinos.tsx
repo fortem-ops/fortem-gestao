@@ -370,86 +370,8 @@ function ExerciseRow({
     </TableRow>
   );
 }
-  // Resolve effective exercise: 1) saved choice, 2) name match in template
-  const escolhaEx = escolha ? bank.find((b) => b.id === escolha.exercicio_id) : null;
-  const match = escolhaEx || findBankMatch(ex, bank);
-  const candidatesCount = getCandidatesForCode(ex.categoria, bank).length;
-  const hasVideo = match && (match.video_url || match.video_path);
-  const isSlotVazio = !ex.exercicio && !escolhaEx;
 
-  return (
-    <TableRow>
-      <TableCell className="font-mono text-xs text-muted-foreground">{ex.ordem}</TableCell>
-      <TableCell>
-        <Badge variant="outline" className="text-xs">{ex.categoria}</Badge>
-      </TableCell>
-      <TableCell className="text-sm">
-        {!isSlotVazio ? (
-          <div className="flex items-center gap-2 flex-wrap">
-            <ExercisePicker
-              categoria={ex.categoria}
-              bank={bank}
-              currentId={escolhaEx?.id}
-              canEdit={canEdit && candidatesCount > 0}
-              onSelect={(b) => onSaveChoice(b)}
-              onClear={escolha ? onClearChoice : undefined}
-              triggerLabel={<span>{match?.nome || ex.exercicio}</span>}
-            />
-            {escolhaEx && (
-              <Badge variant="outline" className="text-[10px] border-success/40 text-success">
-                escolhido
-              </Badge>
-            )}
-            {match ? (
-              hasVideo ? (
-                <button
-                  onClick={() => onOpenVideo(match)}
-                  className="text-primary hover:text-primary/80"
-                  aria-label="Ver vídeo"
-                >
-                  <Video className="w-3.5 h-3.5" />
-                </button>
-              ) : (
-                <Badge variant="outline" className="text-[10px] border-warning/40 text-warning gap-1">
-                  <AlertTriangle className="w-3 h-3" /> sem vídeo
-                </Badge>
-              )
-            ) : (
-              <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">
-                não cadastrado
-              </Badge>
-            )}
-          </div>
-        ) : (
-          <ExercisePicker
-            categoria={ex.categoria}
-            bank={bank}
-            canEdit={canEdit && candidatesCount > 0}
-            onSelect={(b) => onSaveChoice(b)}
-            triggerLabel={
-              <span className="text-muted-foreground italic text-xs">
-                {candidatesCount > 0
-                  ? `A definir — ${candidatesCount} opções no Banco`
-                  : "A definir"}
-              </span>
-            }
-          />
-        )}
-      </TableCell>
-      <TableCell className="text-center text-sm">{ex.series}</TableCell>
-      <TableCell className="text-center text-sm">{ex.repeticoes}</TableCell>
-      {showDays && (
-        <TableCell className="text-center">
-          <div className="flex gap-1 justify-center flex-wrap">
-            {(ex.dias || []).map(d => (
-              <Badge key={d} variant="secondary" className="text-[10px] px-1.5 py-0">{d}</Badge>
-            ))}
-          </div>
-        </TableCell>
-      )}
-    </TableRow>
-  );
-}
+
 
 function ExerciseTable({
   exercicios,
