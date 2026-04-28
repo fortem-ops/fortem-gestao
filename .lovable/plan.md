@@ -1,56 +1,181 @@
-## Ajustes no PDF de treino
+## Objetivo
 
-Quatro mudanças no arquivo `src/components/student/workout/exportWorkoutPDF.ts`, mantendo o requisito de página única (Treino 4 completo, sem quebra).
+Tornar o template **Personalizado** (Banco de Treinos → Métodos → Personalizado) totalmente editável, com persistência tanto como **modelo reutilizável** no Banco quanto **aplicado a um aluno**, mantendo o PDF em uma única página A4.
 
-### 1. Remover subtítulo do "Aquecimento"
-Na chamada `sectionLabel("Aquecimento", "Liberação · Mobilidade · Ativação")`, remover o segundo argumento. Passa a ser apenas `sectionLabel("Aquecimento")`.
+---
 
-### 2. Título "AQUECIMENTO" como barra vermelha (igual aos treinos)
-Refatorar o helper `sectionLabel` para desenhar uma barra vermelha de fundo cheio (mesmo estilo da barra "TREINO N"):
+## 1. Modelo de dados
 
-- Desenhar retângulo com `doc.setFillColor(...RED)` e altura igual a `BAR_H`, ocupando toda a largura `mainW`.
-- Texto do título em **branco** (`WHITE`), bold, alinhado à esquerda com pequeno padding (`mainX + 2.2`), centralizado verticalmente na barra.
-- Se houver `meta` (segundo argumento), desenhar também em branco à direita — mas neste caso será omitido (item 1).
-- **Remover** a linha hairline cinza desenhada abaixo do título.
-- Avançar `y += BAR_H + 0.45` (mesmo espaçamento usado após a barra dos treinos), em vez do `y += 1.1` × 2 atual.
+### Nova tabela `banco_treinos_personalizados` (modelos reutilizáveis)
+- `id uuid pk`
+- `nome text` (ex.: "Personalizado — Hipertrofia 4x")
+- `conteudo jsonb` (estrutura abaixo)
+- `criado_por uuid`, `created_at`, `updated_at`
+- RLS: SELECT autenticados; INSERT/UPDATE/DELETE para autor ou coord/admin.
 
-### 3. Barras "TREINO 1–4": vermelho mantido + remover "FORÇA"
-A barra dos treinos já é vermelha. A mudança é remover o rótulo "FORÇA" alinhado à direita dentro dessa barra (bloco que faz `doc.text("FORÇA", mainX + mainW - 1.8, ...)`).
+### Estrutura do `conteudo` (mesmo shape para modelo e treino do aluno)
 
-### 4. Aumentar a fonte geral mantendo página única
+```json
+{
+  "aquecimento": {
+    "LIB": [{ "exercicio_id": "...", "nome": "...", "repeticoes": "60s", "dias": ["T1","T2"] }],
+    "MOB": [...],
+    "ATI": [...]
+  },
+  "treinos": [
+    {
+      "nome": "Treino 1",
+      "blocos": [
+        {
+          "nome": "Bloco A",
+          "exercicios": [
+            {
+              "tipo": "simples",
+              "categoria": "DJS",
+              "exercicio_id": "...", "nome": "Agachamento",
+              "series": 3, "repeticoes": "10"
+            },
+            {
+              "tipo": "dinamico",
+              "categoria": "EH",
+              "variantes": [
+                { "exercicio_id": "...", "nome": "Supino" },
+                { "exercicio_id": "...", "nome": "Apoio" }
+              ],
+              "rotacao": "impar_par",          // ou "rotativa"
+              "series_modo": "compartilhado",  // ou "independente"
+              "series": 3, "repeticoes": "10",
+              "variantes_meta": [              // usado se "independente"
+                { "series": 3, "repeticoes": "10" },
+                { "series": 4, "repeticoes": "8" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "observacoes": ""
+}
+```
 
-Estratégia: subir os "pisos" (`Math.max(floor, nominal*scale)`) das fontes de conteúdo, e compensar o orçamento vertical para não estourar a página no Treino 4 com 5 exercícios.
+A estrutura é **retrocompatível** com o `WorkoutData` atual: ao salvar como `treinos.conteudo` para o aluno, é serializada nesse mesmo formato (o leitor antigo só precisa entender `blocos[].exercicios[]`; vamos migrar `WorkoutDetail` para o novo shape — abaixo).
 
-Mudanças nas constantes (sem alterar a lógica de "two-pass scaling"):
+---
 
-- `EX_NAME_FONT`: piso `7.8 → 9.0`, nominal `12.5 → 13.5`
-- `NUM_FONT` (séries/reps): piso `7.6 → 9.0`, nominal `12.0 → 13.5`
-- `ROW_FONT` (linhas do aquecimento): piso `6.4 → 7.6`, nominal `9.5 → 11.0`
-- `HEAD_FONT` (cabeçalhos de tabela): piso `5.4 → 6.2`, nominal `7.2 → 8.2`
-- `SECTION_FONT` (texto "AQUECIMENTO" na barra vermelha): piso `6.0 → 7.0`, nominal `7.8 → 9.0`
-- `TREINO_LABEL_FONT` (texto "TREINO N"): piso `5.4 → 6.6`, nominal `7.2 → 8.4`
-- Manter os demais (META_FONT, BADGE_FONT, SMALL_FONT) — não impactam legibilidade dos exercícios.
+## 2. Editor: `PersonalizadoEditor` (novo componente)
 
-Compensação no orçamento de altura (para garantir cabimento):
+Arquivo novo: `src/components/student/workout/PersonalizadoEditor.tsx`.
 
-- `NOM_ROW`: `10.2 → 11.0` e `FLOOR_ROW`: `6.2 → 7.0`
-- `BADGE_H` piso `2.4 → 2.8`
-- `BAR_H` piso `3.6 → 4.2`
-- Reduzir o ar entre seções para abrir espaço:
-  - `sectionGap`: `0.8 → 0.6`
-  - `treinoGap`: `0.6 → 0.4`
-  - Espaço extra após renderizar bloco de força: `+ 0.8 → + 0.6`
-  - Bloco de Observações: `OBS_LINE_GAP` `5 → 4.2`
-- Aumentar o `slack` global em `floorEst` de `10 → 14`, garantindo que o pior caso (Treino 4 com 5 exercícios + nomes longos) ainda caiba.
+### Cabeçalho
+- Nome do modelo / descrição.
+- Botões: **Salvar como modelo** (no Banco), **Aplicar a um aluno** (abre `StudentPicker` → salva em `treinos`), **Exportar PDF**, **Imprimir**.
+- Quando aberto a partir de um aluno (rota com `alunoId`), aparece também **Salvar no aluno**.
 
-### Validação
-Rodar a suíte `src/components/student/workout/exportWorkoutPDF.test.ts` (já cobre):
-- página única;
-- Treino 4 com Bloco A + Bloco B totalmente renderizados;
-- Frequência na página 1;
-- variante "stress" com nomes extra-longos.
+### Aquecimento
+- Três colunas/sessões: **LIB**, **MOB**, **ATI**.
+- Cada uma tem seu próprio `+ Exercício` (quantidades independentes).
+- Cada linha: seletor (`ExerciseSelector` filtrado pelo grupo correspondente), **Repetições** editável, chips de **Dias (T1–T4...)**.
+- Botão remover por linha; reordenação via setas ↑/↓.
 
-Se algum teste falhar, recalibrar o slack de `floorEst` para `16` e/ou reduzir 0.5pt em `EX_NAME_FONT` nominal, sempre re-executando até passarem todos.
+### Força
+- Botão **+ Treino** (Treino 1, 2, 3, ... sem limite). Cada treino editável.
+- Dentro de cada treino:
+  - Botão **+ Bloco** (Bloco A, B, C, ...).
+  - Dentro de cada bloco: **+ Exercício**.
+- Cada linha de exercício tem um **toggle "Tipo"** (RadioGroup pequeno, com **escolha prévia obrigatória** antes de adicionar/converter):
+  - **Simples** — 1 seletor de exercício, séries e reps editáveis.
+  - **Dinâmico** — abre sub-controles:
+    - **Sub-modo** (escolha prévia): `Ímpar/Par (X/Y)` · `X/Y independente (séries/reps por variante)` · `Rotação N variantes (semana 1=A, 2=B, 3=C…)`.
+    - Conforme sub-modo, mostra 2 ou N seletores; séries/reps ou compartilhados ou por variante.
+- Categoria do exercício (DJS, EH, etc.) selecionável por linha (Select com `CATEGORY_LABELS`) — usado para filtrar o seletor.
+- Reordenar/remover blocos e exercícios.
 
-### Arquivo afetado
-- `src/components/student/workout/exportWorkoutPDF.ts`
+### Observações
+- Textarea livre, salva em `conteudo.observacoes`.
+
+### Frequência
+- Mesmo controle existente (1–12 semanas) usado pelo PDF.
+
+---
+
+## 3. Integração no Banco de Treinos
+
+Em `src/pages/BancoTreinos.tsx`:
+
+- Card **Personalizado** passa a abrir o `PersonalizadoEditor` em vez do `TemplateDetail` somente leitura.
+- Acima do editor, lista de **Modelos personalizados salvos** (query da nova tabela). Cada item: abrir / duplicar / aplicar a aluno / excluir (se autor ou coord/admin).
+- Permissão de prescrição: **todos os usuários autenticados** (professores/coord/admin) podem criar e editar seus próprios modelos; somente coord/admin podem editar modelos de outros.
+
+Em `WorkoutDetail.tsx` (ficha do aluno):
+- Quando o `treino.conteudo` tiver `blocos` (novo shape), renderiza usando o mesmo `PersonalizadoEditor` em modo "aluno". Templates antigos (sem `blocos`) continuam usando o renderer atual — converter ao salvar.
+
+---
+
+## 4. Exportação PDF (`exportWorkoutPDF.ts`)
+
+Permanece em **uma única página** A4 retrato, sem quebra. Ajustes:
+
+- Suportar **N treinos** e **N blocos** por treino (não mais hard-coded "Bloco A/B"). Loop dinâmico sobre `conteudo.treinos[].blocos[]`.
+- Renderização de exercício:
+  - **Simples** → linha única atual.
+  - **Dinâmico (impar_par ou rotativa)** → **uma linha** com `Variante1 / Variante2 [/ Variante3...]` no campo "Exercício", e tag pequena à esquerda: `ÍMPAR/PAR` ou `1·2·3` indicando rotação.
+  - **Dinâmico independente** → mesma linha, mas séries/reps mostrados como `3×10 / 4×8`.
+- Two-pass scaling existente já reduz fontes para caber. Aumentar `slack` de `floorEst` adaptativamente em função do total de linhas (mais linhas → mais slack para tabela). Se ultrapassar o piso mínimo de fonte, reduzir `freqColW` até 18mm e/ou cortar `OBS_LINE_GAP`.
+- Aquecimento: blocos LIB/MOB/ATI com contagens variáveis (já é o caso, mantém).
+- Cabeçalho/Frequência/Observações inalterados.
+
+Atualizar `exportWorkoutPDF.test.ts` com 2 cenários novos:
+- Modelo personalizado denso (4 treinos × 3 blocos × 4 exercícios, com 30% dinâmicos) → 1 página, sem clipping.
+- Modelo mínimo (1 treino, 1 bloco, 1 exercício) → 1 página.
+
+---
+
+## 5. Migrações e RLS
+
+```sql
+create table public.banco_treinos_personalizados (
+  id uuid primary key default gen_random_uuid(),
+  nome text not null,
+  conteudo jsonb not null default '{}'::jsonb,
+  criado_por uuid not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.banco_treinos_personalizados enable row level security;
+
+create policy "view personalizados" on public.banco_treinos_personalizados
+  for select to authenticated using (true);
+create policy "insert personalizados" on public.banco_treinos_personalizados
+  for insert to authenticated with check (auth.uid() = criado_por);
+create policy "update personalizados" on public.banco_treinos_personalizados
+  for update to authenticated using (auth.uid() = criado_por or is_coordinator_or_admin(auth.uid()));
+create policy "delete personalizados" on public.banco_treinos_personalizados
+  for delete to authenticated using (auth.uid() = criado_por or is_coordinator_or_admin(auth.uid()));
+```
+
+Trigger `update_updated_at_column` já existe.
+
+---
+
+## 6. Arquivos afetados
+
+- **Novos**: `src/components/student/workout/PersonalizadoEditor.tsx`
+- **Editados**:
+  - `src/pages/BancoTreinos.tsx` (lista + roteamento para o novo editor)
+  - `src/components/student/workout/WorkoutDetail.tsx` (detectar shape novo)
+  - `src/components/student/workout/exportWorkoutPDF.ts` (loop dinâmico de blocos + render dinâmico)
+  - `src/components/student/workout/exportWorkoutPDF.test.ts` (novos cenários)
+  - `src/components/student/workout/workoutTemplates.ts` (tipos auxiliares opcionais)
+- **Migração SQL**: nova tabela + RLS.
+
+---
+
+## 7. Validação
+
+1. Criar modelo personalizado com aquecimento variado (LIB:2, MOB:5, ATI:3), 3 treinos com 2/3/2 blocos e mistura simples/dinâmico.
+2. Salvar como modelo → aparece na listagem.
+3. Aplicar a um aluno via `StudentPicker` → vira `treinos.conteudo` na ficha.
+4. Exportar PDF (1 e 4 semanas) — deve caber em 1 página em ambos.
+5. Reabrir via aluno e via Banco → editor preserva tudo.
+6. Testes vitest passam (incluindo os 2 novos cenários).

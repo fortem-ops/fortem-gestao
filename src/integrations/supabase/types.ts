@@ -292,6 +292,33 @@ export type Database = {
           },
         ]
       }
+      banco_treinos_personalizados: {
+        Row: {
+          conteudo: Json
+          created_at: string
+          criado_por: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          conteudo?: Json
+          created_at?: string
+          criado_por: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          conteudo?: Json
+          created_at?: string
+          criado_por?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       beneficios: {
         Row: {
           ativo: boolean
