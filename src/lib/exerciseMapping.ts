@@ -37,3 +37,26 @@ export const CODE_TO_SUBCATEGORIA: Record<string, string | undefined> = {
   AF: "Anti-flexão",
   AR: "Anti-Rotação",
 };
+
+// Subcategorias disponíveis para cada bloco de aquecimento (LIB/MOB/ATI).
+// Mantenha sincronizado com CATEGORIES em StudentExerciseBank.tsx.
+export const AQUECIMENTO_SUBCATEGORIAS: Record<"LIB" | "MOB" | "ATI", string[]> = {
+  LIB: [
+    "Pé/Tornozelo", "Perna", "Joelho/Coxa", "Quadril",
+    "Lombar", "Torácica", "Ombro/Escápula", "Cervical", "Cotovelo/Punho",
+  ],
+  MOB: [
+    "Pé/Tornozelo", "Joelho", "Quadril", "Quadril RE", "Quadril RI",
+    "Flexibilidade Posterior MI", "Flexibilidade Anterior MI",
+    "Torácica", "Torácica Rotação", "Glenoumeral", "Glenoumeral RE",
+    "Glenoumeral RI", "Cotovelo/Punho", "Padrão Geral",
+  ],
+  ATI: [
+    "Pé/Tornozelo", "Perna", "Estabilidade de Joelho", "Quadril",
+    "Estabilidade Lombar PA", "Estabilidade Lombar PP", "Torácica",
+    "Ombro/Escápula", "Cotovelo/Punho", "Padrão Geral",
+    "Estabilidade Escapular", "Desassociação Lombar/Quadril",
+    "Extensão Torácica", "Kettlebell", "Barra", "LPO",
+    "Pliométrico", "Coordenativo Corrida", "Solo",
+  ],
+};
