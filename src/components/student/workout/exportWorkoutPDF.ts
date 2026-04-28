@@ -445,19 +445,21 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       })(),
       didParseCell: (hookData) => {
         if (hookData.section === "body") {
-          const isLastRow = hookData.row.index === items.length - 1;
-          hookData.cell.styles.lineWidth = { bottom: isLastRow ? 0 : 0.08 } as unknown as number;
+          const rowIdx = hookData.row.index;
+          const ex = items[rowIdx];
+          const next = items[rowIdx + 1];
+          const isLastOfBlock = !next || !!next.blocoStart;
+          hookData.cell.styles.lineWidth = { bottom: isLastOfBlock ? 0 : 0.08 } as unknown as number;
           hookData.cell.styles.lineColor = RULE;
           // Linhas pertencentes a um grupo dinâmico: pintar fundo conforme a
           // semana correspondente (espelhando a coluna Frequência).
-          const ex = items[hookData.row.index];
           if (ex && typeof ex.dinamicoIndex === "number") {
             const isOdd = ex.dinamicoIndex % 2 === 1;
             hookData.cell.styles.fillColor = isOdd ? RED_TINT : WHITE;
           }
           // Quebra de bloco: linha superior mais marcada + um pequeno respiro.
-          if (ex?.blocoStart && hookData.row.index > 0) {
-            hookData.cell.styles.lineWidth = { top: 0.5, bottom: isLastRow ? 0 : 0.08 } as unknown as number;
+          if (ex?.blocoStart && rowIdx > 0) {
+            hookData.cell.styles.lineWidth = { top: 0.5, bottom: isLastOfBlock ? 0 : 0.08 } as unknown as number;
             hookData.cell.styles.lineColor = INK;
             hookData.cell.styles.cellPadding = {
               top: ROW_PAD + 1.4,
