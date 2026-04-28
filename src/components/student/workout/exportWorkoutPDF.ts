@@ -319,7 +319,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         },
         headStyles: {
           fillColor: WHITE,
-          textColor: INK_MUTED,
+          textColor: INK,
           fontStyle: "bold",
           fontSize: HEAD_FONT,
           cellPadding: { top: HEAD_PAD, bottom: HEAD_PAD, left: SIDE_PAD, right: SIDE_PAD },
@@ -430,7 +430,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       },
       headStyles: {
         fillColor: WHITE,
-        textColor: INK_MUTED,
+        textColor: INK,
         fontStyle: "bold",
         fontSize: HEAD_FONT,
         cellPadding: { top: HEAD_PAD, bottom: HEAD_PAD, left: SIDE_PAD, right: SIDE_PAD },
