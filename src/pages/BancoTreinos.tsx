@@ -558,7 +558,7 @@ export default function BancoTreinos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("banco_treinos_escolhas")
-        .select("id, template_fase, treino_nome, ordem, exercicio_id");
+        .select("id, template_fase, treino_nome, ordem, exercicio_id, categoria_override, series_override, repeticoes_override, dias_override");
       if (error) throw error;
       return (data || []) as Escolha[];
     },
@@ -610,6 +610,37 @@ export default function BancoTreinos() {
     onError: (e: any) => toast.error(e.message || "Falha ao remover"),
   });
 
+  const overrideMutation = useMutation({
+    mutationFn: async (payload: {
+      template_fase: string;
+      treino_nome: string;
+      ordem: number;
+      categoria: string;
+      patch: OverridePatch;
+    }) => {
+      if (!user) throw new Error("Não autenticado");
+      const { template_fase, treino_nome, ordem, categoria, patch } = payload;
+      const { error } = await supabase
+        .from("banco_treinos_escolhas")
+        .upsert(
+          {
+            template_fase,
+            treino_nome,
+            ordem,
+            categoria,
+            escolhido_por: user.id,
+            ...patch,
+          },
+          { onConflict: "template_fase,treino_nome,ordem" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["banco-treinos-escolhas"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Falha ao salvar alteração"),
+  });
+
   const handleSaveChoice = (template: WorkoutTemplate, ex: WorkoutExercise, treino: string, b: BankExercise) => {
     saveMutation.mutate({
       template_fase: template.fase,
@@ -627,6 +658,17 @@ export default function BancoTreinos() {
       ordem: ex.ordem,
     });
   };
+
+  const handleSaveOverride = (template: WorkoutTemplate, ex: WorkoutExercise, treino: string, patch: OverridePatch) => {
+    overrideMutation.mutate({
+      template_fase: template.fase,
+      treino_nome: treino,
+      ordem: ex.ordem,
+      categoria: ex.categoria,
+      patch,
+    });
+  };
+
 
   const handleOpenVideo = async (ex: BankExercise) => {
     if (ex.video_url) {
