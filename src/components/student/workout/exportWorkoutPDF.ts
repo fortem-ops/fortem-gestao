@@ -405,8 +405,14 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       body: items.map((ex) => {
         const isDynChild = typeof ex.dinamicoIndex === "number" && ex.dinamicoIndex > 0;
         const catCell = isDynChild ? "" : (ex.categoria ?? "");
+        const maxWeeks = Math.max(1, Math.min(12, Math.floor(weeks)));
         const semanas = typeof ex.dinamicoIndex === "number"
-          ? (ex.dinamicoIndex % 2 === 0 ? "1, 3, 5, 7" : "2, 4, 6, 8")
+          ? (() => {
+              const parity = ex.dinamicoIndex % 2 === 0 ? 1 : 2; // start at week 1 or 2
+              const list: number[] = [];
+              for (let w = parity; w <= maxWeeks; w += 2) list.push(w);
+              return list.join(", ");
+            })()
           : "";
         return [
           catCell,
