@@ -529,10 +529,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
     y += BAR_H + 0.45;
 
-    const blocoA = tr.exercicios.slice(0, 2);
-    const blocoB = tr.exercicios.slice(2, 5);
-    renderForcaBlock("A", blocoA, 1);
-    renderForcaBlock("B", blocoB, 1);
+    renderForcaBlock("A", tr.exercicios, 1);
     y += treinoGap;
   });
 
