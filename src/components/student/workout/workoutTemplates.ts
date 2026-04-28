@@ -1,6 +1,8 @@
 export interface WorkoutExercise {
   ordem: number;
   categoria: string;
+  /** Subcategoria/CAT exibida no PDF de aquecimento (ex.: "Quadril", "Torácica"). Opcional. */
+  subcategoria?: string;
   exercicio: string;
   series: number | string;
   repeticoes: string;
