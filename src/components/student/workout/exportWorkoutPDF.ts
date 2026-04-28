@@ -449,7 +449,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           const ex = items[rowIdx];
           const next = items[rowIdx + 1];
           const isLastOfBlock = !next || !!next.blocoStart;
-          hookData.cell.styles.lineWidth = { bottom: isLastOfBlock ? 0 : 0.08 } as unknown as number;
+          hookData.cell.styles.lineWidth = { top: 0, right: 0, bottom: isLastOfBlock ? 0 : 0.08, left: 0 } as unknown as number;
           hookData.cell.styles.lineColor = RULE;
           // Linhas pertencentes a um grupo dinâmico: pintar fundo conforme a
           // semana correspondente (espelhando a coluna Frequência).
@@ -459,7 +459,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           }
           // Quebra de bloco: linha superior mais marcada + um pequeno respiro.
           if (ex?.blocoStart && rowIdx > 0) {
-            hookData.cell.styles.lineWidth = { top: 0.5, bottom: isLastOfBlock ? 0 : 0.08 } as unknown as number;
+            hookData.cell.styles.lineWidth = { top: 0.5, right: 0, bottom: isLastOfBlock ? 0 : 0.08, left: 0 } as unknown as number;
             hookData.cell.styles.lineColor = INK;
             hookData.cell.styles.cellPadding = {
               top: ROW_PAD + 1.4,
