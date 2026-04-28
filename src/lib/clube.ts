@@ -10,6 +10,7 @@ export const NIVEL_LABEL: Record<NivelMembro, string> = {
   power: "POWER",
   pro: "PRO",
   max: "MAX",
+  agregador: "AGREGADOR",
 };
 
 export const NIVEL_BADGE: Record<NivelMembro, string> = {
@@ -18,6 +19,7 @@ export const NIVEL_BADGE: Record<NivelMembro, string> = {
   power: "POWER MEMBER",
   pro: "PRO MEMBER",
   max: "MAX MEMBER",
+  agregador: "AGREGADOR MEMBER",
 };
 
 // Paleta exata definida no plano (não-temáticas, fiel à carteirinha).
@@ -30,6 +32,7 @@ export const NIVEL_THEME: Record<
   power: { bg: "#6B6B6B", text: "#FFFFFF", accent: "#E10600", muted: "#111111" },
   pro: { bg: "#000000", text: "#FFFFFF", accent: "#E10600", muted: "#8A8A8A" },
   max: { bg: "#050505", text: "#FFFFFF", accent: "#FF2A2A", muted: "#A6A6A6", metallic: "#A6A6A6" },
+  agregador: { bg: "#1F2937", text: "#FFFFFF", accent: "#22C55E", muted: "#6B7280" },
 };
 
 export const STATUS_LABEL: Record<StatusMembro, string> = {
@@ -96,6 +99,7 @@ export function distanceKm(
 }
 
 export const NIVEL_RANK: Record<NivelMembro, number> = {
+  agregador: -1,
   start: 0,
   start_plus: 1,
   power: 2,

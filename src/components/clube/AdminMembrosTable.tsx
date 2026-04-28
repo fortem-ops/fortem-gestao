@@ -10,7 +10,7 @@ import { NIVEL_LABEL, STATUS_LABEL, type NivelMembro, type StatusMembro } from "
 import type { Database } from "@/integrations/supabase/types";
 
 const STATUS_OPTS: StatusMembro[] = ["ativo", "bloqueado", "inadimplente", "cancelado"];
-const NIVEL_OPTS: NivelMembro[] = ["start", "start_plus", "power", "pro", "max"];
+const NIVEL_OPTS: NivelMembro[] = ["start", "start_plus", "power", "pro", "max", "agregador"];
 
 type Row = Database["public"]["Tables"]["clube_fortem_membros"]["Row"] & { aluno_nome?: string };
 

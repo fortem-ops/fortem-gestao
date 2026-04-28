@@ -1543,7 +1543,13 @@ export type Database = {
         | "divergencia_nivel"
         | "sincronizacao_parcial"
         | "manual"
-      clube_nivel_membro: "start" | "start_plus" | "power" | "pro" | "max"
+      clube_nivel_membro:
+        | "start"
+        | "start_plus"
+        | "power"
+        | "pro"
+        | "max"
+        | "agregador"
       clube_status_membro: "ativo" | "bloqueado" | "inadimplente" | "cancelado"
       parceiro_modo_validacao: "qr_scan" | "cpf_manual" | "lista_nome"
       pipeline_movement_source:
@@ -1721,7 +1727,14 @@ export const Constants = {
         "sincronizacao_parcial",
         "manual",
       ],
-      clube_nivel_membro: ["start", "start_plus", "power", "pro", "max"],
+      clube_nivel_membro: [
+        "start",
+        "start_plus",
+        "power",
+        "pro",
+        "max",
+        "agregador",
+      ],
       clube_status_membro: ["ativo", "bloqueado", "inadimplente", "cancelado"],
       parceiro_modo_validacao: ["qr_scan", "cpf_manual", "lista_nome"],
       pipeline_movement_source: [
