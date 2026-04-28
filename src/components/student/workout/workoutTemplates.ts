@@ -81,21 +81,21 @@ const fase1Treino4: WorkoutExercise[] = [
 
 // =================== FASE 2 ===================
 const fase2Aquecimento: WorkoutExercise[] = [
-  { ordem: 1, categoria: "LIB", exercicio: "01. Rolinho - panturrilha", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 2, categoria: "LIB", exercicio: "01. Rolinho - anterior, posterior, vasto lateral e adutor", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 3, categoria: "LIB", exercicio: "01. Rolinho - quadril (glúteos)", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 4, categoria: "LIB", exercicio: "01. Rolinho - torácica", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
-  { ordem: 5, categoria: "LIB", exercicio: "06. Alongamento posterior c/ superband", series: 1, repeticoes: '60"', dias: ["T2","T4"] },
-  { ordem: 6, categoria: "MOB", exercicio: "04. Extensão e flexão torácica (em rocking)", series: 1, repeticoes: "15", dias: ["T1","T2","T3","T4"] },
-  { ordem: 7, categoria: "MOB", exercicio: "05. 90/90 RE/RI (sem giro do tronco)", series: 1, repeticoes: "20", dias: ["T1","T3"] },
-  { ordem: 8, categoria: "MOB", exercicio: "02. L Tesoura flexão/extensão (perna no chão)", series: 1, repeticoes: "15", dias: ["T2","T4"] },
-  { ordem: 9, categoria: "MOB", exercicio: "03. Dorsiflexão passiva c/ step", series: 1, repeticoes: "15", dias: ["T1","T3"] },
-  { ordem: 10, categoria: "MOB", exercicio: "01. Flexão e extensão de ombro c/ bastão (SM)", series: 1, repeticoes: "15", dias: ["T2","T4"] },
-  { ordem: 11, categoria: "ATI", exercicio: "05- Dead bug alternado", series: 1, repeticoes: "20", dias: ["T1","T2","T3","T4"] },
-  { ordem: 12, categoria: "ATI", exercicio: "02- Ponte unilateral c/ perna flexionada", series: 1, repeticoes: '30"', dias: ["T2","T4"] },
-  { ordem: 13, categoria: "ATI", exercicio: "01- Rotação externa de ombro c/ elástico", series: 1, repeticoes: "20", dias: ["T1","T2","T3","T4"] },
-  { ordem: 14, categoria: "ATI", exercicio: "03- Deslocamento lateral c/ band no joelho", series: 1, repeticoes: "20", dias: ["T1","T3"] },
-  { ordem: 15, categoria: "ATI", exercicio: "02- Pêndulo", series: 2, repeticoes: "8", dias: ["T2","T4"] },
+  { ordem: 1, categoria: "LIB", subcategoria: "Pé/Tornozelo", exercicio: "01. Rolinho - panturrilha", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 2, categoria: "LIB", subcategoria: "Joelho/Coxa", exercicio: "01. Rolinho - anterior, posterior, vasto lateral e adutor", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 3, categoria: "LIB", subcategoria: "Quadril", exercicio: "01. Rolinho - quadril (glúteos)", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 4, categoria: "LIB", subcategoria: "Torácica", exercicio: "01. Rolinho - torácica", series: 1, repeticoes: '60"', dias: ["T1","T2","T3","T4"] },
+  { ordem: 5, categoria: "LIB", subcategoria: "Perna", exercicio: "06. Alongamento posterior c/ superband", series: 1, repeticoes: '60"', dias: ["T2","T4"] },
+  { ordem: 6, categoria: "MOB", subcategoria: "Torácica", exercicio: "04. Extensão e flexão torácica (em rocking)", series: 1, repeticoes: "15", dias: ["T1","T2","T3","T4"] },
+  { ordem: 7, categoria: "MOB", subcategoria: "Quadril RE", exercicio: "05. 90/90 RE/RI (sem giro do tronco)", series: 1, repeticoes: "20", dias: ["T1","T3"] },
+  { ordem: 8, categoria: "MOB", subcategoria: "Quadril", exercicio: "02. L Tesoura flexão/extensão (perna no chão)", series: 1, repeticoes: "15", dias: ["T2","T4"] },
+  { ordem: 9, categoria: "MOB", subcategoria: "Pé/Tornozelo", exercicio: "03. Dorsiflexão passiva c/ step", series: 1, repeticoes: "15", dias: ["T1","T3"] },
+  { ordem: 10, categoria: "MOB", subcategoria: "Glenoumeral", exercicio: "01. Flexão e extensão de ombro c/ bastão (SM)", series: 1, repeticoes: "15", dias: ["T2","T4"] },
+  { ordem: 11, categoria: "ATI", subcategoria: "Estabilidade Lombar PA", exercicio: "05- Dead bug alternado", series: 1, repeticoes: "20", dias: ["T1","T2","T3","T4"] },
+  { ordem: 12, categoria: "ATI", subcategoria: "Quadril", exercicio: "02- Ponte unilateral c/ perna flexionada", series: 1, repeticoes: '30"', dias: ["T2","T4"] },
+  { ordem: 13, categoria: "ATI", subcategoria: "Estabilidade Escapular", exercicio: "01- Rotação externa de ombro c/ elástico", series: 1, repeticoes: "20", dias: ["T1","T2","T3","T4"] },
+  { ordem: 14, categoria: "ATI", subcategoria: "Quadril", exercicio: "03- Deslocamento lateral c/ band no joelho", series: 1, repeticoes: "20", dias: ["T1","T3"] },
+  { ordem: 15, categoria: "ATI", subcategoria: "Kettlebell", exercicio: "02- Pêndulo", series: 2, repeticoes: "8", dias: ["T2","T4"] },
 ];
 
 const fase2Treino1: WorkoutExercise[] = [
