@@ -397,18 +397,21 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       head: [[
         { content: "CAT", styles: { halign: "left" } },
         { content: "", styles: { halign: "left" } },
+        { content: "SEMANA", styles: { halign: "center" } },
         { content: "SÉRIES", styles: { halign: "center" } },
         { content: "REP", styles: { halign: "center" } },
         { content: "KG", styles: { halign: "center" } },
       ]],
       body: items.map((ex) => {
         const isDynChild = typeof ex.dinamicoIndex === "number" && ex.dinamicoIndex > 0;
-        const catCell = isDynChild
-          ? ""
-          : (ex.categoria ?? "") + (ex.dinamicoTag ? ` · ${ex.dinamicoTag}` : "");
+        const catCell = isDynChild ? "" : (ex.categoria ?? "");
+        const semanas = typeof ex.dinamicoIndex === "number"
+          ? (ex.dinamicoIndex % 2 === 0 ? "1, 3, 5, 7" : "2, 4, 6, 8")
+          : "";
         return [
           catCell,
           ex.exercicio,
+          semanas,
           String(ex.series ?? ""),
           String(ex.repeticoes ?? ""),
           ex.kg ?? "",
@@ -429,14 +432,15 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         lineColor: INK_SOFT,
       },
       columnStyles: (() => {
-        const wCat = 9, wSer = 14, wRep = 20, wKg = 12;
-        const wEx = mainW - (wCat + wSer + wRep + wKg);
+        const wCat = 9, wSem = 22, wSer = 14, wRep = 20, wKg = 12;
+        const wEx = mainW - (wCat + wSem + wSer + wRep + wKg);
         return {
           0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_NAME_FONT },
           1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
-          2: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
-          3: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
-          4: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
+          2: { cellWidth: wSem, halign: "center", fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
+          3: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+          4: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+          5: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
         };
       })(),
       didParseCell: (hookData) => {
@@ -453,7 +457,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           // Quebra de bloco: linha superior mais marcada + um pequeno respiro.
           if (ex?.blocoStart && hookData.row.index > 0) {
             hookData.cell.styles.lineWidth = { top: 0.5, bottom: 0.08 } as unknown as number;
-            hookData.cell.styles.lineColor = RED;
+            hookData.cell.styles.lineColor = INK;
             hookData.cell.styles.cellPadding = {
               top: ROW_PAD + 1.4,
               bottom: ROW_PAD,
@@ -477,7 +481,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         if (ex.blocoStart && hookData.row.index > 0 && hookData.column.index === 0) {
           doc.setFont("helvetica", "bold");
           doc.setFontSize(Math.max(4.6, BADGE_FONT));
-          doc.setTextColor(...RED);
+          doc.setTextColor(...INK);
           doc.text(
             ex.blocoStart.toUpperCase(),
             hookData.cell.x + 1.2,

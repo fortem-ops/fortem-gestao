@@ -1,78 +1,60 @@
-## Exercícios dinâmicos no PDF: linhas separadas + cor por semana
+## Ajustes no PDF de Treino — Bloco de Força
 
-Hoje, ao exportar o PDF, um exercício **Dinâmico** (rotação Ímpar/Par ou Rotativa) é "achatado" em **uma única linha** com nomes concatenados (ex.: `I/P Agachamento / Stiff` e séries/reps `3/3` `10/12`). Isso dificulta a leitura e impede de associar visualmente cada variante a uma semana específica do bloco de Frequência.
+Três ajustes pontuais na renderização do bloco de força em `src/components/student/workout/exportWorkoutPDF.ts`.
 
-### O que muda
+### 1. Remover "..." ao final da CAT em exercícios dinâmicos
 
-1. **Cada variante vira uma linha própria** dentro do bloco de Força (Bloco A / Bloco B), em vez de uma única linha com `/`.
-   - Mantém a mesma `categoria` (CAT) repetida, mas com a primeira linha "ancorando" o grupo.
-   - A coluna `EXERCÍCIO` mostra o nome puro da variante (sem o prefixo `I/P` / `ROT`).
-   - `SÉRIES`, `REP`, `KG` mostram os valores específicos daquela variante (modo `independente`) ou os valores compartilhados (modo `compartilhado`).
+Hoje a primeira linha de um grupo dinâmico mostra `CAT · I/P` (ou `· ROT`). Como a coluna CAT tem só 9mm, o sufixo é cortado e vira reticências (`DJS…`). Solução: deixar de concatenar `dinamicoTag` na célula CAT — o agrupamento já é indicado pela barra vertical vermelha à esquerda. A célula CAT passa a exibir apenas `ex.categoria` (vazia nas linhas filhas, como já é hoje).
 
-2. **Cor de fundo da linha = cor da semana correspondente**, seguindo a mesma lógica da coluna **Frequência** à direita:
-   - `impar_par` (2 variantes): variante 1 = semanas ímpares (fundo **branco**), variante 2 = semanas pares (fundo **vermelho claro / RED_TINT**).
-   - `rotativa` (N variantes): semana 1 → branco, semana 2 → vermelho, semana 3 → branco, semana 4 → vermelho, ciclando. A cor de cada linha segue o índice da variante: ímpar = branco, par = RED_TINT (mesmo `RED_TINT` já usado na coluna Frequência).
+### 2. Quebra de bloco em preto (em vez de vermelho)
 
-3. **Marcador visual de grupo dinâmico**: uma fina barra vertical vermelha (2px) à esquerda das linhas do grupo, agrupando visualmente as variantes do mesmo exercício dinâmico. Pequeno rótulo `I/P` ou `ROT` aparece como sufixo discreto na CAT da primeira linha do grupo (ex.: `DJS · I/P`).
+Na quebra de bloco (`blocoStart` em linha > 0):
+- A borda superior reforçada passa de `RED` para `INK` (preto/zinc-900).
+- O rótulo "BLOCO X" desenhado no canto superior esquerdo passa de `RED` para `INK`.
 
-### Como fica (ilustração ASCII)
+A barra vertical de agrupamento de dinâmico continua vermelha (sinaliza outro conceito).
 
-Antes:
+### 3. Nova coluna "SEMANA" antes de SÉRIES
+
+Adicionar uma coluna entre a coluna do nome do exercício e SÉRIES:
+
 ```text
-CAT  EXERCÍCIO                             SÉRIES  REP    KG
-DJS  I/P Agachamento / Stiff               3/3     10/12  —
+CAT | EXERCÍCIO | SEMANA | SÉRIES | REP | KG
 ```
 
-Depois (Ímpar/Par, fundo das linhas espelha as semanas):
-```text
-CAT       EXERCÍCIO              SÉRIES  REP   KG
-DJS·I/P   Agachamento            3       10    —     ← branco (semanas ímpares)
-DJS       Stiff                  3       12    —     ← RED_TINT (semanas pares)
-```
+Conteúdo por linha:
+- Exercício **simples**: célula vazia (vale para todas as semanas).
+- Exercício **dinâmico**, variante de índice par (0, 2, 4… → linha branca, "primeira" da rotação): `1, 3, 5, 7`.
+- Exercício **dinâmico**, variante de índice ímpar (1, 3… → linha vermelha): `2, 4, 6, 8`.
 
-Depois (Rotativa com 4 variantes):
-```text
-DJS·ROT   Agachamento            3       10    —     ← branco (sem 1)
-DJS       Afundo                 3       10    —     ← RED_TINT (sem 2)
-DJS       Búlgaro                3       10    —     ← branco (sem 3)
-DJS       Stiff                  3       10    —     ← RED_TINT (sem 4)
-```
+Para rotações com mais de 2 variantes (`rotativa`), seguimos a mesma lógica binária ímpar/par do `dinamicoIndex`, mantendo coerência com a coluna Frequência.
+
+Estilo da nova coluna: fonte pequena (≈ `SMALL_FONT`), centralizada, cor `INK_SOFT`, em negrito leve. Largura ~22mm (espaço retirado proporcionalmente das colunas SÉRIES/REP/KG e do nome do exercício para preservar o layout A4).
 
 ### Detalhes técnicos
 
-- **`src/components/student/workout/personalizadoTypes.ts`** — `flattenPersonalizado`:
-  - Para `tipo === "dinamico"`: emitir **N linhas** (uma por variante) em vez de uma só.
-  - Adicionar campos extras opcionais em `WorkoutExercise` para o renderer:
-    - `dinamicoIndex?: number` (0..N-1) — índice da variante.
-    - `dinamicoTotal?: number` — N total de variantes.
-    - `dinamicoTag?: "I/P" | "ROT"` — apenas na primeira linha do grupo.
-  - Linha 1 do grupo recebe a `categoria` original; linhas seguintes podem repetir a categoria (cell já é "bold" cinza, fica natural).
-  - `series`/`repeticoes`/`video_url` de cada linha vêm da própria variante (modo `independente`) ou são herdados do grupo (modo `compartilhado`).
+Arquivo único: `src/components/student/workout/exportWorkoutPDF.ts`, função `renderForcaBlock`.
 
-- **`src/components/student/workout/workoutTemplates.ts`** — adicionar os 3 campos opcionais à `interface WorkoutExercise` (não-quebrante).
+- `head`: inserir `{ content: "SEMANA", styles: { halign: "center" } }` na posição 2.
+- `body`: para cada linha, computar:
+  ```ts
+  const semanas = typeof ex.dinamicoIndex === "number"
+    ? (ex.dinamicoIndex % 2 === 0 ? "1, 3, 5, 7" : "2, 4, 6, 8")
+    : "";
+  ```
+  e inserir como 3ª célula.
+- `columnStyles`: reindexar (CAT=0, EX=1, SEMANA=2, SÉRIES=3, REP=4, KG=5). Largura sugerida: `wCat=9, wSem=22, wSer=14, wRep=20, wKg=12`, e `wEx = mainW - soma`.
+- `didDrawCell` da barra vertical do dinâmico: continua disparando em `column.index === 0`.
+- `didParseCell` da quebra de bloco: trocar `RED` por `INK` em `lineColor`.
+- `didDrawCell` do rótulo "BLOCO X": trocar `setTextColor(...RED)` por `setTextColor(...INK)`.
+- Remover a concatenação `(ex.dinamicoTag ? \` · ${ex.dinamicoTag}\` : "")` do `catCell`.
 
-- **`src/components/student/workout/exportWorkoutPDF.ts`** — em `renderForcaBlock`:
-  - No `didParseCell` (section `body`), pintar `cell.styles.fillColor`:
-    - Se a row é parte de um grupo dinâmico (`dinamicoIndex !== undefined`): usar `WHITE` para índice par (0,2,4…) e `RED_TINT` para índice ímpar (1,3,5…). Isso casa com a coluna Frequência que alterna por semana (`week % 2 === 0` usa RED_TINT).
-    - Sobrepõe o `alternateRowStyles` zebra atual para essas linhas.
-  - No `didDrawCell` da primeira coluna (CAT) da primeira linha do grupo: desenhar uma barrinha vertical vermelha (`RED_SOFT`) de ~0.6mm de largura colando à borda esquerda da célula, estendendo a altura do grupo (calculada via `dinamicoTotal × cell.height`). Para simplificar e evitar coordenar alturas entre rows, desenhar a barra **em cada linha do grupo** (mesmo X, mesma largura), criando visualmente uma única barra contínua.
-  - Concatenar tag na CAT: se `dinamicoTag` definido, exibir `categoria + " · " + tag` apenas na primeira linha (já vem montado no `flattenPersonalizado`, sem lógica adicional no renderer).
-
-- **Frequência**: nenhum ajuste — a coluna lateral já usa exatamente o mesmo esquema (branco para semana ímpar, `RED_TINT` para semana par), garantindo coerência visual lado a lado.
-
-- **Compatibilidade**: linhas sem `dinamicoIndex` continuam usando `alternateRowStyles` (zebra cinza) — comportamento atual preservado para exercícios SIMPLES.
-
-### Arquivos editados
-
-- `src/components/student/workout/workoutTemplates.ts`
-- `src/components/student/workout/personalizadoTypes.ts`
-- `src/components/student/workout/exportWorkoutPDF.ts`
+Sem alterações em tipos, em `personalizadoTypes.ts` ou em templates — os campos `dinamicoIndex` e `dinamicoTotal` já existem e são suficientes.
 
 ### QA
 
-Gerar PDFs e inspecionar:
-1. Treino Personalizado com 1 exercício **Ímpar/Par** (2 variantes) → 2 linhas, 1ª branca, 2ª RED_TINT, barrinha vermelha à esquerda.
-2. Treino Personalizado com 1 exercício **Rotativa** com 3 e 4 variantes → linhas alternando branco/RED_TINT.
-3. Modo `independente` vs `compartilhado` → séries/reps por linha vs valores únicos.
-4. Mistura de exercícios Simples + Dinâmicos no mesmo bloco → zebra cinza nos simples, alternância branco/vermelho apenas nos dinâmicos.
-5. Tudo cabendo em página A4 única (validar `scale` two-pass — N maior de linhas pode forçar redução de fonte).
+Gerar PDF de um treino com exercícios simples + um dinâmico Ímpar/Par + um dinâmico Rotativa em blocos diferentes (Bloco A e Bloco B) e verificar:
+- CAT do dinâmico mostra apenas a sigla, sem "..." nem "· I/P".
+- Linha de quebra de Bloco B com borda superior preta e rótulo "BLOCO B" preto.
+- Coluna SEMANA com "1, 3, 5, 7" nas linhas brancas dinâmicas e "2, 4, 6, 8" nas vermelhas; vazia nas simples.
+- Largura das colunas ainda cabe em A4 sem ellipsizar nomes de exercícios comuns.
