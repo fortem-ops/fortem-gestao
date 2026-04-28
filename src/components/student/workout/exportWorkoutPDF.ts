@@ -46,6 +46,10 @@ const WARMUP_COLORS: Record<string, { fill: [number, number, number]; text: [num
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
 const CHECK = "•DOT•"; // sentinel — replaced by a red dot in didDrawCell
 
+/** Removes leading numeric prefixes from exercise names (e.g. "4-Agachamento" → "Agachamento"). */
+const cleanExerciseName = (name: string): string =>
+  (name ?? "").replace(/^\s*\d+\s*[-–—.)]\s*/, "").trim();
+
 /**
  * Generates a single-page A4 portrait PDF with a modern, minimal layout.
  * Includes: header w/ QR Code, warm-up blocks (LIB/MOB/ATI in distinct colors),
