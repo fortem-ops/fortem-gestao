@@ -490,6 +490,36 @@ export default function BancoTreinos() {
 
   const [selected, setSelected] = useState<WorkoutTemplate | null>(null);
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
+  const [personalizadoOpen, setPersonalizadoOpen] = useState<
+    | null
+    | { mode: "new" }
+    | { mode: "edit"; id: string; nome: string; conteudo: PersonalizadoConteudo }
+  >(null);
+
+  const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
+    queryKey: ["banco-treinos-personalizados"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("banco_treinos_personalizados")
+        .select("id, nome, conteudo, criado_por, updated_at")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30_000,
+  });
+
+  const handleDeleteModelo = async (id: string) => {
+    if (!confirm("Excluir este modelo personalizado?")) return;
+    const { error } = await supabase.from("banco_treinos_personalizados").delete().eq("id", id);
+    if (error) {
+      toast.error("Falha ao excluir: " + error.message);
+      return;
+    }
+    toast.success("Modelo excluído");
+    refetchModelos();
+  };
+
 
   const { data: bank = [] } = useQuery({
     queryKey: ["exercicios-bank-templates"],
