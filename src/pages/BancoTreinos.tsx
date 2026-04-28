@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
-import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
+import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA, AQUECIMENTO_SUBCATEGORIAS } from "@/lib/exerciseMapping";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
 import { toast } from "sonner";
 import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
@@ -63,9 +63,13 @@ function findBankMatch(ex: WorkoutExercise, bank: BankExercise[]): BankExercise 
   return null;
 }
 
-function getCandidatesForCode(categoria: string, bank: BankExercise[]): BankExercise[] {
+function getCandidatesForCode(
+  categoria: string,
+  bank: BankExercise[],
+  subOverride?: string,
+): BankExercise[] {
   const grupo = CODE_TO_GRUPO[categoria.toUpperCase()];
-  const sub = CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
+  const sub = subOverride ?? CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
   if (!grupo) return [];
   return bank.filter((ex) =>
     ex.grupos.some((g) => g.grupo === grupo && (!sub || g.subcategoria === sub)),
@@ -80,6 +84,7 @@ function ExercisePicker({
   onClear,
   canEdit,
   triggerLabel,
+  subcategoriaOverride,
 }: {
   categoria: string;
   bank: BankExercise[];
@@ -88,10 +93,14 @@ function ExercisePicker({
   onClear?: () => void;
   canEdit: boolean;
   triggerLabel: React.ReactNode;
+  subcategoriaOverride?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const candidates = useMemo(() => getCandidatesForCode(categoria, bank), [categoria, bank]);
+  const candidates = useMemo(
+    () => getCandidatesForCode(categoria, bank, subcategoriaOverride),
+    [categoria, bank, subcategoriaOverride],
+  );
   const filtered = useMemo(() => {
     if (!query) return candidates;
     const q = query.toLowerCase();
@@ -117,7 +126,7 @@ function ExercisePicker({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Buscar em ${CODE_TO_SUBCATEGORIA[categoria.toUpperCase()] || CODE_TO_GRUPO[categoria.toUpperCase()] || categoria}...`}
+              placeholder={`Buscar em ${subcategoriaOverride || CODE_TO_SUBCATEGORIA[categoria.toUpperCase()] || CODE_TO_GRUPO[categoria.toUpperCase()] || categoria}...`}
               className="h-8 pl-7 text-xs"
             />
           </div>
@@ -178,6 +187,7 @@ function ExerciseRow({
   onClearChoice,
   onSaveOverride,
   canEdit,
+  aquecimentoBloco,
 }: {
   ex: WorkoutExercise;
   bank: BankExercise[];
@@ -190,12 +200,20 @@ function ExerciseRow({
   onClearChoice: () => void;
   onSaveOverride: (patch: OverridePatch) => void;
   canEdit: boolean;
+  aquecimentoBloco?: "LIB" | "MOB" | "ATI";
 }) {
   // Effective values: override > template
   const effCategoria = escolha?.categoria_override ?? ex.categoria;
   const effSeries = escolha?.series_override ?? ex.series;
   const effReps = escolha?.repeticoes_override ?? ex.repeticoes;
   const effDias = escolha?.dias_override ?? ex.dias ?? [];
+
+  // For warm-up rows, the "Categoria" select carries the subcategoria (the
+  // grupo is fixed by the block: LIB/MOB/ATI). Default = ex.subcategoria from the template.
+  const defaultSubcategoria = ex.subcategoria;
+  const effSubcategoria = aquecimentoBloco
+    ? (escolha?.categoria_override ?? defaultSubcategoria ?? "")
+    : undefined;
 
   // Local state for text inputs (commit on blur / Enter)
   const [seriesInput, setSeriesInput] = useState(String(effSeries ?? ""));
@@ -205,9 +223,14 @@ function ExerciseRow({
 
   const escolhaEx = escolha?.exercicio_id ? bank.find((b) => b.id === escolha.exercicio_id) : null;
   const match = escolhaEx || findBankMatch(ex, bank);
-  const candidatesCount = getCandidatesForCode(effCategoria, bank).length;
+  const candidatesCount = getCandidatesForCode(
+    aquecimentoBloco ?? effCategoria,
+    bank,
+    aquecimentoBloco ? (effSubcategoria || undefined) : undefined,
+  ).length;
   const hasVideo = match && (match.video_url || match.video_path);
   const isSlotVazio = !ex.exercicio && !escolhaEx;
+
 
   const commitSeries = () => {
     const trimmed = seriesInput.trim();
@@ -241,7 +264,29 @@ function ExerciseRow({
     <TableRow>
       <TableCell className="font-mono text-xs text-muted-foreground">{ex.ordem}</TableCell>
       <TableCell>
-        {canEdit ? (
+        {aquecimentoBloco ? (
+          canEdit ? (
+            <select
+              value={effSubcategoria || ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                onSaveOverride({
+                  categoria_override: !v || v === (defaultSubcategoria ?? "") ? null : v,
+                });
+              }}
+              className="bg-background border border-input rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring max-w-[180px]"
+            >
+              {!effSubcategoria && <option value="">Selecione...</option>}
+              {AQUECIMENTO_SUBCATEGORIAS[aquecimentoBloco].map((sub) => (
+                <option key={sub} value={sub}>{sub}</option>
+              ))}
+            </select>
+          ) : (
+            <Badge variant="outline" className="text-xs">
+              {effSubcategoria || "—"}
+            </Badge>
+          )
+        ) : canEdit ? (
           <select
             value={effCategoria}
             onChange={(e) => {
@@ -262,7 +307,8 @@ function ExerciseRow({
         {!isSlotVazio ? (
           <div className="flex items-center gap-2 flex-wrap">
             <ExercisePicker
-              categoria={effCategoria}
+              categoria={aquecimentoBloco ?? effCategoria}
+              subcategoriaOverride={aquecimentoBloco ? (effSubcategoria || undefined) : undefined}
               bank={bank}
               currentId={escolhaEx?.id}
               canEdit={canEdit && candidatesCount > 0}
@@ -297,7 +343,8 @@ function ExerciseRow({
           </div>
         ) : (
           <ExercisePicker
-            categoria={effCategoria}
+            categoria={aquecimentoBloco ?? effCategoria}
+            subcategoriaOverride={aquecimentoBloco ? (effSubcategoria || undefined) : undefined}
             bank={bank}
             canEdit={canEdit && candidatesCount > 0}
             onSelect={(b) => onSaveChoice(b)}
@@ -305,7 +352,9 @@ function ExerciseRow({
               <span className="text-muted-foreground italic text-xs">
                 {candidatesCount > 0
                   ? `A definir — ${candidatesCount} opções no Banco`
-                  : "A definir"}
+                  : aquecimentoBloco && !effSubcategoria
+                    ? "Escolha uma subcategoria"
+                    : "A definir"}
               </span>
             }
           />
@@ -384,6 +433,7 @@ function ExerciseTable({
   onClearChoice,
   onSaveOverride,
   canEdit,
+  aquecimentoBloco,
 }: {
   exercicios: WorkoutExercise[];
   bank: BankExercise[];
@@ -396,6 +446,7 @@ function ExerciseTable({
   onClearChoice: (ex: WorkoutExercise, treino: string) => void;
   onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
+  aquecimentoBloco?: "LIB" | "MOB" | "ATI";
 }) {
   if (exercicios.length === 0) {
     return <p className="text-sm text-muted-foreground italic">Sem exercícios cadastrados.</p>;
@@ -430,6 +481,7 @@ function ExerciseTable({
                 onClearChoice={() => onClearChoice(ex, treinoNome)}
                 onSaveOverride={(patch) => onSaveOverride(ex, treinoNome, patch)}
                 canEdit={canEdit}
+                aquecimentoBloco={aquecimentoBloco}
               />
             );
           })}
@@ -506,6 +558,7 @@ function TemplateDetail({
                     onClearChoice={onClearChoice}
                         onSaveOverride={onSaveOverride}
                     canEdit={canEdit}
+                    aquecimentoBloco={block}
                   />
                 </div>
               );
