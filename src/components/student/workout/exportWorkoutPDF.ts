@@ -294,6 +294,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         rowPageBreak: "avoid",
         head: [[
           { content: "#", styles: { halign: "center" } },
+          { content: "CAT", styles: { halign: "left" } },
           { content: "EXERCÍCIO", styles: { halign: "left" } },
           { content: "T1", styles: { halign: "center" } },
           { content: "T2", styles: { halign: "center" } },
@@ -303,6 +304,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         ]],
         body: bloco.items.map((ex, i) => [
           String(i + 1),
+          ex.subcategoria ?? "",
           ex.exercicio,
           ex.dias?.includes("T1") ? CHECK : "",
           ex.dias?.includes("T2") ? CHECK : "",
@@ -326,16 +328,17 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         },
         alternateRowStyles: { fillColor: SURFACE },
         columnStyles: (() => {
-          const wNum = 6, wT = 7, wRep = 14;
-          const wEx = mainW - (wNum + wT * 4 + wRep);
+          const wNum = 6, wCat = 22, wT = 7, wRep = 14;
+          const wEx = mainW - (wNum + wCat + wT * 4 + wRep);
           return {
             0: { cellWidth: wNum, halign: "center", textColor: INK_MUTED, fontSize: SMALL_FONT },
-            1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
-            2: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            1: { cellWidth: wCat, overflow: "ellipsize", textColor: INK_SOFT, fontStyle: "bold", fontSize: ROW_FONT },
+            2: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
             3: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
             4: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
             5: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
-            6: { cellWidth: wRep, halign: "right", textColor: INK_SOFT, fontStyle: "bold", fontSize: NUM_FONT },
+            6: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
+            7: { cellWidth: wRep, halign: "right", textColor: INK_SOFT, fontStyle: "bold", fontSize: NUM_FONT },
           };
         })(),
         didParseCell: (hookData) => {
@@ -343,7 +346,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
             hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
             hookData.cell.styles.lineColor = RULE;
             // T1..T4 columns: hide the sentinel text; the dot is drawn in didDrawCell.
-            if (hookData.column.index >= 2 && hookData.column.index <= 5) {
+            if (hookData.column.index >= 3 && hookData.column.index <= 6) {
               if (hookData.cell.text?.[0] === CHECK) {
                 hookData.cell.text = [""];
               }
@@ -353,11 +356,11 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         didDrawCell: (hookData) => {
           if (
             hookData.section === "body" &&
-            hookData.column.index >= 2 &&
-            hookData.column.index <= 5
+            hookData.column.index >= 3 &&
+            hookData.column.index <= 6
           ) {
             const ex = bloco.items[hookData.row.index];
-            const tKey = (`T${hookData.column.index - 1}`) as "T1" | "T2" | "T3" | "T4";
+            const tKey = (`T${hookData.column.index - 2}`) as "T1" | "T2" | "T3" | "T4";
             if (ex?.dias?.includes(tKey)) {
               const cx = hookData.cell.x + hookData.cell.width / 2;
               const cy = hookData.cell.y + hookData.cell.height / 2;
