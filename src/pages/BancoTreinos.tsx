@@ -187,6 +187,7 @@ function ExerciseRow({
   onClearChoice,
   onSaveOverride,
   canEdit,
+  aquecimentoBloco,
 }: {
   ex: WorkoutExercise;
   bank: BankExercise[];
@@ -199,12 +200,20 @@ function ExerciseRow({
   onClearChoice: () => void;
   onSaveOverride: (patch: OverridePatch) => void;
   canEdit: boolean;
+  aquecimentoBloco?: "LIB" | "MOB" | "ATI";
 }) {
   // Effective values: override > template
   const effCategoria = escolha?.categoria_override ?? ex.categoria;
   const effSeries = escolha?.series_override ?? ex.series;
   const effReps = escolha?.repeticoes_override ?? ex.repeticoes;
   const effDias = escolha?.dias_override ?? ex.dias ?? [];
+
+  // For warm-up rows, the "Categoria" select carries the subcategoria (the
+  // grupo is fixed by the block: LIB/MOB/ATI). Default = ex.subcategoria from the template.
+  const defaultSubcategoria = ex.subcategoria;
+  const effSubcategoria = aquecimentoBloco
+    ? (escolha?.categoria_override ?? defaultSubcategoria ?? "")
+    : undefined;
 
   // Local state for text inputs (commit on blur / Enter)
   const [seriesInput, setSeriesInput] = useState(String(effSeries ?? ""));
@@ -214,9 +223,14 @@ function ExerciseRow({
 
   const escolhaEx = escolha?.exercicio_id ? bank.find((b) => b.id === escolha.exercicio_id) : null;
   const match = escolhaEx || findBankMatch(ex, bank);
-  const candidatesCount = getCandidatesForCode(effCategoria, bank).length;
+  const candidatesCount = getCandidatesForCode(
+    aquecimentoBloco ?? effCategoria,
+    bank,
+    aquecimentoBloco ? (effSubcategoria || undefined) : undefined,
+  ).length;
   const hasVideo = match && (match.video_url || match.video_path);
   const isSlotVazio = !ex.exercicio && !escolhaEx;
+
 
   const commitSeries = () => {
     const trimmed = seriesInput.trim();
