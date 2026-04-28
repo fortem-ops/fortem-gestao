@@ -489,40 +489,24 @@ function TemplateDetail({
             {blocks.map(block => {
               const items = template.aquecimento.filter(e => e.categoria === block);
               if (items.length === 0) return null;
-
-              // Agrupar por subcategoria, preservando ordem de aparecimento
-              const grupos = new Map<string, typeof items>();
-              items.forEach(ex => {
-                const sub = ex.subcategoria?.trim() || "Geral";
-                if (!grupos.has(sub)) grupos.set(sub, []);
-                grupos.get(sub)!.push(ex);
-              });
-
               return (
-                <div key={block} className="space-y-3">
+                <div key={block} className="space-y-2">
                   <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                     {blockLabels[block]} ({block})
                   </h4>
-                  <div className="space-y-3 pl-2 border-l-2 border-border/60">
-                    {Array.from(grupos.entries()).map(([sub, subItems]) => (
-                      <div key={sub} className="space-y-1.5 pl-3">
-                        <h5 className="text-xs font-medium text-foreground/80">▸ {sub}</h5>
-                        <ExerciseTable
-                          exercicios={subItems}
-                          bank={bank}
-                          showDays
-                          onOpenVideo={onOpenVideo}
-                          templateFase={template.fase}
-                          treinoNome="__aquecimento__"
-                          escolhasMap={escolhasMap}
-                          onSaveChoice={onSaveChoice}
-                          onClearChoice={onClearChoice}
-                          onSaveOverride={onSaveOverride}
-                          canEdit={canEdit}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  <ExerciseTable
+                    exercicios={items}
+                    bank={bank}
+                    showDays
+                    onOpenVideo={onOpenVideo}
+                    templateFase={template.fase}
+                    treinoNome="__aquecimento__"
+                    escolhasMap={escolhasMap}
+                    onSaveChoice={onSaveChoice}
+                    onClearChoice={onClearChoice}
+                        onSaveOverride={onSaveOverride}
+                    canEdit={canEdit}
+                  />
                 </div>
               );
             })}
