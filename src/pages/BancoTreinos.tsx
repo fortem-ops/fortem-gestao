@@ -446,6 +446,7 @@ function ExerciseTable({
   onClearChoice: (ex: WorkoutExercise, treino: string) => void;
   onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
+  aquecimentoBloco?: "LIB" | "MOB" | "ATI";
 }) {
   if (exercicios.length === 0) {
     return <p className="text-sm text-muted-foreground italic">Sem exercícios cadastrados.</p>;
