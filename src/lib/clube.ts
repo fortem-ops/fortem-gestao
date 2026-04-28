@@ -99,6 +99,7 @@ export function distanceKm(
 }
 
 export const NIVEL_RANK: Record<NivelMembro, number> = {
+  agregador: -1,
   start: 0,
   start_plus: 1,
   power: 2,
