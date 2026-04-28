@@ -280,6 +280,7 @@ function ExerciseTable({
   escolhasMap,
   onSaveChoice,
   onClearChoice,
+  onSaveOverride,
   canEdit,
 }: {
   exercicios: WorkoutExercise[];
@@ -291,6 +292,7 @@ function ExerciseTable({
   escolhasMap: Map<string, Escolha>;
   onSaveChoice: (ex: WorkoutExercise, treino: string, b: BankExercise) => void;
   onClearChoice: (ex: WorkoutExercise, treino: string) => void;
+  onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
 }) {
   if (exercicios.length === 0) {
@@ -306,7 +308,7 @@ function ExerciseTable({
             <TableHead>Exercício</TableHead>
             <TableHead className="w-20 text-center">Séries</TableHead>
             <TableHead className="w-24 text-center">Reps</TableHead>
-            {showDays && <TableHead className="w-32 text-center">Dias</TableHead>}
+            {showDays && <TableHead className="w-36 text-center">Dias</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -324,6 +326,7 @@ function ExerciseTable({
                 escolha={escolhasMap.get(key)}
                 onSaveChoice={(b) => onSaveChoice(ex, treinoNome, b)}
                 onClearChoice={() => onClearChoice(ex, treinoNome)}
+                onSaveOverride={(patch) => onSaveOverride(ex, treinoNome, patch)}
                 canEdit={canEdit}
               />
             );
