@@ -38,9 +38,9 @@ const RED_TINT: [number, number, number] = [254, 226, 226];  // red-100 — soft
 
 // Warm-up block accents (Red, Black/Ink, Gray) — keeps the brand palette.
 const WARMUP_COLORS: Record<string, { fill: [number, number, number]; text: [number, number, number] }> = {
-  LIB: { fill: RED, text: WHITE },          // Liberação — RED
+  LIB: { fill: INK, text: WHITE },          // Liberação — BLACK
   MOB: { fill: INK, text: WHITE },          // Mobilidade — BLACK
-  ATI: { fill: INK_MUTED, text: INK },      // Ativação — GRAY
+  ATI: { fill: INK, text: WHITE },          // Ativação — BLACK
 };
 
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
@@ -343,7 +343,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         })(),
         didParseCell: (hookData) => {
           if (hookData.section === "body") {
-            hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
+            const isLastRow = hookData.row.index === bloco.items.length - 1;
+            hookData.cell.styles.lineWidth = { bottom: isLastRow ? 0 : 0.08 } as unknown as number;
             hookData.cell.styles.lineColor = RULE;
             // T1..T4 columns: hide the sentinel text; the dot is drawn in didDrawCell.
             if (hookData.column.index >= 3 && hookData.column.index <= 6) {
@@ -445,7 +446,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       })(),
       didParseCell: (hookData) => {
         if (hookData.section === "body") {
-          hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
+          const isLastRow = hookData.row.index === items.length - 1;
+          hookData.cell.styles.lineWidth = { bottom: isLastRow ? 0 : 0.08 } as unknown as number;
           hookData.cell.styles.lineColor = RULE;
           // Linhas pertencentes a um grupo dinâmico: pintar fundo conforme a
           // semana correspondente (espelhando a coluna Frequência).
@@ -456,7 +458,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           }
           // Quebra de bloco: linha superior mais marcada + um pequeno respiro.
           if (ex?.blocoStart && hookData.row.index > 0) {
-            hookData.cell.styles.lineWidth = { top: 0.5, bottom: 0.08 } as unknown as number;
+            hookData.cell.styles.lineWidth = { top: 0.5, bottom: isLastRow ? 0 : 0.08 } as unknown as number;
             hookData.cell.styles.lineColor = INK;
             hookData.cell.styles.cellPadding = {
               top: ROW_PAD + 1.4,
@@ -467,27 +469,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           }
         }
       },
-      didDrawCell: (hookData) => {
-        if (hookData.section !== "body") return;
-        const ex = items[hookData.row.index];
-        if (!ex) return;
-        // Barra vertical vermelha à esquerda agrupando as variantes do dinâmico.
-        if (typeof ex.dinamicoIndex === "number" && hookData.column.index === 0) {
-          const barW = 0.6;
-          doc.setFillColor(...RED_SOFT);
-          doc.rect(hookData.cell.x, hookData.cell.y, barW, hookData.cell.height, "F");
-        }
-        // Rótulo do bloco (ex.: "BLOCO A") junto à quebra.
-        if (ex.blocoStart && hookData.row.index > 0 && hookData.column.index === 0) {
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(Math.max(4.6, BADGE_FONT));
-          doc.setTextColor(...INK);
-          doc.text(
-            ex.blocoStart.toUpperCase(),
-            hookData.cell.x + 1.2,
-            hookData.cell.y + 2.2,
-          );
-        }
+      didDrawCell: (_hookData) => {
+        // Barra vertical e rótulo "BLOCO X" removidos a pedido do usuário.
+        return;
       },
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.6;
