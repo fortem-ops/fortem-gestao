@@ -89,11 +89,15 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly, subcate
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
+          disabled={disabled}
           className="h-7 text-xs bg-transparent border-none pl-5 pr-1"
-          placeholder={subAlvo ? `Buscar em ${subAlvo}...` : `Buscar em ${grupoAlvo}...`}
+          placeholder={
+            placeholder ??
+            (subAlvo ? `Buscar em ${subAlvo}...` : `Buscar em ${grupoAlvo}...`)
+          }
         />
       </div>
-      {open && (
+      {open && !disabled && (
         <div className="absolute z-50 top-8 left-0 w-80 max-h-48 overflow-y-auto bg-popover border border-border rounded-md shadow-lg">
           {candidatos.length === 0 ? (
             <div className="px-2 py-3 text-xs text-muted-foreground text-center">
