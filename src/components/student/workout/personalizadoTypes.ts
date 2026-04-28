@@ -136,7 +136,7 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
             .map((v) => v.exercicio?.trim())
             .filter(Boolean)
             .join(" / ");
-          const tag = ex.rotacao === "impar_par" ? "[ímpar/par] " : "[rotativa] ";
+          const tag = ex.rotacao === "impar_par" ? "I/P " : "ROT ";
           let series: number | string = ex.series ?? "";
           let repeticoes = ex.repeticoes || "";
           if (ex.series_modo === "independente") {

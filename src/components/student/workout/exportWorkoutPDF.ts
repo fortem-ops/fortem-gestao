@@ -420,7 +420,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         lineColor: INK_SOFT,
       },
       columnStyles: (() => {
-        const wCat = 11, wSer = 16, wRep = 14, wKg = 14;
+        const wCat = 9, wSer = 14, wRep = 20, wKg = 12;
         const wEx = mainW - (wCat + wSer + wRep + wKg);
         return {
           0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_NAME_FONT },
