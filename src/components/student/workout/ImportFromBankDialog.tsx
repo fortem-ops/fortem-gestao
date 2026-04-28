@@ -15,11 +15,33 @@ interface Escolha {
   exercicio_id: string;
 }
 
+interface BankExerciseGrupo {
+  grupo: string;
+  subcategoria: string;
+}
+
 interface BankExercise {
   id: string;
   nome: string;
   video_url: string | null;
   video_path: string | null;
+  grupos: BankExerciseGrupo[];
+}
+
+const CATEGORIA_TO_GRUPO: Record<string, string> = {
+  LIB: "Liberação Miofascial",
+  MOB: "Mobilidade Articular",
+  ATI: "Ativação Muscular",
+};
+
+function pickSubcategoria(
+  categoria: string | undefined,
+  grupos: BankExerciseGrupo[] | undefined,
+): string | undefined {
+  if (!categoria || !grupos?.length) return undefined;
+  const target = CATEGORIA_TO_GRUPO[categoria];
+  if (!target) return undefined;
+  return grupos.find((g) => g.grupo === target)?.subcategoria;
 }
 
 interface Props {
