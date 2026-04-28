@@ -465,6 +465,7 @@ export function PersonalizadoEditor({
         if (error) throw error;
       }
       toast.success("Modelo salvo no Banco de Treinos");
+      clearDraft();
       onSaved?.();
     } catch (e) {
       toast.error("Erro ao salvar modelo: " + (e instanceof Error ? e.message : ""));
