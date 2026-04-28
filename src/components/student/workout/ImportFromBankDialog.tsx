@@ -111,9 +111,15 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercicios_personalizados")
-        .select("id, nome, video_url, video_path");
+        .select("id, nome, video_url, video_path, grupos");
       if (error) throw error;
-      return data as BankExercise[];
+      return (data || []).map((r) => ({
+        id: r.id,
+        nome: r.nome,
+        video_url: r.video_url,
+        video_path: r.video_path,
+        grupos: ((r.grupos as unknown) as BankExerciseGrupo[]) || [],
+      })) as BankExercise[];
     },
   });
 
