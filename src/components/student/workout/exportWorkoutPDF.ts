@@ -46,6 +46,10 @@ const WARMUP_COLORS: Record<string, { fill: [number, number, number]; text: [num
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
 const CHECK = "•DOT•"; // sentinel — replaced by a red dot in didDrawCell
 
+/** Removes leading numeric prefixes from exercise names (e.g. "4-Agachamento" → "Agachamento"). */
+const cleanExerciseName = (name: string): string =>
+  (name ?? "").replace(/^\s*\d+\s*[-–—.)]\s*/, "").trim();
+
 /**
  * Generates a single-page A4 portrait PDF with a modern, minimal layout.
  * Includes: header w/ QR Code, warm-up blocks (LIB/MOB/ATI in distinct colors),
@@ -295,7 +299,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         body: bloco.items.map((ex, i) => [
           String(i + 1),
           ex.subcategoria ?? "",
-          ex.exercicio,
+          cleanExerciseName(ex.exercicio),
           ex.dias?.includes("T1") ? CHECK : "",
           ex.dias?.includes("T2") ? CHECK : "",
           ex.dias?.includes("T3") ? CHECK : "",
@@ -396,7 +400,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         const catCell = isDynChild ? "" : (ex.categoria ?? "");
         return [
           catCell,
-          ex.exercicio,
+          cleanExerciseName(ex.exercicio),
           String(ex.series ?? ""),
           String(ex.repeticoes ?? ""),
           ex.kg ?? "",
