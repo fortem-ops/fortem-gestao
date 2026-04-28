@@ -106,6 +106,7 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
       aquecimento.push({
         ordem: ord++,
         categoria: bloco,
+        subcategoria: ex.subcategoria || undefined,
         exercicio: ex.exercicio || "",
         series: 1,
         repeticoes: ex.repeticoes || "",
