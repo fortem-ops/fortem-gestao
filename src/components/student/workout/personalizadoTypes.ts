@@ -133,27 +133,29 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
             video_url: ex.video_url || null,
           });
         } else {
-          // Dinâmico → uma linha com "X / Y / Z"
-          const nomes = ex.variantes
-            .map((v) => v.exercicio?.trim())
-            .filter(Boolean)
-            .join(" / ");
-          const tag = ex.rotacao === "impar_par" ? "I/P " : "ROT ";
-          let series: number | string = ex.series ?? "";
-          let repeticoes = ex.repeticoes || "";
-          if (ex.series_modo === "independente") {
-            const seriesArr = ex.variantes.map((v) => String(v.series ?? "").trim()).filter(Boolean);
-            const repsArr = ex.variantes.map((v) => String(v.repeticoes ?? "").trim()).filter(Boolean);
-            if (seriesArr.length) series = seriesArr.join(" / ");
-            if (repsArr.length) repeticoes = repsArr.join(" / ");
-          }
-          exercicios.push({
-            ordem: n++,
-            categoria: ex.categoria || "",
-            exercicio: tag + (nomes || "—"),
-            series,
-            repeticoes,
-            video_url: ex.variantes[0]?.video_url || null,
+          // Dinâmico → uma linha por variante (para o PDF/renderer alternar
+          // cores por semana, espelhando o bloco de Frequência).
+          const tag: "I/P" | "ROT" = ex.rotacao === "impar_par" ? "I/P" : "ROT";
+          const variantes = ex.variantes.length > 0 ? ex.variantes : [{ exercicio: "—" } as DinamicoVariante];
+          variantes.forEach((v, i) => {
+            const seriesVal = ex.series_modo === "independente"
+              ? (v.series ?? "")
+              : (ex.series ?? "");
+            const repsVal = ex.series_modo === "independente"
+              ? (v.repeticoes ?? "")
+              : (ex.repeticoes ?? "");
+            exercicios.push({
+              ordem: n++,
+              categoria: ex.categoria || "",
+              exercicio: (v.exercicio?.trim() || "—"),
+              series: seriesVal,
+              repeticoes: repsVal,
+              exercicio_id: v.exercicio_id || undefined,
+              video_url: v.video_url || null,
+              dinamicoIndex: i,
+              dinamicoTotal: variantes.length,
+              dinamicoTag: i === 0 ? tag : undefined,
+            });
           });
         }
       });
