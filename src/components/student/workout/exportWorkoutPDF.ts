@@ -397,18 +397,21 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       head: [[
         { content: "CAT", styles: { halign: "left" } },
         { content: "", styles: { halign: "left" } },
+        { content: "SEMANA", styles: { halign: "center" } },
         { content: "SÉRIES", styles: { halign: "center" } },
         { content: "REP", styles: { halign: "center" } },
         { content: "KG", styles: { halign: "center" } },
       ]],
       body: items.map((ex) => {
         const isDynChild = typeof ex.dinamicoIndex === "number" && ex.dinamicoIndex > 0;
-        const catCell = isDynChild
-          ? ""
-          : (ex.categoria ?? "") + (ex.dinamicoTag ? ` · ${ex.dinamicoTag}` : "");
+        const catCell = isDynChild ? "" : (ex.categoria ?? "");
+        const semanas = typeof ex.dinamicoIndex === "number"
+          ? (ex.dinamicoIndex % 2 === 0 ? "1, 3, 5, 7" : "2, 4, 6, 8")
+          : "";
         return [
           catCell,
           ex.exercicio,
+          semanas,
           String(ex.series ?? ""),
           String(ex.repeticoes ?? ""),
           ex.kg ?? "",
@@ -429,14 +432,15 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         lineColor: INK_SOFT,
       },
       columnStyles: (() => {
-        const wCat = 9, wSer = 14, wRep = 20, wKg = 12;
-        const wEx = mainW - (wCat + wSer + wRep + wKg);
+        const wCat = 9, wSem = 22, wSer = 14, wRep = 20, wKg = 12;
+        const wEx = mainW - (wCat + wSem + wSer + wRep + wKg);
         return {
           0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_NAME_FONT },
           1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
-          2: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
-          3: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
-          4: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
+          2: { cellWidth: wSem, halign: "center", fontStyle: "bold", textColor: INK_SOFT, fontSize: SMALL_FONT },
+          3: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+          4: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+          5: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
         };
       })(),
       didParseCell: (hookData) => {
