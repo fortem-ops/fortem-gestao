@@ -28,7 +28,7 @@ const INK: [number, number, number] = [24, 24, 27];          // zinc-900 — pri
 const INK_SOFT: [number, number, number] = [82, 82, 91];     // zinc-600 — secondary text
 const INK_MUTED: [number, number, number] = [161, 161, 170]; // zinc-400 — captions
 const RULE: [number, number, number] = [113, 113, 122];      // zinc-500 — dividers (escurecido p/ melhor leitura)
-const SURFACE: [number, number, number] = [244, 244, 245];   // zinc-100 — section bands
+const SURFACE: [number, number, number] = [212, 212, 216];   // zinc-300 — section bands (darker)
 const WHITE: [number, number, number] = [255, 255, 255];
 
 // Red family — the single brand accent.
