@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
@@ -707,8 +708,8 @@ export function PersonalizadoEditor({
         ))}
       </div>
 
-      {/* Treinos */}
-      <div className="glass-card rounded-lg p-4 space-y-4">
+      {/* Treinos — colunas lado a lado, layout estilo Fases */}
+      <div className="glass-card rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-heading font-semibold text-primary">FORÇA</h4>
           <Button size="sm" variant="outline" onClick={addTreino}>
@@ -716,67 +717,31 @@ export function PersonalizadoEditor({
           </Button>
         </div>
 
-        {data.treinos.map((tr, ti) => (
-          <div key={ti} className="rounded-lg border border-border p-3 space-y-3 bg-card/30">
-            <div className="flex items-center gap-2">
-              <Input
-                value={tr.nome}
-                onChange={(e) => updateTreinoNome(ti, e.target.value)}
-                className="h-7 max-w-[180px] text-sm font-semibold"
+        <div className="overflow-x-auto -mx-1 px-1">
+          <div
+            className="grid gap-3"
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(1, data.treinos.length)}, minmax(360px, 1fr))`,
+            }}
+          >
+            {data.treinos.map((tr, ti) => (
+              <TreinoColumn
+                key={ti}
+                treino={tr}
+                ti={ti}
+                canRemoveTreino={data.treinos.length > 1}
+                onUpdateNome={(v) => updateTreinoNome(ti, v)}
+                onAddBloco={() => addBloco(ti)}
+                onRemoveTreino={() => removeTreino(ti)}
+                onUpdateBlocoNome={(bi, v) => updateBlocoNome(ti, bi, v)}
+                onRemoveBloco={(bi) => removeBloco(ti, bi)}
+                onAddExercicio={(bi, tipo) => addExercicio(ti, bi, tipo)}
+                onRemoveExercicio={(bi, ei) => removeExercicio(ti, bi, ei)}
+                onUpdateExercicio={(bi, ei, patch) => updateExercicio(ti, bi, ei, patch)}
               />
-              <Button size="sm" variant="ghost" onClick={() => addBloco(ti)} className="h-7">
-                <Plus className="w-3 h-3 mr-1" /> Bloco
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 text-destructive ml-auto"
-                onClick={() => removeTreino(ti)}
-                disabled={data.treinos.length === 1}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            </div>
-
-            {tr.blocos.map((bl, bi) => (
-              <div key={bi} className="rounded border border-border/50 p-2 space-y-2 bg-background/40">
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={bl.nome}
-                    onChange={(e) => updateBlocoNome(ti, bi, e.target.value)}
-                    className="h-6 max-w-[140px] text-xs font-semibold"
-                  />
-                  <NewExerciseButton onAdd={(tipo) => addExercicio(ti, bi, tipo)} />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-destructive ml-auto"
-                    onClick={() => removeBloco(ti, bi)}
-                    disabled={tr.blocos.length === 1}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-
-                {bl.exercicios.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground italic px-1">Nenhum exercício. Use “+ Exercício”.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {bl.exercicios.map((ex, ei) => (
-                      <ExercicioRow
-                        key={ei}
-                        ex={ex}
-                        index={ei}
-                        onRemove={() => removeExercicio(ti, bi, ei)}
-                        onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
             ))}
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Observações */}
@@ -1111,6 +1076,349 @@ function DinamicoEditor({
           </Button>
         )}
       </div>
+    </div>
+  );
+}
+
+// ============ Layout estilo Fases — coluna por treino ============
+
+function TreinoColumn({
+  treino,
+  ti,
+  canRemoveTreino,
+  onUpdateNome,
+  onAddBloco,
+  onRemoveTreino,
+  onUpdateBlocoNome,
+  onRemoveBloco,
+  onAddExercicio,
+  onRemoveExercicio,
+  onUpdateExercicio,
+}: {
+  treino: PersonalizadoConteudo["treinos"][number];
+  ti: number;
+  canRemoveTreino: boolean;
+  onUpdateNome: (v: string) => void;
+  onAddBloco: () => void;
+  onRemoveTreino: () => void;
+  onUpdateBlocoNome: (bi: number, v: string) => void;
+  onRemoveBloco: (bi: number) => void;
+  onAddExercicio: (bi: number, tipo: "simples" | "dinamico") => void;
+  onRemoveExercicio: (bi: number, ei: number) => void;
+  onUpdateExercicio: (bi: number, ei: number, patch: Partial<PersonalizadoExercicio>) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card/30 p-3 space-y-3">
+      <div className="flex items-center gap-2">
+        <Input
+          value={treino.nome}
+          onChange={(e) => onUpdateNome(e.target.value)}
+          className="h-7 flex-1 text-sm font-semibold"
+        />
+        <Button size="sm" variant="ghost" onClick={onAddBloco} className="h-7 px-2">
+          <Plus className="w-3 h-3 mr-1" /> Bloco
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-destructive"
+          onClick={onRemoveTreino}
+          disabled={!canRemoveTreino}
+        >
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
+
+      {treino.blocos.map((bl, bi) => (
+        <div key={bi} className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Input
+              value={bl.nome}
+              onChange={(e) => onUpdateBlocoNome(bi, e.target.value)}
+              className="h-6 max-w-[140px] text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+            />
+            <NewExerciseButton onAdd={(tipo) => onAddExercicio(bi, tipo)} />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 text-destructive ml-auto"
+              onClick={() => onRemoveBloco(bi)}
+              disabled={treino.blocos.length === 1}
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
+          <BlocoTable
+            bloco={bl}
+            onRemoveExercicio={(ei) => onRemoveExercicio(bi, ei)}
+            onUpdateExercicio={(ei, patch) => onUpdateExercicio(bi, ei, patch)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BlocoTable({
+  bloco,
+  onRemoveExercicio,
+  onUpdateExercicio,
+}: {
+  bloco: PersonalizadoConteudo["treinos"][number]["blocos"][number];
+  onRemoveExercicio: (ei: number) => void;
+  onUpdateExercicio: (ei: number, patch: Partial<PersonalizadoExercicio>) => void;
+}) {
+  if (bloco.exercicios.length === 0) {
+    return (
+      <p className="text-[11px] text-muted-foreground italic px-1">
+        Nenhum exercício. Use “+ Exercício”.
+      </p>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-border overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-10">#</TableHead>
+            <TableHead className="w-20">Cat.</TableHead>
+            <TableHead>Exercício</TableHead>
+            <TableHead className="w-16 text-center">Séries</TableHead>
+            <TableHead className="w-20 text-center">Reps</TableHead>
+            <TableHead className="w-8"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {bloco.exercicios.map((ex, ei) => (
+            <ExercicioTableRows
+              key={ei}
+              ex={ex}
+              index={ei}
+              onRemove={() => onRemoveExercicio(ei)}
+              onUpdate={(patch) => onUpdateExercicio(ei, patch)}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function ExercicioTableRows({
+  ex,
+  index,
+  onRemove,
+  onUpdate,
+}: {
+  ex: PersonalizadoExercicio;
+  index: number;
+  onRemove: () => void;
+  onUpdate: (patch: Partial<PersonalizadoExercicio>) => void;
+}) {
+  if (ex.tipo === "simples") {
+    return (
+      <TableRow>
+        <TableCell className="font-mono text-xs text-muted-foreground">{index + 1}</TableCell>
+        <TableCell>
+          <CategoriaSelect value={ex.categoria} onChange={(v) => onUpdate({ categoria: v })} />
+        </TableCell>
+        <TableCell>
+          <ExerciseSelector
+            categoria={ex.categoria}
+            value={ex.exercicio}
+            onChange={(val, video) =>
+              onUpdate({ exercicio: val, video_url: video } as Partial<PersonalizadoExercicioSimples>)
+            }
+          />
+        </TableCell>
+        <TableCell className="text-center">
+          <Input
+            value={String(ex.series)}
+            onChange={(e) =>
+              onUpdate({ series: e.target.value } as Partial<PersonalizadoExercicioSimples>)
+            }
+            className="h-7 w-14 mx-auto text-center text-xs px-1"
+          />
+        </TableCell>
+        <TableCell className="text-center">
+          <Input
+            value={ex.repeticoes}
+            onChange={(e) =>
+              onUpdate({ repeticoes: e.target.value } as Partial<PersonalizadoExercicioSimples>)
+            }
+            className="h-7 w-20 mx-auto text-center text-xs px-1"
+          />
+        </TableCell>
+        <TableCell className="text-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 text-destructive"
+            onClick={onRemove}
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  // Dinâmico — uma linha "mãe" com config + variantes em linhas filhas (colSpan)
+  return (
+    <>
+      <TableRow className="bg-accent/20">
+        <TableCell className="font-mono text-xs text-muted-foreground">{index + 1}</TableCell>
+        <TableCell>
+          <CategoriaSelect value={ex.categoria} onChange={(v) => onUpdate({ categoria: v })} />
+        </TableCell>
+        <TableCell colSpan={3}>
+          <DinamicoHeader
+            ex={ex}
+            onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioDinamico>) => void}
+          />
+        </TableCell>
+        <TableCell className="text-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 text-destructive"
+            onClick={onRemove}
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell colSpan={6} className="p-0">
+          <DinamicoVariantes
+            ex={ex}
+            onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioDinamico>) => void}
+          />
+        </TableCell>
+      </TableRow>
+    </>
+  );
+}
+
+function DinamicoHeader({
+  ex,
+  onUpdate,
+}: {
+  ex: PersonalizadoExercicioDinamico;
+  onUpdate: (p: Partial<PersonalizadoExercicioDinamico>) => void;
+}) {
+  const setRotacao = (rotacao: DinamicoRotacao) => {
+    if (rotacao === "impar_par" && ex.variantes.length > 2) {
+      onUpdate({ rotacao, variantes: ex.variantes.slice(0, 2) });
+    } else {
+      onUpdate({ rotacao });
+    }
+  };
+  return (
+    <div className="flex items-center gap-2 flex-wrap text-[11px]">
+      <Badge variant="default" className="text-[10px]">DINÂMICO</Badge>
+      <Select value={ex.rotacao} onValueChange={(v) => setRotacao(v as DinamicoRotacao)}>
+        <SelectTrigger className="h-6 text-[11px] w-28"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="impar_par">Ímpar / Par</SelectItem>
+          <SelectItem value="rotativa">N variantes</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
+        value={ex.series_modo}
+        onValueChange={(v) => onUpdate({ series_modo: v as DinamicoSeriesModo })}
+      >
+        <SelectTrigger className="h-6 text-[11px] w-36"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="compartilhado">Séries/Reps compartilhados</SelectItem>
+          <SelectItem value="independente">Independentes por variante</SelectItem>
+        </SelectContent>
+      </Select>
+      {ex.series_modo === "compartilhado" && (
+        <>
+          <Label className="text-[10px] text-muted-foreground">Séries</Label>
+          <Input
+            value={String(ex.series)}
+            onChange={(e) => onUpdate({ series: e.target.value })}
+            className="h-6 w-12 text-xs text-center"
+          />
+          <Label className="text-[10px] text-muted-foreground">Reps</Label>
+          <Input
+            value={ex.repeticoes}
+            onChange={(e) => onUpdate({ repeticoes: e.target.value })}
+            className="h-6 w-16 text-xs text-center"
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function DinamicoVariantes({
+  ex,
+  onUpdate,
+}: {
+  ex: PersonalizadoExercicioDinamico;
+  onUpdate: (p: Partial<PersonalizadoExercicioDinamico>) => void;
+}) {
+  const updateVariante = (i: number, patch: Partial<typeof ex.variantes[number]>) => {
+    onUpdate({ variantes: ex.variantes.map((v, idx) => (idx === i ? { ...v, ...patch } : v)) });
+  };
+  const addVariante = () => onUpdate({ variantes: [...ex.variantes, { exercicio: "" }] });
+  const removeVariante = (i: number) =>
+    onUpdate({ variantes: ex.variantes.filter((_, idx) => idx !== i) });
+
+  const labelFor = (i: number) => {
+    if (ex.rotacao === "impar_par") return i === 0 ? "Ímpares (X)" : "Pares (Y)";
+    return `Sem ${i + 1}/${ex.variantes.length}`;
+  };
+
+  return (
+    <div className="px-3 py-2 space-y-1.5 bg-background/30">
+      {ex.variantes.map((v, i) => (
+        <div key={i} className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="text-[10px] shrink-0 min-w-[72px] justify-center">
+            {labelFor(i)}
+          </Badge>
+          <div className="flex-1 min-w-[160px]">
+            <ExerciseSelector
+              categoria={ex.categoria}
+              value={v.exercicio}
+              onChange={(val, video) => updateVariante(i, { exercicio: val, video_url: video })}
+            />
+          </div>
+          {ex.series_modo === "independente" && (
+            <>
+              <Input
+                value={String(v.series ?? "")}
+                onChange={(e) => updateVariante(i, { series: e.target.value })}
+                className="h-6 w-12 text-xs text-center"
+                placeholder="S"
+              />
+              <Input
+                value={String(v.repeticoes ?? "")}
+                onChange={(e) => updateVariante(i, { repeticoes: e.target.value })}
+                className="h-6 w-16 text-xs text-center"
+                placeholder="Reps"
+              />
+            </>
+          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-5 w-5 text-destructive"
+            onClick={() => removeVariante(i)}
+            disabled={ex.variantes.length <= 2}
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </div>
+      ))}
+      {ex.rotacao === "rotativa" && (
+        <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={addVariante}>
+          <Plus className="w-3 h-3 mr-1" /> Variante
+        </Button>
+      )}
     </div>
   );
 }
