@@ -662,6 +662,20 @@ export default function BancoTreinos() {
     </Dialog>
   );
 
+  if (personalizadoOpen) {
+    return (
+      <div className="container mx-auto p-6 max-w-6xl">
+        <PersonalizadoEditor
+          initial={personalizadoOpen.mode === "edit" ? personalizadoOpen.conteudo : emptyPersonalizado()}
+          initialName={personalizadoOpen.mode === "edit" ? personalizadoOpen.nome : "Modelo Personalizado"}
+          modeloId={personalizadoOpen.mode === "edit" ? personalizadoOpen.id : undefined}
+          onBack={() => setPersonalizadoOpen(null)}
+          onSaved={() => { refetchModelos(); }}
+        />
+      </div>
+    );
+  }
+
   if (selected) {
     return (
       <div className="container mx-auto p-6 max-w-6xl">
@@ -679,6 +693,7 @@ export default function BancoTreinos() {
       </div>
     );
   }
+
 
   return (
     <div className="container mx-auto p-6 max-w-6xl animate-fade-in">
