@@ -84,6 +84,7 @@ function ExercisePicker({
   onClear,
   canEdit,
   triggerLabel,
+  subcategoriaOverride,
 }: {
   categoria: string;
   bank: BankExercise[];
@@ -92,10 +93,14 @@ function ExercisePicker({
   onClear?: () => void;
   canEdit: boolean;
   triggerLabel: React.ReactNode;
+  subcategoriaOverride?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const candidates = useMemo(() => getCandidatesForCode(categoria, bank), [categoria, bank]);
+  const candidates = useMemo(
+    () => getCandidatesForCode(categoria, bank, subcategoriaOverride),
+    [categoria, bank, subcategoriaOverride],
+  );
   const filtered = useMemo(() => {
     if (!query) return candidates;
     const q = query.toLowerCase();
