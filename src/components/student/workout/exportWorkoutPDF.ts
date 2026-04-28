@@ -164,10 +164,10 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   let forcaRowsTotal = 0;
   let forcaBlocosTotal = 0;
   data.treinos.forEach((tr) => {
-    const a = tr.exercicios.slice(0, 2).length;
-    const b = tr.exercicios.slice(2, 5).length;
-    if (a > 0) { forcaRowsTotal += a; forcaBlocosTotal++; }
-    if (b > 0) { forcaRowsTotal += b; forcaBlocosTotal++; }
+    if (tr.exercicios.length > 0) {
+      forcaRowsTotal += tr.exercicios.length;
+      forcaBlocosTotal++;
+    }
   });
 
   // Conservative nominal heights — intentionally a bit higher than the
@@ -401,13 +401,19 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         { content: "REP", styles: { halign: "center" } },
         { content: "KG", styles: { halign: "center" } },
       ]],
-      body: items.map((ex) => [
-        (ex.categoria ?? "") + (ex.dinamicoTag ? ` · ${ex.dinamicoTag}` : ""),
-        ex.exercicio,
-        String(ex.series ?? ""),
-        String(ex.repeticoes ?? ""),
-        ex.kg ?? "",
-      ]),
+      body: items.map((ex) => {
+        const isDynChild = typeof ex.dinamicoIndex === "number" && ex.dinamicoIndex > 0;
+        const catCell = isDynChild
+          ? ""
+          : (ex.categoria ?? "") + (ex.dinamicoTag ? ` · ${ex.dinamicoTag}` : "");
+        return [
+          catCell,
+          ex.exercicio,
+          String(ex.series ?? ""),
+          String(ex.repeticoes ?? ""),
+          ex.kg ?? "",
+        ];
+      }),
       styles: {
         ...bodyTextStyles,
         fontSize: ROW_FONT,
@@ -529,10 +535,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
     y += BAR_H + 0.45;
 
-    const blocoA = tr.exercicios.slice(0, 2);
-    const blocoB = tr.exercicios.slice(2, 5);
-    renderForcaBlock("A", blocoA, 1);
-    renderForcaBlock("B", blocoB, 1);
+    renderForcaBlock("A", tr.exercicios, 1);
     y += treinoGap;
   });
 
