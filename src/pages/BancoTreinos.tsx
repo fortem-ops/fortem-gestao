@@ -176,6 +176,7 @@ function ExerciseRow({
   escolha,
   onSaveChoice,
   onClearChoice,
+  onSaveOverride,
   canEdit,
 }: {
   ex: WorkoutExercise;
@@ -187,8 +188,188 @@ function ExerciseRow({
   escolha?: Escolha;
   onSaveChoice: (ex: BankExercise) => void;
   onClearChoice: () => void;
+  onSaveOverride: (patch: OverridePatch) => void;
   canEdit: boolean;
 }) {
+  // Effective values: override > template
+  const effCategoria = escolha?.categoria_override ?? ex.categoria;
+  const effSeries = escolha?.series_override ?? ex.series;
+  const effReps = escolha?.repeticoes_override ?? ex.repeticoes;
+  const effDias = escolha?.dias_override ?? ex.dias ?? [];
+
+  // Local state for text inputs (commit on blur / Enter)
+  const [seriesInput, setSeriesInput] = useState(String(effSeries ?? ""));
+  const [repsInput, setRepsInput] = useState(String(effReps ?? ""));
+  // Sync when external value changes
+  useMemo(() => { setSeriesInput(String(effSeries ?? "")); return null; }, [effSeries]);
+  useMemo(() => { setRepsInput(String(effReps ?? "")); return null; }, [effReps]);
+
+  const escolhaEx = escolha?.exercicio_id ? bank.find((b) => b.id === escolha.exercicio_id) : null;
+  const match = escolhaEx || findBankMatch(ex, bank);
+  const candidatesCount = getCandidatesForCode(effCategoria, bank).length;
+  const hasVideo = match && (match.video_url || match.video_path);
+  const isSlotVazio = !ex.exercicio && !escolhaEx;
+
+  const commitSeries = () => {
+    const trimmed = seriesInput.trim();
+    const num = trimmed === "" ? null : Number(trimmed);
+    if (num !== null && (Number.isNaN(num) || num < 0)) {
+      setSeriesInput(String(effSeries ?? ""));
+      return;
+    }
+    const newVal = num;
+    const oldVal = escolha?.series_override ?? Number(ex.series);
+    if (newVal === oldVal || (newVal === Number(ex.series) && escolha?.series_override == null)) return;
+    onSaveOverride({ series_override: newVal });
+  };
+
+  const commitReps = () => {
+    const trimmed = repsInput.trim();
+    const newVal = trimmed === "" ? null : trimmed;
+    const oldVal = escolha?.repeticoes_override ?? String(ex.repeticoes ?? "");
+    if (newVal === oldVal || (newVal === String(ex.repeticoes ?? "") && escolha?.repeticoes_override == null)) return;
+    onSaveOverride({ repeticoes_override: newVal });
+  };
+
+  const toggleDia = (dia: string) => {
+    const current = effDias;
+    const next = current.includes(dia) ? current.filter((d) => d !== dia) : [...current, dia];
+    next.sort();
+    onSaveOverride({ dias_override: next });
+  };
+
+  return (
+    <TableRow>
+      <TableCell className="font-mono text-xs text-muted-foreground">{ex.ordem}</TableCell>
+      <TableCell>
+        {canEdit ? (
+          <select
+            value={effCategoria}
+            onChange={(e) => {
+              const v = e.target.value;
+              onSaveOverride({ categoria_override: v === ex.categoria ? null : v });
+            }}
+            className="bg-background border border-input rounded px-1.5 py-0.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            {Object.keys(CATEGORY_LABELS).map((code) => (
+              <option key={code} value={code}>{code}</option>
+            ))}
+          </select>
+        ) : (
+          <Badge variant="outline" className="text-xs">{effCategoria}</Badge>
+        )}
+      </TableCell>
+      <TableCell className="text-sm">
+        {!isSlotVazio ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <ExercisePicker
+              categoria={effCategoria}
+              bank={bank}
+              currentId={escolhaEx?.id}
+              canEdit={canEdit && candidatesCount > 0}
+              onSelect={(b) => onSaveChoice(b)}
+              onClear={escolhaEx ? onClearChoice : undefined}
+              triggerLabel={<span>{match?.nome || ex.exercicio}</span>}
+            />
+            {escolhaEx && (
+              <Badge variant="outline" className="text-[10px] border-success/40 text-success">
+                escolhido
+              </Badge>
+            )}
+            {match ? (
+              hasVideo ? (
+                <button
+                  onClick={() => onOpenVideo(match)}
+                  className="text-primary hover:text-primary/80"
+                  aria-label="Ver vídeo"
+                >
+                  <Video className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <Badge variant="outline" className="text-[10px] border-warning/40 text-warning gap-1">
+                  <AlertTriangle className="w-3 h-3" /> sem vídeo
+                </Badge>
+              )
+            ) : (
+              <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">
+                não cadastrado
+              </Badge>
+            )}
+          </div>
+        ) : (
+          <ExercisePicker
+            categoria={effCategoria}
+            bank={bank}
+            canEdit={canEdit && candidatesCount > 0}
+            onSelect={(b) => onSaveChoice(b)}
+            triggerLabel={
+              <span className="text-muted-foreground italic text-xs">
+                {candidatesCount > 0
+                  ? `A definir — ${candidatesCount} opções no Banco`
+                  : "A definir"}
+              </span>
+            }
+          />
+        )}
+      </TableCell>
+      <TableCell className="text-center text-sm">
+        {canEdit ? (
+          <Input
+            value={seriesInput}
+            onChange={(e) => setSeriesInput(e.target.value)}
+            onBlur={commitSeries}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            inputMode="numeric"
+            className="h-7 w-14 mx-auto text-center text-xs px-1"
+          />
+        ) : (
+          effSeries
+        )}
+      </TableCell>
+      <TableCell className="text-center text-sm">
+        {canEdit ? (
+          <Input
+            value={repsInput}
+            onChange={(e) => setRepsInput(e.target.value)}
+            onBlur={commitReps}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            className="h-7 w-20 mx-auto text-center text-xs px-1"
+          />
+        ) : (
+          effReps
+        )}
+      </TableCell>
+      {showDays && (
+        <TableCell className="text-center">
+          <div className="flex gap-1 justify-center flex-wrap">
+            {DAY_OPTIONS.map((d) => {
+              const active = effDias.includes(d);
+              if (!canEdit) {
+                return active ? (
+                  <Badge key={d} variant="secondary" className="text-[10px] px-1.5 py-0">{d}</Badge>
+                ) : null;
+              }
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => toggleDia(d)}
+                  className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+                    active
+                      ? "bg-primary/15 border-primary/40 text-primary"
+                      : "bg-transparent border-border text-muted-foreground hover:bg-accent/40"
+                  }`}
+                >
+                  {d}
+                </button>
+              );
+            })}
+          </div>
+        </TableCell>
+      )}
+    </TableRow>
+  );
+}
   // Resolve effective exercise: 1) saved choice, 2) name match in template
   const escolhaEx = escolha ? bank.find((b) => b.id === escolha.exercicio_id) : null;
   const match = escolhaEx || findBankMatch(ex, bank);
