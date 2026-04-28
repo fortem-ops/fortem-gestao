@@ -12,7 +12,8 @@ interface Escolha {
   template_fase: string;
   treino_nome: string;
   ordem: number;
-  exercicio_id: string;
+  exercicio_id: string | null;
+  categoria_override: string | null;
 }
 
 interface BankExerciseGrupo {
