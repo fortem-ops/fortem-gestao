@@ -35,7 +35,7 @@ const PERIODO_LABEL: Record<Periodicidade, string> = {
   livre: "Livre",
 };
 
-const NIVEIS: NivelMembro[] = ["start", "start_plus", "power", "pro", "max"];
+const NIVEIS: NivelMembro[] = ["agregador", "start", "start_plus", "power", "pro", "max"];
 
 const emptyForm = {
   id: "",
