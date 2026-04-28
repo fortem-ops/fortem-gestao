@@ -299,7 +299,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         body: bloco.items.map((ex, i) => [
           String(i + 1),
           ex.subcategoria ?? "",
-          ex.exercicio,
+          cleanExerciseName(ex.exercicio),
           ex.dias?.includes("T1") ? CHECK : "",
           ex.dias?.includes("T2") ? CHECK : "",
           ex.dias?.includes("T3") ? CHECK : "",
@@ -400,7 +400,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         const catCell = isDynChild ? "" : (ex.categoria ?? "");
         return [
           catCell,
-          ex.exercicio,
+          cleanExerciseName(ex.exercicio),
           String(ex.series ?? ""),
           String(ex.repeticoes ?? ""),
           ex.kg ?? "",
