@@ -402,7 +402,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         { content: "KG", styles: { halign: "center" } },
       ]],
       body: items.map((ex) => [
-        ex.categoria ?? "",
+        (ex.categoria ?? "") + (ex.dinamicoTag ? ` · ${ex.dinamicoTag}` : ""),
         ex.exercicio,
         String(ex.series ?? ""),
         String(ex.repeticoes ?? ""),
@@ -437,6 +437,24 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         if (hookData.section === "body") {
           hookData.cell.styles.lineWidth = { bottom: 0.08 } as unknown as number;
           hookData.cell.styles.lineColor = RULE;
+          // Linhas pertencentes a um grupo dinâmico: pintar fundo conforme a
+          // semana correspondente (espelhando a coluna Frequência).
+          const ex = items[hookData.row.index];
+          if (ex && typeof ex.dinamicoIndex === "number") {
+            const isOdd = ex.dinamicoIndex % 2 === 1;
+            hookData.cell.styles.fillColor = isOdd ? RED_TINT : WHITE;
+          }
+        }
+      },
+      didDrawCell: (hookData) => {
+        if (hookData.section !== "body") return;
+        const ex = items[hookData.row.index];
+        if (!ex || typeof ex.dinamicoIndex !== "number") return;
+        // Barra vertical vermelha à esquerda agrupando as variantes.
+        if (hookData.column.index === 0) {
+          const barW = 0.6;
+          doc.setFillColor(...RED_SOFT);
+          doc.rect(hookData.cell.x, hookData.cell.y, barW, hookData.cell.height, "F");
         }
       },
     });
