@@ -121,22 +121,16 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   doc.setFontSize(7.5);
   doc.setTextColor(...INK);
   doc.text("OBSERVAÇÕES", mainX, y + 2.5);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6);
-  doc.setTextColor(...INK_MUTED);
-  doc.text("(anotações manuais)", mainX + 24, y + 2.5);
 
-  // Red hairline under title
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(0.3);
-  doc.line(mainX, y + obsTitleH, mainX + mainW, y + obsTitleH);
-
-  // Exactly 5 evenly-spaced writing lines
-  const obsLinesTop = y + obsTitleH + 2;
-  doc.setDrawColor(...RULE);
+  // Black hairline under title (also serves as a writing line)
+  doc.setDrawColor(...INK);
   doc.setLineWidth(0.15);
-  for (let i = 1; i <= OBS_LINES; i++) {
-    const ly = obsLinesTop + i * OBS_LINE_GAP;
+  const titleLineY = y + obsTitleH + 2 + OBS_LINE_GAP;
+  doc.line(mainX, titleLineY, mainX + mainW, titleLineY);
+
+  // Additional evenly-spaced writing lines below
+  for (let i = 2; i <= OBS_LINES; i++) {
+    const ly = y + obsTitleH + 2 + i * OBS_LINE_GAP;
     doc.line(mainX, ly, mainX + mainW, ly);
   }
 
