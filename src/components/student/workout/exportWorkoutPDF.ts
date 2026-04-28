@@ -467,27 +467,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           }
         }
       },
-      didDrawCell: (hookData) => {
-        if (hookData.section !== "body") return;
-        const ex = items[hookData.row.index];
-        if (!ex) return;
-        // Barra vertical vermelha à esquerda agrupando as variantes do dinâmico.
-        if (typeof ex.dinamicoIndex === "number" && hookData.column.index === 0) {
-          const barW = 0.6;
-          doc.setFillColor(...RED_SOFT);
-          doc.rect(hookData.cell.x, hookData.cell.y, barW, hookData.cell.height, "F");
-        }
-        // Rótulo do bloco (ex.: "BLOCO A") junto à quebra.
-        if (ex.blocoStart && hookData.row.index > 0 && hookData.column.index === 0) {
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(Math.max(4.6, BADGE_FONT));
-          doc.setTextColor(...INK);
-          doc.text(
-            ex.blocoStart.toUpperCase(),
-            hookData.cell.x + 1.2,
-            hookData.cell.y + 2.2,
-          );
-        }
+      didDrawCell: (_hookData) => {
+        // Barra vertical e rótulo "BLOCO X" removidos a pedido do usuário.
+        return;
       },
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.6;
