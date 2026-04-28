@@ -251,33 +251,45 @@ export type Database = {
       banco_treinos_escolhas: {
         Row: {
           categoria: string
+          categoria_override: string | null
           created_at: string
+          dias_override: string[] | null
           escolhido_por: string
-          exercicio_id: string
+          exercicio_id: string | null
           id: string
           ordem: number
+          repeticoes_override: string | null
+          series_override: number | null
           template_fase: string
           treino_nome: string
           updated_at: string
         }
         Insert: {
           categoria: string
+          categoria_override?: string | null
           created_at?: string
+          dias_override?: string[] | null
           escolhido_por: string
-          exercicio_id: string
+          exercicio_id?: string | null
           id?: string
           ordem: number
+          repeticoes_override?: string | null
+          series_override?: number | null
           template_fase: string
           treino_nome: string
           updated_at?: string
         }
         Update: {
           categoria?: string
+          categoria_override?: string | null
           created_at?: string
+          dias_override?: string[] | null
           escolhido_por?: string
-          exercicio_id?: string
+          exercicio_id?: string | null
           id?: string
           ordem?: number
+          repeticoes_override?: string | null
+          series_override?: number | null
           template_fase?: string
           treino_nome?: string
           updated_at?: string
