@@ -145,7 +145,7 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("banco_treinos_escolhas")
-        .select("template_fase, treino_nome, ordem, exercicio_id");
+        .select("template_fase, treino_nome, ordem, exercicio_id, categoria_override");
       if (error) throw error;
       return data as Escolha[];
     },
