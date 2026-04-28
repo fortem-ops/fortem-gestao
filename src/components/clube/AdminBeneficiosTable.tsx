@@ -108,6 +108,17 @@ export function AdminBeneficiosTable() {
   }
 
   function openEdit(b: Beneficio) {
+    let validade_opcao = "sem_prazo";
+    let validade_dias_custom = "";
+    if (b.data_fim) {
+      const dias = diffDays(b.data_inicio, b.data_fim);
+      if (VALIDADE_PRESETS.includes(dias)) {
+        validade_opcao = String(dias);
+      } else {
+        validade_opcao = "custom";
+        validade_dias_custom = String(dias);
+      }
+    }
     setForm({
       id: b.id,
       parceiro_id: b.parceiro_id,
@@ -117,6 +128,9 @@ export function AdminBeneficiosTable() {
       regra_uso: b.regra_uso || "",
       limite_por_periodo: b.limite_por_periodo?.toString() || "",
       periodicidade: b.periodicidade,
+      data_inicio: b.data_inicio,
+      validade_opcao,
+      validade_dias_custom,
       niveis_permitidos: (b.niveis_permitidos?.length ? b.niveis_permitidos : ["start"]) as NivelMembro[],
       ativo: b.ativo,
     });
@@ -132,9 +146,27 @@ export function AdminBeneficiosTable() {
       toast.error("Selecione pelo menos um nível com acesso.");
       return;
     }
+
+    // Resolve data_fim a partir da periodicidade (validade)
+    let dias: number | null = null;
+    if (form.validade_opcao === "sem_prazo") {
+      dias = null;
+    } else if (form.validade_opcao === "custom") {
+      const n = Number(form.validade_dias_custom);
+      if (!Number.isInteger(n) || n < 1) {
+        toast.error("Informe uma quantidade válida de dias (mínimo 1).");
+        return;
+      }
+      dias = n;
+    } else {
+      dias = Number(form.validade_opcao);
+    }
+    const data_inicio = form.data_inicio || todayISO();
+    const data_fim = dias === null ? null : addDays(data_inicio, dias);
+
     setSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         parceiro_id: form.parceiro_id,
         titulo: form.titulo,
         descricao: form.descricao || null,
@@ -144,7 +176,9 @@ export function AdminBeneficiosTable() {
         periodicidade: form.periodicidade,
         niveis_permitidos: form.niveis_permitidos,
         ativo: form.ativo,
+        data_fim,
       };
+      if (!form.id) payload.data_inicio = data_inicio;
       const { error } = form.id
         ? await supabase.from("beneficios").update(payload).eq("id", form.id)
         : await supabase.from("beneficios").insert(payload);
