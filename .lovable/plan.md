@@ -1,23 +1,30 @@
-# Limite total na vigência (sem renovação por período)
+# Recolocar "Periodicidade" como validade em dias (sem renovação)
 
-Hoje, em "Novo benefício", o `Limite por período` reinicia a cada janela do campo `Periodicidade` (dia/semana/mês). O usuário quer que o limite seja **total dentro da vigência do benefício** — uma vez atingido, não renova.
+A "Periodicidade" volta ao formulário de novo benefício, mas agora como **validade em dias** a partir da data de criação. Sem renovação automática: passados os N dias, o benefício expira.
 
 ## Mudanças
 
-### Banco — `fn_clube_validar_token`
-- Substituir o cálculo de `_periodo_inicio` (hoje baseado em `date_trunc(periodicidade, now())`) por:
-  - Contar `uso_beneficios` válidos do mesmo aluno + benefício desde `_beneficio.data_inicio` (sem upper bound — vigência aberta) ou até `_beneficio.data_fim + 1 dia` se preenchida.
-- Mensagem de recusa: `"Limite de usos do benefício atingido"`.
-- Manter colunas `periodicidade` e `limite_por_periodo` no schema (sem mudança estrutural) para não quebrar tipos gerados.
-
 ### `src/components/clube/AdminBeneficiosTable.tsx`
-- Remover o campo "Periodicidade" do diálogo.
-- Renomear o label de `limite_por_periodo` para **"Limite total de usos"** (input numérico, opcional → ilimitado).
-- Texto auxiliar abaixo do campo: "Limite válido para toda a vigência do benefício; não renova."
-- No `save()`, enviar `periodicidade: 'livre'` por padrão (campo segue existindo no banco, apenas não é mais editável).
-- Na tabela de listagem, trocar a coluna **"Limite"** para mostrar `"5 usos"` (ou `"Livre"`), sem mais o sufixo `/Mensal` etc.
+- Adicionar no formulário um campo **"Periodicidade (validade)"** como `Select`, logo abaixo de "Tipo", com as opções:
+  - 7 dias, 15 dias, 30 dias (default), 60 dias, 90 dias, 180 dias, 365 dias
+  - "Personalizado" → revela `Input` numérico para digitar a quantidade de dias
+  - "Sem prazo de validade"
+- Estender `emptyForm` com `validade_opcao` (string) e `validade_dias_custom` (string).
+- No `openEdit`, derivar a opção a partir de `b.data_fim`:
+  - Se `data_fim` for nula → `"sem_prazo"`.
+  - Se `data_fim - data_inicio` bater com uma opção pré-definida → seleciona essa opção.
+  - Caso contrário → `"custom"` com o número de dias preenchido.
+- No `save()`, calcular `data_fim` a partir da opção:
+  - `sem_prazo` → `data_fim = null`.
+  - opção numérica ou custom → `data_fim = data_inicio + dias` (no insert, `data_inicio` recebe o default de hoje; no update, usar `data_inicio` atual do registro carregado).
+  - Validar `custom`: exigir inteiro ≥ 1.
+- Remover o uso de `PERIODO_LABEL` na coluna "Limite" da tabela (já feito anteriormente — manter como `"X usos"` ou `"Livre"`).
+- Continuar enviando `periodicidade: 'livre'` no payload (campo legado do enum, sem efeito na validação).
+- Adicionar coluna **"Validade"** na tabela exibindo `"30 dias"`, `"Sem prazo"` ou data de fim formatada (`até dd/mm/aaaa`).
+
+### Banco
+- Sem migração nova. A função `fn_clube_validar_token` já recusa benefícios fora do intervalo `data_inicio..data_fim`, então a expiração após N dias passa a funcionar automaticamente.
 
 ## Fora do escopo
-- Não adicionamos DatePickers de vigência (pedido cancelado anteriormente).
-- Não removemos colunas do banco — só ajustamos a função de validação e a UI do admin.
-- `PartnersList.tsx` não exibe periodicidade hoje; nada a alterar lá.
+- Não reintroduzimos o enum visual `dia/semana/mês` como periodicidade de uso (essa lógica de renovação foi removida na iteração anterior e continua removida).
+- Não adicionamos DatePicker para `data_inicio`/`data_fim` (o controle continua sendo só "validade em dias").

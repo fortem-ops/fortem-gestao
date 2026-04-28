@@ -38,6 +38,8 @@ const PERIODO_LABEL: Record<Periodicidade, string> = {
 
 const NIVEIS: NivelMembro[] = ["agregador", "start", "start_plus", "power", "pro", "max"];
 
+const VALIDADE_PRESETS = [7, 15, 30, 60, 90, 180, 365];
+
 const emptyForm = {
   id: "",
   parceiro_id: "",
@@ -47,9 +49,28 @@ const emptyForm = {
   regra_uso: "",
   limite_por_periodo: "",
   periodicidade: "livre" as Periodicidade,
+  data_inicio: "" as string, // YYYY-MM-DD do registro (preenchido no edit)
+  validade_opcao: "30" as string, // "7" | "15" | ... | "custom" | "sem_prazo"
+  validade_dias_custom: "" as string,
   niveis_permitidos: ["start"] as NivelMembro[],
   ativo: true,
 };
+
+function diffDays(inicio: string, fim: string): number {
+  const a = new Date(inicio + "T00:00:00").getTime();
+  const b = new Date(fim + "T00:00:00").getTime();
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+
+function addDays(inicio: string, dias: number): string {
+  const d = new Date(inicio + "T00:00:00");
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function AdminBeneficiosTable() {
   const qc = useQueryClient();
@@ -87,6 +108,17 @@ export function AdminBeneficiosTable() {
   }
 
   function openEdit(b: Beneficio) {
+    let validade_opcao = "sem_prazo";
+    let validade_dias_custom = "";
+    if (b.data_fim) {
+      const dias = diffDays(b.data_inicio, b.data_fim);
+      if (VALIDADE_PRESETS.includes(dias)) {
+        validade_opcao = String(dias);
+      } else {
+        validade_opcao = "custom";
+        validade_dias_custom = String(dias);
+      }
+    }
     setForm({
       id: b.id,
       parceiro_id: b.parceiro_id,
@@ -96,6 +128,9 @@ export function AdminBeneficiosTable() {
       regra_uso: b.regra_uso || "",
       limite_por_periodo: b.limite_por_periodo?.toString() || "",
       periodicidade: b.periodicidade,
+      data_inicio: b.data_inicio,
+      validade_opcao,
+      validade_dias_custom,
       niveis_permitidos: (b.niveis_permitidos?.length ? b.niveis_permitidos : ["start"]) as NivelMembro[],
       ativo: b.ativo,
     });
@@ -111,9 +146,27 @@ export function AdminBeneficiosTable() {
       toast.error("Selecione pelo menos um nível com acesso.");
       return;
     }
+
+    // Resolve data_fim a partir da periodicidade (validade)
+    let dias: number | null = null;
+    if (form.validade_opcao === "sem_prazo") {
+      dias = null;
+    } else if (form.validade_opcao === "custom") {
+      const n = Number(form.validade_dias_custom);
+      if (!Number.isInteger(n) || n < 1) {
+        toast.error("Informe uma quantidade válida de dias (mínimo 1).");
+        return;
+      }
+      dias = n;
+    } else {
+      dias = Number(form.validade_opcao);
+    }
+    const data_inicio = form.data_inicio || todayISO();
+    const data_fim = dias === null ? null : addDays(data_inicio, dias);
+
     setSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         parceiro_id: form.parceiro_id,
         titulo: form.titulo,
         descricao: form.descricao || null,
@@ -123,7 +176,9 @@ export function AdminBeneficiosTable() {
         periodicidade: form.periodicidade,
         niveis_permitidos: form.niveis_permitidos,
         ativo: form.ativo,
+        data_fim,
       };
+      if (!form.id) payload.data_inicio = data_inicio;
       const { error } = form.id
         ? await supabase.from("beneficios").update(payload).eq("id", form.id)
         : await supabase.from("beneficios").insert(payload);
@@ -181,6 +236,35 @@ export function AdminBeneficiosTable() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Periodicidade (validade)</Label>
+                <Select
+                  value={form.validade_opcao}
+                  onValueChange={(v) => setForm({ ...form, validade_opcao: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {VALIDADE_PRESETS.map((d) => (
+                      <SelectItem key={d} value={String(d)}>{d} dias</SelectItem>
+                    ))}
+                    <SelectItem value="custom">Personalizado (dias)</SelectItem>
+                    <SelectItem value="sem_prazo">Sem prazo de validade</SelectItem>
+                  </SelectContent>
+                </Select>
+                {form.validade_opcao === "custom" && (
+                  <Input
+                    type="number"
+                    min={1}
+                    className="mt-2"
+                    placeholder="Quantidade de dias"
+                    value={form.validade_dias_custom}
+                    onChange={(e) => setForm({ ...form, validade_dias_custom: e.target.value })}
+                  />
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Após o prazo, o benefício expira automaticamente. Não há renovação.
+                </p>
               </div>
               <div>
                 <Label>Níveis com acesso *</Label>
@@ -250,41 +334,51 @@ export function AdminBeneficiosTable() {
               <TableHead>Tipo</TableHead>
               <TableHead>Níveis</TableHead>
               <TableHead>Limite</TableHead>
+              <TableHead>Validade</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.map((b) => (
-              <TableRow key={b.id}>
-                <TableCell className="font-medium">{b.titulo}</TableCell>
-                <TableCell>{b.parceiro_nome}</TableCell>
-                <TableCell className="text-xs">{TIPO_LABEL[b.tipo]}</TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {b.niveis_permitidos?.length === NIVEIS.length ? (
-                      <Badge variant="outline">Todos</Badge>
-                    ) : (
-                      (b.niveis_permitidos || []).map((n) => (
-                        <Badge key={n} variant="outline" className="text-[10px]">{NIVEL_LABEL[n as NivelMembro]}</Badge>
-                      ))
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-xs">
-                  {b.limite_por_periodo ? `${b.limite_por_periodo} usos` : "Livre"}
-                </TableCell>
-                <TableCell>{b.ativo ? <Badge variant="default">Sim</Badge> : <Badge variant="secondary">Não</Badge>}</TableCell>
-                <TableCell>
-                  <Button size="icon" variant="ghost" onClick={() => openEdit(b)}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {data?.map((b) => {
+              const dias = b.data_fim ? diffDays(b.data_inicio, b.data_fim) : null;
+              const validadeLabel = dias === null
+                ? "Sem prazo"
+                : VALIDADE_PRESETS.includes(dias)
+                  ? `${dias} dias`
+                  : `${dias} dias (até ${new Date(b.data_fim + "T00:00:00").toLocaleDateString("pt-BR")})`;
+              return (
+                <TableRow key={b.id}>
+                  <TableCell className="font-medium">{b.titulo}</TableCell>
+                  <TableCell>{b.parceiro_nome}</TableCell>
+                  <TableCell className="text-xs">{TIPO_LABEL[b.tipo]}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {b.niveis_permitidos?.length === NIVEIS.length ? (
+                        <Badge variant="outline">Todos</Badge>
+                      ) : (
+                        (b.niveis_permitidos || []).map((n) => (
+                          <Badge key={n} variant="outline" className="text-[10px]">{NIVEL_LABEL[n as NivelMembro]}</Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {b.limite_por_periodo ? `${b.limite_por_periodo} usos` : "Livre"}
+                  </TableCell>
+                  <TableCell className="text-xs">{validadeLabel}</TableCell>
+                  <TableCell>{b.ativo ? <Badge variant="default">Sim</Badge> : <Badge variant="secondary">Não</Badge>}</TableCell>
+                  <TableCell>
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(b)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             {!data?.length && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhum benefício cadastrado.
                 </TableCell>
               </TableRow>
