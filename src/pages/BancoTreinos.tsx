@@ -342,6 +342,7 @@ function TemplateDetail({
   escolhasMap,
   onSaveChoice,
   onClearChoice,
+  onSaveOverride,
   canEdit,
 }: {
   template: WorkoutTemplate;
@@ -351,6 +352,7 @@ function TemplateDetail({
   escolhasMap: Map<string, Escolha>;
   onSaveChoice: (ex: WorkoutExercise, treino: string, b: BankExercise) => void;
   onClearChoice: (ex: WorkoutExercise, treino: string) => void;
+  onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
 }) {
   const blocks = ["LIB", "MOB", "ATI"] as const;
