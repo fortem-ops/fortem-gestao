@@ -340,7 +340,7 @@ export type Database = {
           descricao: string | null
           id: string
           limite_por_periodo: number | null
-          nivel_minimo: Database["public"]["Enums"]["clube_nivel_membro"]
+          niveis_permitidos: Database["public"]["Enums"]["clube_nivel_membro"][]
           parceiro_id: string
           periodicidade: Database["public"]["Enums"]["beneficio_periodicidade"]
           regra_uso: string | null
@@ -356,7 +356,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           limite_por_periodo?: number | null
-          nivel_minimo?: Database["public"]["Enums"]["clube_nivel_membro"]
+          niveis_permitidos?: Database["public"]["Enums"]["clube_nivel_membro"][]
           parceiro_id: string
           periodicidade?: Database["public"]["Enums"]["beneficio_periodicidade"]
           regra_uso?: string | null
@@ -372,7 +372,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           limite_por_periodo?: number | null
-          nivel_minimo?: Database["public"]["Enums"]["clube_nivel_membro"]
+          niveis_permitidos?: Database["public"]["Enums"]["clube_nivel_membro"][]
           parceiro_id?: string
           periodicidade?: Database["public"]["Enums"]["beneficio_periodicidade"]
           regra_uso?: string | null

@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Heart, MapPin, Search, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Database } from "@/integrations/supabase/types";
-import { NIVEL_LABEL, NIVEL_RANK, distanceKm, type NivelMembro } from "@/lib/clube";
+import { NIVEL_LABEL, distanceKm, type NivelMembro } from "@/lib/clube";
+
+const TODOS_NIVEIS = 6;
 
 type Parceiro = Database["public"]["Tables"]["parceiros"]["Row"];
 type Beneficio = Database["public"]["Tables"]["beneficios"]["Row"];
@@ -71,7 +73,7 @@ export function PartnersList({ nivelAluno }: PartnersListProps) {
       .map((p) => {
         const benefs = data.beneficios.filter((b) => b.parceiro_id === p.id);
         const elegiveis = nivelAluno
-          ? benefs.filter((b) => NIVEL_RANK[nivelAluno] >= NIVEL_RANK[b.nivel_minimo])
+          ? benefs.filter((b) => (b.niveis_permitidos || []).includes(nivelAluno))
           : benefs;
         const distance =
           coords && p.latitude && p.longitude
@@ -168,12 +170,25 @@ export function PartnersList({ nivelAluno }: PartnersListProps) {
                 {p.beneficios.length === 0 ? (
                   <p className="text-xs italic text-muted-foreground">Sem benefícios disponíveis para seu nível.</p>
                 ) : (
-                  p.beneficios.slice(0, 3).map((b) => (
-                    <div key={b.id} className="flex items-start justify-between gap-2 text-xs">
-                      <span className="font-medium leading-tight">{b.titulo}</span>
-                      <Badge variant="outline" className="text-[9px] shrink-0">{NIVEL_LABEL[b.nivel_minimo]}</Badge>
-                    </div>
-                  ))
+                  p.beneficios.slice(0, 3).map((b) => {
+                    const niveis = b.niveis_permitidos || [];
+                    const todos = niveis.length === TODOS_NIVEIS;
+                    return (
+                      <div key={b.id} className="flex items-start justify-between gap-2 text-xs">
+                        <span className="font-medium leading-tight">{b.titulo}</span>
+                        {!todos && niveis.length > 0 && (
+                          <div className="flex flex-wrap gap-0.5 shrink-0 justify-end max-w-[55%]">
+                            {niveis.slice(0, 2).map((n) => (
+                              <Badge key={n} variant="outline" className="text-[9px]">{NIVEL_LABEL[n as NivelMembro]}</Badge>
+                            ))}
+                            {niveis.length > 2 && (
+                              <Badge variant="outline" className="text-[9px]">+{niveis.length - 2}</Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
