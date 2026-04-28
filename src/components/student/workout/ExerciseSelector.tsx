@@ -28,7 +28,7 @@ interface BankExercise {
 
 import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 
-export function ExerciseSelector({ categoria, value, onChange, readOnly }: ExerciseSelectorProps) {
+export function ExerciseSelector({ categoria, value, onChange, readOnly, subcategoria, disabled, placeholder }: ExerciseSelectorProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
