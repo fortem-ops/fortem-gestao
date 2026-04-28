@@ -402,6 +402,7 @@ function TemplateDetail({
                     escolhasMap={escolhasMap}
                     onSaveChoice={onSaveChoice}
                     onClearChoice={onClearChoice}
+                        onSaveOverride={onSaveOverride}
                     canEdit={canEdit}
                   />
                 </div>
@@ -441,6 +442,7 @@ function TemplateDetail({
                         escolhasMap={escolhasMap}
                         onSaveChoice={onSaveChoice}
                         onClearChoice={onClearChoice}
+                        onSaveOverride={onSaveOverride}
                         canEdit={canEdit}
                       />
                     </div>
@@ -457,6 +459,7 @@ function TemplateDetail({
                         escolhasMap={escolhasMap}
                         onSaveChoice={onSaveChoice}
                         onClearChoice={onClearChoice}
+                        onSaveOverride={onSaveOverride}
                         canEdit={canEdit}
                       />
                     </div>
