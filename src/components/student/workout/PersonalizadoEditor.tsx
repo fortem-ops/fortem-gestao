@@ -105,6 +105,153 @@ export function PersonalizadoEditor({
 
   const isAluno = !!alunoId;
 
+  // ============ Auto-save (rascunho) ============
+  // Estratégia:
+  //  - Sempre persistimos um rascunho local em localStorage (debounce ~800ms).
+  //  - Se houver `modeloId` ou `treinoId`, persistimos também no banco com
+  //    debounce maior (~5s) e silenciosamente, sem toast.
+  //  - Ao montar, se existir um rascunho local mais recente que o `initial`
+  //    fornecido (ou se for um "novo" sem id), restauramos automaticamente.
+  // Chave de rascunho — única para cada contexto de edição:
+  const draftKey =
+    `personalizado:draft:${modeloId ?? treinoId ?? (alunoId ? `aluno-${alunoId}` : "new")}`;
+
+  const [autoSaveStatus, setAutoSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const [lastAutoSaveAt, setLastAutoSaveAt] = useState<number | null>(null);
+
+  // Refs para evitar disparar auto-save no primeiro render e para guardar timers.
+  const didMountRef = useRef(false);
+  const localTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userRef = useRef(user);
+  userRef.current = user;
+
+  // Restaura rascunho local se existir.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as {
+        data: PersonalizadoConteudo;
+        name: string;
+        savedAt: number;
+      };
+      // Heurística: só restaura se o rascunho difere do estado inicial atual,
+      // evitando sobrescrever um modelo recém-aberto idêntico.
+      const sameContent =
+        JSON.stringify(parsed.data) === JSON.stringify(data) &&
+        parsed.name === name;
+      if (sameContent) return;
+      setData(parsed.data);
+      setName(parsed.name);
+      setLastAutoSaveAt(parsed.savedAt);
+      setAutoSaveStatus("saved");
+      toast.info("Rascunho restaurado automaticamente");
+    } catch {
+      /* rascunho corrompido — ignora */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
+
+  // Debounce: salvar rascunho local + (opcional) backend a cada edição.
+  useEffect(() => {
+    // Pula primeira execução (montagem) — evita gravar antes da restauração.
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    setAutoSaveStatus("saving");
+
+    if (localTimerRef.current) clearTimeout(localTimerRef.current);
+    localTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          draftKey,
+          JSON.stringify({ data, name, savedAt: Date.now() }),
+        );
+        setLastAutoSaveAt(Date.now());
+        setAutoSaveStatus("saved");
+      } catch {
+        setAutoSaveStatus("error");
+      }
+    }, 800);
+
+    // Auto-save remoto silencioso, apenas para registros já existentes.
+    if (modeloId || treinoId) {
+      if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
+      remoteTimerRef.current = setTimeout(async () => {
+        const u = userRef.current;
+        if (!u) return;
+        try {
+          if (modeloId) {
+            await supabase
+              .from("banco_treinos_personalizados")
+              .update({
+                nome: name.trim() || "Modelo Personalizado",
+                conteudo: data as unknown as Json,
+              })
+              .eq("id", modeloId);
+          } else if (treinoId) {
+            const conteudo = {
+              __personalizado: true,
+              estrutura: data,
+              ...flattenPersonalizado(data),
+            } as unknown as Json;
+            await supabase
+              .from("treinos")
+              .update({
+                conteudo,
+                descricao: name,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", treinoId);
+          }
+          setLastAutoSaveAt(Date.now());
+          setAutoSaveStatus("saved");
+        } catch {
+          setAutoSaveStatus("error");
+        }
+      }, 5000);
+    }
+
+    return () => {
+      // Não limpamos os timers aqui para permitir que o último save complete
+      // após um desmonte (ex: usuário clica em "Voltar").
+    };
+  }, [data, name, draftKey, modeloId, treinoId]);
+
+  // Limpa rascunho local após save manual bem-sucedido.
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      /* noop */
+    }
+  };
+
+  // Indicador textual amigável.
+  const autoSaveLabel = (() => {
+    if (autoSaveStatus === "saving") return "Salvando rascunho...";
+    if (autoSaveStatus === "error") return "Falha ao salvar rascunho";
+    if (autoSaveStatus === "saved" && lastAutoSaveAt) {
+      const sec = Math.max(1, Math.round((Date.now() - lastAutoSaveAt) / 1000));
+      if (sec < 60) return `Rascunho salvo há ${sec}s`;
+      const min = Math.round(sec / 60);
+      return `Rascunho salvo há ${min}min`;
+    }
+    return null;
+  })();
+
+  // Re-renderiza o label de tempo a cada 15s (apenas estética).
+  useEffect(() => {
+    const t = setInterval(() => setLastAutoSaveAt((v) => v), 15_000);
+    return () => clearInterval(t);
+  }, []);
+
+
   // ============ Aquecimento ============
   const addAquecimento = (bloco: AquecimentoBloco) => {
     setData((p) => ({
