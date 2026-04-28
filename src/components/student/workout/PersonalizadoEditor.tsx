@@ -510,6 +510,7 @@ export function PersonalizadoEditor({
         if (error) throw error;
       }
       toast.success("Treino aplicado ao aluno");
+      clearDraft();
       onSaved?.();
     } catch (e) {
       toast.error("Erro ao aplicar: " + (e instanceof Error ? e.message : ""));
