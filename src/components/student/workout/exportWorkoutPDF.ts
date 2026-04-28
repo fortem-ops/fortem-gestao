@@ -564,7 +564,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     const hasExplicitBloco = tr.exercicios.some((ex, i) => i > 0 && ex.blocoStart);
     const exerciciosComBloco = hasExplicitBloco
       ? tr.exercicios
-      : tr.exercicios.map((ex, i) => (i === 2 ? { ...ex, blocoStart: true } : ex));
+      : tr.exercicios.map((ex, i) => (i === 2 ? { ...ex, blocoStart: "B" } : ex));
     renderForcaBlock("A", exerciciosComBloco, 1);
     y += treinoGap;
   });
