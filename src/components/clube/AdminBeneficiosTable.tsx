@@ -214,27 +214,18 @@ export function AdminBeneficiosTable() {
                   placeholder="ex.: 20% off acima de R$50"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Limite por período</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={form.limite_por_periodo}
-                    onChange={(e) => setForm({ ...form, limite_por_periodo: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Periodicidade</Label>
-                  <Select value={form.periodicidade} onValueChange={(v) => setForm({ ...form, periodicidade: v as Periodicidade })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(PERIODO_LABEL) as Periodicidade[]).map((p) => (
-                        <SelectItem key={p} value={p}>{PERIODO_LABEL[p]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label>Limite total de usos</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={form.limite_por_periodo}
+                  onChange={(e) => setForm({ ...form, limite_por_periodo: e.target.value })}
+                  placeholder="Deixe em branco para ilimitado"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Limite válido para toda a vigência do benefício; não renova.
+                </p>
               </div>
               <div className="flex items-center gap-2 pt-2">
                 <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
