@@ -9,10 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
+import { PersonalizadoEditor } from "./PersonalizadoEditor";
+import { isPersonalizadoContent } from "./personalizadoTypes";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
   DialogFooter,
   DialogHeader,
   DialogTitle,
