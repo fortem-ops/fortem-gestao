@@ -559,7 +559,13 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     doc.text((tr.nome || `TREINO ${idx + 1}`).toUpperCase(), mainX + 2.2, y + BAR_H / 2 + 0.95);
     y += BAR_H + 0.45;
 
-    renderForcaBlock("A", tr.exercicios, 1);
+    // Auto-inject bloco break at exercise 3 (Bloco B) when none is set,
+    // so all 4 fases (TREINO 1-4) show the visual block separation.
+    const hasExplicitBloco = tr.exercicios.some((ex, i) => i > 0 && ex.blocoStart);
+    const exerciciosComBloco = hasExplicitBloco
+      ? tr.exercicios
+      : tr.exercicios.map((ex, i) => (i === 2 ? { ...ex, blocoStart: true } : ex));
+    renderForcaBlock("A", exerciciosComBloco, 1);
     y += treinoGap;
   });
 
