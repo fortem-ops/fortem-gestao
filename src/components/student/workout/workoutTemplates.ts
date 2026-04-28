@@ -12,6 +12,10 @@ export interface WorkoutExercise {
   exercicio_id?: string;
   video_url?: string | null;
   video_path?: string | null;
+  /** Marcadores opcionais usados pelo PDF para renderizar grupos de exercícios dinâmicos (uma linha por variante). */
+  dinamicoIndex?: number;
+  dinamicoTotal?: number;
+  dinamicoTag?: "I/P" | "ROT";
 }
 
 export interface WorkoutSection {
