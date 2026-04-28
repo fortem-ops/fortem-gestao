@@ -481,6 +481,7 @@ function ExerciseTable({
                 onClearChoice={() => onClearChoice(ex, treinoNome)}
                 onSaveOverride={(patch) => onSaveOverride(ex, treinoNome, patch)}
                 canEdit={canEdit}
+                aquecimentoBloco={aquecimentoBloco}
               />
             );
           })}
