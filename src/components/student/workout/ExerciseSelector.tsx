@@ -9,6 +9,12 @@ interface ExerciseSelectorProps {
   value: string;
   onChange: (value: string, video?: string | null) => void;
   readOnly?: boolean;
+  /** Sobrescreve a subcategoria derivada do código (usado em LIB/MOB/ATI). */
+  subcategoria?: string;
+  /** Desabilita o input quando true (ex: subcategoria ainda não escolhida). */
+  disabled?: boolean;
+  /** Placeholder customizado. */
+  placeholder?: string;
 }
 
 interface GroupSelection { grupo: string; subcategoria: string }
@@ -22,7 +28,7 @@ interface BankExercise {
 
 import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 
-export function ExerciseSelector({ categoria, value, onChange, readOnly }: ExerciseSelectorProps) {
+export function ExerciseSelector({ categoria, value, onChange, readOnly, subcategoria, disabled, placeholder }: ExerciseSelectorProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -57,7 +63,7 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly }: Exerc
   });
 
   const grupoAlvo = CODE_TO_GRUPO[categoria.toUpperCase()] || categoria;
-  const subAlvo = CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
+  const subAlvo = subcategoria ?? CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
 
   const candidatos = useMemo(() => {
     return exercicios.filter((ex) =>
@@ -83,11 +89,15 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly }: Exerc
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
+          disabled={disabled}
           className="h-7 text-xs bg-transparent border-none pl-5 pr-1"
-          placeholder={subAlvo ? `Buscar em ${subAlvo}...` : `Buscar em ${grupoAlvo}...`}
+          placeholder={
+            placeholder ??
+            (subAlvo ? `Buscar em ${subAlvo}...` : `Buscar em ${grupoAlvo}...`)
+          }
         />
       </div>
-      {open && (
+      {open && !disabled && (
         <div className="absolute z-50 top-8 left-0 w-80 max-h-48 overflow-y-auto bg-popover border border-border rounded-md shadow-lg">
           {candidatos.length === 0 ? (
             <div className="px-2 py-3 text-xs text-muted-foreground text-center">

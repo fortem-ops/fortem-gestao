@@ -28,6 +28,7 @@ import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users } from "lucide-
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { CATEGORY_LABELS } from "./workoutTemplates";
+import { AQUECIMENTO_SUBCATEGORIAS } from "@/lib/exerciseMapping";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
 import {
@@ -621,13 +622,47 @@ export function PersonalizadoEditor({
                   <div key={i} className="flex items-start gap-2 p-2 rounded border border-border/50 bg-card/50">
                     <span className="text-[10px] text-muted-foreground mt-2 w-4">{i + 1}</span>
                     <div className="flex-1 min-w-0 space-y-1.5">
-                      <ExerciseSelector
-                        categoria={b.key}
-                        value={ex.exercicio}
-                        onChange={(val, video) =>
-                          updateAquecimento(b.key, i, { exercicio: val, video_url: video })
-                        }
-                      />
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={ex.subcategoria ?? ""}
+                          onValueChange={(val) =>
+                            updateAquecimento(b.key, i, {
+                              subcategoria: val,
+                              // limpa exercício para evitar inconsistência
+                              exercicio: "",
+                              exercicio_id: null,
+                              video_url: null,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-7 text-xs w-[160px] shrink-0">
+                            <SelectValue placeholder="Subcategoria..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {AQUECIMENTO_SUBCATEGORIAS[b.key].map((sub) => (
+                              <SelectItem key={sub} value={sub} className="text-xs">
+                                {sub}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex-1 min-w-0">
+                          <ExerciseSelector
+                            categoria={b.key}
+                            subcategoria={ex.subcategoria}
+                            value={ex.exercicio}
+                            disabled={!ex.subcategoria}
+                            placeholder={
+                              ex.subcategoria
+                                ? `Buscar em ${ex.subcategoria}...`
+                                : "Selecione a subcategoria primeiro"
+                            }
+                            onChange={(val, video) =>
+                              updateAquecimento(b.key, i, { exercicio: val, video_url: video })
+                            }
+                          />
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <Label className="text-[10px] text-muted-foreground">Reps</Label>
                         <Input

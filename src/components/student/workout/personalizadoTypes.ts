@@ -8,6 +8,7 @@ import type { WorkoutExercise } from "./workoutTemplates";
 export type AquecimentoBloco = "LIB" | "MOB" | "ATI";
 
 export interface PersonalizadoAquecimentoEx {
+  subcategoria?: string;
   exercicio: string;
   exercicio_id?: string | null;
   video_url?: string | null;
