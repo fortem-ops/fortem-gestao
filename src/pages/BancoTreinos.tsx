@@ -32,8 +32,21 @@ interface Escolha {
   template_fase: string;
   treino_nome: string;
   ordem: number;
-  exercicio_id: string;
+  exercicio_id: string | null;
+  categoria_override: string | null;
+  series_override: number | null;
+  repeticoes_override: string | null;
+  dias_override: string[] | null;
 }
+
+type OverridePatch = {
+  categoria_override?: string | null;
+  series_override?: number | null;
+  repeticoes_override?: string | null;
+  dias_override?: string[] | null;
+};
+
+const DAY_OPTIONS = ["T1", "T2", "T3", "T4"] as const;
 
 const PHASE_GROUPS = [
   { label: "Fases", filter: (t: WorkoutTemplate) => /^Fase \d/.test(t.fase) },
