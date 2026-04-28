@@ -79,12 +79,16 @@ function applyEscolhas(
       const fallback = !escolhido ? bankByNome.get(ex.exercicio.toLowerCase().trim()) : undefined;
       const link = escolhido || fallback;
       if (!link) return { ...ex };
+      // Para linhas de aquecimento (LIB/MOB/ATI), tenta resolver subcategoria do banco
+      // se o template ainda não trouxer uma — mantém retrocompatibilidade.
+      const sub = ex.subcategoria || pickSubcategoria(ex.categoria, link.grupos);
       return {
         ...ex,
         exercicio: link.nome,
         exercicio_id: link.id,
         video_url: link.video_url,
         video_path: link.video_path,
+        ...(sub ? { subcategoria: sub } : {}),
       };
     });
 
