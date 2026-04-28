@@ -38,6 +38,8 @@ const PERIODO_LABEL: Record<Periodicidade, string> = {
 
 const NIVEIS: NivelMembro[] = ["agregador", "start", "start_plus", "power", "pro", "max"];
 
+const VALIDADE_PRESETS = [7, 15, 30, 60, 90, 180, 365];
+
 const emptyForm = {
   id: "",
   parceiro_id: "",
@@ -47,9 +49,28 @@ const emptyForm = {
   regra_uso: "",
   limite_por_periodo: "",
   periodicidade: "livre" as Periodicidade,
+  data_inicio: "" as string, // YYYY-MM-DD do registro (preenchido no edit)
+  validade_opcao: "30" as string, // "7" | "15" | ... | "custom" | "sem_prazo"
+  validade_dias_custom: "" as string,
   niveis_permitidos: ["start"] as NivelMembro[],
   ativo: true,
 };
+
+function diffDays(inicio: string, fim: string): number {
+  const a = new Date(inicio + "T00:00:00").getTime();
+  const b = new Date(fim + "T00:00:00").getTime();
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+
+function addDays(inicio: string, dias: number): string {
+  const d = new Date(inicio + "T00:00:00");
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function AdminBeneficiosTable() {
   const qc = useQueryClient();
