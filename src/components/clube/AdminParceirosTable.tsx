@@ -168,6 +168,14 @@ export function AdminParceirosTable() {
                 <Input type="email" value={form.email_login} onChange={(e) => setForm({ ...form, email_login: e.target.value })} />
               </div>
               <div>
+                <Label>Endereço (para link do Google Maps)</Label>
+                <Input
+                  value={form.endereco}
+                  onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                  placeholder="Av. Paulista, 1000 — São Paulo/SP"
+                />
+              </div>
+              <div>
                 <Label>Logo URL</Label>
                 <Input value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} />
               </div>
