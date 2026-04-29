@@ -68,6 +68,7 @@ export function AdminParceirosTable() {
       responsavel_nome: p.responsavel_nome || "",
       responsavel_contato: p.responsavel_contato || "",
       email_login: p.email_login || "",
+      endereco: (p as any).endereco || "",
       ativo: p.ativo,
       modo_validacao: p.modo_validacao,
     });
