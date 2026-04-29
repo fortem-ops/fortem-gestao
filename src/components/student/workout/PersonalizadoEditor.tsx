@@ -106,6 +106,8 @@ export function PersonalizadoEditor({
   const [pickedAluno, setPickedAluno] = useState("");
   // Aba ativa do card "FORÇA" (apenas UI, não persiste).
   const [activeTreino, setActiveTreino] = useState(0);
+  // Modo de visualização do painel "PADRÕES DE MOVIMENTO".
+  const [padraoMode, setPadraoMode] = useState<"total" | "treino">("total");
 
   const isAluno = !!alunoId;
 
