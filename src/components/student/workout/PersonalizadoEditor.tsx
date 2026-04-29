@@ -556,6 +556,27 @@ export function PersonalizadoEditor({
     });
   };
 
+  // ============ Padrões de Movimento (contagem por CAT) ============
+  const padraoCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    FORCA_CATEGORIAS.forEach((c) => (counts[c] = 0));
+    const treinos =
+      padraoMode === "treino" && data.treinos[activeTreino]
+        ? [data.treinos[activeTreino]]
+        : data.treinos;
+    treinos.forEach((tr) => {
+      tr.blocos.forEach((bl) => {
+        bl.exercicios.forEach((ex) => {
+          const cat = ex.categoria || "";
+          if (cat in counts) counts[cat] += 1;
+          else counts[cat] = (counts[cat] ?? 0) + 1;
+        });
+      });
+    });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    return { counts, total };
+  }, [data.treinos, activeTreino, padraoMode]);
+
   // ============ UI ============
   return (
     <div className="space-y-4">
