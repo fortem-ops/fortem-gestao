@@ -357,7 +357,7 @@ function ExerciseRow({
           <div className="flex items-center gap-2 flex-wrap">
             <ExercisePicker
               categoria={aquecimentoBloco ?? effCategoria}
-              subcategoriaOverride={aquecimentoBloco ? (effSubcategoria || undefined) : undefined}
+              subcategoriaOverride={effSubcategoria || undefined}
               bank={bank}
               currentId={escolhaEx?.id}
               canEdit={canEdit && candidatesCount > 0}
