@@ -41,11 +41,16 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
 
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h3 className="font-heading font-semibold text-foreground">Histórico de Treinos</h3>
-        <Suspense fallback={null}>
-          <ImportFromBankDialog alunoId={student.id} onSaved={() => refetch()} />
-        </Suspense>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Suspense fallback={null}>
+            <ImportFromBankDialog alunoId={student.id} onSaved={() => refetch()} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <ImportFromStudentDialog alunoId={student.id} onSaved={() => refetch()} />
+          </Suspense>
+        </div>
       </div>
 
       {(!treinos || treinos.length === 0) ? (
