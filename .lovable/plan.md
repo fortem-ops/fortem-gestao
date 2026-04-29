@@ -1,78 +1,52 @@
+# Adicionar coluna SEMANA no PDF (Personalizado, exercícios DINÂMICOS)
+
 ## Objetivo
+Quando um treino Personalizado contém um exercício DINÂMICO, o PDF exportado deve mostrar a coluna **SEMANA** (antes de SÉRIES) na seção de Força, indicando a qual semana cada variante se aplica.
 
-Em `Alunos > Aluno (perfil) > Treinos`, adicionar um novo botão **"Importar de Aluno"** ao lado do já existente **"Importar do Banco de Treinos"**. Ao clicar, o profissional escolhe um aluno de origem, seleciona um dos treinos dele (atual ou arquivados), e o conteúdo é carregado no **editor Personalizado** (mesmas regras e layout de Banco de Treinos > Métodos > Personalizado) já preenchido, podendo editar livremente antes de salvar como novo treino "atual" do aluno destino.
+## Comportamento
 
-## Fluxo de uso
+- A coluna **SEMANA** só é incluída na tabela de Força quando o treino tem ao menos um exercício dinâmico (`dinamicoIndex` definido em alguma linha).
+- Para linhas de variantes dinâmicas:
+  - **Rotação Ímpar/Par (`I/P`)**: a 1ª variante (index 0) → "ÍMPAR"; a 2ª variante (index 1) → "PAR".
+  - **Rotação rotativa (`ROT`)**: cada variante recebe `SEM 1`, `SEM 2`, `SEM 3`... conforme `dinamicoIndex + 1`.
+- Para linhas de exercícios simples (não dinâmicos): célula SEMANA fica vazia (—), mantendo o layout consistente.
+- Se um treino não tem nenhum exercício dinâmico, a coluna SEMANA **não aparece** (mantém o layout atual de 5 colunas).
 
-1. Profissional abre o perfil do aluno destino → aba Treinos.
-2. Clica em **"Importar de Aluno"** (novo botão, ao lado de "Importar do Banco de Treinos").
-3. Dialog abre com:
-   - Campo de busca de aluno (StudentPicker — permite escolher inclusive o próprio aluno).
-   - Após selecionar, lista os treinos daquele aluno (descrição, versão, status, data) ordenados por mais recentes.
-4. Profissional clica em um treino → o dialog troca para o **PersonalizadoEditor** já preenchido com o conteúdo copiado.
-5. Edita à vontade (blocos, exercícios simples/dinâmicos, aquecimento — todas as regras existentes do Personalizado se mantêm).
-6. Clica em **"Salvar no aluno"** → arquiva o treino "atual" do aluno destino e cria nova versão "atual" com o conteúdo editado (lógica já existente no PersonalizadoEditor via `saveToAluno`).
+## Layout
 
-## Conversão do conteúdo de origem
-
-O editor Personalizado opera sobre `PersonalizadoConteudo` (estrutura rica com blocos). Os treinos de origem podem estar em dois formatos:
-
-- **Personalizado** (`__personalizado: true`): usar `conteudo.estrutura` direto como `initial`.
-- **Formato plano legado** (templates de Fases/Métodos sem blocos): converter on-the-fly para `PersonalizadoConteudo`:
-  - `aquecimento[]` plano → distribuído em `LIB/MOB/ATI` via `categoria` de cada item.
-  - Cada `treino.exercicios[]` plano → vira um único `Bloco A` com exercícios do tipo `simples` (categoria, nome, séries, repetições, exercicio_id, video_url preservados).
-  - Conteúdos sem shape reconhecido caem no fallback de bloco vazio.
-
-A função de conversão fica em um novo helper em `personalizadoTypes.ts`: `personalizadoFromFlat(raw): PersonalizadoConteudo`.
-
-## Mudanças técnicas
-
-### 1. Novo helper — `src/components/student/workout/personalizadoTypes.ts`
-Adicionar `personalizadoFromFlat(raw: unknown): PersonalizadoConteudo` que:
-- Se `isPersonalizadoContent(raw)` → retorna `raw.estrutura`.
-- Senão lê `raw.aquecimento` e `raw.treinos` no formato `WorkoutData` e remonta a estrutura rica (1 bloco "Bloco A" por treino, exercícios simples).
-
-### 2. Novo componente — `src/components/student/workout/ImportFromStudentDialog.tsx`
-- Props: `{ alunoId: string; onSaved?: () => void }`.
-- Estado: `open`, `sourceAlunoId`, `selectedTreino`.
-- Query 1: lista alunos via `StudentPicker` (já existe).
-- Query 2 (habilitada quando `sourceAlunoId` definido): `treinos` daquele aluno (`select("*").eq("aluno_id", sourceAlunoId).order("created_at desc")`).
-- Quando `selectedTreino` está setado: renderiza `<PersonalizadoEditor initial={personalizadoFromFlat(selectedTreino.conteudo)} initialName={\`Cópia de ${selectedTreino.descricao}\`} alunoId={alunoId} alunoNome={...} onBack={() => setSelectedTreino(null)} onSaved={() => { onSaved?.(); close(); }} />`.
-- Importante: NÃO passa `treinoId` — assim o save vira INSERT como nova versão "atual" (lógica já existente no editor).
-- UX: header com aluno destino + aluno origem + botão "Trocar treino" para voltar à lista.
-
-### 3. Integração — `src/components/student/StudentWorkouts.tsx`
-- Importar `ImportFromStudentDialog` (lazy, mesmo padrão do `ImportFromBankDialog`).
-- No header da aba (linha 49–53), adicionar o novo trigger ao lado do existente:
-  ```
-  <ImportFromBankDialog ... />
-  <ImportFromStudentDialog alunoId={student.id} onSaved={() => refetch()} />
-  ```
-
-## Diagrama do fluxo
+A largura da coluna SEMANA será ~16mm, descontada da coluna EXERCÍCIO. Nova ordem das colunas de Força (quando aplicável):
 
 ```text
-[Perfil Aluno > Treinos]
-   ├─ [Importar do Banco de Treinos]  (existente)
-   └─ [Importar de Aluno]              (NOVO)
-         │
-         ▼
-   Dialog: escolher aluno origem (StudentPicker)
-         │
-         ▼
-   Lista treinos do aluno origem (atual + arquivados)
-         │ click em um treino
-         ▼
-   PersonalizadoEditor (initial = conteúdo convertido)
-         │ edita livremente (regras Personalizado)
-         ▼
-   Salvar no aluno  →  arquiva atual + cria nova versão
+CAT | EXERCÍCIO | SEMANA | SÉRIES | REP | KG
 ```
 
-## Considerações
+A coluna manterá o estilo das demais colunas numéricas (bold, centralizada, fonte `NUM_FONT`, cor `RED_SOFT` para destacar a semana).
 
-- **Reuso máximo**: nada de novo editor — usa o `PersonalizadoEditor` existente, garantindo paridade total com Banco de Treinos > Métodos > Personalizado (abas de treinos, blocos, simples/dinâmico, aquecimento LIB/MOB/ATI).
-- **RLS**: a tabela `treinos` já tem SELECT autenticado liberado e INSERT pelo `autor_id = auth.uid()` — sem mudanças no banco.
-- **Sem migrations** necessárias.
-- **Permissão de import do mesmo aluno**: explicitamente suportado (útil para versionar/duplicar treino atual).
-- **Vídeos e exercicio_id**: preservados na conversão, pois copiamos os campos `exercicio_id` e `video_url` de cada exercício.
+## Detalhes técnicos
+
+Arquivo a editar: `src/components/student/workout/exportWorkoutPDF.ts`
+
+1. Em `renderForcaBlock`, detectar `hasDynamic = items.some(ex => typeof ex.dinamicoIndex === "number")`.
+2. Se `hasDynamic`:
+   - Adicionar `{ content: "SEMANA", styles: { halign: "center" } }` ao `head` entre EXERCÍCIO e SÉRIES.
+   - Para cada `ex` no `body`, calcular o rótulo da semana:
+     - Não dinâmico → `""`.
+     - Dinâmico com tag (1ª variante) ou linhas seguintes do mesmo grupo: precisamos saber a `tag` do grupo. Como `dinamicoTag` só vem na 1ª linha, propagar a tag percorrendo `items` (manter última `tag` vista enquanto `dinamicoIndex` aumenta; resetar quando `dinamicoIndex` voltar a 0 ou for `undefined`).
+     - Tag `I/P` → index 0: "ÍMPAR"; index 1: "PAR".
+     - Tag `ROT` → `SEM ${dinamicoIndex + 1}`.
+   - Inserir o valor como nova célula entre EXERCÍCIO e SÉRIES.
+3. Ajustar `columnStyles` condicionalmente: quando `hasDynamic`, recalcular larguras incluindo `wSem = 16`, e shiftar os índices das colunas SÉRIES/REP/KG para 3/4/5.
+4. Atualizar `didParseCell` (lógica de fundo de linha dinâmica) para continuar funcionando com índices deslocados — a regra atual usa `ex.dinamicoIndex` (independente de coluna), portanto continua válida sem mudanças.
+
+## Testes
+
+Atualizar `src/components/student/workout/exportWorkoutPDF.test.ts` com um novo caso:
+- Gerar um PDF com um treino contendo um exercício dinâmico ROT de 3 variantes.
+- Verificar que o stream da página 1 contém "SEMANA", "SEM 1", "SEM 2", "SEM 3".
+- Verificar que um PDF sem exercícios dinâmicos **não** contém "SEMANA" na seção de Força (apenas em Frequência, que é texto separado).
+
+## Restrições mantidas
+
+- Layout de 1 página A4 preservado (coluna nova é estreita e sai da largura de EXERCÍCIO).
+- Regras de adicionar blocos / treinos / simples / dinâmico no Personalizado **não mudam**.
+- Aquecimento e Frequência **não são alterados**.
