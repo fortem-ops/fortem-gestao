@@ -104,6 +104,8 @@ export function PersonalizadoEditor({
   const [weeks, setWeeks] = useState(4);
   const [applyOpen, setApplyOpen] = useState(false);
   const [pickedAluno, setPickedAluno] = useState("");
+  // Aba ativa do card "FORÇA" (apenas UI, não persiste).
+  const [activeTreino, setActiveTreino] = useState(0);
 
   const isAluno = !!alunoId;
 
