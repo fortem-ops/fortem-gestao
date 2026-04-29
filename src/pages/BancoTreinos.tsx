@@ -723,7 +723,7 @@ export default function BancoTreinos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("banco_treinos_escolhas")
-        .select("id, template_fase, treino_nome, ordem, exercicio_id, categoria_override, series_override, repeticoes_override, dias_override");
+        .select("id, template_fase, treino_nome, ordem, exercicio_id, categoria_override, subcategoria_override, series_override, repeticoes_override, dias_override");
       if (error) throw error;
       return (data || []) as Escolha[];
     },
