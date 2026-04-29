@@ -77,6 +77,7 @@ export type Database = {
           status: string
           telefone: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -92,6 +93,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -107,6 +109,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1215,6 +1218,30 @@ export type Database = {
           },
         ]
       }
+      student_workout_progress: {
+        Row: {
+          aluno_id: string
+          concluido_em: string
+          data: string
+          id: string
+          treino_id: string
+        }
+        Insert: {
+          aluno_id: string
+          concluido_em?: string
+          data?: string
+          id?: string
+          treino_id: string
+        }
+        Update: {
+          aluno_id?: string
+          concluido_em?: string
+          data?: string
+          id?: string
+          treino_id?: string
+        }
+        Relationships: []
+      }
       tarefas: {
         Row: {
           aluno_id: string | null
@@ -1468,6 +1495,7 @@ export type Database = {
         Args: { _beneficio_id: string; _token: string }
         Returns: Json
       }
+      fn_current_aluno_id: { Args: never; Returns: string }
       fn_detect_evasao: { Args: never; Returns: Json }
       fn_move_pipeline: {
         Args: {
@@ -1512,6 +1540,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_portal_link_aluno: { Args: never; Returns: Json }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       has_role: {
         Args: {
@@ -1530,6 +1559,7 @@ export type Database = {
         | "professor"
         | "nutricionista"
         | "fisioterapeuta"
+        | "aluno"
       beneficio_periodicidade: "dia" | "semana" | "mes" | "livre"
       beneficio_tipo:
         | "desconto_percentual"
@@ -1711,6 +1741,7 @@ export const Constants = {
         "professor",
         "nutricionista",
         "fisioterapeuta",
+        "aluno",
       ],
       beneficio_periodicidade: ["dia", "semana", "mes", "livre"],
       beneficio_tipo: [

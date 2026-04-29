@@ -6,6 +6,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RequireStudent } from "@/components/portal/RequireStudent";
+import { PortalLayout } from "@/components/portal/PortalLayout";
+import { StudentPortalProvider } from "@/contexts/StudentPortalContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import Login from "./pages/Login";
@@ -31,6 +34,17 @@ const PontoEquipe = lazy(() => import("./pages/PontoEquipe"));
 const PontoFechamento = lazy(() => import("./pages/PontoFechamento"));
 const AdminPonto = lazy(() => import("./pages/AdminPonto"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Portal do Aluno
+const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
+const PortalSignUp = lazy(() => import("./pages/portal/PortalSignUp"));
+const PortalRecoverPassword = lazy(() => import("./pages/portal/PortalRecoverPassword"));
+const PortalResetPassword = lazy(() => import("./pages/portal/PortalResetPassword"));
+const PortalProfile = lazy(() => import("./pages/portal/PortalProfile"));
+const PortalWorkouts = lazy(() => import("./pages/portal/PortalWorkouts"));
+const PortalAssessments = lazy(() => import("./pages/portal/PortalAssessments"));
+const PortalClube = lazy(() => import("./pages/portal/PortalClube"));
+const PortalAgenda = lazy(() => import("./pages/portal/PortalAgenda"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +72,28 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+
+            {/* Portal do Aluno — auth e rotas próprias */}
+            <Route path="/portal/login" element={<Suspense fallback={<RouteFallback />}><PortalLogin /></Suspense>} />
+            <Route path="/portal/cadastro" element={<Suspense fallback={<RouteFallback />}><PortalSignUp /></Suspense>} />
+            <Route path="/portal/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><PortalRecoverPassword /></Suspense>} />
+            <Route path="/portal/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><PortalResetPassword /></Suspense>} />
+            <Route
+              element={
+                <RequireStudent>
+                  <StudentPortalProvider>
+                    <PortalLayout />
+                  </StudentPortalProvider>
+                </RequireStudent>
+              }
+            >
+              <Route path="/portal" element={<Suspense fallback={<RouteFallback />}><PortalProfile /></Suspense>} />
+              <Route path="/portal/treinos" element={<Suspense fallback={<RouteFallback />}><PortalWorkouts /></Suspense>} />
+              <Route path="/portal/avaliacoes" element={<Suspense fallback={<RouteFallback />}><PortalAssessments /></Suspense>} />
+              <Route path="/portal/clube" element={<Suspense fallback={<RouteFallback />}><PortalClube /></Suspense>} />
+              <Route path="/portal/agenda" element={<Suspense fallback={<RouteFallback />}><PortalAgenda /></Suspense>} />
+            </Route>
+
             {/* Public, read-only workout view — opened by the QR code printed on the PDF. */}
             <Route
               path="/treino/:id"
