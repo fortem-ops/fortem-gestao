@@ -109,9 +109,45 @@ function ExercisePicker({
     return candidates.filter((c) => c.nome.toLowerCase().includes(q));
   }, [candidates, query]);
 
+  // Quando não há subcategoria fixa, agrupar candidatos por subcategoria
+  // (do grupo alvo) para facilitar a navegação visual.
+  const grupoAlvo = CODE_TO_GRUPO[categoria.toUpperCase()] || categoria;
+  const shouldGroup = !subcategoriaOverride;
+  const grouped = useMemo(() => {
+    if (!shouldGroup) return null;
+    const map = new Map<string, BankExercise[]>();
+    for (const ex of filtered) {
+      const sub = ex.grupos.find((g) => g.grupo === grupoAlvo)?.subcategoria || "—";
+      const arr = map.get(sub) || [];
+      arr.push(ex);
+      map.set(sub, arr);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([sub, items]) => [sub, items.sort((x, y) => x.nome.localeCompare(y.nome))] as const);
+  }, [filtered, shouldGroup, grupoAlvo]);
+
   if (!canEdit) {
     return <>{triggerLabel}</>;
   }
+
+  const renderItem = (ex: BankExercise) => {
+    const hasVideo = !!(ex.video_url || ex.video_path);
+    const isSelected = ex.id === currentId;
+    return (
+      <button
+        key={ex.id}
+        onClick={() => { onSelect(ex); setOpen(false); }}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-accent/50 transition-colors text-left"
+      >
+        <span className="flex items-center gap-1.5 flex-1 truncate">
+          {isSelected && <Check className="w-3 h-3 text-success shrink-0" />}
+          <span className="truncate">{ex.nome}</span>
+        </span>
+        {hasVideo && <Video className="w-3 h-3 text-primary shrink-0" />}
+      </button>
+    );
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -140,24 +176,17 @@ function ExercisePicker({
                 ? "Nenhum exercício cadastrado nesta categoria."
                 : `Nenhum resultado para "${query}".`}
             </div>
+          ) : grouped ? (
+            grouped.map(([sub, items]) => (
+              <div key={sub}>
+                <div className="sticky top-0 z-10 bg-popover/95 backdrop-blur px-3 py-1 text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border font-semibold">
+                  {sub} · {items.length}
+                </div>
+                {items.map(renderItem)}
+              </div>
+            ))
           ) : (
-            filtered.map((ex) => {
-              const hasVideo = !!(ex.video_url || ex.video_path);
-              const isSelected = ex.id === currentId;
-              return (
-                <button
-                  key={ex.id}
-                  onClick={() => { onSelect(ex); setOpen(false); }}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-accent/50 transition-colors text-left"
-                >
-                  <span className="flex items-center gap-1.5 flex-1 truncate">
-                    {isSelected && <Check className="w-3 h-3 text-success shrink-0" />}
-                    <span className="truncate">{ex.nome}</span>
-                  </span>
-                  {hasVideo && <Video className="w-3 h-3 text-primary shrink-0" />}
-                </button>
-              );
-            })
+            filtered.map(renderItem)
           )}
         </div>
         {currentId && onClear && (
