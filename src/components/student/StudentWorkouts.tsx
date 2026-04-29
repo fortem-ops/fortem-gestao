@@ -14,6 +14,9 @@ import { ptBR } from "date-fns/locale";
 const ImportFromBankDialog = lazy(() =>
   import("./workout/ImportFromBankDialog").then((m) => ({ default: m.ImportFromBankDialog })),
 );
+const ImportFromStudentDialog = lazy(() =>
+  import("./workout/ImportFromStudentDialog").then((m) => ({ default: m.ImportFromStudentDialog })),
+);
 const WorkoutDetail = lazy(() =>
   import("./workout/WorkoutDetail").then((m) => ({ default: m.WorkoutDetail })),
 );
