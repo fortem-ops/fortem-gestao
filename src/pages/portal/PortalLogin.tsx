@@ -63,10 +63,25 @@ export default function PortalLogin() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Entrando..." : "Entrar"}
               </Button>
-              <div className="flex items-center justify-between text-xs">
-                <Link to="/portal/cadastro" className="text-primary hover:underline">Criar conta</Link>
-                <Link to="/portal/recuperar-senha" className="text-muted-foreground hover:underline">Esqueci minha senha</Link>
+              <div className="text-right">
+                <Link to="/portal/recuperar-senha" className="text-xs text-muted-foreground hover:underline">
+                  Esqueci minha senha
+                </Link>
               </div>
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-card px-2 text-muted-foreground">ou</span>
+                </div>
+              </div>
+              <Button type="button" variant="outline" className="w-full" asChild>
+                <Link to="/portal/cadastro">Criar nova conta</Link>
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Use o e-mail cadastrado pelo seu professor.
+              </p>
             </form>
           </CardContent>
         </Card>
