@@ -1,18 +1,52 @@
-# Corrigir acesso ao cadastro do Portal do Aluno
+## Objetivo
 
-## Diagnóstico
+Exibir a **Localização** de cada parceiro no card da aba "Parceiros" do Clube FORTEM, com um link clicável que abre o local no Google Maps.
 
-A rota de cadastro **existe**, mas está registrada em português como `/portal/cadastro` (não `/portal/signup`). O link "Criar conta" no rodapé da tela de login (`/portal/login`) já aponta corretamente para ela — provavelmente passou despercebido por estar pequeno e sem destaque.
+## Onde aparece
 
-## Mudanças propostas
+- `src/components/clube/PartnersList.tsx` — usado em duas telas:
+  - `/clube` (visão professor/coordenador)
+  - `/portal/clube` (Portal do Aluno)
 
-### 1. Adicionar alias `/portal/signup` em `src/App.tsx`
-Registrar a mesma página `PortalSignUp` também em `/portal/signup`, para que ambas as URLs funcionem (compatibilidade com quem digitar em inglês). O mesmo será feito para `/portal/forgot-password` → `PortalRecoverPassword` e `/portal/reset-password` → `PortalResetPassword`.
+A mudança beneficia ambas automaticamente.
 
-### 2. Destacar o "Criar conta" em `src/pages/portal/PortalLogin.tsx`
-Transformar o link discreto em um **bloco visível abaixo do botão Entrar**, com texto "Ainda não tem conta? **Criar conta**" e um botão `variant="outline"` ocupando largura total. Manter "Esqueci minha senha" como link sutil acima.
+## Alterações
 
-## Resultado esperado
+### 1. Banco de dados (migração)
 
-- `/portal/signup` e `/portal/cadastro` ambos abrem a tela de cadastro.
-- A opção "Criar conta" fica imediatamente visível abaixo do formulário de login, sem precisar procurar.
+A tabela `parceiros` hoje tem `latitude` e `longitude`, mas **não tem um campo de endereço textual**. Vou adicionar:
+
+- `endereco` (text, nullable) — endereço completo legível (ex.: "Av. Paulista, 1000 — São Paulo/SP")
+
+Sem mudanças em RLS (as políticas atuais já cobrem o novo campo).
+
+### 2. Formulário admin de parceiros
+
+Em `src/components/clube/AdminParceirosTable.tsx` (form de criar/editar parceiro): adicionar campo "Endereço" no formulário, gravando em `parceiros.endereco`.
+
+### 3. Card do parceiro (`PartnersList.tsx`)
+
+No card de cada parceiro, adicionar uma linha "Localização" com:
+
+- Ícone `MapPin` + texto do endereço (ou "Ver no mapa" como fallback quando só houver coordenadas).
+- Link clicável (`<a target="_blank" rel="noopener noreferrer">`) construído assim:
+  - Se houver `latitude` e `longitude`: `https://www.google.com/maps/search/?api=1&query=<lat>,<lng>`
+  - Senão, se houver `endereco`: `https://www.google.com/maps/search/?api=1&query=<encodeURIComponent(endereco)>`
+  - Senão: não renderiza a linha.
+- Mantém a exibição de distância (km) já existente, agora ao lado do link.
+
+Layout dentro do card (abaixo dos benefícios):
+
+```text
+[📍] Av. Paulista, 1000 — São Paulo/SP   ·  1.2 km
+     ↑ link azul, abre Google Maps em nova aba
+```
+
+### 4. Tipos
+
+`src/integrations/supabase/types.ts` é regenerado automaticamente após a migração — nenhuma edição manual.
+
+## Fora de escopo
+
+- Mapa embutido (iframe) — somente link externo, conforme pedido.
+- Alterar a visão admin do mapa de parceiros.

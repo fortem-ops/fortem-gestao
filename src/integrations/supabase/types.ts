@@ -635,6 +635,7 @@ export type Database = {
           data_inicio_parceria: string
           descricao: string | null
           email_login: string | null
+          endereco: string | null
           id: string
           latitude: number | null
           logo_url: string | null
@@ -655,6 +656,7 @@ export type Database = {
           data_inicio_parceria?: string
           descricao?: string | null
           email_login?: string | null
+          endereco?: string | null
           id?: string
           latitude?: number | null
           logo_url?: string | null
@@ -675,6 +677,7 @@ export type Database = {
           data_inicio_parceria?: string
           descricao?: string | null
           email_login?: string | null
+          endereco?: string | null
           id?: string
           latitude?: number | null
           logo_url?: string | null
