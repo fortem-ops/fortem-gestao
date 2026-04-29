@@ -33,6 +33,7 @@ const emptyForm = {
   responsavel_nome: "",
   responsavel_contato: "",
   email_login: "",
+  endereco: "",
   ativo: true,
   modo_validacao: "qr_scan" as ModoVal,
 };
@@ -67,6 +68,7 @@ export function AdminParceirosTable() {
       responsavel_nome: p.responsavel_nome || "",
       responsavel_contato: p.responsavel_contato || "",
       email_login: p.email_login || "",
+      endereco: (p as any).endereco || "",
       ativo: p.ativo,
       modo_validacao: p.modo_validacao,
     });
@@ -88,6 +90,7 @@ export function AdminParceirosTable() {
         responsavel_nome: form.responsavel_nome || null,
         responsavel_contato: form.responsavel_contato || null,
         email_login: form.email_login || null,
+        endereco: form.endereco || null,
         ativo: form.ativo,
         modo_validacao: form.modo_validacao,
       };
@@ -163,6 +166,14 @@ export function AdminParceirosTable() {
               <div>
                 <Label>Email de login do parceiro</Label>
                 <Input type="email" value={form.email_login} onChange={(e) => setForm({ ...form, email_login: e.target.value })} />
+              </div>
+              <div>
+                <Label>Endereço (para link do Google Maps)</Label>
+                <Input
+                  value={form.endereco}
+                  onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                  placeholder="Av. Paulista, 1000 — São Paulo/SP"
+                />
               </div>
               <div>
                 <Label>Logo URL</Label>
