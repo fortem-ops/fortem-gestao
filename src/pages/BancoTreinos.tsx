@@ -34,6 +34,7 @@ interface Escolha {
   ordem: number;
   exercicio_id: string | null;
   categoria_override: string | null;
+  subcategoria_override: string | null;
   series_override: number | null;
   repeticoes_override: string | null;
   dias_override: string[] | null;
@@ -41,6 +42,7 @@ interface Escolha {
 
 type OverridePatch = {
   categoria_override?: string | null;
+  subcategoria_override?: string | null;
   series_override?: number | null;
   repeticoes_override?: string | null;
   dias_override?: string[] | null;
