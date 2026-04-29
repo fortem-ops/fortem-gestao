@@ -178,3 +178,68 @@ export function isPersonalizadoContent(
 ): raw is PersonalizadoTreinoConteudo {
   return !!raw && typeof raw === "object" && (raw as { __personalizado?: boolean }).__personalizado === true;
 }
+
+/**
+ * Converte qualquer conteúdo de `treinos.conteudo` em PersonalizadoConteudo,
+ * para servir como `initial` ao PersonalizadoEditor.
+ *
+ * - Se já for Personalizado, retorna a estrutura rica.
+ * - Se for o shape plano (templates Fases/Métodos/Corrida), remonta como
+ *   um único "Bloco A" por treino, com exercícios do tipo "simples".
+ * - Aquecimento plano é distribuído em LIB/MOB/ATI conforme a categoria.
+ */
+export function personalizadoFromFlat(raw: unknown): PersonalizadoConteudo {
+  if (isPersonalizadoContent(raw)) {
+    return raw.estrutura;
+  }
+
+  const base = emptyPersonalizado();
+  if (!raw || typeof raw !== "object") return base;
+
+  const r = raw as {
+    aquecimento?: WorkoutExercise[];
+    treinos?: { nome: string; exercicios: WorkoutExercise[] }[];
+  };
+
+  // Aquecimento → distribuir nos blocos LIB/MOB/ATI
+  const aquec: PersonalizadoConteudo["aquecimento"] = { LIB: [], MOB: [], ATI: [] };
+  (r.aquecimento || []).forEach((ex) => {
+    const cat = (ex.categoria || "").toUpperCase();
+    const bloco: AquecimentoBloco | null =
+      cat === "LIB" || cat === "MOB" || cat === "ATI" ? (cat as AquecimentoBloco) : null;
+    if (!bloco) return;
+    aquec[bloco].push({
+      subcategoria: ex.subcategoria,
+      exercicio: ex.exercicio || "",
+      exercicio_id: ex.exercicio_id || null,
+      video_url: ex.video_url || null,
+      repeticoes: String(ex.repeticoes ?? ""),
+      dias: ex.dias && ex.dias.length > 0 ? ex.dias : ["T1", "T2", "T3", "T4"],
+    });
+  });
+
+  // Treinos → cada treino vira 1 bloco "Bloco A" com exercícios simples
+  const treinos: PersonalizadoConteudo["treinos"] = (r.treinos || []).map((t, idx) => ({
+    nome: t.nome || `Treino ${idx + 1}`,
+    blocos: [
+      {
+        nome: "Bloco A",
+        exercicios: (t.exercicios || []).map<PersonalizadoExercicioSimples>((ex) => ({
+          tipo: "simples",
+          categoria: ex.categoria || "DJS",
+          exercicio: ex.exercicio || "",
+          exercicio_id: ex.exercicio_id || null,
+          video_url: ex.video_url || null,
+          series: ex.series ?? 3,
+          repeticoes: String(ex.repeticoes ?? ""),
+        })),
+      },
+    ],
+  }));
+
+  return {
+    aquecimento: aquec,
+    treinos: treinos.length > 0 ? treinos : base.treinos,
+    observacoes: "",
+  };
+}
