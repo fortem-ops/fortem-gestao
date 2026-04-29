@@ -33,6 +33,7 @@ const emptyForm = {
   responsavel_nome: "",
   responsavel_contato: "",
   email_login: "",
+  endereco: "",
   ativo: true,
   modo_validacao: "qr_scan" as ModoVal,
 };
