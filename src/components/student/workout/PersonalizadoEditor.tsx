@@ -729,67 +729,88 @@ export function PersonalizadoEditor({
           </Button>
         </div>
 
-        {data.treinos.map((tr, ti) => (
-          <div key={ti} className="rounded-lg border border-border p-3 space-y-3 bg-card/30">
-            <div className="flex items-center gap-2">
-              <Input
-                value={tr.nome}
-                onChange={(e) => updateTreinoNome(ti, e.target.value)}
-                className="h-7 max-w-[180px] text-sm font-semibold"
-              />
-              <Button size="sm" variant="ghost" onClick={() => addBloco(ti)} className="h-7">
-                <Plus className="w-3 h-3 mr-1" /> Bloco
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 text-destructive ml-auto"
-                onClick={() => removeTreino(ti)}
-                disabled={data.treinos.length === 1}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            </div>
+        {data.treinos.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">
+            Nenhum treino. Use “+ Treino”.
+          </p>
+        ) : (
+          <Tabs
+            value={String(Math.min(activeTreino, data.treinos.length - 1))}
+            onValueChange={(v) => setActiveTreino(Number(v))}
+          >
+            <TabsList className="flex-wrap h-auto">
+              {data.treinos.map((tr, ti) => (
+                <TabsTrigger key={ti} value={String(ti)}>
+                  {tr.nome || `Treino ${ti + 1}`}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-            {tr.blocos.map((bl, bi) => (
-              <div key={bi} className="rounded border border-border/50 p-2 space-y-2 bg-background/40">
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={bl.nome}
-                    onChange={(e) => updateBlocoNome(ti, bi, e.target.value)}
-                    className="h-6 max-w-[140px] text-xs font-semibold"
-                  />
-                  <NewExerciseButton onAdd={(tipo) => addExercicio(ti, bi, tipo)} />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-destructive ml-auto"
-                    onClick={() => removeBloco(ti, bi)}
-                    disabled={tr.blocos.length === 1}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-
-                {bl.exercicios.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground italic px-1">Nenhum exercício. Use “+ Exercício”.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {bl.exercicios.map((ex, ei) => (
-                      <ExercicioRow
-                        key={ei}
-                        ex={ex}
-                        index={ei}
-                        onRemove={() => removeExercicio(ti, bi, ei)}
-                        onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
-                      />
-                    ))}
+            {data.treinos.map((tr, ti) => (
+              <TabsContent key={ti} value={String(ti)} className="mt-3">
+                <div className="rounded-lg border border-border p-3 space-y-3 bg-card/30">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={tr.nome}
+                      onChange={(e) => updateTreinoNome(ti, e.target.value)}
+                      className="h-7 max-w-[180px] text-sm font-semibold"
+                    />
+                    <Button size="sm" variant="ghost" onClick={() => addBloco(ti)} className="h-7">
+                      <Plus className="w-3 h-3 mr-1" /> Bloco
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive ml-auto"
+                      onClick={() => removeTreino(ti)}
+                      disabled={data.treinos.length === 1}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
-                )}
-              </div>
+
+                  {tr.blocos.map((bl, bi) => (
+                    <div key={bi} className="rounded border border-border/50 p-2 space-y-2 bg-background/40">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={bl.nome}
+                          onChange={(e) => updateBlocoNome(ti, bi, e.target.value)}
+                          className="h-6 max-w-[140px] text-xs font-semibold"
+                        />
+                        <NewExerciseButton onAdd={(tipo) => addExercicio(ti, bi, tipo)} />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-destructive ml-auto"
+                          onClick={() => removeBloco(ti, bi)}
+                          disabled={tr.blocos.length === 1}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      {bl.exercicios.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground italic px-1">Nenhum exercício. Use “+ Exercício”.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {bl.exercicios.map((ex, ei) => (
+                            <ExercicioRow
+                              key={ei}
+                              ex={ex}
+                              index={ei}
+                              onRemove={() => removeExercicio(ti, bi, ei)}
+                              onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
             ))}
-          </div>
-        ))}
+          </Tabs>
+        )}
       </div>
 
       {/* Observações */}
