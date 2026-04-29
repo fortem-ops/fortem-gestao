@@ -204,11 +204,7 @@ function ExerciseRow({
   canEdit: boolean;
   aquecimentoBloco?: "LIB" | "MOB" | "ATI";
 }) {
-  // Effective values: override > template
-  const effCategoria = escolha?.categoria_override ?? ex.categoria;
-  const effSeries = escolha?.series_override ?? ex.series;
-  const effReps = escolha?.repeticoes_override ?? ex.repeticoes;
-  const effDias = escolha?.dias_override ?? ex.dias ?? [];
+  // (valores efetivos declarados abaixo, junto com a lógica de subcategoria)
 
   // Para aquecimento (LIB/MOB/ATI), o select "Categoria" carrega a subcategoria
   // (o grupo é fixo pelo bloco). Default = ex.subcategoria do template, e o
