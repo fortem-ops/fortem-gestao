@@ -307,20 +307,49 @@ function ExerciseRow({
             </Badge>
           )
         ) : canEdit ? (
-          <select
-            value={effCategoria}
-            onChange={(e) => {
-              const v = e.target.value;
-              onSaveOverride({ categoria_override: v === ex.categoria ? null : v });
-            }}
-            className="bg-background border border-input rounded px-1.5 py-0.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            {Object.keys(CATEGORY_LABELS).map((code) => (
-              <option key={code} value={code}>{code}</option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-1">
+            <select
+              value={effCategoria}
+              onChange={(e) => {
+                const v = e.target.value;
+                // Ao trocar o código, limpa override de subcategoria para reusar o default do novo grupo.
+                onSaveOverride({
+                  categoria_override: v === ex.categoria ? null : v,
+                  subcategoria_override: null,
+                });
+              }}
+              className="bg-background border border-input rounded px-1.5 py-0.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {Object.keys(CATEGORY_LABELS).map((code) => (
+                <option key={code} value={code}>{code}</option>
+              ))}
+            </select>
+            {subcategoriasGrupo.length > 0 && (
+              <select
+                value={effSubcategoriaForca || ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onSaveOverride({
+                    subcategoria_override: !v || v === defaultSubForca ? null : v,
+                  });
+                }}
+                title={`Subcategoria (${grupoForca})`}
+                className="bg-background border border-input rounded px-1.5 py-0.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-ring max-w-[180px]"
+              >
+                <option value="">— qualquer —</option>
+                {subcategoriasGrupo.map((sub) => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            )}
+          </div>
         ) : (
-          <Badge variant="outline" className="text-xs">{effCategoria}</Badge>
+          <div className="flex flex-col gap-0.5">
+            <Badge variant="outline" className="text-xs w-fit">{effCategoria}</Badge>
+            {effSubcategoriaForca && (
+              <span className="text-[10px] text-muted-foreground">{effSubcategoriaForca}</span>
+            )}
+          </div>
         )}
       </TableCell>
       <TableCell className="text-sm">
