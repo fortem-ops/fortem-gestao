@@ -192,12 +192,31 @@ export function PartnersList({ nivelAluno }: PartnersListProps) {
                 )}
               </div>
 
-              {p.distance != null && (
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-3">
-                  <MapPin className="w-3 h-3" />
-                  {p.distance.toFixed(1)} km
-                </div>
-              )}
+              {(() => {
+                const endereco = (p as unknown as { endereco?: string | null }).endereco?.trim();
+                const hasCoords = p.latitude != null && p.longitude != null;
+                if (!endereco && !hasCoords) return null;
+                const mapsUrl = hasCoords
+                  ? `https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`
+                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco!)}`;
+                return (
+                  <div className="flex items-center gap-1.5 text-[11px] mt-3 pt-3 border-t border-border/50">
+                    <MapPin className="w-3 h-3 text-primary shrink-0" />
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline truncate flex-1"
+                      title={endereco || "Ver no Google Maps"}
+                    >
+                      {endereco || "Ver no Google Maps"}
+                    </a>
+                    {p.distance != null && (
+                      <span className="text-muted-foreground shrink-0">· {p.distance.toFixed(1)} km</span>
+                    )}
+                  </div>
+                );
+              })()}
             </Card>
           ))}
         </div>
