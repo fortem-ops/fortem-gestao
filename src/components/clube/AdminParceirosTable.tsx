@@ -90,6 +90,7 @@ export function AdminParceirosTable() {
         responsavel_nome: form.responsavel_nome || null,
         responsavel_contato: form.responsavel_contato || null,
         email_login: form.email_login || null,
+        endereco: form.endereco || null,
         ativo: form.ativo,
         modo_validacao: form.modo_validacao,
       };
