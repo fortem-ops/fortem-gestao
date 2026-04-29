@@ -307,16 +307,26 @@ export function PersonalizadoEditor({
 
   // ============ Treinos / Blocos / Exercícios ============
   const addTreino = () => {
-    setData((p) => ({
-      ...p,
-      treinos: [
-        ...p.treinos,
-        { nome: `Treino ${p.treinos.length + 1}`, blocos: [{ nome: "Bloco A", exercicios: [] }] },
-      ],
-    }));
+    setData((p) => {
+      const next = {
+        ...p,
+        treinos: [
+          ...p.treinos,
+          { nome: `Treino ${p.treinos.length + 1}`, blocos: [{ nome: "Bloco A", exercicios: [] }] },
+        ],
+      };
+      // Seleciona automaticamente a aba do treino recém-criado.
+      setActiveTreino(next.treinos.length - 1);
+      return next;
+    });
   };
   const removeTreino = (ti: number) => {
-    setData((p) => ({ ...p, treinos: p.treinos.filter((_, i) => i !== ti) }));
+    setData((p) => {
+      const next = { ...p, treinos: p.treinos.filter((_, i) => i !== ti) };
+      // Mantém activeTreino dentro do range válido.
+      setActiveTreino((curr) => Math.max(0, Math.min(curr, next.treinos.length - 1)));
+      return next;
+    });
   };
   const updateTreinoNome = (ti: number, nome: string) => {
     setData((p) => ({ ...p, treinos: p.treinos.map((t, i) => (i === ti ? { ...t, nome } : t)) }));
