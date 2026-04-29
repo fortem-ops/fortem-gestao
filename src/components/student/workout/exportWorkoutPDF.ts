@@ -465,6 +465,18 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       },
       columnStyles: (() => {
         const wCat = 9, wSer = 18, wRep = 22, wKg = 14;
+        if (hasDynamic) {
+          const wSem = 16;
+          const wEx = mainW - (wCat + wSem + wSer + wRep + wKg);
+          return {
+            0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_NAME_FONT },
+            1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
+            2: { cellWidth: wSem, halign: "center", fontStyle: "bold", fontSize: NUM_FONT, textColor: RED_SOFT },
+            3: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+            4: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+            5: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
+          };
+        }
         const wEx = mainW - (wCat + wSer + wRep + wKg);
         return {
           0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_NAME_FONT },
