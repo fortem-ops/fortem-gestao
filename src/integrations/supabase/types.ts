@@ -1530,6 +1530,7 @@ export type Database = {
         | "professor"
         | "nutricionista"
         | "fisioterapeuta"
+        | "aluno"
       beneficio_periodicidade: "dia" | "semana" | "mes" | "livre"
       beneficio_tipo:
         | "desconto_percentual"
@@ -1711,6 +1712,7 @@ export const Constants = {
         "professor",
         "nutricionista",
         "fisioterapeuta",
+        "aluno",
       ],
       beneficio_periodicidade: ["dia", "semana", "mes", "livre"],
       beneficio_tipo: [
