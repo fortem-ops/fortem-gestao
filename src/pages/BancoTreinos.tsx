@@ -393,7 +393,7 @@ function ExerciseRow({
         ) : (
           <ExercisePicker
             categoria={aquecimentoBloco ?? effCategoria}
-            subcategoriaOverride={aquecimentoBloco ? (effSubcategoria || undefined) : undefined}
+            subcategoriaOverride={effSubcategoria || undefined}
             bank={bank}
             canEdit={canEdit && candidatesCount > 0}
             onSelect={(b) => onSaveChoice(b)}
