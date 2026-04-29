@@ -70,7 +70,7 @@ export const GRUPO_SUBCATEGORIAS: Record<string, string[]> = {
     "Dominante de Quadril Posterior", "Empurrar Horizontal",
     "Empurrar Vertical", "Puxar Horizontal", "Puxar Vertical",
     "Auxiliares", "Estabilidade Escapular", "Extensão Torácica",
-    "Plioetria", "Abdominais", "Kettlebell", "Isoiniercial",
+    "Pliometria", "Abdominais", "Kettlebell", "Isoinercial",
     "LPO", "Coordenativo Corrida",
   ],
   "Cardio": ["Cardio"],
