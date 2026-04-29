@@ -210,12 +210,34 @@ function ExerciseRow({
   const effReps = escolha?.repeticoes_override ?? ex.repeticoes;
   const effDias = escolha?.dias_override ?? ex.dias ?? [];
 
-  // For warm-up rows, the "Categoria" select carries the subcategoria (the
-  // grupo is fixed by the block: LIB/MOB/ATI). Default = ex.subcategoria from the template.
+  // Para aquecimento (LIB/MOB/ATI), o select "Categoria" carrega a subcategoria
+  // (o grupo é fixo pelo bloco). Default = ex.subcategoria do template, e o
+  // override é gravado em `categoria_override` (legado).
+  // Para linhas de força/principais, agora também temos um seletor de subcategoria
+  // dedicado, gravado em `subcategoria_override`. Default = subcategoria derivada
+  // do código (CODE_TO_SUBCATEGORIA) ou ex.subcategoria do template.
   const defaultSubcategoria = ex.subcategoria;
-  const effSubcategoria = aquecimentoBloco
+  const effSubcategoriaAquec = aquecimentoBloco
     ? (escolha?.categoria_override ?? defaultSubcategoria ?? "")
     : undefined;
+
+  const effCategoria = escolha?.categoria_override ?? ex.categoria;
+  const effSeries = escolha?.series_override ?? ex.series;
+  const effReps = escolha?.repeticoes_override ?? ex.repeticoes;
+  const effDias = escolha?.dias_override ?? ex.dias ?? [];
+
+  // Para força/principais: subcategoria efetiva (override > derivada do código > template)
+  const grupoForca = !aquecimentoBloco ? CODE_TO_GRUPO[effCategoria.toUpperCase()] : undefined;
+  const subcategoriasGrupo = grupoForca ? GRUPO_SUBCATEGORIAS[grupoForca] || [] : [];
+  const defaultSubForca = !aquecimentoBloco
+    ? (CODE_TO_SUBCATEGORIA[effCategoria.toUpperCase()] ?? defaultSubcategoria ?? "")
+    : "";
+  const effSubcategoriaForca = !aquecimentoBloco
+    ? (escolha?.subcategoria_override ?? defaultSubForca)
+    : "";
+
+  // Subcategoria efetiva passada ao picker (filtro) — válida para ambos os casos.
+  const effSubcategoria = aquecimentoBloco ? effSubcategoriaAquec : effSubcategoriaForca;
 
   // Local state for text inputs (commit on blur / Enter)
   const [seriesInput, setSeriesInput] = useState(String(effSeries ?? ""));
@@ -228,7 +250,7 @@ function ExerciseRow({
   const candidatesCount = getCandidatesForCode(
     aquecimentoBloco ?? effCategoria,
     bank,
-    aquecimentoBloco ? (effSubcategoria || undefined) : undefined,
+    effSubcategoria || undefined,
   ).length;
   const hasVideo = match && (match.video_url || match.video_path);
   const isSlotVazio = !ex.exercicio && !escolhaEx;
