@@ -381,6 +381,51 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   ) => {
     if (items.length === 0) return;
 
+    // Detecta se há exercícios dinâmicos (variantes) no bloco — se houver,
+    // adicionamos a coluna SEMANA antes de SÉRIES.
+    const hasDynamic = items.some((ex) => typeof ex.dinamicoIndex === "number");
+
+    // Propaga a tag (I/P ou ROT) através das linhas-filhas do mesmo grupo
+    // dinâmico, já que `dinamicoTag` só vem definida na 1ª variante.
+    const groupTags: ("I/P" | "ROT" | undefined)[] = [];
+    {
+      let currentTag: "I/P" | "ROT" | undefined;
+      items.forEach((ex) => {
+        if (typeof ex.dinamicoIndex === "number") {
+          if (ex.dinamicoIndex === 0) currentTag = ex.dinamicoTag;
+          groupTags.push(currentTag);
+        } else {
+          currentTag = undefined;
+          groupTags.push(undefined);
+        }
+      });
+    }
+
+    const semanaLabel = (ex: WorkoutExercise, idx: number): string => {
+      if (typeof ex.dinamicoIndex !== "number") return "";
+      const tag = groupTags[idx];
+      if (tag === "I/P") return ex.dinamicoIndex === 0 ? "ÍMPAR" : "PAR";
+      // ROT (default)
+      return `SEM ${ex.dinamicoIndex + 1}`;
+    };
+
+    const head = hasDynamic
+      ? [[
+          { content: "CAT", styles: { halign: "left" as const } },
+          { content: "", styles: { halign: "left" as const } },
+          { content: "SEMANA", styles: { halign: "center" as const } },
+          { content: "SÉRIES", styles: { halign: "center" as const } },
+          { content: "REP", styles: { halign: "center" as const } },
+          { content: "KG", styles: { halign: "center" as const } },
+        ]]
+      : [[
+          { content: "CAT", styles: { halign: "left" as const } },
+          { content: "", styles: { halign: "left" as const } },
+          { content: "SÉRIES", styles: { halign: "center" as const } },
+          { content: "REP", styles: { halign: "center" as const } },
+          { content: "KG", styles: { halign: "center" as const } },
+        ]];
+
     autoTable(doc, {
       startY: y,
       margin: { left: mainX, right: pageW - (mainX + mainW) },
@@ -388,23 +433,21 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       theme: "plain",
       pageBreak: "avoid",
       rowPageBreak: "avoid",
-      head: [[
-        { content: "CAT", styles: { halign: "left" } },
-        { content: "", styles: { halign: "left" } },
-        { content: "SÉRIES", styles: { halign: "center" } },
-        { content: "REP", styles: { halign: "center" } },
-        { content: "KG", styles: { halign: "center" } },
-      ]],
-      body: items.map((ex) => {
+      head,
+      body: items.map((ex, idx) => {
         const isDynChild = typeof ex.dinamicoIndex === "number" && ex.dinamicoIndex > 0;
         const catCell = isDynChild ? "" : (ex.categoria ?? "");
-        return [
+        const base = [
           catCell,
           cleanExerciseName(ex.exercicio),
           String(ex.series ?? ""),
           String(ex.repeticoes ?? ""),
           ex.kg ?? "",
         ];
+        if (hasDynamic) {
+          base.splice(2, 0, semanaLabel(ex, idx));
+        }
+        return base;
       }),
       styles: {
         ...bodyTextStyles,
@@ -422,6 +465,18 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       },
       columnStyles: (() => {
         const wCat = 9, wSer = 18, wRep = 22, wKg = 14;
+        if (hasDynamic) {
+          const wSem = 16;
+          const wEx = mainW - (wCat + wSem + wSer + wRep + wKg);
+          return {
+            0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_NAME_FONT },
+            1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
+            2: { cellWidth: wSem, halign: "center", fontStyle: "bold", fontSize: NUM_FONT, textColor: RED_SOFT },
+            3: { cellWidth: wSer, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+            4: { cellWidth: wRep, halign: "center", fontStyle: "bold", fontSize: NUM_FONT },
+            5: { cellWidth: wKg, halign: "center", textColor: INK_SOFT },
+          };
+        }
         const wEx = mainW - (wCat + wSer + wRep + wKg);
         return {
           0: { cellWidth: wCat, fontStyle: "bold", textColor: INK_SOFT, fontSize: EX_NAME_FONT },
