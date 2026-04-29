@@ -263,6 +263,7 @@ export type Database = {
           ordem: number
           repeticoes_override: string | null
           series_override: number | null
+          subcategoria_override: string | null
           template_fase: string
           treino_nome: string
           updated_at: string
@@ -278,6 +279,7 @@ export type Database = {
           ordem: number
           repeticoes_override?: string | null
           series_override?: number | null
+          subcategoria_override?: string | null
           template_fase: string
           treino_nome: string
           updated_at?: string
@@ -293,6 +295,7 @@ export type Database = {
           ordem?: number
           repeticoes_override?: string | null
           series_override?: number | null
+          subcategoria_override?: string | null
           template_fase?: string
           treino_nome?: string
           updated_at?: string

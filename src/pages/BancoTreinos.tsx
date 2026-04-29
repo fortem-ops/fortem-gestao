@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
-import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA, AQUECIMENTO_SUBCATEGORIAS } from "@/lib/exerciseMapping";
+import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA, AQUECIMENTO_SUBCATEGORIAS, GRUPO_SUBCATEGORIAS } from "@/lib/exerciseMapping";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
 import { toast } from "sonner";
 import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
@@ -34,6 +34,7 @@ interface Escolha {
   ordem: number;
   exercicio_id: string | null;
   categoria_override: string | null;
+  subcategoria_override: string | null;
   series_override: number | null;
   repeticoes_override: string | null;
   dias_override: string[] | null;
@@ -41,6 +42,7 @@ interface Escolha {
 
 type OverridePatch = {
   categoria_override?: string | null;
+  subcategoria_override?: string | null;
   series_override?: number | null;
   repeticoes_override?: string | null;
   dias_override?: string[] | null;
@@ -202,18 +204,36 @@ function ExerciseRow({
   canEdit: boolean;
   aquecimentoBloco?: "LIB" | "MOB" | "ATI";
 }) {
-  // Effective values: override > template
+  // (valores efetivos declarados abaixo, junto com a lógica de subcategoria)
+
+  // Para aquecimento (LIB/MOB/ATI), o select "Categoria" carrega a subcategoria
+  // (o grupo é fixo pelo bloco). Default = ex.subcategoria do template, e o
+  // override é gravado em `categoria_override` (legado).
+  // Para linhas de força/principais, agora também temos um seletor de subcategoria
+  // dedicado, gravado em `subcategoria_override`. Default = subcategoria derivada
+  // do código (CODE_TO_SUBCATEGORIA) ou ex.subcategoria do template.
+  const defaultSubcategoria = ex.subcategoria;
+  const effSubcategoriaAquec = aquecimentoBloco
+    ? (escolha?.categoria_override ?? defaultSubcategoria ?? "")
+    : undefined;
+
   const effCategoria = escolha?.categoria_override ?? ex.categoria;
   const effSeries = escolha?.series_override ?? ex.series;
   const effReps = escolha?.repeticoes_override ?? ex.repeticoes;
   const effDias = escolha?.dias_override ?? ex.dias ?? [];
 
-  // For warm-up rows, the "Categoria" select carries the subcategoria (the
-  // grupo is fixed by the block: LIB/MOB/ATI). Default = ex.subcategoria from the template.
-  const defaultSubcategoria = ex.subcategoria;
-  const effSubcategoria = aquecimentoBloco
-    ? (escolha?.categoria_override ?? defaultSubcategoria ?? "")
-    : undefined;
+  // Para força/principais: subcategoria efetiva (override > derivada do código > template)
+  const grupoForca = !aquecimentoBloco ? CODE_TO_GRUPO[effCategoria.toUpperCase()] : undefined;
+  const subcategoriasGrupo = grupoForca ? GRUPO_SUBCATEGORIAS[grupoForca] || [] : [];
+  const defaultSubForca = !aquecimentoBloco
+    ? (CODE_TO_SUBCATEGORIA[effCategoria.toUpperCase()] ?? defaultSubcategoria ?? "")
+    : "";
+  const effSubcategoriaForca = !aquecimentoBloco
+    ? (escolha?.subcategoria_override ?? defaultSubForca)
+    : "";
+
+  // Subcategoria efetiva passada ao picker (filtro) — válida para ambos os casos.
+  const effSubcategoria = aquecimentoBloco ? effSubcategoriaAquec : effSubcategoriaForca;
 
   // Local state for text inputs (commit on blur / Enter)
   const [seriesInput, setSeriesInput] = useState(String(effSeries ?? ""));
@@ -226,7 +246,7 @@ function ExerciseRow({
   const candidatesCount = getCandidatesForCode(
     aquecimentoBloco ?? effCategoria,
     bank,
-    aquecimentoBloco ? (effSubcategoria || undefined) : undefined,
+    effSubcategoria || undefined,
   ).length;
   const hasVideo = match && (match.video_url || match.video_path);
   const isSlotVazio = !ex.exercicio && !escolhaEx;
@@ -287,20 +307,49 @@ function ExerciseRow({
             </Badge>
           )
         ) : canEdit ? (
-          <select
-            value={effCategoria}
-            onChange={(e) => {
-              const v = e.target.value;
-              onSaveOverride({ categoria_override: v === ex.categoria ? null : v });
-            }}
-            className="bg-background border border-input rounded px-1.5 py-0.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            {Object.keys(CATEGORY_LABELS).map((code) => (
-              <option key={code} value={code}>{code}</option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-1">
+            <select
+              value={effCategoria}
+              onChange={(e) => {
+                const v = e.target.value;
+                // Ao trocar o código, limpa override de subcategoria para reusar o default do novo grupo.
+                onSaveOverride({
+                  categoria_override: v === ex.categoria ? null : v,
+                  subcategoria_override: null,
+                });
+              }}
+              className="bg-background border border-input rounded px-1.5 py-0.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {Object.keys(CATEGORY_LABELS).map((code) => (
+                <option key={code} value={code}>{code}</option>
+              ))}
+            </select>
+            {subcategoriasGrupo.length > 0 && (
+              <select
+                value={effSubcategoriaForca || ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onSaveOverride({
+                    subcategoria_override: !v || v === defaultSubForca ? null : v,
+                  });
+                }}
+                title={`Subcategoria (${grupoForca})`}
+                className="bg-background border border-input rounded px-1.5 py-0.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-ring max-w-[180px]"
+              >
+                <option value="">— qualquer —</option>
+                {subcategoriasGrupo.map((sub) => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            )}
+          </div>
         ) : (
-          <Badge variant="outline" className="text-xs">{effCategoria}</Badge>
+          <div className="flex flex-col gap-0.5">
+            <Badge variant="outline" className="text-xs w-fit">{effCategoria}</Badge>
+            {effSubcategoriaForca && (
+              <span className="text-[10px] text-muted-foreground">{effSubcategoriaForca}</span>
+            )}
+          </div>
         )}
       </TableCell>
       <TableCell className="text-sm">
@@ -308,7 +357,7 @@ function ExerciseRow({
           <div className="flex items-center gap-2 flex-wrap">
             <ExercisePicker
               categoria={aquecimentoBloco ?? effCategoria}
-              subcategoriaOverride={aquecimentoBloco ? (effSubcategoria || undefined) : undefined}
+              subcategoriaOverride={effSubcategoria || undefined}
               bank={bank}
               currentId={escolhaEx?.id}
               canEdit={canEdit && candidatesCount > 0}
@@ -344,7 +393,7 @@ function ExerciseRow({
         ) : (
           <ExercisePicker
             categoria={aquecimentoBloco ?? effCategoria}
-            subcategoriaOverride={aquecimentoBloco ? (effSubcategoria || undefined) : undefined}
+            subcategoriaOverride={effSubcategoria || undefined}
             bank={bank}
             canEdit={canEdit && candidatesCount > 0}
             onSelect={(b) => onSaveChoice(b)}
@@ -721,7 +770,7 @@ export default function BancoTreinos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("banco_treinos_escolhas")
-        .select("id, template_fase, treino_nome, ordem, exercicio_id, categoria_override, series_override, repeticoes_override, dias_override");
+        .select("id, template_fase, treino_nome, ordem, exercicio_id, categoria_override, subcategoria_override, series_override, repeticoes_override, dias_override");
       if (error) throw error;
       return (data || []) as Escolha[];
     },
