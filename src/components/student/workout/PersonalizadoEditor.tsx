@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -106,6 +106,8 @@ export function PersonalizadoEditor({
   const [pickedAluno, setPickedAluno] = useState("");
   // Aba ativa do card "FORÇA" (apenas UI, não persiste).
   const [activeTreino, setActiveTreino] = useState(0);
+  // Modo de visualização do painel "PADRÕES DE MOVIMENTO".
+  const [padraoMode, setPadraoMode] = useState<"total" | "treino">("total");
 
   const isAluno = !!alunoId;
 
@@ -554,6 +556,27 @@ export function PersonalizadoEditor({
     });
   };
 
+  // ============ Padrões de Movimento (contagem por CAT) ============
+  const padraoCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    FORCA_CATEGORIAS.forEach((c) => (counts[c] = 0));
+    const treinos =
+      padraoMode === "treino" && data.treinos[activeTreino]
+        ? [data.treinos[activeTreino]]
+        : data.treinos;
+    treinos.forEach((tr) => {
+      tr.blocos.forEach((bl) => {
+        bl.exercicios.forEach((ex) => {
+          const cat = ex.categoria || "";
+          if (cat in counts) counts[cat] += 1;
+          else counts[cat] = (counts[cat] ?? 0) + 1;
+        });
+      });
+    });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    return { counts, total };
+  }, [data.treinos, activeTreino, padraoMode]);
+
   // ============ UI ============
   return (
     <div className="space-y-4">
@@ -728,6 +751,52 @@ export function PersonalizadoEditor({
             <Plus className="w-3 h-3 mr-1" /> Treino
           </Button>
         </div>
+
+        {/* PADRÕES DE MOVIMENTO */}
+        {data.treinos.length > 0 && (
+          <div className="rounded-md border border-border/60 bg-background/40 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-[11px] font-heading font-semibold tracking-wider text-muted-foreground">
+                PADRÕES DE MOVIMENTO
+              </span>
+              <ToggleGroup
+                type="single"
+                size="sm"
+                value={padraoMode}
+                onValueChange={(v) => v && setPadraoMode(v as "total" | "treino")}
+                className="h-6"
+              >
+                <ToggleGroupItem value="total" className="h-6 px-2 text-[10px]">
+                  Total
+                </ToggleGroupItem>
+                <ToggleGroupItem value="treino" className="h-6 px-2 text-[10px]">
+                  Treino atual
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {FORCA_CATEGORIAS.map((c) => {
+                const n = padraoCounts.counts[c] ?? 0;
+                return (
+                  <Badge
+                    key={c}
+                    variant={n > 0 ? "default" : "outline"}
+                    className={`text-[10px] font-mono ${n === 0 ? "opacity-40" : ""}`}
+                    title={CATEGORY_LABELS[c] ?? c}
+                  >
+                    {c} {n}
+                  </Badge>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Total: {padraoCounts.total} {padraoCounts.total === 1 ? "exercício" : "exercícios"}
+              {padraoMode === "treino" && data.treinos[activeTreino]
+                ? ` · ${data.treinos[activeTreino].nome}`
+                : ""}
+            </p>
+          </div>
+        )}
 
         {data.treinos.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">
