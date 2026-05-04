@@ -51,9 +51,24 @@ const DAY_OPTIONS = ["T1", "T2", "T3", "T4"] as const;
 
 const PHASE_GROUPS = [
   { label: "Fases", filter: (t: WorkoutTemplate) => /^Fase \d/.test(t.fase) },
-  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "Planilha 5RM", "5-3-1", "M102"].includes(t.fase) },
+  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "Personalizado 2", "Planilha 5RM", "5-3-1", "M102"].includes(t.fase) },
   { label: "Corrida", filter: (t: WorkoutTemplate) => t.fase.startsWith("Corrida") },
 ];
+
+/** Estrutura inicial do "Personalizado 2": 4 Treinos × 2 Blocos (Principais/Acessórios). */
+function emptyPersonalizado2(): PersonalizadoConteudo {
+  return {
+    aquecimento: { LIB: [], MOB: [], ATI: [] },
+    treinos: [1, 2, 3, 4].map((n) => ({
+      nome: `Treino ${n}`,
+      blocos: [
+        { nome: "Bloco 1 (Principais)", exercicios: [] },
+        { nome: "Bloco 2 (Acessórios)", exercicios: [] },
+      ],
+    })),
+    observacoes: "",
+  };
+}
 
 function findBankMatch(ex: WorkoutExercise, bank: BankExercise[]): BankExercise | null {
   if (ex.exercicio?.trim()) {
