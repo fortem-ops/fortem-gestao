@@ -87,6 +87,7 @@ function ExercisePicker({
   canEdit,
   triggerLabel,
   subcategoriaOverride,
+  onPreviewVideo,
 }: {
   categoria: string;
   bank: BankExercise[];
@@ -96,6 +97,7 @@ function ExercisePicker({
   canEdit: boolean;
   triggerLabel: React.ReactNode;
   subcategoriaOverride?: string;
+  onPreviewVideo?: (ex: BankExercise) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -135,17 +137,32 @@ function ExercisePicker({
     const hasVideo = !!(ex.video_url || ex.video_path);
     const isSelected = ex.id === currentId;
     return (
-      <button
+      <div
         key={ex.id}
-        onClick={() => { onSelect(ex); setOpen(false); }}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-accent/50 transition-colors text-left"
+        className="w-full flex items-center gap-1 px-1 hover:bg-accent/50 transition-colors"
       >
-        <span className="flex items-center gap-1.5 flex-1 truncate">
+        <button
+          onClick={() => { onSelect(ex); setOpen(false); }}
+          className="flex-1 flex items-center gap-1.5 px-2 py-2 text-xs text-left min-w-0"
+        >
           {isSelected && <Check className="w-3 h-3 text-success shrink-0" />}
           <span className="truncate">{ex.nome}</span>
-        </span>
-        {hasVideo && <Video className="w-3 h-3 text-primary shrink-0" />}
-      </button>
+        </button>
+        {hasVideo && onPreviewVideo && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onPreviewVideo(ex); }}
+            className="shrink-0 h-7 w-7 inline-flex items-center justify-center rounded text-primary hover:bg-primary/10"
+            aria-label="Ver demonstração"
+            title="Ver demonstração"
+          >
+            <Video className="w-3.5 h-3.5" />
+          </button>
+        )}
+        {hasVideo && !onPreviewVideo && (
+          <Video className="w-3 h-3 text-primary shrink-0 mr-2" />
+        )}
+      </div>
     );
   };
 
@@ -156,7 +173,7 @@ function ExercisePicker({
           {triggerLabel}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
+      <PopoverContent className="w-96 p-0" align="start">
         <div className="p-2 border-b border-border">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -169,7 +186,7 @@ function ExercisePicker({
             />
           </div>
         </div>
-        <div className="max-h-64 overflow-y-auto">
+        <div className="max-h-[70vh] overflow-y-auto">
           {filtered.length === 0 ? (
             <div className="px-3 py-4 text-xs text-muted-foreground text-center">
               {candidates.length === 0
@@ -392,6 +409,7 @@ function ExerciseRow({
               canEdit={canEdit && candidatesCount > 0}
               onSelect={(b) => onSaveChoice(b)}
               onClear={escolhaEx ? onClearChoice : undefined}
+              onPreviewVideo={(b) => onOpenVideo(b)}
               triggerLabel={<span>{match?.nome || ex.exercicio}</span>}
             />
             {escolhaEx && (
@@ -426,6 +444,7 @@ function ExerciseRow({
             bank={bank}
             canEdit={canEdit && candidatesCount > 0}
             onSelect={(b) => onSaveChoice(b)}
+            onPreviewVideo={(b) => onOpenVideo(b)}
             triggerLabel={
               <span className="text-muted-foreground italic text-xs">
                 {candidatesCount > 0
