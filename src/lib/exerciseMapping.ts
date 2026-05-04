@@ -32,7 +32,7 @@ export const CODE_TO_SUBCATEGORIA: Record<string, string | undefined> = {
   DJS: "Dominante de Joelho Simétrico",
   DJA: "Dominante de Joelhos Assimétrico",
   DQ: "Dominante de Quadril",
-  DQ_P: "Dominante de Quadril",
+  DQ_P: "Dominante de Quadril Posterior",
   PH: "Puxar Horizontal",
   PV: "Puxar Vertical",
   EH: "Empurrar Horizontal",
