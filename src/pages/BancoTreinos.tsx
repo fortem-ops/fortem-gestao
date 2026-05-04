@@ -87,6 +87,7 @@ function ExercisePicker({
   canEdit,
   triggerLabel,
   subcategoriaOverride,
+  onPreviewVideo,
 }: {
   categoria: string;
   bank: BankExercise[];
@@ -96,6 +97,7 @@ function ExercisePicker({
   canEdit: boolean;
   triggerLabel: React.ReactNode;
   subcategoriaOverride?: string;
+  onPreviewVideo?: (ex: BankExercise) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
