@@ -409,6 +409,7 @@ function ExerciseRow({
               canEdit={canEdit && candidatesCount > 0}
               onSelect={(b) => onSaveChoice(b)}
               onClear={escolhaEx ? onClearChoice : undefined}
+              onPreviewVideo={(b) => onOpenVideo(b)}
               triggerLabel={<span>{match?.nome || ex.exercicio}</span>}
             />
             {escolhaEx && (
