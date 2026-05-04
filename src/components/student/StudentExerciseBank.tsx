@@ -528,6 +528,7 @@ export function StudentExerciseBank() {
         )}
 
         {renderVideoModal()}
+        {renderEditDialog()}
       </div>
     );
   }
