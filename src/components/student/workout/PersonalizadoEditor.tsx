@@ -70,6 +70,7 @@ interface Props {
 
 const FORCA_CATEGORIAS = [
   "DJS","DJA","DQ","DQ_P","PH","PV","EH","EV","EP","EEF","EE","AH","AF","AR","PREV","COND",
+  "KB","PLIO","ISO","ABD","ET","LPO","AUX",
 ];
 
 const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [

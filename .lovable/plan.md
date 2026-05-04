@@ -1,30 +1,76 @@
 ## Problema
 
-No editor **Personalizado**, ao abrir a lista do `ExerciseSelector` dentro do card "AQUECIMENTO", o popover é cortado/coberto pelo card "FORÇA" logo abaixo. Mesmo problema ocorre dentro de "FORÇA" quando há blocos empilhados.
+As categorias **Kettlebell, Pliometria, Isoinercial, Abdominais (Abdômen), Extensão Torácica, LPO** e **Auxiliares** existem hoje apenas como **subcategorias** do grupo "Força" no Banco de Exercícios (`GRUPO_SUBCATEGORIAS["Força"]`), mas **não possuem códigos de categoria**.
 
-Causa: o popover é um `<div class="absolute z-50">` filho do card. Cada card `glass-card` cria seu próprio contexto de empilhamento (backdrop-filter / overflow), então o `z-50` só vale dentro do card de origem; o card seguinte no DOM fica visualmente por cima.
+Por isso, no Banco de Treinos elas:
+- Não aparecem no seletor de **Categoria** (código) das linhas de exercício (ex.: DJS, DQ, PH...);
+- Só aparecem como subcategoria quando o usuário primeiro escolhe um código que mapeia para "Força" — e ainda assim como filtro secundário, nunca como uma categoria principal selecionável;
+- Não aparecem no `PersonalizadoEditor` (que usa a constante `FORCA_CATEGORIAS` com 16 códigos fixos).
 
 ## Solução
 
-Renderizar o popover do `ExerciseSelector` em um **portal no `document.body`**, posicionado com coordenadas calculadas a partir do `getBoundingClientRect()` do input. Assim escapa de qualquer stacking context dos cards e fica sempre por cima de todo o conteúdo da página.
+Criar códigos de categoria novos para cada uma dessas subcategorias e propagar nos três pontos onde a lista de códigos é usada.
 
-### Detalhes
-- Usar `createPortal` (já disponível em `react-dom`).
-- Calcular `top/left/width` a partir do retângulo do input quando `open` vira `true` e em resize/scroll (listener `window`), com `position: fixed`.
-- Preservar largura responsiva: `Math.min(560, viewportWidth - 16)`; `max-h: min(60vh, 480px)`.
-- Click-outside continua funcionando: o handler já checa contra `ref.current` (input) e ganha um segundo ref para o popover portal, ignorando cliques dentro de qualquer um dos dois.
-- A modal de Demo já é um `Dialog` (Radix) → portal próprio, sem mudança.
+### 1. `src/lib/exerciseMapping.ts`
 
-## Arquivo afetado
+Adicionar entradas mapeando os novos códigos ao grupo "Força" e à subcategoria correspondente:
 
-- `src/components/student/workout/ExerciseSelector.tsx` — único arquivo.
-  - Adiciona `popoverRef` e `coords` (state com `{top,left,width}`).
-  - Recalcula `coords` em `open`/resize/scroll.
-  - Move o JSX do popover para `createPortal(<div style={{position:'fixed',...}}>...</div>, document.body)`.
-  - Atualiza o handler de click-outside para considerar o popover portal.
+```ts
+// CODE_TO_GRUPO
+KB: "Força",      // Kettlebell
+PLIO: "Força",    // Pliometria
+ISO: "Força",     // Isoinercial
+ABD: "Força",     // Abdominais
+ET: "Força",      // Extensão Torácica
+LPO: "Força",     // LPO
+AUX: "Força",     // Auxiliares
 
-## Não-objetivos
+// CODE_TO_SUBCATEGORIA
+KB: "Kettlebell",
+PLIO: "Pliometria",
+ISO: "Isoinercial",
+ABD: "Abdominais",
+ET: "Extensão Torácica",
+LPO: "LPO",
+AUX: "Auxiliares",
+```
 
-- Não trocar para Radix Popover (mudança maior; manter API atual do componente).
-- Não alterar o card `glass-card`.
-- Não alterar a modal de Demo.
+### 2. `src/components/student/workout/workoutTemplates.ts`
+
+Adicionar os rótulos em `CATEGORY_LABELS`:
+
+```ts
+KB: "Kettlebell",
+PLIO: "Pliometria",
+ISO: "Isoinercial",
+ABD: "Abdominais",
+ET: "Extensão Torácica",
+LPO: "LPO",
+AUX: "Auxiliares",
+```
+
+Com isso, o select de Categoria em `BancoTreinos.tsx` (que itera `Object.keys(CATEGORY_LABELS)`) passa a mostrar as 7 novas opções para **todos os modelos** (Fases, Métodos, Corrida).
+
+### 3. `src/components/student/workout/PersonalizadoEditor.tsx`
+
+Adicionar os mesmos códigos à constante `FORCA_CATEGORIAS` para que apareçam nos seletores e contadores do Personalizado e Personalizado 2.
+
+```ts
+const FORCA_CATEGORIAS = [
+  "DJS","DJA","DQ","DQ_P","PH","PV","EH","EV","EP","EEF","EE",
+  "AH","AF","AR","PREV","COND",
+  "KB","PLIO","ISO","ABD","ET","LPO","AUX",
+];
+```
+
+## Resultado esperado
+
+- Os 7 códigos novos aparecem no select **Categoria** de cada linha em todos os modelos do Banco de Treinos (Fases 1–4, Personalizado, Personalizado 2, Planilha 5RM, 5-3-1, M102, Corrida).
+- Ao selecionar, por exemplo, `KB`, o `ExercisePicker` filtra automaticamente os exercícios cadastrados no Banco de Exercícios em **Força → Kettlebell** (graças ao mapeamento em `CODE_TO_GRUPO` e `CODE_TO_SUBCATEGORIA`).
+- O usuário ainda pode trocar a subcategoria via select secundário (lista completa de subcategorias de Força permanece disponível).
+- Nada quebra nos templates existentes — apenas amplia o conjunto de códigos disponíveis.
+
+## Observações
+
+- Não é necessária migração no banco de dados — as subcategorias já existem cadastradas em `exercicios_personalizados.grupos`.
+- Os códigos escolhidos (KB, PLIO, ISO, ABD, ET, LPO, AUX) são novos e não conflitam com os existentes.
