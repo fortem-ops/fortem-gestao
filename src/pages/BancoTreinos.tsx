@@ -368,7 +368,7 @@ function ExerciseRow({
               className="bg-background border border-input rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring max-w-[180px]"
             >
               {!effSubcategoria && <option value="">Selecione...</option>}
-              {AQUECIMENTO_SUBCATEGORIAS[aquecimentoBloco].map((sub) => (
+              {(grupoSubcategorias[aquecimentoGrupoMap[aquecimentoBloco]] || []).map((sub) => (
                 <option key={sub} value={sub}>{sub}</option>
               ))}
             </select>
