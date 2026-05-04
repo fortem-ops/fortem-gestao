@@ -568,6 +568,7 @@ export type Database = {
           grupos: Json
           id: string
           nome: string
+          ordem: number
           updated_at: string
           video_path: string | null
           video_url: string | null
@@ -578,6 +579,7 @@ export type Database = {
           grupos?: Json
           id?: string
           nome: string
+          ordem?: number
           updated_at?: string
           video_path?: string | null
           video_url?: string | null
@@ -588,6 +590,7 @@ export type Database = {
           grupos?: Json
           id?: string
           nome?: string
+          ordem?: number
           updated_at?: string
           video_path?: string | null
           video_url?: string | null
