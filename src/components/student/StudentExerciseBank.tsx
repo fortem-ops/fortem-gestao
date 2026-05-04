@@ -697,7 +697,7 @@ export function StudentExerciseBank() {
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Novo Exercício</DialogTitle>
+            <DialogTitle>{editingId ? "Editar Exercício" : "Novo Exercício"}</DialogTitle>
             <DialogDescription>
               Defina nome, grupos com subcategoria e (opcional) vídeo demonstrativo.
             </DialogDescription>
