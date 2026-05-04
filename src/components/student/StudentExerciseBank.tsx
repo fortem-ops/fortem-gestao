@@ -382,12 +382,24 @@ export function StudentExerciseBank() {
       toast.error("Vídeo excede 100 MB");
       return;
     }
-    createMutation.mutate({
-      nome: result.data.nome!,
-      grupos: result.data.grupos as GroupSelection[],
-      video_url: videoUrl.trim() ? videoUrl.trim() : null,
-      video_file: videoFile,
-    });
+    if (editingId) {
+      const current = exercicios.find((e) => e.id === editingId);
+      updateMutation.mutate({
+        id: editingId,
+        nome: result.data.nome!,
+        grupos: result.data.grupos as GroupSelection[],
+        video_url: videoUrl.trim() ? videoUrl.trim() : null,
+        video_file: videoFile,
+        current_video_path: current?.video_path ?? null,
+      });
+    } else {
+      createMutation.mutate({
+        nome: result.data.nome!,
+        grupos: result.data.grupos as GroupSelection[],
+        video_url: videoUrl.trim() ? videoUrl.trim() : null,
+        video_file: videoFile,
+      });
+    }
   };
 
   const toggleGrupo = (grupo: string, checked: boolean) => {
