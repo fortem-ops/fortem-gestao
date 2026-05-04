@@ -528,6 +528,7 @@ export function StudentExerciseBank() {
         )}
 
         {renderVideoModal()}
+        {renderEditDialog()}
       </div>
     );
   }
@@ -574,6 +575,7 @@ export function StudentExerciseBank() {
             })}
           </div>
         )}
+        {renderEditDialog()}
       </div>
     );
   }
@@ -706,7 +708,14 @@ export function StudentExerciseBank() {
         </div>
       )}
 
-      {/* Dialog: Novo Exercício */}
+      {renderEditDialog()}
+      {renderVideoModal()}
+      <ManageCategoriesDialog open={manageOpen} onOpenChange={setManageOpen} />
+    </div>
+  );
+
+  function renderEditDialog() {
+    return (
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -840,11 +849,8 @@ export function StudentExerciseBank() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {renderVideoModal()}
-      <ManageCategoriesDialog open={manageOpen} onOpenChange={setManageOpen} />
-    </div>
-  );
+    );
+  }
 
   function renderVideoModal() {
     return (
