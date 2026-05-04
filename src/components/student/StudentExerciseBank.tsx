@@ -820,8 +820,8 @@ export function StudentExerciseBank() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={createMutation.isPending}>
-              {createMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+            <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+              {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
               Salvar
             </Button>
           </DialogFooter>
