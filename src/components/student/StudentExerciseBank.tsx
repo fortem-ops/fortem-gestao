@@ -515,7 +515,7 @@ export function StudentExerciseBank() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {exerciciosPorSub.map((ex) => renderExerciseCard(ex))}
+            {exerciciosPorSub.map((ex) => renderExerciseCard(ex, false, exerciciosPorSub))}
           </div>
         )}
 
