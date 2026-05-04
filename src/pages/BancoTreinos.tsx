@@ -957,22 +957,28 @@ export default function BancoTreinos() {
 
   const renderVideoModal = () => (
     <Dialog open={!!videoPreview} onOpenChange={(o) => !o && setVideoPreview(null)}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>{videoPreview?.nome}</DialogTitle>
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-[1400px] h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] p-0 gap-0 overflow-hidden flex flex-col bg-black">
+        <DialogHeader className="px-4 py-3 border-b border-border/40 bg-background shrink-0">
+          <DialogTitle className="text-base pr-8 truncate">{videoPreview?.nome}</DialogTitle>
         </DialogHeader>
         {videoPreview && (
-          <div className="aspect-video w-full rounded-md overflow-hidden bg-black">
+          <div className="flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
             {videoPreview.kind === "youtube" ? (
               <iframe
-                src={videoPreview.src}
+                src={`${videoPreview.src}${videoPreview.src.includes("?") ? "&" : "?"}autoplay=1&rel=0`}
                 className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                 allowFullScreen
                 title={videoPreview.nome}
               />
             ) : (
-              <video src={videoPreview.src} controls className="w-full h-full" />
+              <video
+                src={videoPreview.src}
+                controls
+                autoPlay
+                controlsList="nodownload"
+                className="w-full h-full object-contain bg-black"
+              />
             )}
           </div>
         )}
