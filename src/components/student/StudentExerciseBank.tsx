@@ -207,6 +207,76 @@ export function StudentExerciseBank() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (payload: {
+      id: string;
+      nome: string;
+      grupos: GroupSelection[];
+      video_url: string | null;
+      video_file: File | null;
+      current_video_path: string | null;
+    }) => {
+      if (!user) throw new Error("Não autenticado");
+      let video_path: string | null = payload.current_video_path;
+      if (payload.video_file) {
+        const ext = payload.video_file.name.split(".").pop() || "mp4";
+        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("exercicios-videos")
+          .upload(path, payload.video_file, { contentType: payload.video_file.type });
+        if (upErr) throw upErr;
+        if (payload.current_video_path) {
+          await supabase.storage.from("exercicios-videos").remove([payload.current_video_path]);
+        }
+        video_path = path;
+      }
+      const { error } = await supabase
+        .from("exercicios_personalizados")
+        .update({
+          nome: payload.nome,
+          grupos: payload.grupos as any,
+          video_url: payload.video_url,
+          video_path,
+        })
+        .eq("id", payload.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Exercício atualizado");
+      queryClient.invalidateQueries({ queryKey: ["exercicios-personalizados"] });
+      setDialogOpen(false);
+      resetForm();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: async (swaps: { id: string; ordem: number }[]) => {
+      for (const s of swaps) {
+        const { error } = await supabase
+          .from("exercicios_personalizados")
+          .update({ ordem: s.ordem })
+          .eq("id", s.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exercicios-personalizados"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const moveExercise = (ex: ExercicioRow, list: ExercicioRow[], direction: -1 | 1) => {
+    const idx = list.findIndex((e) => e.id === ex.id);
+    const targetIdx = idx + direction;
+    if (idx < 0 || targetIdx < 0 || targetIdx >= list.length) return;
+    const target = list[targetIdx];
+    reorderMutation.mutate([
+      { id: ex.id, ordem: target.ordem },
+      { id: target.id, ordem: ex.ordem },
+    ]);
+  };
+
   const deleteMutation = useMutation({
     mutationFn: async (ex: ExercicioRow) => {
       if (ex.video_path) {
