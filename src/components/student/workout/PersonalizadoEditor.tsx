@@ -25,6 +25,14 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
@@ -861,16 +869,30 @@ export function PersonalizadoEditor({
                       {bl.exercicios.length === 0 ? (
                         <p className="text-[11px] text-muted-foreground italic px-1">Nenhum exercício. Use “+ Exercício”.</p>
                       ) : (
-                        <div className="space-y-2">
-                          {bl.exercicios.map((ex, ei) => (
-                            <ExercicioRow
-                              key={ei}
-                              ex={ex}
-                              index={ei}
-                              onRemove={() => removeExercicio(ti, bi, ei)}
-                              onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
-                            />
-                          ))}
+                        <div className="rounded-md border border-border/50 overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                <TableHead className="w-10 h-8 px-2 text-[10px]">#</TableHead>
+                                <TableHead className="w-24 h-8 px-2 text-[10px]">Categoria</TableHead>
+                                <TableHead className="h-8 px-2 text-[10px]">Exercício</TableHead>
+                                <TableHead className="w-16 h-8 px-2 text-[10px] text-center">Séries</TableHead>
+                                <TableHead className="w-20 h-8 px-2 text-[10px] text-center">Reps</TableHead>
+                                <TableHead className="w-10 h-8 px-2"></TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {bl.exercicios.map((ex, ei) => (
+                                <ExercicioRows
+                                  key={ei}
+                                  ex={ex}
+                                  index={ei}
+                                  onRemove={() => removeExercicio(ti, bi, ei)}
+                                  onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
+                                />
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
                       )}
                     </div>
@@ -1022,7 +1044,9 @@ function CategoriaSelect({
   );
 }
 
-function ExercicioRow({
+// ============ Renderização em tabela (estilo Fases) ============
+
+function ExercicioRows({
   ex,
   index,
   onRemove,
@@ -1033,74 +1057,90 @@ function ExercicioRow({
   onRemove: () => void;
   onUpdate: (patch: Partial<PersonalizadoExercicio>) => void;
 }) {
+  if (ex.tipo === "simples") {
+    return (
+      <SimplesRow
+        ex={ex}
+        index={index}
+        onRemove={onRemove}
+        onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioSimples>) => void}
+      />
+    );
+  }
   return (
-    <div className="rounded border border-border/60 p-2 bg-card/40 space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-muted-foreground w-4">{index + 1}</span>
-        <CategoriaSelect value={ex.categoria} onChange={(v) => onUpdate({ categoria: v })} />
-        <Badge variant={ex.tipo === "dinamico" ? "default" : "outline"} className="text-[10px]">
-          {ex.tipo === "dinamico" ? "DINÂMICO" : "SIMPLES"}
-        </Badge>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-6 w-6 text-destructive ml-auto"
-          onClick={onRemove}
-        >
-          <Trash2 className="w-3 h-3" />
-        </Button>
-      </div>
-
-      {ex.tipo === "simples" ? (
-        <SimplesEditor ex={ex} onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioSimples>) => void} />
-      ) : (
-        <DinamicoEditor ex={ex} onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioDinamico>) => void} />
-      )}
-    </div>
+    <DinamicoRows
+      ex={ex}
+      index={index}
+      onRemove={onRemove}
+      onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioDinamico>) => void}
+    />
   );
 }
 
-function SimplesEditor({
+function SimplesRow({
   ex,
+  index,
+  onRemove,
   onUpdate,
 }: {
   ex: PersonalizadoExercicioSimples;
+  index: number;
+  onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioSimples>) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <ExerciseSelector
-        categoria={ex.categoria}
-        value={ex.exercicio}
-        onChange={(val, video) => onUpdate({ exercicio: val, video_url: video })}
-      />
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-1">
-          <Label className="text-[10px] text-muted-foreground">Séries</Label>
-          <Input
-            value={String(ex.series)}
-            onChange={(e) => onUpdate({ series: e.target.value })}
-            className="h-6 w-14 text-xs text-center"
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          <Label className="text-[10px] text-muted-foreground">Reps</Label>
-          <Input
-            value={ex.repeticoes}
-            onChange={(e) => onUpdate({ repeticoes: e.target.value })}
-            className="h-6 w-20 text-xs text-center"
-          />
-        </div>
-      </div>
-    </div>
+    <TableRow className="border-b border-border/60">
+      <TableCell className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground align-middle">
+        {index + 1}
+      </TableCell>
+      <TableCell className="px-2 py-1.5 align-middle">
+        <CategoriaSelect value={ex.categoria} onChange={(v) => onUpdate({ categoria: v })} />
+      </TableCell>
+      <TableCell className="px-2 py-1.5 align-middle">
+        <ExerciseSelector
+          categoria={ex.categoria}
+          value={ex.exercicio}
+          onChange={(val, video) => onUpdate({ exercicio: val, video_url: video })}
+        />
+      </TableCell>
+      <TableCell className="px-2 py-1.5 text-center align-middle">
+        <Input
+          value={String(ex.series)}
+          onChange={(e) => onUpdate({ series: e.target.value })}
+          className="h-7 w-14 mx-auto text-xs text-center px-1"
+        />
+      </TableCell>
+      <TableCell className="px-2 py-1.5 text-center align-middle">
+        <Input
+          value={ex.repeticoes}
+          onChange={(e) => onUpdate({ repeticoes: e.target.value })}
+          className="h-7 w-20 mx-auto text-xs text-center px-1"
+        />
+      </TableCell>
+      <TableCell className="px-2 py-1.5 align-middle">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-6 w-6 text-destructive"
+          onClick={onRemove}
+          title="Remover exercício"
+        >
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </TableCell>
+    </TableRow>
   );
 }
 
-function DinamicoEditor({
+function DinamicoRows({
   ex,
+  index,
+  onRemove,
   onUpdate,
 }: {
   ex: PersonalizadoExercicioDinamico;
+  index: number;
+  onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioDinamico>) => void;
 }) {
   const setRotacao = (rotacao: DinamicoRotacao) => {
@@ -1120,100 +1160,129 @@ function DinamicoEditor({
     onUpdate({ variantes: ex.variantes.filter((_, idx) => idx !== i) });
 
   const labelFor = (i: number) => {
-    if (ex.rotacao === "impar_par") return i === 0 ? "Semanas ímpares (X)" : "Semanas pares (Y)";
-    return `Semana ${i + 1}` + (ex.variantes.length > 1 ? ` / ${ex.variantes.length} (rotativa)` : "");
+    if (ex.rotacao === "impar_par") return i === 0 ? "X" : "Y";
+    return `${i + 1}/${ex.variantes.length}`;
   };
 
+  const compartilhado = ex.series_modo === "compartilhado";
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-3 flex-wrap text-[11px]">
-        <div className="flex items-center gap-1">
-          <Label className="text-[10px] text-muted-foreground">Rotação</Label>
-          <Select value={ex.rotacao} onValueChange={(v) => setRotacao(v as DinamicoRotacao)}>
-            <SelectTrigger className="h-6 text-[11px] w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="impar_par">Ímpar / Par</SelectItem>
-              <SelectItem value="rotativa">N variantes</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-1">
-          <Label className="text-[10px] text-muted-foreground">Séries/Reps</Label>
-          <Select value={ex.series_modo} onValueChange={(v) => setSeriesModo(v as DinamicoSeriesModo)}>
-            <SelectTrigger className="h-6 text-[11px] w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="compartilhado">Compartilhado</SelectItem>
-              <SelectItem value="independente">Independente por variante</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {ex.series_modo === "compartilhado" && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1">
-            <Label className="text-[10px] text-muted-foreground">Séries</Label>
-            <Input
-              value={String(ex.series)}
-              onChange={(e) => onUpdate({ series: e.target.value })}
-              className="h-6 w-14 text-xs text-center"
-            />
-          </div>
-          <div className="flex items-center gap-1">
-            <Label className="text-[10px] text-muted-foreground">Reps</Label>
-            <Input
-              value={ex.repeticoes}
-              onChange={(e) => onUpdate({ repeticoes: e.target.value })}
-              className="h-6 w-20 text-xs text-center"
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-1.5">
-        {ex.variantes.map((v, i) => (
-          <div key={i} className="rounded border border-border/40 p-2 space-y-1 bg-background/30">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px]">{labelFor(i)}</Badge>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-5 w-5 text-destructive ml-auto"
-                onClick={() => removeVariante(i)}
-                disabled={ex.variantes.length <= 2}
-              >
-                <Trash2 className="w-3 h-3" />
+    <>
+      {/* Linha-cabeçalho do dinâmico */}
+      <TableRow className="bg-primary/5 border-b border-border/60 hover:bg-primary/5">
+        <TableCell className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground align-middle">
+          {index + 1}
+        </TableCell>
+        <TableCell className="px-2 py-1.5 align-middle">
+          <CategoriaSelect value={ex.categoria} onChange={(v) => onUpdate({ categoria: v })} />
+        </TableCell>
+        <TableCell className="px-2 py-1.5 align-middle" colSpan={compartilhado ? 1 : 3}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="default" className="text-[10px]">DINÂMICO</Badge>
+            <Select value={ex.rotacao} onValueChange={(v) => setRotacao(v as DinamicoRotacao)}>
+              <SelectTrigger className="h-7 text-[11px] w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="impar_par">Ímpar / Par</SelectItem>
+                <SelectItem value="rotativa">N variantes</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={ex.series_modo} onValueChange={(v) => setSeriesModo(v as DinamicoSeriesModo)}>
+              <SelectTrigger className="h-7 text-[11px] w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="compartilhado">Séries compartilhadas</SelectItem>
+                <SelectItem value="independente">Séries por variante</SelectItem>
+              </SelectContent>
+            </Select>
+            {ex.rotacao === "rotativa" && (
+              <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={addVariante}>
+                <Plus className="w-3 h-3 mr-1" /> Variante
               </Button>
-            </div>
+            )}
+          </div>
+        </TableCell>
+        {compartilhado && (
+          <>
+            <TableCell className="px-2 py-1.5 text-center align-middle">
+              <Input
+                value={String(ex.series)}
+                onChange={(e) => onUpdate({ series: e.target.value })}
+                className="h-7 w-14 mx-auto text-xs text-center px-1"
+              />
+            </TableCell>
+            <TableCell className="px-2 py-1.5 text-center align-middle">
+              <Input
+                value={ex.repeticoes}
+                onChange={(e) => onUpdate({ repeticoes: e.target.value })}
+                className="h-7 w-20 mx-auto text-xs text-center px-1"
+              />
+            </TableCell>
+          </>
+        )}
+        <TableCell className="px-2 py-1.5 align-middle">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 text-destructive"
+            onClick={onRemove}
+            title="Remover exercício"
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </TableCell>
+      </TableRow>
+
+      {/* Linhas das variantes */}
+      {ex.variantes.map((v, i) => (
+        <TableRow key={i} className="border-b border-border/30 bg-background/40">
+          <TableCell className="px-2 py-1.5 align-middle">
+            <Badge variant="outline" className="text-[10px] font-mono">{labelFor(i)}</Badge>
+          </TableCell>
+          <TableCell className="px-2 py-1.5 align-middle">
+            <span className="text-[10px] text-muted-foreground font-mono">{ex.categoria}</span>
+          </TableCell>
+          <TableCell className="px-2 py-1.5 align-middle">
             <ExerciseSelector
               categoria={ex.categoria}
               value={v.exercicio}
               onChange={(val, video) => updateVariante(i, { exercicio: val, video_url: video })}
             />
-            {ex.series_modo === "independente" && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <Label className="text-[10px] text-muted-foreground">Séries</Label>
-                <Input
-                  value={String(v.series ?? "")}
-                  onChange={(e) => updateVariante(i, { series: e.target.value })}
-                  className="h-6 w-14 text-xs text-center"
-                />
-                <Label className="text-[10px] text-muted-foreground">Reps</Label>
-                <Input
-                  value={String(v.repeticoes ?? "")}
-                  onChange={(e) => updateVariante(i, { repeticoes: e.target.value })}
-                  className="h-6 w-20 text-xs text-center"
-                />
-              </div>
+          </TableCell>
+          <TableCell className="px-2 py-1.5 text-center align-middle">
+            {compartilhado ? (
+              <span className="text-[11px] text-muted-foreground">{String(ex.series ?? "—")}</span>
+            ) : (
+              <Input
+                value={String(v.series ?? "")}
+                onChange={(e) => updateVariante(i, { series: e.target.value })}
+                className="h-7 w-14 mx-auto text-xs text-center px-1"
+              />
             )}
-          </div>
-        ))}
-        {ex.rotacao === "rotativa" && (
-          <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={addVariante}>
-            <Plus className="w-3 h-3 mr-1" /> Adicionar variante
-          </Button>
-        )}
-      </div>
-    </div>
+          </TableCell>
+          <TableCell className="px-2 py-1.5 text-center align-middle">
+            {compartilhado ? (
+              <span className="text-[11px] text-muted-foreground">{ex.repeticoes || "—"}</span>
+            ) : (
+              <Input
+                value={String(v.repeticoes ?? "")}
+                onChange={(e) => updateVariante(i, { repeticoes: e.target.value })}
+                className="h-7 w-20 mx-auto text-xs text-center px-1"
+              />
+            )}
+          </TableCell>
+          <TableCell className="px-2 py-1.5 align-middle">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 text-destructive"
+              onClick={() => removeVariante(i)}
+              disabled={ex.variantes.length <= 2}
+              title="Remover variante"
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </TableCell>
+        </TableRow>
+      ))}
+    </>
   );
 }

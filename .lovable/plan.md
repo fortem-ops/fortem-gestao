@@ -1,59 +1,60 @@
 ## Objetivo
 
-Criar um novo modelo **"Personalizado 2"** dentro do grupo **Métodos** em `Banco de Treinos`. Ele reaproveita a interface tradicional das **Fases** (Aquecimento + 4 Treinos com tabelas), mas cada linha de exercício pode ser configurada como **Simples** (1 exercício) ou **Dinâmico** (variantes I/P ou Rotação), reproduzindo as regras já existentes no editor "Personalizado".
+Trocar a visualização atual do **Personalizado** (cards verticais empilhados por exercício) por uma **tabela** com as mesmas colunas das **Fases** (`# | Categoria | Exercício | Séries | Reps | Ações`), mantendo:
+
+- A estrutura **Aquecimento (LIB/MOB/ATI) + Tabs de Treinos + Blocos** que o Personalizado já tem.
+- As regras de exercícios **Simples** e **Dinâmico** (rotação Ímpar/Par ou N variantes; séries Compartilhado/Independente).
+- Aquecimento, observações, salvar como modelo, exportar PDF, aplicar a aluno — tudo permanece.
+
+Como o **Personalizado 2** hoje **reutiliza o mesmo `PersonalizadoEditor`**, esta mudança beneficia automaticamente os dois modelos. Nenhum novo arquivo é criado.
 
 ## O que muda na UI
 
-Em `Métodos`, ao lado dos cards atuais (Personalizado, Planilha 5RM, 5-3-1, M102), aparece um novo card **"Personalizado 2"** com a mesma aparência das Fases. Ao abrir:
+Dentro de cada **Bloco** de cada **Treino**, a lista de exercícios passa a ser uma tabela com este cabeçalho:
 
-- Aquecimento vazio com os blocos LIB / MOB / ATI prontos para o professor adicionar exercícios.
-- 4 Treinos (Treino 1..4) em abas, cada um com **Bloco 1 (Principais)** e **Bloco 2 (Acessórios)**, idênticos visualmente a Fase 1.
-- Em cada linha do treino, um **seletor de tipo** (Simples / Dinâmico):
-  - **Simples**: igual ao comportamento atual das Fases — escolhe categoria, exercício do banco, séries e repetições.
-  - **Dinâmico**: abre subpainel com:
-    - Rotação: **Ímpar/Par** ou **Rotativa (N variantes)**.
-    - Modo de séries: **Compartilhado** (mesmas séries/reps para todas) ou **Independente** (por variante).
-    - Lista de variantes (cada uma com exercício do banco + séries/reps quando independente).
-- Ações por linha: adicionar / remover linha, escolher Demo (preview de vídeo), limpar escolha.
-- Botões no topo: **Salvar como modelo** e **Voltar**.
-
-Modelos salvos aparecem em **"Meus modelos"** abaixo dos cards (já existe a seção), e ao reabrir voltam à mesma tela.
-
-## Detalhes técnicos
-
-### 1. Template
-Em `src/components/student/workout/workoutTemplates.ts`, adicionar entrada:
+```text
+| # | Categoria | Exercício                       | Séries | Reps | Ações |
 ```
-{ fase: "Personalizado 2", frequencia: "—", aquecimento: [], treinos: [Treino 1..4 vazios] }
-```
-E incluir `"Personalizado 2"` no filtro de Métodos em `PHASE_GROUPS` (`src/pages/BancoTreinos.tsx`).
 
-### 2. Persistência
-Reutilizar `banco_treinos_personalizados` (já existe, com `conteudo jsonb`). O conteúdo segue o shape `PersonalizadoTreinoConteudo` existente, com um marcador adicional `variante: "personalizado2"` para distinguir do "Personalizado" clássico ao listar/abrir.
+### Linha "Simples"
+Uma única linha. Categoria via select, Exercício via `ExerciseSelector`, Séries/Reps editáveis inline, botão remover. Visualmente idêntico a uma linha de Fase.
 
-### 3. Novo editor `Personalizado2Editor`
-Novo arquivo `src/components/student/workout/Personalizado2Editor.tsx`, baseado no layout de `PhaseDetail` (Aquecimento + Tabs de Treinos + Blocos 1/2), porém:
-- Usa estado local em memória do tipo `PersonalizadoConteudo` (mesmos tipos de `personalizadoTypes.ts`, sem alterar o shape).
-- A `ExerciseTable` ganha uma variante "editável-rica" que renderiza, por linha:
-  - Toggle Simples/Dinâmico.
-  - Quando Dinâmico, expande área com select de Rotação, modo de séries e lista de variantes (reutiliza `ExercisePicker` existente para escolher cada variante).
-- Ao salvar: chama `flattenPersonalizado(...)` e grava em `banco_treinos_personalizados` com `{ __personalizado: true, variante: "personalizado2", estrutura, aquecimento, treinos }`.
+### Linha "Dinâmico"
+Renderizada como **um grupo de N+1 linhas** na mesma tabela:
 
-### 4. Roteamento na página
-Em `BancoTreinos.tsx`, no clique do card:
-- Se `template.fase === "Personalizado"` → abre `PersonalizadoEditor` (atual).
-- Se `template.fase === "Personalizado 2"` → abre `Personalizado2Editor` (novo).
-- Demais Fases/Métodos → fluxo `PhaseDetail` atual.
+- **Linha-cabeçalho do dinâmico**: ocupa toda a largura via `colSpan`. Mostra:
+  - Badge `DINÂMICO` + selects de **Rotação** (Ímpar/Par | N variantes) e **Séries/Reps** (Compartilhado | Independente).
+  - Quando `Compartilhado`: campos Séries e Reps na própria linha-cabeçalho.
+  - Botões: `+ Variante` (só rotativa) e remover exercício inteiro.
+- **N linhas de variante** logo abaixo:
+  - `#` mostra o rótulo (`X`, `Y`, `S1/S2…` ou `1/3`, `2/3`, `3/3`).
+  - Categoria herdada do dinâmico (somente leitura — uma única categoria por exercício).
+  - Exercício via `ExerciseSelector`.
+  - Séries/Reps editáveis somente quando modo `Independente`; caso contrário mostram os valores compartilhados em cinza.
+  - Ação: remover variante (desabilitado quando `≤ 2`).
 
-A listagem de "Meus modelos" passa a mostrar um chip indicando a variante (`Personalizado` ou `Personalizado 2`) e abre o editor correto.
+A separação visual entre exercícios será feita por uma **linha divisória mais forte**, e a separação entre Bloco 1 / Bloco 2 continua via cabeçalho do bloco com nome editável e botão `+ Exercício` (que abre o diálogo Simples/Dinâmico já existente).
 
-### 5. Compatibilidade
-- Não muda esquema do banco (apenas conteúdo do JSONB).
-- Não altera `PersonalizadoEditor` atual nem `personalizadoTypes.ts` (apenas leitura/reuso).
-- PDF/renderer continuam funcionando porque o `flatten` produz o mesmo formato plano (`aquecimento` + `treinos`).
+### Aquecimento
+Também migra para o mesmo padrão de tabela (`LIB`, `MOB`, `ATI` cada um com sua tabela: `# | Subcategoria | Exercício | Reps | Dias | Ações`), espelhando o cabeçalho usado nas Fases para o aquecimento.
 
 ## Arquivos afetados
 
-- `src/components/student/workout/workoutTemplates.ts` — adicionar template "Personalizado 2".
-- `src/components/student/workout/Personalizado2Editor.tsx` — novo editor.
-- `src/pages/BancoTreinos.tsx` — incluir no filtro Métodos, abrir editor correto, ler `variante` na lista de modelos.
+- `src/components/student/workout/PersonalizadoEditor.tsx`
+  - Substituir o `ExercicioRow` (card) por `ExercicioRowsTable` (1+ `<TableRow>` por exercício).
+  - Reescrever o render de cada bloco para envolver os exercícios em `<Table><TableHeader>…</TableHeader><TableBody>{rows}</TableBody></Table>`.
+  - Reescrever o render de cada bloco do Aquecimento (LIB/MOB/ATI) usando `<Table>` no mesmo estilo das Fases.
+  - Manter `addExercicio`, `removeExercicio`, `updateExercicio`, `addBloco`, `removeBloco`, etc. inalterados — só muda apresentação.
+  - Manter `NewExerciseButton` (diálogo Simples/Dinâmico) como gatilho de adicionar linha.
+
+Nenhum outro arquivo precisa de alteração:
+
+- `personalizadoTypes.ts`, `flattenPersonalizado` e o **PDF** continuam idênticos (formato persistido não muda).
+- `BancoTreinos.tsx` não muda (continua roteando para `PersonalizadoEditor`).
+- `Personalizado 2` herda o novo visual automaticamente.
+
+## Não-objetivos
+
+- Não alterar persistência nem o JSON salvo em `banco_treinos_personalizados`.
+- Não mudar a saída em PDF.
+- Não introduzir colunas Dias/Frequência por exercício no corpo do treino (continua sendo configurado no aquecimento, igual hoje).
