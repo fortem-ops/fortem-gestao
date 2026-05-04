@@ -314,6 +314,17 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
     ],
   },
   {
+    fase: "Personalizado 2",
+    frequencia: "4x",
+    aquecimento: [],
+    treinos: [
+      { nome: "Treino 1", tipo: "forca", exercicios: [] },
+      { nome: "Treino 2", tipo: "forca", exercicios: [] },
+      { nome: "Treino 3", tipo: "forca", exercicios: [] },
+      { nome: "Treino 4", tipo: "forca", exercicios: [] },
+    ],
+  },
+  {
     fase: "Planilha 5RM",
     frequencia: "3x",
     aquecimento: fase1Aquecimento,
