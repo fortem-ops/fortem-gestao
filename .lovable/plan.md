@@ -1,76 +1,28 @@
-## Problema
+# Reordenar exercícios por arrastar-e-soltar
 
-As categorias **Kettlebell, Pliometria, Isoinercial, Abdominais (Abdômen), Extensão Torácica, LPO** e **Auxiliares** existem hoje apenas como **subcategorias** do grupo "Força" no Banco de Exercícios (`GRUPO_SUBCATEGORIAS["Força"]`), mas **não possuem códigos de categoria**.
+Substituir os botões de seta ↑/↓ por uma interação de arrastar o card do exercício até a posição desejada na lista, dentro da subcategoria.
 
-Por isso, no Banco de Treinos elas:
-- Não aparecem no seletor de **Categoria** (código) das linhas de exercício (ex.: DJS, DQ, PH...);
-- Só aparecem como subcategoria quando o usuário primeiro escolhe um código que mapeia para "Força" — e ainda assim como filtro secundário, nunca como uma categoria principal selecionável;
-- Não aparecem no `PersonalizadoEditor` (que usa a constante `FORCA_CATEGORIAS` com 16 códigos fixos).
+## Comportamento
 
-## Solução
+- Apenas Coordenadores e Administradores veem a alça de arrastar (ícone de "grip" à esquerda do card).
+- O usuário clica e segura na alça, arrasta o card para cima ou para baixo na lista, e solta na posição desejada.
+- Durante o arrasto: o card original fica com opacidade reduzida e uma linha-guia indica onde o card será inserido.
+- Ao soltar: a nova ordem é persistida no banco (campo `ordem`) recalculando os valores apenas dos exercícios da subcategoria atual, e a lista é atualizada otimisticamente para evitar "pulo" visual.
+- Funciona apenas na visão de subcategoria (onde a ordem faz sentido). Nos resultados de busca/filtro, a alça não aparece.
+- Acessibilidade: a alça mantém o `aria-label` e o card permanece clicável para vídeo/editar/excluir normalmente.
 
-Criar códigos de categoria novos para cada uma dessas subcategorias e propagar nos três pontos onde a lista de códigos é usada.
+## Detalhes técnicos
 
-### 1. `src/lib/exerciseMapping.ts`
+- Usar HTML5 Drag and Drop nativo (sem nova dependência): `draggable`, `onDragStart`, `onDragOver`, `onDrop`, `onDragEnd`.
+- Em `StudentExerciseBank.tsx`:
+  - Remover botões `ArrowUp`/`ArrowDown` e a função `moveExercise`.
+  - Adicionar ícone `GripVertical` como alça de arrasto (cursor `grab` / `grabbing`).
+  - Estado local `draggingId` e `dragOverId` para feedback visual (opacidade + borda superior/inferior indicando posição alvo).
+  - Nova função `reorderTo(list, fromId, toId, position: "before" | "after")` que monta o array reordenado e dispara uma mutation que reescreve `ordem` (incrementos de 10) para todos os itens da lista — mais simples e robusto que swaps individuais.
+  - Substituir `reorderMutation` (que faz swap par-a-par) por uma versão que aceita uma lista `{ id, ordem }[]` e aplica todos os updates; já existe esse formato, basta reusar.
+  - Atualização otimista via `queryClient.setQueryData(["exercicios-personalizados"], ...)` para mover o card imediatamente, com `invalidateQueries` no `onSettled`.
+- Tokens semânticos do design system para o realce (linha-guia em `border-primary`, opacidade no card arrastado).
 
-Adicionar entradas mapeando os novos códigos ao grupo "Força" e à subcategoria correspondente:
+## Arquivo afetado
 
-```ts
-// CODE_TO_GRUPO
-KB: "Força",      // Kettlebell
-PLIO: "Força",    // Pliometria
-ISO: "Força",     // Isoinercial
-ABD: "Força",     // Abdominais
-ET: "Força",      // Extensão Torácica
-LPO: "Força",     // LPO
-AUX: "Força",     // Auxiliares
-
-// CODE_TO_SUBCATEGORIA
-KB: "Kettlebell",
-PLIO: "Pliometria",
-ISO: "Isoinercial",
-ABD: "Abdominais",
-ET: "Extensão Torácica",
-LPO: "LPO",
-AUX: "Auxiliares",
-```
-
-### 2. `src/components/student/workout/workoutTemplates.ts`
-
-Adicionar os rótulos em `CATEGORY_LABELS`:
-
-```ts
-KB: "Kettlebell",
-PLIO: "Pliometria",
-ISO: "Isoinercial",
-ABD: "Abdominais",
-ET: "Extensão Torácica",
-LPO: "LPO",
-AUX: "Auxiliares",
-```
-
-Com isso, o select de Categoria em `BancoTreinos.tsx` (que itera `Object.keys(CATEGORY_LABELS)`) passa a mostrar as 7 novas opções para **todos os modelos** (Fases, Métodos, Corrida).
-
-### 3. `src/components/student/workout/PersonalizadoEditor.tsx`
-
-Adicionar os mesmos códigos à constante `FORCA_CATEGORIAS` para que apareçam nos seletores e contadores do Personalizado e Personalizado 2.
-
-```ts
-const FORCA_CATEGORIAS = [
-  "DJS","DJA","DQ","DQ_P","PH","PV","EH","EV","EP","EEF","EE",
-  "AH","AF","AR","PREV","COND",
-  "KB","PLIO","ISO","ABD","ET","LPO","AUX",
-];
-```
-
-## Resultado esperado
-
-- Os 7 códigos novos aparecem no select **Categoria** de cada linha em todos os modelos do Banco de Treinos (Fases 1–4, Personalizado, Personalizado 2, Planilha 5RM, 5-3-1, M102, Corrida).
-- Ao selecionar, por exemplo, `KB`, o `ExercisePicker` filtra automaticamente os exercícios cadastrados no Banco de Exercícios em **Força → Kettlebell** (graças ao mapeamento em `CODE_TO_GRUPO` e `CODE_TO_SUBCATEGORIA`).
-- O usuário ainda pode trocar a subcategoria via select secundário (lista completa de subcategorias de Força permanece disponível).
-- Nada quebra nos templates existentes — apenas amplia o conjunto de códigos disponíveis.
-
-## Observações
-
-- Não é necessária migração no banco de dados — as subcategorias já existem cadastradas em `exercicios_personalizados.grupos`.
-- Os códigos escolhidos (KB, PLIO, ISO, ABD, ET, LPO, AUX) são novos e não conflitam com os existentes.
+- `src/components/student/StudentExerciseBank.tsx`
