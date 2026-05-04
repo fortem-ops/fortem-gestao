@@ -210,7 +210,7 @@ function ExercisePicker({
           )}
         </div>
         {currentId && onClear && (
-          <div className="border-t border-border p-2">
+          <div className="border-t border-border p-2 shrink-0">
             <Button
               variant="ghost"
               size="sm"
