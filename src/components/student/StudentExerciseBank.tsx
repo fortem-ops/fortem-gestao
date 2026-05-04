@@ -253,30 +253,50 @@ export function StudentExerciseBank() {
   });
 
   const reorderMutation = useMutation({
-    mutationFn: async (swaps: { id: string; ordem: number }[]) => {
-      for (const s of swaps) {
+    mutationFn: async (updates: { id: string; ordem: number }[]) => {
+      for (const u of updates) {
         const { error } = await supabase
           .from("exercicios_personalizados")
-          .update({ ordem: s.ordem })
-          .eq("id", s.id);
+          .update({ ordem: u.ordem })
+          .eq("id", u.id);
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["exercicios-personalizados"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const moveExercise = (ex: ExercicioRow, list: ExercicioRow[], direction: -1 | 1) => {
-    const idx = list.findIndex((e) => e.id === ex.id);
-    const targetIdx = idx + direction;
-    if (idx < 0 || targetIdx < 0 || targetIdx >= list.length) return;
-    const target = list[targetIdx];
-    reorderMutation.mutate([
-      { id: ex.id, ordem: target.ordem },
-      { id: target.id, ordem: ex.ordem },
-    ]);
+  const reorderTo = (
+    list: ExercicioRow[],
+    fromId: string,
+    toId: string,
+    pos: "before" | "after",
+  ) => {
+    if (fromId === toId) return;
+    const fromIdx = list.findIndex((e) => e.id === fromId);
+    const toIdxRaw = list.findIndex((e) => e.id === toId);
+    if (fromIdx < 0 || toIdxRaw < 0) return;
+    const without = list.filter((e) => e.id !== fromId);
+    let insertIdx = without.findIndex((e) => e.id === toId);
+    if (pos === "after") insertIdx += 1;
+    const moved = list[fromIdx];
+    const newList = [...without.slice(0, insertIdx), moved, ...without.slice(insertIdx)];
+
+    // Recompute ordem in increments of 10 for the items in this list
+    const updates = newList.map((ex, i) => ({ id: ex.id, ordem: (i + 1) * 10 }));
+
+    // Optimistic cache update
+    queryClient.setQueryData<ExercicioRow[]>(["exercicios-personalizados"], (prev) => {
+      if (!prev) return prev;
+      const map = new Map(updates.map((u) => [u.id, u.ordem]));
+      return prev
+        .map((ex) => (map.has(ex.id) ? { ...ex, ordem: map.get(ex.id)! } : ex))
+        .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome));
+    });
+
+    reorderMutation.mutate(updates);
   };
 
   const deleteMutation = useMutation({
