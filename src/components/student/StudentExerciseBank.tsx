@@ -411,8 +411,15 @@ export function StudentExerciseBank() {
     });
   };
 
-  const renderExerciseCard = (ex: ExercicioRow, showGroups = false) => {
+  const renderExerciseCard = (
+    ex: ExercicioRow,
+    showGroups = false,
+    reorderList?: ExercicioRow[],
+  ) => {
     const hasVideo = !!ex.video_url || !!ex.video_path;
+    const idx = reorderList ? reorderList.findIndex((e) => e.id === ex.id) : -1;
+    const canMoveUp = reorderList ? idx > 0 : false;
+    const canMoveDown = reorderList ? idx >= 0 && idx < reorderList.length - 1 : false;
     return (
       <div key={ex.id} className="glass-card rounded-lg p-4 flex items-center gap-3 group">
         <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
@@ -426,6 +433,28 @@ export function StudentExerciseBank() {
             </p>
           )}
         </div>
+        {isCoordAdmin && reorderList && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => moveExercise(ex, reorderList, -1)}
+              disabled={!canMoveUp || reorderMutation.isPending}
+              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Mover para cima"
+            >
+              <ArrowUp className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => moveExercise(ex, reorderList, 1)}
+              disabled={!canMoveDown || reorderMutation.isPending}
+              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Mover para baixo"
+            >
+              <ArrowDown className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         {hasVideo ? (
           <button
             onClick={() => handleOpenVideo(ex)}
@@ -440,13 +469,22 @@ export function StudentExerciseBank() {
           </span>
         )}
         {isCoordAdmin && (
-          <button
-            onClick={() => deleteMutation.mutate(ex)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-            aria-label="Remover exercício"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <>
+            <button
+              onClick={() => openEditDialog(ex)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+              aria-label="Editar exercício"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => deleteMutation.mutate(ex)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+              aria-label="Remover exercício"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </>
         )}
       </div>
     );
