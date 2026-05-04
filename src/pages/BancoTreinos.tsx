@@ -444,6 +444,7 @@ function ExerciseRow({
             bank={bank}
             canEdit={canEdit && candidatesCount > 0}
             onSelect={(b) => onSaveChoice(b)}
+            onPreviewVideo={(b) => onOpenVideo(b)}
             triggerLabel={
               <span className="text-muted-foreground italic text-xs">
                 {candidatesCount > 0
