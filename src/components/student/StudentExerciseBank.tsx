@@ -111,6 +111,7 @@ export function StudentExerciseBank() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterGrupo, setFilterGrupo] = useState<string>("");
   const [filterSub, setFilterSub] = useState<string>("");
