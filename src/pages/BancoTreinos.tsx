@@ -150,10 +150,10 @@ function ExercisePicker({
         {hasVideo && onPreviewVideo && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setOpen(false); onPreviewVideo(ex); }}
-            className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-primary hover:bg-primary/10"
+            onClick={(e) => { e.stopPropagation(); onPreviewVideo(ex); }}
+            className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-primary border border-primary/30 hover:bg-primary/10"
             aria-label="Ver demonstração"
-            title="Ver demonstração"
+            title="Ver demonstração antes de escolher"
           >
             <Video className="w-4 h-4" />
             Demo
@@ -173,11 +173,11 @@ function ExercisePicker({
           {triggerLabel}
         </button>
       </DialogTrigger>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[92vh] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-4 py-3 border-b border-border">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-[1200px] h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] p-0 gap-0 overflow-hidden flex flex-col">
+        <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
           <DialogTitle className="text-base">Selecionar exercício</DialogTitle>
         </DialogHeader>
-        <div className="p-3 border-b border-border">
+        <div className="p-3 border-b border-border shrink-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -189,7 +189,7 @@ function ExercisePicker({
             />
           </div>
         </div>
-        <div className="max-h-[72vh] overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-2">
           {filtered.length === 0 ? (
             <div className="px-3 py-8 text-sm text-muted-foreground text-center">
               {candidates.length === 0
@@ -210,7 +210,7 @@ function ExercisePicker({
           )}
         </div>
         {currentId && onClear && (
-          <div className="border-t border-border p-2">
+          <div className="border-t border-border p-2 shrink-0">
             <Button
               variant="ghost"
               size="sm"
@@ -957,22 +957,28 @@ export default function BancoTreinos() {
 
   const renderVideoModal = () => (
     <Dialog open={!!videoPreview} onOpenChange={(o) => !o && setVideoPreview(null)}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>{videoPreview?.nome}</DialogTitle>
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-[1400px] h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] p-0 gap-0 overflow-hidden flex flex-col bg-black">
+        <DialogHeader className="px-4 py-3 border-b border-border/40 bg-background shrink-0">
+          <DialogTitle className="text-base pr-8 truncate">{videoPreview?.nome}</DialogTitle>
         </DialogHeader>
         {videoPreview && (
-          <div className="aspect-video w-full rounded-md overflow-hidden bg-black">
+          <div className="flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
             {videoPreview.kind === "youtube" ? (
               <iframe
-                src={videoPreview.src}
+                src={`${videoPreview.src}${videoPreview.src.includes("?") ? "&" : "?"}autoplay=1&rel=0`}
                 className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                 allowFullScreen
                 title={videoPreview.nome}
               />
             ) : (
-              <video src={videoPreview.src} controls className="w-full h-full" />
+              <video
+                src={videoPreview.src}
+                controls
+                autoPlay
+                controlsList="nodownload"
+                className="w-full h-full object-contain bg-black"
+              />
             )}
           </div>
         )}
