@@ -783,7 +783,7 @@ export default function BancoTreinos() {
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
   const [personalizadoOpen, setPersonalizadoOpen] = useState<
     | null
-    | { mode: "new" }
+    | { mode: "new"; variante?: "personalizado" | "personalizado2" }
     | { mode: "edit"; id: string; nome: string; conteudo: PersonalizadoConteudo }
   >(null);
 
