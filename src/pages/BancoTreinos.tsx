@@ -150,10 +150,10 @@ function ExercisePicker({
         {hasVideo && onPreviewVideo && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setOpen(false); onPreviewVideo(ex); }}
-            className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-primary hover:bg-primary/10"
+            onClick={(e) => { e.stopPropagation(); onPreviewVideo(ex); }}
+            className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-primary border border-primary/30 hover:bg-primary/10"
             aria-label="Ver demonstração"
-            title="Ver demonstração"
+            title="Ver demonstração antes de escolher"
           >
             <Video className="w-4 h-4" />
             Demo
