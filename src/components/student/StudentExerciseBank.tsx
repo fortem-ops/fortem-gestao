@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronRight, ChevronLeft, Dumbbell, Plus, Loader2, Trash2, Search, Video, Upload, X } from "lucide-react";
+import { ChevronRight, ChevronLeft, Dumbbell, Plus, Loader2, Trash2, Search, Video, Upload, X, Pencil, ArrowUp, ArrowDown } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -91,6 +91,7 @@ interface ExercicioRow {
   grupos: GroupSelection[];
   video_url: string | null;
   video_path: string | null;
+  ordem: number;
 }
 
 const exerciseSchema = z.object({
@@ -110,6 +111,7 @@ export function StudentExerciseBank() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterGrupo, setFilterGrupo] = useState<string>("");
   const [filterSub, setFilterSub] = useState<string>("");
@@ -126,6 +128,18 @@ export function StudentExerciseBank() {
     setSelecoes({});
     setVideoUrl("");
     setVideoFile(null);
+    setEditingId(null);
+  };
+
+  const openEditDialog = (ex: ExercicioRow) => {
+    setEditingId(ex.id);
+    setNome(ex.nome);
+    const sel: Record<string, string> = {};
+    ex.grupos.forEach((g) => { sel[g.grupo] = g.subcategoria; });
+    setSelecoes(sel);
+    setVideoUrl(ex.video_url ?? "");
+    setVideoFile(null);
+    setDialogOpen(true);
   };
 
   const { data: isCoordAdmin } = useQuery({
@@ -142,15 +156,17 @@ export function StudentExerciseBank() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercicios_personalizados")
-        .select("id, nome, grupos, video_url, video_path")
-        .order("nome");
+        .select("id, nome, grupos, video_url, video_path, ordem")
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
       if (error) throw error;
-      return (data || []).map((r) => ({
+      return (data || []).map((r: any) => ({
         id: r.id,
         nome: r.nome,
         grupos: (r.grupos as unknown as GroupSelection[]) || [],
         video_url: r.video_url,
         video_path: r.video_path,
+        ordem: r.ordem ?? 0,
       })) as ExercicioRow[];
     },
   });
@@ -190,6 +206,76 @@ export function StudentExerciseBank() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async (payload: {
+      id: string;
+      nome: string;
+      grupos: GroupSelection[];
+      video_url: string | null;
+      video_file: File | null;
+      current_video_path: string | null;
+    }) => {
+      if (!user) throw new Error("Não autenticado");
+      let video_path: string | null = payload.current_video_path;
+      if (payload.video_file) {
+        const ext = payload.video_file.name.split(".").pop() || "mp4";
+        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("exercicios-videos")
+          .upload(path, payload.video_file, { contentType: payload.video_file.type });
+        if (upErr) throw upErr;
+        if (payload.current_video_path) {
+          await supabase.storage.from("exercicios-videos").remove([payload.current_video_path]);
+        }
+        video_path = path;
+      }
+      const { error } = await supabase
+        .from("exercicios_personalizados")
+        .update({
+          nome: payload.nome,
+          grupos: payload.grupos as any,
+          video_url: payload.video_url,
+          video_path,
+        })
+        .eq("id", payload.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Exercício atualizado");
+      queryClient.invalidateQueries({ queryKey: ["exercicios-personalizados"] });
+      setDialogOpen(false);
+      resetForm();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: async (swaps: { id: string; ordem: number }[]) => {
+      for (const s of swaps) {
+        const { error } = await supabase
+          .from("exercicios_personalizados")
+          .update({ ordem: s.ordem })
+          .eq("id", s.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exercicios-personalizados"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const moveExercise = (ex: ExercicioRow, list: ExercicioRow[], direction: -1 | 1) => {
+    const idx = list.findIndex((e) => e.id === ex.id);
+    const targetIdx = idx + direction;
+    if (idx < 0 || targetIdx < 0 || targetIdx >= list.length) return;
+    const target = list[targetIdx];
+    reorderMutation.mutate([
+      { id: ex.id, ordem: target.ordem },
+      { id: target.id, ordem: ex.ordem },
+    ]);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (ex: ExercicioRow) => {
@@ -296,12 +382,24 @@ export function StudentExerciseBank() {
       toast.error("Vídeo excede 100 MB");
       return;
     }
-    createMutation.mutate({
-      nome: result.data.nome!,
-      grupos: result.data.grupos as GroupSelection[],
-      video_url: videoUrl.trim() ? videoUrl.trim() : null,
-      video_file: videoFile,
-    });
+    if (editingId) {
+      const current = exercicios.find((e) => e.id === editingId);
+      updateMutation.mutate({
+        id: editingId,
+        nome: result.data.nome!,
+        grupos: result.data.grupos as GroupSelection[],
+        video_url: videoUrl.trim() ? videoUrl.trim() : null,
+        video_file: videoFile,
+        current_video_path: current?.video_path ?? null,
+      });
+    } else {
+      createMutation.mutate({
+        nome: result.data.nome!,
+        grupos: result.data.grupos as GroupSelection[],
+        video_url: videoUrl.trim() ? videoUrl.trim() : null,
+        video_file: videoFile,
+      });
+    }
   };
 
   const toggleGrupo = (grupo: string, checked: boolean) => {
@@ -313,8 +411,15 @@ export function StudentExerciseBank() {
     });
   };
 
-  const renderExerciseCard = (ex: ExercicioRow, showGroups = false) => {
+  const renderExerciseCard = (
+    ex: ExercicioRow,
+    showGroups = false,
+    reorderList?: ExercicioRow[],
+  ) => {
     const hasVideo = !!ex.video_url || !!ex.video_path;
+    const idx = reorderList ? reorderList.findIndex((e) => e.id === ex.id) : -1;
+    const canMoveUp = reorderList ? idx > 0 : false;
+    const canMoveDown = reorderList ? idx >= 0 && idx < reorderList.length - 1 : false;
     return (
       <div key={ex.id} className="glass-card rounded-lg p-4 flex items-center gap-3 group">
         <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
@@ -328,6 +433,28 @@ export function StudentExerciseBank() {
             </p>
           )}
         </div>
+        {isCoordAdmin && reorderList && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => moveExercise(ex, reorderList, -1)}
+              disabled={!canMoveUp || reorderMutation.isPending}
+              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Mover para cima"
+            >
+              <ArrowUp className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => moveExercise(ex, reorderList, 1)}
+              disabled={!canMoveDown || reorderMutation.isPending}
+              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Mover para baixo"
+            >
+              <ArrowDown className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         {hasVideo ? (
           <button
             onClick={() => handleOpenVideo(ex)}
@@ -342,13 +469,22 @@ export function StudentExerciseBank() {
           </span>
         )}
         {isCoordAdmin && (
-          <button
-            onClick={() => deleteMutation.mutate(ex)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-            aria-label="Remover exercício"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <>
+            <button
+              onClick={() => openEditDialog(ex)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+              aria-label="Editar exercício"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => deleteMutation.mutate(ex)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+              aria-label="Remover exercício"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </>
         )}
       </div>
     );
@@ -379,7 +515,7 @@ export function StudentExerciseBank() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {exerciciosPorSub.map((ex) => renderExerciseCard(ex))}
+            {exerciciosPorSub.map((ex) => renderExerciseCard(ex, false, exerciciosPorSub))}
           </div>
         )}
 
@@ -561,7 +697,7 @@ export function StudentExerciseBank() {
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Novo Exercício</DialogTitle>
+            <DialogTitle>{editingId ? "Editar Exercício" : "Novo Exercício"}</DialogTitle>
             <DialogDescription>
               Defina nome, grupos com subcategoria e (opcional) vídeo demonstrativo.
             </DialogDescription>
@@ -684,8 +820,8 @@ export function StudentExerciseBank() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={createMutation.isPending}>
-              {createMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+            <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+              {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
               Salvar
             </Button>
           </DialogFooter>
