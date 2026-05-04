@@ -690,7 +690,7 @@ export function PersonalizadoEditor({
                             <SelectValue placeholder="Subcategoria..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {AQUECIMENTO_SUBCATEGORIAS[b.key].map((sub) => (
+                            {(grupoSubcategorias[aquecimentoGrupoMap[b.key]] || []).map((sub) => (
                               <SelectItem key={sub} value={sub} className="text-xs">
                                 {sub}
                               </SelectItem>
