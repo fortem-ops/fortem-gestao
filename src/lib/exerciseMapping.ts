@@ -19,6 +19,13 @@ export const CODE_TO_GRUPO: Record<string, string> = {
   AH: "Força",
   AF: "Força",
   AR: "Força",
+  KB: "Força",
+  PLIO: "Força",
+  ISO: "Força",
+  ABD: "Força",
+  ET: "Força",
+  LPO: "Força",
+  AUX: "Força",
 };
 
 export const CODE_TO_SUBCATEGORIA: Record<string, string | undefined> = {
@@ -36,6 +43,13 @@ export const CODE_TO_SUBCATEGORIA: Record<string, string | undefined> = {
   AH: "Anti-Hiperextensão",
   AF: "Anti-flexão",
   AR: "Anti-Rotação",
+  KB: "Kettlebell",
+  PLIO: "Pliometria",
+  ISO: "Isoinercial",
+  ABD: "Abdominais",
+  ET: "Extensão Torácica",
+  LPO: "LPO",
+  AUX: "Auxiliares",
 };
 
 // Subcategorias disponíveis por GRUPO do Banco de Exercícios.

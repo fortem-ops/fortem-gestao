@@ -258,6 +258,13 @@ export const CATEGORY_LABELS: Record<string, string> = {
   AR: "Anti-Rotação",
   PREV: "Preventivo",
   COND: "Condicionamento",
+  KB: "Kettlebell",
+  PLIO: "Pliometria",
+  ISO: "Isoinercial",
+  ABD: "Abdominais",
+  ET: "Extensão Torácica",
+  LPO: "LPO",
+  AUX: "Auxiliares",
 };
 
 export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
