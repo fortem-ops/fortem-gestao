@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronRight, ChevronLeft, Dumbbell, Plus, Loader2, Trash2, Search, Video, Upload, X, Pencil, ArrowUp, ArrowDown } from "lucide-react";
+import { ChevronRight, ChevronLeft, Dumbbell, Plus, Loader2, Trash2, Search, Video, Upload, X, Pencil, GripVertical } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -116,6 +116,8 @@ export function StudentExerciseBank() {
   const [filterGrupo, setFilterGrupo] = useState<string>("");
   const [filterSub, setFilterSub] = useState<string>("");
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<{ id: string; pos: "before" | "after" } | null>(null);
 
   // Form state
   const [nome, setNome] = useState("");
@@ -251,30 +253,50 @@ export function StudentExerciseBank() {
   });
 
   const reorderMutation = useMutation({
-    mutationFn: async (swaps: { id: string; ordem: number }[]) => {
-      for (const s of swaps) {
+    mutationFn: async (updates: { id: string; ordem: number }[]) => {
+      for (const u of updates) {
         const { error } = await supabase
           .from("exercicios_personalizados")
-          .update({ ordem: s.ordem })
-          .eq("id", s.id);
+          .update({ ordem: u.ordem })
+          .eq("id", u.id);
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["exercicios-personalizados"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const moveExercise = (ex: ExercicioRow, list: ExercicioRow[], direction: -1 | 1) => {
-    const idx = list.findIndex((e) => e.id === ex.id);
-    const targetIdx = idx + direction;
-    if (idx < 0 || targetIdx < 0 || targetIdx >= list.length) return;
-    const target = list[targetIdx];
-    reorderMutation.mutate([
-      { id: ex.id, ordem: target.ordem },
-      { id: target.id, ordem: ex.ordem },
-    ]);
+  const reorderTo = (
+    list: ExercicioRow[],
+    fromId: string,
+    toId: string,
+    pos: "before" | "after",
+  ) => {
+    if (fromId === toId) return;
+    const fromIdx = list.findIndex((e) => e.id === fromId);
+    const toIdxRaw = list.findIndex((e) => e.id === toId);
+    if (fromIdx < 0 || toIdxRaw < 0) return;
+    const without = list.filter((e) => e.id !== fromId);
+    let insertIdx = without.findIndex((e) => e.id === toId);
+    if (pos === "after") insertIdx += 1;
+    const moved = list[fromIdx];
+    const newList = [...without.slice(0, insertIdx), moved, ...without.slice(insertIdx)];
+
+    // Recompute ordem in increments of 10 for the items in this list
+    const updates = newList.map((ex, i) => ({ id: ex.id, ordem: (i + 1) * 10 }));
+
+    // Optimistic cache update
+    queryClient.setQueryData<ExercicioRow[]>(["exercicios-personalizados"], (prev) => {
+      if (!prev) return prev;
+      const map = new Map(updates.map((u) => [u.id, u.ordem]));
+      return prev
+        .map((ex) => (map.has(ex.id) ? { ...ex, ordem: map.get(ex.id)! } : ex))
+        .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome));
+    });
+
+    reorderMutation.mutate(updates);
   };
 
   const deleteMutation = useMutation({
@@ -417,11 +439,67 @@ export function StudentExerciseBank() {
     reorderList?: ExercicioRow[],
   ) => {
     const hasVideo = !!ex.video_url || !!ex.video_path;
-    const idx = reorderList ? reorderList.findIndex((e) => e.id === ex.id) : -1;
-    const canMoveUp = reorderList ? idx > 0 : false;
-    const canMoveDown = reorderList ? idx >= 0 && idx < reorderList.length - 1 : false;
+    const draggable = !!(isCoordAdmin && reorderList);
+    const isDragging = draggingId === ex.id;
+    const showGuideTop = dragOver?.id === ex.id && dragOver.pos === "before" && draggingId !== ex.id;
+    const showGuideBottom = dragOver?.id === ex.id && dragOver.pos === "after" && draggingId !== ex.id;
     return (
-      <div key={ex.id} className="glass-card rounded-lg p-4 flex items-center gap-3 group">
+      <div
+        key={ex.id}
+        onDragOver={
+          draggable
+            ? (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                const pos: "before" | "after" =
+                  e.clientY - rect.top < rect.height / 2 ? "before" : "after";
+                setDragOver((prev) =>
+                  prev?.id === ex.id && prev.pos === pos ? prev : { id: ex.id, pos },
+                );
+              }
+            : undefined
+        }
+        onDrop={
+          draggable
+            ? (e) => {
+                e.preventDefault();
+                const fromId = e.dataTransfer.getData("text/plain") || draggingId;
+                if (fromId && reorderList) {
+                  const pos = dragOver?.id === ex.id ? dragOver.pos : "after";
+                  reorderTo(reorderList, fromId, ex.id, pos);
+                }
+                setDraggingId(null);
+                setDragOver(null);
+              }
+            : undefined
+        }
+        className={`relative glass-card rounded-lg p-4 flex items-center gap-3 group transition-opacity ${
+          isDragging ? "opacity-40" : ""
+        } ${showGuideTop ? "before:absolute before:left-0 before:right-0 before:-top-1 before:h-0.5 before:bg-primary before:rounded-full" : ""} ${
+          showGuideBottom ? "after:absolute after:left-0 after:right-0 after:-bottom-1 after:h-0.5 after:bg-primary after:rounded-full" : ""
+        }`}
+      >
+        {draggable && (
+          <button
+            type="button"
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", ex.id);
+              setDraggingId(ex.id);
+            }}
+            onDragEnd={() => {
+              setDraggingId(null);
+              setDragOver(null);
+            }}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-primary shrink-0 -ml-1"
+            aria-label="Arrastar para reordenar"
+            title="Arrastar para reordenar"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        )}
         <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
           <Dumbbell className="w-4 h-4 text-primary" />
         </div>
@@ -433,28 +511,6 @@ export function StudentExerciseBank() {
             </p>
           )}
         </div>
-        {isCoordAdmin && reorderList && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => moveExercise(ex, reorderList, -1)}
-              disabled={!canMoveUp || reorderMutation.isPending}
-              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Mover para cima"
-            >
-              <ArrowUp className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => moveExercise(ex, reorderList, 1)}
-              disabled={!canMoveDown || reorderMutation.isPending}
-              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Mover para baixo"
-            >
-              <ArrowDown className="w-4 h-4" />
-            </button>
-          </div>
-        )}
         {hasVideo ? (
           <button
             onClick={() => handleOpenVideo(ex)}
