@@ -28,59 +28,7 @@ interface Category {
   subcategories: string[];
 }
 
-const CATEGORIES: Category[] = [
-  {
-    name: "Liberação Miofascial",
-    subcategories: [
-      "Pé/Tornozelo", "Perna", "Joelho/Coxa", "Quadril",
-      "Lombar", "Torácica", "Ombro/Escápula", "Cervical", "Cotovelo/Punho",
-    ],
-  },
-  {
-    name: "Mobilidade Articular",
-    subcategories: [
-      "Pé/Tornozelo", "Joelho", "Quadril", "Quadril RE", "Quadril RI",
-      "Flexibilidade Posterior MI", "Flexibilidade Anterior MI",
-      "Torácica", "Torácica Rotação", "Glenoumeral", "Glenoumeral RE",
-      "Glenoumeral RI", "Cotovelo/Punho", "Padrão Geral",
-    ],
-  },
-  {
-    name: "Ativação Muscular",
-    subcategories: [
-      "Pé/Tornozelo", "Perna", "Estabilidade de Joelho", "Quadril",
-      "Estabilidade Lombar PA", "Estabilidade Lombar PP", "Torácica",
-      "Ombro/Escápula", "Cotovelo/Punho", "Padrão Geral",
-      "Estabilidade Escapular", "Desassociação Lombar/Quadril",
-      "Extensão Torácica", "Kettlebell", "Barra", "LPO",
-      "Pliométrico", "Coordenativo Corrida", "Solo",
-    ],
-  },
-  {
-    name: "Preventivo",
-    subcategories: [
-      "Tornozelo", "Joelho", "Quadril-Glúteos", "Quadril-Isquios",
-      "Quadril-Flexores", "Cotovelo", "Ombro",
-    ],
-  },
-  {
-    name: "Força",
-    subcategories: [
-      "Anti-Rotação", "Rotação", "Anti-Hiperextensão", "Anti-flexão",
-      "Estabilidade Posterior", "Dominante de Joelho Simétrico",
-      "Dominante de Joelhos Assimétrico", "Dominante de Quadril",
-      "Dominante de Quadril Posterior", "Empurrar Horizontal",
-      "Empurrar Vertical", "Puxar Horizontal", "Puxar Vertical",
-      "Auxiliares", "Estabilidade Escapular", "Extensão Torácica",
-      "Pliometria", "Abdominais", "Kettlebell", "Isoinercial",
-      "LPO", "Coordenativo Corrida",
-    ],
-  },
-  {
-    name: "Cardio",
-    subcategories: ["Cardio"],
-  },
-];
+// CATEGORIES agora vem do banco via useExerciseCategories()
 
 interface GroupSelection {
   grupo: string;
