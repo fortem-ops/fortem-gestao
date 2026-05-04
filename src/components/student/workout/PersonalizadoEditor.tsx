@@ -96,6 +96,12 @@ export function PersonalizadoEditor({
   onSaved,
 }: Props) {
   const { user } = useAuth();
+  const { grupoSubcategorias } = useExerciseCategories();
+  const aquecimentoGrupoMap: Record<"LIB" | "MOB" | "ATI", string> = {
+    LIB: "Liberação Miofascial",
+    MOB: "Mobilidade Articular",
+    ATI: "Ativação Muscular",
+  };
   // IMPORTANT: `initial` and `initialName` are treated as initializers only.
   // We deliberately do NOT sync with later prop changes — re-syncing causes
   // the editor to wipe the user's in-progress prescription whenever the
