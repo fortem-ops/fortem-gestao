@@ -116,6 +116,8 @@ export function StudentExerciseBank() {
   const [filterGrupo, setFilterGrupo] = useState<string>("");
   const [filterSub, setFilterSub] = useState<string>("");
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<{ id: string; pos: "before" | "after" } | null>(null);
 
   // Form state
   const [nome, setNome] = useState("");
