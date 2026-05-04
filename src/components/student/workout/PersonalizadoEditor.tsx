@@ -869,16 +869,30 @@ export function PersonalizadoEditor({
                       {bl.exercicios.length === 0 ? (
                         <p className="text-[11px] text-muted-foreground italic px-1">Nenhum exercício. Use “+ Exercício”.</p>
                       ) : (
-                        <div className="space-y-2">
-                          {bl.exercicios.map((ex, ei) => (
-                            <ExercicioRow
-                              key={ei}
-                              ex={ex}
-                              index={ei}
-                              onRemove={() => removeExercicio(ti, bi, ei)}
-                              onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
-                            />
-                          ))}
+                        <div className="rounded-md border border-border/50 overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                <TableHead className="w-10 h-8 px-2 text-[10px]">#</TableHead>
+                                <TableHead className="w-24 h-8 px-2 text-[10px]">Categoria</TableHead>
+                                <TableHead className="h-8 px-2 text-[10px]">Exercício</TableHead>
+                                <TableHead className="w-16 h-8 px-2 text-[10px] text-center">Séries</TableHead>
+                                <TableHead className="w-20 h-8 px-2 text-[10px] text-center">Reps</TableHead>
+                                <TableHead className="w-10 h-8 px-2"></TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {bl.exercicios.map((ex, ei) => (
+                                <ExercicioRows
+                                  key={ei}
+                                  ex={ex}
+                                  index={ei}
+                                  onRemove={() => removeExercicio(ti, bi, ei)}
+                                  onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
+                                />
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
                       )}
                     </div>
