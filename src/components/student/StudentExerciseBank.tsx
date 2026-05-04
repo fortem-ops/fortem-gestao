@@ -575,6 +575,7 @@ export function StudentExerciseBank() {
             })}
           </div>
         )}
+        {renderEditDialog()}
       </div>
     );
   }
