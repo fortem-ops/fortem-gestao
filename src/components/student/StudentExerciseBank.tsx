@@ -439,11 +439,67 @@ export function StudentExerciseBank() {
     reorderList?: ExercicioRow[],
   ) => {
     const hasVideo = !!ex.video_url || !!ex.video_path;
-    const idx = reorderList ? reorderList.findIndex((e) => e.id === ex.id) : -1;
-    const canMoveUp = reorderList ? idx > 0 : false;
-    const canMoveDown = reorderList ? idx >= 0 && idx < reorderList.length - 1 : false;
+    const draggable = !!(isCoordAdmin && reorderList);
+    const isDragging = draggingId === ex.id;
+    const showGuideTop = dragOver?.id === ex.id && dragOver.pos === "before" && draggingId !== ex.id;
+    const showGuideBottom = dragOver?.id === ex.id && dragOver.pos === "after" && draggingId !== ex.id;
     return (
-      <div key={ex.id} className="glass-card rounded-lg p-4 flex items-center gap-3 group">
+      <div
+        key={ex.id}
+        onDragOver={
+          draggable
+            ? (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                const pos: "before" | "after" =
+                  e.clientY - rect.top < rect.height / 2 ? "before" : "after";
+                setDragOver((prev) =>
+                  prev?.id === ex.id && prev.pos === pos ? prev : { id: ex.id, pos },
+                );
+              }
+            : undefined
+        }
+        onDrop={
+          draggable
+            ? (e) => {
+                e.preventDefault();
+                const fromId = e.dataTransfer.getData("text/plain") || draggingId;
+                if (fromId && reorderList) {
+                  const pos = dragOver?.id === ex.id ? dragOver.pos : "after";
+                  reorderTo(reorderList, fromId, ex.id, pos);
+                }
+                setDraggingId(null);
+                setDragOver(null);
+              }
+            : undefined
+        }
+        className={`relative glass-card rounded-lg p-4 flex items-center gap-3 group transition-opacity ${
+          isDragging ? "opacity-40" : ""
+        } ${showGuideTop ? "before:absolute before:left-0 before:right-0 before:-top-1 before:h-0.5 before:bg-primary before:rounded-full" : ""} ${
+          showGuideBottom ? "after:absolute after:left-0 after:right-0 after:-bottom-1 after:h-0.5 after:bg-primary after:rounded-full" : ""
+        }`}
+      >
+        {draggable && (
+          <button
+            type="button"
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", ex.id);
+              setDraggingId(ex.id);
+            }}
+            onDragEnd={() => {
+              setDraggingId(null);
+              setDragOver(null);
+            }}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-primary shrink-0 -ml-1"
+            aria-label="Arrastar para reordenar"
+            title="Arrastar para reordenar"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        )}
         <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
           <Dumbbell className="w-4 h-4 text-primary" />
         </div>
@@ -455,28 +511,6 @@ export function StudentExerciseBank() {
             </p>
           )}
         </div>
-        {isCoordAdmin && reorderList && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => moveExercise(ex, reorderList, -1)}
-              disabled={!canMoveUp || reorderMutation.isPending}
-              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Mover para cima"
-            >
-              <ArrowUp className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => moveExercise(ex, reorderList, 1)}
-              disabled={!canMoveDown || reorderMutation.isPending}
-              className="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Mover para baixo"
-            >
-              <ArrowDown className="w-4 h-4" />
-            </button>
-          </div>
-        )}
         {hasVideo ? (
           <button
             onClick={() => handleOpenVideo(ex)}
