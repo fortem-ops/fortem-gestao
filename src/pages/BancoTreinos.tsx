@@ -173,11 +173,11 @@ function ExercisePicker({
           {triggerLabel}
         </button>
       </DialogTrigger>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[92vh] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-4 py-3 border-b border-border">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-[1200px] h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] p-0 gap-0 overflow-hidden flex flex-col">
+        <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
           <DialogTitle className="text-base">Selecionar exercício</DialogTitle>
         </DialogHeader>
-        <div className="p-3 border-b border-border">
+        <div className="p-3 border-b border-border shrink-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -189,7 +189,7 @@ function ExercisePicker({
             />
           </div>
         </div>
-        <div className="max-h-[72vh] overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-2">
           {filtered.length === 0 ? (
             <div className="px-3 py-8 text-sm text-muted-foreground text-center">
               {candidates.length === 0
