@@ -128,6 +128,18 @@ export function StudentExerciseBank() {
     setSelecoes({});
     setVideoUrl("");
     setVideoFile(null);
+    setEditingId(null);
+  };
+
+  const openEditDialog = (ex: ExercicioRow) => {
+    setEditingId(ex.id);
+    setNome(ex.nome);
+    const sel: Record<string, string> = {};
+    ex.grupos.forEach((g) => { sel[g.grupo] = g.subcategoria; });
+    setSelecoes(sel);
+    setVideoUrl(ex.video_url ?? "");
+    setVideoFile(null);
+    setDialogOpen(true);
   };
 
   const { data: isCoordAdmin } = useQuery({
