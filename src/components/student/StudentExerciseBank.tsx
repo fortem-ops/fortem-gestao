@@ -708,6 +708,10 @@ export function StudentExerciseBank() {
         </div>
       )}
 
+      {renderEditDialog()}
+      {/* edit dialog moved to renderEditDialog */}
+      {false && (
+      <>
       {/* Dialog: Novo Exercício */}
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
