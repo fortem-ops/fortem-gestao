@@ -91,6 +91,7 @@ interface ExercicioRow {
   grupos: GroupSelection[];
   video_url: string | null;
   video_path: string | null;
+  ordem: number;
 }
 
 const exerciseSchema = z.object({
