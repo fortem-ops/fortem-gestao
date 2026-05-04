@@ -156,15 +156,17 @@ export function StudentExerciseBank() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercicios_personalizados")
-        .select("id, nome, grupos, video_url, video_path")
-        .order("nome");
+        .select("id, nome, grupos, video_url, video_path, ordem")
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
       if (error) throw error;
-      return (data || []).map((r) => ({
+      return (data || []).map((r: any) => ({
         id: r.id,
         nome: r.nome,
         grupos: (r.grupos as unknown as GroupSelection[]) || [],
         video_url: r.video_url,
         video_path: r.video_path,
+        ordem: r.ordem ?? 0,
       })) as ExercicioRow[];
     },
   });
