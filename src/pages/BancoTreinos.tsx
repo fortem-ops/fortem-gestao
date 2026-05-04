@@ -1078,7 +1078,9 @@ export default function BancoTreinos() {
                     className="cursor-pointer hover:border-primary transition-colors group"
                     onClick={() => {
                       if (template.fase === "Personalizado") {
-                        setPersonalizadoOpen({ mode: "new" });
+                        setPersonalizadoOpen({ mode: "new", variante: "personalizado" });
+                      } else if (template.fase === "Personalizado 2") {
+                        setPersonalizadoOpen({ mode: "new", variante: "personalizado2" });
                       } else {
                         setSelected(template);
                       }
@@ -1087,7 +1089,7 @@ export default function BancoTreinos() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                          {template.fase === "Personalizado"
+                          {template.fase === "Personalizado" || template.fase === "Personalizado 2"
                             ? <Sparkles className="h-5 w-5 text-primary" />
                             : <Dumbbell className="h-5 w-5 text-primary" />}
                         </div>
