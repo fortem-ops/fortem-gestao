@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -35,13 +36,44 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly, subcate
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [demo, setDemo] = useState<{ nome: string; url: string } | null>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setQuery(value); }, [value]);
 
+  const updateCoords = useCallback(() => {
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const width = Math.min(560, vw - 16);
+    let left = r.left;
+    if (left + width > vw - 8) left = Math.max(8, vw - width - 8);
+    const top = r.bottom + 4;
+    const maxHeight = Math.min(480, Math.max(180, vh - top - 16));
+    setCoords({ top, left, width, maxHeight });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updateCoords();
+    const onScroll = () => updateCoords();
+    const onResize = () => updateCoords();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [open, updateCoords]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (ref.current?.contains(t)) return;
+      if (popoverRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -118,73 +150,85 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly, subcate
             }
           />
         </div>
-        {open && !disabled && (
-          <div className="absolute z-50 top-8 left-0 w-[min(560px,calc(100vw-2rem))] sm:w-[480px] md:w-[560px] max-h-[min(60vh,480px)] overflow-y-auto bg-popover border border-border rounded-md shadow-xl">
-            <div className="sticky top-0 z-10 bg-popover/95 backdrop-blur px-2 py-1.5 border-b border-border flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>
-                <strong className="text-foreground">{filtered.length}</strong> de {candidatos.length} em{" "}
-                <strong className="text-foreground">{grupoAlvo}</strong>
-                {subAlvo && <> · {subAlvo}</>}
-              </span>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="hover:text-foreground p-0.5 rounded"
-                aria-label="Fechar"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            {candidatos.length === 0 ? (
-              <div className="px-3 py-4 text-xs text-muted-foreground text-center">
-                Nenhum exercício cadastrado em <strong>{grupoAlvo}</strong>
-                {subAlvo && <> · {subAlvo}</>}.
-                <br />
-                <span className="text-[10px]">Cadastre no Banco de Exercícios.</span>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="px-3 py-4 text-xs text-muted-foreground text-center">
-                Nenhum resultado para "{query}"
-              </div>
-            ) : (
-              <ul className="py-1">
-                {filtered.map((ex) => {
-                  const hasVideo = !!ex.video_url || !!ex.video_path;
-                  const isSelected = ex.nome === value;
-                  return (
-                    <li
-                      key={ex.id}
-                      className={`flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-accent/50 transition-colors ${
-                        isSelected ? "bg-primary/10" : ""
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        className="flex-1 min-w-0 text-left flex items-center gap-2"
-                        onClick={() => { onChange(ex.nome, ex.video_url); setQuery(ex.nome); setOpen(false); }}
-                      >
-                        {hasVideo && <Video className="w-3 h-3 text-primary shrink-0" />}
-                        <span className="truncate">{ex.nome}</span>
-                      </button>
-                      {hasVideo && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-6 px-2 text-[10px] shrink-0"
-                          onClick={(e) => { e.stopPropagation(); openDemo(ex); }}
-                        >
-                          Demo
-                        </Button>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        )}
       </div>
+      {open && !disabled && coords && createPortal(
+        <div
+          ref={popoverRef}
+          style={{
+            position: "fixed",
+            top: coords.top,
+            left: coords.left,
+            width: coords.width,
+            maxHeight: coords.maxHeight,
+            zIndex: 60,
+          }}
+          className="overflow-y-auto bg-popover border border-border rounded-md shadow-xl"
+        >
+          <div className="sticky top-0 z-10 bg-popover/95 backdrop-blur px-2 py-1.5 border-b border-border flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>
+              <strong className="text-foreground">{filtered.length}</strong> de {candidatos.length} em{" "}
+              <strong className="text-foreground">{grupoAlvo}</strong>
+              {subAlvo && <> · {subAlvo}</>}
+            </span>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="hover:text-foreground p-0.5 rounded"
+              aria-label="Fechar"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+          {candidatos.length === 0 ? (
+            <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+              Nenhum exercício cadastrado em <strong>{grupoAlvo}</strong>
+              {subAlvo && <> · {subAlvo}</>}.
+              <br />
+              <span className="text-[10px]">Cadastre no Banco de Exercícios.</span>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+              Nenhum resultado para "{query}"
+            </div>
+          ) : (
+            <ul className="py-1">
+              {filtered.map((ex) => {
+                const hasVideo = !!ex.video_url || !!ex.video_path;
+                const isSelected = ex.nome === value;
+                return (
+                  <li
+                    key={ex.id}
+                    className={`flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-accent/50 transition-colors ${
+                      isSelected ? "bg-primary/10" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className="flex-1 min-w-0 text-left flex items-center gap-2"
+                      onClick={() => { onChange(ex.nome, ex.video_url); setQuery(ex.nome); setOpen(false); }}
+                    >
+                      {hasVideo && <Video className="w-3 h-3 text-primary shrink-0" />}
+                      <span className="truncate">{ex.nome}</span>
+                    </button>
+                    {hasVideo && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-[10px] shrink-0"
+                        onClick={(e) => { e.stopPropagation(); openDemo(ex); }}
+                      >
+                        Demo
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>,
+        document.body,
+      )}
 
       {/* Modal de demonstração — quase fullscreen com controles */}
       <Dialog open={!!demo} onOpenChange={(o) => !o && setDemo(null)}>
