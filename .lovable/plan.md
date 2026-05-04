@@ -1,60 +1,39 @@
 ## Objetivo
 
-Trocar a visualização atual do **Personalizado** (cards verticais empilhados por exercício) por uma **tabela** com as mesmas colunas das **Fases** (`# | Categoria | Exercício | Séries | Reps | Ações`), mantendo:
+Melhorar o seletor de exercícios usado no editor **Personalizado** (e Personalizado 2) — `src/components/student/workout/ExerciseSelector.tsx` — para que:
 
-- A estrutura **Aquecimento (LIB/MOB/ATI) + Tabs de Treinos + Blocos** que o Personalizado já tem.
-- As regras de exercícios **Simples** e **Dinâmico** (rotação Ímpar/Par ou N variantes; séries Compartilhado/Independente).
-- Aquecimento, observações, salvar como modelo, exportar PDF, aplicar a aluno — tudo permanece.
+1. A lista suspensa de seleção fique **bem maior** (mais itens visíveis sem rolar) e responsiva em tablet/desktop.
+2. Cada item do banco mostre um **botão "Demo"** sempre visível (quando há vídeo).
+3. Clicar em **Demo** abra uma **modal quase fullscreen** com player de vídeo (controls, autoplay, fullscreen) — para YouTube usa iframe embed, para arquivo direto usa `<video controls>`.
 
-Como o **Personalizado 2** hoje **reutiliza o mesmo `PersonalizadoEditor`**, esta mudança beneficia automaticamente os dois modelos. Nenhum novo arquivo é criado.
+Isso resolve o problema atual em que o popover é estreito (`w-80`, ~320px) e baixo (`max-h-48`, 192px), e o vídeo só aparece como ícone sem forma de pré-visualizar antes de escolher.
 
-## O que muda na UI
+## O que muda
 
-Dentro de cada **Bloco** de cada **Treino**, a lista de exercícios passa a ser uma tabela com este cabeçalho:
+### Lista do popover
+- Largura: `w-[min(560px,calc(100vw-2rem))] sm:w-[480px] md:w-[560px]` (caps em mobile, expande em tablet/desktop).
+- Altura: `max-h-[min(60vh,480px)]` em vez de 192px fixos.
+- Cabeçalho fixo (sticky) mostrando "X de Y em GRUPO · subcategoria" e botão de fechar (X).
+- Aumenta o limite de resultados de 30 para 60.
+- Item selecionado destacado com `bg-primary/10`.
+- Cada linha tem: ícone de vídeo (se houver) + nome (truncado) + botão **Demo** à direita (visível só quando há vídeo).
+- Clique no nome seleciona o exercício e fecha o popover. Clique em **Demo** abre a modal sem fechar a lista.
 
-```text
-| # | Categoria | Exercício                       | Séries | Reps | Ações |
-```
-
-### Linha "Simples"
-Uma única linha. Categoria via select, Exercício via `ExerciseSelector`, Séries/Reps editáveis inline, botão remover. Visualmente idêntico a uma linha de Fase.
-
-### Linha "Dinâmico"
-Renderizada como **um grupo de N+1 linhas** na mesma tabela:
-
-- **Linha-cabeçalho do dinâmico**: ocupa toda a largura via `colSpan`. Mostra:
-  - Badge `DINÂMICO` + selects de **Rotação** (Ímpar/Par | N variantes) e **Séries/Reps** (Compartilhado | Independente).
-  - Quando `Compartilhado`: campos Séries e Reps na própria linha-cabeçalho.
-  - Botões: `+ Variante` (só rotativa) e remover exercício inteiro.
-- **N linhas de variante** logo abaixo:
-  - `#` mostra o rótulo (`X`, `Y`, `S1/S2…` ou `1/3`, `2/3`, `3/3`).
-  - Categoria herdada do dinâmico (somente leitura — uma única categoria por exercício).
-  - Exercício via `ExerciseSelector`.
-  - Séries/Reps editáveis somente quando modo `Independente`; caso contrário mostram os valores compartilhados em cinza.
-  - Ação: remover variante (desabilitado quando `≤ 2`).
-
-A separação visual entre exercícios será feita por uma **linha divisória mais forte**, e a separação entre Bloco 1 / Bloco 2 continua via cabeçalho do bloco com nome editável e botão `+ Exercício` (que abre o diálogo Simples/Dinâmico já existente).
-
-### Aquecimento
-Também migra para o mesmo padrão de tabela (`LIB`, `MOB`, `ATI` cada um com sua tabela: `# | Subcategoria | Exercício | Reps | Dias | Ações`), espelhando o cabeçalho usado nas Fases para o aquecimento.
+### Modal de demonstração
+- Componente `Dialog` (shadcn) com `max-w-[95vw] w-[95vw] sm:max-w-5xl` e player em `aspect-video` ocupando toda a largura.
+- Resolução de URL: usa `video_url` se existir; senão gera `publicUrl` a partir de `video_path` no bucket `exercicios-videos` (mesma lógica usada em outros pontos do app).
+- Detecta YouTube via `getYouTubeEmbedUrl` (`src/lib/youtube.ts`) → renderiza `<iframe>` embed com `autoplay=1&rel=0` e `allowFullScreen`.
+- Outros vídeos → `<video controls autoPlay playsInline>` nativo, com botão de fullscreen do próprio player.
+- Header da modal mostra o nome do exercício.
 
 ## Arquivos afetados
 
-- `src/components/student/workout/PersonalizadoEditor.tsx`
-  - Substituir o `ExercicioRow` (card) por `ExercicioRowsTable` (1+ `<TableRow>` por exercício).
-  - Reescrever o render de cada bloco para envolver os exercícios em `<Table><TableHeader>…</TableHeader><TableBody>{rows}</TableBody></Table>`.
-  - Reescrever o render de cada bloco do Aquecimento (LIB/MOB/ATI) usando `<Table>` no mesmo estilo das Fases.
-  - Manter `addExercicio`, `removeExercicio`, `updateExercicio`, `addBloco`, `removeBloco`, etc. inalterados — só muda apresentação.
-  - Manter `NewExerciseButton` (diálogo Simples/Dinâmico) como gatilho de adicionar linha.
+- `src/components/student/workout/ExerciseSelector.tsx` — única mudança. Reescrita do JSX do popover + adição do estado `demo` + `Dialog` de vídeo.
 
-Nenhum outro arquivo precisa de alteração:
-
-- `personalizadoTypes.ts`, `flattenPersonalizado` e o **PDF** continuam idênticos (formato persistido não muda).
-- `BancoTreinos.tsx` não muda (continua roteando para `PersonalizadoEditor`).
-- `Personalizado 2` herda o novo visual automaticamente.
+Nenhuma mudança em tipos, persistência, banco ou em outros editores. O `ExercisePicker` das Fases (`BancoTreinos.tsx`) já tem fluxo próprio de vídeo e não é tocado.
 
 ## Não-objetivos
 
-- Não alterar persistência nem o JSON salvo em `banco_treinos_personalizados`.
-- Não mudar a saída em PDF.
-- Não introduzir colunas Dias/Frequência por exercício no corpo do treino (continua sendo configurado no aquecimento, igual hoje).
+- Não alterar o esquema do banco nem a forma como vídeos são armazenados.
+- Não introduzir um novo componente compartilhado — a modal de demo fica encapsulada no `ExerciseSelector` (escopo do Personalizado).
+- Não alterar o seletor das Fases.

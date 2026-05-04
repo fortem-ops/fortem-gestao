@@ -2,7 +2,10 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { Search, Video } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, Video, X } from "lucide-react";
+import { getYouTubeEmbedUrl } from "@/lib/youtube";
 
 interface ExerciseSelectorProps {
   categoria: string;
@@ -31,6 +34,7 @@ import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 export function ExerciseSelector({ categoria, value, onChange, readOnly, subcategoria, disabled, placeholder }: ExerciseSelectorProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
+  const [demo, setDemo] = useState<{ nome: string; url: string } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setQuery(value); }, [value]);
@@ -72,61 +76,147 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly, subcate
   }, [exercicios, grupoAlvo, subAlvo]);
 
   const filtered = useMemo(() => {
-    if (!query) return candidatos.slice(0, 30);
+    if (!query) return candidatos.slice(0, 60);
     const q = query.toLowerCase();
-    return candidatos.filter((ex) => ex.nome.toLowerCase().includes(q)).slice(0, 30);
+    return candidatos.filter((ex) => ex.nome.toLowerCase().includes(q)).slice(0, 60);
   }, [candidatos, query]);
+
+  const resolveVideoUrl = (ex: BankExercise): string | null => {
+    if (ex.video_url) return ex.video_url;
+    if (ex.video_path) {
+      const { data } = supabase.storage.from("exercicios-videos").getPublicUrl(ex.video_path);
+      return data?.publicUrl ?? null;
+    }
+    return null;
+  };
+
+  const openDemo = (ex: BankExercise) => {
+    const url = resolveVideoUrl(ex);
+    if (url) setDemo({ nome: ex.nome, url });
+  };
 
   if (readOnly) {
     return <span className="text-xs">{value || "—"}</span>;
   }
 
+  const embed = demo ? getYouTubeEmbedUrl(demo.url) : null;
+
   return (
-    <div ref={ref} className="relative">
-      <div className="flex items-center">
-        <Search className="w-3 h-3 text-muted-foreground absolute left-1 pointer-events-none" />
-        <Input
-          value={query}
-          onChange={e => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          disabled={disabled}
-          className="h-7 text-xs bg-transparent border-none pl-5 pr-1"
-          placeholder={
-            placeholder ??
-            (subAlvo ? `Buscar em ${subAlvo}...` : `Buscar em ${grupoAlvo}...`)
-          }
-        />
-      </div>
-      {open && !disabled && (
-        <div className="absolute z-50 top-8 left-0 w-80 max-h-48 overflow-y-auto bg-popover border border-border rounded-md shadow-lg">
-          {candidatos.length === 0 ? (
-            <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-              Nenhum exercício cadastrado em <strong>{grupoAlvo}</strong>
-              {subAlvo && <> · {subAlvo}</>}.
-              <br />
-              <span className="text-[10px]">Cadastre no Banco de Exercícios.</span>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-              Nenhum resultado para "{query}"
-            </div>
-          ) : (
-            filtered.map((ex) => {
-              const hasVideo = !!ex.video_url || !!ex.video_path;
-              return (
-                <button
-                  key={ex.id}
-                  className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent/50 flex items-center justify-between gap-1 transition-colors"
-                  onClick={() => { onChange(ex.nome, ex.video_url); setQuery(ex.nome); setOpen(false); }}
-                >
-                  <span className="truncate flex-1">{ex.nome}</span>
-                  {hasVideo && <Video className="w-3 h-3 text-primary shrink-0" />}
-                </button>
-              );
-            })
-          )}
+    <>
+      <div ref={ref} className="relative">
+        <div className="flex items-center">
+          <Search className="w-3 h-3 text-muted-foreground absolute left-1 pointer-events-none" />
+          <Input
+            value={query}
+            onChange={e => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            disabled={disabled}
+            className="h-7 text-xs bg-transparent border-none pl-5 pr-1"
+            placeholder={
+              placeholder ??
+              (subAlvo ? `Buscar em ${subAlvo}...` : `Buscar em ${grupoAlvo}...`)
+            }
+          />
         </div>
-      )}
-    </div>
+        {open && !disabled && (
+          <div className="absolute z-50 top-8 left-0 w-[min(560px,calc(100vw-2rem))] sm:w-[480px] md:w-[560px] max-h-[min(60vh,480px)] overflow-y-auto bg-popover border border-border rounded-md shadow-xl">
+            <div className="sticky top-0 z-10 bg-popover/95 backdrop-blur px-2 py-1.5 border-b border-border flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>
+                <strong className="text-foreground">{filtered.length}</strong> de {candidatos.length} em{" "}
+                <strong className="text-foreground">{grupoAlvo}</strong>
+                {subAlvo && <> · {subAlvo}</>}
+              </span>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="hover:text-foreground p-0.5 rounded"
+                aria-label="Fechar"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            {candidatos.length === 0 ? (
+              <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                Nenhum exercício cadastrado em <strong>{grupoAlvo}</strong>
+                {subAlvo && <> · {subAlvo}</>}.
+                <br />
+                <span className="text-[10px]">Cadastre no Banco de Exercícios.</span>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                Nenhum resultado para "{query}"
+              </div>
+            ) : (
+              <ul className="py-1">
+                {filtered.map((ex) => {
+                  const hasVideo = !!ex.video_url || !!ex.video_path;
+                  const isSelected = ex.nome === value;
+                  return (
+                    <li
+                      key={ex.id}
+                      className={`flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-accent/50 transition-colors ${
+                        isSelected ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="flex-1 min-w-0 text-left flex items-center gap-2"
+                        onClick={() => { onChange(ex.nome, ex.video_url); setQuery(ex.nome); setOpen(false); }}
+                      >
+                        {hasVideo && <Video className="w-3 h-3 text-primary shrink-0" />}
+                        <span className="truncate">{ex.nome}</span>
+                      </button>
+                      {hasVideo && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px] shrink-0"
+                          onClick={(e) => { e.stopPropagation(); openDemo(ex); }}
+                        >
+                          Demo
+                        </Button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Modal de demonstração — quase fullscreen com controles */}
+      <Dialog open={!!demo} onOpenChange={(o) => !o && setDemo(null)}>
+        <DialogContent className="max-w-[95vw] w-[95vw] sm:max-w-5xl p-0 overflow-hidden bg-background border-border">
+          <DialogHeader className="px-4 py-2 border-b border-border">
+            <DialogTitle className="text-sm font-semibold truncate pr-8">
+              {demo?.nome ?? ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="bg-black aspect-video w-full">
+            {demo && (
+              embed ? (
+                <iframe
+                  src={`${embed}?autoplay=1&rel=0`}
+                  title={demo.nome}
+                  className="w-full h-full"
+                  allow="autoplay; encrypted-media; fullscreen"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={demo.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full bg-black"
+                />
+              )
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
