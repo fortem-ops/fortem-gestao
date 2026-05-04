@@ -37,7 +37,7 @@ import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users } from "lucide-
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { CATEGORY_LABELS } from "./workoutTemplates";
-import { AQUECIMENTO_SUBCATEGORIAS } from "@/lib/exerciseMapping";
+import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
 import {
