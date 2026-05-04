@@ -595,9 +595,14 @@ export function StudentExerciseBank() {
           })()}
         </div>
         {isCoordAdmin && (
-          <Button onClick={() => setDialogOpen(true)} size="sm">
-            <Plus className="w-4 h-4 mr-1" /> Novo Exercício
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setManageOpen(true)} size="sm" variant="outline">
+              <Settings className="w-4 h-4 mr-1" /> Gerenciar categorias
+            </Button>
+            <Button onClick={() => setDialogOpen(true)} size="sm">
+              <Plus className="w-4 h-4 mr-1" /> Novo Exercício
+            </Button>
+          </div>
         )}
       </div>
 
