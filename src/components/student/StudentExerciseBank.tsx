@@ -847,6 +847,10 @@ export function StudentExerciseBank() {
         </DialogContent>
       </Dialog>
 
+      </Dialog>
+      </>
+      )}
+
       {renderVideoModal()}
       <ManageCategoriesDialog open={manageOpen} onOpenChange={setManageOpen} />
     </div>
