@@ -561,6 +561,36 @@ export type Database = {
           },
         ]
       }
+      exercicio_categorias: {
+        Row: {
+          created_at: string
+          grupo: string
+          id: string
+          ordem_grupo: number
+          ordem_sub: number
+          subcategoria: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          grupo: string
+          id?: string
+          ordem_grupo?: number
+          ordem_sub?: number
+          subcategoria: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          grupo?: string
+          id?: string
+          ordem_grupo?: number
+          ordem_sub?: number
+          subcategoria?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exercicios_personalizados: {
         Row: {
           created_at: string
@@ -1560,6 +1590,15 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_coordinator_or_admin: { Args: { _user_id: string }; Returns: boolean }
+      rename_exercicio_categoria: {
+        Args: {
+          p_new_grupo: string
+          p_new_sub?: string
+          p_old_grupo: string
+          p_old_sub?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:

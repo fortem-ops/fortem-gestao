@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
-import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA, AQUECIMENTO_SUBCATEGORIAS, GRUPO_SUBCATEGORIAS } from "@/lib/exerciseMapping";
+import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
+import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
 import { toast } from "sonner";
 import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
@@ -268,6 +269,12 @@ function ExerciseRow({
   canEdit: boolean;
   aquecimentoBloco?: "LIB" | "MOB" | "ATI";
 }) {
+  const { grupoSubcategorias } = useExerciseCategories();
+  const aquecimentoGrupoMap: Record<"LIB" | "MOB" | "ATI", string> = {
+    LIB: "Liberação Miofascial",
+    MOB: "Mobilidade Articular",
+    ATI: "Ativação Muscular",
+  };
   // (valores efetivos declarados abaixo, junto com a lógica de subcategoria)
 
   // Para aquecimento (LIB/MOB/ATI), o select "Categoria" carrega a subcategoria
@@ -288,7 +295,7 @@ function ExerciseRow({
 
   // Para força/principais: subcategoria efetiva (override > derivada do código > template)
   const grupoForca = !aquecimentoBloco ? CODE_TO_GRUPO[effCategoria.toUpperCase()] : undefined;
-  const subcategoriasGrupo = grupoForca ? GRUPO_SUBCATEGORIAS[grupoForca] || [] : [];
+  const subcategoriasGrupo = grupoForca ? grupoSubcategorias[grupoForca] || [] : [];
   const defaultSubForca = !aquecimentoBloco
     ? (CODE_TO_SUBCATEGORIA[effCategoria.toUpperCase()] ?? defaultSubcategoria ?? "")
     : "";
@@ -361,7 +368,7 @@ function ExerciseRow({
               className="bg-background border border-input rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring max-w-[180px]"
             >
               {!effSubcategoria && <option value="">Selecione...</option>}
-              {AQUECIMENTO_SUBCATEGORIAS[aquecimentoBloco].map((sub) => (
+              {(grupoSubcategorias[aquecimentoGrupoMap[aquecimentoBloco]] || []).map((sub) => (
                 <option key={sub} value={sub}>{sub}</option>
               ))}
             </select>

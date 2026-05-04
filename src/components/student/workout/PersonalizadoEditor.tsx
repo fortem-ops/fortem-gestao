@@ -37,7 +37,7 @@ import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users } from "lucide-
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { CATEGORY_LABELS } from "./workoutTemplates";
-import { AQUECIMENTO_SUBCATEGORIAS } from "@/lib/exerciseMapping";
+import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
 import {
@@ -96,6 +96,12 @@ export function PersonalizadoEditor({
   onSaved,
 }: Props) {
   const { user } = useAuth();
+  const { grupoSubcategorias } = useExerciseCategories();
+  const aquecimentoGrupoMap: Record<"LIB" | "MOB" | "ATI", string> = {
+    LIB: "Liberação Miofascial",
+    MOB: "Mobilidade Articular",
+    ATI: "Ativação Muscular",
+  };
   // IMPORTANT: `initial` and `initialName` are treated as initializers only.
   // We deliberately do NOT sync with later prop changes — re-syncing causes
   // the editor to wipe the user's in-progress prescription whenever the
@@ -684,7 +690,7 @@ export function PersonalizadoEditor({
                             <SelectValue placeholder="Subcategoria..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {AQUECIMENTO_SUBCATEGORIAS[b.key].map((sub) => (
+                            {(grupoSubcategorias[aquecimentoGrupoMap[b.key]] || []).map((sub) => (
                               <SelectItem key={sub} value={sub} className="text-xs">
                                 {sub}
                               </SelectItem>

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { ChevronRight, ChevronLeft, Dumbbell, Plus, Loader2, Trash2, Search, Video, Upload, X, Pencil, GripVertical } from "lucide-react";
+import { ChevronRight, ChevronLeft, Dumbbell, Plus, Loader2, Trash2, Search, Video, Upload, X, Pencil, GripVertical, Settings } from "lucide-react";
+import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { ManageCategoriesDialog } from "./ManageCategoriesDialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,59 +28,7 @@ interface Category {
   subcategories: string[];
 }
 
-const CATEGORIES: Category[] = [
-  {
-    name: "Liberação Miofascial",
-    subcategories: [
-      "Pé/Tornozelo", "Perna", "Joelho/Coxa", "Quadril",
-      "Lombar", "Torácica", "Ombro/Escápula", "Cervical", "Cotovelo/Punho",
-    ],
-  },
-  {
-    name: "Mobilidade Articular",
-    subcategories: [
-      "Pé/Tornozelo", "Joelho", "Quadril", "Quadril RE", "Quadril RI",
-      "Flexibilidade Posterior MI", "Flexibilidade Anterior MI",
-      "Torácica", "Torácica Rotação", "Glenoumeral", "Glenoumeral RE",
-      "Glenoumeral RI", "Cotovelo/Punho", "Padrão Geral",
-    ],
-  },
-  {
-    name: "Ativação Muscular",
-    subcategories: [
-      "Pé/Tornozelo", "Perna", "Estabilidade de Joelho", "Quadril",
-      "Estabilidade Lombar PA", "Estabilidade Lombar PP", "Torácica",
-      "Ombro/Escápula", "Cotovelo/Punho", "Padrão Geral",
-      "Estabilidade Escapular", "Desassociação Lombar/Quadril",
-      "Extensão Torácica", "Kettlebell", "Barra", "LPO",
-      "Pliométrico", "Coordenativo Corrida", "Solo",
-    ],
-  },
-  {
-    name: "Preventivo",
-    subcategories: [
-      "Tornozelo", "Joelho", "Quadril-Glúteos", "Quadril-Isquios",
-      "Quadril-Flexores", "Cotovelo", "Ombro",
-    ],
-  },
-  {
-    name: "Força",
-    subcategories: [
-      "Anti-Rotação", "Rotação", "Anti-Hiperextensão", "Anti-flexão",
-      "Estabilidade Posterior", "Dominante de Joelho Simétrico",
-      "Dominante de Joelhos Assimétrico", "Dominante de Quadril",
-      "Dominante de Quadril Posterior", "Empurrar Horizontal",
-      "Empurrar Vertical", "Puxar Horizontal", "Puxar Vertical",
-      "Auxiliares", "Estabilidade Escapular", "Extensão Torácica",
-      "Pliometria", "Abdominais", "Kettlebell", "Isoinercial",
-      "LPO", "Coordenativo Corrida",
-    ],
-  },
-  {
-    name: "Cardio",
-    subcategories: ["Cardio"],
-  },
-];
+// CATEGORIES agora vem do banco via useExerciseCategories()
 
 interface GroupSelection {
   grupo: string;
@@ -111,6 +61,8 @@ export function StudentExerciseBank() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const { categories: CATEGORIES } = useExerciseCategories();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterGrupo, setFilterGrupo] = useState<string>("");
@@ -643,9 +595,14 @@ export function StudentExerciseBank() {
           })()}
         </div>
         {isCoordAdmin && (
-          <Button onClick={() => setDialogOpen(true)} size="sm">
-            <Plus className="w-4 h-4 mr-1" /> Novo Exercício
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setManageOpen(true)} size="sm" variant="outline">
+              <Settings className="w-4 h-4 mr-1" /> Gerenciar categorias
+            </Button>
+            <Button onClick={() => setDialogOpen(true)} size="sm">
+              <Plus className="w-4 h-4 mr-1" /> Novo Exercício
+            </Button>
+          </div>
         )}
       </div>
 
@@ -885,6 +842,7 @@ export function StudentExerciseBank() {
       </Dialog>
 
       {renderVideoModal()}
+      <ManageCategoriesDialog open={manageOpen} onOpenChange={setManageOpen} />
     </div>
   );
 
