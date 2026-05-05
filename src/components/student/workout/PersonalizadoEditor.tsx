@@ -1062,20 +1062,49 @@ function NewExerciseButton({ onAdd }: { onAdd: (tipo: "simples" | "dinamico") =>
 function CategoriaSelect({
   value,
   onChange,
+  groups,
 }: {
   value: string;
   onChange: (v: string) => void;
+  groups: ExerciseCategory[];
 }) {
+  // Resolve o label exibido no trigger: se for um código clássico, mostra "DJS";
+  // se for o nome de uma subcategoria custom, mostra um abreviado das iniciais.
+  const isCode = !!CATEGORY_LABELS[value];
+  const triggerLabel = isCode
+    ? value
+    : (value
+        ? value
+            .split(/\s+/)
+            .map((w) => w[0])
+            .join("")
+            .slice(0, 4)
+            .toUpperCase()
+        : "");
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-7 w-24 text-xs">
-        <SelectValue />
+      <SelectTrigger className="h-7 w-24 text-xs" title={CATEGORY_LABELS[value] ?? value}>
+        <SelectValue>{triggerLabel}</SelectValue>
       </SelectTrigger>
-      <SelectContent>
-        {FORCA_CATEGORIAS.map((c) => (
-          <SelectItem key={c} value={c} className="text-xs">
-            {c} — {CATEGORY_LABELS[c]}
-          </SelectItem>
+      <SelectContent className="max-h-80">
+        {groups.map((g) => (
+          <SelectGroup key={g.name}>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {g.name}
+            </SelectLabel>
+            {g.subcategories.map((sub) => {
+              const code = SUBCATEGORIA_TO_CODE[sub];
+              const itemValue = code ?? sub;
+              const display = code
+                ? `${code} — ${CATEGORY_LABELS[code] ?? sub}`
+                : sub;
+              return (
+                <SelectItem key={itemValue} value={itemValue} className="text-xs">
+                  {display}
+                </SelectItem>
+              );
+            })}
+          </SelectGroup>
         ))}
       </SelectContent>
     </Select>
