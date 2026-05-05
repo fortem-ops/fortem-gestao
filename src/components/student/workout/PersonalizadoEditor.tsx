@@ -572,6 +572,39 @@ export function PersonalizadoEditor({
         });
         if (error) throw error;
       }
+
+      // Criar tarefa automática "Atualizar treino" em 30 dias
+      try {
+        const { data: alunoRow } = await supabase
+          .from("alunos")
+          .select("nome, responsavel_id")
+          .eq("id", targetAlunoId)
+          .maybeSingle();
+        const respId = alunoRow?.responsavel_id || user.id;
+        // Concluir tarefas antigas pendentes desse tipo para o mesmo aluno
+        await supabase
+          .from("tarefas")
+          .update({ status: "concluida", updated_at: new Date().toISOString() })
+          .eq("aluno_id", targetAlunoId)
+          .eq("tipo_auto", "atualizar_treino")
+          .neq("status", "concluida");
+        const dataLimite = new Date();
+        dataLimite.setDate(dataLimite.getDate() + 30);
+        await supabase.from("tarefas").insert({
+          titulo: `Atualizar treino — ${alunoRow?.nome || "aluno"}`,
+          descricao: "Revisar e atualizar a prescrição de treino do aluno.",
+          aluno_id: targetAlunoId,
+          responsavel_id: respId,
+          criado_por_id: user.id,
+          data_limite: dataLimite.toISOString().split("T")[0],
+          prioridade: "media",
+          automatica: true,
+          tipo_auto: "atualizar_treino",
+        });
+      } catch (e) {
+        console.error("Erro ao criar tarefa automática:", e);
+      }
+
       toast.success("Treino aplicado ao aluno");
       clearDraft();
       onSaved?.();
