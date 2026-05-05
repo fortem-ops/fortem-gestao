@@ -477,6 +477,7 @@ export default function TaskCenter() {
             </Select>
           )}
           <NewTaskDialog
+            defaultResponsavelId={effectiveResponsavelId}
             onCreated={() =>
               queryClient.invalidateQueries({ queryKey: ["tarefas-all"] })
             }
