@@ -77,6 +77,7 @@ const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
   { key: "LIB", label: "Liberação (LIB)" },
   { key: "MOB", label: "Mobilidade (MOB)" },
   { key: "ATI", label: "Ativação (ATI)" },
+  { key: "PREV", label: "Preventivo (PREV)" },
 ];
 
 const DAYS = ["T1", "T2", "T3", "T4"];
