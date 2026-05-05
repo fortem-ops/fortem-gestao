@@ -101,7 +101,24 @@ export default function Ponto() {
     },
   });
 
-  // Carga diária para decidir se intervalo é exigido (>4h)
+  // Jornada prevista do dia (Admin Ponto → ponto_horarios_professor)
+  const dowHoje = new Date().getDay();
+  const { data: horarioHoje } = useQuery({
+    queryKey: ["ponto-horario-dia", targetId, dowHoje],
+    enabled: !!targetId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ponto_horarios_professor")
+        .select("horario_inicio, horario_fim, intervalo_min, ativo")
+        .eq("usuario_id", targetId!)
+        .eq("dia_semana", dowHoje)
+        .eq("ativo", true)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  // Fallback: configuração global de carga diária
   const { data: cargaMin } = useQuery({
     queryKey: ["ponto-config-carga", targetId],
     enabled: !!targetId,
