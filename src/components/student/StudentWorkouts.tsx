@@ -31,7 +31,18 @@ const WorkoutDetail = lazy(() =>
 type Treino = Tables<"treinos">;
 
 export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
+  const { user } = useAuth();
   const [viewing, setViewing] = useState<Treino | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+  });
 
   const { data: treinos, refetch } = useQuery({
     queryKey: ["treinos", student.id],
@@ -45,6 +56,20 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
       return data;
     },
   });
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from("treinos").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Treino excluído com sucesso!");
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir treino.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="space-y-4 mt-4">
