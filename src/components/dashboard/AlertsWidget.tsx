@@ -126,7 +126,7 @@ export function AlertsWidget({ professorId }: Props) {
   });
 
   const iconMap: Record<string, React.ElementType> = {
-    troca_ficha: RefreshCw, avaliacao: Clock,
+    troca_ficha: RefreshCw, avaliacao: Clock, atualizar_treino: RefreshCw,
   };
   const severityClass: Record<string, string> = { atencao: "status-warning", urgente: "status-urgent" };
 
