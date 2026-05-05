@@ -1117,11 +1117,13 @@ function CategoriaSelect({
 function ExercicioRows({
   ex,
   index,
+  groups,
   onRemove,
   onUpdate,
 }: {
   ex: PersonalizadoExercicio;
   index: number;
+  groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (patch: Partial<PersonalizadoExercicio>) => void;
 }) {
@@ -1130,6 +1132,7 @@ function ExercicioRows({
       <SimplesRow
         ex={ex}
         index={index}
+        groups={groups}
         onRemove={onRemove}
         onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioSimples>) => void}
       />
@@ -1139,6 +1142,7 @@ function ExercicioRows({
     <DinamicoRows
       ex={ex}
       index={index}
+      groups={groups}
       onRemove={onRemove}
       onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioDinamico>) => void}
     />
