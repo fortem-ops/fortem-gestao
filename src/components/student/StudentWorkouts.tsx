@@ -2,12 +2,19 @@ import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Dumbbell, Eye } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Dumbbell, Eye, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 // Lazy: this dialog pulls in WORKOUT_TEMPLATES (~30KB) + WorkoutDetail.
 // Only load when the user actually opens the import flow.
@@ -24,7 +31,18 @@ const WorkoutDetail = lazy(() =>
 type Treino = Tables<"treinos">;
 
 export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
+  const { user } = useAuth();
   const [viewing, setViewing] = useState<Treino | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+  });
 
   const { data: treinos, refetch } = useQuery({
     queryKey: ["treinos", student.id],
@@ -38,6 +56,20 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
       return data;
     },
   });
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from("treinos").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Treino excluído com sucesso!");
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir treino.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="space-y-4 mt-4">
@@ -87,6 +119,32 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
               <Button size="sm" variant="outline" onClick={() => setViewing(t)}>
                 <Eye className="w-3 h-3 mr-1" /> Visualizar
               </Button>
+              {isAdmin && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="destructive" title="Excluir treino" disabled={deletingId === t.id}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir treino</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir <strong>{t.descricao}</strong> (v{t.versao})? Esta ação é irreversível.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(t.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           ))}
         </div>
