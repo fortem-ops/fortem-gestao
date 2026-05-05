@@ -119,10 +119,13 @@ export function useExerciseCategories() {
   });
 
   const countExerciciosNoGrupo = (grupo: string, sub?: string) => {
+    const filterValue = JSON.stringify(
+      sub ? [{ grupo, subcategoria: sub }] : [{ grupo }],
+    );
     return supabase
       .from("exercicios_personalizados")
       .select("id", { count: "exact", head: true })
-      .contains("grupos", sub ? [{ grupo, subcategoria: sub }] : [{ grupo }]);
+      .filter("grupos", "cs", filterValue);
   };
 
   const deleteGrupo = useMutation({
