@@ -1,69 +1,84 @@
 ## Objetivo
 
-Três melhorias na tela **Ponto**:
-
-1. Coordenadores/Admins podem visualizar a tela de qualquer funcionário ("ver como").
-2. Ao registrar entrada / intervalo / saída, exibir a localização capturada.
-3. Jornadas com carga ≤ 4h não exigem botão de intervalo (apenas acima).
+1. Em **Ponto**, exibir e respeitar a **jornada de trabalho do dia** configurada em Admin Ponto (`ponto_horarios_professor`), em vez de só usar `carga_diaria_min` global.
+2. Criar um novo módulo **Relatório Ponto** que lista as batidas com horários e informações adicionais (localização, dispositivo, observação), permite **ajuste manual** por Coordenadores/Administradores, **exportação de relatório** (CSV/XLSX) e **registro mensal (histórico)** consolidado.
 
 ---
 
-## 1. Seletor de perfil para Coord/Admin em `/ponto`
+## 1) Ponto puxa jornada do Admin Ponto
 
-Em `src/pages/Ponto.tsx`:
+Hoje `Ponto.tsx` calcula `pularIntervalo` apenas a partir de `ponto_configuracoes.carga_diaria_min`. Vamos substituir por consulta a `ponto_horarios_professor` para o dia da semana atual do `targetId`.
 
-- Detectar role via RPC já existente `is_coordinator_or_admin`.
-- Se for coord/admin, exibir no topo um `StudentPicker`-like baseado em `profiles` (ou query simples: `profiles` filtrado por `user_roles.role IN ('professor','nutricionista','fisioterapeuta','coordenador','admin')`) com label "Visualizando como".
-- Estado local `viewAsUserId` (default = `user.id`). Um botão "Voltar para meu perfil" volta ao próprio.
-- Todas as queries (`fn_ponto_estado_atual`, `ponto-jornada-hoje`, `HistoricoJornadas`) passam a usar `viewAsUserId` em vez de `user.id`.
-  - `HistoricoJornadas` aceita prop opcional `userId`.
-- Quando `viewAsUserId !== user.id`:
-  - Esconder o `BotaoInteligente` (apenas coord pode ver, não bater ponto pelo outro). Em vez disso mostrar aviso "Modo visualização — registros são feitos pelo próprio profissional".
-  - Manter visíveis Status, Resumo do dia e Histórico.
+Mudanças em `src/pages/Ponto.tsx`:
+- Nova query `ponto-horario-dia` buscando o registro ativo de hoje (`dia_semana`, `ativo = true`).
+- Calcular `cargaPrevistaMin` = (fim − início) e `intervaloPrevisto` = `intervalo_min`.
+- `pularIntervalo` = `cargaPrevistaMin <= 240` **ou** `intervaloPrevisto === 0`. Fallback: `ponto_configuracoes` quando não houver horário cadastrado.
+- Mostrar a **janela esperada** do dia ("Jornada prevista: 06:00 – 12:00, sem intervalo") no `StatusJornadaCard` via prop opcional `previsto`.
+- Quando não houver jornada prevista, exibir aviso "Sem jornada prevista para hoje" (não bloqueia registro).
 
-A RPC `fn_ponto_estado_atual` já aceita `_user_id` e a RLS de `ponto_jornadas` permite leitura para coord/admin, então não há mudança no banco.
+---
 
-## 2. Exibir localização nos eventos
+## 2) Novo módulo "Relatório Ponto"
 
-A tabela `ponto_eventos` já grava `latitude`, `longitude` e `dispositivo` para cada `tipo` (`entrada`, `intervalo_inicio`, `intervalo_fim`, `saida`).
+### Rota e navegação
+- Página `src/pages/RelatorioPonto.tsx` em rota `/ponto/relatorio` (lazy em `App.tsx`).
+- Item "Relatório Ponto" em `coordPontoItems` no `AppSidebar.tsx` (ícone `FileText`), visível só a coord/admin.
 
-- Nova query em `Ponto.tsx` (e usada em `ResumoDoDia`): buscar os eventos do dia da jornada visualizada:
-  ```ts
-  supabase.from("ponto_eventos")
-    .select("tipo, data_hora, latitude, longitude, dispositivo")
-    .eq("usuario_id", viewAsUserId)
-    .eq("jornada_id", estado.jornada_id)
-  ```
-- Em `ResumoDoDia.tsx`: para cada um dos 4 cards (Entrada, Intervalo início, Intervalo fim, Saída), abaixo do horário mostrar:
-  - Se `latitude && longitude`: link discreto com ícone `MapPin` → "−23.5505, −46.6333" abrindo `https://www.google.com/maps?q=lat,lng` em nova aba.
-  - Se ausente: texto pequeno "Sem localização".
-- Aceitar `eventos` como prop opcional em `ResumoDoDia`.
+### Abas da página
+Duas abas (`Tabs`):
+- **Diário/Período** — visão batida-a-batida.
+- **Mensal (histórico)** — consolidado por mês.
 
-Nada muda no `BotaoInteligente` — ele já envia `_lat`/`_lng` via `tryGeo()`.
+### Filtros (comuns)
+- Período (date range) — default mês atual na aba Diário, mês atual na aba Mensal.
+- Profissional (Select com lista de `user_roles` + `profiles`; opção "Todos").
+- Status (todos / em aberto / encerrada / com pendência) — só na aba Diário.
 
-## 3. Intervalo apenas para jornadas > 4h
+### Aba Diário/Período
+Tabela (uma linha por jornada):
+| Data | Profissional | Entrada | Início interv. | Fim interv. | Saída | Trabalhado | Previsto | Diferença | Pendências | Ações |
 
-Hoje `BotaoInteligente` mostra "Iniciar intervalo" sempre que `proxima_acao === 'intervalo_inicio'`.
+- "Previsto" vem de `ponto_horarios_professor` para o `dia_semana`.
+- "Pendências" = badge para saída ausente, intervalo incompleto quando obrigatório, etc.
+- Linha expandível mostra os **eventos** (`ponto_eventos`): tipo, data_hora, latitude/longitude (link Google Maps), dispositivo, observação.
+- Ações (coord/admin): **Ajustar** abre `AjustarJornadaDialog` (já existente) — usa `fn_ponto_ajustar_jornada` com motivo obrigatório, gravando em `ponto_ajustes_log`.
 
-Regra nova (frontend, sem mudança de RPC):
-- Carregar `ponto_configuracoes` do usuário (ou global se nulo) para obter `carga_diaria_min`.
-- Se `carga_diaria_min <= 240` (4h):
-  - Quando `proxima_acao === 'intervalo_inicio'`, **pular** o intervalo: o botão exibido deve ser "Encerrar jornada" (`saida`) diretamente.
-  - Implementação: prop adicional `pularIntervalo` em `BotaoInteligente`; quando `true` e a próxima ação for `intervalo_inicio`, renderizar o botão como `saida`. O backend já permite encerrar sem intervalo (`intervalo_obrigatorio` é `false` por padrão).
-- Para jornadas > 4h: comportamento atual.
+### Aba Mensal (histórico)
+Tabela consolidada por profissional × mês:
+| Mês | Profissional | Dias trabalhados | Total trabalhado | Total previsto | Saldo (extra/falta) | Pendências | Status fechamento | Ações |
 
-Adicionalmente: se durante o dia a jornada já passou de 4h e o usuário ainda não fez intervalo, mantemos o botão (cenário onde a config diz > 4h).
+- Dados vêm de `ponto_jornadas` agregados em SQL no client (somando `minutos_trabalhados`) e cruzados com `ponto_fechamentos_mensais` para o status (`aberto`/`aprovado`).
+- "Total previsto" = soma de janelas previstas em `ponto_horarios_professor` para os dias do mês.
+- Linha expandível abre o detalhamento diário do profissional naquele mês (mesma tabela da aba Diário, filtrada).
+- Ações: link rápido para **Fechamento Ponto** (`/ponto/fechamento`) já existente; botão **Recalcular** chamando `fn_ponto_calcular_fechamento`.
 
-## Detalhes técnicos
+### Exportação de relatório
+Botão "Exportar" no header de cada aba com menu (CSV / XLSX):
+- **CSV**: gerado em browser (string + `Blob` + `URL.createObjectURL`), nome `relatorio-ponto-{escopo}-{periodo}.csv`.
+- **XLSX**: usar `xlsx` (SheetJS) — adicionar dependência `xlsx`. Workbook com:
+  - Aba "Resumo" (filtros aplicados, período, geração).
+  - Aba "Jornadas" (linhas da tabela diária com totais).
+  - Aba "Eventos" (todos os eventos do período: data_hora, tipo, lat/lng, dispositivo, observação).
+  - Aba "Mensal" quando export disparado pela aba Mensal.
+- Helper `src/lib/relatorioPontoExport.ts` para montar dados e disparar o download.
 
-**Arquivos a editar**
-- `src/pages/Ponto.tsx` — seletor de "visualizar como", queries dependentes do `viewAsUserId`, query de eventos do dia, query de `ponto_configuracoes`.
-- `src/components/ponto/ResumoDoDia.tsx` — exibir localização por evento; aceitar prop `eventos` e `readOnly` (para esconder botão de observação no modo visualização de outro perfil).
-- `src/components/ponto/HistoricoJornadas.tsx` — aceitar prop opcional `userId`.
-- `src/components/ponto/BotaoInteligente.tsx` — aceitar prop `pularIntervalo` e desviar `intervalo_inicio` → `saida` quando ativa.
+### Permissões
+- Página inteira: `is_coordinator_or_admin`. Caso contrário, card "Acesso restrito".
 
-**Sem mudanças de schema/RLS** — as RPCs e policies existentes já cobrem coord/admin lendo dados de outro usuário e escrita de localização.
+---
 
-**Coord/Admin ver tela**: aproveitar `is_coordinator_or_admin(auth.uid())` (já usada em `PontoWidget`).
+## Arquivos afetados
 
-**Lista de profissionais para o seletor**: query única `profiles` com join em `user_roles` filtrando roles operacionais; ordenado por `full_name`.
+- `src/pages/Ponto.tsx` — usar `ponto_horarios_professor` do dia.
+- `src/components/ponto/StatusJornadaCard.tsx` — exibir jornada prevista (opcional).
+- `src/pages/RelatorioPonto.tsx` — novo (Tabs Diário + Mensal).
+- `src/components/ponto/RelatorioPontoFiltros.tsx` — novo.
+- `src/components/ponto/RelatorioPontoDiarioTable.tsx` — novo (tabela + expand de eventos + ajuste).
+- `src/components/ponto/RelatorioPontoMensalTable.tsx` — novo (consolidado mensal + expand).
+- `src/components/ponto/ExportarRelatorioMenu.tsx` — novo (DropdownMenu CSV/XLSX).
+- `src/lib/relatorioPontoExport.ts` — novo (geração CSV + XLSX).
+- `src/App.tsx` — registrar rota `/ponto/relatorio`.
+- `src/components/AppSidebar.tsx` — novo item em `coordPontoItems`.
+- `package.json` — adicionar dependência `xlsx`.
+
+Sem migrações de banco — `fn_ponto_ajustar_jornada`, `fn_ponto_calcular_fechamento`, `ponto_ajustes_log`, `ponto_horarios_professor`, `ponto_eventos`, `ponto_fechamentos_mensais` já existem.
