@@ -820,14 +820,15 @@ export function PersonalizadoEditor({
               </ToggleGroup>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {FORCA_CATEGORIAS.map((c) => {
+              {Object.keys(padraoCounts.counts).map((c) => {
                 const n = padraoCounts.counts[c] ?? 0;
+                const label = CATEGORY_LABELS[c] ?? CODE_TO_SUBCATEGORIA[c] ?? c;
                 return (
                   <Badge
                     key={c}
                     variant={n > 0 ? "default" : "outline"}
                     className={`text-[10px] font-mono ${n === 0 ? "opacity-40" : ""}`}
-                    title={CATEGORY_LABELS[c] ?? c}
+                    title={label}
                   >
                     {c} {n}
                   </Badge>
