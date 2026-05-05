@@ -100,8 +100,9 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly, subcate
     staleTime: 60_000,
   });
 
-  const grupoAlvo = CODE_TO_GRUPO[categoria.toUpperCase()] || categoria;
-  const subAlvo = subcategoria ?? CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
+  const resolved = categoriaToGrupoSub(categoria, categories);
+  const grupoAlvo = resolved.grupo || categoria;
+  const subAlvo = subcategoria ?? resolved.subcategoria;
 
   const candidatos = useMemo(() => {
     return exercicios.filter((ex) =>
