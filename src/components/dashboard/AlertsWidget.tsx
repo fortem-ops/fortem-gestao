@@ -99,6 +99,27 @@ export function AlertsWidget({ professorId }: Props) {
         }
       });
 
+      // Atualização de treino (tarefa automática)
+      tarefasAtualizar.forEach((t) => {
+        if (!t.aluno_id || !t.data_limite) return;
+        if (professorId && t.responsavel_id !== professorId) return;
+        const aluno = alunoMap[t.aluno_id];
+        if (!aluno) return;
+        const limit = new Date(t.data_limite + "T00:00:00");
+        const diffDays = Math.ceil((limit.getTime() - today.getTime()) / 86400000);
+        if (diffDays > 7) return;
+        result.push({
+          id: `att-${t.id}`,
+          type: "atualizar_treino",
+          severity: diffDays <= 0 ? "urgente" : "atencao",
+          studentName: aluno.nome,
+          message: diffDays <= 0
+            ? `Atualização de treino atrasada (${Math.abs(diffDays)} dias)`
+            : `Atualizar treino em ${diffDays} dia(s)`,
+          alunoId: t.aluno_id,
+        });
+      });
+
       return result.sort((a, b) => (a.severity === "urgente" ? -1 : 1) - (b.severity === "urgente" ? -1 : 1));
     },
     staleTime: 60_000,
