@@ -18,6 +18,8 @@ import {
 
 interface Props {
   proximaAcao: ProximaAcao;
+  /** Se true, jornada não exige intervalo: pula direto para encerramento. */
+  pularIntervalo?: boolean;
 }
 
 const ACAO_ICON: Record<NonNullable<ProximaAcao>, typeof Play> = {
@@ -28,16 +30,20 @@ const ACAO_ICON: Record<NonNullable<ProximaAcao>, typeof Play> = {
 };
 
 /** Botão único contextual: dispara a próxima ação válida do estado atual. */
-export function BotaoInteligente({ proximaAcao }: Props) {
+export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Em jornadas curtas (≤4h), o intervalo é opcional: substituímos por encerramento.
+  const acaoEfetiva: ProximaAcao =
+    pularIntervalo && proximaAcao === "intervalo_inicio" ? "saida" : proximaAcao;
+
   const mut = useMutation({
     mutationFn: async () => {
-      if (!proximaAcao) throw new Error("Sem próxima ação disponível");
+      if (!acaoEfetiva) throw new Error("Sem próxima ação disponível");
       const { lat, lng } = await tryGeo();
       const { data, error } = await supabase.rpc("fn_ponto_registrar", {
-        _tipo: proximaAcao,
+        _tipo: acaoEfetiva,
         _lat: lat,
         _lng: lng,
         _dispositivo: shortDevice(),
@@ -46,17 +52,18 @@ export function BotaoInteligente({ proximaAcao }: Props) {
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Registrado!", description: ACAO_LABEL[proximaAcao!] });
+      toast({ title: "Registrado!", description: ACAO_LABEL[acaoEfetiva!] });
       qc.invalidateQueries({ queryKey: ["ponto-estado"] });
       qc.invalidateQueries({ queryKey: ["ponto-historico"] });
       qc.invalidateQueries({ queryKey: ["ponto-widget"] });
+      qc.invalidateQueries({ queryKey: ["ponto-eventos-dia"] });
     },
     onError: (err: any) => {
       toast({ title: "Não foi possível registrar", description: err.message, variant: "destructive" });
     },
   });
 
-  if (!proximaAcao) {
+  if (!acaoEfetiva) {
     return (
       <Button disabled size="lg" className="w-full h-14 text-base">
         Jornada encerrada
@@ -64,9 +71,9 @@ export function BotaoInteligente({ proximaAcao }: Props) {
     );
   }
 
-  const Icon = ACAO_ICON[proximaAcao];
-  const label = ACAO_LABEL[proximaAcao];
-  const isDestructive = proximaAcao === "saida";
+  const Icon = ACAO_ICON[acaoEfetiva];
+  const label = ACAO_LABEL[acaoEfetiva];
+  const isDestructive = acaoEfetiva === "saida";
 
   const handleClick = () => {
     if (isDestructive) setConfirmOpen(true);
