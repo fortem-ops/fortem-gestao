@@ -428,19 +428,19 @@ export default function TaskCenter() {
           <TabsTrigger value="todas">Todas</TabsTrigger>
         </TabsList>
         <TabsContent value="pendentes">
-          <TaskList tasks={pending} onToggle={handleToggle} />
+          <TaskList tasks={pending} onToggle={handleToggle} onRescheduled={handleRescheduled} />
         </TabsContent>
         <TabsContent value="atrasadas">
-          <TaskList tasks={overdue} onToggle={handleToggle} />
+          <TaskList tasks={overdue} onToggle={handleToggle} onRescheduled={handleRescheduled} />
         </TabsContent>
         <TabsContent value="automaticas">
-          <TaskList tasks={auto} onToggle={handleToggle} />
+          <TaskList tasks={auto} onToggle={handleToggle} onRescheduled={handleRescheduled} />
         </TabsContent>
         <TabsContent value="concluidas">
-          <TaskList tasks={done} onToggle={handleToggle} />
+          <TaskList tasks={done} onToggle={handleToggle} onRescheduled={handleRescheduled} />
         </TabsContent>
         <TabsContent value="todas">
-          <TaskList tasks={tasks} onToggle={handleToggle} />
+          <TaskList tasks={tasks} onToggle={handleToggle} onRescheduled={handleRescheduled} />
         </TabsContent>
       </Tabs>
     </div>
