@@ -431,7 +431,7 @@ export default function TaskCenter() {
       <Tabs defaultValue="pendentes">
         <TabsList className="bg-secondary/50 border border-border">
           <TabsTrigger value="pendentes">
-            Pendentes ({pending.length})
+            Programadas ({pending.length})
           </TabsTrigger>
           <TabsTrigger value="atrasadas">
             Atrasadas ({overdue.length})
