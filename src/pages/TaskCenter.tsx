@@ -308,14 +308,56 @@ function NewTaskDialog({ onCreated }: { onCreated: () => void }) {
 
 export default function TaskCenter() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [selectedProfessorId, setSelectedProfessorId] = useState<string>("self");
+
+  const { data: isCoordAdmin } = useQuery({
+    queryKey: ["taskcenter-isCoordAdmin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: professors = [] } = useQuery({
+    queryKey: ["taskcenter-professors"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["professor", "coordenador", "admin"]);
+      if (!roles?.length) return [];
+      const userIds = roles.map((r) => r.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      return (profiles || []).sort((a, b) => a.full_name.localeCompare(b.full_name));
+    },
+    enabled: !!isCoordAdmin,
+    staleTime: 5 * 60_000,
+  });
+
+  const effectiveResponsavelId = isCoordAdmin
+    ? (selectedProfessorId === "todos"
+        ? null
+        : selectedProfessorId === "self"
+          ? user?.id || null
+          : selectedProfessorId)
+    : user?.id || null;
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tarefas-all"],
+    queryKey: ["tarefas-all", effectiveResponsavelId],
+    enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("tarefas")
         .select("*")
         .order("data_limite", { ascending: true, nullsFirst: false });
+      if (effectiveResponsavelId) q = q.eq("responsavel_id", effectiveResponsavelId);
+      const { data, error } = await q;
       if (error) throw error;
       if (!data?.length) return [];
 
@@ -411,11 +453,31 @@ export default function TaskCenter() {
             {tasks.length} tarefa(s) no total
           </p>
         </div>
-        <NewTaskDialog
-          onCreated={() =>
-            queryClient.invalidateQueries({ queryKey: ["tarefas-all"] })
-          }
-        />
+        <div className="flex items-center gap-2">
+          {isCoordAdmin && (
+            <Select value={selectedProfessorId} onValueChange={setSelectedProfessorId}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="self">Minhas tarefas</SelectItem>
+                <SelectItem value="todos">Todos os profissionais</SelectItem>
+                {professors
+                  .filter((p) => p.user_id !== user?.id)
+                  .map((p) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>
+                      {p.full_name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          )}
+          <NewTaskDialog
+            onCreated={() =>
+              queryClient.invalidateQueries({ queryKey: ["tarefas-all"] })
+            }
+          />
+        </div>
       </div>
       <Tabs defaultValue="pendentes">
         <TabsList className="bg-secondary/50 border border-border">
