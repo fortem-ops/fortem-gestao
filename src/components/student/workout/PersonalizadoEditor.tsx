@@ -98,10 +98,11 @@ export function PersonalizadoEditor({
 }: Props) {
   const { user } = useAuth();
   const { grupoSubcategorias } = useExerciseCategories();
-  const aquecimentoGrupoMap: Record<"LIB" | "MOB" | "ATI", string> = {
+  const aquecimentoGrupoMap: Record<AquecimentoBloco, string> = {
     LIB: "Liberação Miofascial",
     MOB: "Mobilidade Articular",
     ATI: "Ativação Muscular",
+    PREV: "Preventivo",
   };
   // IMPORTANT: `initial` and `initialName` are treated as initializers only.
   // We deliberately do NOT sync with later prop changes — re-syncing causes
