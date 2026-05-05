@@ -5,7 +5,7 @@
 
 import type { WorkoutExercise } from "./workoutTemplates";
 
-export type AquecimentoBloco = "LIB" | "MOB" | "ATI";
+export type AquecimentoBloco = "LIB" | "MOB" | "ATI" | "PREV";
 
 export interface PersonalizadoAquecimentoEx {
   subcategoria?: string;
