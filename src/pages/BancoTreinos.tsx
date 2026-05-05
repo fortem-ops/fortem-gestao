@@ -795,11 +795,13 @@ export default function BancoTreinos() {
   >(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
-    queryKey: ["banco-treinos-personalizados"],
+    queryKey: ["banco-treinos-personalizados", user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("banco_treinos_personalizados")
         .select("id, nome, conteudo, criado_por, updated_at")
+        .eq("criado_por", user!.id)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data || [];
