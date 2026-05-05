@@ -202,11 +202,11 @@ export function personalizadoFromFlat(raw: unknown): PersonalizadoConteudo {
   };
 
   // Aquecimento → distribuir nos blocos LIB/MOB/ATI
-  const aquec: PersonalizadoConteudo["aquecimento"] = { LIB: [], MOB: [], ATI: [] };
+  const aquec: PersonalizadoConteudo["aquecimento"] = { LIB: [], MOB: [], ATI: [], PREV: [] };
   (r.aquecimento || []).forEach((ex) => {
     const cat = (ex.categoria || "").toUpperCase();
     const bloco: AquecimentoBloco | null =
-      cat === "LIB" || cat === "MOB" || cat === "ATI" ? (cat as AquecimentoBloco) : null;
+      cat === "LIB" || cat === "MOB" || cat === "ATI" || cat === "PREV" ? (cat as AquecimentoBloco) : null;
     if (!bloco) return;
     aquec[bloco].push({
       subcategoria: ex.subcategoria,
