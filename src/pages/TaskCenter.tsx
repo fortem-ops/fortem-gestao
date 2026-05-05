@@ -171,6 +171,9 @@ function TaskList({
             {task.tipo_auto === "gravar_video" && !isDone && (
               <RecordVideoUpload taskId={task.id} descricao={task.descricao} />
             )}
+            {!isDone && (
+              <RescheduleDialog task={task} onDone={onRescheduled} />
+            )}
             <Badge
               variant="outline"
               className={`text-xs shrink-0 ${priorityClass[task.prioridade] || ""}`}
