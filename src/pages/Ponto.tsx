@@ -1,13 +1,17 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { Clock } from "lucide-react";
+import { Clock, Eye } from "lucide-react";
 import { Navigate } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { StatusJornadaCard } from "@/components/ponto/StatusJornadaCard";
 import { BotaoInteligente } from "@/components/ponto/BotaoInteligente";
-import { ResumoDoDia } from "@/components/ponto/ResumoDoDia";
+import { ResumoDoDia, type EventoPonto } from "@/components/ponto/ResumoDoDia";
 import { HistoricoJornadas } from "@/components/ponto/HistoricoJornadas";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
 
@@ -22,52 +26,153 @@ interface EstadoAtual {
   minutos_trabalhados: number | null;
 }
 
-/**
- * Tela principal do professor: bate ponto via botão único contextual,
- * acompanha resumo do dia e histórico recente.
- */
 export default function Ponto() {
   const { user, loading } = useAuth();
+  const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
+
+  const { data: isCoordAdmin } = useQuery({
+    queryKey: ["ponto-role", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: profissionais } = useQuery({
+    queryKey: ["ponto-profissionais"],
+    enabled: !!isCoordAdmin,
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+      const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
+      if (!ids.length) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids)
+        .order("full_name");
+      return profs ?? [];
+    },
+  });
+
+  const targetId = (isCoordAdmin && viewAsUserId) ? viewAsUserId : user?.id;
+  const isViewingOther = !!viewAsUserId && viewAsUserId !== user?.id;
 
   const { data: estado, isLoading } = useQuery({
-    queryKey: ["ponto-estado", user?.id],
+    queryKey: ["ponto-estado", targetId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("fn_ponto_estado_atual", { _user_id: user!.id });
+      const { data, error } = await supabase.rpc("fn_ponto_estado_atual", { _user_id: targetId! });
       if (error) throw error;
       return data as unknown as EstadoAtual;
     },
-    enabled: !!user,
+    enabled: !!targetId,
     refetchInterval: 60_000,
   });
 
-  // Busca observação atual da jornada do dia
   const { data: jornadaHoje } = useQuery({
-    queryKey: ["ponto-jornada-hoje", user?.id],
+    queryKey: ["ponto-jornada-hoje", targetId],
     queryFn: async () => {
       const hoje = new Date().toISOString().slice(0, 10);
       const { data } = await supabase
         .from("ponto_jornadas")
         .select("observacao")
-        .eq("usuario_id", user!.id)
+        .eq("usuario_id", targetId!)
         .eq("data", hoje)
         .maybeSingle();
       return data;
     },
-    enabled: !!user,
+    enabled: !!targetId,
+  });
+
+  const { data: eventosDia } = useQuery({
+    queryKey: ["ponto-eventos-dia", targetId, estado?.jornada_id],
+    enabled: !!targetId && !!estado?.jornada_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ponto_eventos")
+        .select("tipo, data_hora, latitude, longitude, dispositivo")
+        .eq("usuario_id", targetId!)
+        .eq("jornada_id", estado!.jornada_id!)
+        .order("data_hora", { ascending: true });
+      return (data ?? []) as EventoPonto[];
+    },
+  });
+
+  // Carga diária para decidir se intervalo é exigido (>4h)
+  const { data: cargaMin } = useQuery({
+    queryKey: ["ponto-config-carga", targetId],
+    enabled: !!targetId,
+    queryFn: async () => {
+      const { data: own } = await supabase
+        .from("ponto_configuracoes")
+        .select("carga_diaria_min")
+        .eq("usuario_id", targetId!)
+        .maybeSingle();
+      if (own?.carga_diaria_min != null) return own.carga_diaria_min;
+      const { data: global } = await supabase
+        .from("ponto_configuracoes")
+        .select("carga_diaria_min")
+        .is("usuario_id", null)
+        .maybeSingle();
+      return global?.carga_diaria_min ?? 480;
+    },
   });
 
   if (loading) return <Skeleton className="h-64" />;
   if (!user) return <Navigate to="/login" replace />;
 
+  const pularIntervalo = (cargaMin ?? 480) <= 240;
+
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
-      <header>
-        <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-          <Clock className="w-6 h-6 text-primary" /> Ponto
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Registre sua jornada com um clique. Os horários são gravados com data, hora e dispositivo.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
+            <Clock className="w-6 h-6 text-primary" /> Ponto
+            {isViewingOther && (
+              <Badge variant="outline" className="gap-1 text-info border-info/30 bg-info/10">
+                <Eye className="w-3 h-3" /> Visualização
+              </Badge>
+            )}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isViewingOther
+              ? "Você está visualizando o ponto de outro profissional. Apenas leitura."
+              : "Registre sua jornada com um clique. Os horários são gravados com data, hora e dispositivo."}
+          </p>
+        </div>
+
+        {isCoordAdmin && (
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Visualizar como</label>
+              <Select
+                value={viewAsUserId ?? user.id}
+                onValueChange={(v) => setViewAsUserId(v === user.id ? null : v)}
+              >
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Selecionar profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={user.id}>Meu perfil</SelectItem>
+                  {(profissionais ?? [])
+                    .filter((p) => p.user_id !== user.id)
+                    .map((p) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {isViewingOther && (
+              <Button variant="ghost" size="sm" onClick={() => setViewAsUserId(null)}>
+                Voltar
+              </Button>
+            )}
+          </div>
+        )}
       </header>
 
       {isLoading || !estado ? (
@@ -82,9 +187,11 @@ export default function Ponto() {
             saida={estado.saida}
           />
 
-          <Card className="p-4">
-            <BotaoInteligente proximaAcao={estado.proxima_acao} />
-          </Card>
+          {!isViewingOther && (
+            <Card className="p-4">
+              <BotaoInteligente proximaAcao={estado.proxima_acao} pularIntervalo={pularIntervalo} />
+            </Card>
+          )}
 
           <ResumoDoDia
             jornadaId={estado.jornada_id}
@@ -94,11 +201,14 @@ export default function Ponto() {
             saida={estado.saida}
             minutosTrabalhados={estado.minutos_trabalhados}
             observacao={jornadaHoje?.observacao}
+            eventos={eventosDia}
+            readOnly={isViewingOther}
+            usuarioAlvoId={targetId!}
           />
         </>
       )}
 
-      <HistoricoJornadas />
+      <HistoricoJornadas userId={targetId!} />
     </div>
   );
 }

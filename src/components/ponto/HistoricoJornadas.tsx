@@ -7,24 +7,29 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatHora, formatMinutes } from "@/lib/ponto";
 
-export function HistoricoJornadas() {
+interface Props {
+  userId?: string;
+}
+
+export function HistoricoJornadas({ userId }: Props = {}) {
   const { user } = useAuth();
+  const targetId = userId ?? user?.id;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["ponto-historico", user?.id],
+    queryKey: ["ponto-historico", targetId],
     queryFn: async () => {
       const desde = new Date();
       desde.setDate(desde.getDate() - 14);
       const { data, error } = await supabase
         .from("ponto_jornadas")
         .select("id, data, entrada, intervalo_inicio, intervalo_fim, saida, minutos_trabalhados, status, observacao")
-        .eq("usuario_id", user!.id)
+        .eq("usuario_id", targetId!)
         .gte("data", desde.toISOString().slice(0, 10))
         .order("data", { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!targetId,
   });
 
   if (isLoading) return <Skeleton className="h-48" />;
