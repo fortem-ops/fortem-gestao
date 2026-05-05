@@ -2,12 +2,19 @@ import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Dumbbell, Eye } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Dumbbell, Eye, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 // Lazy: this dialog pulls in WORKOUT_TEMPLATES (~30KB) + WorkoutDetail.
 // Only load when the user actually opens the import flow.
