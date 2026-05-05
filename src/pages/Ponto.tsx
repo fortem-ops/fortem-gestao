@@ -141,7 +141,22 @@ export default function Ponto() {
   if (loading) return <Skeleton className="h-64" />;
   if (!user) return <Navigate to="/login" replace />;
 
-  const pularIntervalo = (cargaMin ?? 480) <= 240;
+  // Calcula janela prevista a partir do horário cadastrado em Admin Ponto
+  let cargaPrevistaMin: number | null = null;
+  let intervaloPrevistoMin = 0;
+  let janelaLabel: string | null = null;
+  if (horarioHoje) {
+    const [hi, mi] = horarioHoje.horario_inicio.slice(0, 5).split(":").map(Number);
+    const [hf, mf] = horarioHoje.horario_fim.slice(0, 5).split(":").map(Number);
+    intervaloPrevistoMin = horarioHoje.intervalo_min ?? 0;
+    cargaPrevistaMin = Math.max(0, hf * 60 + mf - (hi * 60 + mi) - intervaloPrevistoMin);
+    janelaLabel = `${horarioHoje.horario_inicio.slice(0, 5)} – ${horarioHoje.horario_fim.slice(0, 5)}`;
+  }
+
+  // Decisão de pular intervalo: se há horário cadastrado, respeita-o; senão, fallback à carga global ≤ 4h
+  const pularIntervalo = horarioHoje
+    ? intervaloPrevistoMin === 0 || (cargaPrevistaMin ?? 0) <= 240
+    : (cargaMin ?? 480) <= 240;
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
@@ -160,6 +175,14 @@ export default function Ponto() {
               ? "Você está visualizando o ponto de outro profissional. Apenas leitura."
               : "Registre sua jornada com um clique. Os horários são gravados com data, hora e dispositivo."}
           </p>
+          {janelaLabel ? (
+            <p className="text-xs text-muted-foreground mt-1">
+              Jornada prevista hoje: <span className="font-medium text-foreground">{janelaLabel}</span>
+              {intervaloPrevistoMin > 0 ? ` • intervalo de ${intervaloPrevistoMin}min` : " • sem intervalo"}
+            </p>
+          ) : (
+            <p className="text-xs text-warning mt-1">Sem jornada prevista para hoje (verifique Admin Ponto).</p>
+          )}
         </div>
 
         {isCoordAdmin && (
