@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
+import { RescheduleDialog } from "@/components/tasks/RescheduleDialog";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
