@@ -30,9 +30,11 @@ interface BankExercise {
   video_path: string | null;
 }
 
-import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
+import { categoriaToGrupoSub } from "@/lib/exerciseMapping";
+import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 
 export function ExerciseSelector({ categoria, value, onChange, readOnly, subcategoria, disabled, placeholder }: ExerciseSelectorProps) {
+  const { categories } = useExerciseCategories();
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [demo, setDemo] = useState<{ nome: string; url: string } | null>(null);
@@ -98,8 +100,9 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly, subcate
     staleTime: 60_000,
   });
 
-  const grupoAlvo = CODE_TO_GRUPO[categoria.toUpperCase()] || categoria;
-  const subAlvo = subcategoria ?? CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
+  const resolved = categoriaToGrupoSub(categoria, categories);
+  const grupoAlvo = resolved.grupo || categoria;
+  const subAlvo = subcategoria ?? resolved.subcategoria;
 
   const candidatos = useMemo(() => {
     return exercicios.filter((ex) =>

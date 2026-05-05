@@ -52,5 +52,47 @@ export const CODE_TO_SUBCATEGORIA: Record<string, string | undefined> = {
   AUX: "Auxiliares",
 };
 
+// Inverso de CODE_TO_SUBCATEGORIA (nome → primeiro código). Usado para preservar
+// o código curto em templates quando o usuário escolhe uma subcategoria conhecida.
+export const SUBCATEGORIA_TO_CODE: Record<string, string> = (() => {
+  const out: Record<string, string> = {};
+  for (const [code, name] of Object.entries(CODE_TO_SUBCATEGORIA)) {
+    if (!name) continue;
+    if (!(name in out)) out[name] = code;
+  }
+  return out;
+})();
+
+export interface CategoriaTaxonomia {
+  name: string;
+  subcategories: string[];
+}
+
+/**
+ * Resolve o valor armazenado em `ex.categoria` (pode ser um código curto
+ * tipo "DJS" ou o nome de uma subcategoria criada pelo Coordenador) em
+ * { grupo, subcategoria }. Consulta primeiro os mapas de código e, em
+ * fallback, a taxonomia dinâmica vinda do banco.
+ */
+export function categoriaToGrupoSub(
+  value: string | undefined | null,
+  categories: CategoriaTaxonomia[],
+): { grupo: string; subcategoria?: string } {
+  if (!value) return { grupo: "" };
+  const upper = value.toUpperCase();
+  if (CODE_TO_GRUPO[upper]) {
+    return { grupo: CODE_TO_GRUPO[upper], subcategoria: CODE_TO_SUBCATEGORIA[upper] };
+  }
+  for (const c of categories) {
+    if (c.subcategories.includes(value)) {
+      return { grupo: c.name, subcategoria: value };
+    }
+  }
+  const asGroup = categories.find((c) => c.name === value);
+  if (asGroup) return { grupo: asGroup.name };
+  return { grupo: value };
+}
+
 // GRUPO_SUBCATEGORIAS e AQUECIMENTO_SUBCATEGORIAS foram removidos.
 // A taxonomia agora vem do banco via useExerciseCategories().
+

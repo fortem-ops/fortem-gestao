@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -37,7 +39,8 @@ import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users } from "lucide-
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { CATEGORY_LABELS } from "./workoutTemplates";
-import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { useExerciseCategories, type ExerciseCategory } from "@/hooks/useExerciseCategories";
+import { SUBCATEGORIA_TO_CODE, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
 import {
@@ -97,13 +100,20 @@ export function PersonalizadoEditor({
   onSaved,
 }: Props) {
   const { user } = useAuth();
-  const { grupoSubcategorias } = useExerciseCategories();
+  const { categories, grupoSubcategorias } = useExerciseCategories();
   const aquecimentoGrupoMap: Record<AquecimentoBloco, string> = {
     LIB: "Liberação Miofascial",
     MOB: "Mobilidade Articular",
     ATI: "Ativação Muscular",
     PREV: "Preventivo",
   };
+  // Grupos que pertencem ao bloco de aquecimento (não devem aparecer no seletor de FORÇA).
+  const AQUECIMENTO_GRUPOS = new Set(Object.values(aquecimentoGrupoMap));
+  const forcaCategories: ExerciseCategory[] = useMemo(
+    () => categories.filter((c) => !AQUECIMENTO_GRUPOS.has(c.name)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [categories],
+  );
   // IMPORTANT: `initial` and `initialName` are treated as initializers only.
   // We deliberately do NOT sync with later prop changes — re-syncing causes
   // the editor to wipe the user's in-progress prescription whenever the
@@ -587,7 +597,14 @@ export function PersonalizadoEditor({
   // ============ Padrões de Movimento (contagem por CAT) ============
   const padraoCounts = useMemo(() => {
     const counts: Record<string, number> = {};
+    // Sementes: códigos clássicos + códigos sintetizados a partir das subcategorias dinâmicas.
     FORCA_CATEGORIAS.forEach((c) => (counts[c] = 0));
+    forcaCategories.forEach((g) =>
+      g.subcategories.forEach((sub) => {
+        const code = SUBCATEGORIA_TO_CODE[sub] ?? sub;
+        if (!(code in counts)) counts[code] = 0;
+      }),
+    );
     const treinos =
       padraoMode === "treino" && data.treinos[activeTreino]
         ? [data.treinos[activeTreino]]
@@ -596,14 +613,14 @@ export function PersonalizadoEditor({
       tr.blocos.forEach((bl) => {
         bl.exercicios.forEach((ex) => {
           const cat = ex.categoria || "";
-          if (cat in counts) counts[cat] += 1;
-          else counts[cat] = (counts[cat] ?? 0) + 1;
+          if (!cat) return;
+          counts[cat] = (counts[cat] ?? 0) + 1;
         });
       });
     });
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
     return { counts, total };
-  }, [data.treinos, activeTreino, padraoMode]);
+  }, [data.treinos, activeTreino, padraoMode, forcaCategories]);
 
   // ============ UI ============
   return (
@@ -803,14 +820,15 @@ export function PersonalizadoEditor({
               </ToggleGroup>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {FORCA_CATEGORIAS.map((c) => {
+              {Object.keys(padraoCounts.counts).map((c) => {
                 const n = padraoCounts.counts[c] ?? 0;
+                const label = CATEGORY_LABELS[c] ?? CODE_TO_SUBCATEGORIA[c] ?? c;
                 return (
                   <Badge
                     key={c}
                     variant={n > 0 ? "default" : "outline"}
                     className={`text-[10px] font-mono ${n === 0 ? "opacity-40" : ""}`}
-                    title={CATEGORY_LABELS[c] ?? c}
+                    title={label}
                   >
                     {c} {n}
                   </Badge>
@@ -907,6 +925,7 @@ export function PersonalizadoEditor({
                                   key={ei}
                                   ex={ex}
                                   index={ei}
+                                  groups={forcaCategories}
                                   onRemove={() => removeExercicio(ti, bi, ei)}
                                   onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
                                 />
@@ -1044,20 +1063,49 @@ function NewExerciseButton({ onAdd }: { onAdd: (tipo: "simples" | "dinamico") =>
 function CategoriaSelect({
   value,
   onChange,
+  groups,
 }: {
   value: string;
   onChange: (v: string) => void;
+  groups: ExerciseCategory[];
 }) {
+  // Resolve o label exibido no trigger: se for um código clássico, mostra "DJS";
+  // se for o nome de uma subcategoria custom, mostra um abreviado das iniciais.
+  const isCode = !!CATEGORY_LABELS[value];
+  const triggerLabel = isCode
+    ? value
+    : (value
+        ? value
+            .split(/\s+/)
+            .map((w) => w[0])
+            .join("")
+            .slice(0, 4)
+            .toUpperCase()
+        : "");
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-7 w-24 text-xs">
-        <SelectValue />
+      <SelectTrigger className="h-7 w-24 text-xs" title={CATEGORY_LABELS[value] ?? value}>
+        <SelectValue>{triggerLabel}</SelectValue>
       </SelectTrigger>
-      <SelectContent>
-        {FORCA_CATEGORIAS.map((c) => (
-          <SelectItem key={c} value={c} className="text-xs">
-            {c} — {CATEGORY_LABELS[c]}
-          </SelectItem>
+      <SelectContent className="max-h-80">
+        {groups.map((g) => (
+          <SelectGroup key={g.name}>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {g.name}
+            </SelectLabel>
+            {g.subcategories.map((sub) => {
+              const code = SUBCATEGORIA_TO_CODE[sub];
+              const itemValue = code ?? sub;
+              const display = code
+                ? `${code} — ${CATEGORY_LABELS[code] ?? sub}`
+                : sub;
+              return (
+                <SelectItem key={itemValue} value={itemValue} className="text-xs">
+                  {display}
+                </SelectItem>
+              );
+            })}
+          </SelectGroup>
         ))}
       </SelectContent>
     </Select>
@@ -1069,11 +1117,13 @@ function CategoriaSelect({
 function ExercicioRows({
   ex,
   index,
+  groups,
   onRemove,
   onUpdate,
 }: {
   ex: PersonalizadoExercicio;
   index: number;
+  groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (patch: Partial<PersonalizadoExercicio>) => void;
 }) {
@@ -1082,6 +1132,7 @@ function ExercicioRows({
       <SimplesRow
         ex={ex}
         index={index}
+        groups={groups}
         onRemove={onRemove}
         onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioSimples>) => void}
       />
@@ -1091,6 +1142,7 @@ function ExercicioRows({
     <DinamicoRows
       ex={ex}
       index={index}
+      groups={groups}
       onRemove={onRemove}
       onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioDinamico>) => void}
     />
@@ -1100,11 +1152,13 @@ function ExercicioRows({
 function SimplesRow({
   ex,
   index,
+  groups,
   onRemove,
   onUpdate,
 }: {
   ex: PersonalizadoExercicioSimples;
   index: number;
+  groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioSimples>) => void;
 }) {
@@ -1114,7 +1168,7 @@ function SimplesRow({
         {index + 1}
       </TableCell>
       <TableCell className="px-2 py-1.5 align-middle">
-        <CategoriaSelect value={ex.categoria} onChange={(v) => onUpdate({ categoria: v })} />
+        <CategoriaSelect value={ex.categoria} groups={groups} onChange={(v) => onUpdate({ categoria: v })} />
       </TableCell>
       <TableCell className="px-2 py-1.5 align-middle">
         <ExerciseSelector
@@ -1155,11 +1209,13 @@ function SimplesRow({
 function DinamicoRows({
   ex,
   index,
+  groups,
   onRemove,
   onUpdate,
 }: {
   ex: PersonalizadoExercicioDinamico;
   index: number;
+  groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioDinamico>) => void;
 }) {
@@ -1194,7 +1250,7 @@ function DinamicoRows({
           {index + 1}
         </TableCell>
         <TableCell className="px-2 py-1.5 align-middle">
-          <CategoriaSelect value={ex.categoria} onChange={(v) => onUpdate({ categoria: v })} />
+          <CategoriaSelect value={ex.categoria} groups={groups} onChange={(v) => onUpdate({ categoria: v })} />
         </TableCell>
         <TableCell className="px-2 py-1.5 align-middle" colSpan={compartilhado ? 1 : 3}>
           <div className="flex items-center gap-2 flex-wrap">
