@@ -59,7 +59,7 @@ const PHASE_GROUPS = [
 /** Estrutura inicial do "Personalizado 2": 4 Treinos × 2 Blocos (Principais/Acessórios). */
 function emptyPersonalizado2(): PersonalizadoConteudo {
   return {
-    aquecimento: { LIB: [], MOB: [], ATI: [] },
+    aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
     treinos: [1, 2, 3, 4].map((n) => ({
       nome: `Treino ${n}`,
       blocos: [
