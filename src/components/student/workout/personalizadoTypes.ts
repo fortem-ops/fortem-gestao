@@ -5,7 +5,7 @@
 
 import type { WorkoutExercise } from "./workoutTemplates";
 
-export type AquecimentoBloco = "LIB" | "MOB" | "ATI";
+export type AquecimentoBloco = "LIB" | "MOB" | "ATI" | "PREV";
 
 export interface PersonalizadoAquecimentoEx {
   subcategoria?: string;
@@ -78,7 +78,7 @@ export interface PersonalizadoTreinoConteudo {
 
 export function emptyPersonalizado(): PersonalizadoConteudo {
   return {
-    aquecimento: { LIB: [], MOB: [], ATI: [] },
+    aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
     treinos: [
       {
         nome: "Treino 1",
@@ -101,7 +101,7 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
 } {
   const aquecimento: WorkoutExercise[] = [];
   let ord = 1;
-  (["LIB", "MOB", "ATI"] as AquecimentoBloco[]).forEach((bloco) => {
+  (["LIB", "MOB", "ATI", "PREV"] as AquecimentoBloco[]).forEach((bloco) => {
     c.aquecimento[bloco]?.forEach((ex) => {
       aquecimento.push({
         ordem: ord++,
@@ -202,11 +202,11 @@ export function personalizadoFromFlat(raw: unknown): PersonalizadoConteudo {
   };
 
   // Aquecimento → distribuir nos blocos LIB/MOB/ATI
-  const aquec: PersonalizadoConteudo["aquecimento"] = { LIB: [], MOB: [], ATI: [] };
+  const aquec: PersonalizadoConteudo["aquecimento"] = { LIB: [], MOB: [], ATI: [], PREV: [] };
   (r.aquecimento || []).forEach((ex) => {
     const cat = (ex.categoria || "").toUpperCase();
     const bloco: AquecimentoBloco | null =
-      cat === "LIB" || cat === "MOB" || cat === "ATI" ? (cat as AquecimentoBloco) : null;
+      cat === "LIB" || cat === "MOB" || cat === "ATI" || cat === "PREV" ? (cat as AquecimentoBloco) : null;
     if (!bloco) return;
     aquec[bloco].push({
       subcategoria: ex.subcategoria,

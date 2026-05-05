@@ -77,6 +77,7 @@ const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
   { key: "LIB", label: "Liberação (LIB)" },
   { key: "MOB", label: "Mobilidade (MOB)" },
   { key: "ATI", label: "Ativação (ATI)" },
+  { key: "PREV", label: "Preventivo (PREV)" },
 ];
 
 const DAYS = ["T1", "T2", "T3", "T4"];
@@ -97,10 +98,11 @@ export function PersonalizadoEditor({
 }: Props) {
   const { user } = useAuth();
   const { grupoSubcategorias } = useExerciseCategories();
-  const aquecimentoGrupoMap: Record<"LIB" | "MOB" | "ATI", string> = {
+  const aquecimentoGrupoMap: Record<AquecimentoBloco, string> = {
     LIB: "Liberação Miofascial",
     MOB: "Mobilidade Articular",
     ATI: "Ativação Muscular",
+    PREV: "Preventivo",
   };
   // IMPORTANT: `initial` and `initialName` are treated as initializers only.
   // We deliberately do NOT sync with later prop changes — re-syncing causes
