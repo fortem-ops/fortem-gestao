@@ -101,7 +101,7 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
 } {
   const aquecimento: WorkoutExercise[] = [];
   let ord = 1;
-  (["LIB", "MOB", "ATI"] as AquecimentoBloco[]).forEach((bloco) => {
+  (["LIB", "MOB", "ATI", "PREV"] as AquecimentoBloco[]).forEach((bloco) => {
     c.aquecimento[bloco]?.forEach((ex) => {
       aquecimento.push({
         ordem: ord++,
