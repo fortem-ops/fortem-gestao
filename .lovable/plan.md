@@ -1,28 +1,63 @@
-## Problema
+## Objetivo
 
-Subcategorias novas criadas pelo Coordenador no Banco de Exercícios não aparecem nos dropdowns de categoria do editor de prescrição (`PersonalizadoEditor` → bloco FORÇA), porque ele usa uma lista estática `FORCA_CATEGORIAS` de códigos hardcoded.
+Ao finalizar a prescrição de um treino (aplicar ao aluno), criar automaticamente uma tarefa "Atualizar treino" para o professor responsável, com vencimento em 30 dias. Essa tarefa aparece em **Alertas Técnicos** (dashboard) e na **Central de Tarefas**. No dia (ou depois), o professor pode:
+- **Concluir** a tarefa (baixa), ou
+- **Reagendar** para nova data, sendo **obrigatório** descrever o motivo.
+
+A lista de Tarefas passa a ser ordenada **cronologicamente** pela data limite (mais próxima primeiro).
+
+---
 
 ## Mudanças
 
-### 1. `src/lib/exerciseMapping.ts`
-- Adicionar `SUBCATEGORIA_TO_CODE` (inverso de `CODE_TO_SUBCATEGORIA`).
-- Adicionar helper `categoriaToGrupoSub(value, categories)` que resolve o valor de `ex.categoria` (código curto OU nome de subcategoria) em `{ grupo, subcategoria }`, consultando primeiro os mapas de código e, em fallback, a taxonomia da tabela.
+### 1. Criação automática da tarefa ao salvar treino
+Em `src/components/student/workout/PersonalizadoEditor.tsx` (função `saveToAluno`), após o `insert`/`update` em `treinos` com sucesso e quando o status fica `atual`, inserir em `tarefas`:
+- `titulo`: "Atualizar treino — {nome do aluno}"
+- `descricao`: "Revisar e atualizar a prescrição de treino do aluno."
+- `aluno_id`: alvo
+- `responsavel_id`: `aluno.responsavel_id` (fallback: `user.id`)
+- `criado_por_id`: `user.id`
+- `data_limite`: hoje + 30 dias
+- `prioridade`: "media"
+- `automatica`: true
+- `tipo_auto`: `"atualizar_treino"`
 
-### 2. `src/components/student/workout/PersonalizadoEditor.tsx`
-- Refatorar `CategoriaSelect`: em vez de listar `FORCA_CATEGORIAS`, ler `categories` de `useExerciseCategories()` e renderizar todas as subcategorias dos grupos de treino (qualquer grupo que NÃO seja Liberação/Mobilidade/Ativação/Preventivo), agrupadas por grupo via `SelectGroup`/`SelectLabel`.
-- Valor salvo em `ex.categoria`: se a subcategoria tiver código conhecido (`SUBCATEGORIA_TO_CODE`), salvar o código (preserva templates atuais e badges); caso contrário, salvar o próprio nome.
-- Padrões de Movimento: inicializar counters a partir de `Object.keys(CATEGORY_LABELS)` e adicionar dinamicamente qualquer `ex.categoria` que aparecer.
+Antes de criar, marcar como `concluida` qualquer tarefa anterior pendente do mesmo aluno com `tipo_auto = 'atualizar_treino'` (evita duplicar quando o professor já está atualizando).
 
-### 3. `src/components/student/workout/ExerciseSelector.tsx`
-- Aceitar prop opcional `grupo?: string`.
-- Resolver `grupoAlvo`/`subAlvo` via `categoriaToGrupoSub(categoria, categories)` quando os mapas de código não casarem; props `grupo`/`subcategoria` continuam tendo prioridade.
-- Carregar `categories` via `useExerciseCategories()`.
+### 2. Alerta Técnico no dashboard
+Em `src/components/dashboard/AlertsWidget.tsx`, adicionar fonte de alertas a partir de `tarefas` onde `tipo_auto = 'atualizar_treino'` e `status != 'concluida'`:
+- Filtra pelo `responsavel_id = professorId`
+- Severidade: `urgente` se `data_limite <= hoje`, `atencao` se faltam ≤ 7 dias, caso contrário não exibe
+- Mensagem: "Atualizar treino em X dias" / "Atualização de treino atrasada (X dias)"
+- Click navega para `/tarefas`
 
-## Compatibilidade
-- Templates antigos (DJS, DQ_P, etc.) continuam funcionando — códigos resolvem pelos mapas atuais.
-- Aquecimento já é dinâmico, sem mudanças.
+### 3. Reagendar tarefa com motivo obrigatório
+Em `src/pages/TaskCenter.tsx`:
+- Adicionar botão **"Reagendar"** ao lado do badge de prioridade em cada tarefa pendente.
+- Abrir um `Dialog` com:
+  - Campo data (nova `data_limite`, obrigatório, ≥ hoje)
+  - Campo `Textarea` "Motivo" (obrigatório, mínimo 5 caracteres)
+- Ao confirmar, fazer `update` em `tarefas`:
+  - `data_limite` = nova data
+  - `descricao` = descrição original + bloco "\n\n[Reagendado em DD/MM/AAAA]: {motivo}"
+- Toast de sucesso e invalidar queries (`tarefas-all`, `dashboard-tarefas`, `dashboard-alerts`).
+- Botão de **concluir** (check) já existe — mantém para "dar baixa".
 
-## Arquivos
-- `src/lib/exerciseMapping.ts`
-- `src/components/student/workout/PersonalizadoEditor.tsx`
-- `src/components/student/workout/ExerciseSelector.tsx`
+### 4. Ordenação cronológica em Tarefas
+Já há `order("data_limite", { ascending: true, nullsFirst: false })` em `TaskCenter`. Reforçar:
+- Em cada `TabsContent`, garantir que a `TaskList` recebe lista ordenada por `data_limite asc` (tarefas sem data ao final).
+- Aplicar a mesma ordenação no `TasksWidget` do dashboard (já está ascending).
+
+---
+
+## Detalhes técnicos
+
+- Sem alterações de schema; `tarefas.tipo_auto` já é `text` e suporta o novo valor `"atualizar_treino"`.
+- RLS: `tarefas` permite `INSERT` quando `criado_por_id = auth.uid()` e `UPDATE` para `responsavel_id` ou coord/admin — compatível.
+- Histórico do reagendamento fica embutido em `descricao` (sem nova tabela).
+- Sem mudanças no portal do aluno.
+
+## Arquivos a editar
+- `src/components/student/workout/PersonalizadoEditor.tsx` — criar tarefa após salvar
+- `src/components/dashboard/AlertsWidget.tsx` — adicionar alerta de atualização de treino
+- `src/pages/TaskCenter.tsx` — botão/dialog de reagendar com motivo + ordenação
