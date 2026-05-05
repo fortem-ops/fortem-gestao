@@ -554,7 +554,7 @@ function DiarioTable({
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </TableBody>
