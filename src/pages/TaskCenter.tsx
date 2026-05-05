@@ -113,6 +113,11 @@ function TaskList({
             {!isDone && (
               <RescheduleDialog task={task} onDone={onRescheduled} />
             )}
+            {task.automatica && (
+              <Badge variant="outline" className="text-[10px] shrink-0 border-info/30 text-info bg-info/10">
+                Automática
+              </Badge>
+            )}
             <Badge
               variant="outline"
               className={`text-xs shrink-0 ${priorityClass[task.prioridade] || ""}`}
