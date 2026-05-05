@@ -385,6 +385,12 @@ export default function TaskCenter() {
     toggleMutation.mutate({ id, newStatus });
   };
 
+  const handleRescheduled = () => {
+    queryClient.invalidateQueries({ queryKey: ["tarefas-all"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-alerts"] });
+  };
+
   const pending = tasks.filter(
     (t) => t.status === "pendente" && !t.atrasada
   );
