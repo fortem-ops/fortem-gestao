@@ -19,6 +19,7 @@ export const CODE_TO_GRUPO: Record<string, string> = {
   AH: "Força",
   AF: "Força",
   AR: "Força",
+  ROT: "Força",
   KB: "Força",
   PLIO: "Força",
   ISO: "Força",
