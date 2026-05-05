@@ -925,6 +925,7 @@ export function PersonalizadoEditor({
                                   key={ei}
                                   ex={ex}
                                   index={ei}
+                                  groups={forcaCategories}
                                   onRemove={() => removeExercicio(ti, bi, ei)}
                                   onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
                                 />
