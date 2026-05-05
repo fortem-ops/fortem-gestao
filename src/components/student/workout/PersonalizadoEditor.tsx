@@ -1152,11 +1152,13 @@ function ExercicioRows({
 function SimplesRow({
   ex,
   index,
+  groups,
   onRemove,
   onUpdate,
 }: {
   ex: PersonalizadoExercicioSimples;
   index: number;
+  groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioSimples>) => void;
 }) {
@@ -1166,7 +1168,7 @@ function SimplesRow({
         {index + 1}
       </TableCell>
       <TableCell className="px-2 py-1.5 align-middle">
-        <CategoriaSelect value={ex.categoria} onChange={(v) => onUpdate({ categoria: v })} />
+        <CategoriaSelect value={ex.categoria} groups={groups} onChange={(v) => onUpdate({ categoria: v })} />
       </TableCell>
       <TableCell className="px-2 py-1.5 align-middle">
         <ExerciseSelector
