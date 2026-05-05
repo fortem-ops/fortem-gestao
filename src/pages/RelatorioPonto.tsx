@@ -479,8 +479,8 @@ function DiarioTable({
             const prev = previstoMinutos(horarioPara(j.usuario_id, j.data));
             const pend = pendenciasJornada(j, intervaloObrigatorio);
             return (
-              <>
-                <TableRow key={j.id}>
+              <Fragment key={j.id}>
+                <TableRow>
                   <TableCell>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setExpanded(open ? null : j.id)}>
                       {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
