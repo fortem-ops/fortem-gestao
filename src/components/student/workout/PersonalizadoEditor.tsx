@@ -188,7 +188,16 @@ export function PersonalizadoEditor({
         JSON.stringify(parsed.data) === JSON.stringify(data) &&
         parsed.name === name;
       if (sameContent) return;
-      setData(parsed.data);
+      const aq = (parsed.data?.aquecimento ?? {}) as Partial<PersonalizadoConteudo["aquecimento"]>;
+      setData({
+        ...parsed.data,
+        aquecimento: {
+          LIB: aq.LIB ?? [],
+          MOB: aq.MOB ?? [],
+          ATI: aq.ATI ?? [],
+          PREV: aq.PREV ?? [],
+        },
+      });
       setName(parsed.name);
       setLastAutoSaveAt(parsed.savedAt);
       setAutoSaveStatus("saved");
