@@ -453,11 +453,31 @@ export default function TaskCenter() {
             {tasks.length} tarefa(s) no total
           </p>
         </div>
-        <NewTaskDialog
-          onCreated={() =>
-            queryClient.invalidateQueries({ queryKey: ["tarefas-all"] })
-          }
-        />
+        <div className="flex items-center gap-2">
+          {isCoordAdmin && (
+            <Select value={selectedProfessorId} onValueChange={setSelectedProfessorId}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="self">Minhas tarefas</SelectItem>
+                <SelectItem value="todos">Todos os profissionais</SelectItem>
+                {professors
+                  .filter((p) => p.user_id !== user?.id)
+                  .map((p) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>
+                      {p.full_name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          )}
+          <NewTaskDialog
+            onCreated={() =>
+              queryClient.invalidateQueries({ queryKey: ["tarefas-all"] })
+            }
+          />
+        </div>
       </div>
       <Tabs defaultValue="pendentes">
         <TabsList className="bg-secondary/50 border border-border">
