@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2 } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
@@ -36,6 +36,7 @@ const mainItems = [
 
 const coordPontoItems = [
   { title: "Equipe (Ponto)", url: "/ponto/equipe", icon: Users2 },
+  { title: "Relatório Ponto", url: "/ponto/relatorio", icon: FileText },
   { title: "Fechamento Ponto", url: "/ponto/fechamento", icon: FileCheck2 },
 ];
 

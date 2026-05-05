@@ -32,6 +32,7 @@ const PartnerScannerPage = lazy(() => import("./pages/PartnerScannerPage"));
 const Ponto = lazy(() => import("./pages/Ponto"));
 const PontoEquipe = lazy(() => import("./pages/PontoEquipe"));
 const PontoFechamento = lazy(() => import("./pages/PontoFechamento"));
+const RelatorioPonto = lazy(() => import("./pages/RelatorioPonto"));
 const AdminPonto = lazy(() => import("./pages/AdminPonto"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -234,6 +235,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <PontoFechamento />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/ponto/relatorio"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <RelatorioPonto />
                   </Suspense>
                 }
               />
