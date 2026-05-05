@@ -667,11 +667,11 @@ export function PersonalizadoEditor({
                 <Plus className="w-3 h-3 mr-1" /> Exercício
               </Button>
             </div>
-            {data.aquecimento[b.key].length === 0 ? (
+            {(data.aquecimento[b.key]?.length ?? 0) === 0 ? (
               <p className="text-[11px] text-muted-foreground italic">Nenhum exercício neste bloco.</p>
             ) : (
               <div className="space-y-1.5">
-                {data.aquecimento[b.key].map((ex, i) => (
+                {(data.aquecimento[b.key] ?? []).map((ex, i) => (
                   <div key={i} className="flex items-start gap-2 p-2 rounded border border-border/50 bg-card/50">
                     <span className="text-[10px] text-muted-foreground mt-2 w-4">{i + 1}</span>
                     <div className="flex-1 min-w-0 space-y-1.5">
