@@ -44,6 +44,7 @@ export const CODE_TO_SUBCATEGORIA: Record<string, string | undefined> = {
   AH: "Anti-Hiperextensão",
   AF: "Anti-flexão",
   AR: "Anti-Rotação",
+  ROT: "Rotação",
   KB: "Kettlebell",
   PLIO: "Pliometria",
   ISO: "Isoinercial",
