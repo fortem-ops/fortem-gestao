@@ -100,13 +100,20 @@ export function PersonalizadoEditor({
   onSaved,
 }: Props) {
   const { user } = useAuth();
-  const { grupoSubcategorias } = useExerciseCategories();
+  const { categories, grupoSubcategorias } = useExerciseCategories();
   const aquecimentoGrupoMap: Record<AquecimentoBloco, string> = {
     LIB: "Liberação Miofascial",
     MOB: "Mobilidade Articular",
     ATI: "Ativação Muscular",
     PREV: "Preventivo",
   };
+  // Grupos que pertencem ao bloco de aquecimento (não devem aparecer no seletor de FORÇA).
+  const AQUECIMENTO_GRUPOS = new Set(Object.values(aquecimentoGrupoMap));
+  const forcaCategories: ExerciseCategory[] = useMemo(
+    () => categories.filter((c) => !AQUECIMENTO_GRUPOS.has(c.name)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [categories],
+  );
   // IMPORTANT: `initial` and `initialName` are treated as initializers only.
   // We deliberately do NOT sync with later prop changes — re-syncing causes
   // the editor to wipe the user's in-progress prescription whenever the
