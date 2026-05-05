@@ -1250,7 +1250,7 @@ function DinamicoRows({
           {index + 1}
         </TableCell>
         <TableCell className="px-2 py-1.5 align-middle">
-          <CategoriaSelect value={ex.categoria} onChange={(v) => onUpdate({ categoria: v })} />
+          <CategoriaSelect value={ex.categoria} groups={groups} onChange={(v) => onUpdate({ categoria: v })} />
         </TableCell>
         <TableCell className="px-2 py-1.5 align-middle" colSpan={compartilhado ? 1 : 3}>
           <div className="flex items-center gap-2 flex-wrap">
