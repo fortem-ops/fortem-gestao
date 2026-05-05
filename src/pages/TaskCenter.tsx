@@ -102,9 +102,11 @@ function RescheduleDialog({ task, onDone }: { task: TaskRow; onDone: () => void 
 function TaskList({
   tasks,
   onToggle,
+  onRescheduled,
 }: {
   tasks: TaskRow[];
   onToggle: (id: string, currentStatus: string) => void;
+  onRescheduled: () => void;
 }) {
   const navigate = useNavigate();
 
