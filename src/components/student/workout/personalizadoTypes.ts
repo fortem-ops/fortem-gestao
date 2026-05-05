@@ -78,7 +78,7 @@ export interface PersonalizadoTreinoConteudo {
 
 export function emptyPersonalizado(): PersonalizadoConteudo {
   return {
-    aquecimento: { LIB: [], MOB: [], ATI: [] },
+    aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
     treinos: [
       {
         nome: "Treino 1",
