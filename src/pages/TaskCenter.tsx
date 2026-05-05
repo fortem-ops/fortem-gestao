@@ -187,25 +187,29 @@ function TaskList({
   );
 }
 
-function NewTaskDialog({ onCreated }: { onCreated: () => void }) {
+function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => void; defaultResponsavelId?: string | null }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState("media");
   const [dataLimite, setDataLimite] = useState("");
+  const [responsavelId, setResponsavelId] = useState<string>(defaultResponsavelId || "");
+
+  useEffect(() => {
+    setResponsavelId(defaultResponsavelId || "");
+  }, [defaultResponsavelId, open]);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-list"],
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("user_id, full_name");
+        .select("user_id, full_name")
+        .order("full_name");
       return data || [];
     },
   });
-
-  const [responsavelId, setResponsavelId] = useState("");
 
   const createMutation = useMutation({
     mutationFn: async () => {
