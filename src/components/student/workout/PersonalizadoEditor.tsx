@@ -1209,11 +1209,13 @@ function SimplesRow({
 function DinamicoRows({
   ex,
   index,
+  groups,
   onRemove,
   onUpdate,
 }: {
   ex: PersonalizadoExercicioDinamico;
   index: number;
+  groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioDinamico>) => void;
 }) {
