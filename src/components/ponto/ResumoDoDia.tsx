@@ -35,18 +35,38 @@ function LocBadge({ ev }: { ev?: EventoPonto }) {
   if (ev.latitude == null || ev.longitude == null) {
     return <p className="text-[10px] text-muted-foreground/70 mt-0.5">Sem localização</p>;
   }
-  const url = `https://www.google.com/maps?q=${ev.latitude},${ev.longitude}`;
+  const lat = ev.latitude;
+  const lng = ev.longitude;
+  const url = `https://www.google.com/maps?q=${lat},${lng}`;
+  const d = 0.004;
+  const bbox = `${lng - d},${lat - d / 2},${lng + d},${lat + d / 2}`;
+  const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
-      title="Abrir no Google Maps"
-    >
-      <MapPin className="w-2.5 h-2.5" />
-      {ev.latitude.toFixed(4)}, {ev.longitude.toFixed(4)}
-    </a>
+    <div className="mt-1 space-y-1">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block overflow-hidden rounded border border-border/60 hover:border-primary/60 transition-colors"
+        title="Abrir no Google Maps"
+      >
+        <iframe
+          src={embedUrl}
+          className="w-full h-20 pointer-events-none"
+          loading="lazy"
+          title={`Mapa ${lat},${lng}`}
+        />
+      </a>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
+      >
+        <MapPin className="w-2.5 h-2.5" />
+        Ampliar mapa
+      </a>
+    </div>
   );
 }
 
