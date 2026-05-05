@@ -112,7 +112,18 @@ export function PersonalizadoEditor({
   // The editor identity is tied to `modeloId`/`treinoId` via the parent's
   // conditional rendering, so a true "load different record" path naturally
   // remounts this component and re-initializes state from scratch.
-  const [data, setData] = useState<PersonalizadoConteudo>(() => initial ?? emptyPersonalizado());
+  const [data, setData] = useState<PersonalizadoConteudo>(() => {
+    const base = initial ?? emptyPersonalizado();
+    return {
+      ...base,
+      aquecimento: {
+        LIB: base.aquecimento?.LIB ?? [],
+        MOB: base.aquecimento?.MOB ?? [],
+        ATI: base.aquecimento?.ATI ?? [],
+        PREV: base.aquecimento?.PREV ?? [],
+      },
+    };
+  });
   const [name, setName] = useState(
     () => initialName ?? (alunoId ? "Treino Personalizado" : "Modelo Personalizado"),
   );
