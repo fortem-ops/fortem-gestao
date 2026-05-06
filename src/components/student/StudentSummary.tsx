@@ -376,12 +376,10 @@ export function StudentSummary({ student }: { student: Aluno }) {
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Heart className={`w-4 h-4 ${student.status !== "ativo" ? "text-warning" : "text-muted-foreground"}`} />
+              <Heart className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Status</span>
             </div>
-            <p className={`text-sm font-semibold ${student.status !== "ativo" ? "text-warning" : "text-foreground"}`}>
-              {statusMap[student.status] || student.status}
-            </p>
+            <Badge variant="outline" className={`${displayStatus.className} text-xs`}>{displayStatus.label}</Badge>
           </div>
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
