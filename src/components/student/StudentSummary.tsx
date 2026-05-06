@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getDisplayStatus } from "@/lib/studentStatus";
+import type { AlunoLicenca } from "@/lib/licencas";
 
 type Aluno = Tables<"alunos">;
 
@@ -76,6 +78,17 @@ export function StudentSummary({ student }: { student: Aluno }) {
         .limit(1);
       return data && data.length > 0 ? data[0] : null;
     },
+  });
+
+  const { data: licencas = [] } = useQuery({
+    queryKey: ["aluno_licencas_summary", student.id, plano?.id],
+    queryFn: async () => {
+      if (!plano) return [];
+      const { data } = await supabase.from("aluno_licencas" as any)
+        .select("*").eq("aluno_id", student.id).eq("plano_id", plano.id);
+      return (data as unknown as AlunoLicenca[]) || [];
+    },
+    enabled: !!plano,
   });
 
   const { data: lastAval } = useQuery({
@@ -184,6 +197,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   }
 
   const planEndDate = plano ? (plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : calcEndDate(plano.data_inicio, plano.duracao_meses)) : null;
+  const displayStatus = getDisplayStatus(student.status, planEndDate, licencas);
 
   const severityClass: Record<string, string> = {
     atencao: "status-warning",
@@ -211,7 +225,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
             <span className="text-xs text-muted-foreground">Status</span>
             <p className="text-sm font-semibold text-foreground mt-1">
               {plano ? (
-                <Badge variant="outline" className="status-active text-xs">Ativo</Badge>
+                <Badge variant="outline" className={`${displayStatus.className} text-xs`}>{displayStatus.label}</Badge>
               ) : (
                 <Badge variant="outline" className="status-urgent text-xs">Sem plano</Badge>
               )}
@@ -362,12 +376,10 @@ export function StudentSummary({ student }: { student: Aluno }) {
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Heart className={`w-4 h-4 ${student.status !== "ativo" ? "text-warning" : "text-muted-foreground"}`} />
+              <Heart className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Status</span>
             </div>
-            <p className={`text-sm font-semibold ${student.status !== "ativo" ? "text-warning" : "text-foreground"}`}>
-              {statusMap[student.status] || student.status}
-            </p>
+            <Badge variant="outline" className={`${displayStatus.className} text-xs`}>{displayStatus.label}</Badge>
           </div>
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">

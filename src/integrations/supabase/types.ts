@@ -62,6 +62,51 @@ export type Database = {
         }
         Relationships: []
       }
+      aluno_licencas: {
+        Row: {
+          aluno_id: string
+          arquivo_url: string | null
+          created_at: string
+          criado_por: string
+          data_fim: string
+          data_inicio: string
+          dias: number
+          id: string
+          motivo: string | null
+          plano_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          arquivo_url?: string | null
+          created_at?: string
+          criado_por: string
+          data_fim: string
+          data_inicio: string
+          dias: number
+          id?: string
+          motivo?: string | null
+          plano_id: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          arquivo_url?: string | null
+          created_at?: string
+          criado_por?: string
+          data_fim?: string
+          data_inicio?: string
+          dias?: number
+          id?: string
+          motivo?: string | null
+          plano_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       alunos: {
         Row: {
           created_at: string

@@ -11,6 +11,7 @@ import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Ch
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
+import { StudentLicencas } from "./StudentLicencas";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
@@ -377,6 +378,8 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
             <p className="text-xs text-muted-foreground mt-2">Créditos são consumidos ao agendar o serviço na agenda.</p>
           </div>
         )}
+
+        <StudentLicencas alunoId={student.id} planoId={data.id} planoTipo={data.tipo} isCoordAdmin={isCoordAdmin} />
       </div>
       <p className="text-xs text-muted-foreground">Editável apenas por Coordenação e Administração</p>
 
