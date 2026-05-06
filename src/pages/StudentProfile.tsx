@@ -73,6 +73,27 @@ export default function StudentProfile() {
     enabled: !!id,
   });
 
+  const { data: statusInfo } = useQuery({
+    queryKey: ["aluno_display_status", id],
+    queryFn: async () => {
+      const { data: planos } = await supabase
+        .from("planos").select("*").eq("aluno_id", id!).eq("ativo", true)
+        .order("created_at", { ascending: false }).limit(1);
+      const plano = planos?.[0];
+      const planEnd = plano
+        ? (plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : addMonths(new Date(plano.data_inicio), plano.duracao_meses))
+        : null;
+      let licencas: AlunoLicenca[] = [];
+      if (plano) {
+        const { data } = await supabase.from("aluno_licencas" as any)
+          .select("*").eq("aluno_id", id!).eq("plano_id", plano.id);
+        licencas = (data as unknown as AlunoLicenca[]) || [];
+      }
+      return { planEnd, licencas };
+    },
+    enabled: !!id,
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-6 animate-fade-in">
@@ -96,9 +117,10 @@ export default function StudentProfile() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-heading font-bold text-foreground">{student.nome}</h1>
-            <Badge variant="outline" className={statusClass[student.status]}>
-              {statusLabel[student.status] || student.status}
-            </Badge>
+            {(() => {
+              const d = getDisplayStatus(student.status, statusInfo?.planEnd ?? null, statusInfo?.licencas ?? []);
+              return <Badge variant="outline" className={d.className}>{d.label}</Badge>;
+            })()}
           </div>
           <p className="text-sm text-muted-foreground">
             {student.email || "Sem email"} · {student.frequencia_semanal}x/semana
