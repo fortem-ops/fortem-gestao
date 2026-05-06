@@ -98,4 +98,8 @@
   .glass-card {
     @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
   }
+  .prio-baixa { background-color: hsl(220 9% 60% / 0.15); color: hsl(220 9% 40%); border: 1px solid hsl(220 9% 60% / 0.3); }
+  .prio-media { background-color: hsl(213 94% 50% / 0.15); color: hsl(213 94% 45%); border: 1px solid hsl(213 94% 50% / 0.3); }
+  .prio-alta  { background-color: hsl(28 95% 55% / 0.15);  color: hsl(28 95% 50%);  border: 1px solid hsl(28 95% 55% / 0.3); }
+  .prio-urgente { background-color: hsl(0 80% 55% / 0.18); color: hsl(0 80% 50%); border: 1px solid hsl(0 80% 55% / 0.4); }
 }
