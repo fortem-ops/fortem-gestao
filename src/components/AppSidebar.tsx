@@ -77,15 +77,22 @@ const sistemaParceiroItems = [
   { title: "Painel Parceiro", url: "/parceiros/scanner", icon: ScanLine },
 ];
 
-function SidebarItem({ item, isActive }: { item: { title: string; url: string; icon: any }; isActive: (p: string) => boolean }) {
+function SidebarItem({ item, isActive }: { item: { title: string; url: string; icon: any; badge?: "unread" }; isActive: (p: string) => boolean }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { data: unread = 0 } = useUnreadCount();
+  const showBadge = item.badge === "unread" && unread > 0;
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive(item.url)}>
         <NavLink to={item.url} end={item.url === "/"} activeClassName="bg-sidebar-accent text-sidebar-primary">
           <item.icon className="mr-2 h-4 w-4" />
-          {!collapsed && <span>{item.title}</span>}
+          {!collapsed && <span className="flex-1">{item.title}</span>}
+          {showBadge && (
+            <span className={`${collapsed ? "ml-0 absolute right-1 top-1" : "ml-auto"} inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold`}>
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
