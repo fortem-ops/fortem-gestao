@@ -90,6 +90,8 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
     enabled: !!plano,
   });
+
+  const { data: lastAval } = useQuery({
     queryKey: ["last_aval_funcional", student.id],
     queryFn: async () => {
       const { data } = await supabase
