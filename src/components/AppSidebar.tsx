@@ -1,4 +1,5 @@
-import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell } from "lucide-react";
+import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
@@ -25,6 +26,7 @@ const principalItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Ponto", url: "/ponto", icon: Clock },
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
+  { title: "Notificar", url: "/notificar", icon: Bell, badge: "unread" as const },
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
 ];
 
@@ -75,15 +77,22 @@ const sistemaParceiroItems = [
   { title: "Painel Parceiro", url: "/parceiros/scanner", icon: ScanLine },
 ];
 
-function SidebarItem({ item, isActive }: { item: { title: string; url: string; icon: any }; isActive: (p: string) => boolean }) {
+function SidebarItem({ item, isActive }: { item: { title: string; url: string; icon: any; badge?: "unread" }; isActive: (p: string) => boolean }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { data: unread = 0 } = useUnreadCount();
+  const showBadge = item.badge === "unread" && unread > 0;
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive(item.url)}>
         <NavLink to={item.url} end={item.url === "/"} activeClassName="bg-sidebar-accent text-sidebar-primary">
           <item.icon className="mr-2 h-4 w-4" />
-          {!collapsed && <span>{item.title}</span>}
+          {!collapsed && <span className="flex-1">{item.title}</span>}
+          {showBadge && (
+            <span className={`${collapsed ? "ml-0 absolute right-1 top-1" : "ml-auto"} inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold`}>
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -96,6 +105,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const isActive = (path: string) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
+  useNotificacaoRealtime();
 
   const { data: isCoordAdmin } = useQuery({
     queryKey: ["sidebar-coord-admin", user?.id],
