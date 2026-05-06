@@ -105,6 +105,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const isActive = (path: string) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
+  useNotificacaoRealtime();
 
   const { data: isCoordAdmin } = useQuery({
     queryKey: ["sidebar-coord-admin", user?.id],
