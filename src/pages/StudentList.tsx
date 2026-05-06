@@ -9,10 +9,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import AddStudentDialog from "@/components/student/AddStudentDialog";
 import { StudentListFilters, defaultFilters, type StudentFilters } from "@/components/student/StudentListFilters";
 import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
-
-type Status = "ativo" | "licenca" | "encerrado";
-const statusLabel: Record<Status, string> = { ativo: "Ativo", licenca: "Licença", encerrado: "Encerrado" };
-const statusClass: Record<Status, string> = { ativo: "status-active", licenca: "status-warning", encerrado: "status-urgent" };
+import { getDisplayStatus } from "@/lib/studentStatus";
+import type { AlunoLicenca } from "@/lib/licencas";
 
 function parseServiceCount(servicos: string[] | null, tipoServico: string): number {
   if (!servicos) return 0;
@@ -57,6 +55,14 @@ export default function StudentList() {
         .from("consumo_servicos")
         .select("aluno_id, plano_id, tipo_servico, quantidade, agenda_id, tipo_registro")
         .in("aluno_id", ids);
+      const { data: licencas } = await supabase
+        .from("aluno_licencas" as any)
+        .select("*")
+        .in("aluno_id", ids);
+      const licencasMap: Record<string, AlunoLicenca[]> = {};
+      ((licencas as unknown as AlunoLicenca[]) || []).forEach((l) => {
+        (licencasMap[l.aluno_id] ||= []).push(l);
+      });
 
       const creditsMap: Record<string, ServiceCredits> = {};
       const planEndMap: Record<string, Date | null> = {};
@@ -92,7 +98,7 @@ export default function StudentList() {
         };
       }
 
-      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id] }));
+      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], licencas: licencasMap[s.id] || [] }));
     },
   });
 
