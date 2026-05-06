@@ -68,7 +68,7 @@ export async function expandRecipients(groups: RecipientGroup[]): Promise<string
           .in("role", ["admin", "coordenador", "professor", "nutricionista", "fisioterapeuta"] as any);
         data?.forEach((r) => ids.add(r.user_id));
       } else if (role) {
-        const { data } = await supabase.from("user_roles").select("user_id").eq("role" as any, role as any);
+        const { data } = await (supabase.from("user_roles") as any).select("user_id").eq("role", role);
         data?.forEach((r) => ids.add(r.user_id));
       }
     }
