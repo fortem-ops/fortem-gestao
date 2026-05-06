@@ -4,15 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ShieldAlert } from "lucide-react";
+import { Settings2, ShieldAlert } from "lucide-react";
 import { PipelineKanban } from "@/components/pipeline/PipelineKanban";
 import { PipelineFilters, type PipelineFiltersValue } from "@/components/pipeline/PipelineFilters";
+import { ManageStagesDialog } from "@/components/pipeline/ManageStagesDialog";
 
 export default function Pipeline() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState<PipelineFiltersValue>({ search: "", professorId: null, origem: null });
   const [scanning, setScanning] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
