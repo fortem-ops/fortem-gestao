@@ -74,6 +74,7 @@ export type Database = {
           nome: string
           observacoes: string | null
           responsavel_id: string | null
+          sexo: string | null
           status: string
           telefone: string | null
           updated_at: string
@@ -90,6 +91,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           responsavel_id?: string | null
+          sexo?: string | null
           status?: string
           telefone?: string | null
           updated_at?: string
@@ -106,6 +108,7 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           responsavel_id?: string | null
+          sexo?: string | null
           status?: string
           telefone?: string | null
           updated_at?: string
@@ -1219,6 +1222,36 @@ export type Database = {
         }
         Relationships: []
       }
+      prospect_anamnese: {
+        Row: {
+          aluno_id: string
+          atividade_fisica: string | null
+          created_at: string
+          id: string
+          limitacoes: string | null
+          objetivo_treinamento: string | null
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          atividade_fisica?: string | null
+          created_at?: string
+          id?: string
+          limitacoes?: string | null
+          objetivo_treinamento?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          atividade_fisica?: string | null
+          created_at?: string
+          id?: string
+          limitacoes?: string | null
+          objetivo_treinamento?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       regras_elegibilidade: {
         Row: {
           ativo: boolean
@@ -1533,6 +1566,19 @@ export type Database = {
       fn_clube_validar_token: {
         Args: { _beneficio_id: string; _token: string }
         Returns: Json
+      }
+      fn_convert_lead_to_prospect: {
+        Args: {
+          _aluno_id: string
+          _atividade_fisica?: string
+          _data_nascimento?: string
+          _email?: string
+          _limitacoes?: string
+          _objetivo_treinamento?: string
+          _origem?: string
+          _sexo?: string
+        }
+        Returns: undefined
       }
       fn_current_aluno_id: { Args: never; Returns: string }
       fn_detect_evasao: { Args: never; Returns: Json }

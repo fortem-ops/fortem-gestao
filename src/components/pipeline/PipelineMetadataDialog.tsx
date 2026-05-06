@@ -14,7 +14,8 @@ interface Props {
   onOpenChange: (v: boolean) => void;
 }
 
-const ORIGEM_OPTIONS = ["Indicação", "Instagram", "Google", "WhatsApp", "Passou em frente", "Outro"];
+import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
+const ORIGEM_OPTIONS = ORIGEM_LEAD_OPTIONS;
 
 export function PipelineMetadataDialog({ alunoId, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();

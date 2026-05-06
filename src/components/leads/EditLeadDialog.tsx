@@ -1,0 +1,108 @@
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ORIGEM_LEAD_OPTIONS, type OrigemLead } from "@/lib/leads";
+
+interface Props {
+  alunoId: string | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}
+
+export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({ nome: "", telefone: "", email: "", origem: "" });
+  const [saving, setSaving] = useState(false);
+
+  const { data } = useQuery({
+    queryKey: ["lead-edit", alunoId],
+    queryFn: async () => {
+      if (!alunoId) return null;
+      const { data: a } = await supabase.from("alunos").select("nome,telefone,email").eq("id", alunoId).maybeSingle();
+      const { data: m } = await supabase.from("pipeline_metadata").select("origem_lead").eq("aluno_id", alunoId).maybeSingle();
+      return { ...a, origem: m?.origem_lead || "" };
+    },
+    enabled: !!alunoId && open,
+  });
+
+  useEffect(() => {
+    if (data) {
+      setForm({
+        nome: data.nome || "",
+        telefone: data.telefone || "",
+        email: data.email || "",
+        origem: data.origem || "",
+      });
+    }
+  }, [data]);
+
+  async function save() {
+    if (!alunoId) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("alunos").update({
+        nome: form.nome.trim(),
+        telefone: form.telefone.trim() || null,
+        email: form.email.trim() || null,
+      }).eq("id", alunoId);
+      if (error) throw error;
+      if (form.origem) {
+        await supabase.from("pipeline_metadata").upsert(
+          { aluno_id: alunoId, origem_lead: form.origem },
+          { onConflict: "aluno_id" }
+        );
+      }
+      toast.success("Lead atualizado");
+      qc.invalidateQueries({ queryKey: ["leads-list"] });
+      qc.invalidateQueries({ queryKey: ["prospects-list"] });
+      qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader><DialogTitle>Editar dados</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Nome</Label>
+            <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Telefone</Label>
+            <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Como conheceu?</Label>
+            <Select value={form.origem || "none"} onValueChange={(v) => setForm({ ...form, origem: v === "none" ? "" : v })}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                {ORIGEM_LEAD_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
