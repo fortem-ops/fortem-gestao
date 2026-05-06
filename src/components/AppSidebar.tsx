@@ -20,34 +20,75 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
-const mainItems = [
+/* ─── Principal ─── */
+const principalItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Alunos", url: "/alunos", icon: Users },
-  { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
-  { title: "Banco de Treinos", url: "/banco-treinos", icon: Library },
-  { title: "Banco de Exercícios", url: "/exercicios", icon: Dumbbell },
-  { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
-  { title: "Leads", url: "/leads", icon: UserPlus },
-  { title: "Prospects", url: "/prospects", icon: Target },
-  { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
-  { title: "Clube FORTEM", url: "/clube", icon: Sparkles },
   { title: "Ponto", url: "/ponto", icon: Clock },
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
 ];
 
-const coordPontoItems = [
-  { title: "Equipe (Ponto)", url: "/ponto/equipe", icon: Users2 },
+const principalCoordItems = [
+  { title: "Equipe Ponto", url: "/ponto/equipe", icon: Users2 },
   { title: "Relatório Ponto", url: "/ponto/relatorio", icon: FileText },
   { title: "Fechamento Ponto", url: "/ponto/fechamento", icon: FileCheck2 },
 ];
 
-const adminItems = [
+/* ─── Técnico ─── */
+const tecnicoItems = [
+  { title: "Banco de Treinos", url: "/banco-treinos", icon: Library },
+  { title: "Banco de Exercícios", url: "/exercicios", icon: Dumbbell },
+  { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
+  { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
+];
+
+/* ─── Cadastros ─── */
+const cadastrosItems = [
+  { title: "Prospects", url: "/prospects", icon: Target },
+  { title: "Alunos", url: "/alunos", icon: Users },
+];
+
+const cadastrosAdminItems = [
+  { title: "Leads", url: "/leads", icon: UserPlus },
+];
+
+/* ─── Comercial ─── */
+const comercialItems = [
+  { title: "Clube FORTEM", url: "/clube", icon: Sparkles },
+];
+
+const comercialAdminItems = [
+  { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
+];
+
+/* ─── Sistema ─── */
+const sistemaAdminItems = [
   { title: "Administração", url: "/admin", icon: Settings },
   { title: "Admin Clube", url: "/admin/clube", icon: Sparkles },
+];
+
+const sistemaCoordItems = [
   { title: "Admin Ponto", url: "/admin/ponto", icon: Clock },
+];
+
+const sistemaParceiroItems = [
   { title: "Painel Parceiro", url: "/parceiros/scanner", icon: ScanLine },
 ];
+
+function SidebarItem({ item, isActive }: { item: { title: string; url: string; icon: any }; isActive: (p: string) => boolean }) {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive(item.url)}>
+        <NavLink to={item.url} end={item.url === "/"} activeClassName="bg-sidebar-accent text-sidebar-primary">
+          <item.icon className="mr-2 h-4 w-4" />
+          {!collapsed && <span>{item.title}</span>}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -66,6 +107,27 @@ export function AppSidebar() {
     staleTime: 5 * 60_000,
   });
 
+  const { data: isAdmin } = useQuery({
+    queryKey: ["sidebar-is-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: isParceiro } = useQuery({
+    queryKey: ["sidebar-is-parceiro", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.from("parceiros").select("id").eq("user_id", user.id).eq("ativo", true).maybeSingle();
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -76,47 +138,76 @@ export function AppSidebar() {
           )}
         </div>
 
+        {/* Principal */}
         <SidebarGroup>
           <SidebarGroupLabel>Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} end={item.url === "/"} activeClassName="bg-sidebar-accent text-sidebar-primary">
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {principalItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
-              {isCoordAdmin && coordPontoItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} activeClassName="bg-sidebar-accent text-sidebar-primary">
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {isCoordAdmin && principalCoordItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Técnico */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Técnico</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {tecnicoItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Cadastros */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Cadastros</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {cadastrosItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+              {isAdmin && cadastrosAdminItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Comercial */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Comercial</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {comercialItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+              {isAdmin && comercialAdminItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Sistema */}
         <SidebarGroup>
           <SidebarGroupLabel>Sistema</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} activeClassName="bg-sidebar-accent text-sidebar-primary">
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {isAdmin && sistemaAdminItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+              {isCoordAdmin && sistemaCoordItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+              {(isParceiro || isAdmin) && sistemaParceiroItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -142,3 +233,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
