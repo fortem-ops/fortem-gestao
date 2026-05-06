@@ -197,6 +197,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   }
 
   const planEndDate = plano ? (plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : calcEndDate(plano.data_inicio, plano.duracao_meses)) : null;
+  const displayStatus = getDisplayStatus(student.status, planEndDate, licencas);
 
   const severityClass: Record<string, string> = {
     atencao: "status-warning",
@@ -224,7 +225,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
             <span className="text-xs text-muted-foreground">Status</span>
             <p className="text-sm font-semibold text-foreground mt-1">
               {plano ? (
-                <Badge variant="outline" className="status-active text-xs">Ativo</Badge>
+                <Badge variant="outline" className={`${displayStatus.className} text-xs`}>{displayStatus.label}</Badge>
               ) : (
                 <Badge variant="outline" className="status-urgent text-xs">Sem plano</Badge>
               )}
