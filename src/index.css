@@ -39,6 +39,9 @@
     --success: 142 71% 40%;
     --success-foreground: 0 0% 100%;
 
+    --license: 270 70% 55%;
+    --license-foreground: 0 0% 100%;
+
     --border: 220 13% 82%;
     --input: 220 13% 84%;
     --ring: 0 72% 51%;
@@ -86,6 +89,11 @@
   }
   .status-info {
     @apply bg-info/15 text-info border border-info/30;
+  }
+  .status-license {
+    background-color: hsl(var(--license) / 0.15);
+    color: hsl(var(--license));
+    border: 1px solid hsl(var(--license) / 0.3);
   }
   .glass-card {
     @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
