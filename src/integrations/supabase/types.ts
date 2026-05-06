@@ -710,6 +710,213 @@ export type Database = {
           },
         ]
       }
+      notificacao_categorias_custom: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          criado_por: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          criado_por: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          criado_por?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      notificacao_comentarios: {
+        Row: {
+          anexo_nome: string | null
+          anexo_tipo: string | null
+          anexo_url: string | null
+          comentario: string
+          created_at: string
+          id: string
+          notificacao_id: string
+          usuario_id: string
+        }
+        Insert: {
+          anexo_nome?: string | null
+          anexo_tipo?: string | null
+          anexo_url?: string | null
+          comentario: string
+          created_at?: string
+          id?: string
+          notificacao_id: string
+          usuario_id: string
+        }
+        Update: {
+          anexo_nome?: string | null
+          anexo_tipo?: string | null
+          anexo_url?: string | null
+          comentario?: string
+          created_at?: string
+          id?: string
+          notificacao_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacao_comentarios_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "notificacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacao_destinatarios: {
+        Row: {
+          assinatura_digital: string | null
+          created_at: string
+          id: string
+          notificacao_id: string
+          status: Database["public"]["Enums"]["notif_dest_status"]
+          usuario_id: string
+          visualizado_em: string | null
+        }
+        Insert: {
+          assinatura_digital?: string | null
+          created_at?: string
+          id?: string
+          notificacao_id: string
+          status?: Database["public"]["Enums"]["notif_dest_status"]
+          usuario_id: string
+          visualizado_em?: string | null
+        }
+        Update: {
+          assinatura_digital?: string | null
+          created_at?: string
+          id?: string
+          notificacao_id?: string
+          status?: Database["public"]["Enums"]["notif_dest_status"]
+          usuario_id?: string
+          visualizado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacao_destinatarios_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "notificacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacao_historico: {
+        Row: {
+          acao: Database["public"]["Enums"]["notif_acao"]
+          created_at: string
+          id: string
+          notificacao_id: string
+          payload: Json
+          usuario_id: string | null
+        }
+        Insert: {
+          acao: Database["public"]["Enums"]["notif_acao"]
+          created_at?: string
+          id?: string
+          notificacao_id: string
+          payload?: Json
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: Database["public"]["Enums"]["notif_acao"]
+          created_at?: string
+          id?: string
+          notificacao_id?: string
+          payload?: Json
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacao_historico_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "notificacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacoes: {
+        Row: {
+          agenda_id: string | null
+          aluno_id: string | null
+          categoria: Database["public"]["Enums"]["notif_categoria"]
+          categoria_custom_id: string | null
+          created_at: string
+          criado_por: string
+          descricao: string
+          enviar_email: boolean
+          enviar_whatsapp: boolean
+          id: string
+          prazo: string | null
+          prioridade: Database["public"]["Enums"]["notif_prioridade"]
+          requer_confirmacao_leitura: boolean
+          reuniao_data: string | null
+          reuniao_local: string | null
+          status: Database["public"]["Enums"]["notif_status"]
+          tipo: Database["public"]["Enums"]["notif_tipo"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          agenda_id?: string | null
+          aluno_id?: string | null
+          categoria?: Database["public"]["Enums"]["notif_categoria"]
+          categoria_custom_id?: string | null
+          created_at?: string
+          criado_por: string
+          descricao: string
+          enviar_email?: boolean
+          enviar_whatsapp?: boolean
+          id?: string
+          prazo?: string | null
+          prioridade?: Database["public"]["Enums"]["notif_prioridade"]
+          requer_confirmacao_leitura?: boolean
+          reuniao_data?: string | null
+          reuniao_local?: string | null
+          status?: Database["public"]["Enums"]["notif_status"]
+          tipo?: Database["public"]["Enums"]["notif_tipo"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          agenda_id?: string | null
+          aluno_id?: string | null
+          categoria?: Database["public"]["Enums"]["notif_categoria"]
+          categoria_custom_id?: string | null
+          created_at?: string
+          criado_por?: string
+          descricao?: string
+          enviar_email?: boolean
+          enviar_whatsapp?: boolean
+          id?: string
+          prazo?: string | null
+          prioridade?: Database["public"]["Enums"]["notif_prioridade"]
+          requer_confirmacao_leitura?: boolean
+          reuniao_data?: string | null
+          reuniao_local?: string | null
+          status?: Database["public"]["Enums"]["notif_status"]
+          tipo?: Database["public"]["Enums"]["notif_tipo"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       parceiros: {
         Row: {
           ativo: boolean
@@ -1671,6 +1878,10 @@ export type Database = {
         Returns: Json
       }
       fn_portal_link_aluno: { Args: never; Returns: Json }
+      fn_user_can_see_notificacao: {
+        Args: { _notif_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       has_role: {
         Args: {
@@ -1720,6 +1931,44 @@ export type Database = {
         | "max"
         | "agregador"
       clube_status_membro: "ativo" | "bloqueado" | "inadimplente" | "cancelado"
+      notif_acao:
+        | "criada"
+        | "editada"
+        | "visualizada"
+        | "respondida"
+        | "status_alterado"
+        | "arquivada"
+        | "comentario"
+        | "anexo"
+      notif_categoria:
+        | "pauta_tecnica"
+        | "reuniao"
+        | "manutencao"
+        | "administrativo"
+        | "aluno"
+        | "financeiro"
+        | "comercial"
+        | "marketing"
+        | "estrutura"
+        | "equipamentos"
+        | "emergencial"
+        | "outro"
+      notif_dest_status:
+        | "nao_visualizada"
+        | "visualizada"
+        | "em_andamento"
+        | "respondida"
+        | "concluida"
+        | "arquivada"
+      notif_prioridade: "baixa" | "media" | "alta" | "urgente"
+      notif_status:
+        | "nao_visualizada"
+        | "visualizada"
+        | "em_andamento"
+        | "respondida"
+        | "concluida"
+        | "arquivada"
+      notif_tipo: "simples" | "solicitacao" | "reuniao" | "manutencao"
       parceiro_modo_validacao: "qr_scan" | "cpf_manual" | "lista_nome"
       pipeline_movement_source:
         | "manual"
@@ -1906,6 +2155,48 @@ export const Constants = {
         "agregador",
       ],
       clube_status_membro: ["ativo", "bloqueado", "inadimplente", "cancelado"],
+      notif_acao: [
+        "criada",
+        "editada",
+        "visualizada",
+        "respondida",
+        "status_alterado",
+        "arquivada",
+        "comentario",
+        "anexo",
+      ],
+      notif_categoria: [
+        "pauta_tecnica",
+        "reuniao",
+        "manutencao",
+        "administrativo",
+        "aluno",
+        "financeiro",
+        "comercial",
+        "marketing",
+        "estrutura",
+        "equipamentos",
+        "emergencial",
+        "outro",
+      ],
+      notif_dest_status: [
+        "nao_visualizada",
+        "visualizada",
+        "em_andamento",
+        "respondida",
+        "concluida",
+        "arquivada",
+      ],
+      notif_prioridade: ["baixa", "media", "alta", "urgente"],
+      notif_status: [
+        "nao_visualizada",
+        "visualizada",
+        "em_andamento",
+        "respondida",
+        "concluida",
+        "arquivada",
+      ],
+      notif_tipo: ["simples", "solicitacao", "reuniao", "manutencao"],
       parceiro_modo_validacao: ["qr_scan", "cpf_manual", "lista_nome"],
       pipeline_movement_source: [
         "manual",
