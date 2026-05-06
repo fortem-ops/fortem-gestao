@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getDisplayStatus } from "@/lib/studentStatus";
+import type { AlunoLicenca } from "@/lib/licencas";
 
 type Aluno = Tables<"alunos">;
 
@@ -78,7 +80,16 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
-  const { data: lastAval } = useQuery({
+  const { data: licencas = [] } = useQuery({
+    queryKey: ["aluno_licencas_summary", student.id, plano?.id],
+    queryFn: async () => {
+      if (!plano) return [];
+      const { data } = await supabase.from("aluno_licencas" as any)
+        .select("*").eq("aluno_id", student.id).eq("plano_id", plano.id);
+      return (data as unknown as AlunoLicenca[]) || [];
+    },
+    enabled: !!plano,
+  });
     queryKey: ["last_aval_funcional", student.id],
     queryFn: async () => {
       const { data } = await supabase
