@@ -106,7 +106,8 @@ export default function StudentList() {
     const c = s.credits;
     const matchSearch = s.nome.toLowerCase().includes(filters.search.toLowerCase()) ||
       (s.email?.toLowerCase().includes(filters.search.toLowerCase()) ?? false);
-    const matchStatus = filters.status === "todos" || s.status === filters.status;
+    const display = getDisplayStatus(s.status, s.planEnd, s.licencas);
+    const matchStatus = filters.status === "todos" || display.key === filters.status;
 
     const matchFreq = filters.frequencia === "todos" ||
       (filters.frequencia === "livre" ? s.frequencia_semanal === 0 : s.frequencia_semanal === parseInt(filters.frequencia));
@@ -230,9 +231,12 @@ export default function StudentList() {
                       </div>
                     </td>
                     <td className="p-4 hidden md:table-cell">
-                      <Badge variant="outline" className={`text-xs ${statusClass[student.status as Status] || ""}`}>
-                        {statusLabel[student.status as Status] || student.status}
-                      </Badge>
+                      {(() => {
+                        const d = getDisplayStatus(student.status, student.planEnd, student.licencas);
+                        return (
+                          <Badge variant="outline" className={`text-xs ${d.className}`}>{d.label}</Badge>
+                        );
+                      })()}
                     </td>
                     <td className="p-4 hidden md:table-cell">
                       <span className="text-sm text-muted-foreground">
