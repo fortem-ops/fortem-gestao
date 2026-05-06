@@ -64,6 +64,8 @@ export default function Pipeline() {
       <PipelineFilters value={filters} onChange={setFilters} />
 
       <PipelineKanban filters={filters} />
+
+      <ManageStagesDialog open={manageOpen} onOpenChange={setManageOpen} />
     </div>
   );
 }
