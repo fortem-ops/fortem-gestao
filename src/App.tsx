@@ -26,6 +26,8 @@ const Avaliacoes = lazy(() => import("./pages/Avaliacoes"));
 const BancoTreinos = lazy(() => import("./pages/BancoTreinos"));
 const PublicWorkout = lazy(() => import("./pages/PublicWorkout"));
 const Pipeline = lazy(() => import("./pages/Pipeline"));
+const Leads = lazy(() => import("./pages/Leads"));
+const Prospects = lazy(() => import("./pages/Prospects"));
 const Clube = lazy(() => import("./pages/Clube"));
 const AdminClube = lazy(() => import("./pages/AdminClube"));
 const PartnerScannerPage = lazy(() => import("./pages/PartnerScannerPage"));
@@ -179,6 +181,22 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <TaskCenter />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/leads"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Leads />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/prospects"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Prospects />
                   </Suspense>
                 }
               />

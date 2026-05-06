@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
@@ -27,6 +27,8 @@ const mainItems = [
   { title: "Banco de Treinos", url: "/banco-treinos", icon: Library },
   { title: "Banco de Exercícios", url: "/exercicios", icon: Dumbbell },
   { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
+  { title: "Leads", url: "/leads", icon: UserPlus },
+  { title: "Prospects", url: "/prospects", icon: Target },
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
   { title: "Clube FORTEM", url: "/clube", icon: Sparkles },
   { title: "Ponto", url: "/ponto", icon: Clock },
