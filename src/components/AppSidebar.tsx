@@ -26,6 +26,7 @@ const principalItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Ponto", url: "/ponto", icon: Clock },
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
+  { title: "Notificar", url: "/notificar", icon: Bell, badge: "unread" as const },
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
 ];
 
