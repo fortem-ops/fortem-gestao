@@ -186,6 +186,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/notificar"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Notificar />
+                  </Suspense>
+                }
+              />
+              <Route
                 path="/leads"
                 element={
                   <Suspense fallback={<RouteFallback />}>
