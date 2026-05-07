@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ORIGEM_LEAD_OPTIONS, createLead, findAlunoByPhone, type OrigemLead } from "@/lib/leads";
+import { createLead, findAlunoByPhone, type OrigemLead } from "@/lib/leads";
+import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
