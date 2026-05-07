@@ -8,11 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Search } from "lucide-react";
+import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Search, Settings2 } from "lucide-react";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
-import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
+import { ManageOrigensDialog } from "@/components/leads/ManageOrigensDialog";
+import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
 import { format } from "date-fns";
 
