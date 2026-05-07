@@ -8,22 +8,26 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Search } from "lucide-react";
+import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Search, Settings2 } from "lucide-react";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
-import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
+import { ManageOrigensDialog } from "@/components/leads/ManageOrigensDialog";
+import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
 import { format } from "date-fns";
 
 export default function Leads() {
   const navigate = useNavigate();
   const [openNew, setOpenNew] = useState(false);
+  const [openManageOrigens, setOpenManageOrigens] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [convertId, setConvertId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [origem, setOrigem] = useState<string>("all");
   const [responsavel, setResponsavel] = useState<string>("all");
+  const { data: origensList = [] } = useLeadOrigens(true);
+  const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
 
   const { data: leadStage } = useQuery({
     queryKey: ["stage-novo-lead"],
@@ -86,10 +90,11 @@ export default function Leads() {
   const totalLeads = leads.length;
   const porOrigem = useMemo(() => {
     const m: Record<string, number> = {};
-    ORIGEM_LEAD_OPTIONS.forEach((o) => (m[o] = 0));
+    origensAtivas.forEach((o) => (m[o.nome] = 0));
+    leads.forEach((l: any) => { if (l.origem && l.origem !== "—" && m[l.origem] === undefined) m[l.origem] = 0; });
     leads.forEach((l: any) => { if (m[l.origem] !== undefined) m[l.origem]++; });
     return m;
-  }, [leads]);
+  }, [leads, origensAtivas]);
   const maxOrigem = Math.max(1, ...Object.values(porOrigem));
 
   return (
@@ -99,9 +104,14 @@ export default function Leads() {
           <h1 className="text-2xl font-heading font-bold text-foreground">Leads</h1>
           <p className="text-sm text-muted-foreground mt-1">Captura inicial — topo do funil</p>
         </div>
-        <Button onClick={() => setOpenNew(true)} className="gap-2">
-          <UserPlus className="w-4 h-4" /> Novo Lead
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setOpenManageOrigens(true)} className="gap-2">
+            <Settings2 className="w-4 h-4" /> Gerenciar Origens
+          </Button>
+          <Button onClick={() => setOpenNew(true)} className="gap-2">
+            <UserPlus className="w-4 h-4" /> Novo Lead
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -134,7 +144,7 @@ export default function Leads() {
           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas origens</SelectItem>
-            {ORIGEM_LEAD_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+            {origensAtivas.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={responsavel} onValueChange={setResponsavel}>
@@ -204,6 +214,7 @@ export default function Leads() {
       <NewLeadDialog open={openNew} onOpenChange={setOpenNew} />
       <EditLeadDialog alunoId={editId} open={!!editId} onOpenChange={(v) => !v && setEditId(null)} />
       <ConvertToProspectDialog alunoId={convertId} open={!!convertId} onOpenChange={(v) => !v && setConvertId(null)} />
+      <ManageOrigensDialog open={openManageOrigens} onOpenChange={setOpenManageOrigens} />
     </div>
   );
 }

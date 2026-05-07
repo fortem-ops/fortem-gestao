@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ORIGEM_LEAD_OPTIONS, type OrigemLead } from "@/lib/leads";
+import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 
 interface Props {
   alunoId: string | null;
@@ -17,6 +17,7 @@ interface Props {
 
 export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
   const qc = useQueryClient();
+  const { data: origens = [] } = useLeadOrigens();
   const [form, setForm] = useState({ nome: "", telefone: "", email: "", origem: "" });
   const [saving, setSaving] = useState(false);
 
@@ -93,7 +94,7 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
               <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
-                {ORIGEM_LEAD_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                {origens.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

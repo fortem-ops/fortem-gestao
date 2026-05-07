@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ORIGEM_LEAD_OPTIONS, createLead, findAlunoByPhone, type OrigemLead } from "@/lib/leads";
+import { createLead, findAlunoByPhone, type OrigemLead } from "@/lib/leads";
+import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -19,6 +20,7 @@ export function NewLeadDialog({ open, onOpenChange }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { data: origens = [] } = useLeadOrigens();
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [origem, setOrigem] = useState<OrigemLead | "">("");
@@ -78,7 +80,7 @@ export function NewLeadDialog({ open, onOpenChange }: Props) {
             <Select value={origem} onValueChange={(v) => setOrigem(v as OrigemLead)}>
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
-                {ORIGEM_LEAD_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                {origens.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

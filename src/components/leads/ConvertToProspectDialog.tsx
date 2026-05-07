@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ORIGEM_LEAD_OPTIONS, SEXO_OPTIONS, convertLeadToProspect, type OrigemLead } from "@/lib/leads";
+import { SEXO_OPTIONS, convertLeadToProspect, type OrigemLead } from "@/lib/leads";
+import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 
 interface Props {
   alunoId: string | null;
@@ -18,6 +19,7 @@ interface Props {
 
 export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) {
   const qc = useQueryClient();
+  const { data: origens = [] } = useLeadOrigens();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     data_nascimento: "",
@@ -135,7 +137,7 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
             <Select value={form.origem || ""} onValueChange={(v) => setForm({ ...form, origem: v as OrigemLead })}>
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
-                {ORIGEM_LEAD_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                {origens.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
