@@ -355,8 +355,10 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
             hookData.column.index <= 6
           ) {
             // Traços verticais separadores entre T1, T2, T3, T4 (head + body)
-            if (hookData.column.index < 6) {
-              const x = hookData.cell.x + hookData.cell.width;
+            // Desenhados na borda ESQUERDA das colunas T2..T4 para que fiquem
+            // por cima do preenchimento (inclusive linhas alternadas cinzas).
+            if (hookData.column.index > 3) {
+              const x = hookData.cell.x;
               doc.setDrawColor(...RULE);
               doc.setLineWidth(0.15);
               doc.line(x, hookData.cell.y + 0.4, x, hookData.cell.y + hookData.cell.height - 0.4);
