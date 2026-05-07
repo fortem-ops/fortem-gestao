@@ -20,6 +20,7 @@ export function NewLeadDialog({ open, onOpenChange }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { data: origens = [] } = useLeadOrigens();
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [origem, setOrigem] = useState<OrigemLead | "">("");
