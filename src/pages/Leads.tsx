@@ -104,10 +104,14 @@ export default function Leads() {
           <h1 className="text-2xl font-heading font-bold text-foreground">Leads</h1>
           <p className="text-sm text-muted-foreground mt-1">Captura inicial — topo do funil</p>
         </div>
-        <Button onClick={() => setOpenNew(true)} className="gap-2">
-          <UserPlus className="w-4 h-4" /> Novo Lead
-        </Button>
-      </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setOpenManageOrigens(true)} className="gap-2">
+            <Settings2 className="w-4 h-4" /> Gerenciar Origens
+          </Button>
+          <Button onClick={() => setOpenNew(true)} className="gap-2">
+            <UserPlus className="w-4 h-4" /> Novo Lead
+          </Button>
+        </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card className="p-4">
