@@ -80,7 +80,7 @@ export function NewLeadDialog({ open, onOpenChange }: Props) {
             <Select value={origem} onValueChange={(v) => setOrigem(v as OrigemLead)}>
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
-                {ORIGEM_LEAD_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                {origens.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
