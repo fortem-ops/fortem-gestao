@@ -112,6 +112,7 @@ export default function Leads() {
             <UserPlus className="w-4 h-4" /> Novo Lead
           </Button>
         </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card className="p-4">
