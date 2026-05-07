@@ -139,7 +139,7 @@ export default function Leads() {
           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas origens</SelectItem>
-            {ORIGEM_LEAD_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+            {origensAtivas.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={responsavel} onValueChange={setResponsavel}>
