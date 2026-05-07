@@ -41,6 +41,7 @@ const WARMUP_COLORS: Record<string, { fill: [number, number, number]; text: [num
   LIB: { fill: INK, text: WHITE },          // Liberação — BLACK
   MOB: { fill: INK, text: WHITE },          // Mobilidade — BLACK
   ATI: { fill: INK, text: WHITE },          // Ativação — BLACK
+  PREV: { fill: INK, text: WHITE },         // Preventivos — BLACK
 };
 
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
