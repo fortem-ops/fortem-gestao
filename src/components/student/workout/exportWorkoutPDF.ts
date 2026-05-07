@@ -151,7 +151,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const bodyBottom = pageH - margin - footerReserve;
   const availH = bodyBottom - bodyTop;
 
-  const aqBlocosCount = (["LIB", "MOB", "ATI"] as const).filter(
+  const aqBlocosCount = (["LIB", "MOB", "ATI", "PREV"] as const).filter(
     (k) => data.aquecimento.some((ex) => ex.categoria === k),
   ).length;
   const aqRowsTotal = data.aquecimento.length;
