@@ -19,6 +19,7 @@ interface Props {
 
 export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) {
   const qc = useQueryClient();
+  const { data: origens = [] } = useLeadOrigens();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     data_nascimento: "",
