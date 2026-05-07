@@ -20,11 +20,14 @@ import { format } from "date-fns";
 export default function Leads() {
   const navigate = useNavigate();
   const [openNew, setOpenNew] = useState(false);
+  const [openManageOrigens, setOpenManageOrigens] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [convertId, setConvertId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [origem, setOrigem] = useState<string>("all");
   const [responsavel, setResponsavel] = useState<string>("all");
+  const { data: origensList = [] } = useLeadOrigens(true);
+  const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
 
   const { data: leadStage } = useQuery({
     queryKey: ["stage-novo-lead"],
