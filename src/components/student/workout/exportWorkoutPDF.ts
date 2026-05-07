@@ -581,8 +581,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   for (let i = 0; i < slotCount; i++) {
     const sy = slotsTop + i * slotH;
-    const week = Math.floor(i / 4) + 1;
-    const tNum = (i % 4) + 1;
+    const week = Math.floor(i / activeT) + 1;
+    const tNum = (i % activeT) + 1;
 
     if (week % 2 === 0) {
       doc.setFillColor(...RED_TINT);
