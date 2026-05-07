@@ -253,10 +253,11 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   if (data.aquecimento.length > 0) {
     sectionLabel("Aquecimento");
 
-    const blocos: { key: "LIB" | "MOB" | "ATI"; label: string; items: WorkoutExercise[] }[] = [
+    const blocos: { key: "LIB" | "MOB" | "ATI" | "PREV"; label: string; items: WorkoutExercise[] }[] = [
       { key: "LIB", label: "LIBERAÇÃO", items: [] },
       { key: "MOB", label: "MOBILIDADE", items: [] },
       { key: "ATI", label: "ATIVAÇÃO", items: [] },
+      { key: "PREV", label: "PREVENTIVOS", items: [] },
     ];
     data.aquecimento.forEach(ex => {
       const b = blocos.find(b => b.key === ex.categoria);
