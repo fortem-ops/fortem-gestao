@@ -351,18 +351,26 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         },
         didDrawCell: (hookData) => {
           if (
-            hookData.section === "body" &&
             hookData.column.index >= 3 &&
             hookData.column.index <= 6
           ) {
-            const ex = bloco.items[hookData.row.index];
-            const tKey = (`T${hookData.column.index - 2}`) as "T1" | "T2" | "T3" | "T4";
-            if (ex?.dias?.includes(tKey)) {
-              const cx = hookData.cell.x + hookData.cell.width / 2;
-              const cy = hookData.cell.y + hookData.cell.height / 2;
-              const r = Math.max(0.7, Math.min(1.3, ROW_FONT * 0.13));
-              doc.setFillColor(...RED_SOFT);
-              doc.circle(cx, cy, r, "F");
+            // Traços verticais separadores entre T1, T2, T3, T4 (head + body)
+            if (hookData.column.index < 6) {
+              const x = hookData.cell.x + hookData.cell.width;
+              doc.setDrawColor(...RULE);
+              doc.setLineWidth(0.15);
+              doc.line(x, hookData.cell.y + 0.4, x, hookData.cell.y + hookData.cell.height - 0.4);
+            }
+            if (hookData.section === "body") {
+              const ex = bloco.items[hookData.row.index];
+              const tKey = (`T${hookData.column.index - 2}`) as "T1" | "T2" | "T3" | "T4";
+              if (ex?.dias?.includes(tKey)) {
+                const cx = hookData.cell.x + hookData.cell.width / 2;
+                const cy = hookData.cell.y + hookData.cell.height / 2;
+                const r = Math.max(0.7, Math.min(1.3, ROW_FONT * 0.13));
+                doc.setFillColor(...RED_SOFT);
+                doc.circle(cx, cy, r, "F");
+              }
             }
           }
         },
