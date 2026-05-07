@@ -90,7 +90,8 @@ export default function Leads() {
   const totalLeads = leads.length;
   const porOrigem = useMemo(() => {
     const m: Record<string, number> = {};
-    ORIGEM_LEAD_OPTIONS.forEach((o) => (m[o] = 0));
+    origensAtivas.forEach((o) => (m[o.nome] = 0));
+    leads.forEach((l: any) => { if (l.origem && l.origem !== "—" && m[l.origem] === undefined) m[l.origem] = 0; });
     leads.forEach((l: any) => { if (m[l.origem] !== undefined) m[l.origem]++; });
     return m;
   }, [leads]);
