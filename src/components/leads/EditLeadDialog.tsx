@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ORIGEM_LEAD_OPTIONS, type OrigemLead } from "@/lib/leads";
+import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 
 interface Props {
   alunoId: string | null;
