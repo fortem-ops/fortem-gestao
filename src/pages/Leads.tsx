@@ -94,7 +94,7 @@ export default function Leads() {
     leads.forEach((l: any) => { if (l.origem && l.origem !== "—" && m[l.origem] === undefined) m[l.origem] = 0; });
     leads.forEach((l: any) => { if (m[l.origem] !== undefined) m[l.origem]++; });
     return m;
-  }, [leads]);
+  }, [leads, origensAtivas]);
   const maxOrigem = Math.max(1, ...Object.values(porOrigem));
 
   return (
