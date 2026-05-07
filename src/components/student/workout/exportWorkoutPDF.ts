@@ -559,7 +559,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const freqTopY = margin;
   const freqBottomY = pageH - margin - footerReserve;
   const safeWeeks = Math.max(1, Math.min(12, Math.floor(weeks)));
-  const slotCount = safeWeeks * 4;
+  const activeT = Math.max(1, Math.min(4, data.treinos.length || 4));
+  const slotCount = safeWeeks * activeT;
 
   // Column header (red)
   const freqHeaderH = 10;
