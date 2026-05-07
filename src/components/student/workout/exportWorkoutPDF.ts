@@ -41,6 +41,7 @@ const WARMUP_COLORS: Record<string, { fill: [number, number, number]; text: [num
   LIB: { fill: INK, text: WHITE },          // Liberação — BLACK
   MOB: { fill: INK, text: WHITE },          // Mobilidade — BLACK
   ATI: { fill: INK, text: WHITE },          // Ativação — BLACK
+  PREV: { fill: INK, text: WHITE },         // Preventivos — BLACK
 };
 
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
@@ -150,7 +151,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const bodyBottom = pageH - margin - footerReserve;
   const availH = bodyBottom - bodyTop;
 
-  const aqBlocosCount = (["LIB", "MOB", "ATI"] as const).filter(
+  const aqBlocosCount = (["LIB", "MOB", "ATI", "PREV"] as const).filter(
     (k) => data.aquecimento.some((ex) => ex.categoria === k),
   ).length;
   const aqRowsTotal = data.aquecimento.length;
@@ -252,10 +253,11 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   if (data.aquecimento.length > 0) {
     sectionLabel("Aquecimento");
 
-    const blocos: { key: "LIB" | "MOB" | "ATI"; label: string; items: WorkoutExercise[] }[] = [
+    const blocos: { key: "LIB" | "MOB" | "ATI" | "PREV"; label: string; items: WorkoutExercise[] }[] = [
       { key: "LIB", label: "LIBERAÇÃO", items: [] },
       { key: "MOB", label: "MOBILIDADE", items: [] },
       { key: "ATI", label: "ATIVAÇÃO", items: [] },
+      { key: "PREV", label: "PREVENTIVOS", items: [] },
     ];
     data.aquecimento.forEach(ex => {
       const b = blocos.find(b => b.key === ex.categoria);
@@ -349,18 +351,26 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
         },
         didDrawCell: (hookData) => {
           if (
-            hookData.section === "body" &&
             hookData.column.index >= 3 &&
             hookData.column.index <= 6
           ) {
-            const ex = bloco.items[hookData.row.index];
-            const tKey = (`T${hookData.column.index - 2}`) as "T1" | "T2" | "T3" | "T4";
-            if (ex?.dias?.includes(tKey)) {
-              const cx = hookData.cell.x + hookData.cell.width / 2;
-              const cy = hookData.cell.y + hookData.cell.height / 2;
-              const r = Math.max(0.7, Math.min(1.3, ROW_FONT * 0.13));
-              doc.setFillColor(...RED_SOFT);
-              doc.circle(cx, cy, r, "F");
+            // Traços verticais separadores entre T1, T2, T3, T4 (head + body)
+            if (hookData.column.index < 6) {
+              const x = hookData.cell.x + hookData.cell.width;
+              doc.setDrawColor(...RULE);
+              doc.setLineWidth(0.15);
+              doc.line(x, hookData.cell.y + 0.4, x, hookData.cell.y + hookData.cell.height - 0.4);
+            }
+            if (hookData.section === "body") {
+              const ex = bloco.items[hookData.row.index];
+              const tKey = (`T${hookData.column.index - 2}`) as "T1" | "T2" | "T3" | "T4";
+              if (ex?.dias?.includes(tKey)) {
+                const cx = hookData.cell.x + hookData.cell.width / 2;
+                const cy = hookData.cell.y + hookData.cell.height / 2;
+                const r = Math.max(0.7, Math.min(1.3, ROW_FONT * 0.13));
+                doc.setFillColor(...RED_SOFT);
+                doc.circle(cx, cy, r, "F");
+              }
             }
           }
         },
