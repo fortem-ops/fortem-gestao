@@ -214,6 +214,7 @@ export default function Leads() {
       <NewLeadDialog open={openNew} onOpenChange={setOpenNew} />
       <EditLeadDialog alunoId={editId} open={!!editId} onOpenChange={(v) => !v && setEditId(null)} />
       <ConvertToProspectDialog alunoId={convertId} open={!!convertId} onOpenChange={(v) => !v && setConvertId(null)} />
+      <ManageOrigensDialog open={openManageOrigens} onOpenChange={setOpenManageOrigens} />
     </div>
   );
 }
