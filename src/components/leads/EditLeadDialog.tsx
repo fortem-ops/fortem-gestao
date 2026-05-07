@@ -17,6 +17,7 @@ interface Props {
 
 export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
   const qc = useQueryClient();
+  const { data: origens = [] } = useLeadOrigens();
   const [form, setForm] = useState({ nome: "", telefone: "", email: "", origem: "" });
   const [saving, setSaving] = useState(false);
 
