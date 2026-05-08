@@ -37,6 +37,8 @@ const PontoEquipe = lazy(() => import("./pages/PontoEquipe"));
 const PontoFechamento = lazy(() => import("./pages/PontoFechamento"));
 const RelatorioPonto = lazy(() => import("./pages/RelatorioPonto"));
 const AdminPonto = lazy(() => import("./pages/AdminPonto"));
+const AnexosJuridicos = lazy(() => import("./pages/AnexosJuridicos"));
+const LegalAnnexFlow = lazy(() => import("./pages/LegalAnnexFlow"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Portal do Aluno
@@ -107,6 +109,23 @@ const App = () => (
               element={
                 <Suspense fallback={<RouteFallback />}>
                   <PublicWorkout />
+                </Suspense>
+              }
+            />
+            {/* Public legal annex signing flow */}
+            <Route
+              path="/assinar"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <LegalAnnexFlow documentType="anexo" />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/assinar-experimental"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <LegalAnnexFlow documentType="experimental" />
                 </Suspense>
               }
             />
