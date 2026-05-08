@@ -72,16 +72,37 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "CONSENT_CARE_SERVICE_ROLE_KEY not configured" }, 500);
     }
     const sourceKey = normalizeSecret(rawSourceKey);
-    const sourceClaims = readJwtPayload(sourceKey);
+    const sourceClaims = readJwtPayload(sourceKey) as { ref?: string; role?: string } | null;
+    const diagnostics = {
+      raw_length: rawSourceKey.length,
+      cleaned_length: sourceKey.length,
+      looks_like_jwt: /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(sourceKey),
+      jwt_ref: sourceClaims?.ref ?? null,
+      jwt_role: sourceClaims?.role ?? null,
+      expected_ref: SOURCE_PROJECT_REF,
+    };
     if (sourceClaims && (sourceClaims.ref !== SOURCE_PROJECT_REF || sourceClaims.role !== "service_role")) {
       return jsonResponse({
-        error: "A chave configurada para o Consent & Care não é a service_role do projeto de origem.",
-        expected_project: SOURCE_PROJECT_REF,
-        received_project: sourceClaims?.ref ?? null,
-        received_role: sourceClaims?.role ?? null,
+        error: "A chave configurada não é a service_role do projeto Consent & Care.",
+        diagnostics,
       }, 400);
     }
     const source = createClient(SOURCE_URL, sourceKey);
+
+    // Probe the source with an explicit fetch to surface the real error
+    const probe = await fetch(`${SOURCE_URL}/rest/v1/legal_annexes?select=id&limit=1`, {
+      headers: { apikey: sourceKey, Authorization: `Bearer ${sourceKey}` },
+    });
+    if (!probe.ok) {
+      const body = await probe.text();
+      return jsonResponse({
+        error: "Origem rejeitou a chave",
+        status: probe.status,
+        body: body.slice(0, 300),
+        diagnostics,
+      }, 400);
+    }
+    await probe.text();
 
     let imported = 0;
     let skipped = 0;
