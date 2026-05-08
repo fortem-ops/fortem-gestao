@@ -102,4 +102,12 @@
   .prio-media { background-color: hsl(213 94% 50% / 0.15); color: hsl(213 94% 45%); border: 1px solid hsl(213 94% 50% / 0.3); }
   .prio-alta  { background-color: hsl(28 95% 55% / 0.15);  color: hsl(28 95% 50%);  border: 1px solid hsl(28 95% 55% / 0.3); }
   .prio-urgente { background-color: hsl(0 80% 55% / 0.18); color: hsl(0 80% 50%); border: 1px solid hsl(0 80% 55% / 0.4); }
+
+  /* Legal Annex utilities */
+  .card-shadow { box-shadow: 0 1px 3px 0 hsl(220 20% 15% / 0.06), 0 1px 2px -1px hsl(220 20% 15% / 0.04); }
+  .card-shadow-hover { box-shadow: 0 4px 12px -2px hsl(220 20% 15% / 0.10), 0 2px 6px -1px hsl(220 20% 15% / 0.06); }
+  .section-title { font-family: var(--font-heading); font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.01em; }
+  .body-text { color: hsl(var(--muted-foreground)); line-height: 1.6; }
+  .legal-text { font-size: 0.8125rem; color: hsl(var(--muted-foreground)); line-height: 1.7; }
+  .legal-text p { margin: 0; }
 }
