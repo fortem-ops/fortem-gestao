@@ -214,6 +214,25 @@ const AnexosJuridicos = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={importOpen} onOpenChange={(o) => !o && setImportOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Importar do Consent & Care</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vou ler todos os termos assinados no projeto Consent & Care e trazer para cá.
+              Registros já existentes (mesmo CPF e mesma data de assinatura) são ignorados.
+              Pode levar alguns minutos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={importing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImport} disabled={importing}>
+              {importing ? "Importando..." : "Importar agora"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
