@@ -109,6 +109,7 @@ export type Database = {
       }
       alunos: {
         Row: {
+          cpf: string | null
           created_at: string
           current_pipeline_stage_id: string | null
           data_nascimento: string | null
@@ -126,6 +127,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          cpf?: string | null
           created_at?: string
           current_pipeline_stage_id?: string | null
           data_nascimento?: string | null
@@ -143,6 +145,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          cpf?: string | null
           created_at?: string
           current_pipeline_stage_id?: string | null
           data_nascimento?: string | null
@@ -739,6 +742,80 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      legal_annexes: {
+        Row: {
+          aluno_id: string | null
+          attachment_url: string | null
+          cpf: string
+          created_at: string
+          data_nascimento: string | null
+          document_type: string
+          email: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          id: string
+          image_usage: boolean
+          ip_address: string | null
+          medical_status: string
+          nome: string
+          signature_data: string | null
+          signed_at: string
+          telefone: string | null
+          updated_at: string
+          valid_until: string
+        }
+        Insert: {
+          aluno_id?: string | null
+          attachment_url?: string | null
+          cpf: string
+          created_at?: string
+          data_nascimento?: string | null
+          document_type?: string
+          email: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          image_usage?: boolean
+          ip_address?: string | null
+          medical_status: string
+          nome: string
+          signature_data?: string | null
+          signed_at?: string
+          telefone?: string | null
+          updated_at?: string
+          valid_until?: string
+        }
+        Update: {
+          aluno_id?: string | null
+          attachment_url?: string | null
+          cpf?: string
+          created_at?: string
+          data_nascimento?: string | null
+          document_type?: string
+          email?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          image_usage?: boolean
+          ip_address?: string | null
+          medical_status?: string
+          nome?: string
+          signature_data?: string | null
+          signed_at?: string
+          telefone?: string | null
+          updated_at?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_annexes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notificacao_categorias_custom: {
         Row: {
