@@ -221,6 +221,16 @@ const App = () => (
                 }
               />
               <Route
+                path="/anexos"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<RouteFallback />}>
+                      <AnexosJuridicos />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/prospects"
                 element={
                   <Suspense fallback={<RouteFallback />}>
