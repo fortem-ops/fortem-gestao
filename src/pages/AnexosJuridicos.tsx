@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Shield, Search, Filter, Users, RefreshCw, Eye, Trash2, FileText, Link2, ExternalLink } from "lucide-react";
+import { Shield, Search, Filter, Users, RefreshCw, Eye, Trash2, FileText, Link2, ExternalLink, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -38,8 +38,29 @@ const AnexosJuridicos = () => {
   const [imageFilter, setImageFilter] = useState<"true" | "false" | "all">("all");
   const [selected, setSelected] = useState<AnnexRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AnnexRow | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const { data: annexes = [], isLoading, refetch } = useQuery({ queryKey: ["legal_annexes"], queryFn: fetchAnnexes });
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("migrate-from-consent-care");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "Importação concluída",
+        description: `${data.imported} importados, ${data.skipped} já existiam, ${data.errors} erros (de ${data.total_source} encontrados na origem).`,
+      });
+      qc.invalidateQueries({ queryKey: ["legal_annexes"] });
+    } catch (e: any) {
+      toast({ title: "Erro na importação", description: e.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+      setImportOpen(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -72,6 +93,9 @@ const AnexosJuridicos = () => {
             <a href="/assinar" target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-4 h-4" /> Link de assinatura
             </a>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="gap-2" disabled={importing}>
+            <Download className="w-4 h-4" /> {importing ? "Importando..." : "Importar Consent & Care"}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-1.5">
             <RefreshCw className="w-4 h-4" /> Atualizar
@@ -187,6 +211,25 @@ const AnexosJuridicos = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={importOpen} onOpenChange={(o) => !o && setImportOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Importar do Consent & Care</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vou ler todos os termos assinados no projeto Consent & Care e trazer para cá.
+              Registros já existentes (mesmo CPF e mesma data de assinatura) são ignorados.
+              Pode levar alguns minutos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={importing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImport} disabled={importing}>
+              {importing ? "Importando..." : "Importar agora"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
