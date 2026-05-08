@@ -15,7 +15,16 @@ const jsonResponse = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const normalizeSecret = (value: string) => value.trim().replace(/^['"]|['"]$/g, "").trim();
+const normalizeSecret = (value: string) => {
+  let cleaned = value.trim().replace(/^['"]|['"]$/g, "").trim();
+  cleaned = cleaned.replace(/^Bearer\s+/i, "").trim();
+
+  const assignment = cleaned.match(/^(?:CONSENT_CARE_SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SERVICE_ROLE_KEY)\s*=\s*(.+)$/i);
+  if (assignment?.[1]) cleaned = assignment[1].trim().replace(/^['"]|['"]$/g, "").trim();
+
+  const jwt = cleaned.match(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/);
+  return jwt?.[0] ?? cleaned;
+};
 
 const readJwtPayload = (jwt: string): Record<string, unknown> | null => {
   try {
@@ -64,7 +73,7 @@ Deno.serve(async (req) => {
     }
     const sourceKey = normalizeSecret(rawSourceKey);
     const sourceClaims = readJwtPayload(sourceKey);
-    if (sourceClaims?.ref !== SOURCE_PROJECT_REF || sourceClaims?.role !== "service_role") {
+    if (sourceClaims && (sourceClaims.ref !== SOURCE_PROJECT_REF || sourceClaims.role !== "service_role")) {
       return jsonResponse({
         error: "A chave configurada para o Consent & Care não é a service_role do projeto de origem.",
         expected_project: SOURCE_PROJECT_REF,
