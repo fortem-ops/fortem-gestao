@@ -94,6 +94,9 @@ const AnexosJuridicos = () => {
               <ExternalLink className="w-4 h-4" /> Link de assinatura
             </a>
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="gap-2" disabled={importing}>
+            <Download className="w-4 h-4" /> {importing ? "Importando..." : "Importar Consent & Care"}
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-1.5">
             <RefreshCw className="w-4 h-4" /> Atualizar
           </Button>
