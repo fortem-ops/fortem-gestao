@@ -38,8 +38,29 @@ const AnexosJuridicos = () => {
   const [imageFilter, setImageFilter] = useState<"true" | "false" | "all">("all");
   const [selected, setSelected] = useState<AnnexRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AnnexRow | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const { data: annexes = [], isLoading, refetch } = useQuery({ queryKey: ["legal_annexes"], queryFn: fetchAnnexes });
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("migrate-from-consent-care");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "Importação concluída",
+        description: `${data.imported} importados, ${data.skipped} já existiam, ${data.errors} erros (de ${data.total_source} encontrados na origem).`,
+      });
+      qc.invalidateQueries({ queryKey: ["legal_annexes"] });
+    } catch (e: any) {
+      toast({ title: "Erro na importação", description: e.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+      setImportOpen(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
