@@ -1,92 +1,103 @@
+## Objetivo
 
-## Módulo Anexos Jurídicos — Plano de Integração
+Trazer todos os termos já assinados no projeto **Consent & Care** (`jmdgxyzqaujxnclmvxlh`) para a tabela `legal_annexes` deste projeto, preservando nome, CPF, e-mail, data de assinatura, status médico, autorização de imagem, contato de emergência, tipo de documento, IP e a assinatura digital. Depois da migração, todos os registros aparecerão no painel `/anexos`.
 
-Objetivo: portar o fluxo de assinatura do "Consent & Care" (Anexo I de Aptidão Física e Uso de Imagem) para o Software da Fortem como um novo módulo dentro de **Cadastros**, com vinculação automática ao aluno pelo CPF.
+## Análise
 
-### Visão geral
+Verifiquei o schema do projeto-origem. As duas tabelas `legal_annexes` são quase idênticas — todos os campos do Consent & Care existem aqui:
+
+| Campo | Origem | Destino |
+|---|---|---|
+| nome, cpf, email, telefone | ✓ | ✓ |
+| data_nascimento, signed_at, valid_until | ✓ | ✓ |
+| medical_status, image_usage, signature_data | ✓ | ✓ |
+| emergency_contact_name / phone | ✓ | ✓ |
+| document_type, ip_address | ✓ | ✓ |
+| attachment_url, aluno_id | — | ✓ (ficam vazios) |
+
+Não há perda de dados. O `aluno_id` será preenchido automaticamente pelo trigger `trg_legal_annex_link_aluno` sempre que o CPF bater com um aluno cadastrado.
+
+## Bloqueio técnico
+
+O `legal_annexes` do Consent & Care só permite `SELECT` para admins autenticados. Com a anon key pública não consigo ler os registros. Preciso da **service role key** do Consent & Care para extrair os dados uma única vez.
+
+## Plano
+
+### 1. Coletar credencial do projeto-origem
+
+Solicitar ao usuário que adicione um secret `CONSENT_CARE_SERVICE_ROLE_KEY` (a service_role key do projeto Consent & Care, encontrada no painel daquele projeto em Cloud → Settings → API keys).
+
+### 2. Criar edge function `migrate-from-consent-care` (one-shot)
+
+Função protegida por admin que:
+
+- Conecta ao Consent & Care via `https://jmdgxyzqaujxnclmvxlh.supabase.co` usando a service role key.
+- Faz `SELECT *` paginado em `legal_annexes` (1000 por página).
+- Para cada registro, verifica se já existe aqui o par (`cpf`, `signed_at`) — evita duplicatas em re-execuções.
+- Faz `INSERT` em `legal_annexes` deste projeto preservando `signed_at`, `valid_until`, `created_at`.
+- Retorna contagem: importados, ignorados (já existiam), com erro.
+
+A função tem `verify_jwt = false` mas valida internamente que o chamador é admin via `getClaims` + `is_admin`.
+
+### 3. Botão "Importar do Consent & Care" em `/anexos`
+
+Adicionar no header do `AnexosJuridicos.tsx`:
+
+- Visível só para admins.
+- Abre confirmação ("Importar X registros do Consent & Care?").
+- Chama a edge function e mostra toast com o resumo.
+- Recarrega a lista.
+
+### 4. Limpeza pós-migração
+
+Após confirmação do usuário de que tudo veio certo, removo a edge function e o botão. O secret pode ser deletado também.
+
+## O que NÃO faz parte deste plano
+
+- **Sincronização contínua** entre os dois projetos. É uma migração única. Se o Consent & Care continuar recebendo assinaturas, conversamos depois sobre desativar ele ou apontar o domínio dele para este backend.
+- **Migração de assinaturas como imagem** (PNG no Storage). O campo `signature_data` do origem guarda a string base64 da assinatura — eu copio essa string como está. Se o origem tiver gerado PNGs no Storage, eles ficam no projeto antigo (não acessíveis daqui). Posso, opcionalmente, regerar o PNG aqui durante a importação.
+
+## Detalhes técnicos
+
+**Mapeamento do INSERT (1:1 com fallbacks):**
 
 ```text
-Público (sem login):
-  /assinar               → Anexo padrão (5 etapas)
-  /assinar-experimental  → Treino Experimental (sem etapa de imagem)
-
-Admin (logado):
-  /anexos                → Painel de gestão (lista, filtros, detalhes, exclusão)
-
-Cadastros > Anexos       → novo item na sidebar (apenas Admin)
-Ficha do Aluno           → mini-aba "Anexo Jurídico" mostrando o último anexo vinculado por CPF
+nome                     ← origem.nome
+data_nascimento          ← origem.data_nascimento
+cpf                      ← origem.cpf
+telefone                 ← origem.telefone
+email                    ← origem.email
+emergency_contact_name   ← origem.emergency_contact_name
+emergency_contact_phone  ← origem.emergency_contact_phone
+medical_status           ← origem.medical_status
+image_usage              ← origem.image_usage
+signature_data           ← origem.signature_data (base64)
+document_type            ← origem.document_type
+ip_address               ← origem.ip_address
+signed_at                ← origem.signed_at        (preservado)
+valid_until              ← origem.valid_until      (preservado)
+created_at               ← origem.created_at       (preservado)
+attachment_url           ← NULL
+aluno_id                 ← NULL (trigger preenche se CPF bater)
 ```
 
-### Banco de dados (1 migration)
+**Deduplicação:** chave lógica `(cpf, signed_at)` — extremamente improvável colidir entre pessoas/momentos diferentes.
 
-1. **Tabela `legal_annexes`**
-   - Campos: `nome`, `cpf` (único + index), `data_nascimento`, `telefone`, `email`, `emergency_contact_name`, `emergency_contact_phone`, `medical_status` ('ok' | 'restricao'), `image_usage` (bool), `signature_data` (text), `attachment_url`, `ip_address`, `document_type` ('anexo' | 'experimental'), `signed_at`, `valid_until` (default: signed_at + 1 ano), `aluno_id` (FK opcional para `alunos.id`).
-   - Validação por **trigger** (não CHECK) para `medical_status` e `document_type`.
-2. **Coluna `cpf` em `alunos`** (texto nullable, index único parcial onde não nulo) — base para a vinculação automática.
-3. **Trigger `trg_legal_annex_link_aluno`**: ao inserir/atualizar anexo, faz match pelo CPF normalizado e preenche `aluno_id` automaticamente.
-4. **RLS de `legal_annexes`**:
-   - INSERT: `anon` + `authenticated` (formulário público).
-   - SELECT/UPDATE/DELETE: apenas `is_admin(auth.uid())`.
-5. **Storage bucket `legal_annex_attachments`** (público para leitura), políticas:
-   - Upload: anon + authenticated.
-   - Leitura pública (URL nos emails/painel).
-   - Delete: apenas Admin.
+**Pseudo-fluxo da edge function:**
 
-### Edge functions
+```text
+1. Validar admin (getClaims → is_admin)
+2. supabaseOrigem = createClient(URL_origem, SERVICE_ROLE_origem)
+3. supabaseDestino = createClient(URL_local, SERVICE_ROLE_local)
+4. loop paginado (range 0..999, 1000..1999, ...)
+   - selectAll do origem
+   - filtrar os que já existem no destino (cpf+signed_at)
+   - bulk insert no destino
+5. retornar { importados, ignorados, erros, total_origem }
+```
 
-1. **`submit-legal-annex`** — porta direta do projeto Consent & Care:
-   - Sobe assinatura como PNG no bucket.
-   - Faz upsert do anexo (CPF + tipo de documento como chave lógica).
-   - Envia email de confirmação via Gmail SMTP. Requer secret `GMAIL_APP_PASSWORD` (será solicitado ao usuário; envio fica em try/catch não bloqueante).
-   - `verify_jwt = false` em `supabase/config.toml`.
-2. **`lookup-by-cpf`** — porta direta:
-   - Recebe CPF, valida dígitos, retorna último anexo daquele CPF para auto-preencher o formulário.
-   - `verify_jwt = false`.
+## Riscos
 
-### Rotas e UI
-
-Novas rotas (em `src/App.tsx`):
-
-| Rota | Acesso | Componente |
-|------|--------|------------|
-| `/assinar` | Público | `<LegalAnnexFlow documentType="anexo" />` |
-| `/assinar-experimental` | Público | `<LegalAnnexFlow documentType="experimental" />` |
-| `/anexos` | Admin (via `ProtectedRoute` + role check) | `<AnexosJuridicos />` |
-
-Componentes a criar em `src/components/legal-annex/` (portados):
-- `ProgressBar`, `StudentDataForm` (com auto-preenchimento por CPF), `TermsScroller`, `MedicalEvaluation`, `ImageAuthorization`, `SignaturePad`, `LegalPulse`.
-
-Páginas:
-- `src/pages/LegalAnnexFlow.tsx` — fluxo de 5 etapas (idêntico ao original, ajustado para o design system Fortem dark).
-- `src/pages/AnexosJuridicos.tsx` — painel admin (tabela, filtros por status médico/imagem/tipo, busca por nome/CPF, modal de detalhes, exclusão).
-- `src/components/legal-annex/AnnexDetailModal.tsx` — visualização completa + impressão.
-
-Sidebar (`src/components/AppSidebar.tsx`):
-- Adicionar item `{ title: "Anexos Jurídicos", url: "/anexos", icon: FileSignature }` em `cadastrosAdminItems`.
-
-Ficha do aluno (`src/components/student/StudentSummary.tsx` ou similar):
-- Painel discreto exibindo: status do anexo (Regular/Vencido/Não assinado), data de assinatura, link "Ver completo" abrindo o `AnnexDetailModal`.
-
-### Design
-
-- Reusar tokens já existentes do Fortem (dark theme, primary verde). Substituir as classes `card-shadow` / `legal-text` do projeto original por equivalentes via `@layer components` em `src/index.css` (adicionar somente o que faltar).
-- Asset `fortem-logo-red.png` será copiado de Consent & Care para `src/assets/`.
-
-### Secret necessário
-
-`GMAIL_APP_PASSWORD` (Gmail SMTP em `contatofortem@gmail.com`). Será solicitado via `add_secret` após aprovação do plano. O envio do email é não-bloqueante: o anexo grava mesmo se o email falhar.
-
-### Fora do escopo (intencional)
-
-- Geração de link único com token por aluno (rejeitado nas perguntas: rotas continuam públicas).
-- Criação automática de Lead se CPF não bater (rejeitado: vincula só se já existir).
-- Acesso de Coordenador ao painel (rejeitado: somente Admin).
-
-### Ordem de execução
-
-1. Migration (DB + bucket + trigger de vinculação por CPF).
-2. Solicitar secret `GMAIL_APP_PASSWORD`.
-3. Copiar asset + criar componentes da pasta `legal-annex/`.
-4. Criar páginas e rotas; adicionar item na sidebar.
-5. Deploy automático das edge functions.
-6. QA: assinar fluxo padrão e experimental, conferir vinculação ao aluno, abrir painel admin.
+- **Service role key vaza se commitada.** Por isso uso secret e edge function — nunca front-end.
+- **Trigger `trg_legal_annex_validate` rejeita document_type fora do esperado.** Vou normalizar para `'anexo'` se vier inválido.
+- **Trigger de e-mail (`submit-legal-annex`) não dispara nesta importação** porque o INSERT é direto, não via edge function. Isso é intencional — não queremos reenviar e-mail para todos os assinantes antigos.
