@@ -178,6 +178,7 @@ export default function StudentList() {
             <tr className="border-b border-border">
               <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Status</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Plano</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Frequência</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Professor</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Final Plano</th>
