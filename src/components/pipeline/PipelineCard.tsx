@@ -6,9 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Flame, User, Clock, DollarSign, CalendarPlus } from "lucide-react";
-import { TEMPERATURE_COLORS, formatDaysAgo, taskIndicator, taskBadgeLabel, TASK_INDICATOR_CLASSES, type NextTaskInfo } from "@/lib/pipeline";
+import { Flame, User, Clock, DollarSign, CalendarPlus, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import { TEMPERATURE_COLORS, formatDaysAgo, taskIndicator, taskBadgeLabel, TASK_INDICATOR_CLASSES, type NextTaskInfo, type Funnel } from "@/lib/pipeline";
 import { ScheduleTaskDialog } from "./ScheduleTaskDialog";
+import { ConvertToAlunoDialog } from "./ConvertToAlunoDialog";
+import { MarkLostDialog } from "./MarkLostDialog";
 import { cn } from "@/lib/utils";
 
 export interface PipelineCardData {
@@ -17,6 +19,8 @@ export interface PipelineCardData {
   foto_url: string | null;
   responsavel_id?: string | null;
   responsavel_nome?: string | null;
+  current_stage_name?: string;
+  current_funnel?: Funnel;
   meta?: {
     temperatura_lead?: string | null;
     valor_estimado_plano?: number | null;
