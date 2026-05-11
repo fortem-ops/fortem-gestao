@@ -81,14 +81,14 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
   const { data: stages = [] } = useQuery<Stage[]>({
     queryKey: ["pipeline-stages", funnel],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel" as any)
+        .select("id,name,position,color,funnel")
         .eq("is_active", true)
-        .eq("funnel" as any, funnel)
-        .order("position");
+        .eq("funnel", funnel)
+        .order("position") as any);
       if (error) throw error;
-      return (data as any) as Stage[];
+      return (data || []) as Stage[];
     },
     staleTime: 5 * 60_000,
   });
