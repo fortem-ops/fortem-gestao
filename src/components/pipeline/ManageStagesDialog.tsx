@@ -140,89 +140,109 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
             <DialogTitle>Gerenciar etapas do funil</DialogTitle>
           </DialogHeader>
 
-          {/* Lista */}
-          <div className="space-y-2">
-            {isLoading ? (
-              <Skeleton className="h-40 w-full" />
-            ) : (
-              stages.map((s, i) => {
-                const c = stageColor(s.color);
-                const isEditing = editing[s.id] !== undefined;
-                return (
-                  <div key={s.id} className={cn("rounded-md border p-3 space-y-2", c.border, c.bg)}>
-                    <div className="flex items-center gap-2">
-                      <div className={cn("w-3 h-3 rounded-full shrink-0", c.dot)} />
-                      {isEditing ? (
-                        <Input
-                          value={editing[s.id].name}
-                          onChange={(e) => setEditing((p) => ({ ...p, [s.id]: { name: e.target.value } }))}
-                          className="h-8 flex-1"
-                          autoFocus
-                        />
-                      ) : (
-                        <button
-                          className="flex-1 text-left text-sm font-medium hover:underline"
-                          onClick={() => setEditing((p) => ({ ...p, [s.id]: { name: s.name } }))}
-                        >
-                          {s.name}
-                          {PROTECTED_NAMES.has(s.name) && (
-                            <span className="ml-2 text-[10px] text-amber-400">(automação)</span>
-                          )}
-                        </button>
-                      )}
-                      {isEditing && (
-                        <Button size="sm" variant="ghost" onClick={() => saveName(s)} className="h-8">
-                          <Save className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" disabled={i === 0} onClick={() => move(s, -1)}>
-                          <ArrowUp className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" disabled={i === stages.length - 1} onClick={() => move(s, 1)}>
-                          <ArrowDown className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-muted-foreground">Ativa</span>
-                        <Switch
-                          checked={s.is_active}
-                          onCheckedChange={(v) => updateStage(s.id, { is_active: v })}
-                        />
-                      </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-rose-400 hover:text-rose-300"
-                        onClick={() => setConfirmDelete(s)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 pl-5">
-                      <span className="text-[10px] text-muted-foreground mr-1">Cor:</span>
-                      {COLOR_KEYS.map((k) => {
-                        const cc = STAGE_COLORS[k];
-                        return (
-                          <button
-                            key={k}
-                            onClick={() => updateStage(s.id, { color: k })}
-                            className={cn(
-                              "w-5 h-5 rounded-full border-2 transition-all",
-                              cc.dot,
-                              s.color === k ? "border-foreground scale-110" : "border-transparent opacity-70 hover:opacity-100"
+          {/* Lista agrupada por funil */}
+          {isLoading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : (
+            FUNNELS.map((f) => {
+              const funnelStages = stages.filter((s) => s.funnel === f.id);
+              return (
+                <div key={f.id} className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mt-3">
+                    Funil · {f.label}
+                  </h3>
+                  {funnelStages.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground italic pl-2">Nenhuma etapa neste funil.</p>
+                  ) : (
+                    funnelStages.map((s, i) => {
+                      const c = stageColor(s.color);
+                      const isEditing = editing[s.id] !== undefined;
+                      return (
+                        <div key={s.id} className={cn("rounded-md border p-3 space-y-2", c.border, c.bg)}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className={cn("w-3 h-3 rounded-full shrink-0", c.dot)} />
+                            {isEditing ? (
+                              <Input
+                                value={editing[s.id].name}
+                                onChange={(e) => setEditing((p) => ({ ...p, [s.id]: { name: e.target.value } }))}
+                                className="h-8 flex-1 min-w-[140px]"
+                                autoFocus
+                              />
+                            ) : (
+                              <button
+                                className="flex-1 min-w-[140px] text-left text-sm font-medium hover:underline"
+                                onClick={() => setEditing((p) => ({ ...p, [s.id]: { name: s.name } }))}
+                              >
+                                {s.name}
+                                {PROTECTED_NAMES.has(s.name) && (
+                                  <span className="ml-2 text-[10px] text-amber-400">(automação)</span>
+                                )}
+                              </button>
                             )}
-                            title={k}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                            {isEditing && (
+                              <Button size="sm" variant="ghost" onClick={() => saveName(s)} className="h-8">
+                                <Save className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            <Select value={s.funnel} onValueChange={(v) => updateStage(s.id, { funnel: v as Funnel })}>
+                              <SelectTrigger className="h-7 w-[110px] text-[11px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {FUNNELS.map((ff) => (
+                                  <SelectItem key={ff.id} value={ff.id}>{ff.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="flex items-center gap-1">
+                              <Button size="icon" variant="ghost" className="h-7 w-7" disabled={i === 0} onClick={() => move(s, -1)}>
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-7 w-7" disabled={i === funnelStages.length - 1} onClick={() => move(s, 1)}>
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-muted-foreground">Ativa</span>
+                              <Switch
+                                checked={s.is_active}
+                                onCheckedChange={(v) => updateStage(s.id, { is_active: v })}
+                              />
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-rose-400 hover:text-rose-300"
+                              onClick={() => setConfirmDelete(s)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 pl-5">
+                            <span className="text-[10px] text-muted-foreground mr-1">Cor:</span>
+                            {COLOR_KEYS.map((k) => {
+                              const cc = STAGE_COLORS[k];
+                              return (
+                                <button
+                                  key={k}
+                                  onClick={() => updateStage(s.id, { color: k })}
+                                  className={cn(
+                                    "w-5 h-5 rounded-full border-2 transition-all",
+                                    cc.dot,
+                                    s.color === k ? "border-foreground scale-110" : "border-transparent opacity-70 hover:opacity-100"
+                                  )}
+                                  title={k}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              );
+            })
+          )}
 
           {/* Criar nova */}
           <div className="rounded-md border border-dashed p-3 space-y-2 mt-4">
