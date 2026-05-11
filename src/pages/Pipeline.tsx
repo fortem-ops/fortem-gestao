@@ -28,6 +28,16 @@ export default function Pipeline() {
     enabled: !!user,
   });
 
+  // Auto-sync Aluno Ativo / Renovação / Inativo com a data final do plano ao abrir o Pipeline
+  const autoSyncedRef = useRef(false);
+  useEffect(() => {
+    if (autoSyncedRef.current) return;
+    autoSyncedRef.current = true;
+    supabase.rpc("fn_detect_evasao" as any).then(({ error }) => {
+      if (!error) queryClient.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+    });
+  }, [queryClient]);
+
   async function runEvasaoScan() {
     setScanning(true);
     try {
