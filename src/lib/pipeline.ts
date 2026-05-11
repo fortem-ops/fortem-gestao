@@ -1,5 +1,13 @@
 // Pipeline helpers: stage colors, wa.me links, formatters.
 
+export type Funnel = "prospects" | "aluno" | "inativo";
+
+export const FUNNELS: { id: Funnel; label: string; description: string }[] = [
+  { id: "prospects", label: "Prospects", description: "Do lead à conversão" },
+  { id: "aluno", label: "Aluno", description: "Ativo, risco e renovação" },
+  { id: "inativo", label: "Inativo", description: "Alunos inativos" },
+];
+
 export const STAGE_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
   blue:    { bg: "bg-blue-500/10",    border: "border-blue-500/30",    text: "text-blue-300",    dot: "bg-blue-500" },
   amber:   { bg: "bg-amber-500/10",   border: "border-amber-500/30",   text: "text-amber-300",   dot: "bg-amber-500" },
