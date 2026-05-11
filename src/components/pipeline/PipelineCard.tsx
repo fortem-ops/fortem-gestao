@@ -33,6 +33,9 @@ export interface PipelineCardData {
 export function PipelineCard({ student, draggable = true }: { student: PipelineCardData; draggable?: boolean }) {
   const navigate = useNavigate();
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [renewOpen, setRenewOpen] = useState(false);
+  const [lostOpen, setLostOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: student.id,
     disabled: !draggable,
@@ -45,6 +48,12 @@ export function PipelineCard({ student, draggable = true }: { student: PipelineC
   const indicator = taskIndicator(student.next_task?.data_limite);
   const indicatorCls = TASK_INDICATOR_CLASSES[indicator];
   const badgeLabel = taskBadgeLabel(student.next_task?.data_limite);
+
+  const stageName = student.current_stage_name;
+  const showConvert = stageName === "Follow Up";
+  const showRenew = stageName === "Renovação de plano";
+  const showLost = stageName === "Follow Up" || stageName === "Renovação de plano" || stageName === "Risco de evasão";
+  const lostDest = student.current_funnel === "aluno" ? "Aluno inativo" : "Aluno perdido";
 
   return (
     <>
