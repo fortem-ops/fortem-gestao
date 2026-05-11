@@ -247,14 +247,22 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
           {/* Criar nova */}
           <div className="rounded-md border border-dashed p-3 space-y-2 mt-4">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Nova etapa</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Input
                 placeholder="Nome da etapa"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && createStage()}
-                className="h-9"
+                className="h-9 flex-1 min-w-[160px]"
               />
+              <Select value={newFunnel} onValueChange={(v) => setNewFunnel(v as Funnel)}>
+                <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FUNNELS.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>Funil · {f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button onClick={createStage} disabled={busy} className="gap-1.5">
                 <Plus className="w-4 h-4" /> Criar
               </Button>
