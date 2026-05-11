@@ -137,6 +137,24 @@ export function PipelineKanban({ filters }: PipelineKanbanProps) {
     },
   });
 
+  const { data: nextTasksMap = {} } = useQuery({
+    queryKey: ["pipeline-next-tasks"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("tarefas")
+        .select("id,aluno_id,titulo,data_limite")
+        .eq("status", "pendente")
+        .not("aluno_id", "is", null)
+        .order("data_limite", { ascending: true, nullsFirst: false })
+        .limit(2000);
+      const map: Record<string, { id: string; titulo: string; data_limite: string | null }> = {};
+      (data || []).forEach((t: any) => {
+        if (!map[t.aluno_id]) map[t.aluno_id] = { id: t.id, titulo: t.titulo, data_limite: t.data_limite };
+      });
+      return map;
+    },
+  });
+
   const metaMap = useMemo(() => {
     const m: Record<string, any> = {};
     metadata.forEach((x: any) => { m[x.aluno_id] = x; });
@@ -166,13 +184,15 @@ export function PipelineKanban({ filters }: PipelineKanbanProps) {
         id: a.id,
         nome: a.nome,
         foto_url: a.foto_url,
+        responsavel_id: a.responsavel_id,
         responsavel_nome: a.responsavel_id ? profilesMap[a.responsavel_id] : null,
         meta: metaMap[a.id],
         last_moved_at: lastMovesMap[a.id],
+        next_task: nextTasksMap[a.id] || null,
       });
     });
     return map;
-  }, [stages, filtered, profilesMap, metaMap, lastMovesMap]);
+  }, [stages, filtered, profilesMap, metaMap, lastMovesMap, nextTasksMap]);
 
   function findStudent(id: string): PipelineCardData | null {
     for (const list of Object.values(byStage)) {
