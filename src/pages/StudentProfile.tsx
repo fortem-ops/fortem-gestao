@@ -118,7 +118,7 @@ export default function StudentProfile() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-heading font-bold text-foreground">{student.nome}</h1>
             {(() => {
-              const d = getDisplayStatus(student.status, statusInfo?.planEnd ?? null, statusInfo?.licencas ?? []);
+              const d = getDisplayStatus(student.status, statusInfo?.planEnd ?? null, statusInfo?.licencas ?? [], statusInfo?.planTipo ?? null);
               return <Badge variant="outline" className={d.className}>{d.label}</Badge>;
             })()}
           </div>

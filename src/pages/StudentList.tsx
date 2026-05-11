@@ -109,7 +109,7 @@ export default function StudentList() {
     const c = s.credits;
     const matchSearch = s.nome.toLowerCase().includes(filters.search.toLowerCase()) ||
       (s.email?.toLowerCase().includes(filters.search.toLowerCase()) ?? false);
-    const display = getDisplayStatus(s.status, s.planEnd, s.licencas);
+    const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
     const matchStatus = filters.status === "todos" || display.key === filters.status;
 
     const matchFreq = filters.frequencia === "todos" ||
@@ -237,7 +237,7 @@ export default function StudentList() {
                     </td>
                     <td className="p-4 hidden md:table-cell">
                       {(() => {
-                        const d = getDisplayStatus(student.status, student.planEnd, student.licencas);
+                        const d = getDisplayStatus(student.status, student.planEnd, student.licencas, student.planTipo);
                         return (
                           <Badge variant="outline" className={`text-xs ${d.className}`}>{d.label}</Badge>
                         );
