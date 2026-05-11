@@ -183,12 +183,15 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
     filtered.forEach((a: any) => {
       const stageId = a.current_pipeline_stage_id;
       if (!stageId || !map[stageId]) return;
+      const stage = stages.find((s) => s.id === stageId);
       map[stageId].push({
         id: a.id,
         nome: a.nome,
         foto_url: a.foto_url,
         responsavel_id: a.responsavel_id,
         responsavel_nome: a.responsavel_id ? profilesMap[a.responsavel_id] : null,
+        current_stage_name: stage?.name,
+        current_funnel: stage?.funnel,
         meta: metaMap[a.id],
         last_moved_at: lastMovesMap[a.id],
         next_task: nextTasksMap[a.id] || null,
