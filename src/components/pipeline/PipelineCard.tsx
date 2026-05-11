@@ -147,6 +147,44 @@ export function PipelineCard({ student, draggable = true }: { student: PipelineC
             Origem: {student.meta.origem_lead}
           </p>
         )}
+
+        {(showConvert || showRenew || showLost) && (
+          <div className="mt-2 flex flex-wrap gap-1.5 pt-2 border-t border-border/50">
+            {showConvert && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[10px] gap-1 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setConvertOpen(true); }}
+              >
+                <CheckCircle2 className="w-3 h-3" /> Conversão
+              </Button>
+            )}
+            {showRenew && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[10px] gap-1 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setRenewOpen(true); }}
+              >
+                <RefreshCw className="w-3 h-3" /> Ganho
+              </Button>
+            )}
+            {showLost && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[10px] gap-1 border-rose-500/40 text-rose-300 hover:bg-rose-500/10"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setLostOpen(true); }}
+              >
+                <XCircle className="w-3 h-3" /> Perdido
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {scheduleOpen && (
@@ -156,6 +194,36 @@ export function PipelineCard({ student, draggable = true }: { student: PipelineC
           alunoId={student.id}
           alunoNome={student.nome}
           responsavelId={student.responsavel_id || null}
+        />
+      )}
+      {convertOpen && (
+        <ConvertToAlunoDialog
+          open={convertOpen}
+          onOpenChange={setConvertOpen}
+          alunoId={student.id}
+          alunoNome={student.nome}
+          fullConvert={true}
+          destinoStage="Aluno ativo"
+        />
+      )}
+      {renewOpen && (
+        <ConvertToAlunoDialog
+          open={renewOpen}
+          onOpenChange={setRenewOpen}
+          alunoId={student.id}
+          alunoNome={student.nome}
+          fullConvert={false}
+          destinoStage="Aluno ativo"
+          title={`Renovar plano de ${student.nome}`}
+        />
+      )}
+      {lostOpen && (
+        <MarkLostDialog
+          open={lostOpen}
+          onOpenChange={setLostOpen}
+          alunoId={student.id}
+          alunoNome={student.nome}
+          destinoStage={lostDest}
         />
       )}
     </>
