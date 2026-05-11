@@ -244,6 +244,13 @@ export default function StudentList() {
                       })()}
                     </td>
                     <td className="p-4 hidden md:table-cell">
+                      {student.planTipo ? (
+                        <Badge variant="outline" className="text-xs">{student.planTipo}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="p-4 hidden md:table-cell">
                       <span className="text-sm text-muted-foreground">
                         {student.frequencia_semanal === 0 ? "Livre" : `${student.frequencia_semanal}x/semana`}
                       </span>
