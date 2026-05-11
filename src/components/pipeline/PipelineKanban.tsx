@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PipelineCard, type PipelineCardData } from "./PipelineCard";
-import { stageColor } from "@/lib/pipeline";
+import { stageColor, type Funnel } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 
 interface Stage {
@@ -15,9 +15,11 @@ interface Stage {
   name: string;
   position: number;
   color: string;
+  funnel: Funnel;
 }
 
 interface PipelineKanbanProps {
+  funnel: Funnel;
   filters: {
     search?: string;
     professorId?: string | null;
@@ -69,7 +71,7 @@ function DroppableColumn(props: { stage: Stage; students: PipelineCardData[] }) 
   return <StageColumn {...props} isOver={isOver} setRef={setNodeRef} />;
 }
 
-export function PipelineKanban({ filters }: PipelineKanbanProps) {
+export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeStudent, setActiveStudent] = useState<PipelineCardData | null>(null);
@@ -77,15 +79,16 @@ export function PipelineKanban({ filters }: PipelineKanbanProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const { data: stages = [] } = useQuery<Stage[]>({
-    queryKey: ["pipeline-stages"],
+    queryKey: ["pipeline-stages", funnel],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pipeline_stages")
-        .select("id,name,position,color")
+        .select("id,name,position,color,funnel" as any)
         .eq("is_active", true)
+        .eq("funnel" as any, funnel)
         .order("position");
       if (error) throw error;
-      return data as Stage[];
+      return (data as any) as Stage[];
     },
     staleTime: 5 * 60_000,
   });
