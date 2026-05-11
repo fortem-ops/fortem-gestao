@@ -240,17 +240,47 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     <div className="space-y-4 mt-4">
       <h3 className="font-heading font-semibold text-foreground">Plano Contratado</h3>
       <div className="glass-card rounded-lg p-5 space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <Badge className="text-sm px-3 py-1">{data.tipo}</Badge>
             <Badge variant="outline" className="status-active">Ativo</Badge>
+            {isAutoRenewPlan(data.tipo) && (
+              <Badge variant="outline" className="status-info gap-1">
+                <RefreshCw className="h-3 w-3" /> Renovação automática mensal
+              </Badge>
+            )}
           </div>
-          {data.valor != null && data.valor > 0 && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <DollarSign className="h-4 w-4" />
-              <span>R$ {Number(data.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {data.valor != null && data.valor > 0 && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <DollarSign className="h-4 w-4" />
+                <span>R$ {Number(data.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            {isCoordAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" disabled={saving}>
+                    <Ban className="h-3.5 w-3.5 mr-1.5" /> Cancelar Contrato
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancelar contrato?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      O plano <strong>{data.tipo}</strong> será encerrado hoje e o aluno deixará de ter renovação automática. Esta ação pode ser revertida criando um novo plano.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancelContract} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Confirmar cancelamento
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
