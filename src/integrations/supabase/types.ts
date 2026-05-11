@@ -1968,6 +1968,7 @@ export type Database = {
       }
       fn_current_aluno_id: { Args: never; Returns: string }
       fn_detect_evasao: { Args: never; Returns: Json }
+      fn_is_auto_renew_plan: { Args: { _tipo: string }; Returns: boolean }
       fn_move_pipeline: {
         Args: {
           _aluno_id: string

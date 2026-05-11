@@ -89,7 +89,7 @@ export default function StudentProfile() {
           .select("*").eq("aluno_id", id!).eq("plano_id", plano.id);
         licencas = (data as unknown as AlunoLicenca[]) || [];
       }
-      return { planEnd, licencas };
+      return { planEnd, licencas, planTipo: plano?.tipo ?? null };
     },
     enabled: !!id,
   });
@@ -118,7 +118,7 @@ export default function StudentProfile() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-heading font-bold text-foreground">{student.nome}</h1>
             {(() => {
-              const d = getDisplayStatus(student.status, statusInfo?.planEnd ?? null, statusInfo?.licencas ?? []);
+              const d = getDisplayStatus(student.status, statusInfo?.planEnd ?? null, statusInfo?.licencas ?? [], statusInfo?.planTipo ?? null);
               return <Badge variant="outline" className={d.className}>{d.label}</Badge>;
             })()}
           </div>

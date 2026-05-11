@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2 } from "lucide-react";
+import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
 import { StudentLicencas } from "./StudentLicencas";
+import { isAutoRenewPlan } from "@/lib/planTipo";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
@@ -181,6 +183,25 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     }
   }
 
+  async function handleCancelContract() {
+    if (!data) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("planos")
+        .update({ ativo: false, data_fim: new Date().toISOString().split("T")[0] })
+        .eq("id", data.id);
+      if (error) throw error;
+      toast.success("Contrato cancelado");
+      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["aluno_display_status", student.id] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao cancelar contrato");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-4 mt-4">
@@ -219,17 +240,47 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     <div className="space-y-4 mt-4">
       <h3 className="font-heading font-semibold text-foreground">Plano Contratado</h3>
       <div className="glass-card rounded-lg p-5 space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <Badge className="text-sm px-3 py-1">{data.tipo}</Badge>
             <Badge variant="outline" className="status-active">Ativo</Badge>
+            {isAutoRenewPlan(data.tipo) && (
+              <Badge variant="outline" className="status-info gap-1">
+                <RefreshCw className="h-3 w-3" /> Renovação automática mensal
+              </Badge>
+            )}
           </div>
-          {data.valor != null && data.valor > 0 && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <DollarSign className="h-4 w-4" />
-              <span>R$ {Number(data.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {data.valor != null && data.valor > 0 && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <DollarSign className="h-4 w-4" />
+                <span>R$ {Number(data.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            {isCoordAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" disabled={saving}>
+                    <Ban className="h-3.5 w-3.5 mr-1.5" /> Cancelar Contrato
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancelar contrato?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      O plano <strong>{data.tipo}</strong> será encerrado hoje e o aluno deixará de ter renovação automática. Esta ação pode ser revertida criando um novo plano.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancelContract} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Confirmar cancelamento
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

@@ -197,7 +197,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   }
 
   const planEndDate = plano ? (plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : calcEndDate(plano.data_inicio, plano.duracao_meses)) : null;
-  const displayStatus = getDisplayStatus(student.status, planEndDate, licencas);
+  const displayStatus = getDisplayStatus(student.status, planEndDate, licencas, plano?.tipo ?? null);
 
   const severityClass: Record<string, string> = {
     atencao: "status-warning",
