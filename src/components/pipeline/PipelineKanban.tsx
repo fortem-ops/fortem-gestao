@@ -184,13 +184,15 @@ export function PipelineKanban({ filters }: PipelineKanbanProps) {
         id: a.id,
         nome: a.nome,
         foto_url: a.foto_url,
+        responsavel_id: a.responsavel_id,
         responsavel_nome: a.responsavel_id ? profilesMap[a.responsavel_id] : null,
         meta: metaMap[a.id],
         last_moved_at: lastMovesMap[a.id],
+        next_task: nextTasksMap[a.id] || null,
       });
     });
     return map;
-  }, [stages, filtered, profilesMap, metaMap, lastMovesMap]);
+  }, [stages, filtered, profilesMap, metaMap, lastMovesMap, nextTasksMap]);
 
   function findStudent(id: string): PipelineCardData | null {
     for (const list of Object.values(byStage)) {
