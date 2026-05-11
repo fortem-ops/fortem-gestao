@@ -35,18 +35,19 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
   const [editing, setEditing] = useState<Record<string, { name: string }>>({});
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("blue");
+  const [newFunnel, setNewFunnel] = useState<Funnel>("prospects");
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Stage | null>(null);
 
   const { data: stages = [], isLoading } = useQuery<Stage[]>({
     queryKey: ["pipeline-stages-manage"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,is_active")
-        .order("position");
+        .select("id,name,position,color,is_active,funnel")
+        .order("position") as any);
       if (error) throw error;
-      return data as Stage[];
+      return (data || []) as Stage[];
     },
     enabled: open,
   });
@@ -63,12 +64,13 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
     if (!name) return toast.error("Informe o nome da etapa");
     setBusy(true);
     const maxPos = stages.reduce((m, s) => Math.max(m, s.position), -1);
-    const { error } = await supabase.from("pipeline_stages").insert({
+    const { error } = await (supabase.from("pipeline_stages").insert({
       name,
       color: newColor,
       position: maxPos + 1,
       is_active: true,
-    });
+      funnel: newFunnel,
+    } as any) as any);
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Etapa criada");
@@ -78,7 +80,7 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
   }
 
   async function updateStage(id: string, patch: Partial<Stage>) {
-    const { error } = await supabase.from("pipeline_stages").update(patch).eq("id", id);
+    const { error } = await (supabase.from("pipeline_stages").update(patch as any).eq("id", id) as any);
     if (error) return toast.error(error.message);
     invalidate();
   }
