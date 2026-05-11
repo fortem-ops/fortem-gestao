@@ -193,6 +193,7 @@ export default function StudentList() {
                 <tr key={i} className="border-b border-border/50">
                   <td className="p-4"><Skeleton className="h-5 w-40" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
+                  <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-20" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-24" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-20" /></td>
