@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Settings2, ShieldAlert } from "lucide-react";
+import { Settings2, ShieldAlert, ChevronDown, ChevronRight } from "lucide-react";
 import { PipelineKanban } from "@/components/pipeline/PipelineKanban";
 import { PipelineFilters, type PipelineFiltersValue } from "@/components/pipeline/PipelineFilters";
 import { ManageStagesDialog } from "@/components/pipeline/ManageStagesDialog";
+import { FUNNELS, type Funnel } from "@/lib/pipeline";
+import { cn } from "@/lib/utils";
 
 export default function Pipeline() {
   const { user } = useAuth();
@@ -15,6 +17,7 @@ export default function Pipeline() {
   const [filters, setFilters] = useState<PipelineFiltersValue>({ search: "", professorId: null, origem: null });
   const [scanning, setScanning] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<Funnel, boolean>>({ prospects: false, aluno: false, inativo: false });
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -31,7 +34,7 @@ export default function Pipeline() {
       const { data, error } = await supabase.rpc("fn_detect_evasao" as any);
       if (error) throw error;
       const r = (data || {}) as any;
-      toast.success(`Scan concluído: ${r.movidos_para_risco || 0} em risco · ${r.movidos_para_recuperado || 0} recuperados`);
+      toast.success(`Scan: ${r.movidos_para_risco || 0} risco · ${r.movidos_para_renovacao || 0} renovação · ${r.movidos_para_inativo || 0} inativo`);
       queryClient.invalidateQueries({ queryKey: ["pipeline-alunos"] });
     } catch (e: any) {
       toast.error(e.message || "Erro ao executar scan");
@@ -63,7 +66,27 @@ export default function Pipeline() {
 
       <PipelineFilters value={filters} onChange={setFilters} />
 
-      <PipelineKanban filters={filters} />
+      <div className="space-y-6">
+        {FUNNELS.map((f) => (
+          <section key={f.id} className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setCollapsed((c) => ({ ...c, [f.id]: !c[f.id] }))}
+              className="w-full flex items-center gap-2 text-left group"
+            >
+              {collapsed[f.id]
+                ? <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+              <h2 className="text-sm font-heading font-semibold uppercase tracking-wider text-foreground">{f.label}</h2>
+              <span className="text-xs text-muted-foreground">· {f.description}</span>
+              <div className="flex-1 h-px bg-border ml-2" />
+            </button>
+            <div className={cn(collapsed[f.id] && "hidden")}>
+              <PipelineKanban funnel={f.id} filters={filters} />
+            </div>
+          </section>
+        ))}
+      </div>
 
       <ManageStagesDialog open={manageOpen} onOpenChange={setManageOpen} />
     </div>

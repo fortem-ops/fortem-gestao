@@ -6,9 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Flame, User, Clock, DollarSign, CalendarPlus } from "lucide-react";
-import { TEMPERATURE_COLORS, formatDaysAgo, taskIndicator, taskBadgeLabel, TASK_INDICATOR_CLASSES, type NextTaskInfo } from "@/lib/pipeline";
+import { Flame, User, Clock, DollarSign, CalendarPlus, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import { TEMPERATURE_COLORS, formatDaysAgo, taskIndicator, taskBadgeLabel, TASK_INDICATOR_CLASSES, type NextTaskInfo, type Funnel } from "@/lib/pipeline";
 import { ScheduleTaskDialog } from "./ScheduleTaskDialog";
+import { ConvertToAlunoDialog } from "./ConvertToAlunoDialog";
+import { MarkLostDialog } from "./MarkLostDialog";
 import { cn } from "@/lib/utils";
 
 export interface PipelineCardData {
@@ -17,6 +19,8 @@ export interface PipelineCardData {
   foto_url: string | null;
   responsavel_id?: string | null;
   responsavel_nome?: string | null;
+  current_stage_name?: string;
+  current_funnel?: Funnel;
   meta?: {
     temperatura_lead?: string | null;
     valor_estimado_plano?: number | null;
@@ -29,6 +33,9 @@ export interface PipelineCardData {
 export function PipelineCard({ student, draggable = true }: { student: PipelineCardData; draggable?: boolean }) {
   const navigate = useNavigate();
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [renewOpen, setRenewOpen] = useState(false);
+  const [lostOpen, setLostOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: student.id,
     disabled: !draggable,
@@ -41,6 +48,12 @@ export function PipelineCard({ student, draggable = true }: { student: PipelineC
   const indicator = taskIndicator(student.next_task?.data_limite);
   const indicatorCls = TASK_INDICATOR_CLASSES[indicator];
   const badgeLabel = taskBadgeLabel(student.next_task?.data_limite);
+
+  const stageName = student.current_stage_name;
+  const showConvert = stageName === "Follow Up";
+  const showRenew = stageName === "Renovação de plano";
+  const showLost = stageName === "Follow Up" || stageName === "Renovação de plano" || stageName === "Risco de evasão";
+  const lostDest = student.current_funnel === "aluno" ? "Aluno inativo" : "Aluno perdido";
 
   return (
     <>
@@ -134,6 +147,44 @@ export function PipelineCard({ student, draggable = true }: { student: PipelineC
             Origem: {student.meta.origem_lead}
           </p>
         )}
+
+        {(showConvert || showRenew || showLost) && (
+          <div className="mt-2 flex flex-wrap gap-1.5 pt-2 border-t border-border/50">
+            {showConvert && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[10px] gap-1 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setConvertOpen(true); }}
+              >
+                <CheckCircle2 className="w-3 h-3" /> Conversão
+              </Button>
+            )}
+            {showRenew && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[10px] gap-1 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setRenewOpen(true); }}
+              >
+                <RefreshCw className="w-3 h-3" /> Ganho
+              </Button>
+            )}
+            {showLost && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[10px] gap-1 border-rose-500/40 text-rose-300 hover:bg-rose-500/10"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setLostOpen(true); }}
+              >
+                <XCircle className="w-3 h-3" /> Perdido
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {scheduleOpen && (
@@ -143,6 +194,36 @@ export function PipelineCard({ student, draggable = true }: { student: PipelineC
           alunoId={student.id}
           alunoNome={student.nome}
           responsavelId={student.responsavel_id || null}
+        />
+      )}
+      {convertOpen && (
+        <ConvertToAlunoDialog
+          open={convertOpen}
+          onOpenChange={setConvertOpen}
+          alunoId={student.id}
+          alunoNome={student.nome}
+          fullConvert={true}
+          destinoStage="Aluno ativo"
+        />
+      )}
+      {renewOpen && (
+        <ConvertToAlunoDialog
+          open={renewOpen}
+          onOpenChange={setRenewOpen}
+          alunoId={student.id}
+          alunoNome={student.nome}
+          fullConvert={false}
+          destinoStage="Aluno ativo"
+          title={`Renovar plano de ${student.nome}`}
+        />
+      )}
+      {lostOpen && (
+        <MarkLostDialog
+          open={lostOpen}
+          onOpenChange={setLostOpen}
+          alunoId={student.id}
+          alunoNome={student.nome}
+          destinoStage={lostDest}
         />
       )}
     </>

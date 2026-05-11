@@ -109,6 +109,10 @@ export type Database = {
       }
       alunos: {
         Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
           cpf: string | null
           created_at: string
           current_pipeline_stage_id: string | null
@@ -117,16 +121,24 @@ export type Database = {
           foto_url: string | null
           frequencia_semanal: number | null
           id: string
+          logradouro: string | null
+          motivo_perda: string | null
           nome: string
+          numero: string | null
           observacoes: string | null
           responsavel_id: string | null
           sexo: string | null
           status: string
           telefone: string | null
+          uf: string | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
           current_pipeline_stage_id?: string | null
@@ -135,16 +147,24 @@ export type Database = {
           foto_url?: string | null
           frequencia_semanal?: number | null
           id?: string
+          logradouro?: string | null
+          motivo_perda?: string | null
           nome: string
+          numero?: string | null
           observacoes?: string | null
           responsavel_id?: string | null
           sexo?: string | null
           status?: string
           telefone?: string | null
+          uf?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
           current_pipeline_stage_id?: string | null
@@ -153,12 +173,16 @@ export type Database = {
           foto_url?: string | null
           frequencia_semanal?: number | null
           id?: string
+          logradouro?: string | null
+          motivo_perda?: string | null
           nome?: string
+          numero?: string | null
           observacoes?: string | null
           responsavel_id?: string | null
           sexo?: string | null
           status?: string
           telefone?: string | null
+          uf?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1205,6 +1229,7 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          funnel: Database["public"]["Enums"]["pipeline_funnel"]
           id: string
           is_active: boolean
           name: string
@@ -1213,6 +1238,7 @@ export type Database = {
         Insert: {
           color?: string
           created_at?: string
+          funnel?: Database["public"]["Enums"]["pipeline_funnel"]
           id?: string
           is_active?: boolean
           name: string
@@ -1221,6 +1247,7 @@ export type Database = {
         Update: {
           color?: string
           created_at?: string
+          funnel?: Database["public"]["Enums"]["pipeline_funnel"]
           id?: string
           is_active?: boolean
           name?: string
@@ -2077,6 +2104,7 @@ export type Database = {
         | "arquivada"
       notif_tipo: "simples" | "solicitacao" | "reuniao" | "manutencao"
       parceiro_modo_validacao: "qr_scan" | "cpf_manual" | "lista_nome"
+      pipeline_funnel: "prospects" | "aluno" | "inativo"
       pipeline_movement_source:
         | "manual"
         | "auto_avaliacao"
@@ -2305,6 +2333,7 @@ export const Constants = {
       ],
       notif_tipo: ["simples", "solicitacao", "reuniao", "manutencao"],
       parceiro_modo_validacao: ["qr_scan", "cpf_manual", "lista_nome"],
+      pipeline_funnel: ["prospects", "aluno", "inativo"],
       pipeline_movement_source: [
         "manual",
         "auto_avaliacao",
