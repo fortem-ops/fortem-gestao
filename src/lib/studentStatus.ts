@@ -1,4 +1,5 @@
 import { getLicencaVigente, type AlunoLicenca } from "./licencas";
+import { isAutoRenewPlan } from "./planTipo";
 
 export type DisplayStatusKey = "ativo" | "licenca" | "encerrado" | "lead" | "prospect";
 
@@ -28,6 +29,7 @@ export function getDisplayStatus(
   rawStatus: string | null | undefined,
   planEnd: Date | null,
   licencas: AlunoLicenca[] = [],
+  planTipo?: string | null,
 ): DisplayStatus {
   // Pipeline-only statuses
   if (rawStatus === "lead" || rawStatus === "prospect") {
@@ -36,6 +38,11 @@ export function getDisplayStatus(
 
   if (getLicencaVigente(licencas)) {
     return { key: "licenca", label: LABELS.licenca, className: CLASSES.licenca };
+  }
+
+  // Planos auto-renováveis (Start, Gympass/Wellhub, Total Pass) são sempre ativos
+  if (isAutoRenewPlan(planTipo)) {
+    return { key: "ativo", label: LABELS.ativo, className: CLASSES.ativo };
   }
 
   if (planEnd && planEnd < new Date(new Date().toDateString())) {
