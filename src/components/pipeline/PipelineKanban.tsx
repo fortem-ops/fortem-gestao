@@ -137,6 +137,24 @@ export function PipelineKanban({ filters }: PipelineKanbanProps) {
     },
   });
 
+  const { data: nextTasksMap = {} } = useQuery({
+    queryKey: ["pipeline-next-tasks"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("tarefas")
+        .select("id,aluno_id,titulo,data_limite")
+        .eq("status", "pendente")
+        .not("aluno_id", "is", null)
+        .order("data_limite", { ascending: true, nullsFirst: false })
+        .limit(2000);
+      const map: Record<string, { id: string; titulo: string; data_limite: string | null }> = {};
+      (data || []).forEach((t: any) => {
+        if (!map[t.aluno_id]) map[t.aluno_id] = { id: t.id, titulo: t.titulo, data_limite: t.data_limite };
+      });
+      return map;
+    },
+  });
+
   const metaMap = useMemo(() => {
     const m: Record<string, any> = {};
     metadata.forEach((x: any) => { m[x.aluno_id] = x; });
