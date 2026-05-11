@@ -38,6 +38,49 @@ export const QUICK_MESSAGES = [
   { key: "recuperar",         label: "Recuperar aluno",    build: (n: string) => `Oi ${n}, sentimos sua falta na Fortem! Vamos conversar para entender como podemos te ajudar a retomar a rotina?` },
 ] as const;
 
+export type TaskIndicator = "today" | "overdue" | "scheduled" | "none";
+
+export interface NextTaskInfo {
+  id: string;
+  titulo: string;
+  data_limite: string | null;
+}
+
+/** Determines task indicator from due date string (YYYY-MM-DD). */
+export function taskIndicator(dueDate: string | null | undefined): TaskIndicator {
+  if (!dueDate) return "none";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [y, m, d] = dueDate.split("-").map(Number);
+  const due = new Date(y, (m || 1) - 1, d || 1);
+  due.setHours(0, 0, 0, 0);
+  if (due.getTime() === today.getTime()) return "today";
+  if (due.getTime() < today.getTime()) return "overdue";
+  return "scheduled";
+}
+
+export const TASK_INDICATOR_CLASSES: Record<TaskIndicator, { bar: string; badge: string; label: string }> = {
+  today:     { bar: "bg-emerald-500", badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40", label: "Hoje" },
+  overdue:   { bar: "bg-rose-500",    badge: "bg-rose-500/15 text-rose-300 border-rose-500/40",          label: "Atrasada" },
+  scheduled: { bar: "bg-zinc-400",    badge: "bg-zinc-500/15 text-zinc-300 border-zinc-500/40",          label: "Agendada" },
+  none:      { bar: "bg-amber-500",   badge: "bg-amber-500/15 text-amber-300 border-amber-500/40",       label: "Sem tarefa" },
+};
+
+/** Short label for badge: "Hoje", "Atrasada Nd", or "dd/MM". */
+export function taskBadgeLabel(dueDate: string | null | undefined): string {
+  const ind = taskIndicator(dueDate);
+  if (ind === "none") return "Agendar";
+  if (ind === "today") return "Hoje";
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const [y, m, d] = (dueDate as string).split("-").map(Number);
+  const due = new Date(y, (m || 1) - 1, d || 1); due.setHours(0, 0, 0, 0);
+  if (ind === "overdue") {
+    const days = Math.round((today.getTime() - due.getTime()) / 86400000);
+    return `Atrasada ${days}d`;
+  }
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+}
+
 export function formatDaysAgo(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date) : date;
   const diffMs = Date.now() - d.getTime();
