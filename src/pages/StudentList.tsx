@@ -66,16 +66,19 @@ export default function StudentList() {
 
       const creditsMap: Record<string, ServiceCredits> = {};
       const planEndMap: Record<string, Date | null> = {};
+      const planTipoMap: Record<string, string | null> = {};
 
       for (const student of students) {
         const plano = planos?.find((p) => p.aluno_id === student.id);
         const studentConsumos = consumos?.filter((c) => c.aluno_id === student.id && c.plano_id === plano?.id) || [];
 
-        // Plan end date
+        // Plan end date + tipo
         if (plano) {
           planEndMap[student.id] = addMonths(new Date(plano.data_inicio), plano.duracao_meses);
+          planTipoMap[student.id] = plano.tipo || null;
         } else {
           planEndMap[student.id] = null;
+          planTipoMap[student.id] = null;
         }
 
         const countPurchased = (tipo: string) =>
