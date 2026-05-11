@@ -101,7 +101,7 @@ export default function StudentList() {
         };
       }
 
-      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], licencas: licencasMap[s.id] || [] }));
+      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
     },
   });
 
