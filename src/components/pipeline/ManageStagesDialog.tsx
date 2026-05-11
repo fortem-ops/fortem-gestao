@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowDown, ArrowUp, Plus, Trash2, Save } from "lucide-react";
-import { STAGE_COLORS, stageColor } from "@/lib/pipeline";
+import { STAGE_COLORS, stageColor, FUNNELS, type Funnel } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 
 interface Stage {
@@ -18,10 +19,11 @@ interface Stage {
   position: number;
   color: string;
   is_active: boolean;
+  funnel: Funnel;
 }
 
 const COLOR_KEYS = Object.keys(STAGE_COLORS);
-const PROTECTED_NAMES = new Set(["Risco de evasão", "Recuperado", "Lead", "Aluno ativo"]);
+const PROTECTED_NAMES = new Set(["Risco de evasão", "Recuperado", "Lead", "Aluno ativo", "Aluno inativo", "Renovação de plano"]);
 
 interface Props {
   open: boolean;
