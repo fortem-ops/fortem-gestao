@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2 } from "lucide-react";
+import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
 import { StudentLicencas } from "./StudentLicencas";
+import { isAutoRenewPlan } from "@/lib/planTipo";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
@@ -178,6 +180,25 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover registro");
+    }
+  }
+
+  async function handleCancelContract() {
+    if (!data) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("planos")
+        .update({ ativo: false, data_fim: new Date().toISOString().split("T")[0] })
+        .eq("id", data.id);
+      if (error) throw error;
+      toast.success("Contrato cancelado");
+      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["aluno_display_status", student.id] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao cancelar contrato");
+    } finally {
+      setSaving(false);
     }
   }
 
