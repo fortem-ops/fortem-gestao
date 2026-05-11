@@ -66,16 +66,19 @@ export default function StudentList() {
 
       const creditsMap: Record<string, ServiceCredits> = {};
       const planEndMap: Record<string, Date | null> = {};
+      const planTipoMap: Record<string, string | null> = {};
 
       for (const student of students) {
         const plano = planos?.find((p) => p.aluno_id === student.id);
         const studentConsumos = consumos?.filter((c) => c.aluno_id === student.id && c.plano_id === plano?.id) || [];
 
-        // Plan end date
+        // Plan end date + tipo
         if (plano) {
           planEndMap[student.id] = addMonths(new Date(plano.data_inicio), plano.duracao_meses);
+          planTipoMap[student.id] = plano.tipo || null;
         } else {
           planEndMap[student.id] = null;
+          planTipoMap[student.id] = null;
         }
 
         const countPurchased = (tipo: string) =>
@@ -98,7 +101,7 @@ export default function StudentList() {
         };
       }
 
-      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], licencas: licencasMap[s.id] || [] }));
+      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
     },
   });
 
@@ -175,6 +178,7 @@ export default function StudentList() {
             <tr className="border-b border-border">
               <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Status</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Plano</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Frequência</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Professor</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Final Plano</th>
@@ -189,6 +193,7 @@ export default function StudentList() {
                 <tr key={i} className="border-b border-border/50">
                   <td className="p-4"><Skeleton className="h-5 w-40" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
+                  <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-20" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-24" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-20" /></td>
@@ -199,7 +204,7 @@ export default function StudentList() {
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                <td colSpan={9} className="p-8 text-center text-muted-foreground">
                   Nenhum aluno encontrado.
                 </td>
               </tr>
@@ -237,6 +242,13 @@ export default function StudentList() {
                           <Badge variant="outline" className={`text-xs ${d.className}`}>{d.label}</Badge>
                         );
                       })()}
+                    </td>
+                    <td className="p-4 hidden md:table-cell">
+                      {student.planTipo ? (
+                        <Badge variant="outline" className="text-xs">{student.planTipo}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="p-4 hidden md:table-cell">
                       <span className="text-sm text-muted-foreground">
