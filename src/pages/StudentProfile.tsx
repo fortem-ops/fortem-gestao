@@ -89,7 +89,7 @@ export default function StudentProfile() {
           .select("*").eq("aluno_id", id!).eq("plano_id", plano.id);
         licencas = (data as unknown as AlunoLicenca[]) || [];
       }
-      return { planEnd, licencas };
+      return { planEnd, licencas, planTipo: plano?.tipo ?? null };
     },
     enabled: !!id,
   });
