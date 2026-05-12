@@ -61,9 +61,15 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Iterative fit: render the whole layout, and if it overflowed to a 2nd page,
   // retry with a progressively smaller scale multiplier so every treino (incl. T4)
   // and every aquecimento exercise fit on a single A4 sheet.
-  const MAX_ATTEMPTS = 8;
+  const MAX_ATTEMPTS = 14;
   let attemptMul = 1.0;
   let doc!: jsPDF;
+  // Track the largest attemptMul that still fits on a single page.
+  // When a render fits but leaves too much space below the last row,
+  // we grow attemptMul to push the last exercise down toward the
+  // bottom of the Frequência column.
+  let bestFitMul: number | null = null;
+  let triedGrow = false;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
   doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();   // 210
@@ -649,15 +655,36 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // ============================================================
   const totalPages = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
   const isLastAttempt = attempt === MAX_ATTEMPTS - 1;
-  if (totalPages > 1 && !isLastAttempt) {
-    attemptMul *= 0.85;
-    continue;
-  }
   if (totalPages > 1) {
+    if (bestFitMul !== null && triedGrow) {
+      // We grew past what fits — revert to the best known mul and re-render once more.
+      attemptMul = bestFitMul;
+      bestFitMul = null;
+      triedGrow = false;
+      continue;
+    }
+    if (!isLastAttempt) {
+      attemptMul *= 0.85;
+      continue;
+    }
+    // Last-resort safety: drop spillover pages.
     for (let p = totalPages; p > 1; p--) {
       (doc as unknown as { deletePage: (n: number) => void }).deletePage(p);
     }
     (doc as unknown as { setPage: (n: number) => void }).setPage(1);
+    break;
+  }
+  // Fits on a single page — check if there's significant empty space
+  // between the last exercise (y) and the bottom of the Frequência column.
+  const gap = freqBottomY - y;
+  const FILL_TOLERANCE = 4; // mm
+  if (gap > FILL_TOLERANCE && !isLastAttempt) {
+    bestFitMul = attemptMul;
+    triedGrow = true;
+    // Grow proportionally to close the gap, capped to avoid overshoot.
+    const growthFactor = Math.min(1.18, 1 + gap / Math.max(y - bodyTop, 1) * 0.6);
+    attemptMul *= growthFactor;
+    continue;
   }
   break;
   } // end retry loop
