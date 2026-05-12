@@ -42,9 +42,14 @@ const empty = {
 export function AdminPlanos() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [freqFilter, setFreqFilter] = useState<Frequencia | "todos">("todos");
+  const [periodoFilter, setPeriodoFilter] = useState<string>("todos");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PlanoCat | null>(null);
   const [form, setForm] = useState({ ...empty });
+
+  const activeFiltersCount = [freqFilter !== "todos", periodoFilter !== "todos", statusFilter !== "todos"].filter(Boolean).length;
 
   const { data: planos = [] } = useQuery({
     queryKey: ["planos-catalogo"],
