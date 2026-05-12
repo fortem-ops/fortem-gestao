@@ -124,35 +124,30 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
 
   const { data: studentCredits } = useQuery({
     queryKey: ["student_credits", alunoId, atividade],
-    enabled: !!alunoId && !!atividade && !!ATIVIDADE_TO_SERVICO[atividade],
+    enabled: !!alunoId && !!atividade && ATIVIDADES_COM_CREDITO.has(atividade),
     queryFn: async () => {
-      const { data: planos } = await supabase
-        .from("planos")
-        .select("*")
+      const today = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("creditos_aluno")
+        .select("quantidade_inicial, quantidade_usada, ilimitado, origem_tipo, data_validade")
         .eq("aluno_id", alunoId)
-        .eq("ativo", true)
-        .limit(1);
+        .eq("atividade", atividade)
+        .eq("ativo", true);
 
-      if (!planos || planos.length === 0) return { plano: null, total: 0, usado: 0, restante: 0, comprado: 0, base: 0 };
+      const linhas = (data || []).filter(
+        (c: any) => !c.data_validade || c.data_validade >= today,
+      );
 
-      const plano = planos[0];
-      const tipoServico = ATIVIDADE_TO_SERVICO[atividade];
-      const base = parseServiceCredits(plano.servicos, tipoServico);
+      if (linhas.length === 0) {
+        return { total: 0, usado: 0, restante: 0, ilimitado: false, origens: [] as string[], temLinhas: false };
+      }
 
-      const { data: consumos } = await supabase
-        .from("consumo_servicos")
-        .select("agenda_id, quantidade")
-        .eq("aluno_id", alunoId)
-        .eq("plano_id", plano.id)
-        .eq("tipo_servico", tipoServico);
+      const ilimitado = linhas.some((c: any) => c.ilimitado);
+      const total = linhas.reduce((s: number, c: any) => s + (c.quantidade_inicial ?? 0), 0);
+      const usado = linhas.reduce((s: number, c: any) => s + (c.quantidade_usada ?? 0), 0);
+      const origens = Array.from(new Set(linhas.map((c: any) => c.origem_tipo))) as string[];
 
-      // Purchased = records without agenda_id (extra credits bought)
-      const comprado = consumos?.filter((c) => !c.agenda_id).reduce((sum, c) => sum + (c.quantidade ?? 1), 0) || 0;
-      // Used = records with agenda_id (scheduled/consumed)
-      const usado = consumos?.filter((c) => !!c.agenda_id).length || 0;
-      const total = base + comprado;
-
-      return { plano, total, usado, restante: total - usado, comprado, base };
+      return { total, usado, restante: ilimitado ? Infinity : total - usado, ilimitado, origens, temLinhas: true };
     },
   });
 
