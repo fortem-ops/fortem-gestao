@@ -2,6 +2,7 @@ import { Settings, Users, Shield, CreditCard, Briefcase, ClipboardList, Dumbbell
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminPlanos } from "@/components/admin/AdminPlanos";
+import { AdminServicos } from "@/components/admin/AdminServicos";
 import { AdminComingSoon } from "@/components/admin/AdminComingSoon";
 
 const tabs = [
@@ -40,7 +41,7 @@ export default function Admin() {
           <AdminPlanos />
         </TabsContent>
         <TabsContent value="servicos" className="mt-4">
-          <AdminComingSoon title="Gerenciar Serviços" />
+          <AdminServicos />
         </TabsContent>
         <TabsContent value="avaliacoes" className="mt-4">
           <AdminComingSoon title="Tipos de Avaliação" />
