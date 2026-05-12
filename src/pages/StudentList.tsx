@@ -21,10 +21,28 @@ function parseServiceCount(servicos: string[] | null, tipoServico: string): numb
   return 0;
 }
 
+interface CreditAgg {
+  total: number;
+  usado: number;
+  ilimitado: boolean;
+}
 interface ServiceCredits {
-  avalFuncional: { base: number; comprado: number; total: number; usado: number };
-  nutricao: { base: number; comprado: number; total: number; usado: number };
-  reabilitacao: { base: number; comprado: number; total: number; usado: number };
+  plano: Record<string, CreditAgg>;
+  servico: Record<string, CreditAgg>;
+}
+
+function emptyCredits(): ServiceCredits {
+  return { plano: {}, servico: {} };
+}
+
+function sumByAtividade(map: Record<string, CreditAgg>) {
+  let total = 0, usado = 0, ilimitado = false;
+  for (const k of Object.keys(map)) {
+    total += map[k].total;
+    usado += map[k].usado;
+    if (map[k].ilimitado) ilimitado = true;
+  }
+  return { total, usado, ilimitado };
 }
 
 export default function StudentList() {
@@ -51,10 +69,11 @@ export default function StudentList() {
 
       const ids = students.map((s) => s.id);
       const { data: planos } = await supabase.from("planos").select("*").in("aluno_id", ids).eq("ativo", true);
-      const { data: consumos } = await supabase
-        .from("consumo_servicos")
-        .select("aluno_id, plano_id, tipo_servico, quantidade, agenda_id, tipo_registro")
-        .in("aluno_id", ids);
+      const { data: creditos } = await supabase
+        .from("creditos_aluno" as any)
+        .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
+        .in("aluno_id", ids)
+        .eq("ativo", true);
       const { data: licencas } = await supabase
         .from("aluno_licencas" as any)
         .select("*")
@@ -70,40 +89,33 @@ export default function StudentList() {
 
       for (const student of students) {
         const plano = planos?.find((p) => p.aluno_id === student.id);
-        const studentConsumos = consumos?.filter((c) => c.aluno_id === student.id && c.plano_id === plano?.id) || [];
-
-        // Plan end date + tipo
         if (plano) {
-          planEndMap[student.id] = addMonths(new Date(plano.data_inicio), plano.duracao_meses);
+          planEndMap[student.id] = (plano as any).data_fim
+            ? new Date((plano as any).data_fim + "T00:00:00")
+            : addMonths(new Date(plano.data_inicio), plano.duracao_meses);
           planTipoMap[student.id] = plano.tipo || null;
         } else {
           planEndMap[student.id] = null;
           planTipoMap[student.id] = null;
         }
-
-        const countPurchased = (tipo: string) =>
-          studentConsumos.filter((c: any) => c.tipo_servico === tipo && c.tipo_registro === "compra")
-            .reduce((sum: number, c: any) => sum + ((c as any).quantidade ?? 1), 0);
-
-        const countUsed = (tipo: string) =>
-          studentConsumos.filter((c: any) => c.tipo_servico === tipo && (!!c.agenda_id || (c as any).tipo_registro === "uso_manual")).length;
-
-        const buildCredit = (tipo: string) => {
-          const base = parseServiceCount(plano?.servicos || null, tipo);
-          const comprado = countPurchased(tipo);
-          return { base, comprado, total: base + comprado, usado: countUsed(tipo) };
-        };
-
-        creditsMap[student.id] = {
-          avalFuncional: buildCredit("Avaliação Funcional"),
-          nutricao: buildCredit("Consultas Nutrição"),
-          reabilitacao: buildCredit("Consultas Reabilitação"),
-        };
+        creditsMap[student.id] = emptyCredits();
       }
+
+      ((creditos as any[]) || []).forEach((c) => {
+        const bucket = creditsMap[c.aluno_id];
+        if (!bucket) return;
+        const target = c.origem_tipo === "plano" ? bucket.plano : bucket.servico;
+        const cur = target[c.atividade] || { total: 0, usado: 0, ilimitado: false };
+        cur.total += c.quantidade_inicial ?? 0;
+        cur.usado += c.quantidade_usada ?? 0;
+        if (c.ilimitado) cur.ilimitado = true;
+        target[c.atividade] = cur;
+      });
 
       return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
     },
   });
+
 
   const filtered = alunos.filter((s) => {
     const c = s.credits;
