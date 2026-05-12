@@ -154,7 +154,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const filteredAlunos = useMemo(() => {
     if (!alunoSearch.trim()) return alunos;
     const search = alunoSearch.toLowerCase();
-    return alunos.filter((a: any) => a.nome.toLowerCase().includes(search));
+    return alunos.filter((a: any) => (a.nome ?? "").toLowerCase().includes(search));
   }, [alunos, alunoSearch]);
 
   const selectedAluno = useMemo(() => alunos.find((a: any) => a.id === alunoId), [alunos, alunoId]);
