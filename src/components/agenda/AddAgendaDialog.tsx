@@ -154,7 +154,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const filteredAlunos = useMemo(() => {
     if (!alunoSearch.trim()) return alunos;
     const search = alunoSearch.toLowerCase();
-    return alunos.filter((a: any) => a.nome.toLowerCase().includes(search));
+    return alunos.filter((a: any) => (a.nome ?? "").toLowerCase().includes(search));
   }, [alunos, alunoSearch]);
 
   const selectedAluno = useMemo(() => alunos.find((a: any) => a.id === alunoId), [alunos, alunoId]);
@@ -369,10 +369,10 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                 )}
                 <span className="font-medium">{atividade}</span>
-                {studentCredits.origens.includes("plano") && (
+                {studentCredits.origens?.includes("plano") && (
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0">Plano</Badge>
                 )}
-                {studentCredits.origens.includes("servico") && (
+                {studentCredits.origens?.includes("servico") && (
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0">Serviço</Badge>
                 )}
               </div>
