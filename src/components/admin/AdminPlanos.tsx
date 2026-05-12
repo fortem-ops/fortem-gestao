@@ -11,125 +11,124 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { calcularCreditos, FREQUENCIAS, PERIODOS, PLANOS_SUGERIDOS, PRESET_CORES, formatBRL, type Frequencia } from "@/lib/vendas";
 
-type Plano = {
+type PlanoCat = {
   id: string;
-  aluno_id: string;
-  tipo: string;
-  data_inicio: string;
-  duracao_meses: number;
-  servicos: string[] | null;
+  nome: string;
+  periodo_meses: number;
+  frequencia: Frequencia;
+  quantidade_creditos: number | null;
+  ilimitado: boolean;
+  valor: number;
+  cor: string | null;
   ativo: boolean;
-  valor: number | null;
+};
+
+const empty = {
+  nome: "",
+  periodo_meses: 1,
+  frequencia: "1x" as Frequencia,
+  quantidade_creditos: 4 as number | null,
+  ilimitado: false,
+  valor: 0,
+  cor: "#9CA3AF",
+  ativo: true,
+  manualCreditos: false,
 };
 
 export function AdminPlanos() {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingPlano, setEditingPlano] = useState<Plano | null>(null);
-  const [form, setForm] = useState({
-    aluno_id: "",
-    tipo: "",
-    data_inicio: new Date().toISOString().split("T")[0],
-    duracao_meses: 6,
-    valor: 0,
-    ativo: true,
-  });
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<PlanoCat | null>(null);
+  const [form, setForm] = useState({ ...empty });
 
   const { data: planos = [] } = useQuery({
-    queryKey: ["admin-planos"],
+    queryKey: ["planos-catalogo"],
     queryFn: async () => {
-      const { data } = await supabase.from("planos").select("*").order("created_at", { ascending: false });
-      return (data || []) as Plano[];
+      const { data } = await (supabase as any).from("planos_catalogo").select("*").order("nome");
+      return (data || []) as PlanoCat[];
     },
   });
 
-  const { data: alunos = [] } = useQuery({
-    queryKey: ["admin-alunos-list"],
-    queryFn: async () => {
-      const { data } = await supabase.from("alunos").select("id, nome").order("nome");
-      return data || [];
-    },
-  });
-
-  const alunoMap = Object.fromEntries(alunos.map((a) => [a.id, a.nome]));
-
-  const upsertMutation = useMutation({
-    mutationFn: async (values: typeof form & { id?: string }) => {
-      if (values.id) {
-        const { error } = await supabase.from("planos").update({
-          tipo: values.tipo,
-          data_inicio: values.data_inicio,
-          duracao_meses: values.duracao_meses,
-          valor: values.valor,
-          ativo: values.ativo,
-        }).eq("id", values.id);
+  const upsert = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        nome: form.nome,
+        periodo_meses: form.periodo_meses,
+        frequencia: form.frequencia,
+        quantidade_creditos: form.ilimitado ? null : form.quantidade_creditos,
+        ilimitado: form.ilimitado,
+        valor: form.valor,
+        cor: form.cor,
+        ativo: form.ativo,
+      };
+      if (editing) {
+        const { error } = await (supabase as any).from("planos_catalogo").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("planos").insert({
-          aluno_id: values.aluno_id,
-          tipo: values.tipo,
-          data_inicio: values.data_inicio,
-          duracao_meses: values.duracao_meses,
-          valor: values.valor,
-          ativo: values.ativo,
-        });
+        const { error } = await (supabase as any).from("planos_catalogo").insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-planos"] });
-      toast.success(editingPlano ? "Plano atualizado" : "Plano criado");
-      closeDialog();
+      qc.invalidateQueries({ queryKey: ["planos-catalogo"] });
+      toast.success(editing ? "Plano atualizado" : "Plano criado");
+      close();
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const deleteMutation = useMutation({
+  const del = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("planos").delete().eq("id", id);
+      const { error } = await (supabase as any).from("planos_catalogo").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-planos"] });
+      qc.invalidateQueries({ queryKey: ["planos-catalogo"] });
       toast.success("Plano excluído");
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  const closeDialog = () => {
-    setDialogOpen(false);
-    setEditingPlano(null);
-    setForm({ aluno_id: "", tipo: "", data_inicio: new Date().toISOString().split("T")[0], duracao_meses: 6, valor: 0, ativo: true });
-  };
+  function close() {
+    setOpen(false);
+    setEditing(null);
+    setForm({ ...empty });
+  }
 
-  const openEdit = (p: Plano) => {
-    setEditingPlano(p);
+  function openEdit(p: PlanoCat) {
+    setEditing(p);
     setForm({
-      aluno_id: p.aluno_id,
-      tipo: p.tipo,
-      data_inicio: p.data_inicio,
-      duracao_meses: p.duracao_meses,
-      valor: p.valor || 0,
+      nome: p.nome,
+      periodo_meses: p.periodo_meses,
+      frequencia: p.frequencia,
+      quantidade_creditos: p.quantidade_creditos,
+      ilimitado: p.ilimitado,
+      valor: Number(p.valor),
+      cor: p.cor || "#9CA3AF",
       ativo: p.ativo,
+      manualCreditos: true,
     });
-    setDialogOpen(true);
-  };
+    setOpen(true);
+  }
 
-  const filtered = planos.filter((p) => {
-    const name = alunoMap[p.aluno_id] || "";
-    return name.toLowerCase().includes(search.toLowerCase()) || p.tipo.toLowerCase().includes(search.toLowerCase());
-  });
+  function syncCreditos(periodo: number, freq: Frequencia) {
+    const c = calcularCreditos(periodo, freq);
+    setForm((f) => ({ ...f, periodo_meses: periodo, frequencia: freq, ilimitado: c.ilimitado, quantidade_creditos: c.quantidade, manualCreditos: false }));
+  }
+
+  const filtered = planos.filter((p) => p.nome.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar por aluno ou tipo..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Buscar plano..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={() => { setForm({ ...empty }); setOpen(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Novo Plano
         </Button>
       </div>
@@ -138,10 +137,11 @@ export function AdminPlanos() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Aluno</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Início</TableHead>
-              <TableHead>Duração</TableHead>
+              <TableHead>Cor</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Período</TableHead>
+              <TableHead>Frequência</TableHead>
+              <TableHead>Créditos</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[100px]">Ações</TableHead>
@@ -150,11 +150,12 @@ export function AdminPlanos() {
           <TableBody>
             {filtered.map((p) => (
               <TableRow key={p.id}>
-                <TableCell className="font-medium">{alunoMap[p.aluno_id] || "—"}</TableCell>
-                <TableCell>{p.tipo}</TableCell>
-                <TableCell>{new Date(p.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")}</TableCell>
-                <TableCell>{p.duracao_meses} meses</TableCell>
-                <TableCell>R$ {(p.valor || 0).toFixed(2)}</TableCell>
+                <TableCell><span className="inline-block w-5 h-5 rounded-full border border-border" style={{ background: p.cor || "transparent" }} /></TableCell>
+                <TableCell className="font-medium">{p.nome}</TableCell>
+                <TableCell>{p.periodo_meses} {p.periodo_meses === 1 ? "mês" : "meses"}</TableCell>
+                <TableCell>{p.frequencia}</TableCell>
+                <TableCell>{p.ilimitado ? "Ilimitado" : p.quantidade_creditos ?? "—"}</TableCell>
+                <TableCell>{formatBRL(p.valor)}</TableCell>
                 <TableCell>
                   <Badge variant={p.ativo ? "default" : "secondary"} className={p.ativo ? "bg-primary/20 text-primary" : ""}>
                     {p.ativo ? "Ativo" : "Inativo"}
@@ -162,10 +163,8 @@ export function AdminPlanos() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(p)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteMutation.mutate(p.id)}>
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" className="text-destructive" onClick={() => { if (confirm(`Excluir ${p.nome}?`)) del.mutate(p.id); }}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -173,50 +172,62 @@ export function AdminPlanos() {
               </TableRow>
             ))}
             {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum plano encontrado</TableCell>
-              </TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum plano</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) closeDialog(); else setDialogOpen(true); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingPlano ? "Editar Plano" : "Novo Plano"}</DialogTitle>
-          </DialogHeader>
+      <Dialog open={open} onOpenChange={(v) => { if (!v) close(); else setOpen(true); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editing ? "Editar Plano" : "Novo Plano"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            {!editingPlano && (
-              <div className="space-y-2">
-                <Label>Aluno</Label>
-                <Select value={form.aluno_id} onValueChange={(v) => setForm({ ...form, aluno_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
-                  <SelectContent>
-                    {alunos.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
             <div className="space-y-2">
-              <Label>Tipo do Plano</Label>
-              <Input value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} placeholder="Ex: Pro, Power, Basic" />
+              <Label>Nome do Plano</Label>
+              <Input list="planos-sugeridos" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Start, Power..." />
+              <datalist id="planos-sugeridos">{PLANOS_SUGERIDOS.map((n) => <option key={n} value={n} />)}</datalist>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Data de Início</Label>
-                <Input type="date" value={form.data_inicio} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} />
+                <Label>Período</Label>
+                <Select value={String(form.periodo_meses)} onValueChange={(v) => syncCreditos(parseInt(v), form.frequencia)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PERIODOS.map((p) => <SelectItem key={p} value={String(p)}>{p} {p === 1 ? "mês" : "meses"}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>Duração (meses)</Label>
-                <Input type="number" value={form.duracao_meses} onChange={(e) => setForm({ ...form, duracao_meses: parseInt(e.target.value) || 1 })} min={1} />
+                <Label>Frequência</Label>
+                <Select value={form.frequencia} onValueChange={(v) => syncCreditos(form.periodo_meses, v as Frequencia)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {FREQUENCIAS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Créditos {form.ilimitado && "(ilimitado)"}</Label>
+                <Input type="number" disabled={form.ilimitado} value={form.quantidade_creditos ?? 0}
+                  onChange={(e) => setForm({ ...form, quantidade_creditos: parseInt(e.target.value) || 0, manualCreditos: true })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor (R$)</Label>
+                <Input type="number" step="0.01" value={form.valor} onChange={(e) => setForm({ ...form, valor: parseFloat(e.target.value) || 0 })} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Valor (R$)</Label>
-              <Input type="number" step="0.01" value={form.valor} onChange={(e) => setForm({ ...form, valor: parseFloat(e.target.value) || 0 })} />
+              <Label>Cor / Identidade visual</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {PRESET_CORES.map((c) => (
+                  <button key={c.cor} type="button" title={c.nome}
+                    className={`w-7 h-7 rounded-full border-2 transition ${form.cor === c.cor ? "border-primary scale-110" : "border-border"}`}
+                    style={{ background: c.cor }} onClick={() => setForm({ ...form, cor: c.cor })} />
+                ))}
+                <Input type="color" value={form.cor} onChange={(e) => setForm({ ...form, cor: e.target.value })} className="w-12 h-8 p-1" />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
@@ -224,12 +235,9 @@ export function AdminPlanos() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
-            <Button
-              disabled={upsertMutation.isPending || (!editingPlano && !form.aluno_id) || !form.tipo}
-              onClick={() => upsertMutation.mutate(editingPlano ? { ...form, id: editingPlano.id } : form)}
-            >
-              {editingPlano ? "Salvar" : "Criar"}
+            <Button variant="outline" onClick={close}>Cancelar</Button>
+            <Button disabled={upsert.isPending || !form.nome} onClick={() => upsert.mutate()}>
+              {editing ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>

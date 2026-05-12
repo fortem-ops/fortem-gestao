@@ -1,122 +1,70 @@
+# Plano: Módulo Venda (Planos & Serviços)
+
 ## Visão geral
 
-Hoje o Pipeline mostra todas as etapas em um único kanban horizontal. Vamos transformá-lo em **3 funis empilhados verticalmente**, cada um com seu próprio kanban horizontal:
+Criar catálogos administrativos de **Planos** e **Serviços** (modelos comerciais reutilizáveis), botão **Venda** no `Aluno > Plano/Serviço`, registro financeiro de **Vendas** e ledger de **Créditos** por atividade. Tudo integrado ao fluxo já existente (planos do aluno, agenda, dashboard, pipeline).
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ FUNIL 1 · PROSPECTS                                         │
-│ Novo lead → Info encaminhadas → Agendando → Treino exp.     │
-│   → Follow Up → [Conversão] / [Perdido]                     │
-├─────────────────────────────────────────────────────────────┤
-│ FUNIL 2 · ALUNO                                             │
-│ Aluno ativo → Risco de evasão → Renovação                   │
-│   → [Ganho → novo plano] / [Perdido]                        │
-├─────────────────────────────────────────────────────────────┤
-│ FUNIL 3 · INATIVO                                           │
-│ Aluno inativo (15 dias após término do plano)               │
-└─────────────────────────────────────────────────────────────┘
-```
+## Banco de dados (uma migration)
 
-Cada funil é colapsável (header com nome + contagem total). Drag-and-drop continua funcionando dentro de cada funil; mover entre funis acontece automaticamente via ações específicas (Conversão, Ganho, Perdido) ou regras automáticas existentes.
+**Catálogos:**
+- `planos_catalogo` — `nome`, `periodo_meses` (int: 1, 12...), `frequencia` (enum: `1x|2x|3x|livre`), `quantidade_creditos` (int, nullable), `ilimitado` (bool), `valor` (numeric), `cor` (text hsl/hex), `ativo` (bool). Pré-popular com Start, Start+, Power, Pro, Max, Gympass/Wellhub, Total Pass.
+- `servicos_catalogo` — `nome`, `atividade` (text), `quantidade_sessoes` (int), `valor` (numeric), `ativo` (bool). Pré-popular Nutrição, Reabilitação, Avaliação Funcional.
 
----
+**Comercial:**
+- `vendas` — `aluno_id`, `tipo` (`plano|servico`), `catalogo_id`, `nome_snapshot`, `valor`, `vendedor_id`, `data_venda`, `status_pagamento` (`pendente|pago|cancelado`), `plano_id` (fk opcional para o `planos` gerado), `observacoes`.
+- `creditos_aluno` — `aluno_id`, `origem_tipo` (`plano|servico`), `origem_id` (venda_id), `atividade` (text — ex: "Treino", "Nutrição", "Reabilitação", "Avaliação Funcional"), `quantidade_inicial`, `quantidade_usada`, `ilimitado` (bool), `data_validade` (nullable), `ativo`.
+- `creditos_movimentos` — ledger: `credito_id`, `tipo` (`compra|consumo|estorno|ajuste`), `quantidade`, `agenda_id` (fk opcional), `registrado_por`, `data`.
 
-## 1. Banco de dados
+**RLS:** catálogos = leitura todos autenticados, escrita coord/admin. Vendas/créditos = coord/admin escrita; leitura restrita ao responsável do aluno + coord/admin + próprio aluno (portal).
 
-**Nova coluna `funnel` em `pipeline_stages`** (enum: `prospects` | `aluno` | `inativo`).
+**Trigger:** ao inserir `vendas` com `tipo='plano'` e `status_pagamento != 'cancelado'`, função SQL gera linha em `planos` (data_inicio = hoje, duração = `periodo_meses` do catálogo, ativo=true, tipo=nome do catálogo, valor) e cria `creditos_aluno` para a atividade "Treino" conforme tabela de regras (1x→4/52, 2x→8/104, 3x→12/156, livre→ilimitado). Para `tipo='servico'`, cria apenas `creditos_aluno` com a atividade do serviço.
 
-Backfill das etapas atuais:
-- `prospects`: Novo lead, Informações encaminhadas, Agendando, Treino experimental agendado, Avaliação agendada/confirmada/realizada, Follow Up, Prospect
-- `aluno`: Aluno ativo, Risco de evasão, Renovação de plano (nova)
-- `inativo`: Aluno inativo
+## Telas
 
-**Novas etapas criadas (se faltarem):** `Agendando`, `Renovação de plano`.
+### 1. Cadastros > Planos (substitui `AdminPlanos.tsx` atual)
 
-**Nova coluna `motivo_perda` em `alunos`** (text, nullable) para registrar motivo quando marcado como Perdido.
+Refatorar `src/components/admin/AdminPlanos.tsx` para CRUD de **catálogo** (não mais instâncias por aluno). Tabela com colunas Nome, Período, Frequência, Créditos, Valor, Cor, Ativo. Dialog de criar/editar com:
+- Nome (input livre, com sugestões pré-cadastradas)
+- Período (select 1/12, "+ adicionar")
+- Frequência (select 1x/2x/3x/Livre)
+- Quantidade de créditos (auto-calculada conforme regra, editável)
+- Valor (R$)
+- Seletor de cor (color picker + presets: cinza, branco, vermelho, preto, vermelho escuro, roxo, azul)
+- Toggle Ativo
 
-**Atualizar `fn_detect_evasao`** para também mover automaticamente para `Aluno inativo` quando passados 15 dias do término do último plano (hoje só move para Risco/Recuperado). Renovação entra quando faltam ≤15 dias para o fim do plano e o aluno ainda não renovou.
+### 2. Cadastros > Serviços (nova aba `Admin.tsx`)
 
----
+Novo `src/components/admin/AdminServicos.tsx` (substitui `AdminComingSoon` da aba "Serviços"). CRUD: Nome, Atividade (dropdown editável), Quantidade de sessões, Valor, Ativo.
 
-## 2. Página Pipeline (`src/pages/Pipeline.tsx`)
+### 3. Botão "Venda" em `StudentPlan.tsx`
 
-Renderizar 3 `<PipelineKanban funnel="prospects|aluno|inativo">`, cada um dentro de uma seção colapsável com título, ícone e contagem. Filtros (busca, professor, origem) ficam globais no topo e se aplicam aos 3.
+Adicionar botão verde **Venda** no header da aba Plano/Serviço. Abre `<VendaDialog>` (novo: `src/components/student/venda/VendaDialog.tsx`) com:
+- Tabs **Planos** / **Serviços**
+- Cards estilo CRM (arredondados, badge colorido) listando catálogo `ativo=true`
+- Cada card tem botão **Vender** → confirma → insere em `vendas` (status `pendente`) → trigger gera plano + créditos → toast → invalida queries.
 
----
+### 4. Histórico de vendas
 
-## 3. `PipelineKanban` (refatorado)
+Componente `src/components/student/venda/HistoricoVendas.tsx` renderizado abaixo do plano atual. Tabela: Data, Tipo, Nome, Valor, Vendedor, Status (badge editável por coord/admin: pendente→pago/cancelado), Créditos restantes (lookup em `creditos_aluno`).
 
-- Recebe `funnel` como prop. Busca apenas as `pipeline_stages` daquele funil.
-- Filtra alunos cujo `current_pipeline_stage_id` pertence ao funil.
-- Mantém drag-and-drop atual entre etapas do mesmo funil.
+### 5. Integração Carteira/Dashboard/Pipeline
 
----
+- Carteira (`CarteiraAlunos.tsx`): já lê `planos`, sem mudança imediata.
+- Dashboard widget de planos: continua funcionando (lê `planos`).
+- Pipeline: trigger `trg_plano_pipeline` já move para "Aluno ativo" ao criar plano — funcionará automaticamente.
+- `consumo_servicos`: manter compatibilidade; novo ledger `creditos_movimentos` é usado para créditos vindos de vendas.
 
-## 4. Ações de Conversão / Ganho / Perdido
+## Arquivos novos
+- `src/components/admin/AdminServicos.tsx`
+- `src/components/student/venda/VendaDialog.tsx`
+- `src/components/student/venda/HistoricoVendas.tsx`
+- `src/lib/vendas.ts` (helpers: cálculo de créditos por frequência/período, formatação)
+- migration SQL única
 
-Botões aparecem em `PipelineCard` quando o aluno está em etapa-chave:
+## Arquivos editados
+- `src/components/admin/AdminPlanos.tsx` (refatorar para catálogo)
+- `src/pages/Admin.tsx` (montar AdminServicos)
+- `src/components/student/StudentPlan.tsx` (botão Venda + render Histórico)
 
-- **Etapa "Follow Up" (Prospects):** botões `Converter` e `Perdido`.
-- **Etapa "Renovação de plano" (Aluno):** botões `Ganho` e `Perdido`.
-
-### Diálogo "Converter para Aluno" (`ConvertToAlunoDialog.tsx`)
-
-Pré-preenche dados do prospect e exige:
-- CPF (com máscara/validação)
-- Email
-- Endereço completo: CEP (consulta **ViaCEP** `https://viacep.com.br/ws/{cep}/json/` para autopreencher logradouro/bairro/cidade/UF), número, complemento
-- Plano (seletor de planos ativos com data início/fim)
-
-Ao salvar: atualiza `alunos` (cpf, email, endereço — campos a adicionar se não existirem), cria registro em `planos`, e chama `fn_move_pipeline` para `Aluno ativo` (Funil 2). Invalida queries.
-
-### Diálogo "Ganho — novo plano" (mesmo padrão, só plano)
-Cria novo `planos` e move para `Aluno ativo`.
-
-### Diálogo "Marcar como Perdido"
-Campo obrigatório `motivo` (textarea + sugestões: "Sem retorno", "Preço", "Concorrente", "Mudou de cidade", "Outro"). Grava `alunos.motivo_perda` e move para etapa terminal `Aluno perdido` (Prospects) ou `Aluno inativo` (Aluno).
-
----
-
-## 5. Endereço dos alunos
-
-Adicionar colunas em `alunos` (se ainda não existirem): `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`. Usadas pela conversão e exibidas no perfil do aluno.
-
----
-
-## 6. `ManageStagesDialog` — selecionar funil
-
-Cada linha de etapa ganha um seletor (`Select`) com 3 opções: **Prospects / Aluno / Inativo**. Ao criar nova etapa, escolher funil também (default: Prospects). A listagem agrupa visualmente as etapas por funil.
-
----
-
-## 7. `PipelineFilters`
-
-Sem mudanças funcionais — filtros continuam globais e aplicados aos 3 funis simultaneamente.
-
----
-
-## Arquivos afetados
-
-**Migrations (SQL):**
-- Adicionar coluna `funnel` em `pipeline_stages` + backfill
-- Criar etapas `Agendando` e `Renovação de plano`
-- Adicionar colunas de endereço e `motivo_perda` em `alunos`
-- Atualizar `fn_detect_evasao` (Inativo após 15 dias, Renovação ≤15 dias para fim)
-
-**Frontend:**
-- `src/pages/Pipeline.tsx` — renderizar 3 kanbans empilhados
-- `src/components/pipeline/PipelineKanban.tsx` — aceitar prop `funnel`
-- `src/components/pipeline/PipelineCard.tsx` — botões contextuais Converter/Ganho/Perdido
-- `src/components/pipeline/ManageStagesDialog.tsx` — seletor de funil por etapa
-- **Novos:** `ConvertToAlunoDialog.tsx`, `MarkLostDialog.tsx`, `RenewPlanDialog.tsx`
-- `src/lib/pipeline.ts` — constantes `FUNNELS` e helpers
-- `src/lib/viacep.ts` (novo) — fetch ViaCEP
-
----
-
-## Observações
-
-- Migração preserva todos os alunos e movimentos existentes — só reorganiza visualmente.
-- O scan de evasão já existente passa a mover Risco→Inativo após 15 dias do fim do plano.
-- Os 3 funis usam o mesmo `fn_move_pipeline` (não muda RPC).
-- Cards mantêm o indicador de tarefas (verde/vermelho/cinza/amarelo) já implementado.
+## Fora do escopo (preparado mas não implementado)
+- Assinatura digital, Apple/Google Wallet, comissão por vendedor, gateway de cobrança recorrente, alertas de plano vencendo (estrutura suporta, lógica fica para próxima fase).

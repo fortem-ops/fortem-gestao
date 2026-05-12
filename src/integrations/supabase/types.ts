@@ -636,6 +636,100 @@ export type Database = {
           },
         ]
       }
+      creditos_aluno: {
+        Row: {
+          aluno_id: string
+          atividade: string
+          ativo: boolean
+          created_at: string
+          data_validade: string | null
+          id: string
+          ilimitado: boolean
+          origem_id: string | null
+          origem_tipo: Database["public"]["Enums"]["venda_tipo"]
+          quantidade_inicial: number
+          quantidade_usada: number
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          atividade: string
+          ativo?: boolean
+          created_at?: string
+          data_validade?: string | null
+          id?: string
+          ilimitado?: boolean
+          origem_id?: string | null
+          origem_tipo: Database["public"]["Enums"]["venda_tipo"]
+          quantidade_inicial?: number
+          quantidade_usada?: number
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          atividade?: string
+          ativo?: boolean
+          created_at?: string
+          data_validade?: string | null
+          id?: string
+          ilimitado?: boolean
+          origem_id?: string | null
+          origem_tipo?: Database["public"]["Enums"]["venda_tipo"]
+          quantidade_inicial?: number
+          quantidade_usada?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creditos_aluno_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creditos_movimentos: {
+        Row: {
+          agenda_id: string | null
+          credito_id: string
+          data: string
+          id: string
+          observacao: string | null
+          quantidade: number
+          registrado_por: string | null
+          tipo: Database["public"]["Enums"]["credito_movimento_tipo"]
+        }
+        Insert: {
+          agenda_id?: string | null
+          credito_id: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          quantidade: number
+          registrado_por?: string | null
+          tipo: Database["public"]["Enums"]["credito_movimento_tipo"]
+        }
+        Update: {
+          agenda_id?: string | null
+          credito_id?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          quantidade?: number
+          registrado_por?: string | null
+          tipo?: Database["public"]["Enums"]["credito_movimento_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creditos_movimentos_credito_id_fkey"
+            columns: ["credito_id"]
+            isOneToOne: false
+            referencedRelation: "creditos_aluno"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercicio_categorias: {
         Row: {
           created_at: string
@@ -1305,6 +1399,48 @@ export type Database = {
           },
         ]
       }
+      planos_catalogo: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          frequencia: Database["public"]["Enums"]["plano_frequencia"]
+          id: string
+          ilimitado: boolean
+          nome: string
+          periodo_meses: number
+          quantidade_creditos: number | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          frequencia?: Database["public"]["Enums"]["plano_frequencia"]
+          id?: string
+          ilimitado?: boolean
+          nome: string
+          periodo_meses?: number
+          quantidade_creditos?: number | null
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          frequencia?: Database["public"]["Enums"]["plano_frequencia"]
+          id?: string
+          ilimitado?: boolean
+          nome?: string
+          periodo_meses?: number
+          quantidade_creditos?: number | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       ponto_ajustes_log: {
         Row: {
           campo: string
@@ -1676,6 +1812,39 @@ export type Database = {
           },
         ]
       }
+      servicos_catalogo: {
+        Row: {
+          atividade: string
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          quantidade_sessoes: number
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          atividade: string
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          quantidade_sessoes?: number
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          atividade?: string
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          quantidade_sessoes?: number
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       student_workout_progress: {
         Row: {
           aluno_id: string
@@ -1932,6 +2101,69 @@ export type Database = {
           },
         ]
       }
+      vendas: {
+        Row: {
+          aluno_id: string
+          catalogo_id: string
+          created_at: string
+          data_venda: string
+          id: string
+          nome_snapshot: string
+          observacoes: string | null
+          plano_id: string | null
+          status_pagamento: Database["public"]["Enums"]["venda_status"]
+          tipo: Database["public"]["Enums"]["venda_tipo"]
+          updated_at: string
+          valor: number
+          vendedor_id: string | null
+        }
+        Insert: {
+          aluno_id: string
+          catalogo_id: string
+          created_at?: string
+          data_venda?: string
+          id?: string
+          nome_snapshot: string
+          observacoes?: string | null
+          plano_id?: string | null
+          status_pagamento?: Database["public"]["Enums"]["venda_status"]
+          tipo: Database["public"]["Enums"]["venda_tipo"]
+          updated_at?: string
+          valor?: number
+          vendedor_id?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          catalogo_id?: string
+          created_at?: string
+          data_venda?: string
+          id?: string
+          nome_snapshot?: string
+          observacoes?: string | null
+          plano_id?: string | null
+          status_pagamento?: Database["public"]["Enums"]["venda_status"]
+          tipo?: Database["public"]["Enums"]["venda_tipo"]
+          updated_at?: string
+          valor?: number
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2066,6 +2298,7 @@ export type Database = {
         | "max"
         | "agregador"
       clube_status_membro: "ativo" | "bloqueado" | "inadimplente" | "cancelado"
+      credito_movimento_tipo: "compra" | "consumo" | "estorno" | "ajuste"
       notif_acao:
         | "criada"
         | "editada"
@@ -2113,6 +2346,7 @@ export type Database = {
         | "auto_agenda"
         | "auto_evasao"
         | "auto_recuperacao"
+      plano_frequencia: "1x" | "2x" | "3x" | "livre"
       ponto_evento_tipo:
         | "entrada"
         | "intervalo_inicio"
@@ -2132,6 +2366,8 @@ export type Database = {
         | "tempo_matricula"
       uso_origem_validacao: "scanner" | "cpf_manual" | "admin"
       uso_status_validacao: "valido" | "recusado" | "expirado" | "bloqueado"
+      venda_status: "pendente" | "pago" | "cancelado"
+      venda_tipo: "plano" | "servico"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2291,6 +2527,7 @@ export const Constants = {
         "agregador",
       ],
       clube_status_membro: ["ativo", "bloqueado", "inadimplente", "cancelado"],
+      credito_movimento_tipo: ["compra", "consumo", "estorno", "ajuste"],
       notif_acao: [
         "criada",
         "editada",
@@ -2343,6 +2580,7 @@ export const Constants = {
         "auto_evasao",
         "auto_recuperacao",
       ],
+      plano_frequencia: ["1x", "2x", "3x", "livre"],
       ponto_evento_tipo: [
         "entrada",
         "intervalo_inicio",
@@ -2365,6 +2603,8 @@ export const Constants = {
       ],
       uso_origem_validacao: ["scanner", "cpf_manual", "admin"],
       uso_status_validacao: ["valido", "recusado", "expirado", "bloqueado"],
+      venda_status: ["pendente", "pago", "cancelado"],
+      venda_tipo: ["plano", "servico"],
     },
   },
 } as const
