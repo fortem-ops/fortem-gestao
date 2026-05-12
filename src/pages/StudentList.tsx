@@ -240,9 +240,6 @@ export default function StudentList() {
             ) : (
               filtered.map((student) => {
                 const c = student.credits;
-                const hasBasePlan = c && (c.avalFuncional.base > 0 || c.nutricao.base > 0 || c.reabilitacao.base > 0);
-                const hasPurchased = c && (c.avalFuncional.comprado > 0 || c.nutricao.comprado > 0 || c.reabilitacao.comprado > 0);
-
                 const whatsappNumber = student.telefone?.replace(/\D/g, "") || null;
                 const professorName = student.responsavel_id ? profileMap[student.responsavel_id] : null;
 
@@ -297,26 +294,10 @@ export default function StudentList() {
                       )}
                     </td>
                     <td className="p-4 hidden xl:table-cell">
-                      {hasBasePlan ? (
-                        <div className="flex items-center gap-3">
-                          <CreditBadge total={c.avalFuncional.base} usado={c.avalFuncional.usado} icon={Activity} label="Avaliação Funcional (Plano)" />
-                          <CreditBadge total={c.nutricao.base} usado={Math.min(c.nutricao.usado, c.nutricao.base)} icon={Utensils} label="Nutrição (Plano)" />
-                          <CreditBadge total={c.reabilitacao.base} usado={Math.min(c.reabilitacao.usado, c.reabilitacao.base)} icon={Footprints} label="Reabilitação (Plano)" />
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <CreditsCell map={c?.plano ?? {}} originLabel="Plano" />
                     </td>
                     <td className="p-4 hidden xl:table-cell">
-                      {hasPurchased ? (
-                        <div className="flex items-center gap-3">
-                          <CreditBadge total={c.avalFuncional.comprado} usado={Math.max(0, c.avalFuncional.usado - c.avalFuncional.base)} icon={Activity} label="Avaliação Funcional (Contratado)" />
-                          <CreditBadge total={c.nutricao.comprado} usado={Math.max(0, c.nutricao.usado - c.nutricao.base)} icon={Utensils} label="Nutrição (Contratado)" />
-                          <CreditBadge total={c.reabilitacao.comprado} usado={Math.max(0, c.reabilitacao.usado - c.reabilitacao.base)} icon={Footprints} label="Reabilitação (Contratado)" />
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <CreditsCell map={c?.servico ?? {}} originLabel="Contratado" />
                     </td>
                     <td className="p-4 hidden xl:table-cell text-center">
                       {whatsappNumber ? (
