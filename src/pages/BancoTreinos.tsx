@@ -795,19 +795,52 @@ export default function BancoTreinos() {
   >(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
-    queryKey: ["banco-treinos-personalizados", user?.id],
+    queryKey: ["banco-treinos-personalizados-all"],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("banco_treinos_personalizados")
         .select("id, nome, conteudo, criado_por, updated_at")
-        .eq("criado_por", user!.id)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data || [];
     },
     staleTime: 30_000,
   });
+
+  const { data: autoresMap = {} } = useQuery({
+    queryKey: ["banco-treinos-autores", modelosPersonalizados.map((m) => m.criado_por).join(",")],
+    enabled: modelosPersonalizados.length > 0,
+    queryFn: async () => {
+      const ids = Array.from(new Set(modelosPersonalizados.map((m) => m.criado_por).filter(Boolean)));
+      if (ids.length === 0) return {} as Record<string, string>;
+      const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+      const map: Record<string, string> = {};
+      (data || []).forEach((p: any) => { map[p.user_id] = p.full_name || "Professor"; });
+      return map;
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const modelosPorAutor = useMemo(() => {
+    const groups = new Map<string, typeof modelosPersonalizados>();
+    modelosPersonalizados.forEach((m) => {
+      const arr = groups.get(m.criado_por) || [];
+      arr.push(m);
+      groups.set(m.criado_por, arr);
+    });
+    const result: { autorId: string; titulo: string; isMine: boolean; modelos: typeof modelosPersonalizados }[] = [];
+    if (user?.id && groups.has(user.id)) {
+      result.push({ autorId: user.id, titulo: "Meus Modelos", isMine: true, modelos: groups.get(user.id)! });
+    }
+    Array.from(groups.entries())
+      .filter(([id]) => id !== user?.id)
+      .sort((a, b) => (autoresMap[a[0]] || "").localeCompare(autoresMap[b[0]] || ""))
+      .forEach(([id, modelos]) => {
+        result.push({ autorId: id, titulo: `Modelos ${autoresMap[id] || "Professor"}`, isMine: false, modelos });
+      });
+    return result;
+  }, [modelosPersonalizados, autoresMap, user?.id]);
 
   const handleDeleteModelo = async (id: string) => {
     if (!confirm("Excluir este modelo personalizado?")) return;
@@ -1121,15 +1154,16 @@ export default function BancoTreinos() {
           );
         })}
 
-        {modelosPersonalizados.length > 0 && (
-          <section>
+        {modelosPorAutor.map((grupo) => (
+          <section key={grupo.autorId}>
             <h2 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
-              Meus modelos personalizados
+              {grupo.titulo}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {modelosPersonalizados.map((m) => {
+              {grupo.modelos.map((m) => {
                 const conteudo = (m.conteudo as unknown) as PersonalizadoConteudo;
                 const isOwner = m.criado_por === user?.id;
+                const canManage = isOwner || canEdit;
                 return (
                   <Card key={m.id} className="hover:border-primary transition-colors group">
                     <CardHeader>
@@ -1138,7 +1172,7 @@ export default function BancoTreinos() {
                           <Sparkles className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex items-center gap-1">
-                          {(isOwner || canEdit) && (
+                          {canManage && (
                             <>
                               <Button
                                 size="icon"
@@ -1160,7 +1194,10 @@ export default function BancoTreinos() {
                           )}
                         </div>
                       </div>
-                      <CardTitle className="text-lg mt-3 cursor-pointer" onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}>
+                      <CardTitle
+                        className="text-lg mt-3 cursor-pointer"
+                        onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
+                      >
                         {m.nome}
                       </CardTitle>
                     </CardHeader>
@@ -1174,7 +1211,7 @@ export default function BancoTreinos() {
               })}
             </div>
           </section>
-        )}
+        ))}
       </div>
 
       {renderVideoModal()}
