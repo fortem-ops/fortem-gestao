@@ -91,6 +91,18 @@ export function StudentSummary({ student }: { student: Aluno }) {
     enabled: !!plano,
   });
 
+  const { data: creditos = [] } = useQuery({
+    queryKey: ["creditos_resumo", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("creditos_aluno" as any)
+        .select("*")
+        .eq("aluno_id", student.id)
+        .eq("ativo", true);
+      return (data as any[]) || [];
+    },
+  });
+
   const { data: lastAval } = useQuery({
     queryKey: ["last_aval_funcional", student.id],
     queryFn: async () => {
