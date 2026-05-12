@@ -1154,15 +1154,16 @@ export default function BancoTreinos() {
           );
         })}
 
-        {modelosPersonalizados.length > 0 && (
-          <section>
+        {modelosPorAutor.map((grupo) => (
+          <section key={grupo.autorId}>
             <h2 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
-              Meus modelos personalizados
+              {grupo.titulo}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {modelosPersonalizados.map((m) => {
+              {grupo.modelos.map((m) => {
                 const conteudo = (m.conteudo as unknown) as PersonalizadoConteudo;
                 const isOwner = m.criado_por === user?.id;
+                const canManage = isOwner || canEdit;
                 return (
                   <Card key={m.id} className="hover:border-primary transition-colors group">
                     <CardHeader>
@@ -1171,7 +1172,7 @@ export default function BancoTreinos() {
                           <Sparkles className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex items-center gap-1">
-                          {(isOwner || canEdit) && (
+                          {canManage && (
                             <>
                               <Button
                                 size="icon"
@@ -1193,7 +1194,10 @@ export default function BancoTreinos() {
                           )}
                         </div>
                       </div>
-                      <CardTitle className="text-lg mt-3 cursor-pointer" onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}>
+                      <CardTitle
+                        className="text-lg mt-3 cursor-pointer"
+                        onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
+                      >
                         {m.nome}
                       </CardTitle>
                     </CardHeader>
@@ -1207,7 +1211,7 @@ export default function BancoTreinos() {
               })}
             </div>
           </section>
-        )}
+        ))}
       </div>
 
       {renderVideoModal()}
