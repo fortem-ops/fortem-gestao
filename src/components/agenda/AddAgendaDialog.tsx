@@ -362,15 +362,25 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           </div>
 
           {/* Credit info */}
-          {alunoId && atividade && ATIVIDADE_TO_SERVICO[atividade] && studentCredits && (
-            <div className={`rounded-lg border p-3 text-sm ${studentCredits.restante > 0 ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
-              <div className="flex items-center gap-2 mb-1">
-                {studentCredits.restante <= 0 && <AlertTriangle className="h-4 w-4 text-destructive" />}
-                <span className="font-medium">
-                  {ATIVIDADE_TO_SERVICO[atividade]}
-                </span>
+          {alunoId && atividade && ATIVIDADES_COM_CREDITO.has(atividade) && studentCredits && (
+            <div className={`rounded-lg border p-3 text-sm ${studentCredits.ilimitado || studentCredits.restante > 0 ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                {!studentCredits.ilimitado && studentCredits.restante <= 0 && studentCredits.temLinhas && (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                )}
+                <span className="font-medium">{atividade}</span>
+                {studentCredits.origens.includes("plano") && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">Plano</Badge>
+                )}
+                {studentCredits.origens.includes("servico") && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">Serviço</Badge>
+                )}
               </div>
-              {studentCredits.plano ? (
+              {!studentCredits.temLinhas ? (
+                <p className="text-muted-foreground">Aluno sem créditos contratados para esta atividade</p>
+              ) : studentCredits.ilimitado ? (
+                <div className="text-muted-foreground">Créditos ilimitados ∞</div>
+              ) : (
                 <div className="text-muted-foreground">
                   <span>Créditos: </span>
                   <span className="font-medium text-foreground">{studentCredits.usado}</span>
@@ -383,8 +393,6 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                     <span className="text-destructive ml-2">(sem créditos)</span>
                   )}
                 </div>
-              ) : (
-                <p className="text-muted-foreground">Aluno sem plano ativo</p>
               )}
             </div>
           )}
