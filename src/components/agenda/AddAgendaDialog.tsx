@@ -39,21 +39,13 @@ const DIAS_SEMANA = [
   { value: "0", label: "Domingo" },
 ];
 
-const ATIVIDADE_TO_SERVICO: Record<string, string> = {
-  "Nutrição": "Consultas Nutrição",
-  "Reabilitação": "Consultas Reabilitação",
-  "Avaliação Funcional": "Avaliação Funcional",
-  "Avaliação Física": "Avaliação Física",
-};
-
-function parseServiceCredits(servicos: string[] | null, tipoServico: string): number {
-  if (!servicos) return 0;
-  for (const s of servicos) {
-    const match = s.match(/^(\d+)\s+(.+)$/);
-    if (match && match[2] === tipoServico) return parseInt(match[1]);
-  }
-  return 0;
-}
+// Atividades que consomem créditos (devem bater com creditos_aluno.atividade)
+const ATIVIDADES_COM_CREDITO = new Set([
+  "Nutrição",
+  "Reabilitação",
+  "Avaliação Funcional",
+  "Avaliação Física",
+]);
 
 interface Props {
   open: boolean;
@@ -132,35 +124,30 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
 
   const { data: studentCredits } = useQuery({
     queryKey: ["student_credits", alunoId, atividade],
-    enabled: !!alunoId && !!atividade && !!ATIVIDADE_TO_SERVICO[atividade],
+    enabled: !!alunoId && !!atividade && ATIVIDADES_COM_CREDITO.has(atividade),
     queryFn: async () => {
-      const { data: planos } = await supabase
-        .from("planos")
-        .select("*")
+      const today = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("creditos_aluno")
+        .select("quantidade_inicial, quantidade_usada, ilimitado, origem_tipo, data_validade")
         .eq("aluno_id", alunoId)
-        .eq("ativo", true)
-        .limit(1);
+        .eq("atividade", atividade)
+        .eq("ativo", true);
 
-      if (!planos || planos.length === 0) return { plano: null, total: 0, usado: 0, restante: 0, comprado: 0, base: 0 };
+      const linhas = (data || []).filter(
+        (c: any) => !c.data_validade || c.data_validade >= today,
+      );
 
-      const plano = planos[0];
-      const tipoServico = ATIVIDADE_TO_SERVICO[atividade];
-      const base = parseServiceCredits(plano.servicos, tipoServico);
+      if (linhas.length === 0) {
+        return { total: 0, usado: 0, restante: 0, ilimitado: false, origens: [] as string[], temLinhas: false };
+      }
 
-      const { data: consumos } = await supabase
-        .from("consumo_servicos")
-        .select("agenda_id, quantidade")
-        .eq("aluno_id", alunoId)
-        .eq("plano_id", plano.id)
-        .eq("tipo_servico", tipoServico);
+      const ilimitado = linhas.some((c: any) => c.ilimitado);
+      const total = linhas.reduce((s: number, c: any) => s + (c.quantidade_inicial ?? 0), 0);
+      const usado = linhas.reduce((s: number, c: any) => s + (c.quantidade_usada ?? 0), 0);
+      const origens = Array.from(new Set(linhas.map((c: any) => c.origem_tipo))) as string[];
 
-      // Purchased = records without agenda_id (extra credits bought)
-      const comprado = consumos?.filter((c) => !c.agenda_id).reduce((sum, c) => sum + (c.quantidade ?? 1), 0) || 0;
-      // Used = records with agenda_id (scheduled/consumed)
-      const usado = consumos?.filter((c) => !!c.agenda_id).length || 0;
-      const total = base + comprado;
-
-      return { plano, total, usado, restante: total - usado, comprado, base };
+      return { total, usado, restante: ilimitado ? Infinity : total - usado, ilimitado, origens, temLinhas: true };
     },
   });
 
@@ -197,34 +184,17 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           .eq("id", editEvent.id);
         if (error) throw error;
       } else {
-        // Insert new event
-        const { data: agendaData, error } = await supabase
+        // Insert new event — débito de crédito é feito pelo trigger no banco
+        const { error } = await supabase
           .from("agenda_servicos")
-          .insert(payload)
-          .select("id")
-          .single();
+          .insert(payload);
         if (error) throw error;
-
-        // Register consumption for new events only
-        const tipoServico = ATIVIDADE_TO_SERVICO[atividade];
-        if (alunoId && tipoServico && studentCredits?.plano) {
-          const { error: consumoError } = await supabase
-            .from("consumo_servicos")
-            .insert({
-              aluno_id: alunoId,
-              plano_id: studentCredits.plano.id,
-              agenda_id: agendaData.id,
-              tipo_servico: tipoServico,
-              data_consumo: tipo === "avulso" ? dataEspecifica : new Date().toISOString().split("T")[0],
-              registrado_por: user?.id,
-            });
-          if (consumoError) throw consumoError;
-        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       queryClient.invalidateQueries({ queryKey: ["student_credits"] });
+      queryClient.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
       toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
       resetForm();
       onOpenChange(false);
@@ -249,7 +219,13 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const canSubmit = atividade && local && horarioInicio && horarioFim &&
     (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "");
 
-  const hasCredits = !alunoId || !ATIVIDADE_TO_SERVICO[atividade] || !studentCredits || studentCredits.restante > 0;
+  const hasCredits =
+    !alunoId ||
+    !ATIVIDADES_COM_CREDITO.has(atividade) ||
+    !studentCredits ||
+    !studentCredits.temLinhas ||
+    studentCredits.ilimitado ||
+    studentCredits.restante > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -386,15 +362,25 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           </div>
 
           {/* Credit info */}
-          {alunoId && atividade && ATIVIDADE_TO_SERVICO[atividade] && studentCredits && (
-            <div className={`rounded-lg border p-3 text-sm ${studentCredits.restante > 0 ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
-              <div className="flex items-center gap-2 mb-1">
-                {studentCredits.restante <= 0 && <AlertTriangle className="h-4 w-4 text-destructive" />}
-                <span className="font-medium">
-                  {ATIVIDADE_TO_SERVICO[atividade]}
-                </span>
+          {alunoId && atividade && ATIVIDADES_COM_CREDITO.has(atividade) && studentCredits && (
+            <div className={`rounded-lg border p-3 text-sm ${studentCredits.ilimitado || studentCredits.restante > 0 ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                {!studentCredits.ilimitado && studentCredits.restante <= 0 && studentCredits.temLinhas && (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                )}
+                <span className="font-medium">{atividade}</span>
+                {studentCredits.origens.includes("plano") && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">Plano</Badge>
+                )}
+                {studentCredits.origens.includes("servico") && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">Serviço</Badge>
+                )}
               </div>
-              {studentCredits.plano ? (
+              {!studentCredits.temLinhas ? (
+                <p className="text-muted-foreground">Aluno sem créditos contratados para esta atividade</p>
+              ) : studentCredits.ilimitado ? (
+                <div className="text-muted-foreground">Créditos ilimitados ∞</div>
+              ) : (
                 <div className="text-muted-foreground">
                   <span>Créditos: </span>
                   <span className="font-medium text-foreground">{studentCredits.usado}</span>
@@ -407,8 +393,6 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                     <span className="text-destructive ml-2">(sem créditos)</span>
                   )}
                 </div>
-              ) : (
-                <p className="text-muted-foreground">Aluno sem plano ativo</p>
               )}
             </div>
           )}
