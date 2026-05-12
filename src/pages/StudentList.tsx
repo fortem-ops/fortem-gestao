@@ -21,10 +21,28 @@ function parseServiceCount(servicos: string[] | null, tipoServico: string): numb
   return 0;
 }
 
+interface CreditAgg {
+  total: number;
+  usado: number;
+  ilimitado: boolean;
+}
 interface ServiceCredits {
-  avalFuncional: { base: number; comprado: number; total: number; usado: number };
-  nutricao: { base: number; comprado: number; total: number; usado: number };
-  reabilitacao: { base: number; comprado: number; total: number; usado: number };
+  plano: Record<string, CreditAgg>;
+  servico: Record<string, CreditAgg>;
+}
+
+function emptyCredits(): ServiceCredits {
+  return { plano: {}, servico: {} };
+}
+
+function sumByAtividade(map: Record<string, CreditAgg>) {
+  let total = 0, usado = 0, ilimitado = false;
+  for (const k of Object.keys(map)) {
+    total += map[k].total;
+    usado += map[k].usado;
+    if (map[k].ilimitado) ilimitado = true;
+  }
+  return { total, usado, ilimitado };
 }
 
 export default function StudentList() {
@@ -51,10 +69,11 @@ export default function StudentList() {
 
       const ids = students.map((s) => s.id);
       const { data: planos } = await supabase.from("planos").select("*").in("aluno_id", ids).eq("ativo", true);
-      const { data: consumos } = await supabase
-        .from("consumo_servicos")
-        .select("aluno_id, plano_id, tipo_servico, quantidade, agenda_id, tipo_registro")
-        .in("aluno_id", ids);
+      const { data: creditos } = await supabase
+        .from("creditos_aluno" as any)
+        .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
+        .in("aluno_id", ids)
+        .eq("ativo", true);
       const { data: licencas } = await supabase
         .from("aluno_licencas" as any)
         .select("*")
@@ -70,44 +89,37 @@ export default function StudentList() {
 
       for (const student of students) {
         const plano = planos?.find((p) => p.aluno_id === student.id);
-        const studentConsumos = consumos?.filter((c) => c.aluno_id === student.id && c.plano_id === plano?.id) || [];
-
-        // Plan end date + tipo
         if (plano) {
-          planEndMap[student.id] = addMonths(new Date(plano.data_inicio), plano.duracao_meses);
+          planEndMap[student.id] = (plano as any).data_fim
+            ? new Date((plano as any).data_fim + "T00:00:00")
+            : addMonths(new Date(plano.data_inicio), plano.duracao_meses);
           planTipoMap[student.id] = plano.tipo || null;
         } else {
           planEndMap[student.id] = null;
           planTipoMap[student.id] = null;
         }
-
-        const countPurchased = (tipo: string) =>
-          studentConsumos.filter((c: any) => c.tipo_servico === tipo && c.tipo_registro === "compra")
-            .reduce((sum: number, c: any) => sum + ((c as any).quantidade ?? 1), 0);
-
-        const countUsed = (tipo: string) =>
-          studentConsumos.filter((c: any) => c.tipo_servico === tipo && (!!c.agenda_id || (c as any).tipo_registro === "uso_manual")).length;
-
-        const buildCredit = (tipo: string) => {
-          const base = parseServiceCount(plano?.servicos || null, tipo);
-          const comprado = countPurchased(tipo);
-          return { base, comprado, total: base + comprado, usado: countUsed(tipo) };
-        };
-
-        creditsMap[student.id] = {
-          avalFuncional: buildCredit("Avaliação Funcional"),
-          nutricao: buildCredit("Consultas Nutrição"),
-          reabilitacao: buildCredit("Consultas Reabilitação"),
-        };
+        creditsMap[student.id] = emptyCredits();
       }
+
+      ((creditos as any[]) || []).forEach((c) => {
+        const bucket = creditsMap[c.aluno_id];
+        if (!bucket) return;
+        const target = c.origem_tipo === "plano" ? bucket.plano : bucket.servico;
+        const cur = target[c.atividade] || { total: 0, usado: 0, ilimitado: false };
+        cur.total += c.quantidade_inicial ?? 0;
+        cur.usado += c.quantidade_usada ?? 0;
+        if (c.ilimitado) cur.ilimitado = true;
+        target[c.atividade] = cur;
+      });
 
       return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
     },
   });
 
+
   const filtered = alunos.filter((s) => {
     const c = s.credits;
-    const matchSearch = s.nome.toLowerCase().includes(filters.search.toLowerCase()) ||
+    const matchSearch = (s.nome ?? "").toLowerCase().includes(filters.search.toLowerCase()) ||
       (s.email?.toLowerCase().includes(filters.search.toLowerCase()) ?? false);
     const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
     const matchStatus = filters.status === "todos" || display.key === filters.status;
@@ -115,11 +127,11 @@ export default function StudentList() {
     const matchFreq = filters.frequencia === "todos" ||
       (filters.frequencia === "livre" ? s.frequencia_semanal === 0 : s.frequencia_semanal === parseInt(filters.frequencia));
 
-    const hasBase = c && (c.avalFuncional.base > 0 || c.nutricao.base > 0 || c.reabilitacao.base > 0);
+    const hasBase = c && Object.keys(c.plano).length > 0;
     const matchSP = filters.servicosPlano === "todos" ||
       (filters.servicosPlano === "com" ? hasBase : !hasBase);
 
-    const hasPurch = c && (c.avalFuncional.comprado > 0 || c.nutricao.comprado > 0 || c.reabilitacao.comprado > 0);
+    const hasPurch = c && Object.keys(c.servico).length > 0;
     const matchSC = filters.servicosContratados === "todos" ||
       (filters.servicosContratados === "com" ? hasPurch : !hasPurch);
 
@@ -139,22 +151,39 @@ export default function StudentList() {
     return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
   });
 
-  const CreditBadge = ({ total, usado, icon: Icon, label }: { total: number; usado: number; icon: any; label: string }) => {
-    if (total === 0) return null;
-    const restante = total - usado;
-    const color = restante > 0 ? "text-primary" : "text-destructive";
+  const iconForAtividade = (atividade: string) => {
+    const a = atividade.toLowerCase();
+    if (a.includes("nutri")) return Utensils;
+    if (a.includes("reab") || a.includes("fisio")) return Footprints;
+    return Activity;
+  };
+
+  const CreditsCell = ({ map, originLabel }: { map: Record<string, CreditAgg>; originLabel: string }) => {
+    const entries = Object.entries(map);
+    if (entries.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className={`inline-flex items-center gap-1 text-xs font-medium ${color}`}>
-            <Icon className="h-3 w-3" />
-            {usado}/{total}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{label}: {usado} de {total} utilizado{usado !== 1 ? "s" : ""}</p>
-        </TooltipContent>
-      </Tooltip>
+      <div className="flex items-center gap-3 flex-wrap">
+        {entries.map(([atividade, agg]) => {
+          const Icon = iconForAtividade(atividade);
+          const restante = agg.ilimitado ? Infinity : agg.total - agg.usado;
+          const color = restante > 0 ? "text-primary" : "text-destructive";
+          const label = `${atividade} (${originLabel})`;
+          const display = agg.ilimitado ? "∞" : `${agg.usado}/${agg.total}`;
+          return (
+            <Tooltip key={atividade}>
+              <TooltipTrigger asChild>
+                <span className={`inline-flex items-center gap-1 text-xs font-medium ${color}`}>
+                  <Icon className="h-3 w-3" />
+                  {display}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{label}: {agg.ilimitado ? "ilimitado" : `${agg.usado} de ${agg.total} utilizado${agg.usado !== 1 ? "s" : ""}`}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
     );
   };
 
@@ -211,9 +240,6 @@ export default function StudentList() {
             ) : (
               filtered.map((student) => {
                 const c = student.credits;
-                const hasBasePlan = c && (c.avalFuncional.base > 0 || c.nutricao.base > 0 || c.reabilitacao.base > 0);
-                const hasPurchased = c && (c.avalFuncional.comprado > 0 || c.nutricao.comprado > 0 || c.reabilitacao.comprado > 0);
-
                 const whatsappNumber = student.telefone?.replace(/\D/g, "") || null;
                 const professorName = student.responsavel_id ? profileMap[student.responsavel_id] : null;
 
@@ -268,26 +294,10 @@ export default function StudentList() {
                       )}
                     </td>
                     <td className="p-4 hidden xl:table-cell">
-                      {hasBasePlan ? (
-                        <div className="flex items-center gap-3">
-                          <CreditBadge total={c.avalFuncional.base} usado={c.avalFuncional.usado} icon={Activity} label="Avaliação Funcional (Plano)" />
-                          <CreditBadge total={c.nutricao.base} usado={Math.min(c.nutricao.usado, c.nutricao.base)} icon={Utensils} label="Nutrição (Plano)" />
-                          <CreditBadge total={c.reabilitacao.base} usado={Math.min(c.reabilitacao.usado, c.reabilitacao.base)} icon={Footprints} label="Reabilitação (Plano)" />
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <CreditsCell map={c?.plano ?? {}} originLabel="Plano" />
                     </td>
                     <td className="p-4 hidden xl:table-cell">
-                      {hasPurchased ? (
-                        <div className="flex items-center gap-3">
-                          <CreditBadge total={c.avalFuncional.comprado} usado={Math.max(0, c.avalFuncional.usado - c.avalFuncional.base)} icon={Activity} label="Avaliação Funcional (Contratado)" />
-                          <CreditBadge total={c.nutricao.comprado} usado={Math.max(0, c.nutricao.usado - c.nutricao.base)} icon={Utensils} label="Nutrição (Contratado)" />
-                          <CreditBadge total={c.reabilitacao.comprado} usado={Math.max(0, c.reabilitacao.usado - c.reabilitacao.base)} icon={Footprints} label="Reabilitação (Contratado)" />
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <CreditsCell map={c?.servico ?? {}} originLabel="Contratado" />
                     </td>
                     <td className="p-4 hidden xl:table-cell text-center">
                       {whatsappNumber ? (
