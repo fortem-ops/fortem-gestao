@@ -91,6 +91,18 @@ export function StudentSummary({ student }: { student: Aluno }) {
     enabled: !!plano,
   });
 
+  const { data: creditos = [] } = useQuery({
+    queryKey: ["creditos_resumo", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("creditos_aluno" as any)
+        .select("*")
+        .eq("aluno_id", student.id)
+        .eq("ativo", true);
+      return (data as any[]) || [];
+    },
+  });
+
   const { data: lastAval } = useQuery({
     queryKey: ["last_aval_funcional", student.id],
     queryFn: async () => {
@@ -280,6 +292,59 @@ export function StudentSummary({ student }: { student: Aluno }) {
           </div>
         </div>
       </div>
+
+      {/* Seção 1.5: Serviços (Plano + Contratados) */}
+      {(() => {
+        const plano = creditos.filter((c) => c.origem_tipo === "plano");
+        const servico = creditos.filter((c) => c.origem_tipo === "servico");
+        const renderItem = (c: any) => {
+          const restante = c.ilimitado ? "∞" : Math.max(0, (c.quantidade_inicial ?? 0) - (c.quantidade_usada ?? 0));
+          const total = c.ilimitado ? "∞" : (c.quantidade_inicial ?? 0);
+          return (
+            <div key={c.id} className="glass-card rounded-lg p-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">{c.atividade}</p>
+                {c.data_validade && (
+                  <p className="text-xs text-muted-foreground">
+                    Validade: {new Date(c.data_validade + "T00:00:00").toLocaleDateString("pt-BR")}
+                  </p>
+                )}
+              </div>
+              <Badge variant="outline" className="text-xs">{restante}/{total}</Badge>
+            </div>
+          );
+        };
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-muted-foreground" />
+                Serviços do Plano
+              </h3>
+              {plano.length === 0 ? (
+                <div className="glass-card rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground">Nenhum serviço incluído no plano</p>
+                </div>
+              ) : (
+                <div className="space-y-2">{plano.map(renderItem)}</div>
+              )}
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-muted-foreground" />
+                Serviços Contratados
+              </h3>
+              {servico.length === 0 ? (
+                <div className="glass-card rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground">Nenhum serviço contratado</p>
+                </div>
+              ) : (
+                <div className="space-y-2">{servico.map(renderItem)}</div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Seção 2: Professor */}
       <div>
