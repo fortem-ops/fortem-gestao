@@ -219,7 +219,13 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const canSubmit = atividade && local && horarioInicio && horarioFim &&
     (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "");
 
-  const hasCredits = !alunoId || !ATIVIDADE_TO_SERVICO[atividade] || !studentCredits || studentCredits.restante > 0;
+  const hasCredits =
+    !alunoId ||
+    !ATIVIDADES_COM_CREDITO.has(atividade) ||
+    !studentCredits ||
+    !studentCredits.temLinhas ||
+    studentCredits.ilimitado ||
+    studentCredits.restante > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
