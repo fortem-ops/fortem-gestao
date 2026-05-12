@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban } from "lucide-react";
+import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
 import { StudentLicencas } from "./StudentLicencas";
 import { isAutoRenewPlan } from "@/lib/planTipo";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { VendaDialog } from "./venda/VendaDialog";
+import { HistoricoVendas } from "./venda/HistoricoVendas";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
@@ -55,6 +57,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [addUsageOpen, setAddUsageOpen] = useState(false);
   const [addUsageService, setAddUsageService] = useState("");
   const [addUsageDate, setAddUsageDate] = useState(new Date().toISOString().split("T")[0]);
+  const [vendaOpen, setVendaOpen] = useState(false);
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin"],
@@ -214,10 +217,17 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   if (!data) {
     return (
       <div className="space-y-4 mt-4">
-        <h3 className="font-heading font-semibold text-foreground">Plano Contratado</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-heading font-semibold text-foreground">Plano Contratado</h3>
+          <Button size="sm" onClick={() => setVendaOpen(true)} className="gap-1.5">
+            <ShoppingCart className="w-4 h-4" /> Venda
+          </Button>
+        </div>
         <div className="glass-card rounded-lg p-5">
           <p className="text-sm text-muted-foreground">Nenhum plano ativo encontrado para este aluno.</p>
         </div>
+        <HistoricoVendas alunoId={student.id} />
+        <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
       </div>
     );
   }
@@ -238,7 +248,12 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
   return (
     <div className="space-y-4 mt-4">
-      <h3 className="font-heading font-semibold text-foreground">Plano Contratado</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-heading font-semibold text-foreground">Plano Contratado</h3>
+        <Button size="sm" onClick={() => setVendaOpen(true)} className="gap-1.5">
+          <ShoppingCart className="w-4 h-4" /> Venda
+        </Button>
+      </div>
       <div className="glass-card rounded-lg p-5 space-y-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-wrap">
