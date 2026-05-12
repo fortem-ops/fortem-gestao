@@ -58,7 +58,14 @@ const cleanExerciseName = (name: string): string =>
  * a Frequência column, and a manual Observações area.
  */
 export async function exportWorkoutPDF({ student, descricao, data, print, weeks = 4, qrUrl: _qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  // Iterative fit: render the whole layout, and if it overflowed to a 2nd page,
+  // retry with a progressively smaller scale multiplier so every treino (incl. T4)
+  // and every aquecimento exercise fit on a single A4 sheet.
+  const MAX_ATTEMPTS = 8;
+  let attemptMul = 1.0;
+  let doc!: jsPDF;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+  doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();   // 210
   const pageH = doc.internal.pageSize.getHeight();  // 297
 
@@ -203,22 +210,22 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
   const optimisticScale = availH / Math.max(totalEst, 1);
   const floorScale = availH / Math.max(floorEst, 1);
-  const scale = Math.max(0.22, Math.min(1.6, optimisticScale, floorScale));
+  const scale = Math.max(0.16, Math.min(1.6, optimisticScale, floorScale)) * attemptMul;
 
-  const ROW_FONT = Math.max(6.4, 9.5 * scale);
-  const EX_NAME_FONT = Math.max(8.8, 13.0 * scale);
-  const NUM_FONT = Math.max(8.8, 13.0 * scale);
-  const HEAD_FONT = Math.max(5.4, 7.2 * scale);
-  const ROW_PAD = Math.max(0.35, 1.2 * scale);
-  const HEAD_PAD = Math.max(0.3, 1.0 * scale);
-  const SIDE_PAD = Math.max(0.5, 1.1 * scale);
-  const BADGE_H = Math.max(2.4, 3.8 * scale);
-  const BAR_H = Math.max(3.6, 5.1 * scale);
-  const TREINO_LABEL_FONT = Math.max(5.6, 7.4 * scale);
-  const SECTION_FONT = Math.max(7.0, 9.0 * scale);
-  const META_FONT = Math.max(5.0, 6.5 * scale);
-  const BADGE_FONT = Math.max(4.6, 5.9 * scale);
-  const SMALL_FONT = Math.max(4.4, 5.4 * scale);
+  const ROW_FONT = Math.max(5.0, 9.5 * scale);
+  const EX_NAME_FONT = Math.max(6.6, 13.0 * scale);
+  const NUM_FONT = Math.max(6.6, 13.0 * scale);
+  const HEAD_FONT = Math.max(4.4, 7.2 * scale);
+  const ROW_PAD = Math.max(0.22, 1.2 * scale);
+  const HEAD_PAD = Math.max(0.2, 1.0 * scale);
+  const SIDE_PAD = Math.max(0.4, 1.1 * scale);
+  const BADGE_H = Math.max(1.9, 3.8 * scale);
+  const BAR_H = Math.max(2.9, 5.1 * scale);
+  const TREINO_LABEL_FONT = Math.max(4.6, 7.4 * scale);
+  const SECTION_FONT = Math.max(5.6, 9.0 * scale);
+  const META_FONT = Math.max(4.2, 6.5 * scale);
+  const BADGE_FONT = Math.max(3.8, 5.9 * scale);
+  const SMALL_FONT = Math.max(3.6, 5.4 * scale);
   const bodyTextStyles = {
     textColor: INK,
     lineColor: RULE,
@@ -636,16 +643,24 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // (Frequência já renderizada antes dos treinos para garantir página única)
 
   // ============================================================
-  // SAFETY — guarantee single page: drop any spillover pages so the
-  // final PDF is always a single A4 sheet, no matter what.
+  // FIT CHECK — if content overflowed to a 2nd page, retry the whole
+  // render with a smaller scale multiplier. On the last attempt, force
+  // a single page by dropping any spillover (last-resort safety).
   // ============================================================
   const totalPages = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+  const isLastAttempt = attempt === MAX_ATTEMPTS - 1;
+  if (totalPages > 1 && !isLastAttempt) {
+    attemptMul *= 0.85;
+    continue;
+  }
   if (totalPages > 1) {
     for (let p = totalPages; p > 1; p--) {
       (doc as unknown as { deletePage: (n: number) => void }).deletePage(p);
     }
     (doc as unknown as { setPage: (n: number) => void }).setPage(1);
   }
+  break;
+  } // end retry loop
 
 
   // (Rodapé removido a pedido do usuário)
