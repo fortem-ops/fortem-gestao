@@ -184,34 +184,17 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           .eq("id", editEvent.id);
         if (error) throw error;
       } else {
-        // Insert new event
-        const { data: agendaData, error } = await supabase
+        // Insert new event — débito de crédito é feito pelo trigger no banco
+        const { error } = await supabase
           .from("agenda_servicos")
-          .insert(payload)
-          .select("id")
-          .single();
+          .insert(payload);
         if (error) throw error;
-
-        // Register consumption for new events only
-        const tipoServico = ATIVIDADE_TO_SERVICO[atividade];
-        if (alunoId && tipoServico && studentCredits?.plano) {
-          const { error: consumoError } = await supabase
-            .from("consumo_servicos")
-            .insert({
-              aluno_id: alunoId,
-              plano_id: studentCredits.plano.id,
-              agenda_id: agendaData.id,
-              tipo_servico: tipoServico,
-              data_consumo: tipo === "avulso" ? dataEspecifica : new Date().toISOString().split("T")[0],
-              registrado_por: user?.id,
-            });
-          if (consumoError) throw consumoError;
-        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       queryClient.invalidateQueries({ queryKey: ["student_credits"] });
+      queryClient.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
       toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
       resetForm();
       onOpenChange(false);
