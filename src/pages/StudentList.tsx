@@ -119,7 +119,7 @@ export default function StudentList() {
 
   const filtered = alunos.filter((s) => {
     const c = s.credits;
-    const matchSearch = s.nome.toLowerCase().includes(filters.search.toLowerCase()) ||
+    const matchSearch = (s.nome ?? "").toLowerCase().includes(filters.search.toLowerCase()) ||
       (s.email?.toLowerCase().includes(filters.search.toLowerCase()) ?? false);
     const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
     const matchStatus = filters.status === "todos" || display.key === filters.status;
@@ -127,11 +127,11 @@ export default function StudentList() {
     const matchFreq = filters.frequencia === "todos" ||
       (filters.frequencia === "livre" ? s.frequencia_semanal === 0 : s.frequencia_semanal === parseInt(filters.frequencia));
 
-    const hasBase = c && (c.avalFuncional.base > 0 || c.nutricao.base > 0 || c.reabilitacao.base > 0);
+    const hasBase = c && Object.keys(c.plano).length > 0;
     const matchSP = filters.servicosPlano === "todos" ||
       (filters.servicosPlano === "com" ? hasBase : !hasBase);
 
-    const hasPurch = c && (c.avalFuncional.comprado > 0 || c.nutricao.comprado > 0 || c.reabilitacao.comprado > 0);
+    const hasPurch = c && Object.keys(c.servico).length > 0;
     const matchSC = filters.servicosContratados === "todos" ||
       (filters.servicosContratados === "com" ? hasPurch : !hasPurch);
 
@@ -151,22 +151,39 @@ export default function StudentList() {
     return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
   });
 
-  const CreditBadge = ({ total, usado, icon: Icon, label }: { total: number; usado: number; icon: any; label: string }) => {
-    if (total === 0) return null;
-    const restante = total - usado;
-    const color = restante > 0 ? "text-primary" : "text-destructive";
+  const iconForAtividade = (atividade: string) => {
+    const a = atividade.toLowerCase();
+    if (a.includes("nutri")) return Utensils;
+    if (a.includes("reab") || a.includes("fisio")) return Footprints;
+    return Activity;
+  };
+
+  const CreditsCell = ({ map, originLabel }: { map: Record<string, CreditAgg>; originLabel: string }) => {
+    const entries = Object.entries(map);
+    if (entries.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className={`inline-flex items-center gap-1 text-xs font-medium ${color}`}>
-            <Icon className="h-3 w-3" />
-            {usado}/{total}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{label}: {usado} de {total} utilizado{usado !== 1 ? "s" : ""}</p>
-        </TooltipContent>
-      </Tooltip>
+      <div className="flex items-center gap-3 flex-wrap">
+        {entries.map(([atividade, agg]) => {
+          const Icon = iconForAtividade(atividade);
+          const restante = agg.ilimitado ? Infinity : agg.total - agg.usado;
+          const color = restante > 0 ? "text-primary" : "text-destructive";
+          const label = `${atividade} (${originLabel})`;
+          const display = agg.ilimitado ? "∞" : `${agg.usado}/${agg.total}`;
+          return (
+            <Tooltip key={atividade}>
+              <TooltipTrigger asChild>
+                <span className={`inline-flex items-center gap-1 text-xs font-medium ${color}`}>
+                  <Icon className="h-3 w-3" />
+                  {display}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{label}: {agg.ilimitado ? "ilimitado" : `${agg.usado} de ${agg.total} utilizado${agg.usado !== 1 ? "s" : ""}`}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
     );
   };
 
