@@ -643,16 +643,24 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // (Frequência já renderizada antes dos treinos para garantir página única)
 
   // ============================================================
-  // SAFETY — guarantee single page: drop any spillover pages so the
-  // final PDF is always a single A4 sheet, no matter what.
+  // FIT CHECK — if content overflowed to a 2nd page, retry the whole
+  // render with a smaller scale multiplier. On the last attempt, force
+  // a single page by dropping any spillover (last-resort safety).
   // ============================================================
   const totalPages = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+  const isLastAttempt = attempt === MAX_ATTEMPTS - 1;
+  if (totalPages > 1 && !isLastAttempt) {
+    attemptMul *= 0.85;
+    continue;
+  }
   if (totalPages > 1) {
     for (let p = totalPages; p > 1; p--) {
       (doc as unknown as { deletePage: (n: number) => void }).deletePage(p);
     }
     (doc as unknown as { setPage: (n: number) => void }).setPage(1);
   }
+  break;
+  } // end retry loop
 
 
   // (Rodapé removido a pedido do usuário)
