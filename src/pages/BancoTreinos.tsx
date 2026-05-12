@@ -795,19 +795,52 @@ export default function BancoTreinos() {
   >(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
-    queryKey: ["banco-treinos-personalizados", user?.id],
+    queryKey: ["banco-treinos-personalizados-all"],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("banco_treinos_personalizados")
         .select("id, nome, conteudo, criado_por, updated_at")
-        .eq("criado_por", user!.id)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data || [];
     },
     staleTime: 30_000,
   });
+
+  const { data: autoresMap = {} } = useQuery({
+    queryKey: ["banco-treinos-autores", modelosPersonalizados.map((m) => m.criado_por).join(",")],
+    enabled: modelosPersonalizados.length > 0,
+    queryFn: async () => {
+      const ids = Array.from(new Set(modelosPersonalizados.map((m) => m.criado_por).filter(Boolean)));
+      if (ids.length === 0) return {} as Record<string, string>;
+      const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+      const map: Record<string, string> = {};
+      (data || []).forEach((p: any) => { map[p.user_id] = p.full_name || "Professor"; });
+      return map;
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const modelosPorAutor = useMemo(() => {
+    const groups = new Map<string, typeof modelosPersonalizados>();
+    modelosPersonalizados.forEach((m) => {
+      const arr = groups.get(m.criado_por) || [];
+      arr.push(m);
+      groups.set(m.criado_por, arr);
+    });
+    const result: { autorId: string; titulo: string; isMine: boolean; modelos: typeof modelosPersonalizados }[] = [];
+    if (user?.id && groups.has(user.id)) {
+      result.push({ autorId: user.id, titulo: "Meus Modelos", isMine: true, modelos: groups.get(user.id)! });
+    }
+    Array.from(groups.entries())
+      .filter(([id]) => id !== user?.id)
+      .sort((a, b) => (autoresMap[a[0]] || "").localeCompare(autoresMap[b[0]] || ""))
+      .forEach(([id, modelos]) => {
+        result.push({ autorId: id, titulo: `Modelos ${autoresMap[id] || "Professor"}`, isMine: false, modelos });
+      });
+    return result;
+  }, [modelosPersonalizados, autoresMap, user?.id]);
 
   const handleDeleteModelo = async (id: string) => {
     if (!confirm("Excluir este modelo personalizado?")) return;
