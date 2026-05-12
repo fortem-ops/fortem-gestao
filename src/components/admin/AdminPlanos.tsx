@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2, SlidersHorizontal, X } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, X } from "lucide-react";
 import { calcularCreditos, FREQUENCIAS, PERIODOS, PLANOS_SUGERIDOS, PRESET_CORES, formatBRL, type Frequencia } from "@/lib/vendas";
 
 type StatusFilter = "todos" | "ativo" | "inativo";
