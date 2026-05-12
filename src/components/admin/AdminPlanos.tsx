@@ -10,8 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, X } from "lucide-react";
 import { calcularCreditos, FREQUENCIAS, PERIODOS, PLANOS_SUGERIDOS, PRESET_CORES, formatBRL, type Frequencia } from "@/lib/vendas";
+
+type StatusFilter = "todos" | "ativo" | "inativo";
 
 type PlanoCat = {
   id: string;
@@ -40,9 +42,14 @@ const empty = {
 export function AdminPlanos() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [freqFilter, setFreqFilter] = useState<Frequencia | "todos">("todos");
+  const [periodoFilter, setPeriodoFilter] = useState<string>("todos");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PlanoCat | null>(null);
   const [form, setForm] = useState({ ...empty });
+
+  const activeFiltersCount = [freqFilter !== "todos", periodoFilter !== "todos", statusFilter !== "todos"].filter(Boolean).length;
 
   const { data: planos = [] } = useQuery({
     queryKey: ["planos-catalogo"],
@@ -119,15 +126,60 @@ export function AdminPlanos() {
     setForm((f) => ({ ...f, periodo_meses: periodo, frequencia: freq, ilimitado: c.ilimitado, quantidade_creditos: c.quantidade, manualCreditos: false }));
   }
 
-  const filtered = planos.filter((p) => p.nome.toLowerCase().includes(search.toLowerCase()));
+  const filtered = planos.filter((p) => {
+    const matchesSearch = p.nome.toLowerCase().includes(search.toLowerCase());
+    const matchesFreq = freqFilter === "todos" ? true : p.frequencia === freqFilter;
+    const matchesPeriodo = periodoFilter === "todos" ? true : String(p.periodo_meses) === periodoFilter;
+    const matchesStatus = statusFilter === "todos" ? true : statusFilter === "ativo" ? p.ativo : !p.ativo;
+    return matchesSearch && matchesFreq && matchesPeriodo && matchesStatus;
+  });
+
+  function clearFilters() {
+    setFreqFilter("todos");
+    setPeriodoFilter("todos");
+    setStatusFilter("todos");
+    setSearch("");
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar plano..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+
+        <Select value={freqFilter} onValueChange={(v) => setFreqFilter(v as Frequencia | "todos")}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Frequência" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas freq.</SelectItem>
+            {FREQUENCIAS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={periodoFilter} onValueChange={setPeriodoFilter}>
+          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Período" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos períodos</SelectItem>
+            {PERIODOS.map((p) => <SelectItem key={p} value={String(p)}>{p} {p === 1 ? "mês" : "meses"}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+          <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos status</SelectItem>
+            <SelectItem value="ativo">Ativo</SelectItem>
+            <SelectItem value="inativo">Inativo</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {activeFiltersCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+            <X className="w-4 h-4 mr-1" /> Limpar ({activeFiltersCount})
+          </Button>
+        )}
+
         <Button onClick={() => { setForm({ ...empty }); setOpen(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Novo Plano
         </Button>
