@@ -472,6 +472,9 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       </Dialog>
 
       <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
+
+      <HistoricoVendas alunoId={student.id} />
+      <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
     </div>
   );
 }
