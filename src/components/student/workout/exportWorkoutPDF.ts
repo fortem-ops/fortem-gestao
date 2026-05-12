@@ -61,9 +61,15 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Iterative fit: render the whole layout, and if it overflowed to a 2nd page,
   // retry with a progressively smaller scale multiplier so every treino (incl. T4)
   // and every aquecimento exercise fit on a single A4 sheet.
-  const MAX_ATTEMPTS = 8;
+  const MAX_ATTEMPTS = 14;
   let attemptMul = 1.0;
   let doc!: jsPDF;
+  // Track the largest attemptMul that still fits on a single page.
+  // When a render fits but leaves too much space below the last row,
+  // we grow attemptMul to push the last exercise down toward the
+  // bottom of the Frequência column.
+  let bestFitMul: number | null = null;
+  let triedGrow = false;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
   doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();   // 210
