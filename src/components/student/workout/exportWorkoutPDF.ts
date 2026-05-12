@@ -58,7 +58,14 @@ const cleanExerciseName = (name: string): string =>
  * a Frequência column, and a manual Observações area.
  */
 export async function exportWorkoutPDF({ student, descricao, data, print, weeks = 4, qrUrl: _qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  // Iterative fit: render the whole layout, and if it overflowed to a 2nd page,
+  // retry with a progressively smaller scale multiplier so every treino (incl. T4)
+  // and every aquecimento exercise fit on a single A4 sheet.
+  const MAX_ATTEMPTS = 8;
+  let attemptMul = 1.0;
+  let doc!: jsPDF;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+  doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();   // 210
   const pageH = doc.internal.pageSize.getHeight();  // 297
 
