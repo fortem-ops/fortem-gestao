@@ -39,21 +39,13 @@ const DIAS_SEMANA = [
   { value: "0", label: "Domingo" },
 ];
 
-const ATIVIDADE_TO_SERVICO: Record<string, string> = {
-  "Nutrição": "Consultas Nutrição",
-  "Reabilitação": "Consultas Reabilitação",
-  "Avaliação Funcional": "Avaliação Funcional",
-  "Avaliação Física": "Avaliação Física",
-};
-
-function parseServiceCredits(servicos: string[] | null, tipoServico: string): number {
-  if (!servicos) return 0;
-  for (const s of servicos) {
-    const match = s.match(/^(\d+)\s+(.+)$/);
-    if (match && match[2] === tipoServico) return parseInt(match[1]);
-  }
-  return 0;
-}
+// Atividades que consomem créditos (devem bater com creditos_aluno.atividade)
+const ATIVIDADES_COM_CREDITO = new Set([
+  "Nutrição",
+  "Reabilitação",
+  "Avaliação Funcional",
+  "Avaliação Física",
+]);
 
 interface Props {
   open: boolean;
