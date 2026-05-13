@@ -96,36 +96,22 @@ export async function createNotificacao(input: {
   const uid = sess2.session?.user?.id;
   if (!uid) throw new Error("Sessão expirada — faça login novamente");
 
-  const { data: notif, error } = await supabase
-    .from("notificacoes")
-    .insert({
-      titulo: input.titulo,
-      descricao: input.descricao,
-      categoria: input.categoria,
-      prioridade: input.prioridade,
-      tipo: input.tipo,
-      prazo: input.prazo || null,
-      aluno_id: input.aluno_id || null,
-      reuniao_data: input.reuniao_data || null,
-      reuniao_local: input.reuniao_local || null,
-      criado_por: uid,
-    })
-    .select("id")
-    .single();
+  const userIds = await expandRecipients(input.destinatarios);
+  const { data: notifId, error } = await (supabase as any).rpc("fn_notificar_criar_notificacao", {
+    p_titulo: input.titulo,
+    p_descricao: input.descricao,
+    p_categoria: input.categoria,
+    p_prioridade: input.prioridade,
+    p_tipo: input.tipo,
+    p_prazo: input.prazo || null,
+    p_aluno_id: input.aluno_id || null,
+    p_reuniao_data: input.reuniao_data || null,
+    p_reuniao_local: input.reuniao_local || null,
+    p_destinatarios: userIds,
+  });
   if (error) throw error;
 
-  const userIds = await expandRecipients(input.destinatarios);
-  // Sempre inclui o criador como destinatário para vê-la na lista "Recebidas"? Não — fica em Enviadas.
-  const rows = userIds
-    .filter((id) => id !== uid)
-    .map((usuario_id) => ({ notificacao_id: notif.id, usuario_id }));
-
-  if (rows.length) {
-    const { error: e2 } = await supabase.from("notificacao_destinatarios").insert(rows);
-    if (e2) throw e2;
-  }
-
-  return notif.id;
+  return notifId as string;
 }
 
 export async function markVisualizada(notificacaoId: string, userId: string) {
