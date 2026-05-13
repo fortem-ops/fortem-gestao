@@ -110,13 +110,13 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
 
   // Jornadas do usuário no período
   const { data: jornadas = [], isLoading: loadingJornadas } = useQuery({
-    queryKey: ["meu-relatorio-jornadas", inicio, fim, userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-jornadas", inicio, fim, targetId],
+    enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ponto_jornadas")
         .select("*")
-        .eq("usuario_id", userId!)
+        .eq("usuario_id", targetId!)
         .gte("data", inicio)
         .lte("data", fim)
         .order("data", { ascending: false });
