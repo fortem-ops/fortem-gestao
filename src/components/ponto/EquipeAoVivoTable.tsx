@@ -177,12 +177,13 @@ export function EquipeAoVivoTable() {
   );
 }
 
-function ResumoCard({ label, value, variant }: { label: string; value: number; variant: "success" | "warning" | "destructive" | "muted" }) {
+function ResumoCard({ label, value, variant }: { label: string; value: number; variant: "success" | "warning" | "destructive" | "muted" | "info" }) {
   const cls = {
     success: "border-success/30 text-success",
     warning: "border-warning/30 text-warning",
     destructive: "border-destructive/30 text-destructive",
     muted: "border-border text-foreground",
+    info: "border-info/30 text-info",
   }[variant];
   return (
     <Card className={`p-4 border ${cls}`}>
