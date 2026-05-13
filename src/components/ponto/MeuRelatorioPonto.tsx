@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, MapPin, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, MapPin, FileText, AlertTriangle, Clock } from "lucide-react";
 import { formatHora, formatMinutes } from "@/lib/ponto";
 import { ExportarRelatorioMenu } from "@/components/ponto/ExportarRelatorioMenu";
 import {
@@ -174,6 +174,11 @@ export function MeuRelatorioPonto() {
 
   const periodoLabel = `${inicio}_a_${fim}`;
 
+  // Resumo: pendências no período
+  const resumoPendencias = useMemo(() => {
+    return jornadasFiltradas.reduce((acc, j) => acc + pendenciasJornada(j, intervaloObrigatorio).length, 0);
+  }, [jornadasFiltradas, intervaloObrigatorio]);
+
   // Agregação mensal individual
   const agregadoMensal: MensalExport[] = useMemo(() => {
     const mesIni = mesFiltro + "-01";
@@ -274,6 +279,36 @@ export function MeuRelatorioPonto() {
 
   return (
     <div className="space-y-4">
+      {/* Card de resumo */}
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${resumoPendencias > 0 ? "bg-destructive/10" : "bg-success/10"}`}>
+              <AlertTriangle className={`w-5 h-5 ${resumoPendencias > 0 ? "text-destructive" : "text-success"}`} />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Pendências no período</p>
+              <p className={`text-lg font-bold ${resumoPendencias > 0 ? "text-destructive" : "text-success"}`}>
+                {resumoPendencias}
+              </p>
+            </div>
+          </div>
+          <div className="w-px h-10 bg-border hidden sm:block" />
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${(mensalComStatus[0]?.saldo_minutos ?? 0) >= 0 ? "bg-success/10" : "bg-destructive/10"}`}>
+              <Clock className={`w-5 h-5 ${(mensalComStatus[0]?.saldo_minutos ?? 0) >= 0 ? "text-success" : "text-destructive"}`} />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Saldo no mês ({mesFiltro})</p>
+              <p className={`text-lg font-bold ${(mensalComStatus[0]?.saldo_minutos ?? 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                {(mensalComStatus[0]?.saldo_minutos ?? 0) >= 0 ? "+" : "-"}
+                {formatMinutes(Math.abs(mensalComStatus[0]?.saldo_minutos ?? 0))}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <Tabs defaultValue="diario" className="space-y-4">
         <TabsList>
           <TabsTrigger value="diario">Diário / Período</TabsTrigger>
