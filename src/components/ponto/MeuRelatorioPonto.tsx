@@ -74,9 +74,9 @@ function pendenciasJornada(j: Jornada, intervaloObrigatorio: boolean): string[] 
   return out;
 }
 
-export function MeuRelatorioPonto() {
+export function MeuRelatorioPonto({ userId }: { userId?: string }) {
   const { user } = useAuth();
-  const userId = user?.id;
+  const targetId = userId ?? user?.id;
 
   const hoje = new Date();
   const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
