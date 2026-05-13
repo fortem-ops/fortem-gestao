@@ -265,6 +265,10 @@ export default function Ponto() {
         <TabsContent value="relatorio">
           <MeuRelatorioPonto />
         </TabsContent>
+
+        <TabsContent value="banco">
+          <MeuBancoHoras />
+        </TabsContent>
       </Tabs>
     </div>
   );
