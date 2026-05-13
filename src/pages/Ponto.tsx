@@ -49,7 +49,8 @@ export default function Ponto() {
     queryFn: async () => {
       const { data: roles } = await supabase
         .from("user_roles")
-        .select("user_id, role");
+        .select("user_id, role")
+        .in("role", ["professor", "admin"]);
       const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
       if (!ids.length) return [];
       const { data: profs } = await supabase
