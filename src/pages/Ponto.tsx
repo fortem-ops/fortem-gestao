@@ -15,6 +15,7 @@ import { BotaoInteligente } from "@/components/ponto/BotaoInteligente";
 import { ResumoDoDia, type EventoPonto } from "@/components/ponto/ResumoDoDia";
 import { HistoricoJornadas } from "@/components/ponto/HistoricoJornadas";
 import { MeuRelatorioPonto } from "@/components/ponto/MeuRelatorioPonto";
+import { MeuBancoHoras } from "@/components/ponto/MeuBancoHoras";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
 
 interface EstadoAtual {
@@ -221,6 +222,7 @@ export default function Ponto() {
         <TabsList>
           <TabsTrigger value="jornada">Jornada</TabsTrigger>
           <TabsTrigger value="relatorio">Relatório</TabsTrigger>
+          <TabsTrigger value="banco">Banco de horas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="jornada" className="space-y-6">
