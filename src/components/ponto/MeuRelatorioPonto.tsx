@@ -641,3 +641,55 @@ function AusenciasJustificadasCard({
     </Card>
   );
 }
+
+// ====== Dialog: lista de pendências no período ======
+function DialogPendencias({
+  open,
+  onOpenChange,
+  items,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  items: { j: Jornada; pends: string[] }[];
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-destructive" />
+            Pendências no período
+          </DialogTitle>
+          <DialogDescription>
+            {items.length} jornada{items.length > 1 ? "s" : ""} com pendência{items.length > 1 ? "s" : ""} encontrada{items.length > 1 ? "s" : ""}.
+          </DialogDescription>
+        </DialogHeader>
+        {!items.length ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma pendência encontrada.</p>
+        ) : (
+          <div className="space-y-3">
+            {items.map(({ j, pends }) => (
+              <div key={j.id} className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium text-sm">
+                    {new Date(j.data + "T00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
+                  </span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Entrada: {formatHora(j.entrada)}</span>
+                    <span>•</span>
+                    <span>Saída: {formatHora(j.saida)}</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {pends.map((p) => (
+                    <Badge key={p} variant="destructive" className="text-[10px]">{p}</Badge>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
