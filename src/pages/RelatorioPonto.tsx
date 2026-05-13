@@ -186,6 +186,32 @@ export default function RelatorioPonto() {
     return null;
   };
 
+  // Lançamentos do banco de horas no mês (agrupado por usuário)
+  const { data: bancoLancamentos = [] } = useQuery({
+    queryKey: ["relatorio-banco-lancamentos", mesFiltro],
+    enabled: !!isCoordAdmin,
+    queryFn: async () => {
+      const ini = mesFiltro + "-01";
+      const dt = new Date(ini + "T00:00");
+      const fim = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("ponto_banco_horas" as any)
+        .select("usuario_id, minutos")
+        .gte("data", ini)
+        .lte("data", fim);
+      if (error) throw error;
+      return (data ?? []) as unknown as Array<{ usuario_id: string; minutos: number }>;
+    },
+  });
+
+  const bancoPorUser = useMemo(() => {
+    const map = new Map<string, number>();
+    bancoLancamentos.forEach((l) => {
+      map.set(l.usuario_id, (map.get(l.usuario_id) ?? 0) + l.minutos);
+    });
+    return map;
+  }, [bancoLancamentos]);
+
   const horarioPara = (uid: string, dataStr: string): HorarioRow | undefined => {
     const dow = new Date(dataStr + "T00:00").getDay();
     return horarios.find((h) => h.usuario_id === uid && h.dia_semana === dow);
@@ -233,19 +259,23 @@ export default function RelatorioPonto() {
         }
         cur.setDate(cur.getDate() + 1);
       }
+      const saldoJornadas = agg.total - previsto;
+      const saldoBanco = bancoPorUser.get(uid) ?? 0;
       out.push({
         mes: mesFiltro,
         professor: (profMap.get(uid) as string) ?? "—",
         dias_trabalhados: agg.dias,
         total_minutos: agg.total,
         previsto_minutos: previsto,
-        saldo_minutos: agg.total - previsto,
+        saldo_minutos: saldoJornadas + saldoBanco,
+        saldo_jornadas: saldoJornadas,
+        saldo_banco: saldoBanco,
         pendencias: agg.pend,
         status: "—",
       });
     });
     return out.sort((a, b) => a.professor.localeCompare(b.professor));
-  }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio]);
+  }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio, bancoPorUser]);
 
   // Buscar status de fechamentos do mês selecionado
   const { data: fechamentos = [] } = useQuery({
@@ -428,6 +458,7 @@ export default function RelatorioPonto() {
                     <TableHead className="text-right">Dias</TableHead>
                     <TableHead className="text-right">Trabalhado</TableHead>
                     <TableHead className="text-right">Previsto</TableHead>
+                    <TableHead className="text-right">Banco</TableHead>
                     <TableHead className="text-right">Saldo</TableHead>
                     <TableHead className="text-right">Pendências</TableHead>
                     <TableHead>Status</TableHead>
@@ -440,6 +471,9 @@ export default function RelatorioPonto() {
                       <TableCell className="text-right">{r.dias_trabalhados}</TableCell>
                       <TableCell className="text-right font-semibold">{formatMinutes(r.total_minutos)}</TableCell>
                       <TableCell className="text-right">{formatMinutes(r.previsto_minutos)}</TableCell>
+                      <TableCell className={`text-right ${(r.saldo_banco ?? 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                        {(r.saldo_banco ?? 0) >= 0 ? "+" : "-"}{formatMinutes(Math.abs(r.saldo_banco ?? 0))}
+                      </TableCell>
                       <TableCell className={`text-right ${r.saldo_minutos >= 0 ? "text-success" : "text-destructive"}`}>
                         {(r.saldo_minutos >= 0 ? "+" : "-") + formatMinutes(Math.abs(r.saldo_minutos))}
                       </TableCell>

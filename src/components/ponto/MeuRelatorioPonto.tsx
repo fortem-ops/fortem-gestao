@@ -195,6 +195,19 @@ export function MeuRelatorioPonto() {
   }, [jornadasFiltradas, intervaloObrigatorio]);
 
   // Agregação mensal individual
+  const { data: bancoResumo } = useQuery({
+    queryKey: ["meu-relatorio-banco-resumo", userId, mesFiltro],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_ponto_banco_resumo", {
+        _user_id: userId!,
+        _mes: mesFiltro + "-01",
+      });
+      if (error) throw error;
+      return data as { saldo_inicial: number; creditos_mes: number; debitos_mes: number; movimentacao_mes: number; saldo_final: number };
+    },
+  });
+
   const agregadoMensal: MensalExport[] = useMemo(() => {
     const mesIni = mesFiltro + "-01";
     const dt = new Date(mesIni + "T00:00");
@@ -222,6 +235,10 @@ export function MeuRelatorioPonto() {
       cur.setDate(cur.getDate() + 1);
     }
 
+    const saldoJornadas = total - previsto;
+    const saldoBanco = bancoResumo?.movimentacao_mes ?? 0;
+    const saldoTotal = saldoJornadas + saldoBanco;
+
     // Buscar status de fechamento
     let statusFechamento = "aberto";
     // fechamentos são buscados no useQuery abaixo
@@ -232,12 +249,14 @@ export function MeuRelatorioPonto() {
         dias_trabalhados: dias,
         total_minutos: total,
         previsto_minutos: previsto,
-        saldo_minutos: total - previsto,
+        saldo_minutos: saldoTotal,
+        saldo_jornadas: saldoJornadas,
+        saldo_banco: saldoBanco,
         pendencias: pend,
         status: statusFechamento,
       },
     ];
-  }, [jornadas, mesFiltro, horarios, intervaloObrigatorio, meuNome]);
+  }, [jornadas, mesFiltro, horarios, intervaloObrigatorio, meuNome, bancoResumo]);
 
   // Fechamento do mês
   const { data: fechamentos = [] } = useQuery({
@@ -324,6 +343,13 @@ export function MeuRelatorioPonto() {
                 {(mensalComStatus[0]?.saldo_minutos ?? 0) >= 0 ? "+" : "-"}
                 {formatMinutes(Math.abs(mensalComStatus[0]?.saldo_minutos ?? 0))}
               </p>
+              {(mensalComStatus[0]?.saldo_banco ?? 0) !== 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Jornadas: {(mensalComStatus[0]?.saldo_jornadas ?? 0) >= 0 ? "+" : "-"}{formatMinutes(Math.abs(mensalComStatus[0]?.saldo_jornadas ?? 0))}
+                  {" | "}
+                  Banco: {(mensalComStatus[0]?.saldo_banco ?? 0) >= 0 ? "+" : "-"}{formatMinutes(Math.abs(mensalComStatus[0]?.saldo_banco ?? 0))}
+                </p>
+              )}
             </div>
           </div>
         </div>
