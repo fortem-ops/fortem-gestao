@@ -458,6 +458,15 @@ export default function RelatorioPonto() {
             )}
           </Card>
         </TabsContent>
+
+        {/* ===== BANCO DE HORAS ===== */}
+        <TabsContent value="banco" className="space-y-4">
+          <AdminBancoHorasTable
+            profissionais={profissionais as Array<{ user_id: string; full_name: string }>}
+            profId={profId}
+            setProfId={setProfId}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
