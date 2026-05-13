@@ -63,13 +63,13 @@ export function MeuBancoHoras({ userId }: { userId?: string }) {
   }, [mesIni]);
 
   const { data: lancamentos = [], isLoading } = useQuery({
-    queryKey: ["meu-banco-lancamentos", userId, mes],
-    enabled: !!userId,
+    queryKey: ["meu-banco-lancamentos", targetId, mes],
+    enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ponto_banco_horas" as any)
         .select("id, data, minutos, motivo, tipo, registrado_por")
-        .eq("usuario_id", userId!)
+        .eq("usuario_id", targetId!)
         .gte("data", mesIni)
         .lte("data", mesFim)
         .order("data", { ascending: false });
