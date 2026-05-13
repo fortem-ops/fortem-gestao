@@ -139,7 +139,7 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
   // Feriados
   const { data: feriados = [] } = useQuery({
     queryKey: ["meu-relatorio-feriados", inicio, fim, mesFiltro],
-    enabled: !!userId,
+    enabled: !!targetId,
     queryFn: async () => {
       const { data } = await supabase.from("ponto_feriados" as any).select("data, descricao");
       return (data ?? []) as unknown as { data: string; descricao: string }[];
