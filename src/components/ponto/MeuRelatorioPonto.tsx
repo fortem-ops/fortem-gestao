@@ -400,10 +400,12 @@ function DiarioTable({
   jornadas,
   horarioPara,
   intervaloObrigatorio,
+  ausenciaPara,
 }: {
   jornadas: Jornada[];
   horarioPara: (data: string) => HorarioRow | undefined;
   intervaloObrigatorio: boolean;
+  ausenciaPara: (dataStr: string) => { motivo: string; descricao?: string } | null;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -420,6 +422,19 @@ function DiarioTable({
     },
   });
 
+  const justificativaBadge = (aus: { motivo: string; descricao?: string } | null) => {
+    if (!aus) return null;
+    const label =
+      aus.motivo === "feriado"
+        ? `Feriado${aus.descricao ? ": " + aus.descricao : ""}`
+        : aus.motivo.charAt(0).toUpperCase() + aus.motivo.slice(1);
+    return (
+      <Badge variant="outline" className="text-[10px] border-info/30 bg-info/10 text-info">
+        {label}
+      </Badge>
+    );
+  };
+
   return (
     <>
       <Table>
@@ -433,6 +448,7 @@ function DiarioTable({
             <TableHead className="text-right">Trab.</TableHead>
             <TableHead className="text-right">Prev.</TableHead>
             <TableHead>Pend.</TableHead>
+            <TableHead>Justificativa</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -440,6 +456,7 @@ function DiarioTable({
             const open = expanded === j.id;
             const prev = previstoMinutos(horarioPara(j.data));
             const pend = pendenciasJornada(j, intervaloObrigatorio);
+            const aus = ausenciaPara(j.data);
             return (
               <Fragment key={j.id}>
                 <TableRow>
@@ -465,10 +482,11 @@ function DiarioTable({
                       <Badge variant="outline" className="text-[10px]">OK</Badge>
                     )}
                   </TableCell>
+                  <TableCell>{justificativaBadge(aus)}</TableCell>
                 </TableRow>
                 {open && (
                   <TableRow key={j.id + "-exp"}>
-                    <TableCell colSpan={8} className="bg-muted/30">
+                    <TableCell colSpan={9} className="bg-muted/30">
                       {!eventos.length ? (
                         <p className="text-sm text-muted-foreground py-2">Sem eventos registrados.</p>
                       ) : (
@@ -508,5 +526,56 @@ function DiarioTable({
         </TableBody>
       </Table>
     </>
+  );
+}
+
+// ====== Ausências justificadas no período ======
+function AusenciasJustificadasCard({
+  inicio,
+  fim,
+  ausenciaPara,
+}: {
+  inicio: string;
+  fim: string;
+  ausenciaPara: (dataStr: string) => { motivo: string; descricao?: string } | null;
+}) {
+  const items = useMemo(() => {
+    const out: { data: string; label: string }[] = [];
+    const cur = new Date(inicio + "T00:00");
+    const end = new Date(fim + "T00:00");
+    while (cur <= end) {
+      const iso = cur.toISOString().slice(0, 10);
+      const aus = ausenciaPara(iso);
+      if (aus) {
+        const label =
+          aus.motivo === "feriado"
+            ? `Feriado${aus.descricao ? ": " + aus.descricao : ""}`
+            : aus.motivo.charAt(0).toUpperCase() + aus.motivo.slice(1);
+        out.push({ data: iso, label });
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }, [inicio, fim, ausenciaPara]);
+
+  if (!items.length) return null;
+
+  return (
+    <Card className="p-4">
+      <h3 className="text-sm font-semibold mb-3">Ausências justificadas no período</h3>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+        {items.map((item) => (
+          <div
+            key={item.data}
+            className="flex items-center gap-2 rounded-md border border-info/20 bg-info/5 px-3 py-2 text-xs"
+          >
+            <span className="font-medium tabular-nums">
+              {new Date(item.data + "T00:00").toLocaleDateString("pt-BR")}
+            </span>
+            <span className="text-muted-foreground">{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
