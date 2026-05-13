@@ -40,6 +40,7 @@ interface HorarioRow {
   horario_fim: string;
   intervalo_min: number;
   ativo: boolean;
+  frequencia_mensal: number | null;
 }
 
 export function AdminPontoHorarios() {
@@ -81,7 +82,8 @@ export function AdminPontoHorarios() {
           horario_fim: row.horario_fim!,
           intervalo_min: row.intervalo_min ?? 0,
           ativo: row.ativo ?? true,
-        },
+          frequencia_mensal: row.dia_semana === 6 ? (row.frequencia_mensal ?? 4) : null,
+        } as any,
         { onConflict: "usuario_id,dia_semana" }
       );
       if (error) throw error;
@@ -148,6 +150,7 @@ export function AdminPontoHorarios() {
               <TableHead>Início</TableHead>
               <TableHead>Fim</TableHead>
               <TableHead>Intervalo</TableHead>
+              <TableHead>Frequência</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead className="text-right"></TableHead>
             </TableRow>
@@ -184,8 +187,10 @@ function DiaRow({
   const [fim, setFim] = useState(row?.horario_fim?.slice(0, 5) ?? "12:00");
   const [intervalo, setIntervalo] = useState<number>(row?.intervalo_min ?? 0);
   const [ativo, setAtivo] = useState<boolean>(row?.ativo ?? true);
+  const [frequencia, setFrequencia] = useState<number>(row?.frequencia_mensal ?? 4);
 
   const valido = fim > inicio;
+  const isSabado = dia.val === 6;
 
   return (
     <TableRow>
@@ -212,8 +217,24 @@ function DiaRow({
           <SelectContent>
             <SelectItem value="0">Sem intervalo</SelectItem>
             <SelectItem value="15">15 minutos</SelectItem>
+            <SelectItem value="60">1 hora</SelectItem>
           </SelectContent>
         </Select>
+      </TableCell>
+      <TableCell>
+        {isSabado ? (
+          <Select value={String(frequencia)} onValueChange={(v) => setFrequencia(Number(v))}>
+            <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1x por mês</SelectItem>
+              <SelectItem value="2">2x por mês</SelectItem>
+              <SelectItem value="3">3x por mês</SelectItem>
+              <SelectItem value="4">Todos os sábados</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
       </TableCell>
       <TableCell>
         <Switch checked={ativo} onCheckedChange={setAtivo} />
@@ -224,7 +245,7 @@ function DiaRow({
             size="sm"
             variant="outline"
             disabled={!valido}
-            onClick={() => onSave({ horario_inicio: inicio, horario_fim: fim, intervalo_min: intervalo, ativo })}
+            onClick={() => onSave({ horario_inicio: inicio, horario_fim: fim, intervalo_min: intervalo, ativo, frequencia_mensal: isSabado ? frequencia : null })}
             className="gap-1"
           >
             <Save className="w-3.5 h-3.5" /> Salvar
