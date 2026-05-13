@@ -303,9 +303,14 @@ export function MeuRelatorioPonto() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Pendências no período</p>
-              <p className={`text-lg font-bold ${resumoPendencias > 0 ? "text-destructive" : "text-success"}`}>
+              <button
+                onClick={() => { if (resumoPendencias > 0) setDialogPendenciasOpen(true); }}
+                className={`text-lg font-bold cursor-pointer hover:underline ${resumoPendencias > 0 ? "text-destructive" : "text-success"}`}
+                disabled={resumoPendencias === 0}
+                title={resumoPendencias > 0 ? "Ver detalhes das pendências" : "Sem pendências"}
+              >
                 {resumoPendencias}
-              </p>
+              </button>
             </div>
           </div>
           <div className="w-px h-10 bg-border hidden sm:block" />
@@ -323,6 +328,13 @@ export function MeuRelatorioPonto() {
           </div>
         </div>
       </Card>
+
+      {/* Dialog de pendências */}
+      <DialogPendencias
+        open={dialogPendenciasOpen}
+        onOpenChange={setDialogPendenciasOpen}
+        items={jornadasComPendencias}
+      />
 
       <Tabs defaultValue="diario" className="space-y-4">
         <TabsList>
