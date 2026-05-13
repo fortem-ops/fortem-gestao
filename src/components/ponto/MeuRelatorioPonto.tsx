@@ -174,6 +174,14 @@ export function MeuRelatorioPonto() {
 
   const periodoLabel = `${inicio}_a_${fim}`;
 
+  // Resumo: pendências no período e saldo do mês
+  const resumoPendencias = useMemo(() => {
+    return jornadasFiltradas.reduce((acc, j) => acc + pendenciasJornada(j, intervaloObrigatorio).length, 0);
+  }, [jornadasFiltradas, intervaloObrigatorio]);
+
+  const saldoMensal = mensalComStatus[0]?.saldo_minutos ?? 0;
+  const saldoPositivo = saldoMensal >= 0;
+
   // Agregação mensal individual
   const agregadoMensal: MensalExport[] = useMemo(() => {
     const mesIni = mesFiltro + "-01";
