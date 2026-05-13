@@ -28,6 +28,7 @@ export function StudentNotes({ student }: { student: Tables<"alunos"> }) {
   const [open, setOpen] = useState(false);
   const [categoria, setCategoria] = useState("observacao");
   const [descricao, setDescricao] = useState("");
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const { data: profiles } = useQuery({
     queryKey: ["profiles-map"],
