@@ -127,10 +127,10 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
 
   // Horários cadastrados do usuário
   const { data: horarios = [] } = useQuery({
-    queryKey: ["meu-relatorio-horarios", userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-horarios", targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("ponto_horarios_professor").select("*").eq("usuario_id", userId!).eq("ativo", true);
+      const { data, error } = await supabase.from("ponto_horarios_professor").select("*").eq("usuario_id", targetId!).eq("ativo", true);
       if (error) throw error;
       return (data ?? []) as HorarioRow[];
     },
