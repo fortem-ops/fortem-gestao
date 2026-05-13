@@ -149,10 +149,10 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
 
   // Férias / folgas do usuário
   const { data: ferias = [] } = useQuery({
-    queryKey: ["meu-relatorio-ferias", userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-ferias", targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data } = await supabase.from("ponto_ferias" as any).select("data_inicio, data_fim, tipo").eq("usuario_id", userId!);
+      const { data } = await supabase.from("ponto_ferias" as any).select("data_inicio, data_fim, tipo").eq("usuario_id", targetId!);
       return (data ?? []) as unknown as { data_inicio: string; data_fim: string; tipo: string }[];
     },
   });
