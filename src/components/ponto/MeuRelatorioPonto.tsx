@@ -74,9 +74,9 @@ function pendenciasJornada(j: Jornada, intervaloObrigatorio: boolean): string[] 
   return out;
 }
 
-export function MeuRelatorioPonto() {
+export function MeuRelatorioPonto({ userId }: { userId?: string }) {
   const { user } = useAuth();
-  const userId = user?.id;
+  const targetId = userId ?? user?.id;
 
   const hoje = new Date();
   const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
@@ -89,10 +89,10 @@ export function MeuRelatorioPonto() {
 
   // Nome do usuário logado
   const { data: perfil } = useQuery({
-    queryKey: ["meu-relatorio-perfil", userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-perfil", targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", userId!).single();
+      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", targetId!).single();
       return data;
     },
   });
@@ -110,13 +110,13 @@ export function MeuRelatorioPonto() {
 
   // Jornadas do usuário no período
   const { data: jornadas = [], isLoading: loadingJornadas } = useQuery({
-    queryKey: ["meu-relatorio-jornadas", inicio, fim, userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-jornadas", inicio, fim, targetId],
+    enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ponto_jornadas")
         .select("*")
-        .eq("usuario_id", userId!)
+        .eq("usuario_id", targetId!)
         .gte("data", inicio)
         .lte("data", fim)
         .order("data", { ascending: false });
@@ -127,10 +127,10 @@ export function MeuRelatorioPonto() {
 
   // Horários cadastrados do usuário
   const { data: horarios = [] } = useQuery({
-    queryKey: ["meu-relatorio-horarios", userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-horarios", targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("ponto_horarios_professor").select("*").eq("usuario_id", userId!).eq("ativo", true);
+      const { data, error } = await supabase.from("ponto_horarios_professor").select("*").eq("usuario_id", targetId!).eq("ativo", true);
       if (error) throw error;
       return (data ?? []) as HorarioRow[];
     },
@@ -139,7 +139,7 @@ export function MeuRelatorioPonto() {
   // Feriados
   const { data: feriados = [] } = useQuery({
     queryKey: ["meu-relatorio-feriados", inicio, fim, mesFiltro],
-    enabled: !!userId,
+    enabled: !!targetId,
     queryFn: async () => {
       const { data } = await supabase.from("ponto_feriados" as any).select("data, descricao");
       return (data ?? []) as unknown as { data: string; descricao: string }[];
@@ -149,10 +149,10 @@ export function MeuRelatorioPonto() {
 
   // Férias / folgas do usuário
   const { data: ferias = [] } = useQuery({
-    queryKey: ["meu-relatorio-ferias", userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-ferias", targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data } = await supabase.from("ponto_ferias" as any).select("data_inicio, data_fim, tipo").eq("usuario_id", userId!);
+      const { data } = await supabase.from("ponto_ferias" as any).select("data_inicio, data_fim, tipo").eq("usuario_id", targetId!);
       return (data ?? []) as unknown as { data_inicio: string; data_fim: string; tipo: string }[];
     },
   });
@@ -196,11 +196,11 @@ export function MeuRelatorioPonto() {
 
   // Agregação mensal individual
   const { data: bancoResumo } = useQuery({
-    queryKey: ["meu-relatorio-banco-resumo", userId, mesFiltro],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-banco-resumo", targetId, mesFiltro],
+    enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("fn_ponto_banco_resumo", {
-        _user_id: userId!,
+        _user_id: targetId!,
         _mes: mesFiltro + "-01",
       });
       if (error) throw error;
@@ -260,17 +260,17 @@ export function MeuRelatorioPonto() {
 
   // Fechamento do mês
   const { data: fechamentos = [] } = useQuery({
-    queryKey: ["meu-relatorio-fechamentos", mesFiltro, userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-fechamentos", mesFiltro, targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data } = await supabase.from("ponto_fechamentos_mensais").select("status").eq("mes", mesFiltro + "-01").eq("usuario_id", userId!);
+      const { data } = await supabase.from("ponto_fechamentos_mensais").select("status").eq("mes", mesFiltro + "-01").eq("usuario_id", targetId!);
       return data ?? [];
     },
   });
   const statusFechamento = fechamentos.length ? (fechamentos[0] as any).status : "aberto";
   const mensalComStatus = agregadoMensal.map((m) => ({ ...m, status: statusFechamento }));
 
-  if (!userId) return <Skeleton className="h-64" />;
+  if (!targetId) return <Skeleton className="h-64" />;
 
   // Exportações
   const handleExportDiario = (kind: "csv" | "xlsx") => {

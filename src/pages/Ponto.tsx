@@ -263,11 +263,11 @@ export default function Ponto() {
         </TabsContent>
 
         <TabsContent value="relatorio">
-          <MeuRelatorioPonto />
+          <MeuRelatorioPonto userId={targetId!} />
         </TabsContent>
 
         <TabsContent value="banco">
-          <MeuBancoHoras />
+          <MeuBancoHoras userId={targetId!} />
         </TabsContent>
       </Tabs>
     </div>

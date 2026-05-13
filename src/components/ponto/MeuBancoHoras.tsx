@@ -27,28 +27,28 @@ interface Lancamento {
   registrado_por: string;
 }
 
-export function MeuBancoHoras() {
+export function MeuBancoHoras({ userId }: { userId?: string }) {
   const { user } = useAuth();
-  const userId = user?.id;
+  const targetId = userId ?? user?.id;
   const hoje = new Date();
   const [mes, setMes] = useState(hoje.toISOString().slice(0, 7));
 
   const { data: saldoTotal } = useQuery({
-    queryKey: ["meu-banco-saldo", userId],
-    enabled: !!userId,
+    queryKey: ["meu-banco-saldo", targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("fn_ponto_banco_saldo", { _user_id: userId! });
+      const { data, error } = await supabase.rpc("fn_ponto_banco_saldo", { _user_id: targetId! });
       if (error) throw error;
       return (data as number) ?? 0;
     },
   });
 
   const { data: resumo } = useQuery({
-    queryKey: ["meu-banco-resumo", userId, mes],
-    enabled: !!userId,
+    queryKey: ["meu-banco-resumo", targetId, mes],
+    enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("fn_ponto_banco_resumo", {
-        _user_id: userId!,
+        _user_id: targetId!,
         _mes: mes + "-01",
       });
       if (error) throw error;
@@ -63,13 +63,13 @@ export function MeuBancoHoras() {
   }, [mesIni]);
 
   const { data: lancamentos = [], isLoading } = useQuery({
-    queryKey: ["meu-banco-lancamentos", userId, mes],
-    enabled: !!userId,
+    queryKey: ["meu-banco-lancamentos", targetId, mes],
+    enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ponto_banco_horas" as any)
         .select("id, data, minutos, motivo, tipo, registrado_por")
-        .eq("usuario_id", userId!)
+        .eq("usuario_id", targetId!)
         .gte("data", mesIni)
         .lte("data", mesFim)
         .order("data", { ascending: false });
@@ -89,7 +89,7 @@ export function MeuBancoHoras() {
   });
   const perfilMap = new Map(perfis.map((p: any) => [p.user_id, p.full_name]));
 
-  if (!userId) return <Skeleton className="h-64" />;
+  if (!targetId) return <Skeleton className="h-64" />;
 
   const saldoColor = (n: number) => (n >= 0 ? "text-success" : "text-destructive");
   const saldoSign = (n: number) => (n >= 0 ? "+" : "-");
