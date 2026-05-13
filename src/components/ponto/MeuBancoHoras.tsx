@@ -44,11 +44,11 @@ export function MeuBancoHoras({ userId }: { userId?: string }) {
   });
 
   const { data: resumo } = useQuery({
-    queryKey: ["meu-banco-resumo", userId, mes],
-    enabled: !!userId,
+    queryKey: ["meu-banco-resumo", targetId, mes],
+    enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("fn_ponto_banco_resumo", {
-        _user_id: userId!,
+        _user_id: targetId!,
         _mes: mes + "-01",
       });
       if (error) throw error;
