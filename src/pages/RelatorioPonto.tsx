@@ -186,6 +186,32 @@ export default function RelatorioPonto() {
     return null;
   };
 
+  // Lançamentos do banco de horas no mês (agrupado por usuário)
+  const { data: bancoLancamentos = [] } = useQuery({
+    queryKey: ["relatorio-banco-lancamentos", mesFiltro],
+    enabled: !!isCoordAdmin,
+    queryFn: async () => {
+      const ini = mesFiltro + "-01";
+      const dt = new Date(ini + "T00:00");
+      const fim = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("ponto_banco_horas" as any)
+        .select("usuario_id, minutos")
+        .gte("data", ini)
+        .lte("data", fim);
+      if (error) throw error;
+      return (data ?? []) as unknown as Array<{ usuario_id: string; minutos: number }>;
+    },
+  });
+
+  const bancoPorUser = useMemo(() => {
+    const map = new Map<string, number>();
+    bancoLancamentos.forEach((l) => {
+      map.set(l.usuario_id, (map.get(l.usuario_id) ?? 0) + l.minutos);
+    });
+    return map;
+  }, [bancoLancamentos]);
+
   const horarioPara = (uid: string, dataStr: string): HorarioRow | undefined => {
     const dow = new Date(dataStr + "T00:00").getDay();
     return horarios.find((h) => h.usuario_id === uid && h.dia_semana === dow);
