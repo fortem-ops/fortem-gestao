@@ -260,10 +260,10 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
 
   // Fechamento do mês
   const { data: fechamentos = [] } = useQuery({
-    queryKey: ["meu-relatorio-fechamentos", mesFiltro, userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-fechamentos", mesFiltro, targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data } = await supabase.from("ponto_fechamentos_mensais").select("status").eq("mes", mesFiltro + "-01").eq("usuario_id", userId!);
+      const { data } = await supabase.from("ponto_fechamentos_mensais").select("status").eq("mes", mesFiltro + "-01").eq("usuario_id", targetId!);
       return data ?? [];
     },
   });
