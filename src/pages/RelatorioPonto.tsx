@@ -98,7 +98,7 @@ export default function RelatorioPonto() {
     queryKey: ["relatorio-profs"],
     enabled: !!isCoordAdmin,
     queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("role", ["professor", "admin"]);
       const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
       if (!ids.length) return [];
       const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids).order("full_name");
