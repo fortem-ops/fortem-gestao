@@ -120,6 +120,11 @@ export function useNotificacaoRealtime() {
         { event: "*", schema: "public", table: "notificacao_comentarios" },
         () => qc.invalidateQueries({ queryKey: ["notif"] })
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notificacao_destinatarios", filter: `usuario_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ["notif"] })
+      )
       .subscribe();
 
     return () => {
