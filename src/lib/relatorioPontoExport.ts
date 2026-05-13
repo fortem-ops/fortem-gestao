@@ -31,6 +31,8 @@ export interface MensalExport {
   total_minutos: number;
   previsto_minutos: number;
   saldo_minutos: number;
+  saldo_jornadas?: number;
+  saldo_banco?: number;
   pendencias: number;
   status: string;
 }
