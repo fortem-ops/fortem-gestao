@@ -1485,6 +1485,45 @@ export type Database = {
           },
         ]
       }
+      ponto_banco_horas: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          minutos: number
+          motivo: string
+          referencia_jornada_id: string | null
+          registrado_por: string
+          tipo: Database["public"]["Enums"]["ponto_banco_tipo"]
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          id?: string
+          minutos: number
+          motivo: string
+          referencia_jornada_id?: string | null
+          registrado_por: string
+          tipo?: Database["public"]["Enums"]["ponto_banco_tipo"]
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          minutos?: number
+          motivo?: string
+          referencia_jornada_id?: string | null
+          registrado_por?: string
+          tipo?: Database["public"]["Enums"]["ponto_banco_tipo"]
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       ponto_configuracoes: {
         Row: {
           carga_diaria_min: number
@@ -2299,6 +2338,14 @@ export type Database = {
         Args: { _fechamento_id: string }
         Returns: Json
       }
+      fn_ponto_banco_resumo: {
+        Args: { _mes: string; _user_id: string }
+        Returns: Json
+      }
+      fn_ponto_banco_saldo: {
+        Args: { _ate?: string; _user_id: string }
+        Returns: number
+      }
       fn_ponto_calcular_fechamento: {
         Args: { _mes: string; _user_id: string }
         Returns: Json
@@ -2426,6 +2473,11 @@ export type Database = {
         | "auto_evasao"
         | "auto_recuperacao"
       plano_frequencia: "1x" | "2x" | "3x" | "livre"
+      ponto_banco_tipo:
+        | "credito_manual"
+        | "debito_manual"
+        | "compensacao"
+        | "ajuste_saldo"
       ponto_evento_tipo:
         | "entrada"
         | "intervalo_inicio"
@@ -2667,6 +2719,12 @@ export const Constants = {
         "auto_recuperacao",
       ],
       plano_frequencia: ["1x", "2x", "3x", "livre"],
+      ponto_banco_tipo: [
+        "credito_manual",
+        "debito_manual",
+        "compensacao",
+        "ajuste_saldo",
+      ],
       ponto_evento_tipo: [
         "entrada",
         "intervalo_inicio",
