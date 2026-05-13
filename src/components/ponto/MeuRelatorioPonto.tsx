@@ -270,7 +270,7 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
   const statusFechamento = fechamentos.length ? (fechamentos[0] as any).status : "aberto";
   const mensalComStatus = agregadoMensal.map((m) => ({ ...m, status: statusFechamento }));
 
-  if (!userId) return <Skeleton className="h-64" />;
+  if (!targetId) return <Skeleton className="h-64" />;
 
   // Exportações
   const handleExportDiario = (kind: "csv" | "xlsx") => {
