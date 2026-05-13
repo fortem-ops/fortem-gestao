@@ -13,6 +13,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+const RecoverPassword = lazy(() => import("./pages/RecoverPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 // Lazy-loaded routes — keeps initial bundle small and speeds up first paint.
 const StudentList = lazy(() => import("./pages/StudentList"));
