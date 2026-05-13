@@ -92,7 +92,7 @@ export function useNotificacaoRealtime() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`notif-user-${user.id}`)
+      .channel(`notif-user-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notificacao_destinatarios", filter: `usuario_id=eq.${user.id}` },
