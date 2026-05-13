@@ -182,6 +182,10 @@ export function MeuRelatorioPonto() {
   const periodoLabel = `${inicio}_a_${fim}`;
 
   // Resumo: pendências no período
+  const resumoPendencias = useMemo(() => {
+    return jornadasFiltradas.reduce((acc, j) => acc + pendenciasJornada(j, intervaloObrigatorio).length, 0);
+  }, [jornadasFiltradas, intervaloObrigatorio]);
+
   const [dialogPendenciasOpen, setDialogPendenciasOpen] = useState(false);
 
   const jornadasComPendencias = useMemo(() => {
