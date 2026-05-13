@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Settings } from "lucide-react";
 import { Navigate } from "react-router-dom";
-import { AdminPontoConfig } from "@/components/ponto/AdminPontoConfig";
 import { AdminPontoHorarios } from "@/components/ponto/AdminPontoHorarios";
 
 export default function AdminPonto() {
@@ -33,10 +32,9 @@ export default function AdminPonto() {
           <Settings className="w-6 h-6 text-primary" /> Admin — Ponto
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Defina a configuração global de jornada e ajustes individuais por professor.
+          Defina o horário individual de cada colaborador.
         </p>
       </header>
-      <AdminPontoConfig />
       <AdminPontoHorarios />
     </div>
   );
