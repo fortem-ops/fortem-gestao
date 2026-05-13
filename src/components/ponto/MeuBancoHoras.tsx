@@ -89,7 +89,7 @@ export function MeuBancoHoras({ userId }: { userId?: string }) {
   });
   const perfilMap = new Map(perfis.map((p: any) => [p.user_id, p.full_name]));
 
-  if (!userId) return <Skeleton className="h-64" />;
+  if (!targetId) return <Skeleton className="h-64" />;
 
   const saldoColor = (n: number) => (n >= 0 ? "text-success" : "text-destructive");
   const saldoSign = (n: number) => (n >= 0 ? "+" : "-");
