@@ -379,6 +379,7 @@ export default function RelatorioPonto() {
                 profMap={profMap}
                 horarioPara={horarioPara}
                 intervaloObrigatorio={intervaloObrigatorio}
+                ausenciaPara={ausenciaPara}
               />
             )}
           </Card>
