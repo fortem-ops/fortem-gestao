@@ -1621,6 +1621,7 @@ export type Database = {
           ativo: boolean
           created_at: string
           dia_semana: number
+          frequencia_mensal: number | null
           horario_fim: string
           horario_inicio: string
           id: string
@@ -1632,6 +1633,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           dia_semana: number
+          frequencia_mensal?: number | null
           horario_fim: string
           horario_inicio: string
           id?: string
@@ -1643,6 +1645,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           dia_semana?: number
+          frequencia_mensal?: number | null
           horario_fim?: string
           horario_inicio?: string
           id?: string
