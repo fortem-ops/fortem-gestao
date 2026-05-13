@@ -32,6 +32,8 @@ interface FechamentoRow {
   pendencias_count: number;
   status: "aberto" | "em_revisao" | "aprovado";
   professor_nome: string;
+  dias_feriado?: number;
+  dias_ferias?: number;
 }
 
 function isoMesPrimeiroDia(s: string): string {
