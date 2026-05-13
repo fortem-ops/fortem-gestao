@@ -124,6 +124,8 @@ export function FechamentoMensalTable() {
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Extras</TableHead>
                 <TableHead className="text-right">Déficit</TableHead>
+                <TableHead className="text-right">Feriados</TableHead>
+                <TableHead className="text-right">Férias</TableHead>
                 <TableHead className="text-right">Pendências</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
@@ -136,6 +138,8 @@ export function FechamentoMensalTable() {
                   <TableCell className="text-right font-semibold">{formatMinutes(r.total_minutos)}</TableCell>
                   <TableCell className="text-right text-success">+{formatMinutes(r.minutos_extras)}</TableCell>
                   <TableCell className="text-right text-destructive">-{formatMinutes(r.minutos_faltantes)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{r.dias_feriado ?? 0}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{r.dias_ferias ?? 0}</TableCell>
                   <TableCell className="text-right">
                     {r.pendencias_count > 0 ? (
                       <Badge variant="destructive" className="gap-1">
