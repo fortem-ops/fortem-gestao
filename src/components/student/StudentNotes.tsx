@@ -6,7 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, MessageSquare, Stethoscope, Phone, BookOpen, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { NotificacaoDetail } from "@/components/notificar/NotificacaoDetail";
+import { Plus, MessageSquare, Stethoscope, Phone, BookOpen, Loader2, MessagesSquare } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -26,6 +28,7 @@ export function StudentNotes({ student }: { student: Tables<"alunos"> }) {
   const [open, setOpen] = useState(false);
   const [categoria, setCategoria] = useState("observacao");
   const [descricao, setDescricao] = useState("");
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const { data: profiles } = useQuery({
     queryKey: ["profiles-map"],
@@ -114,21 +117,31 @@ export function StudentNotes({ student }: { student: Tables<"alunos"> }) {
         <div className="relative">
           <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
           <div className="space-y-3">
-            {notes.map(n => {
+            {notes.map((n: any) => {
               const cat = catMap[n.categoria] || catMap["observação"];
               const Icon = cat.icon;
               return (
                 <div key={n.id} className="relative pl-10">
                   <div className="absolute left-2.5 top-1.5 w-3 h-3 rounded-full border-2 border-background bg-muted" />
                   <div className="glass-card rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <Icon className={`w-3.5 h-3.5 ${cat.color}`} />
                       <span className="text-xs font-medium text-foreground capitalize">{n.categoria}</span>
                       <span className="text-xs text-muted-foreground">
                         · {format(new Date(n.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })} · {profiles?.[n.autor_id] || "—"}
                       </span>
+                      {n.notificacao_id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-auto h-6 px-2 text-xs"
+                          onClick={() => setDetailId(n.notificacao_id)}
+                        >
+                          <MessagesSquare className="w-3 h-3 mr-1" /> Ver conversa
+                        </Button>
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground">{n.descricao}</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{n.descricao}</p>
                   </div>
                 </div>
               );
@@ -136,6 +149,17 @@ export function StudentNotes({ student }: { student: Tables<"alunos"> }) {
           </div>
         </div>
       )}
+
+      <Dialog open={!!detailId} onOpenChange={(o) => !o && setDetailId(null)}>
+        <DialogContent className="max-w-3xl h-[80vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-4 pt-4">
+            <DialogTitle>Conversa da notificação</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            <NotificacaoDetail id={detailId} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
