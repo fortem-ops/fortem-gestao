@@ -34,10 +34,10 @@ export function MeuBancoHoras({ userId }: { userId?: string }) {
   const [mes, setMes] = useState(hoje.toISOString().slice(0, 7));
 
   const { data: saldoTotal } = useQuery({
-    queryKey: ["meu-banco-saldo", userId],
-    enabled: !!userId,
+    queryKey: ["meu-banco-saldo", targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("fn_ponto_banco_saldo", { _user_id: userId! });
+      const { data, error } = await supabase.rpc("fn_ponto_banco_saldo", { _user_id: targetId! });
       if (error) throw error;
       return (data as number) ?? 0;
     },
