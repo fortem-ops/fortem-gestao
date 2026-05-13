@@ -27,9 +27,9 @@ interface Lancamento {
   registrado_por: string;
 }
 
-export function MeuBancoHoras() {
+export function MeuBancoHoras({ userId }: { userId?: string }) {
   const { user } = useAuth();
-  const userId = user?.id;
+  const targetId = userId ?? user?.id;
   const hoje = new Date();
   const [mes, setMes] = useState(hoje.toISOString().slice(0, 7));
 
