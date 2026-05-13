@@ -9,10 +9,12 @@ import { Navigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusJornadaCard } from "@/components/ponto/StatusJornadaCard";
 import { BotaoInteligente } from "@/components/ponto/BotaoInteligente";
 import { ResumoDoDia, type EventoPonto } from "@/components/ponto/ResumoDoDia";
 import { HistoricoJornadas } from "@/components/ponto/HistoricoJornadas";
+import { MeuRelatorioPonto } from "@/components/ponto/MeuRelatorioPonto";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
 
 interface EstadoAtual {
@@ -215,40 +217,53 @@ export default function Ponto() {
         )}
       </header>
 
-      {isLoading || !estado ? (
-        <Skeleton className="h-40" />
-      ) : (
-        <>
-          <StatusJornadaCard
-            status={estado.status}
-            entrada={estado.entrada}
-            intervaloInicio={estado.intervalo_inicio}
-            intervaloFim={estado.intervalo_fim}
-            saida={estado.saida}
-          />
+      <Tabs defaultValue="jornada" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="jornada">Jornada</TabsTrigger>
+          <TabsTrigger value="relatorio">Relatório</TabsTrigger>
+        </TabsList>
 
-          {!isViewingOther && (
-            <Card className="p-4">
-              <BotaoInteligente proximaAcao={estado.proxima_acao} pularIntervalo={pularIntervalo} />
-            </Card>
+        <TabsContent value="jornada" className="space-y-6">
+          {isLoading || !estado ? (
+            <Skeleton className="h-40" />
+          ) : (
+            <>
+              <StatusJornadaCard
+                status={estado.status}
+                entrada={estado.entrada}
+                intervaloInicio={estado.intervalo_inicio}
+                intervaloFim={estado.intervalo_fim}
+                saida={estado.saida}
+              />
+
+              {!isViewingOther && (
+                <Card className="p-4">
+                  <BotaoInteligente proximaAcao={estado.proxima_acao} pularIntervalo={pularIntervalo} />
+                </Card>
+              )}
+
+              <ResumoDoDia
+                jornadaId={estado.jornada_id}
+                entrada={estado.entrada}
+                intervaloInicio={estado.intervalo_inicio}
+                intervaloFim={estado.intervalo_fim}
+                saida={estado.saida}
+                minutosTrabalhados={estado.minutos_trabalhados}
+                observacao={jornadaHoje?.observacao}
+                eventos={eventosDia}
+                readOnly={isViewingOther}
+                usuarioAlvoId={targetId!}
+              />
+            </>
           )}
 
-          <ResumoDoDia
-            jornadaId={estado.jornada_id}
-            entrada={estado.entrada}
-            intervaloInicio={estado.intervalo_inicio}
-            intervaloFim={estado.intervalo_fim}
-            saida={estado.saida}
-            minutosTrabalhados={estado.minutos_trabalhados}
-            observacao={jornadaHoje?.observacao}
-            eventos={eventosDia}
-            readOnly={isViewingOther}
-            usuarioAlvoId={targetId!}
-          />
-        </>
-      )}
+          <HistoricoJornadas userId={targetId!} />
+        </TabsContent>
 
-      <HistoricoJornadas userId={targetId!} />
+        <TabsContent value="relatorio">
+          <MeuRelatorioPonto />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
