@@ -100,6 +100,11 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
           {n.prazo && <span>· Prazo: {format(new Date(n.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>}
         </div>
         <p className="text-sm whitespace-pre-wrap pt-1">{n.descricao}</p>
+        {aluno && (
+          <div className="text-sm bg-muted/50 rounded p-2">
+            👤 Aluno vinculado: <span className="font-medium">{aluno.nome}</span>
+          </div>
+        )}
         {n.tipo === "reuniao" && n.reuniao_data && (
           <div className="text-sm bg-muted/50 rounded p-2">
             📅 Reunião: {format(new Date(n.reuniao_data), "dd/MM/yyyy HH:mm", { locale: ptBR })}
