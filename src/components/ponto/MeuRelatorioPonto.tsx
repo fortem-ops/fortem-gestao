@@ -343,6 +343,13 @@ export function MeuRelatorioPonto() {
                 {(mensalComStatus[0]?.saldo_minutos ?? 0) >= 0 ? "+" : "-"}
                 {formatMinutes(Math.abs(mensalComStatus[0]?.saldo_minutos ?? 0))}
               </p>
+              {(mensalComStatus[0]?.saldo_banco ?? 0) !== 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Jornadas: {(mensalComStatus[0]?.saldo_jornadas ?? 0) >= 0 ? "+" : "-"}{formatMinutes(Math.abs(mensalComStatus[0]?.saldo_jornadas ?? 0))}
+                  {" | "}
+                  Banco: {(mensalComStatus[0]?.saldo_banco ?? 0) >= 0 ? "+" : "-"}{formatMinutes(Math.abs(mensalComStatus[0]?.saldo_banco ?? 0))}
+                </p>
+              )}
             </div>
           </div>
         </div>
