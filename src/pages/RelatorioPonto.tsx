@@ -467,11 +467,13 @@ function DiarioTable({
   profMap,
   horarioPara,
   intervaloObrigatorio,
+  ausenciaPara,
 }: {
   jornadas: Jornada[];
   profMap: Map<string, string>;
   horarioPara: (uid: string, data: string) => HorarioRow | undefined;
   intervaloObrigatorio: boolean;
+  ausenciaPara: (uid: string, dataStr: string) => { motivo: string; descricao?: string } | null;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [ajusteOpen, setAjusteOpen] = useState(false);
@@ -490,6 +492,19 @@ function DiarioTable({
     },
   });
 
+  const justificativaBadge = (aus: { motivo: string; descricao?: string } | null) => {
+    if (!aus) return null;
+    const label =
+      aus.motivo === "feriado"
+        ? `Feriado${aus.descricao ? ": " + aus.descricao : ""}`
+        : aus.motivo.charAt(0).toUpperCase() + aus.motivo.slice(1);
+    return (
+      <Badge variant="outline" className="text-[10px] border-info/30 bg-info/10 text-info">
+        {label}
+      </Badge>
+    );
+  };
+
   return (
     <>
       <Table>
@@ -504,6 +519,7 @@ function DiarioTable({
             <TableHead className="text-right">Trab.</TableHead>
             <TableHead className="text-right">Prev.</TableHead>
             <TableHead>Pend.</TableHead>
+            <TableHead>Justificativa</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -512,6 +528,7 @@ function DiarioTable({
             const open = expanded === j.id;
             const prev = previstoMinutos(horarioPara(j.usuario_id, j.data));
             const pend = pendenciasJornada(j, intervaloObrigatorio);
+            const aus = ausenciaPara(j.usuario_id, j.data);
             return (
               <Fragment key={j.id}>
                 <TableRow>
@@ -538,6 +555,7 @@ function DiarioTable({
                       <Badge variant="outline" className="text-[10px]">OK</Badge>
                     )}
                   </TableCell>
+                  <TableCell>{justificativaBadge(aus)}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       size="sm"
@@ -554,7 +572,7 @@ function DiarioTable({
                 </TableRow>
                 {open && (
                   <TableRow key={j.id + "-exp"}>
-                    <TableCell colSpan={10} className="bg-muted/30">
+                    <TableCell colSpan={11} className="bg-muted/30">
                       {!eventos.length ? (
                         <p className="text-sm text-muted-foreground py-2">Sem eventos registrados.</p>
                       ) : (
