@@ -101,11 +101,12 @@ export function EquipeAoVivoTable() {
       </div>
 
       {/* Cards-resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <ResumoCard label="Ativos" value={dashboard?.resumo.ativos ?? 0} variant="success" />
         <ResumoCard label="Em intervalo" value={dashboard?.resumo.em_intervalo ?? 0} variant="warning" />
         <ResumoCard label="Não iniciaram" value={dashboard?.resumo.nao_iniciaram ?? 0} variant="destructive" />
         <ResumoCard label="Encerradas" value={dashboard?.resumo.encerradas ?? 0} variant="muted" />
+        <ResumoCard label="Ausências just." value={dashboard?.resumo.ausencias_justificadas ?? 0} variant="info" />
         <ResumoCard label="Inconsistências" value={dashboard?.resumo.inconsistencias ?? 0} variant="destructive" />
       </div>
 
