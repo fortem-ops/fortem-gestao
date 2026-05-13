@@ -174,7 +174,7 @@ export default function RelatorioPonto() {
       let q = supabase.from("ponto_ferias" as any).select("usuario_id, data_inicio, data_fim, tipo");
       if (profId !== "todos") q = q.eq("usuario_id", profId);
       const { data } = await q;
-      return (data ?? []) as { usuario_id: string; data_inicio: string; data_fim: string; tipo: string }[];
+      return (data ?? []) as unknown as { usuario_id: string; data_inicio: string; data_fim: string; tipo: string }[];
     },
   });
 
