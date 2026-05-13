@@ -9,10 +9,12 @@ import { Navigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusJornadaCard } from "@/components/ponto/StatusJornadaCard";
 import { BotaoInteligente } from "@/components/ponto/BotaoInteligente";
 import { ResumoDoDia, type EventoPonto } from "@/components/ponto/ResumoDoDia";
 import { HistoricoJornadas } from "@/components/ponto/HistoricoJornadas";
+import { MeuRelatorioPonto } from "@/components/ponto/MeuRelatorioPonto";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
 
 interface EstadoAtual {
