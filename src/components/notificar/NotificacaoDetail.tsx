@@ -41,6 +41,16 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
     },
   });
 
+  const alunoId = (data?.notif as any)?.aluno_id as string | undefined;
+  const { data: aluno } = useQuery({
+    queryKey: ["notif-aluno", alunoId],
+    enabled: !!alunoId,
+    queryFn: async () => {
+      const { data } = await supabase.from("alunos").select("id,nome").eq("id", alunoId!).maybeSingle();
+      return data;
+    },
+  });
+
   const sendMut = useMutation({
     mutationFn: async () => {
       if (!id || (!comentario.trim() && !file)) return;
