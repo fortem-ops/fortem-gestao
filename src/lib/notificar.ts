@@ -88,9 +88,13 @@ export async function createNotificacao(input: {
   reuniao_local?: string | null;
   destinatarios: RecipientGroup[];
 }) {
-  const { data: u } = await supabase.auth.getUser();
-  const uid = u.user?.id;
-  if (!uid) throw new Error("Não autenticado");
+  const { data: sess } = await supabase.auth.getSession();
+  if (!sess.session) {
+    await supabase.auth.refreshSession();
+  }
+  const { data: sess2 } = await supabase.auth.getSession();
+  const uid = sess2.session?.user?.id;
+  if (!uid) throw new Error("Sessão expirada — faça login novamente");
 
   const { data: notif, error } = await supabase
     .from("notificacoes")
