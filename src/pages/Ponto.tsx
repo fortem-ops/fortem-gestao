@@ -217,40 +217,53 @@ export default function Ponto() {
         )}
       </header>
 
-      {isLoading || !estado ? (
-        <Skeleton className="h-40" />
-      ) : (
-        <>
-          <StatusJornadaCard
-            status={estado.status}
-            entrada={estado.entrada}
-            intervaloInicio={estado.intervalo_inicio}
-            intervaloFim={estado.intervalo_fim}
-            saida={estado.saida}
-          />
+      <Tabs defaultValue="jornada" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="jornada">Jornada</TabsTrigger>
+          <TabsTrigger value="relatorio">Relatório</TabsTrigger>
+        </TabsList>
 
-          {!isViewingOther && (
-            <Card className="p-4">
-              <BotaoInteligente proximaAcao={estado.proxima_acao} pularIntervalo={pularIntervalo} />
-            </Card>
+        <TabsContent value="jornada" className="space-y-6">
+          {isLoading || !estado ? (
+            <Skeleton className="h-40" />
+          ) : (
+            <>
+              <StatusJornadaCard
+                status={estado.status}
+                entrada={estado.entrada}
+                intervaloInicio={estado.intervalo_inicio}
+                intervaloFim={estado.intervalo_fim}
+                saida={estado.saida}
+              />
+
+              {!isViewingOther && (
+                <Card className="p-4">
+                  <BotaoInteligente proximaAcao={estado.proxima_acao} pularIntervalo={pularIntervalo} />
+                </Card>
+              )}
+
+              <ResumoDoDia
+                jornadaId={estado.jornada_id}
+                entrada={estado.entrada}
+                intervaloInicio={estado.intervalo_inicio}
+                intervaloFim={estado.intervalo_fim}
+                saida={estado.saida}
+                minutosTrabalhados={estado.minutos_trabalhados}
+                observacao={jornadaHoje?.observacao}
+                eventos={eventosDia}
+                readOnly={isViewingOther}
+                usuarioAlvoId={targetId!}
+              />
+            </>
           )}
 
-          <ResumoDoDia
-            jornadaId={estado.jornada_id}
-            entrada={estado.entrada}
-            intervaloInicio={estado.intervalo_inicio}
-            intervaloFim={estado.intervalo_fim}
-            saida={estado.saida}
-            minutosTrabalhados={estado.minutos_trabalhados}
-            observacao={jornadaHoje?.observacao}
-            eventos={eventosDia}
-            readOnly={isViewingOther}
-            usuarioAlvoId={targetId!}
-          />
-        </>
-      )}
+          <HistoricoJornadas userId={targetId!} />
+        </TabsContent>
 
-      <HistoricoJornadas userId={targetId!} />
+        <TabsContent value="relatorio">
+          <MeuRelatorioPonto />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
