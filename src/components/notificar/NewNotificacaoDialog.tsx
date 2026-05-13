@@ -65,7 +65,8 @@ export function NewNotificacaoDialog() {
             autor_id: uid,
             categoria: "observacao",
             descricao: desc,
-          });
+            notificacao_id: notifId,
+          } as any);
         }
       }
 
