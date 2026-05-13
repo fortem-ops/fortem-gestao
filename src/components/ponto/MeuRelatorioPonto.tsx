@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, MapPin, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, MapPin, FileText, AlertTriangle, Clock } from "lucide-react";
 import { formatHora, formatMinutes } from "@/lib/ponto";
 import { ExportarRelatorioMenu } from "@/components/ponto/ExportarRelatorioMenu";
 import {
