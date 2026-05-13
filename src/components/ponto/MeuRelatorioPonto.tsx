@@ -89,10 +89,10 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
 
   // Nome do usuário logado
   const { data: perfil } = useQuery({
-    queryKey: ["meu-relatorio-perfil", userId],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-perfil", targetId],
+    enabled: !!targetId,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", userId!).single();
+      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", targetId!).single();
       return data;
     },
   });
