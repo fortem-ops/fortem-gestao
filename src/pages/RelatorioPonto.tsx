@@ -458,6 +458,7 @@ export default function RelatorioPonto() {
                     <TableHead className="text-right">Dias</TableHead>
                     <TableHead className="text-right">Trabalhado</TableHead>
                     <TableHead className="text-right">Previsto</TableHead>
+                    <TableHead className="text-right">Banco</TableHead>
                     <TableHead className="text-right">Saldo</TableHead>
                     <TableHead className="text-right">Pendências</TableHead>
                     <TableHead>Status</TableHead>
@@ -470,6 +471,9 @@ export default function RelatorioPonto() {
                       <TableCell className="text-right">{r.dias_trabalhados}</TableCell>
                       <TableCell className="text-right font-semibold">{formatMinutes(r.total_minutos)}</TableCell>
                       <TableCell className="text-right">{formatMinutes(r.previsto_minutos)}</TableCell>
+                      <TableCell className={`text-right ${(r.saldo_banco ?? 0) >= 0 ? "text-success" : "text-destructive"}`}>
+                        {(r.saldo_banco ?? 0) >= 0 ? "+" : "-"}{formatMinutes(Math.abs(r.saldo_banco ?? 0))}
+                      </TableCell>
                       <TableCell className={`text-right ${r.saldo_minutos >= 0 ? "text-success" : "text-destructive"}`}>
                         {(r.saldo_minutos >= 0 ? "+" : "-") + formatMinutes(Math.abs(r.saldo_minutos))}
                       </TableCell>
