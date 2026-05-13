@@ -2325,6 +2325,21 @@ export type Database = {
         }
         Returns: string
       }
+      fn_notificar_criar_notificacao: {
+        Args: {
+          p_aluno_id?: string
+          p_categoria: Database["public"]["Enums"]["notif_categoria"]
+          p_descricao: string
+          p_destinatarios?: string[]
+          p_prazo?: string
+          p_prioridade: Database["public"]["Enums"]["notif_prioridade"]
+          p_reuniao_data?: string
+          p_reuniao_local?: string
+          p_tipo: Database["public"]["Enums"]["notif_tipo"]
+          p_titulo: string
+        }
+        Returns: string
+      }
       fn_ponto_ajustar_jornada: {
         Args: {
           _campo: string
@@ -2372,6 +2387,10 @@ export type Database = {
       }
       fn_portal_link_aluno: { Args: never; Returns: Json }
       fn_user_can_see_notificacao: {
+        Args: { _notif_id: string; _user_id: string }
+        Returns: boolean
+      }
+      fn_user_created_notificacao: {
         Args: { _notif_id: string; _user_id: string }
         Returns: boolean
       }
