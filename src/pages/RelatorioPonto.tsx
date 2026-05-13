@@ -233,19 +233,23 @@ export default function RelatorioPonto() {
         }
         cur.setDate(cur.getDate() + 1);
       }
+      const saldoJornadas = agg.total - previsto;
+      const saldoBanco = bancoPorUser.get(uid) ?? 0;
       out.push({
         mes: mesFiltro,
         professor: (profMap.get(uid) as string) ?? "—",
         dias_trabalhados: agg.dias,
         total_minutos: agg.total,
         previsto_minutos: previsto,
-        saldo_minutos: agg.total - previsto,
+        saldo_minutos: saldoJornadas + saldoBanco,
+        saldo_jornadas: saldoJornadas,
+        saldo_banco: saldoBanco,
         pendencias: agg.pend,
         status: "—",
       });
     });
     return out.sort((a, b) => a.professor.localeCompare(b.professor));
-  }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio]);
+  }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio, bancoPorUser]);
 
   // Buscar status de fechamentos do mês selecionado
   const { data: fechamentos = [] } = useQuery({
