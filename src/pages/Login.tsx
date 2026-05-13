@@ -86,6 +86,11 @@ export default function Login() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Entrando..." : "Entrar"}
               </Button>
+              <div className="text-right">
+                <Link to="/recuperar-senha" className="text-xs text-muted-foreground hover:underline">
+                  Esqueci minha senha
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>
