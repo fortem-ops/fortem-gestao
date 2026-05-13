@@ -53,6 +53,23 @@ export function NewNotificacaoDialog() {
         reuniao_local: tipo === "reuniao" ? reuniaoLocal || null : null,
         destinatarios,
       });
+
+      // Se houver aluno vinculado, registra observação no histórico do aluno
+      if (alunoId) {
+        const { data: u } = await supabase.auth.getUser();
+        const uid = u.user?.id;
+        if (uid) {
+          const desc = `📩 Notificação: ${titulo.trim()}\n${descricao.trim()}`;
+          await supabase.from("historico_profissional").insert({
+            aluno_id: alunoId,
+            autor_id: uid,
+            categoria: "observacao",
+            descricao: desc,
+          });
+        }
+      }
+
+      return notifId;
     },
     onSuccess: () => {
       toast.success("Notificação enviada");
