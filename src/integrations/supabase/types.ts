@@ -804,6 +804,7 @@ export type Database = {
           created_at: string
           descricao: string
           id: string
+          notificacao_id: string | null
         }
         Insert: {
           aluno_id: string
@@ -812,6 +813,7 @@ export type Database = {
           created_at?: string
           descricao: string
           id?: string
+          notificacao_id?: string | null
         }
         Update: {
           aluno_id?: string
@@ -820,6 +822,7 @@ export type Database = {
           created_at?: string
           descricao?: string
           id?: string
+          notificacao_id?: string | null
         }
         Relationships: [
           {
