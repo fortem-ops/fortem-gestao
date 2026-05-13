@@ -225,8 +225,11 @@ export default function RelatorioPonto() {
       const end = new Date(ultimo + "T00:00");
       while (cur <= end) {
         const dow = cur.getDay();
-        const h = horarios.find((x) => x.usuario_id === uid && x.dia_semana === dow);
-        previsto += previstoMinutos(h);
+        const iso = cur.toISOString().slice(0, 10);
+        if (!ausenciaPara(uid, iso)) {
+          const h = horarios.find((x) => x.usuario_id === uid && x.dia_semana === dow);
+          previsto += previstoMinutos(h);
+        }
         cur.setDate(cur.getDate() + 1);
       }
       out.push({
