@@ -155,6 +155,36 @@ export default function RelatorioPonto() {
     },
   });
 
+  // Feriados (cobre todas as datas relevantes — dois períodos)
+  const { data: feriados = [] } = useQuery({
+    queryKey: ["relatorio-feriados", inicio, fim, mesFiltro],
+    enabled: !!isCoordAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("ponto_feriados" as any).select("data, descricao");
+      return (data ?? []) as { data: string; descricao: string }[];
+    },
+  });
+  const feriadoMap = useMemo(() => new Map(feriados.map((f) => [f.data, f.descricao])), [feriados]);
+
+  // Férias / folgas
+  const { data: ferias = [] } = useQuery({
+    queryKey: ["relatorio-ferias", profId],
+    enabled: !!isCoordAdmin,
+    queryFn: async () => {
+      let q = supabase.from("ponto_ferias" as any).select("usuario_id, data_inicio, data_fim, tipo");
+      if (profId !== "todos") q = q.eq("usuario_id", profId);
+      const { data } = await q;
+      return (data ?? []) as { usuario_id: string; data_inicio: string; data_fim: string; tipo: string }[];
+    },
+  });
+
+  const ausenciaPara = (uid: string, dataStr: string): { motivo: string; descricao?: string } | null => {
+    if (feriadoMap.has(dataStr)) return { motivo: "feriado", descricao: feriadoMap.get(dataStr) };
+    const f = ferias.find((x) => x.usuario_id === uid && dataStr >= x.data_inicio && dataStr <= x.data_fim);
+    if (f) return { motivo: f.tipo };
+    return null;
+  };
+
   const horarioPara = (uid: string, dataStr: string): HorarioRow | undefined => {
     const dow = new Date(dataStr + "T00:00").getDay();
     return horarios.find((h) => h.usuario_id === uid && h.dia_semana === dow);
