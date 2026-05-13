@@ -1,74 +1,66 @@
-## Cadastro de Feriados e Férias em Admin → Ponto
+## Banco de Horas
 
-Adicionar dois novos cadastros em `Admin → Ponto` para que dias sem expediente (feriados coletivos) e ausências justificadas individuais (férias / folgas) deixem de contar como "pendência" ou "não iniciou" nas telas de Ponto.
+Adicionar um módulo "Banco de Horas" que registra ajustes manuais (créditos/débitos em minutos) feitos por coordenadores/admins sobre os colaboradores, e exibe o saldo acumulado.
 
 ### 1. Banco de dados (migração)
 
-Criar duas tabelas:
+Nova tabela **`ponto_banco_horas`**:
+- `usuario_id` (uuid) — colaborador
+- `data` (date) — data de referência do lançamento
+- `minutos` (int) — positivo (crédito) ou negativo (débito)
+- `motivo` (text) — descrição obrigatória
+- `tipo` (enum: `credito_manual`, `debito_manual`, `compensacao`, `ajuste_saldo`)
+- `registrado_por` (uuid) — quem fez o lançamento
+- `referencia_jornada_id` (uuid, opcional) — link a jornada relacionada
 
-**`ponto_feriados`** (vale para todos os funcionários)
-- `data` (date, único)
-- `descricao` (text)
-- `tipo` (enum: `nacional`, `estadual`, `municipal`, `facultativo`, `recesso`)
+RLS:
+- Leitura: o próprio usuário vê seus lançamentos; coordenador/admin vê todos.
+- Escrita/exclusão: somente coordenador/admin.
 
-**`ponto_ferias`** (vínculo individual)
-- `usuario_id` (uuid)
-- `data_inicio`, `data_fim` (date)
-- `tipo` (enum: `ferias`, `folga`, `atestado`, `licenca`)
-- `observacao` (text, opcional)
+Função utilitária **`fn_ponto_banco_saldo(_user_id uuid, _ate date default null)`** → `int` (saldo acumulado em minutos).
 
-RLS: leitura para autenticados; escrita restrita a `is_admin`/`is_coordinator_or_admin`.
+Função **`fn_ponto_banco_resumo(_user_id uuid, _mes date)`** → jsonb com:
+- `saldo_inicial` (até o último dia do mês anterior)
+- `creditos_mes`, `debitos_mes`
+- `saldo_periodo_jornadas` (saldo do mês vindo das jornadas — trabalhado − previsto)
+- `saldo_final`
 
-Função utilitária `fn_ponto_dia_ausencia(_user_id uuid, _data date) → text` retornando `null`, `'feriado'`, `'ferias'`, `'folga'`, etc. — usada por todas as views/funções abaixo.
+### 2. UI — Funcionário (`src/pages/Ponto.tsx`)
 
-### 2. Atualizar funções de cálculo
+Adicionar nova aba **"Banco de horas"** ao lado de "Relatório":
+- Card com saldo total acumulado (verde se positivo, vermelho se negativo)
+- Filtro por mês
+- Cards: Saldo inicial, Créditos no mês, Débitos no mês, Saldo do período
+- Tabela com lançamentos do mês (data, tipo, minutos, motivo, registrado por) — somente leitura para o funcionário
 
-**`fn_ponto_dashboard_coordenador`** (Equipe Ponto)
-- Considerar a data consultada: se cair em feriado, ou se o colaborador está em férias/folga, devolver `status = 'ausente_justificado'` com um campo extra `motivo_ausencia` (`feriado`/`ferias`/etc.) em vez de `'nao_iniciou'`.
-- O contador `nao_iniciaram` no resumo deixa de incluir esses casos; adicionar contador `ausencias_justificadas`.
+Componente novo: `src/components/ponto/MeuBancoHoras.tsx`.
 
-**`fn_ponto_calcular_fechamento`** (Fechamento Ponto)
-- Recalcular `_dias_uteis` considerando os horários ativos do colaborador (segunda–sábado de `ponto_horarios_professor`, respeitando `frequencia_mensal` aos sábados) **menos** os dias caídos em feriado ou no intervalo de férias do próprio colaborador.
-- Hoje a função usa `_dias_uteis = COUNT jornadas com entrada`, o que mascara faltas; passa a usar a janela real do mês menos ausências justificadas, multiplicada por `carga_diaria_min`.
-- Adicionar campos no retorno e na tabela `ponto_fechamentos_mensais`: `dias_feriado`, `dias_ferias` (ambos `int default 0`).
+### 3. UI — Coordenador/Admin (`src/pages/RelatorioPonto.tsx`)
 
-### 3. UI — Admin Ponto (`src/pages/AdminPonto.tsx`)
+Adicionar nova aba **"Banco de horas"** dentro das tabs existentes (junto com Diário/Mensal):
+- Filtro por profissional (mesmo Select já existente)
+- Tabela de saldo por colaborador (Profissional, Saldo acumulado, Créditos no mês, Débitos no mês)
+- Botão "Lançar crédito/débito" abre dialog para inserir minutos (+/−), motivo, data, tipo
+- Por linha: botão "Ver lançamentos" abre dialog com histórico do colaborador e ações de excluir lançamento
 
-Trocar o conteúdo atual por `Tabs`:
-- **Horários por funcionário** (componente atual `AdminPontoHorarios`).
-- **Feriados** (novo `AdminPontoFeriados`): tabela com data + descrição + tipo, formulário inline para adicionar, botão remover. Botão opcional "Importar feriados nacionais do ano X" (cliente, lista hard-coded BR).
-- **Férias / Folgas** (novo `AdminPontoFerias`): seleção do funcionário (mesma query `ponto-colaboradores-list`), tabela das ausências cadastradas, formulário (período + tipo + observação), botão remover.
+Componentes novos:
+- `src/components/ponto/AdminBancoHorasTable.tsx` — listagem por colaborador
+- `src/components/ponto/LancamentoBancoHorasDialog.tsx` — formulário de crédito/débito
+- `src/components/ponto/HistoricoBancoHorasDialog.tsx` — lançamentos de um colaborador
 
-### 4. UI — telas de visualização
+### 4. Integração com saldo existente
 
-**Equipe Ponto (`EquipeAoVivoTable.tsx`)**
-- Adicionar badge "Feriado" (cinza-azulado) e "Férias/Folga" (roxo) usando o novo `status = 'ausente_justificado'` + `motivo_ausencia`.
-- Card-resumo extra "Ausências justificadas".
-- Linha não conta como pendência; coluna Horas exibe "—".
-
-**Relatório Ponto (`RelatorioPonto.tsx`)**
-- Buscar feriados e férias da janela consultada.
-- Em `previstoMinutos`, zerar previsto de dias em feriado/férias do colaborador.
-- Exibir uma linha sintética por dia ausente com badge "Feriado: <descrição>" ou "Férias", em vez de "Sem registro".
-- Pendências (`pendenciasJornada`) ignora dias com ausência justificada.
-
-**Fechamento Ponto (`FechamentoMensalTable.tsx`)**
-- Mostrar duas colunas extras: "Feriados" e "Férias" (dias).
-- Botão "Recalcular" continua chamando `fn_ponto_calcular_fechamento` (já considerará as ausências).
-
-**Ponto pessoal (`src/pages/Ponto.tsx` / `ResumoDoDia.tsx`)**
-- Se hoje é feriado ou o usuário está de férias, exibir aviso "Hoje é feriado — não é necessário bater ponto" e desabilitar o botão inteligente. (Sem bloquear no banco — apenas UX; manter possibilidade de bater ponto se o usuário insistir, marcando a jornada com observação automática.)
+O saldo do "Resumo" do `MeuRelatorioPonto` (saldo no mês) passa a somar o saldo do banco de horas (lançamentos manuais) ao saldo de jornadas — exibindo o total efetivo. Mesma lógica aplicada na visão mensal do `RelatorioPonto`.
 
 ### 5. Arquivos afetados
 
-- Nova migração `supabase/migrations/...` — tabelas, enums, RLS, função `fn_ponto_dia_ausencia`, `CREATE OR REPLACE` de `fn_ponto_dashboard_coordenador` e `fn_ponto_calcular_fechamento`, colunas extras em `ponto_fechamentos_mensais`.
-- Novo `src/components/ponto/AdminPontoFeriados.tsx`.
-- Novo `src/components/ponto/AdminPontoFerias.tsx`.
-- Editado `src/pages/AdminPonto.tsx` — Tabs.
-- Editado `src/components/ponto/EquipeAoVivoTable.tsx` — novo status + badge + card.
-- Editado `src/pages/RelatorioPonto.tsx` — lógica de previsto e linhas de ausência.
-- Editado `src/components/ponto/FechamentoMensalTable.tsx` — colunas extras.
-- Editado `src/pages/Ponto.tsx` ou `src/components/ponto/ResumoDoDia.tsx` — aviso de feriado/férias.
-- `src/lib/ponto.ts` — helpers `isFeriado(date, feriados)` e `getAusencia(userId, date, ferias)`.
+- Nova migração SQL — tabela `ponto_banco_horas`, enum, RLS, funções `fn_ponto_banco_saldo` e `fn_ponto_banco_resumo`.
+- Novo `src/components/ponto/MeuBancoHoras.tsx`.
+- Novo `src/components/ponto/AdminBancoHorasTable.tsx`.
+- Novo `src/components/ponto/LancamentoBancoHorasDialog.tsx`.
+- Novo `src/components/ponto/HistoricoBancoHorasDialog.tsx`.
+- Editado `src/pages/Ponto.tsx` — nova aba "Banco de horas".
+- Editado `src/pages/RelatorioPonto.tsx` — nova aba "Banco de horas".
+- Editado `src/components/ponto/MeuRelatorioPonto.tsx` — saldo do mês inclui banco.
 
 Sem mudanças em rotas, sidebar ou permissões existentes.
