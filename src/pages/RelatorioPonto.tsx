@@ -16,6 +16,7 @@ import { Navigate } from "react-router-dom";
 import { formatHora, formatMinutes } from "@/lib/ponto";
 import { AjustarJornadaDialog } from "@/components/ponto/AjustarJornadaDialog";
 import { ExportarRelatorioMenu } from "@/components/ponto/ExportarRelatorioMenu";
+import { AdminBancoHorasTable } from "@/components/ponto/AdminBancoHorasTable";
 import {
   exportarDiarioCSV,
   exportarDiarioXLSX,
@@ -323,6 +324,7 @@ export default function RelatorioPonto() {
         <TabsList>
           <TabsTrigger value="diario">Diário / Período</TabsTrigger>
           <TabsTrigger value="mensal">Mensal (histórico)</TabsTrigger>
+          <TabsTrigger value="banco">Banco de horas</TabsTrigger>
         </TabsList>
 
         {/* ===== DIÁRIO ===== */}
