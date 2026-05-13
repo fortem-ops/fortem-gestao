@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { RecipientPicker } from "./RecipientPicker";
 import {
@@ -40,7 +41,7 @@ export function NewNotificacaoDialog() {
       if (!titulo.trim()) throw new Error("Informe um título");
       if (!descricao.trim()) throw new Error("Informe a descrição");
       if (destinatarios.length === 0) throw new Error("Selecione ao menos um destinatário");
-      return createNotificacao({
+      const notifId = await createNotificacao({
         titulo: titulo.trim(),
         descricao: descricao.trim(),
         categoria,
