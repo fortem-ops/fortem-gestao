@@ -47,10 +47,10 @@ export function AdminPontoHorarios() {
   const [profSelecionado, setProfSelecionado] = useState<string>("");
 
   const { data: professores = [], isLoading: loadingProfs } = useQuery({
-    queryKey: ["ponto-professores-list"],
+    queryKey: ["ponto-colaboradores-list"],
     queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "professor");
-      const ids = (roles ?? []).map((r) => r.user_id);
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("role", ["professor", "admin"]);
+      const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
       if (!ids.length) return [];
       const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
       return (profs ?? []).sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
@@ -114,17 +114,17 @@ export function AdminPontoHorarios() {
     <Card className="p-6 space-y-4">
       <div className="flex items-center gap-2">
         <Calendar className="w-5 h-5 text-primary" />
-        <h3 className="font-heading font-semibold text-lg">Horários por professor</h3>
+        <h3 className="font-heading font-semibold text-lg">Horário por funcionário</h3>
       </div>
       <p className="text-sm text-muted-foreground">
         Defina a janela de trabalho (06:00–21:15) para cada dia da semana (segunda a sábado) e se haverá intervalo de 15 minutos.
       </p>
 
       <div className="max-w-sm">
-        <Label className="text-xs">Professor</Label>
+        <Label className="text-xs">Funcionário</Label>
         <Select value={profSelecionado} onValueChange={setProfSelecionado}>
           <SelectTrigger>
-            <SelectValue placeholder={loadingProfs ? "Carregando…" : "Selecionar professor"} />
+            <SelectValue placeholder={loadingProfs ? "Carregando…" : "Selecionar funcionário"} />
           </SelectTrigger>
           <SelectContent>
             {professores.map((p: any) => (
@@ -137,7 +137,7 @@ export function AdminPontoHorarios() {
       </div>
 
       {!profSelecionado ? (
-        <p className="text-sm text-muted-foreground py-6 text-center">Selecione um professor para configurar os horários.</p>
+        <p className="text-sm text-muted-foreground py-6 text-center">Selecione um funcionário para configurar os horários.</p>
       ) : loadingHorarios ? (
         <Skeleton className="h-64" />
       ) : (
@@ -155,7 +155,7 @@ export function AdminPontoHorarios() {
           <TableBody>
             {DIAS.map((dia) => (
               <DiaRow
-                key={dia.val}
+                key={`${profSelecionado}-${dia.val}`}
                 dia={dia}
                 row={horariosPorDia.get(dia.val)}
                 onSave={(r) => upsert.mutate({ ...r, dia_semana: dia.val })}
