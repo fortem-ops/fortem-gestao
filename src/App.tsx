@@ -13,6 +13,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+const RecoverPassword = lazy(() => import("./pages/RecoverPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 // Lazy-loaded routes — keeps initial bundle small and speeds up first paint.
 const StudentList = lazy(() => import("./pages/StudentList"));
@@ -78,6 +80,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><RecoverPassword /></Suspense>} />
+            <Route path="/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><ResetPassword /></Suspense>} />
 
             {/* Portal do Aluno — auth e rotas próprias */}
             <Route path="/portal/login" element={<Suspense fallback={<RouteFallback />}><PortalLogin /></Suspense>} />
