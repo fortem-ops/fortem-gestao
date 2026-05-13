@@ -7,7 +7,6 @@ import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
 import { AdminAlertsWidget } from "@/components/dashboard/AdminAlertsWidget";
 import { TasksWidget } from "@/components/dashboard/TasksWidget";
 import { BirthdaysWidget } from "@/components/dashboard/BirthdaysWidget";
-import { CarteiraWidget } from "@/components/dashboard/CarteiraWidget";
 import { PlansDistributionWidget } from "@/components/dashboard/PlansDistributionWidget";
 import { PipelineWidget } from "@/components/dashboard/PipelineWidget";
 import { ClubeWidget } from "@/components/dashboard/ClubeWidget";
@@ -53,7 +52,6 @@ export default function Dashboard() {
     staleTime: 5 * 60_000,
   });
 
-  // The effective professor filter: for professors, always their own ID
   const effectiveProfessorId = isCoordAdmin
     ? (selectedProfessorId === "todos" ? null : selectedProfessorId)
     : user?.id || null;
@@ -63,7 +61,9 @@ export default function Dashboard() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-heading font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Visão geral da equipe técnica</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isCoordAdmin ? "Visão geral da equipe técnica" : "Sua visão técnica do dia"}
+          </p>
         </div>
 
         {isCoordAdmin && (
@@ -83,23 +83,41 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Top stats: Minha Carteira / Tarefas / Agenda do dia */}
       <StatsCards professorId={effectiveProfessorId} />
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <AlertsWidget professorId={effectiveProfessorId} />
-          {isCoordAdmin && <PlansDistributionWidget />}
-          <AdminAlertsWidget />
+      {isCoordAdmin ? (
+        // Coord/Admin layout (mantém Pipeline)
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <AlertsWidget professorId={effectiveProfessorId} />
+            <PlansDistributionWidget />
+            <AdminAlertsWidget />
+          </div>
+          <div className="space-y-6">
+            <PipelineWidget />
+            <PontoWidget />
+            <ClubeWidget />
+            <TasksWidget professorId={effectiveProfessorId} />
+            <BirthdaysWidget professorId={effectiveProfessorId} />
+          </div>
         </div>
-        <div className="space-y-6">
-          <PipelineWidget />
-          <PontoWidget />
-          <ClubeWidget />
-          <TasksWidget professorId={effectiveProfessorId} />
-          <CarteiraWidget />
-          <BirthdaysWidget professorId={effectiveProfessorId} />
+      ) : (
+        // Professor layout — ordem solicitada, sem Pipeline
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <AlertsWidget professorId={effectiveProfessorId} />
+            <AdminAlertsWidget />
+            <PlansDistributionWidget />
+          </div>
+          <div className="space-y-6">
+            <TasksWidget professorId={effectiveProfessorId} />
+            <PontoWidget />
+            <BirthdaysWidget professorId={effectiveProfessorId} />
+            <ClubeWidget />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
