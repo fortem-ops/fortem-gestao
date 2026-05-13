@@ -132,21 +132,23 @@ export function EquipeAoVivoTable() {
               {filtrados.map((p) => {
                 const cfg = STATUS_CFG[p.status];
                 const Icon = cfg.icon;
+                const isAusente = p.status === "ausente_justificado";
+                const motivoLbl = p.motivo_ausencia ? (MOTIVO_LABEL[p.motivo_ausencia] ?? p.motivo_ausencia) : null;
                 return (
                   <TableRow key={p.usuario_id}>
                     <TableCell className="font-medium">{p.nome}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`${cfg.cls} gap-1`}>
                         <Icon className="w-3 h-3" />
-                        {cfg.label}
+                        {isAusente && motivoLbl ? motivoLbl : cfg.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="tabular-nums">{formatHora(p.entrada)}</TableCell>
+                    <TableCell className="tabular-nums">{isAusente ? "—" : formatHora(p.entrada)}</TableCell>
                     <TableCell className="tabular-nums text-muted-foreground">
-                      {formatHora(p.intervalo_inicio)} – {formatHora(p.intervalo_fim)}
+                      {isAusente ? "—" : `${formatHora(p.intervalo_inicio)} – ${formatHora(p.intervalo_fim)}`}
                     </TableCell>
-                    <TableCell className="tabular-nums">{formatHora(p.saida)}</TableCell>
-                    <TableCell className="text-right font-semibold">{formatMinutes(p.minutos_trabalhados)}</TableCell>
+                    <TableCell className="tabular-nums">{isAusente ? "—" : formatHora(p.saida)}</TableCell>
+                    <TableCell className="text-right font-semibold">{isAusente ? "—" : formatMinutes(p.minutos_trabalhados)}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
