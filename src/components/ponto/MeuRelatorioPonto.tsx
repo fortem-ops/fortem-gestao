@@ -324,9 +324,13 @@ export function MeuRelatorioPonto() {
                 jornadas={jornadasFiltradas}
                 horarioPara={horarioPara}
                 intervaloObrigatorio={intervaloObrigatorio}
+                ausenciaPara={ausenciaPara}
               />
             )}
           </Card>
+
+          {/* Ausências justificadas no período */}
+          <AusenciasJustificadasCard inicio={inicio} fim={fim} ausenciaPara={ausenciaPara} />
         </TabsContent>
 
         {/* ===== MENSAL ===== */}
