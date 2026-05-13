@@ -196,11 +196,11 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
 
   // Agregação mensal individual
   const { data: bancoResumo } = useQuery({
-    queryKey: ["meu-relatorio-banco-resumo", userId, mesFiltro],
-    enabled: !!userId,
+    queryKey: ["meu-relatorio-banco-resumo", targetId, mesFiltro],
+    enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("fn_ponto_banco_resumo", {
-        _user_id: userId!,
+        _user_id: targetId!,
         _mes: mesFiltro + "-01",
       });
       if (error) throw error;
