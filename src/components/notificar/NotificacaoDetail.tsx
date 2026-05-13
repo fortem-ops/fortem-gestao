@@ -41,6 +41,16 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
     },
   });
 
+  const alunoId = (data?.notif as any)?.aluno_id as string | undefined;
+  const { data: aluno } = useQuery({
+    queryKey: ["notif-aluno", alunoId],
+    enabled: !!alunoId,
+    queryFn: async () => {
+      const { data } = await supabase.from("alunos").select("id,nome").eq("id", alunoId!).maybeSingle();
+      return data;
+    },
+  });
+
   const sendMut = useMutation({
     mutationFn: async () => {
       if (!id || (!comentario.trim() && !file)) return;
@@ -90,6 +100,11 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
           {n.prazo && <span>· Prazo: {format(new Date(n.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>}
         </div>
         <p className="text-sm whitespace-pre-wrap pt-1">{n.descricao}</p>
+        {aluno && (
+          <div className="text-sm bg-muted/50 rounded p-2">
+            👤 Aluno vinculado: <span className="font-medium">{aluno.nome}</span>
+          </div>
+        )}
         {n.tipo === "reuniao" && n.reuniao_data && (
           <div className="text-sm bg-muted/50 rounded p-2">
             📅 Reunião: {format(new Date(n.reuniao_data), "dd/MM/yyyy HH:mm", { locale: ptBR })}
