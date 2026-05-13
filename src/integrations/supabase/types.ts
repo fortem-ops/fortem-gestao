@@ -1573,6 +1573,8 @@ export type Database = {
           aprovado_em: string | null
           aprovado_por: string | null
           created_at: string
+          dias_feriado: number
+          dias_ferias: number
           id: string
           mes: string
           minutos_extras: number
@@ -1588,6 +1590,8 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           created_at?: string
+          dias_feriado?: number
+          dias_ferias?: number
           id?: string
           mes: string
           minutos_extras?: number
@@ -1603,6 +1607,8 @@ export type Database = {
           aprovado_em?: string | null
           aprovado_por?: string | null
           created_at?: string
+          dias_feriado?: number
+          dias_ferias?: number
           id?: string
           mes?: string
           minutos_extras?: number
@@ -1611,6 +1617,72 @@ export type Database = {
           pendencias_count?: number
           status?: Database["public"]["Enums"]["ponto_fechamento_status"]
           total_minutos?: number
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
+      ponto_feriados: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          descricao: string
+          id: string
+          tipo: Database["public"]["Enums"]["ponto_feriado_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: string
+          descricao: string
+          id?: string
+          tipo?: Database["public"]["Enums"]["ponto_feriado_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao?: string
+          id?: string
+          tipo?: Database["public"]["Enums"]["ponto_feriado_tipo"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ponto_ferias: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_fim: string
+          data_inicio: string
+          id: string
+          observacao: string | null
+          tipo: Database["public"]["Enums"]["ponto_ferias_tipo"]
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_fim: string
+          data_inicio: string
+          id?: string
+          observacao?: string | null
+          tipo?: Database["public"]["Enums"]["ponto_ferias_tipo"]
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          observacao?: string | null
+          tipo?: Database["public"]["Enums"]["ponto_ferias_tipo"]
           updated_at?: string
           usuario_id?: string
         }
@@ -2235,6 +2307,10 @@ export type Database = {
         Args: { _data?: string }
         Returns: Json
       }
+      fn_ponto_dia_ausencia: {
+        Args: { _data: string; _user_id: string }
+        Returns: string
+      }
       fn_ponto_estado_atual: { Args: { _user_id?: string }; Returns: Json }
       fn_ponto_gerar_fechamentos_mes: { Args: { _mes: string }; Returns: Json }
       fn_ponto_registrar: {
@@ -2356,6 +2432,13 @@ export type Database = {
         | "intervalo_fim"
         | "saida"
       ponto_fechamento_status: "aberto" | "em_revisao" | "aprovado"
+      ponto_feriado_tipo:
+        | "nacional"
+        | "estadual"
+        | "municipal"
+        | "facultativo"
+        | "recesso"
+      ponto_ferias_tipo: "ferias" | "folga" | "atestado" | "licenca"
       ponto_jornada_status:
         | "em_andamento"
         | "em_intervalo"
@@ -2591,6 +2674,14 @@ export const Constants = {
         "saida",
       ],
       ponto_fechamento_status: ["aberto", "em_revisao", "aprovado"],
+      ponto_feriado_tipo: [
+        "nacional",
+        "estadual",
+        "municipal",
+        "facultativo",
+        "recesso",
+      ],
+      ponto_ferias_tipo: ["ferias", "folga", "atestado", "licenca"],
       ponto_jornada_status: [
         "em_andamento",
         "em_intervalo",

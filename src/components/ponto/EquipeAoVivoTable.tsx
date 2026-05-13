@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatHora, formatMinutes } from "@/lib/ponto";
 import { AjustarJornadaDialog } from "./AjustarJornadaDialog";
-import { Activity, Coffee, CheckCircle2, AlertCircle, Pencil } from "lucide-react";
+import { Activity, Coffee, CheckCircle2, AlertCircle, Pencil, CalendarOff } from "lucide-react";
 
 interface ProfessorRow {
   usuario_id: string;
@@ -20,7 +20,8 @@ interface ProfessorRow {
   intervalo_fim: string | null;
   saida: string | null;
   minutos_trabalhados: number | null;
-  status: "em_jornada" | "em_intervalo" | "encerrada" | "nao_iniciou";
+  status: "em_jornada" | "em_intervalo" | "encerrada" | "nao_iniciou" | "ausente_justificado";
+  motivo_ausencia: string | null;
 }
 
 interface DashboardData {
@@ -31,6 +32,7 @@ interface DashboardData {
     nao_iniciaram: number;
     encerradas: number;
     inconsistencias: number;
+    ausencias_justificadas?: number;
   };
   professores: ProfessorRow[];
 }
@@ -40,6 +42,15 @@ const STATUS_CFG: Record<ProfessorRow["status"], { label: string; cls: string; i
   em_intervalo: { label: "Intervalo", cls: "bg-warning/15 text-warning border-warning/30", icon: Coffee },
   encerrada: { label: "Encerrada", cls: "bg-muted text-muted-foreground", icon: CheckCircle2 },
   nao_iniciou: { label: "Pendente", cls: "bg-destructive/15 text-destructive border-destructive/30", icon: AlertCircle },
+  ausente_justificado: { label: "Ausência justificada", cls: "bg-info/15 text-info border-info/30", icon: CalendarOff },
+};
+
+const MOTIVO_LABEL: Record<string, string> = {
+  feriado: "Feriado",
+  ferias: "Férias",
+  folga: "Folga",
+  atestado: "Atestado",
+  licenca: "Licença",
 };
 
 export function EquipeAoVivoTable() {
@@ -90,11 +101,12 @@ export function EquipeAoVivoTable() {
       </div>
 
       {/* Cards-resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <ResumoCard label="Ativos" value={dashboard?.resumo.ativos ?? 0} variant="success" />
         <ResumoCard label="Em intervalo" value={dashboard?.resumo.em_intervalo ?? 0} variant="warning" />
         <ResumoCard label="Não iniciaram" value={dashboard?.resumo.nao_iniciaram ?? 0} variant="destructive" />
         <ResumoCard label="Encerradas" value={dashboard?.resumo.encerradas ?? 0} variant="muted" />
+        <ResumoCard label="Ausências just." value={dashboard?.resumo.ausencias_justificadas ?? 0} variant="info" />
         <ResumoCard label="Inconsistências" value={dashboard?.resumo.inconsistencias ?? 0} variant="destructive" />
       </div>
 
@@ -120,21 +132,23 @@ export function EquipeAoVivoTable() {
               {filtrados.map((p) => {
                 const cfg = STATUS_CFG[p.status];
                 const Icon = cfg.icon;
+                const isAusente = p.status === "ausente_justificado";
+                const motivoLbl = p.motivo_ausencia ? (MOTIVO_LABEL[p.motivo_ausencia] ?? p.motivo_ausencia) : null;
                 return (
                   <TableRow key={p.usuario_id}>
                     <TableCell className="font-medium">{p.nome}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`${cfg.cls} gap-1`}>
                         <Icon className="w-3 h-3" />
-                        {cfg.label}
+                        {isAusente && motivoLbl ? motivoLbl : cfg.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="tabular-nums">{formatHora(p.entrada)}</TableCell>
+                    <TableCell className="tabular-nums">{isAusente ? "—" : formatHora(p.entrada)}</TableCell>
                     <TableCell className="tabular-nums text-muted-foreground">
-                      {formatHora(p.intervalo_inicio)} – {formatHora(p.intervalo_fim)}
+                      {isAusente ? "—" : `${formatHora(p.intervalo_inicio)} – ${formatHora(p.intervalo_fim)}`}
                     </TableCell>
-                    <TableCell className="tabular-nums">{formatHora(p.saida)}</TableCell>
-                    <TableCell className="text-right font-semibold">{formatMinutes(p.minutos_trabalhados)}</TableCell>
+                    <TableCell className="tabular-nums">{isAusente ? "—" : formatHora(p.saida)}</TableCell>
+                    <TableCell className="text-right font-semibold">{isAusente ? "—" : formatMinutes(p.minutos_trabalhados)}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
@@ -165,12 +179,13 @@ export function EquipeAoVivoTable() {
   );
 }
 
-function ResumoCard({ label, value, variant }: { label: string; value: number; variant: "success" | "warning" | "destructive" | "muted" }) {
+function ResumoCard({ label, value, variant }: { label: string; value: number; variant: "success" | "warning" | "destructive" | "muted" | "info" }) {
   const cls = {
     success: "border-success/30 text-success",
     warning: "border-warning/30 text-warning",
     destructive: "border-destructive/30 text-destructive",
     muted: "border-border text-foreground",
+    info: "border-info/30 text-info",
   }[variant];
   return (
     <Card className={`p-4 border ${cls}`}>

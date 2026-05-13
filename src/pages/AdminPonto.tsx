@@ -3,9 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { AdminPontoHorarios } from "@/components/ponto/AdminPontoHorarios";
+import { AdminPontoFeriados } from "@/components/ponto/AdminPontoFeriados";
+import { AdminPontoFerias } from "@/components/ponto/AdminPontoFerias";
 
 export default function AdminPonto() {
   const { user, loading } = useAuth();
@@ -32,10 +35,20 @@ export default function AdminPonto() {
           <Settings className="w-6 h-6 text-primary" /> Admin — Ponto
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Defina o horário individual de cada colaborador.
+          Configure horários, feriados e ausências justificadas dos colaboradores.
         </p>
       </header>
-      <AdminPontoHorarios />
+
+      <Tabs defaultValue="horarios" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="horarios">Horários</TabsTrigger>
+          <TabsTrigger value="feriados">Feriados</TabsTrigger>
+          <TabsTrigger value="ferias">Férias / Folgas</TabsTrigger>
+        </TabsList>
+        <TabsContent value="horarios"><AdminPontoHorarios /></TabsContent>
+        <TabsContent value="feriados"><AdminPontoFeriados /></TabsContent>
+        <TabsContent value="ferias"><AdminPontoFerias /></TabsContent>
+      </Tabs>
     </div>
   );
 }
