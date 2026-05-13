@@ -161,7 +161,7 @@ export default function RelatorioPonto() {
     enabled: !!isCoordAdmin,
     queryFn: async () => {
       const { data } = await supabase.from("ponto_feriados" as any).select("data, descricao");
-      return (data ?? []) as { data: string; descricao: string }[];
+      return (data ?? []) as unknown as { data: string; descricao: string }[];
     },
   });
   const feriadoMap = useMemo(() => new Map(feriados.map((f) => [f.data, f.descricao])), [feriados]);
