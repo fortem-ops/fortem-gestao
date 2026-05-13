@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatHora, formatMinutes } from "@/lib/ponto";
 import { AjustarJornadaDialog } from "./AjustarJornadaDialog";
-import { Activity, Coffee, CheckCircle2, AlertCircle, Pencil } from "lucide-react";
+import { Activity, Coffee, CheckCircle2, AlertCircle, Pencil, CalendarOff } from "lucide-react";
 
 interface ProfessorRow {
   usuario_id: string;
@@ -20,7 +20,8 @@ interface ProfessorRow {
   intervalo_fim: string | null;
   saida: string | null;
   minutos_trabalhados: number | null;
-  status: "em_jornada" | "em_intervalo" | "encerrada" | "nao_iniciou";
+  status: "em_jornada" | "em_intervalo" | "encerrada" | "nao_iniciou" | "ausente_justificado";
+  motivo_ausencia: string | null;
 }
 
 interface DashboardData {
@@ -31,6 +32,7 @@ interface DashboardData {
     nao_iniciaram: number;
     encerradas: number;
     inconsistencias: number;
+    ausencias_justificadas?: number;
   };
   professores: ProfessorRow[];
 }
@@ -40,6 +42,15 @@ const STATUS_CFG: Record<ProfessorRow["status"], { label: string; cls: string; i
   em_intervalo: { label: "Intervalo", cls: "bg-warning/15 text-warning border-warning/30", icon: Coffee },
   encerrada: { label: "Encerrada", cls: "bg-muted text-muted-foreground", icon: CheckCircle2 },
   nao_iniciou: { label: "Pendente", cls: "bg-destructive/15 text-destructive border-destructive/30", icon: AlertCircle },
+  ausente_justificado: { label: "Ausência justificada", cls: "bg-info/15 text-info border-info/30", icon: CalendarOff },
+};
+
+const MOTIVO_LABEL: Record<string, string> = {
+  feriado: "Feriado",
+  ferias: "Férias",
+  folga: "Folga",
+  atestado: "Atestado",
+  licenca: "Licença",
 };
 
 export function EquipeAoVivoTable() {
