@@ -90,6 +90,7 @@ export function ResumoDoDia({
   eventos,
   readOnly,
   usuarioAlvoId,
+  tolerancia,
 }: Props) {
   const qc = useQueryClient();
   const { user } = useAuth();
