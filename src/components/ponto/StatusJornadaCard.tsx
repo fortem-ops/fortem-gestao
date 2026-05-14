@@ -23,7 +23,7 @@ const STATUS_CONFIG: Record<PontoEstado, { label: string; color: string; icon: t
 };
 
 /** Bloco visual com status atual + tempo decorrido em tempo real. */
-export function StatusJornadaCard({ status, entrada, intervaloInicio, intervaloFim, saida }: Props) {
+export function StatusJornadaCard({ status, entrada, intervaloInicio, intervaloFim, saida, statusPonto }: Props) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setTick((x) => x + 1), 30_000);
