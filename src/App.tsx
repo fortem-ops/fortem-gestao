@@ -12,7 +12,7 @@ import { StudentPortalProvider } from "@/contexts/StudentPortalContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 const RecoverPassword = lazy(() => import("./pages/RecoverPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
