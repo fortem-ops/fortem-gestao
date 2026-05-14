@@ -2463,6 +2463,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_ponto_alertas_diarios: { Args: never; Returns: Json }
       fn_ponto_aprovar_fechamento: {
         Args: { _fechamento_id: string }
         Returns: Json
@@ -2489,6 +2490,10 @@ export type Database = {
       }
       fn_ponto_dashboard_coordenador: {
         Args: { _data?: string }
+        Returns: Json
+      }
+      fn_ponto_dashboard_periodo: {
+        Args: { p_fim?: string; p_inicio?: string }
         Returns: Json
       }
       fn_ponto_dia_ausencia: {
@@ -2588,6 +2593,7 @@ export type Database = {
         | "equipamentos"
         | "emergencial"
         | "outro"
+        | "ponto"
       notif_dest_status:
         | "nao_visualizada"
         | "visualizada"
@@ -2841,6 +2847,7 @@ export const Constants = {
         "equipamentos",
         "emergencial",
         "outro",
+        "ponto",
       ],
       notif_dest_status: [
         "nao_visualizada",
