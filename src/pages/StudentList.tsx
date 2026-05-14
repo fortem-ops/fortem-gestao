@@ -59,16 +59,25 @@ export default function StudentList() {
       const { data } = await supabase.from("profiles").select("user_id, full_name");
       return data || [];
     },
+    staleTime: 5 * 60_000,
   });
 
-  const professors = profiles.map((p) => ({ id: p.user_id, name: p.full_name }));
-  const profileMap: Record<string, string> = {};
-  profiles.forEach((p) => { profileMap[p.user_id] = p.full_name; });
+  const { professors, profileMap } = useMemo(() => {
+    const map: Record<string, string> = {};
+    profiles.forEach((p) => { map[p.user_id] = p.full_name; });
+    return {
+      professors: profiles.map((p) => ({ id: p.user_id, name: p.full_name })),
+      profileMap: map,
+    };
+  }, [profiles]);
 
   const { data: alunos = [], isLoading, refetch } = useQuery({
     queryKey: ["alunos_with_plans"],
     queryFn: async () => {
-      const { data: students, error } = await supabase.from("alunos").select("*").order("nome");
+      const { data: students, error } = await supabase
+        .from("alunos")
+        .select(ALUNOS_COLUMNS)
+        .order("nome");
       if (error) throw error;
 
       const ids = students.map((s) => s.id);
