@@ -134,39 +134,45 @@ export default function StudentList() {
   });
 
 
-  const filtered = alunos.filter((s) => {
-    const c = s.credits;
-    const matchSearch = (s.nome ?? "").toLowerCase().includes(filters.search.toLowerCase()) ||
-      (s.email?.toLowerCase().includes(filters.search.toLowerCase()) ?? false);
-    const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
-    const matchStatus = filters.status === "todos" || display.key === filters.status;
+  const debouncedSearch = useDebounce(filters.search, 250);
 
-    const matchFreq = filters.frequencia === "todos" ||
-      (filters.frequencia === "livre" ? s.frequencia_semanal === 0 : s.frequencia_semanal === parseInt(filters.frequencia));
+  const filtered = useMemo(() => {
+    const term = debouncedSearch.toLowerCase();
+    return alunos.filter((s) => {
+      const c = s.credits;
+      const matchSearch = (s.nome ?? "").toLowerCase().includes(term) ||
+        (s.email?.toLowerCase().includes(term) ?? false);
+      const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
+      const matchStatus = filters.status === "todos" || display.key === filters.status;
 
-    const hasBase = c && Object.keys(c.plano).length > 0;
-    const matchSP = filters.servicosPlano === "todos" ||
-      (filters.servicosPlano === "com" ? hasBase : !hasBase);
+      const matchFreq = filters.frequencia === "todos" ||
+        (filters.frequencia === "livre" ? s.frequencia_semanal === 0 : s.frequencia_semanal === parseInt(filters.frequencia));
 
-    const hasPurch = c && Object.keys(c.servico).length > 0;
-    const matchSC = filters.servicosContratados === "todos" ||
-      (filters.servicosContratados === "com" ? hasPurch : !hasPurch);
+      const hasBase = c && Object.keys(c.plano).length > 0;
+      const matchSP = filters.servicosPlano === "todos" ||
+        (filters.servicosPlano === "com" ? hasBase : !hasBase);
 
-    const matchProf = filters.professor === "todos" || s.responsavel_id === filters.professor;
+      const hasPurch = c && Object.keys(c.servico).length > 0;
+      const matchSC = filters.servicosContratados === "todos" ||
+        (filters.servicosContratados === "com" ? hasPurch : !hasPurch);
 
-    let matchDate = true;
-    if (filters.dataFinalDe && s.planEnd) {
-      matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
-    }
-    if (filters.dataFinalAte && s.planEnd) {
-      matchDate = matchDate && !isAfter(s.planEnd, startOfDay(filters.dataFinalAte));
-    }
-    if ((filters.dataFinalDe || filters.dataFinalAte) && !s.planEnd) {
-      matchDate = false;
-    }
+      const matchProf = filters.professor === "todos" || s.responsavel_id === filters.professor;
 
-    return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
-  });
+      let matchDate = true;
+      if (filters.dataFinalDe && s.planEnd) {
+        matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
+      }
+      if (filters.dataFinalAte && s.planEnd) {
+        matchDate = matchDate && !isAfter(s.planEnd, startOfDay(filters.dataFinalAte));
+      }
+      if ((filters.dataFinalDe || filters.dataFinalAte) && !s.planEnd) {
+        matchDate = false;
+      }
+
+      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
+    });
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte]);
+
 
   const iconForAtividade = (atividade: string) => {
     const a = atividade.toLowerCase();
