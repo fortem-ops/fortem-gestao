@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
+import { userHasStaffAccess } from "@/lib/authAccess";
 
 export default function PortalLogin() {
   const [email, setEmail] = useState("");
@@ -18,10 +19,12 @@ export default function PortalLogin() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  if (user) {
-    navigate("/portal", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (!user) return;
+    userHasStaffAccess(user.id).then((isStaff) => {
+      navigate(isStaff ? "/" : "/portal", { replace: true });
+    });
+  }, [navigate, user]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,10 +34,11 @@ export default function PortalLogin() {
     }
     setLoading(true);
     const { error } = await signIn(email, password);
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast({ title: "Erro ao entrar", description: "E-mail ou senha incorretos.", variant: "destructive" });
     } else {
+      setLoading(false);
       navigate("/portal");
     }
   }
