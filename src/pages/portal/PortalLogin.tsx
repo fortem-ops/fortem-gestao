@@ -10,14 +10,29 @@ import { motion } from "framer-motion";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { userHasStaffAccess } from "@/lib/authAccess";
+import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
+import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
 
 export default function PortalLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
+  const [testing, setTesting] = useState(false);
   const { signIn, user, resetAuthState } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const runDiagnosis = async () => {
+    setTesting(true);
+    try {
+      const d = await diagnoseNetwork();
+      setDiagnosis(d);
+      return d;
+    } finally {
+      setTesting(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -37,15 +52,18 @@ export default function PortalLogin() {
     if (error) {
       setLoading(false);
       const msg = error.message ?? "";
-      const isNetwork = /fetch|network/i.test(msg);
-      toast({
-        title: isNetwork ? "Falha de conexão" : "Erro ao entrar",
-        description: isNetwork
-          ? "Não foi possível conectar. Desative extensões do navegador ou tente em uma janela anônima."
-          : "E-mail ou senha incorretos.",
-        variant: "destructive",
-      });
+      const isNetwork = /fetch|network|timeout|aborted/i.test(msg);
+      if (isNetwork) {
+        const d = await runDiagnosis();
+        const { title, description } = describeDiagnosis(d);
+        toast({ title, description, variant: "destructive" });
+      } else {
+        setDiagnosis(null);
+        toast({ title: "Erro ao entrar", description: "E-mail ou senha incorretos.", variant: "destructive" });
+      }
+      return;
     }
+    setDiagnosis(null);
   }
 
   async function handleResetSession() {
