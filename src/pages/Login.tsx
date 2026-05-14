@@ -17,7 +17,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signIn, user, isReady } = useAuth();
+  const { signIn, user, isReady, resetAuthState } = useAuth();
   const { toast } = useToast();
 
   // Se já está logado quando chega aqui, redireciona pelo papel.
@@ -59,6 +59,16 @@ export default function Login() {
     }
     // signIn ok — o useEffect acima cuida do redirect quando o contexto atualizar.
     // Mantém loading=true para evitar reenvio até o redirect acontecer.
+  };
+
+  const handleResetSession = async () => {
+    setLoading(true);
+    await resetAuthState();
+    setLoading(false);
+    toast({
+      title: "Sessão limpa",
+      description: "Tente entrar novamente com seu e-mail e senha.",
+    });
   };
 
   return (
@@ -108,6 +118,9 @@ export default function Login() {
                   Esqueci minha senha
                 </Link>
               </div>
+              <Button type="button" variant="ghost" className="w-full text-xs" onClick={handleResetSession} disabled={loading}>
+                Limpar sessão e tentar novamente
+              </Button>
             </form>
           </CardContent>
         </Card>
