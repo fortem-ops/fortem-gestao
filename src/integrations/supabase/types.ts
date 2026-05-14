@@ -2566,6 +2566,8 @@ export type Database = {
         | "debito_manual"
         | "compensacao"
         | "ajuste_saldo"
+        | "tolerancia_excedida"
+        | "hora_extra"
       ponto_evento_tipo:
         | "entrada"
         | "intervalo_inicio"
@@ -2812,6 +2814,8 @@ export const Constants = {
         "debito_manual",
         "compensacao",
         "ajuste_saldo",
+        "tolerancia_excedida",
+        "hora_extra",
       ],
       ponto_evento_tipo: [
         "entrada",
