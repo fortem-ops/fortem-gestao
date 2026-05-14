@@ -10,15 +10,30 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { userHasStaffAccess } from "@/lib/authAccess";
+import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
+import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
 
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
+  const [testing, setTesting] = useState(false);
   const navigate = useNavigate();
   const { signIn, user, isReady, resetAuthState } = useAuth();
   const { toast } = useToast();
+
+  const runDiagnosis = async () => {
+    setTesting(true);
+    try {
+      const d = await diagnoseNetwork();
+      setDiagnosis(d);
+      return d;
+    } finally {
+      setTesting(false);
+    }
+  };
 
   // Se já está logado quando chega aqui, redireciona pelo papel.
   useEffect(() => {
@@ -47,16 +62,18 @@ export default function Login() {
     if (error) {
       setLoading(false);
       const msg = error.message ?? "";
-      const isNetwork = /fetch|network/i.test(msg);
-      toast({
-        title: isNetwork ? "Falha de conexão" : "Erro ao entrar",
-        description: isNetwork
-          ? "Não conseguimos contatar o servidor. Desative extensões do navegador (bloqueadores, VPNs) ou tente em uma janela anônima."
-          : "Email ou senha incorretos.",
-        variant: "destructive",
-      });
+      const isNetwork = /fetch|network|timeout|aborted/i.test(msg);
+      if (isNetwork) {
+        const d = await runDiagnosis();
+        const { title, description } = describeDiagnosis(d);
+        toast({ title, description, variant: "destructive" });
+      } else {
+        setDiagnosis(null);
+        toast({ title: "Erro ao entrar", description: "Email ou senha incorretos.", variant: "destructive" });
+      }
       return;
     }
+    setDiagnosis(null);
     // signIn ok — o useEffect acima cuida do redirect quando o contexto atualizar.
     // Mantém loading=true para evitar reenvio até o redirect acontecer.
   };
@@ -121,6 +138,9 @@ export default function Login() {
               <Button type="button" variant="ghost" className="w-full text-xs" onClick={handleResetSession} disabled={loading}>
                 Limpar sessão e tentar novamente
               </Button>
+              {diagnosis && diagnosis.status !== "ok" && (
+                <NetworkHelpPanel diagnosis={diagnosis} onRetest={runDiagnosis} testing={testing} />
+              )}
             </form>
           </CardContent>
         </Card>
