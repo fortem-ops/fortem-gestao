@@ -60,6 +60,17 @@ const queryClient = new QueryClient({
       staleTime: 60_000,
       gcTime: 5 * 60_000,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      // Retry só faz sentido para erros de rede; quebra-de-regra (4xx) não deve repetir.
+      retry: (failureCount, error: unknown) => {
+        if (failureCount >= 2) return false;
+        const msg = error instanceof Error ? error.message : String(error);
+        return /fetch|network|timeout|aborted/i.test(msg);
+      },
+      retryDelay: (attempt) => Math.min(400 * 2 ** attempt, 2000),
+    },
+    mutations: {
+      retry: false,
     },
   },
 });
