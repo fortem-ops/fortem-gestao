@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { userHasStaffAccess } from "@/lib/authAccess";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -57,7 +58,7 @@ export default function Login() {
       try {
         const isStaff = await userHasStaffAccess(signedUser.id);
         navigate(isStaff ? "/" : "/portal");
-      } catch (accessError) {
+      } catch {
         await supabase.auth.signOut();
         toast({
           title: "Acesso não liberado",
