@@ -59,17 +59,20 @@ export function DashboardCoordenadorKPIs() {
   const handleExportDivergencias = async () => {
     const { data: jornadas, error } = await supabase
       .from("ponto_jornadas")
-      .select("data, status_ponto, divergencia_total_dia, minutos_descontaveis, minutos_extras_validos, usuario_id, profiles:usuario_id(nome_completo,email)")
+      .select("data, status_ponto, divergencia_total_dia, minutos_descontaveis, minutos_extras_validos, usuario_id")
       .gte("data", inicio)
       .lte("data", fim)
       .eq("tolerancia_excedida", true)
       .order("data", { ascending: false });
     if (error || !jornadas) return;
+    const userIds = Array.from(new Set(jornadas.map((j) => j.usuario_id)));
+    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+    const nameMap = new Map((profiles ?? []).map((p) => [p.user_id, p.full_name]));
     gerarRelatorioDivergencias({
       periodoInicio: inicio,
       periodoFim: fim,
       linhas: jornadas.map((j: any) => ({
-        nome: j.profiles?.nome_completo || j.profiles?.email || "Sem nome",
+        nome: nameMap.get(j.usuario_id) || "Sem nome",
         data: j.data,
         status: (j.status_ponto ?? "em_analise") as StatusPonto,
         divergencia_total_dia: j.divergencia_total_dia,
