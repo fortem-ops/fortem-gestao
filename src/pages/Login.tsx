@@ -10,22 +10,31 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { userHasStaffAccess } from "@/lib/authAccess";
-import { supabase } from "@/integrations/supabase/client";
+
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signIn, user } = useAuth();
+  const { signIn, user, isReady } = useAuth();
   const { toast } = useToast();
 
+  // Se já está logado quando chega aqui, redireciona pelo papel.
   useEffect(() => {
-    if (!user) return;
-    userHasStaffAccess(user.id).then((isStaff) => {
-      navigate(isStaff ? "/" : "/portal", { replace: true });
-    });
-  }, [navigate, user]);
+    if (!isReady || !user) return;
+    let cancelled = false;
+    userHasStaffAccess(user.id)
+      .then((isStaff) => {
+        if (!cancelled) navigate(isStaff ? "/" : "/portal", { replace: true });
+      })
+      .catch(() => {
+        if (!cancelled) navigate("/portal", { replace: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, user, isReady]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,33 +51,10 @@ export default function Login() {
         description: "Email ou senha incorretos.",
         variant: "destructive",
       });
-    } else {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const signedUser = sessionData.session?.user;
-      if (!signedUser) {
-        setLoading(false);
-        toast({
-          title: "Erro ao entrar",
-          description: "Não foi possível carregar a sessão. Tente novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      try {
-        const isStaff = await userHasStaffAccess(signedUser.id);
-        navigate(isStaff ? "/" : "/portal");
-      } catch {
-        await supabase.auth.signOut();
-        toast({
-          title: "Acesso não liberado",
-          description: "Sua conta não tem permissão de funcionário.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
+      return;
     }
+    // signIn ok — o useEffect acima cuida do redirect quando o contexto atualizar.
+    // Mantém loading=true para evitar reenvio até o redirect acontecer.
   };
 
   return (

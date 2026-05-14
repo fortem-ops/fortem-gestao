@@ -196,6 +196,39 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          created_at: string
+          dados_antes: Json | null
+          dados_depois: Json | null
+          id: string
+          operacao: string
+          registro_id: string | null
+          tabela: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          id?: string
+          operacao: string
+          registro_id?: string | null
+          tabela: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          id?: string
+          operacao?: string
+          registro_id?: string | null
+          tabela?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       avaliacao_funcional: {
         Row: {
           avaliacao_id: string
@@ -1983,6 +2016,39 @@ export type Database = {
           data?: string
           id?: string
           treino_id?: string
+        }
+        Relationships: []
+      }
+      system_logs: {
+        Row: {
+          acao: string
+          created_at: string
+          id: string
+          mensagem: string | null
+          modulo: string
+          payload: Json | null
+          stacktrace: string | null
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          id?: string
+          mensagem?: string | null
+          modulo: string
+          payload?: Json | null
+          stacktrace?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          id?: string
+          mensagem?: string | null
+          modulo?: string
+          payload?: Json | null
+          stacktrace?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
