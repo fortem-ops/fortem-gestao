@@ -67,9 +67,14 @@ export function StatusJornadaCard({ status, entrada, intervaloInicio, intervaloF
     <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`inline-block w-2.5 h-2.5 rounded-full ${cfg.color} ${status === "em_jornada" || status === "em_intervalo" ? "animate-pulse" : ""}`} />
             <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground">{cfg.label}</span>
+            {statusPonto && (
+              <Badge variant="outline" className={STATUS_PONTO_CLASS[statusPonto]}>
+                {STATUS_PONTO_LABEL[statusPonto]}
+              </Badge>
+            )}
           </div>
           <p className="text-xl font-heading font-semibold">{refLabel}</p>
           {minutos > 0 && (
