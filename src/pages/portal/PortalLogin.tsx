@@ -15,7 +15,7 @@ export default function PortalLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, user } = useAuth();
+  const { signIn, user, resetAuthState } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -45,10 +45,17 @@ export default function PortalLogin() {
           : "E-mail ou senha incorretos.",
         variant: "destructive",
       });
-    } else {
-      setLoading(false);
-      navigate("/portal");
     }
+  }
+
+  async function handleResetSession() {
+    setLoading(true);
+    await resetAuthState();
+    setLoading(false);
+    toast({
+      title: "Sessão limpa",
+      description: "Tente entrar novamente com seu e-mail e senha.",
+    });
   }
 
   return (
@@ -90,6 +97,9 @@ export default function PortalLogin() {
               </div>
               <Button type="button" variant="outline" className="w-full" asChild>
                 <Link to="/portal/cadastro">Criar nova conta</Link>
+              </Button>
+              <Button type="button" variant="ghost" className="w-full text-xs" onClick={handleResetSession} disabled={loading}>
+                Limpar sessão e tentar novamente
               </Button>
               <p className="text-center text-xs text-muted-foreground">
                 Use o e-mail cadastrado pelo seu professor.
