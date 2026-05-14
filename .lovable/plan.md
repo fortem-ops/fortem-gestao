@@ -1,96 +1,95 @@
-# Tolerância CLT no Módulo Ponto
+## Próximos passos do módulo Ponto
 
-Implementa a regra brasileira de tolerância (5 min por marcação, 10 min/dia) com cálculo automático, status, alertas e relatórios — sem intervenção manual.
+Três entregas em paralelo, todas conectadas à lógica de tolerância CLT já implantada (5 min/marcação, 10 min/dia, status automáticos em `ponto_jornadas`).
 
-## 1. Banco de dados (migração)
+---
 
-### 1.1 Novos campos em `ponto_jornadas`
-- `prev_entrada`, `prev_intervalo_inicio`, `prev_intervalo_fim`, `prev_saida` (timestamptz) — preenchidos automaticamente a partir de `ponto_horarios_professor` quando a jornada é aberta.
-- `divergencia_entrada_min`, `divergencia_intervalo_inicio_min`, `divergencia_intervalo_fim_min`, `divergencia_saida_min` (int, sinalizado: negativo = antes, positivo = depois).
-- `minutos_tolerados` (int) — soma das divergências dentro da regra.
-- `minutos_considerados` (int) — soma efetiva para desconto/extras.
-- `divergencia_total_dia` (int) — |soma| de todas as divergências.
-- `tolerancia_excedida` (boolean) — true quando soma > 10 ou alguma marcação > 5.
-- `minutos_extras_validos` (int), `minutos_descontaveis` (int).
-- `status_ponto` (novo enum `ponto_status_dia`):
-  `dentro_tolerancia | divergencia_leve | divergencia_considerada | banco_negativo | hora_extra | jornada_incompleta | falta_marcacao | em_analise`.
+### 1. Dashboard do Coordenador (`/ponto/equipe` aprimorado)
 
-### 1.2 Configuração
-Adicionar em `ponto_configuracoes`:
-- `tolerancia_marcacao_min` (default 5)
-- `tolerancia_diaria_min` (default 10)
-(`tolerancia_min` existente fica como fallback/legado.)
+Hoje a página só mostra a tabela "Equipe ao vivo". Vamos transformá-la em um painel completo com filtros e KPIs do dia/semana/mês.
 
-### 1.3 Tabela de eventos do banco de horas
-Já existe `ponto_banco_horas`. Adicionar `origem text` (`tolerancia_excedida | hora_extra | ajuste_manual | feriado`) e `jornada_id uuid` para rastrear o lançamento.
+**Cards de KPI no topo** (consulta a `ponto_jornadas` agregada por período):
+- Profissionais em jornada agora / em intervalo / pendentes
+- Total de divergências consideradas hoje (minutos)
+- Banco de horas líquido da equipe (mês corrente)
+- Nº de jornadas com `tolerancia_excedida = true` no mês
+- Top 5 atrasos recorrentes (ranking por usuário, últimos 30 dias)
 
-### 1.4 Funções SQL
-- `fn_ponto_calcular_divergencias(_jornada_id uuid)` — núcleo da regra:
-  1. Carrega previsto (`ponto_horarios_professor` do dia da semana) e realizado.
-  2. Calcula 4 divergências em minutos.
-  3. Soma absolutos → `divergencia_total_dia`.
-  4. Aplica regra: se qualquer marcação > tolerância OU soma > tolerância diária ⇒ `tolerancia_excedida = true`, `minutos_considerados = soma negativa`, `minutos_extras_validos = soma positiva`. Caso contrário `minutos_tolerados = soma`, considerados = 0.
-  5. Define `status_ponto`.
-  6. Persiste em `ponto_jornadas`.
-- Trigger `trg_ponto_recalcular` AFTER INSERT/UPDATE em `ponto_jornadas` (campos de horário) chama a função.
-- `fn_ponto_consolidar_banco(_jornada_id)` — grava em `ponto_banco_horas` minutos descontáveis (negativos) e extras (positivos) somente quando `status = encerrada` e `tolerancia_excedida = true` (ou hora extra confirmada).
-- Atualizar `fn_ponto_calcular_fechamento` para agregar `minutos_extras_validos`, `minutos_descontaveis`, contagem de status por categoria, e gravar em novos campos do fechamento (`atrasos_count`, `faltas_marcacao_count`, `jornadas_incompletas_count`).
-- `fn_ponto_dashboard_coordenador` ampliado para devolver: total atrasos no mês, minutos negativos, horas extras, top 5 funcionários com maior recorrência, faltas, jornadas incompletas, ranking de pontualidade.
-- `fn_ponto_alertas_atrasos()` — roda diariamente, gera notificações quando >3 atrasos na semana ou >5 no mês, falta de marcação obrigatória ou jornada incompleta. Usa tabela `notificacoes` existente.
+**Filtros**: período (hoje / semana / mês / custom), profissional, status (`status_ponto`).
 
-## 2. Backend (edge / agendamento)
-- Cron (pg_cron) diário 23:50 → roda `fn_ponto_alertas_atrasos` e força recálculo das jornadas do dia.
-- Mantém fechamento mensal já existente; passa a respeitar novos contadores.
+**Seções**:
+- `EquipeAoVivoTable` (mantida)
+- Nova `RankingDivergenciasTable` — usuários ordenados por minutos descontáveis no período
+- Nova `AlertasPontoPanel` — lista os alertas gerados pelo cron (ver item 3)
 
-## 3. Frontend
+**Backend**: criar função SQL `fn_ponto_dashboard_coordenador(p_inicio date, p_fim date)` retornando JSON com os agregados, para evitar múltiplos round-trips.
 
-### 3.1 Helpers
-`src/lib/pontoTolerancia.ts`:
-- `calculateTolerance(diff, cfg)`
-- `calculateDailyDeviation(jornada)`
-- `validateLegalTolerance(jornada, cfg)`
-- `calculateBankHours(jornada)`
-- `STATUS_PONTO_LABEL`, `STATUS_PONTO_COLOR` (mapeia para tokens semânticos `success/warning/destructive/info`).
+---
 
-### 3.2 Componentes atualizados
-- `ResumoDoDia.tsx`: nova seção "Cálculo do dia" com previsto vs realizado por marcação, divergência (com cor), badge de status, tooltip explicando a regra aplicada (ex.: "4 min ignorados pela tolerância CLT").
-- `StatusJornadaCard.tsx`: adiciona badge `status_ponto`.
-- `HistoricoJornadas.tsx`: coluna divergência (amarelo ≤5 min, vermelho >5 ou dia excedido, verde extras válidas), coluna saldo do dia.
-- `MeuRelatorioPonto.tsx` / `MeuBancoHoras.tsx`: usar novos campos.
-- `EquipeAoVivoTable.tsx`: indicador de atraso/tolerância em tempo real.
-- `FechamentoMensalTable.tsx`: colunas atrasos, descontos, extras válidas, faltas, jornadas incompletas.
-- Dashboard coordenador (`PontoWidget` + nova seção em `PontoEquipe`): cards com total atrasos, minutos negativos, horas extras, ranking pontualidade, recorrentes.
+### 2. Exportações em PDF
 
-### 3.3 Relatórios
-`src/lib/relatorioPontoExport.ts` ampliado:
-- Colunas: previsto, realizado, divergência por marcação, tolerados, considerados, extras válidos, saldo, status.
-- PDF (novo) via jsPDF + autotable; mantém XLSX/CSV existentes.
+Adicionar PDF ao menu já existente `ExportarRelatorioMenu` (que hoje exporta CSV/XLSX). Stack: **jsPDF + jspdf-autotable** (leve, sem dependência de servidor).
 
-## 4. Critérios de aceite (exemplos do enunciado)
-- 08:04 entrada / 16:56 saída → status `dentro_tolerancia`, considerados = 0.
-- 08:06 entrada / 17:00 saída → divergência 6 min > 5 ⇒ considerados = 6, status `divergencia_considerada`, banco −6.
-- 08:05 + 13:06 (soma 11) → soma > 10 ⇒ todos os 11 min considerados, banco −11, status `banco_negativo`.
-- Hora extra: 17:04 saída ignorada; 17:06 ⇒ +6 min banco positivo, status `hora_extra`.
+**Três relatórios PDF**:
 
-## 5. Detalhes técnicos
+a) **Espelho de ponto individual** (em `/ponto/relatorio` e no `MeuRelatorioPonto`)
+  - Cabeçalho: logo Fortem, nome do colaborador, CPF (se houver), período
+  - Tabela diária: data, prev. entrada, marcações reais, divergências (entrada/intervalo/saída), minutos tolerados, minutos considerados, status, banco do dia
+  - Rodapé: totais do período, saldo banco de horas, assinatura colaborador / coordenador
+  - Nota legal: "Cálculo conforme art. 58 §1º da CLT — tolerância 5 min/marcação, 10 min/dia"
 
-```text
-divergência por marcação = realizado - previsto   (em minutos, signed)
-soma_dia = Σ |divergência|
-se max(|divergência|) > 5  OR  soma_dia > 10:
-    tolerancia_excedida = true
-    descontaveis = Σ divergência onde resultado é "atraso"/"saída antecipada"
-    extras       = Σ divergência onde resultado é "antecipa entrada" / "saída posterior"
-senão:
-    tolerados = soma_dia ; descontaveis = extras = 0
+b) **Fechamento mensal da equipe** (em `/ponto/fechamento`)
+  - Uma linha por profissional com totais do mês: horas previstas, trabalhadas, extras válidas, descontáveis, saldo banco
+  - Marca de "Aprovado por … em …" quando fechado
+
+c) **Relatório de divergências** (novo, no dashboard coordenador)
+  - Lista jornadas com `tolerancia_excedida = true` no período, agrupadas por profissional
+
+**Implementação**:
+- Novo helper `src/lib/pontoPdf.ts` com funções `gerarEspelhoPonto`, `gerarFechamentoMensal`, `gerarRelatorioDivergencias`
+- Cores e tipografia seguindo design tokens (verde primary, status mapeados via `STATUS_PONTO_LABEL`)
+- Atualizar `ExportarRelatorioMenu` adicionando item "PDF" com ícone `FileDown`
+
+---
+
+### 3. Alertas via Cron
+
+Job diário às 23:50 que consolida o dia e gera notificações para coordenadores.
+
+**Migração SQL**:
+- Função `fn_ponto_alertas_diarios()` que:
+  1. Para cada jornada de hoje com `tolerancia_excedida = true` ou `status_ponto IN ('banco_negativo','jornada_incompleta','falta_marcacao')` cria uma linha em `notificacoes` (categoria `ponto`, prioridade conforme severidade) com destinatários = todos coordenadores/admins (via `user_roles`).
+  2. Recalcula jornadas abertas que não foram fechadas (chama `fn_ponto_calcular_divergencias`).
+  3. Registra resumo em `audit_log`.
+
+**Edge function** `ponto-alertas-diarios` (thin wrapper que invoca a função SQL via service role) — necessária porque `pg_cron` + `pg_net` exige uma URL HTTP.
+
+**Agendamento** (via insert tool, não migration):
+```sql
+select cron.schedule('ponto-alertas-diarios', '50 23 * * *', $$
+  select net.http_post(
+    url := 'https://<ref>.supabase.co/functions/v1/ponto-alertas-diarios',
+    headers := '{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
+    body := '{}'::jsonb
+  );
+$$);
 ```
 
-- Funções SQL: `SECURITY DEFINER`, `SET search_path = public`.
-- Trigger idempotente (recalcula sempre).
-- RLS já existente nas tabelas é mantida.
-- Apenas coordenador/admin vê campos agregados de equipe (já garantido por `is_coordinator_or_admin`).
+**Pré-requisito**: habilitar extensões `pg_cron` e `pg_net` (migration).
 
-## Fora de escopo desta entrega
-- Configuração por colaborador de tolerância customizada (usa configuração global).
-- Política de compensação de banco de horas (apenas registro).
-- Integração com folha externa (somente exportação).
+**UI**: o painel `AlertasPontoPanel` (item 1) lê `notificacoes` filtrando `categoria = 'ponto'` dos últimos 7 dias.
+
+---
+
+### Ordem de execução
+
+1. Migration: extensões + `fn_ponto_dashboard_coordenador` + `fn_ponto_alertas_diarios`
+2. Edge function `ponto-alertas-diarios` + agendamento cron (insert)
+3. Frontend dashboard coordenador (KPIs, ranking, painel de alertas)
+4. Helper `pontoPdf.ts` + dependências (`jspdf`, `jspdf-autotable`) + integração no menu de exportação
+
+### Fora do escopo
+
+- Envio de WhatsApp/email dos alertas (apenas notificação interna)
+- Aprovação digital com assinatura no PDF (apenas espaço para assinatura impressa)
+- Dashboard do colaborador (foco aqui é coordenador)
