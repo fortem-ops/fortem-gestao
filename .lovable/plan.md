@@ -93,3 +93,18 @@ $$);
 - Envio de WhatsApp/email dos alertas (apenas notificação interna)
 - Aprovação digital com assinatura no PDF (apenas espaço para assinatura impressa)
 - Dashboard do colaborador (foco aqui é coordenador)
+
+---
+
+## Status — implementado
+
+- ✅ Migrations: enum `notif_categoria.ponto`, extensões `pg_cron`/`pg_net`
+- ✅ `fn_ponto_dashboard_periodo(p_inicio, p_fim)` — KPIs + ranking (corrigido para usar `profiles.full_name`)
+- ✅ `fn_ponto_alertas_diarios()` — gera notificações para coord/admin (sem duplicar)
+- ✅ Edge function `ponto-alertas-diarios` (service-role wrapper)
+- ✅ Cron `ponto-alertas-diarios` agendado para 23:50 (job id 5)
+- ✅ `DashboardCoordenadorKPIs` (cards + ranking + filtros + botão PDF divergências)
+- ✅ `AlertasPontoPanel` (lista categoria=ponto últimos 7 dias + botão "Rodar agora")
+- ✅ `/ponto/equipe` agora exibe Dashboard + Equipe ao vivo + Alertas
+- ✅ `pontoPdf.ts`: `gerarEspelhoPonto`, `gerarFechamentoMensal`, `gerarRelatorioDivergencias`
+- ✅ `ExportarRelatorioMenu` aceita `onPDF`; integrado no espelho diário do `MeuRelatorioPonto`
