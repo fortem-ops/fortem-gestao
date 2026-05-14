@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,10 @@ import { StudentListFilters, defaultFilters, type StudentFilters } from "@/compo
 import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
+import { useDebounce } from "@/hooks/useDebounce";
+
+const ALUNOS_COLUMNS =
+  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id";
 
 function parseServiceCount(servicos: string[] | null, tipoServico: string): number {
   if (!servicos) return 0;
