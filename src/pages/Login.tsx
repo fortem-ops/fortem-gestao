@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { userHasStaffAccess } from "@/lib/authAccess";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -18,11 +19,12 @@ export default function Login() {
   const { signIn, user } = useAuth();
   const { toast } = useToast();
 
-  // Redirect if already logged in
-  if (user) {
-    navigate("/", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (!user) return;
+    userHasStaffAccess(user.id).then((isStaff) => {
+      navigate(isStaff ? "/" : "/portal", { replace: true });
+    });
+  }, [navigate, user]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,15 +34,39 @@ export default function Login() {
     }
     setLoading(true);
     const { error } = await signIn(email, password);
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast({
         title: "Erro ao entrar",
         description: "Email ou senha incorretos.",
         variant: "destructive",
       });
     } else {
-      navigate("/");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const signedUser = sessionData.session?.user;
+      if (!signedUser) {
+        setLoading(false);
+        toast({
+          title: "Erro ao entrar",
+          description: "Não foi possível carregar a sessão. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        const isStaff = await userHasStaffAccess(signedUser.id);
+        navigate(isStaff ? "/" : "/portal");
+      } catch (accessError) {
+        await supabase.auth.signOut();
+        toast({
+          title: "Acesso não liberado",
+          description: "Sua conta não tem permissão de funcionário.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
