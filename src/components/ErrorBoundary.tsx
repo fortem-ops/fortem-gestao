@@ -1,10 +1,13 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clipboard } from "lucide-react";
+import { logger } from "@/lib/logger";
+import { toastSuccess, toastError } from "@/lib/toast-helpers";
 
 interface State {
   hasError: boolean;
   error: Error | null;
+  info: React.ErrorInfo | null;
 }
 
 interface Props {
@@ -17,20 +20,41 @@ interface Props {
  * e oferece um caminho de recuperação ao usuário.
  */
 export class ErrorBoundary extends React.Component<Props, State> {
-  state: State = { hasError: false, error: null };
+  state: State = { hasError: false, error: null, info: null };
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, info: null };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Log em console — em produção poderia enviar para um serviço de telemetria.
-    // eslint-disable-next-line no-console
-    console.error("[ErrorBoundary]", error, info);
+    this.setState({ info });
+    logger.error(error, { boundary: "global", componentStack: info.componentStack });
   }
 
   reset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, info: null });
+  };
+
+  copyReport = async () => {
+    const { error, info } = this.state;
+    const report = [
+      `Rota: ${typeof window !== "undefined" ? window.location.pathname + window.location.search : "?"}`,
+      `Quando: ${new Date().toISOString()}`,
+      `Mensagem: ${error?.message ?? "(sem mensagem)"}`,
+      "",
+      "Stack:",
+      error?.stack ?? "(sem stack)",
+      "",
+      "Component stack:",
+      info?.componentStack ?? "(indisponível)",
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(report);
+      toastSuccess("Relatório copiado", "Cole no chat de suporte para ajudarmos.");
+    } catch (err) {
+      toastError(err, "Não foi possível copiar");
+    }
   };
 
   render() {
@@ -48,9 +72,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <p className="text-sm text-muted-foreground break-words">
             {error.message || "Ocorreu um erro inesperado ao carregar esta tela."}
           </p>
-          <div className="flex gap-2 justify-center pt-2">
+          <div className="flex flex-wrap gap-2 justify-center pt-2">
             <Button variant="outline" onClick={this.reset}>
               Tentar novamente
+            </Button>
+            <Button variant="outline" onClick={this.copyReport}>
+              <Clipboard className="w-4 h-4 mr-1" />
+              Reportar problema
             </Button>
             <Button onClick={() => window.location.reload()}>Recarregar página</Button>
           </div>
@@ -59,3 +87,4 @@ export class ErrorBoundary extends React.Component<Props, State> {
     );
   }
 }
+

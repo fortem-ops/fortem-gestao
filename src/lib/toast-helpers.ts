@@ -1,30 +1,27 @@
 import { toast } from "@/hooks/use-toast";
+import { classifyError } from "./errors";
+import { logger } from "./logger";
 
 /**
- * Helpers padronizados para toasts. Diferenciam erros de rede de erros de
- * regra de negócio para reduzir mensagens genéricas tipo "Failed to fetch".
+ * Helpers padronizados para toasts. Classificam o erro automaticamente
+ * (rede, RLS, validação, conflito, etc.) e mostram mensagem amigável em PT-BR.
  */
-
-const NETWORK_PATTERN = /fetch|network|networkerror|load failed|timeout|aborted/i;
-
-export function isNetworkError(err: unknown): boolean {
-  if (!err) return false;
-  const msg = err instanceof Error ? err.message : String(err);
-  return NETWORK_PATTERN.test(msg);
-}
 
 export function toastSuccess(title: string, description?: string) {
   toast({ title, description });
 }
 
-export function toastError(err: unknown, fallbackTitle = "Algo deu errado") {
-  const network = isNetworkError(err);
-  const msg = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+export function toastError(err: unknown, fallbackTitle?: string) {
+  const c = classifyError(err);
+  logger.error(err, { category: c.category });
   toast({
-    title: network ? "Falha de conexão" : fallbackTitle,
-    description: network
-      ? "Não foi possível conectar ao servidor. Verifique sua conexão, desative extensões ou tente em uma janela anônima."
-      : msg || "Tente novamente em instantes.",
+    title: fallbackTitle && c.category === "unknown" ? fallbackTitle : c.title,
+    description: c.description,
     variant: "destructive",
   });
+}
+
+/** Mantido por compatibilidade — prefira `classifyError(err).category === "network"`. */
+export function isNetworkError(err: unknown): boolean {
+  return classifyError(err).category === "network";
 }

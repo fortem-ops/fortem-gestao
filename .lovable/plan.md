@@ -1,60 +1,53 @@
-# Fase 2 — Performance + Banco de Dados
+# Fase 3 — Sincronização entre módulos + Padronização de erros
 
 ## Escopo
 
-Otimizar consultas, reduzir renders e melhorar tempo de carregamento das páginas. Foco em ganho real mensurável, sem alterar funcionalidades.
+Garantir consistência entre módulos correlacionados (planos ↔ créditos, agenda ↔ consumo, pipeline ↔ alunos) e padronizar tratamento de erros no frontend. Sem mudanças visuais.
 
-## 1. Índices no banco (1 migration)
+## 1. Sincronização no banco (1 migration)
 
-Criar índices nas colunas mais consultadas (filtros e joins frequentes):
+Triggers e funções para manter dados coerentes automaticamente:
 
-- `alunos (responsavel_id)`, `alunos (status)`, `alunos (current_pipeline_stage_id)`
-- `agenda_servicos (profissional_id, dia_semana)`, `agenda_servicos (aluno_id)`, `agenda_servicos (data_especifica)`
-- `avaliacoes (aluno_id, data DESC)`, `avaliacoes (avaliador_id)`
-- `pipeline_movements (aluno_id, moved_at DESC)`, `pipeline_movements (to_stage_id)`
-- `notificacoes (criado_por, created_at DESC)`, `notificacao_destinatarios (usuario_id, status)`
-- `creditos_aluno (aluno_id, ativo)`, `creditos_movimentos (credito_id, data DESC)`
-- `consumo_servicos (aluno_id, data_consumo DESC)`, `consumo_servicos (plano_id)`
-- `planos (aluno_id, ativo)`, `historico_profissional (aluno_id, created_at DESC)`
-- `audit_log (user_id, created_at DESC)`
+- **planos → creditos_aluno**: ao desativar/expirar um plano, marcar créditos de origem `plano` como `ativo=false`. Já existe parcialmente; revisar e completar.
+- **agenda_servicos → consumo_servicos**: ao registrar consumo via agenda, validar que existe crédito disponível (já há lógica; padronizar via função `fn_consumir_credito` reutilizável).
+- **alunos.current_pipeline_stage_id ↔ pipeline_movements**: trigger `AFTER INSERT` em `pipeline_movements` que atualiza `alunos.current_pipeline_stage_id` para `to_stage_id`. Garante que UI nunca mostre estágio desatualizado.
+- **alunos.status**: trigger que recalcula status (`ativo` / `licenca` / `inativo`) com base em `aluno_licencas` ativas e `planos.data_fim`. Hoje isso é calculado no frontend (`getDisplayStatus`); manter no front mas sincronizar a coluna para queries server-side e relatórios.
+- **Cache invalidation no frontend**: lista das query keys afetadas por mutações comuns (criar plano, mover pipeline, dar baixa em consumo) — centralizar em `src/lib/query-invalidation.ts` com helpers `invalidateAluno(id)`, `invalidatePipeline()`, `invalidateAgenda()`.
 
-Todos `IF NOT EXISTS` para serem idempotentes.
+## 2. Sistema global de erros (frontend)
 
-## 2. Queries no frontend
+Concluir o que ficou parcial na Fase 1:
 
-- Substituir `SELECT *` por colunas explícitas nas listagens pesadas (Alunos, Agenda, Pipeline, Notificações, Dashboard).
-- Adicionar paginação (range) nas listas que hoje carregam tudo: lista de alunos, histórico, notificações, audit.
-- Padronizar `staleTime` por domínio no react-query (catálogos: 30min; listas: 2min; dashboards: 1min).
-- Eliminar chamadas duplicadas detectadas (mesma query disparada em múltiplos componentes irmãos) — centralizar em hook único.
+- `src/lib/errors.ts`: classes/utilitários para classificar erros do Supabase (PostgrestError) em categorias acionáveis: `auth_required`, `permission_denied` (RLS), `validation`, `not_found`, `conflict` (unique/FK), `network`, `unknown`. Tradução PT-BR amigável.
+- `toastError` (já criado) passa a usar essa classificação automaticamente. Remove dezenas de `try/catch` espalhados que repetem mensagens genéricas.
+- Logger central (`src/lib/logger.ts`): níveis `debug`/`info`/`warn`/`error`; em produção, opcional envio futuro a um serviço (deixa hook pronto, sem integrar).
+- `ErrorBoundary` (já criado) ganha botão "Reportar problema" que copia stack + rota para a área de transferência.
 
-## 3. Renders e hooks no frontend
+## 3. Hooks de mutação padronizados
 
-- Auditar `useEffect` com dependências instáveis nas páginas Dashboard, Alunos, Agenda, Pipeline.
-- `React.memo` + `useCallback`/`useMemo` em linhas de listas grandes (AlunoRow, AgendaCard, PipelineCard).
-- Debounce (300ms) em todos os campos de busca (Alunos, Pipeline, Notificações).
+- `useSupabaseMutation` wrapper sobre `useMutation` que:
+  - chama `toastError` com classificação automática,
+  - executa invalidação declarativa via `invalidates: ['alunos', 'agenda']`,
+  - retorna `isPending`, `error` tipado.
+- Migrar 3-5 mutações críticas (criar/editar aluno, mover pipeline, registrar consumo) como referência. As demais migram incrementalmente conforme tocadas.
 
-## 4. Code splitting adicional
+## 4. Validação
 
-- Verificar bundle e quebrar rotas grandes ainda não lazy (relatórios, banco de treinos, clube fortem).
-- Pré-carregar (`prefetch`) rotas mais usadas a partir do menu lateral.
+- Rodar `supabase--linter` pós-migration (esperado: zero novos warnings).
+- Smoke test manual: mover card no pipeline → confirmar que `alunos.current_pipeline_stage_id` atualiza sem refetch manual; criar licença → status muda; expirar plano → créditos `plano` somem da listagem.
 
-## 5. Validação
+## Fora do escopo (Fase 4 sugerida)
 
-- Rodar Supabase linter pós-migration.
-- Medir tempo de carregamento (Network panel) antes/depois nas 3 páginas mais lentas.
-- Conferir se testes manuais de login/CRUD seguem ok.
-
-## Fora do escopo (vai para Fase 3)
-
-- Triggers de sincronização entre módulos
-- Sistema global de erros padronizados (parcialmente feito na Fase 1)
+- Realtime no pipeline e notificações
+- Migração ampla de todas as mutações para o novo wrapper
+- E2E (Playwright) — requer setup novo
 - Refatoração arquitetural maior
-- E2E tests
 
 ## Detalhes técnicos
 
-- Índices: `CREATE INDEX CONCURRENTLY` não funciona dentro de migration transacional do Supabase, então usaremos `CREATE INDEX IF NOT EXISTS` simples (tabelas ainda pequenas, lock é aceitável).
-- Paginação: `useInfiniteQuery` para listas grandes, `range(from, to)` no Supabase client.
-- Hook centralizado: `useAlunos`, `useAgenda`, `usePipeline` se ainda não existirem unificados.
+- Triggers serão `AFTER INSERT/UPDATE` com `SECURITY DEFINER` + `SET search_path = public`, seguindo o padrão da Fase 1.
+- Recalculo de status: função `fn_calcular_status_aluno(_aluno_id uuid) returns text`, chamada por trigger em `aluno_licencas` e `planos`.
+- Invalidation helpers usam `queryClient.invalidateQueries({ queryKey: [...] })` com prefixos consistentes.
+- Sem mudança de UI/UX visível.
 
-Aprove para eu começar pela migration de índices e seguir com as otimizações de frontend em ordem de impacto.
+Aprove para eu começar pela migration de triggers, seguir com `errors.ts`/`logger.ts` e por fim o `useSupabaseMutation`.
