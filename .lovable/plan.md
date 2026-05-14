@@ -1,70 +1,77 @@
-## Diagnóstico objetivo
+## Diagnóstico real
 
-- Testei a URL publicada `https://fortem-gestao.lovable.app` diretamente.
-- A recuperação de senha para `nicolas.janovik@gmail.com` retornou sucesso no backend: `POST /auth/v1/recover` com status `200`.
-- O login com `nicolas.janovik@gmail.com` + `Fortem@2026` também retornou sucesso: `POST /auth/v1/token` com status `200`, e a aplicação redirecionou para `/`.
-- O backend está saudável.
-- As contas de staff citadas existem, estão com e-mail confirmado, têm roles de funcionário e foram atualizadas com a senha temporária.
-- A conta `fortemtreinamento@gmail.com` está corretamente marcada como `aluno`, não como funcionário.
+Rodei o scanner de segurança e o linter do banco. Resultado:
 
-## Problema provável
+- **112 achados de segurança** (todos `warn`, nenhum `error` crítico). Distribuídos em ~5 categorias.
+- **101 issues no linter do Postgres** (mesma origem dos achados de segurança).
+- **Backend e auth saudáveis** — login retorna 200. Sintoma de "lentidão" não é causado por queries quebradas.
+- **Frontend já tem lazy loading** em todas as rotas, `ProtectedRoute` já cacheia roles via react-query (5 min staleTime), `QueryClient` já desativa `refetchOnWindowFocus`. Ou seja, o básico de performance já existe.
+- **51 tabelas** no schema `public`.
 
-O erro “Failed to fetch” visto na tela publicada provavelmente não vem da API de autenticação em si, porque a chamada real de recuperação está respondendo `200`. O que precisa ser corrigido agora é:
+### Categorias dos 112 achados
 
-1. A interface não deve exibir erro genérico quando a recuperação foi aceita pelo backend.
-2. O fluxo de login deve tratar melhor o pós-login, evitando a sensação de falha caso o redirecionamento/checagem de permissões demore ou falhe parcialmente.
-3. O app precisa limpar estados antigos de autenticação/cache local que podem manter o usuário preso em uma sessão inválida.
-4. As mensagens precisam diferenciar erro real de credencial, erro de rede/local do navegador e erro de permissão.
+1. **Function Search Path Mutable** (~30 funções) — funções sem `SET search_path = public` explícito. Risco: search_path hijacking.
+2. **Public Can Execute SECURITY DEFINER Function** (~25 funções) — funções `SECURITY DEFINER` com EXECUTE concedido a `anon`. Devem ser restritas a `authenticated`.
+3. **RLS Policy Always True** (algumas políticas de UPDATE/DELETE/INSERT com `USING (true)`).
+4. **Public Bucket Allows Listing** — bucket de storage público permite listar arquivos.
+5. **Outros** — duplicatas e variações dos itens acima.
 
-## Plano de correção
+### Causa real da lentidão de carregamento
 
-### 1. Fortalecer o AuthContext
+Sem queries lentas detectadas no diagnóstico rápido. Hipóteses prováveis (a confirmar na Fase 2 de Performance):
+- Dashboard fazendo várias queries em paralelo no mount.
+- Falta de índices em `alunos(responsavel_id)`, `agenda_servicos(profissional_id, dia_semana)`, `tarefas(responsavel_id, status)`, `pipeline_movements(aluno_id, moved_at)`.
+- Tamanho da instância Cloud pode estar sub-dimensionado para o volume atual.
 
-- Adicionar uma função `restoreSession()` explícita para revalidar a sessão inicial.
-- Adicionar fallback seguro caso `getSession()` ou o evento inicial de auth não conclua.
-- Garantir que `loading` sempre finalize, mesmo em erro.
-- Normalizar o e-mail antes do login (`trim().toLowerCase()`).
-- Em erro de login, limpar apenas estados inválidos de auth para evitar loop.
+---
 
-### 2. Corrigir o login de funcionários
+## Plano da Fase 1 — Segurança + Estabilidade
 
-- Ajustar `Login.tsx` para:
-  - limpar espaços do e-mail;
-  - mostrar mensagem específica quando o login foi aceito mas o perfil/role falha;
-  - redirecionar imediatamente após sucesso com uma checagem robusta de role;
-  - destravar o botão se a checagem demorar ou falhar;
-  - evitar depender apenas do `useEffect` para o redirecionamento.
+### Passo 1 — Endurecer funções do banco (1 migration)
 
-### 3. Corrigir recuperação de senha
+- Adicionar `SET search_path = public` em todas as funções que ainda não têm (~30).
+- `REVOKE EXECUTE ... FROM anon` em todas as funções `SECURITY DEFINER` que não devem ser chamadas sem login (~25). Manter EXECUTE para `authenticated`.
+- Funções públicas legítimas (ex.: `fn_clube_validar_token` chamado via QR) ficam acessíveis a `authenticated` apenas.
 
-- Ajustar `RecoverPassword.tsx` e `PortalRecoverPassword.tsx` para:
-  - tratar `Failed to fetch` como instabilidade local/rede e orientar tentativa em janela anônima ou recarregamento;
-  - não manter toast de erro quando o backend aceitou o pedido;
-  - mostrar estado de sucesso sempre que a API retornar sem erro;
-  - bloquear reenvios repetidos enquanto a chamada está em andamento.
+### Passo 2 — Corrigir políticas RLS permissivas (1 migration)
 
-### 4. Corrigir redefinição de senha
+- Identificar políticas de UPDATE/DELETE/INSERT com `USING (true)` e substituir por checagens reais (`auth.uid() = ...` ou `is_coordinator_or_admin(auth.uid())`).
+- Revisar tabelas sensíveis: `alunos`, `planos`, `vendas`, `creditos_aluno`, `user_roles`, `profiles`, `legal_annexes`.
 
-- Ajustar `ResetPassword.tsx` e `PortalResetPassword.tsx` para:
-  - reconhecer token de recuperação em `hash` e `query string`;
-  - exibir erro claro se o link expirou ou foi aberto sem token;
-  - redirecionar para o destino correto após redefinir, de acordo com staff ou portal.
+### Passo 3 — Restringir bucket público de storage (1 migration)
 
-### 5. Validar rotas e permissões
+- Remover SELECT público amplo em `storage.objects` para o bucket público; manter SELECT por path autorizado.
 
-- Manter `/login` para funcionários e `/portal/login` para alunos.
-- Garantir que `fortemtreinamento@gmail.com` continue indo para `/portal`.
-- Garantir que staff sem role nunca fique preso em loading infinito: redirecionar para `/portal` com feedback.
+### Passo 4 — Estabilidade do frontend
 
-### 6. Validação pós-correção
+- **Error Boundary global** em `src/main.tsx` envolvendo `<App/>`, com fallback amigável e botão "Recarregar".
+- **GlobalLoader / GlobalErrorToast**: padronizar `useToast` com 2 helpers (`toastError`, `toastSuccess`) já normalizando "Failed to fetch" como mensagem de rede.
+- **react-query**: adicionar `retry: 2` com backoff exponencial e `refetchOnReconnect: true` no `QueryClient`.
+- **Rota 404 catch-all** já existe; garantir que o Suspense fallback não trave por mais de 6s (timeout de segurança visual).
 
-- Testar na URL publicada/preview:
-  - login com `nicolas.janovik@gmail.com` + `Fortem@2026`;
-  - recuperação de senha em `/recuperar-senha`;
-  - redirecionamento de funcionário para `/`;
-  - redirecionamento de aluno para `/portal`;
-  - ausência de toast falso “Failed to fetch” após resposta `200`.
+### Passo 5 — Validação automática
 
-## Observação importante
+- Rerodar o scanner de segurança após as migrations.
+- Conferir que o número de findings cai para próximo de zero (resta apenas o que for intencional).
+- Atualizar `security memory` documentando o que ficou intencionalmente público.
 
-A senha temporária já foi aplicada no banco para as contas listadas. Se algum usuário ainda vê erro, a causa mais provável é cache/sessão antiga do navegador ou uma versão publicada anterior ainda aberta. Mesmo assim, vou tornar o fluxo mais resiliente para não depender dessa condição.
+---
+
+## Fora do escopo desta fase (irá para Fase 2 e 3)
+
+- Índices de banco e otimização de queries.
+- Refactor de hooks, debounce, paginação.
+- Sincronização entre módulos via novos triggers.
+- Testes E2E completos.
+
+Vou apresentar essas fases depois que a Fase 1 estiver aprovada e validada — é a forma mais segura de evitar regressão e gasto desnecessário de créditos.
+
+---
+
+## Entregáveis desta fase
+
+- 3 migrations SQL (search_path + revoke execute, RLS, storage).
+- ErrorBoundary + helpers de toast + ajustes no `QueryClient`.
+- Relatório final: nº de findings antes/depois, lista de funções endurecidas, políticas corrigidas.
+
+Estimativa: execução em 1 ciclo de aprovação de migration + 1 rodada de edits de frontend.
