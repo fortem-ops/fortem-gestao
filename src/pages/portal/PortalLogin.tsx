@@ -34,6 +34,15 @@ export default function PortalLogin() {
     }
   };
 
+  // Diagnóstico proativo ao abrir a tela de login.
+  useEffect(() => {
+    let cancelled = false;
+    diagnoseNetwork().then((d) => {
+      if (!cancelled && d.status !== "ok") setDiagnosis(d);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     userHasStaffAccess(user.id).then((isStaff) => {

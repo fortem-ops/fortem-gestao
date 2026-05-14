@@ -35,6 +35,15 @@ export default function Login() {
     }
   };
 
+  // Diagnóstico proativo ao abrir a tela de login.
+  useEffect(() => {
+    let cancelled = false;
+    diagnoseNetwork().then((d) => {
+      if (!cancelled && d.status !== "ok") setDiagnosis(d);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   // Se já está logado quando chega aqui, redireciona pelo papel.
   useEffect(() => {
     if (!isReady || !user) return;
