@@ -79,6 +79,24 @@ function LocBadge({ ev }: { ev?: EventoPonto }) {
   );
 }
 
+function DivergenciaCell({ label, diff, excedida, positivoEhDesconto }: { label: string; diff: number | null | undefined; excedida: boolean | null | undefined; positivoEhDesconto: boolean }) {
+  const value = diff ?? 0;
+  let tone = "text-muted-foreground";
+  if (value !== 0) {
+    if (!excedida) tone = "text-warning";
+    else {
+      const isDesconto = positivoEhDesconto ? value > 0 : value < 0;
+      tone = isDesconto ? "text-destructive" : "text-success";
+    }
+  }
+  return (
+    <div className="rounded border border-border/40 bg-background/40 p-2">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className={`text-base font-semibold tabular-nums ${tone}`}>{formatDivergencia(value)}</p>
+    </div>
+  );
+}
+
 export function ResumoDoDia({
   jornadaId,
   entrada,
