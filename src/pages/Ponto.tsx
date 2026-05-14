@@ -237,6 +237,7 @@ export default function Ponto() {
                 intervaloInicio={estado.intervalo_inicio}
                 intervaloFim={estado.intervalo_fim}
                 saida={estado.saida}
+                statusPonto={jornadaHoje?.status_ponto as any}
               />
 
               {!isViewingOther && (
@@ -256,6 +257,7 @@ export default function Ponto() {
                 eventos={eventosDia}
                 readOnly={isViewingOther}
                 usuarioAlvoId={targetId!}
+                tolerancia={jornadaHoje as any}
               />
             </>
           )}
