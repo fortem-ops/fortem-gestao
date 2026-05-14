@@ -4,9 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatHora, formatMinutes } from "@/lib/ponto";
-import { LogIn, Coffee, Utensils, LogOut, MessageSquarePlus, MapPin } from "lucide-react";
+import {
+  formatDivergencia,
+  STATUS_PONTO_LABEL,
+  STATUS_PONTO_CLASS,
+  type JornadaTolerancia,
+} from "@/lib/pontoTolerancia";
+import { LogIn, Coffee, Utensils, LogOut, MessageSquarePlus, MapPin, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export interface EventoPonto {
@@ -28,6 +36,7 @@ interface Props {
   eventos?: EventoPonto[];
   readOnly?: boolean;
   usuarioAlvoId?: string;
+  tolerancia?: JornadaTolerancia | null;
 }
 
 function LocBadge({ ev }: { ev?: EventoPonto }) {
@@ -70,6 +79,24 @@ function LocBadge({ ev }: { ev?: EventoPonto }) {
   );
 }
 
+function DivergenciaCell({ label, diff, excedida, positivoEhDesconto }: { label: string; diff: number | null | undefined; excedida: boolean | null | undefined; positivoEhDesconto: boolean }) {
+  const value = diff ?? 0;
+  let tone = "text-muted-foreground";
+  if (value !== 0) {
+    if (!excedida) tone = "text-warning";
+    else {
+      const isDesconto = positivoEhDesconto ? value > 0 : value < 0;
+      tone = isDesconto ? "text-destructive" : "text-success";
+    }
+  }
+  return (
+    <div className="rounded border border-border/40 bg-background/40 p-2">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className={`text-base font-semibold tabular-nums ${tone}`}>{formatDivergencia(value)}</p>
+    </div>
+  );
+}
+
 export function ResumoDoDia({
   jornadaId,
   entrada,
@@ -81,6 +108,7 @@ export function ResumoDoDia({
   eventos,
   readOnly,
   usuarioAlvoId,
+  tolerancia,
 }: Props) {
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -145,6 +173,52 @@ export function ResumoDoDia({
           );
         })}
       </div>
+
+      {tolerancia && (tolerancia.prev_entrada || tolerancia.divergencia_total_dia != null) && (
+        <div className="rounded-md border border-border/60 p-4 space-y-3 bg-secondary/20">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-semibold">Cálculo do dia (CLT)</h4>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    Tolerância CLT: até 5 min por marcação são ignorados, desde que a soma diária
+                    não ultrapasse 10 min. Excedendo qualquer um dos limites, todas as divergências
+                    do dia contam para desconto ou hora extra.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            {tolerancia.status_ponto && (
+              <Badge variant="outline" className={STATUS_PONTO_CLASS[tolerancia.status_ponto]}>
+                {STATUS_PONTO_LABEL[tolerancia.status_ponto]}
+              </Badge>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+            <DivergenciaCell label="Entrada" diff={tolerancia.divergencia_entrada_min} excedida={tolerancia.tolerancia_excedida} positivoEhDesconto />
+            <DivergenciaCell label="Saída" diff={tolerancia.divergencia_saida_min} excedida={tolerancia.tolerancia_excedida} positivoEhDesconto={false} />
+            <DivergenciaCell label="Intervalo" diff={tolerancia.divergencia_intervalo_min} excedida={tolerancia.tolerancia_excedida} positivoEhDesconto />
+          </div>
+
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground pt-2 border-t border-border/40">
+            <span>Total divergência: <span className="text-foreground font-medium">{tolerancia.divergencia_total_dia ?? 0} min</span></span>
+            {!tolerancia.tolerancia_excedida && (tolerancia.minutos_tolerados ?? 0) > 0 && (
+              <span className="text-warning">Tolerados: {tolerancia.minutos_tolerados} min</span>
+            )}
+            {(tolerancia.minutos_descontaveis ?? 0) > 0 && (
+              <span className="text-destructive">Desconto: {tolerancia.minutos_descontaveis} min</span>
+            )}
+            {(tolerancia.minutos_extras_validos ?? 0) > 0 && (
+              <span className="text-success">Hora extra: {tolerancia.minutos_extras_validos} min</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {!readOnly && (
         !adding ? (

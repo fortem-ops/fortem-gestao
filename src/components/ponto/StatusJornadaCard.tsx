@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee, CheckCircle2, CircleDashed } from "lucide-react";
 import { formatHora, formatMinutes, minutesSince, type PontoEstado } from "@/lib/ponto";
+import { STATUS_PONTO_LABEL, STATUS_PONTO_CLASS, type StatusPonto } from "@/lib/pontoTolerancia";
 
 interface Props {
   status: PontoEstado;
@@ -9,6 +11,7 @@ interface Props {
   intervaloInicio?: string | null;
   intervaloFim?: string | null;
   saida?: string | null;
+  statusPonto?: StatusPonto | null;
 }
 
 const STATUS_CONFIG: Record<PontoEstado, { label: string; color: string; icon: typeof Clock }> = {
@@ -20,7 +23,7 @@ const STATUS_CONFIG: Record<PontoEstado, { label: string; color: string; icon: t
 };
 
 /** Bloco visual com status atual + tempo decorrido em tempo real. */
-export function StatusJornadaCard({ status, entrada, intervaloInicio, intervaloFim, saida }: Props) {
+export function StatusJornadaCard({ status, entrada, intervaloInicio, intervaloFim, saida, statusPonto }: Props) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setTick((x) => x + 1), 30_000);
@@ -64,9 +67,14 @@ export function StatusJornadaCard({ status, entrada, intervaloInicio, intervaloF
     <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-border">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`inline-block w-2.5 h-2.5 rounded-full ${cfg.color} ${status === "em_jornada" || status === "em_intervalo" ? "animate-pulse" : ""}`} />
             <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground">{cfg.label}</span>
+            {statusPonto && (
+              <Badge variant="outline" className={STATUS_PONTO_CLASS[statusPonto]}>
+                {STATUS_PONTO_LABEL[statusPonto]}
+              </Badge>
+            )}
           </div>
           <p className="text-xl font-heading font-semibold">{refLabel}</p>
           {minutos > 0 && (

@@ -82,7 +82,7 @@ export default function Ponto() {
       const hoje = new Date().toISOString().slice(0, 10);
       const { data } = await supabase
         .from("ponto_jornadas")
-        .select("observacao")
+        .select("observacao, prev_entrada, prev_saida, prev_intervalo_min, divergencia_entrada_min, divergencia_saida_min, divergencia_intervalo_min, divergencia_total_dia, minutos_tolerados, minutos_considerados, minutos_descontaveis, minutos_extras_validos, tolerancia_excedida, status_ponto")
         .eq("usuario_id", targetId!)
         .eq("data", hoje)
         .maybeSingle();
@@ -237,6 +237,7 @@ export default function Ponto() {
                 intervaloInicio={estado.intervalo_inicio}
                 intervaloFim={estado.intervalo_fim}
                 saida={estado.saida}
+                statusPonto={jornadaHoje?.status_ponto as any}
               />
 
               {!isViewingOther && (
@@ -256,6 +257,7 @@ export default function Ponto() {
                 eventos={eventosDia}
                 readOnly={isViewingOther}
                 usuarioAlvoId={targetId!}
+                tolerancia={jornadaHoje as any}
               />
             </>
           )}

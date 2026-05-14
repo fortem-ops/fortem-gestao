@@ -1567,6 +1567,8 @@ export type Database = {
           id: string
           intervalo_minimo_min: number
           intervalo_obrigatorio: boolean
+          tolerancia_diaria_min: number
+          tolerancia_marcacao_min: number
           tolerancia_min: number
           updated_at: string
           usuario_id: string | null
@@ -1577,6 +1579,8 @@ export type Database = {
           id?: string
           intervalo_minimo_min?: number
           intervalo_obrigatorio?: boolean
+          tolerancia_diaria_min?: number
+          tolerancia_marcacao_min?: number
           tolerancia_min?: number
           updated_at?: string
           usuario_id?: string | null
@@ -1587,6 +1591,8 @@ export type Database = {
           id?: string
           intervalo_minimo_min?: number
           intervalo_obrigatorio?: boolean
+          tolerancia_diaria_min?: number
+          tolerancia_marcacao_min?: number
           tolerancia_min?: number
           updated_at?: string
           usuario_id?: string | null
@@ -1806,48 +1812,87 @@ export type Database = {
         Row: {
           created_at: string
           data: string
+          divergencia_entrada_min: number | null
+          divergencia_intervalo_min: number | null
+          divergencia_saida_min: number | null
+          divergencia_total_dia: number | null
           entrada: string | null
           fechamento_id: string | null
           id: string
           intervalo_fim: string | null
           intervalo_inicio: string | null
+          minutos_considerados: number
+          minutos_descontaveis: number
+          minutos_extras_validos: number
           minutos_intervalo: number | null
+          minutos_tolerados: number
           minutos_trabalhados: number | null
           observacao: string | null
+          prev_entrada: string | null
+          prev_intervalo_min: number | null
+          prev_saida: string | null
           saida: string | null
           status: Database["public"]["Enums"]["ponto_jornada_status"]
+          status_ponto: Database["public"]["Enums"]["ponto_status_dia"] | null
+          tolerancia_excedida: boolean
           updated_at: string
           usuario_id: string
         }
         Insert: {
           created_at?: string
           data: string
+          divergencia_entrada_min?: number | null
+          divergencia_intervalo_min?: number | null
+          divergencia_saida_min?: number | null
+          divergencia_total_dia?: number | null
           entrada?: string | null
           fechamento_id?: string | null
           id?: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
+          minutos_considerados?: number
+          minutos_descontaveis?: number
+          minutos_extras_validos?: number
           minutos_intervalo?: number | null
+          minutos_tolerados?: number
           minutos_trabalhados?: number | null
           observacao?: string | null
+          prev_entrada?: string | null
+          prev_intervalo_min?: number | null
+          prev_saida?: string | null
           saida?: string | null
           status?: Database["public"]["Enums"]["ponto_jornada_status"]
+          status_ponto?: Database["public"]["Enums"]["ponto_status_dia"] | null
+          tolerancia_excedida?: boolean
           updated_at?: string
           usuario_id: string
         }
         Update: {
           created_at?: string
           data?: string
+          divergencia_entrada_min?: number | null
+          divergencia_intervalo_min?: number | null
+          divergencia_saida_min?: number | null
+          divergencia_total_dia?: number | null
           entrada?: string | null
           fechamento_id?: string | null
           id?: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
+          minutos_considerados?: number
+          minutos_descontaveis?: number
+          minutos_extras_validos?: number
           minutos_intervalo?: number | null
+          minutos_tolerados?: number
           minutos_trabalhados?: number | null
           observacao?: string | null
+          prev_entrada?: string | null
+          prev_intervalo_min?: number | null
+          prev_saida?: string | null
           saida?: string | null
           status?: Database["public"]["Enums"]["ponto_jornada_status"]
+          status_ponto?: Database["public"]["Enums"]["ponto_status_dia"] | null
+          tolerancia_excedida?: boolean
           updated_at?: string
           usuario_id?: string
         }
@@ -2430,9 +2475,17 @@ export type Database = {
         Args: { _ate?: string; _user_id: string }
         Returns: number
       }
+      fn_ponto_calcular_divergencias: {
+        Args: { _jornada_id: string }
+        Returns: undefined
+      }
       fn_ponto_calcular_fechamento: {
         Args: { _mes: string; _user_id: string }
         Returns: Json
+      }
+      fn_ponto_consolidar_banco: {
+        Args: { _jornada_id: string }
+        Returns: undefined
       }
       fn_ponto_dashboard_coordenador: {
         Args: { _data?: string }
@@ -2566,6 +2619,8 @@ export type Database = {
         | "debito_manual"
         | "compensacao"
         | "ajuste_saldo"
+        | "tolerancia_excedida"
+        | "hora_extra"
       ponto_evento_tipo:
         | "entrada"
         | "intervalo_inicio"
@@ -2585,6 +2640,15 @@ export type Database = {
         | "encerrada"
         | "bloqueada"
       ponto_origem: "web" | "mobile" | "ajuste_manual"
+      ponto_status_dia:
+        | "dentro_tolerancia"
+        | "divergencia_leve"
+        | "divergencia_considerada"
+        | "banco_negativo"
+        | "hora_extra"
+        | "jornada_incompleta"
+        | "falta_marcacao"
+        | "em_analise"
       regra_elegibilidade_tipo:
         | "plano"
         | "frequencia_minima"
@@ -2812,6 +2876,8 @@ export const Constants = {
         "debito_manual",
         "compensacao",
         "ajuste_saldo",
+        "tolerancia_excedida",
+        "hora_extra",
       ],
       ponto_evento_tipo: [
         "entrada",
@@ -2835,6 +2901,16 @@ export const Constants = {
         "bloqueada",
       ],
       ponto_origem: ["web", "mobile", "ajuste_manual"],
+      ponto_status_dia: [
+        "dentro_tolerancia",
+        "divergencia_leve",
+        "divergencia_considerada",
+        "banco_negativo",
+        "hora_extra",
+        "jornada_incompleta",
+        "falta_marcacao",
+        "em_analise",
+      ],
       regra_elegibilidade_tipo: [
         "plano",
         "frequencia_minima",
