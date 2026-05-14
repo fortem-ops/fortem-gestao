@@ -2488,9 +2488,14 @@ export type Database = {
         Args: { _jornada_id: string }
         Returns: undefined
       }
-      fn_ponto_dashboard_coordenador:
-        | { Args: { _data?: string }; Returns: Json }
-        | { Args: { p_fim?: string; p_inicio?: string }; Returns: Json }
+      fn_ponto_dashboard_coordenador: {
+        Args: { _data?: string }
+        Returns: Json
+      }
+      fn_ponto_dashboard_periodo: {
+        Args: { p_fim?: string; p_inicio?: string }
+        Returns: Json
+      }
       fn_ponto_dia_ausencia: {
         Args: { _data: string; _user_id: string }
         Returns: string
