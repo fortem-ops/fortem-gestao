@@ -20,6 +20,7 @@ import {
 import { ChevronDown, ChevronRight, MapPin, FileText, AlertTriangle, Clock } from "lucide-react";
 import { formatHora, formatMinutes } from "@/lib/ponto";
 import { ExportarRelatorioMenu } from "@/components/ponto/ExportarRelatorioMenu";
+import { gerarEspelhoPonto } from "@/lib/pontoPdf";
 import {
   exportarDiarioCSV,
   exportarDiarioXLSX,
@@ -396,6 +397,14 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
                 <ExportarRelatorioMenu
                   onCSV={() => handleExportDiario("csv")}
                   onXLSX={() => handleExportDiario("xlsx")}
+                  onPDF={() =>
+                    gerarEspelhoPonto({
+                      colaborador: meuNome,
+                      periodoInicio: inicio,
+                      periodoFim: fim,
+                      jornadas: jornadasFiltradas as any,
+                    })
+                  }
                   disabled={!jornadasFiltradas.length}
                 />
               </div>
