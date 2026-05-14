@@ -146,7 +146,7 @@ const App = () => (
             />
             <Route
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireStaff>
                   <AppLayout />
                 </ProtectedRoute>
               }
