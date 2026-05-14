@@ -122,6 +122,9 @@ export default function PortalLogin() {
               <p className="text-center text-xs text-muted-foreground">
                 Use o e-mail cadastrado pelo seu professor.
               </p>
+              {diagnosis && diagnosis.status !== "ok" && (
+                <NetworkHelpPanel diagnosis={diagnosis} onRetest={runDiagnosis} testing={testing} />
+              )}
             </form>
           </CardContent>
         </Card>
