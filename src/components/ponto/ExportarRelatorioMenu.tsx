@@ -1,14 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, FileDown } from "lucide-react";
 
 interface Props {
   onCSV: () => void;
   onXLSX: () => void;
+  onPDF?: () => void;
   disabled?: boolean;
 }
 
-export function ExportarRelatorioMenu({ onCSV, onXLSX, disabled }: Props) {
+export function ExportarRelatorioMenu({ onCSV, onXLSX, onPDF, disabled }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -23,6 +24,11 @@ export function ExportarRelatorioMenu({ onCSV, onXLSX, disabled }: Props) {
         <DropdownMenuItem onClick={onXLSX} className="gap-2">
           <FileSpreadsheet className="w-4 h-4" /> Excel (XLSX)
         </DropdownMenuItem>
+        {onPDF && (
+          <DropdownMenuItem onClick={onPDF} className="gap-2">
+            <FileDown className="w-4 h-4" /> PDF (espelho)
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

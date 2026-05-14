@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Users2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EquipeAoVivoTable } from "@/components/ponto/EquipeAoVivoTable";
+import { DashboardCoordenadorKPIs } from "@/components/ponto/DashboardCoordenadorKPIs";
+import { AlertasPontoPanel } from "@/components/ponto/AlertasPontoPanel";
 
 export default function PontoEquipe() {
   const { user, loading } = useAuth();
@@ -35,7 +37,9 @@ export default function PontoEquipe() {
           Acompanhe quem está em jornada, em intervalo ou pendente. Atualização em tempo real.
         </p>
       </header>
+      <DashboardCoordenadorKPIs />
       <EquipeAoVivoTable />
+      <AlertasPontoPanel />
     </div>
   );
 }
