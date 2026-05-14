@@ -81,7 +81,11 @@ export default function StudentList() {
       if (error) throw error;
 
       const ids = students.map((s) => s.id);
-      const { data: planos } = await supabase.from("planos").select("*").in("aluno_id", ids).eq("ativo", true);
+      const { data: planos } = await supabase
+        .from("planos")
+        .select("aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo")
+        .in("aluno_id", ids)
+        .eq("ativo", true);
       const { data: creditos } = await supabase
         .from("creditos_aluno" as any)
         .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
@@ -89,7 +93,7 @@ export default function StudentList() {
         .eq("ativo", true);
       const { data: licencas } = await supabase
         .from("aluno_licencas" as any)
-        .select("*")
+        .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
         .in("aluno_id", ids);
       const licencasMap: Record<string, AlunoLicenca[]> = {};
       ((licencas as unknown as AlunoLicenca[]) || []).forEach((l) => {
