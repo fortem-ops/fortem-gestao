@@ -1,77 +1,60 @@
-## Diagnóstico real
+# Fase 2 — Performance + Banco de Dados
 
-Rodei o scanner de segurança e o linter do banco. Resultado:
+## Escopo
 
-- **112 achados de segurança** (todos `warn`, nenhum `error` crítico). Distribuídos em ~5 categorias.
-- **101 issues no linter do Postgres** (mesma origem dos achados de segurança).
-- **Backend e auth saudáveis** — login retorna 200. Sintoma de "lentidão" não é causado por queries quebradas.
-- **Frontend já tem lazy loading** em todas as rotas, `ProtectedRoute` já cacheia roles via react-query (5 min staleTime), `QueryClient` já desativa `refetchOnWindowFocus`. Ou seja, o básico de performance já existe.
-- **51 tabelas** no schema `public`.
+Otimizar consultas, reduzir renders e melhorar tempo de carregamento das páginas. Foco em ganho real mensurável, sem alterar funcionalidades.
 
-### Categorias dos 112 achados
+## 1. Índices no banco (1 migration)
 
-1. **Function Search Path Mutable** (~30 funções) — funções sem `SET search_path = public` explícito. Risco: search_path hijacking.
-2. **Public Can Execute SECURITY DEFINER Function** (~25 funções) — funções `SECURITY DEFINER` com EXECUTE concedido a `anon`. Devem ser restritas a `authenticated`.
-3. **RLS Policy Always True** (algumas políticas de UPDATE/DELETE/INSERT com `USING (true)`).
-4. **Public Bucket Allows Listing** — bucket de storage público permite listar arquivos.
-5. **Outros** — duplicatas e variações dos itens acima.
+Criar índices nas colunas mais consultadas (filtros e joins frequentes):
 
-### Causa real da lentidão de carregamento
+- `alunos (responsavel_id)`, `alunos (status)`, `alunos (current_pipeline_stage_id)`
+- `agenda_servicos (profissional_id, dia_semana)`, `agenda_servicos (aluno_id)`, `agenda_servicos (data_especifica)`
+- `avaliacoes (aluno_id, data DESC)`, `avaliacoes (avaliador_id)`
+- `pipeline_movements (aluno_id, moved_at DESC)`, `pipeline_movements (to_stage_id)`
+- `notificacoes (criado_por, created_at DESC)`, `notificacao_destinatarios (usuario_id, status)`
+- `creditos_aluno (aluno_id, ativo)`, `creditos_movimentos (credito_id, data DESC)`
+- `consumo_servicos (aluno_id, data_consumo DESC)`, `consumo_servicos (plano_id)`
+- `planos (aluno_id, ativo)`, `historico_profissional (aluno_id, created_at DESC)`
+- `audit_log (user_id, created_at DESC)`
 
-Sem queries lentas detectadas no diagnóstico rápido. Hipóteses prováveis (a confirmar na Fase 2 de Performance):
-- Dashboard fazendo várias queries em paralelo no mount.
-- Falta de índices em `alunos(responsavel_id)`, `agenda_servicos(profissional_id, dia_semana)`, `tarefas(responsavel_id, status)`, `pipeline_movements(aluno_id, moved_at)`.
-- Tamanho da instância Cloud pode estar sub-dimensionado para o volume atual.
+Todos `IF NOT EXISTS` para serem idempotentes.
 
----
+## 2. Queries no frontend
 
-## Plano da Fase 1 — Segurança + Estabilidade
+- Substituir `SELECT *` por colunas explícitas nas listagens pesadas (Alunos, Agenda, Pipeline, Notificações, Dashboard).
+- Adicionar paginação (range) nas listas que hoje carregam tudo: lista de alunos, histórico, notificações, audit.
+- Padronizar `staleTime` por domínio no react-query (catálogos: 30min; listas: 2min; dashboards: 1min).
+- Eliminar chamadas duplicadas detectadas (mesma query disparada em múltiplos componentes irmãos) — centralizar em hook único.
 
-### Passo 1 — Endurecer funções do banco (1 migration)
+## 3. Renders e hooks no frontend
 
-- Adicionar `SET search_path = public` em todas as funções que ainda não têm (~30).
-- `REVOKE EXECUTE ... FROM anon` em todas as funções `SECURITY DEFINER` que não devem ser chamadas sem login (~25). Manter EXECUTE para `authenticated`.
-- Funções públicas legítimas (ex.: `fn_clube_validar_token` chamado via QR) ficam acessíveis a `authenticated` apenas.
+- Auditar `useEffect` com dependências instáveis nas páginas Dashboard, Alunos, Agenda, Pipeline.
+- `React.memo` + `useCallback`/`useMemo` em linhas de listas grandes (AlunoRow, AgendaCard, PipelineCard).
+- Debounce (300ms) em todos os campos de busca (Alunos, Pipeline, Notificações).
 
-### Passo 2 — Corrigir políticas RLS permissivas (1 migration)
+## 4. Code splitting adicional
 
-- Identificar políticas de UPDATE/DELETE/INSERT com `USING (true)` e substituir por checagens reais (`auth.uid() = ...` ou `is_coordinator_or_admin(auth.uid())`).
-- Revisar tabelas sensíveis: `alunos`, `planos`, `vendas`, `creditos_aluno`, `user_roles`, `profiles`, `legal_annexes`.
+- Verificar bundle e quebrar rotas grandes ainda não lazy (relatórios, banco de treinos, clube fortem).
+- Pré-carregar (`prefetch`) rotas mais usadas a partir do menu lateral.
 
-### Passo 3 — Restringir bucket público de storage (1 migration)
+## 5. Validação
 
-- Remover SELECT público amplo em `storage.objects` para o bucket público; manter SELECT por path autorizado.
+- Rodar Supabase linter pós-migration.
+- Medir tempo de carregamento (Network panel) antes/depois nas 3 páginas mais lentas.
+- Conferir se testes manuais de login/CRUD seguem ok.
 
-### Passo 4 — Estabilidade do frontend
+## Fora do escopo (vai para Fase 3)
 
-- **Error Boundary global** em `src/main.tsx` envolvendo `<App/>`, com fallback amigável e botão "Recarregar".
-- **GlobalLoader / GlobalErrorToast**: padronizar `useToast` com 2 helpers (`toastError`, `toastSuccess`) já normalizando "Failed to fetch" como mensagem de rede.
-- **react-query**: adicionar `retry: 2` com backoff exponencial e `refetchOnReconnect: true` no `QueryClient`.
-- **Rota 404 catch-all** já existe; garantir que o Suspense fallback não trave por mais de 6s (timeout de segurança visual).
+- Triggers de sincronização entre módulos
+- Sistema global de erros padronizados (parcialmente feito na Fase 1)
+- Refatoração arquitetural maior
+- E2E tests
 
-### Passo 5 — Validação automática
+## Detalhes técnicos
 
-- Rerodar o scanner de segurança após as migrations.
-- Conferir que o número de findings cai para próximo de zero (resta apenas o que for intencional).
-- Atualizar `security memory` documentando o que ficou intencionalmente público.
+- Índices: `CREATE INDEX CONCURRENTLY` não funciona dentro de migration transacional do Supabase, então usaremos `CREATE INDEX IF NOT EXISTS` simples (tabelas ainda pequenas, lock é aceitável).
+- Paginação: `useInfiniteQuery` para listas grandes, `range(from, to)` no Supabase client.
+- Hook centralizado: `useAlunos`, `useAgenda`, `usePipeline` se ainda não existirem unificados.
 
----
-
-## Fora do escopo desta fase (irá para Fase 2 e 3)
-
-- Índices de banco e otimização de queries.
-- Refactor de hooks, debounce, paginação.
-- Sincronização entre módulos via novos triggers.
-- Testes E2E completos.
-
-Vou apresentar essas fases depois que a Fase 1 estiver aprovada e validada — é a forma mais segura de evitar regressão e gasto desnecessário de créditos.
-
----
-
-## Entregáveis desta fase
-
-- 3 migrations SQL (search_path + revoke execute, RLS, storage).
-- ErrorBoundary + helpers de toast + ajustes no `QueryClient`.
-- Relatório final: nº de findings antes/depois, lista de funções endurecidas, políticas corrigidas.
-
-Estimativa: execução em 1 ciclo de aprovação de migration + 1 rodada de edits de frontend.
+Aprove para eu começar pela migration de índices e seguir com as otimizações de frontend em ordem de impacto.

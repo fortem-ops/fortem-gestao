@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,10 @@ import { StudentListFilters, defaultFilters, type StudentFilters } from "@/compo
 import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
+import { useDebounce } from "@/hooks/useDebounce";
+
+const ALUNOS_COLUMNS =
+  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id";
 
 function parseServiceCount(servicos: string[] | null, tipoServico: string): number {
   if (!servicos) return 0;
@@ -55,20 +59,33 @@ export default function StudentList() {
       const { data } = await supabase.from("profiles").select("user_id, full_name");
       return data || [];
     },
+    staleTime: 5 * 60_000,
   });
 
-  const professors = profiles.map((p) => ({ id: p.user_id, name: p.full_name }));
-  const profileMap: Record<string, string> = {};
-  profiles.forEach((p) => { profileMap[p.user_id] = p.full_name; });
+  const { professors, profileMap } = useMemo(() => {
+    const map: Record<string, string> = {};
+    profiles.forEach((p) => { map[p.user_id] = p.full_name; });
+    return {
+      professors: profiles.map((p) => ({ id: p.user_id, name: p.full_name })),
+      profileMap: map,
+    };
+  }, [profiles]);
 
   const { data: alunos = [], isLoading, refetch } = useQuery({
     queryKey: ["alunos_with_plans"],
     queryFn: async () => {
-      const { data: students, error } = await supabase.from("alunos").select("*").order("nome");
+      const { data: students, error } = await supabase
+        .from("alunos")
+        .select(ALUNOS_COLUMNS)
+        .order("nome");
       if (error) throw error;
 
       const ids = students.map((s) => s.id);
-      const { data: planos } = await supabase.from("planos").select("*").in("aluno_id", ids).eq("ativo", true);
+      const { data: planos } = await supabase
+        .from("planos")
+        .select("aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo")
+        .in("aluno_id", ids)
+        .eq("ativo", true);
       const { data: creditos } = await supabase
         .from("creditos_aluno" as any)
         .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
@@ -76,7 +93,7 @@ export default function StudentList() {
         .eq("ativo", true);
       const { data: licencas } = await supabase
         .from("aluno_licencas" as any)
-        .select("*")
+        .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
         .in("aluno_id", ids);
       const licencasMap: Record<string, AlunoLicenca[]> = {};
       ((licencas as unknown as AlunoLicenca[]) || []).forEach((l) => {
@@ -117,39 +134,45 @@ export default function StudentList() {
   });
 
 
-  const filtered = alunos.filter((s) => {
-    const c = s.credits;
-    const matchSearch = (s.nome ?? "").toLowerCase().includes(filters.search.toLowerCase()) ||
-      (s.email?.toLowerCase().includes(filters.search.toLowerCase()) ?? false);
-    const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
-    const matchStatus = filters.status === "todos" || display.key === filters.status;
+  const debouncedSearch = useDebounce(filters.search, 250);
 
-    const matchFreq = filters.frequencia === "todos" ||
-      (filters.frequencia === "livre" ? s.frequencia_semanal === 0 : s.frequencia_semanal === parseInt(filters.frequencia));
+  const filtered = useMemo(() => {
+    const term = debouncedSearch.toLowerCase();
+    return alunos.filter((s) => {
+      const c = s.credits;
+      const matchSearch = (s.nome ?? "").toLowerCase().includes(term) ||
+        (s.email?.toLowerCase().includes(term) ?? false);
+      const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
+      const matchStatus = filters.status === "todos" || display.key === filters.status;
 
-    const hasBase = c && Object.keys(c.plano).length > 0;
-    const matchSP = filters.servicosPlano === "todos" ||
-      (filters.servicosPlano === "com" ? hasBase : !hasBase);
+      const matchFreq = filters.frequencia === "todos" ||
+        (filters.frequencia === "livre" ? s.frequencia_semanal === 0 : s.frequencia_semanal === parseInt(filters.frequencia));
 
-    const hasPurch = c && Object.keys(c.servico).length > 0;
-    const matchSC = filters.servicosContratados === "todos" ||
-      (filters.servicosContratados === "com" ? hasPurch : !hasPurch);
+      const hasBase = c && Object.keys(c.plano).length > 0;
+      const matchSP = filters.servicosPlano === "todos" ||
+        (filters.servicosPlano === "com" ? hasBase : !hasBase);
 
-    const matchProf = filters.professor === "todos" || s.responsavel_id === filters.professor;
+      const hasPurch = c && Object.keys(c.servico).length > 0;
+      const matchSC = filters.servicosContratados === "todos" ||
+        (filters.servicosContratados === "com" ? hasPurch : !hasPurch);
 
-    let matchDate = true;
-    if (filters.dataFinalDe && s.planEnd) {
-      matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
-    }
-    if (filters.dataFinalAte && s.planEnd) {
-      matchDate = matchDate && !isAfter(s.planEnd, startOfDay(filters.dataFinalAte));
-    }
-    if ((filters.dataFinalDe || filters.dataFinalAte) && !s.planEnd) {
-      matchDate = false;
-    }
+      const matchProf = filters.professor === "todos" || s.responsavel_id === filters.professor;
 
-    return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
-  });
+      let matchDate = true;
+      if (filters.dataFinalDe && s.planEnd) {
+        matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
+      }
+      if (filters.dataFinalAte && s.planEnd) {
+        matchDate = matchDate && !isAfter(s.planEnd, startOfDay(filters.dataFinalAte));
+      }
+      if ((filters.dataFinalDe || filters.dataFinalAte) && !s.planEnd) {
+        matchDate = false;
+      }
+
+      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
+    });
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte]);
+
 
   const iconForAtividade = (atividade: string) => {
     const a = atividade.toLowerCase();
