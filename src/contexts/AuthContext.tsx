@@ -10,9 +10,32 @@ interface AuthContextType {
   isReady: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  resetAuthState: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const AUTH_STORAGE_KEY_RE = /^sb-.+-auth-token$/;
+
+function removeStoredAuthSession() {
+  if (typeof window === "undefined") return;
+  try {
+    Object.keys(window.localStorage)
+      .filter((key) => AUTH_STORAGE_KEY_RE.test(key))
+      .forEach((key) => window.localStorage.removeItem(key));
+  } catch {
+    // noop — alguns navegadores bloqueiam storage em modos restritos.
+  }
+}
+
+async function clearLocalAuthSession() {
+  removeStoredAuthSession();
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    removeStoredAuthSession();
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -44,7 +67,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(existing?.user ?? null);
       })
       .catch(() => {
-        // ignora — fallback abaixo garante que isReady acaba ficando true
+        // Sessão/refresh local pode ficar inválido e prender o login em loop.
+        setSession(null);
+        setUser(null);
+        removeStoredAuthSession();
       })
       .finally(() => {
         initialized.current.session = true;
@@ -68,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const cleanEmail = email.trim().toLowerCase();
+    await clearLocalAuthSession();
     // Retry uma vez em erro de rede (extensão/proxy do navegador pode falhar a 1ª chamada).
     let lastError: any = null;
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -86,10 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    removeStoredAuthSession();
+  };
+
+  const resetAuthState = async () => {
+    setSession(null);
+    setUser(null);
+    await clearLocalAuthSession();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isReady, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isReady, signIn, signOut, resetAuthState }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,110 +1,32 @@
-## Próximos passos do módulo Ponto
+## Diagnóstico
 
-Três entregas em paralelo, todas conectadas à lógica de tolerância CLT já implantada (5 min/marcação, 10 min/dia, status automáticos em `ponto_jornadas`).
+- O backend do Lovable Cloud está saudável.
+- Um teste direto fora do navegador alcança o endpoint de autenticação e recebe resposta normal de credenciais inválidas, então não parece ser indisponibilidade do backend nem CORS básico.
+- No preview do usuário, as requisições que falham são tentativas automáticas de renovar sessão (`grant_type=refresh_token`) com `Failed to fetch`, repetidas em loop.
+- O fluxo atual mantém sessão persistida e `autoRefreshToken` ativo no cliente gerado; isso pode prender o app em uma sessão/refresh token inválido ou em falhas transitórias de renovação antes do usuário conseguir fazer login novamente.
 
----
+## Plano de correção
 
-### 1. Dashboard do Coordenador (`/ponto/equipe` aprimorado)
+1. **Endurecer a inicialização de auth**
+   - Ajustar `AuthContext` para detectar falhas de sessão/refresh no carregamento inicial.
+   - Se houver erro de refresh/token ou falha de rede durante `getSession`, limpar a sessão local de forma segura e liberar a tela de login, em vez de manter tentativas repetidas.
+   - Manter a lógica de readiness para não causar redirecionamentos prematuros.
 
-Hoje a página só mostra a tabela "Equipe ao vivo". Vamos transformá-la em um painel completo com filtros e KPIs do dia/semana/mês.
+2. **Corrigir comportamento após login**
+   - No login principal e no portal, evitar navegação manual imediata antes do estado de auth atualizar.
+   - Centralizar o redirecionamento no estado real do contexto, como já ocorre parcialmente no login principal.
+   - Garantir que, em erro de login, o botão volte ao estado normal e mostre mensagem clara.
 
-**Cards de KPI no topo** (consulta a `ponto_jornadas` agregada por período):
-- Profissionais em jornada agora / em intervalo / pendentes
-- Total de divergências consideradas hoje (minutos)
-- Banco de horas líquido da equipe (mês corrente)
-- Nº de jornadas com `tolerancia_excedida = true` no mês
-- Top 5 atrasos recorrentes (ranking por usuário, últimos 30 dias)
+3. **Adicionar ação de recuperação para sessão travada**
+   - Na tela de login, quando houver erro de conexão/refresh, oferecer uma opção discreta para “limpar sessão e tentar novamente”.
+   - Essa ação chamará o logout/limpeza local e recarregará o fluxo de autenticação sem depender de janela anônima ou troca de navegador.
 
-**Filtros**: período (hoje / semana / mês / custom), profissional, status (`status_ponto`).
+4. **Validar sem mexer no cliente gerado**
+   - Não editar `src/integrations/supabase/client.ts`, pois é arquivo gerado.
+   - Validar com logs/rede após a implementação: a página de login deve parar de disparar refresh token em loop e permitir nova tentativa de login.
 
-**Seções**:
-- `EquipeAoVivoTable` (mantida)
-- Nova `RankingDivergenciasTable` — usuários ordenados por minutos descontáveis no período
-- Nova `AlertasPontoPanel` — lista os alertas gerados pelo cron (ver item 3)
+## Arquivos previstos
 
-**Backend**: criar função SQL `fn_ponto_dashboard_coordenador(p_inicio date, p_fim date)` retornando JSON com os agregados, para evitar múltiplos round-trips.
-
----
-
-### 2. Exportações em PDF
-
-Adicionar PDF ao menu já existente `ExportarRelatorioMenu` (que hoje exporta CSV/XLSX). Stack: **jsPDF + jspdf-autotable** (leve, sem dependência de servidor).
-
-**Três relatórios PDF**:
-
-a) **Espelho de ponto individual** (em `/ponto/relatorio` e no `MeuRelatorioPonto`)
-  - Cabeçalho: logo Fortem, nome do colaborador, CPF (se houver), período
-  - Tabela diária: data, prev. entrada, marcações reais, divergências (entrada/intervalo/saída), minutos tolerados, minutos considerados, status, banco do dia
-  - Rodapé: totais do período, saldo banco de horas, assinatura colaborador / coordenador
-  - Nota legal: "Cálculo conforme art. 58 §1º da CLT — tolerância 5 min/marcação, 10 min/dia"
-
-b) **Fechamento mensal da equipe** (em `/ponto/fechamento`)
-  - Uma linha por profissional com totais do mês: horas previstas, trabalhadas, extras válidas, descontáveis, saldo banco
-  - Marca de "Aprovado por … em …" quando fechado
-
-c) **Relatório de divergências** (novo, no dashboard coordenador)
-  - Lista jornadas com `tolerancia_excedida = true` no período, agrupadas por profissional
-
-**Implementação**:
-- Novo helper `src/lib/pontoPdf.ts` com funções `gerarEspelhoPonto`, `gerarFechamentoMensal`, `gerarRelatorioDivergencias`
-- Cores e tipografia seguindo design tokens (verde primary, status mapeados via `STATUS_PONTO_LABEL`)
-- Atualizar `ExportarRelatorioMenu` adicionando item "PDF" com ícone `FileDown`
-
----
-
-### 3. Alertas via Cron
-
-Job diário às 23:50 que consolida o dia e gera notificações para coordenadores.
-
-**Migração SQL**:
-- Função `fn_ponto_alertas_diarios()` que:
-  1. Para cada jornada de hoje com `tolerancia_excedida = true` ou `status_ponto IN ('banco_negativo','jornada_incompleta','falta_marcacao')` cria uma linha em `notificacoes` (categoria `ponto`, prioridade conforme severidade) com destinatários = todos coordenadores/admins (via `user_roles`).
-  2. Recalcula jornadas abertas que não foram fechadas (chama `fn_ponto_calcular_divergencias`).
-  3. Registra resumo em `audit_log`.
-
-**Edge function** `ponto-alertas-diarios` (thin wrapper que invoca a função SQL via service role) — necessária porque `pg_cron` + `pg_net` exige uma URL HTTP.
-
-**Agendamento** (via insert tool, não migration):
-```sql
-select cron.schedule('ponto-alertas-diarios', '50 23 * * *', $$
-  select net.http_post(
-    url := 'https://<ref>.supabase.co/functions/v1/ponto-alertas-diarios',
-    headers := '{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
-    body := '{}'::jsonb
-  );
-$$);
-```
-
-**Pré-requisito**: habilitar extensões `pg_cron` e `pg_net` (migration).
-
-**UI**: o painel `AlertasPontoPanel` (item 1) lê `notificacoes` filtrando `categoria = 'ponto'` dos últimos 7 dias.
-
----
-
-### Ordem de execução
-
-1. Migration: extensões + `fn_ponto_dashboard_coordenador` + `fn_ponto_alertas_diarios`
-2. Edge function `ponto-alertas-diarios` + agendamento cron (insert)
-3. Frontend dashboard coordenador (KPIs, ranking, painel de alertas)
-4. Helper `pontoPdf.ts` + dependências (`jspdf`, `jspdf-autotable`) + integração no menu de exportação
-
-### Fora do escopo
-
-- Envio de WhatsApp/email dos alertas (apenas notificação interna)
-- Aprovação digital com assinatura no PDF (apenas espaço para assinatura impressa)
-- Dashboard do colaborador (foco aqui é coordenador)
-
----
-
-## Status — implementado
-
-- ✅ Migrations: enum `notif_categoria.ponto`, extensões `pg_cron`/`pg_net`
-- ✅ `fn_ponto_dashboard_periodo(p_inicio, p_fim)` — KPIs + ranking (corrigido para usar `profiles.full_name`)
-- ✅ `fn_ponto_alertas_diarios()` — gera notificações para coord/admin (sem duplicar)
-- ✅ Edge function `ponto-alertas-diarios` (service-role wrapper)
-- ✅ Cron `ponto-alertas-diarios` agendado para 23:50 (job id 5)
-- ✅ `DashboardCoordenadorKPIs` (cards + ranking + filtros + botão PDF divergências)
-- ✅ `AlertasPontoPanel` (lista categoria=ponto últimos 7 dias + botão "Rodar agora")
-- ✅ `/ponto/equipe` agora exibe Dashboard + Equipe ao vivo + Alertas
-- ✅ `pontoPdf.ts`: `gerarEspelhoPonto`, `gerarFechamentoMensal`, `gerarRelatorioDivergencias`
-- ✅ `ExportarRelatorioMenu` aceita `onPDF`; integrado no espelho diário do `MeuRelatorioPonto`
+- `src/contexts/AuthContext.tsx`
+- `src/pages/Login.tsx`
+- `src/pages/portal/PortalLogin.tsx`
