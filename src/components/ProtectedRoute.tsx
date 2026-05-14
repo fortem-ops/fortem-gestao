@@ -1,11 +1,40 @@
 import { Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Activity } from "lucide-react";
+import { userHasStaffAccess } from "@/lib/authAccess";
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export function ProtectedRoute({ children, requireStaff = false }: { children: React.ReactNode; requireStaff?: boolean }) {
   const { user, loading } = useAuth();
+  const [checkingAccess, setCheckingAccess] = useState(false);
+  const [hasStaffAccess, setHasStaffAccess] = useState<boolean | null>(null);
 
-  if (loading) {
+  useEffect(() => {
+    if (!requireStaff || !user) {
+      setHasStaffAccess(null);
+      setCheckingAccess(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCheckingAccess(true);
+    userHasStaffAccess(user.id)
+      .then((allowed) => {
+        if (!cancelled) setHasStaffAccess(allowed);
+      })
+      .catch(() => {
+        if (!cancelled) setHasStaffAccess(false);
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingAccess(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requireStaff, user]);
+
+  if (loading || checkingAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -20,6 +49,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (requireStaff && hasStaffAccess === false) {
+    return <Navigate to="/portal" replace />;
   }
 
   return <>{children}</>;
