@@ -33,10 +33,18 @@ export default function PortalLogin() {
       return;
     }
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email.trim(), password);
     if (error) {
       setLoading(false);
-      toast({ title: "Erro ao entrar", description: "E-mail ou senha incorretos.", variant: "destructive" });
+      const msg = error.message ?? "";
+      const isNetwork = /fetch|network/i.test(msg);
+      toast({
+        title: isNetwork ? "Falha de conexão" : "Erro ao entrar",
+        description: isNetwork
+          ? "Não foi possível conectar. Desative extensões do navegador ou tente em uma janela anônima."
+          : "E-mail ou senha incorretos.",
+        variant: "destructive",
+      });
     } else {
       setLoading(false);
       navigate("/portal");

@@ -13,16 +13,41 @@ export default function PortalRecoverPassword() {
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
 
+  async function callRecover(targetEmail: string) {
+    let lastErr: any = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+          redirectTo: `${window.location.origin}/portal/redefinir-senha`,
+        });
+        if (!error) return { ok: true as const };
+        lastErr = error;
+        if (!/fetch|network/i.test(error.message)) break;
+      } catch (e: any) {
+        lastErr = e;
+      }
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    return { ok: false as const, error: lastErr };
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email) return;
+    const target = email.trim().toLowerCase();
+    if (!target) return;
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/portal/redefinir-senha`,
-    });
+    const result = await callRecover(target);
     setLoading(false);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    if (!result.ok) {
+      const msg = result.error?.message ?? "Erro desconhecido";
+      const isNetwork = /fetch|network/i.test(msg);
+      toast({
+        title: isNetwork ? "Falha de conexão" : "Erro",
+        description: isNetwork
+          ? "Não foi possível conectar. Desative extensões do navegador ou tente em uma janela anônima."
+          : msg,
+        variant: "destructive",
+      });
       return;
     }
     setSent(true);

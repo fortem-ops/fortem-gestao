@@ -1,66 +1,70 @@
-## Banco de Horas
+## Diagnóstico objetivo
 
-Adicionar um módulo "Banco de Horas" que registra ajustes manuais (créditos/débitos em minutos) feitos por coordenadores/admins sobre os colaboradores, e exibe o saldo acumulado.
+- Testei a URL publicada `https://fortem-gestao.lovable.app` diretamente.
+- A recuperação de senha para `nicolas.janovik@gmail.com` retornou sucesso no backend: `POST /auth/v1/recover` com status `200`.
+- O login com `nicolas.janovik@gmail.com` + `Fortem@2026` também retornou sucesso: `POST /auth/v1/token` com status `200`, e a aplicação redirecionou para `/`.
+- O backend está saudável.
+- As contas de staff citadas existem, estão com e-mail confirmado, têm roles de funcionário e foram atualizadas com a senha temporária.
+- A conta `fortemtreinamento@gmail.com` está corretamente marcada como `aluno`, não como funcionário.
 
-### 1. Banco de dados (migração)
+## Problema provável
 
-Nova tabela **`ponto_banco_horas`**:
-- `usuario_id` (uuid) — colaborador
-- `data` (date) — data de referência do lançamento
-- `minutos` (int) — positivo (crédito) ou negativo (débito)
-- `motivo` (text) — descrição obrigatória
-- `tipo` (enum: `credito_manual`, `debito_manual`, `compensacao`, `ajuste_saldo`)
-- `registrado_por` (uuid) — quem fez o lançamento
-- `referencia_jornada_id` (uuid, opcional) — link a jornada relacionada
+O erro “Failed to fetch” visto na tela publicada provavelmente não vem da API de autenticação em si, porque a chamada real de recuperação está respondendo `200`. O que precisa ser corrigido agora é:
 
-RLS:
-- Leitura: o próprio usuário vê seus lançamentos; coordenador/admin vê todos.
-- Escrita/exclusão: somente coordenador/admin.
+1. A interface não deve exibir erro genérico quando a recuperação foi aceita pelo backend.
+2. O fluxo de login deve tratar melhor o pós-login, evitando a sensação de falha caso o redirecionamento/checagem de permissões demore ou falhe parcialmente.
+3. O app precisa limpar estados antigos de autenticação/cache local que podem manter o usuário preso em uma sessão inválida.
+4. As mensagens precisam diferenciar erro real de credencial, erro de rede/local do navegador e erro de permissão.
 
-Função utilitária **`fn_ponto_banco_saldo(_user_id uuid, _ate date default null)`** → `int` (saldo acumulado em minutos).
+## Plano de correção
 
-Função **`fn_ponto_banco_resumo(_user_id uuid, _mes date)`** → jsonb com:
-- `saldo_inicial` (até o último dia do mês anterior)
-- `creditos_mes`, `debitos_mes`
-- `saldo_periodo_jornadas` (saldo do mês vindo das jornadas — trabalhado − previsto)
-- `saldo_final`
+### 1. Fortalecer o AuthContext
 
-### 2. UI — Funcionário (`src/pages/Ponto.tsx`)
+- Adicionar uma função `restoreSession()` explícita para revalidar a sessão inicial.
+- Adicionar fallback seguro caso `getSession()` ou o evento inicial de auth não conclua.
+- Garantir que `loading` sempre finalize, mesmo em erro.
+- Normalizar o e-mail antes do login (`trim().toLowerCase()`).
+- Em erro de login, limpar apenas estados inválidos de auth para evitar loop.
 
-Adicionar nova aba **"Banco de horas"** ao lado de "Relatório":
-- Card com saldo total acumulado (verde se positivo, vermelho se negativo)
-- Filtro por mês
-- Cards: Saldo inicial, Créditos no mês, Débitos no mês, Saldo do período
-- Tabela com lançamentos do mês (data, tipo, minutos, motivo, registrado por) — somente leitura para o funcionário
+### 2. Corrigir o login de funcionários
 
-Componente novo: `src/components/ponto/MeuBancoHoras.tsx`.
+- Ajustar `Login.tsx` para:
+  - limpar espaços do e-mail;
+  - mostrar mensagem específica quando o login foi aceito mas o perfil/role falha;
+  - redirecionar imediatamente após sucesso com uma checagem robusta de role;
+  - destravar o botão se a checagem demorar ou falhar;
+  - evitar depender apenas do `useEffect` para o redirecionamento.
 
-### 3. UI — Coordenador/Admin (`src/pages/RelatorioPonto.tsx`)
+### 3. Corrigir recuperação de senha
 
-Adicionar nova aba **"Banco de horas"** dentro das tabs existentes (junto com Diário/Mensal):
-- Filtro por profissional (mesmo Select já existente)
-- Tabela de saldo por colaborador (Profissional, Saldo acumulado, Créditos no mês, Débitos no mês)
-- Botão "Lançar crédito/débito" abre dialog para inserir minutos (+/−), motivo, data, tipo
-- Por linha: botão "Ver lançamentos" abre dialog com histórico do colaborador e ações de excluir lançamento
+- Ajustar `RecoverPassword.tsx` e `PortalRecoverPassword.tsx` para:
+  - tratar `Failed to fetch` como instabilidade local/rede e orientar tentativa em janela anônima ou recarregamento;
+  - não manter toast de erro quando o backend aceitou o pedido;
+  - mostrar estado de sucesso sempre que a API retornar sem erro;
+  - bloquear reenvios repetidos enquanto a chamada está em andamento.
 
-Componentes novos:
-- `src/components/ponto/AdminBancoHorasTable.tsx` — listagem por colaborador
-- `src/components/ponto/LancamentoBancoHorasDialog.tsx` — formulário de crédito/débito
-- `src/components/ponto/HistoricoBancoHorasDialog.tsx` — lançamentos de um colaborador
+### 4. Corrigir redefinição de senha
 
-### 4. Integração com saldo existente
+- Ajustar `ResetPassword.tsx` e `PortalResetPassword.tsx` para:
+  - reconhecer token de recuperação em `hash` e `query string`;
+  - exibir erro claro se o link expirou ou foi aberto sem token;
+  - redirecionar para o destino correto após redefinir, de acordo com staff ou portal.
 
-O saldo do "Resumo" do `MeuRelatorioPonto` (saldo no mês) passa a somar o saldo do banco de horas (lançamentos manuais) ao saldo de jornadas — exibindo o total efetivo. Mesma lógica aplicada na visão mensal do `RelatorioPonto`.
+### 5. Validar rotas e permissões
 
-### 5. Arquivos afetados
+- Manter `/login` para funcionários e `/portal/login` para alunos.
+- Garantir que `fortemtreinamento@gmail.com` continue indo para `/portal`.
+- Garantir que staff sem role nunca fique preso em loading infinito: redirecionar para `/portal` com feedback.
 
-- Nova migração SQL — tabela `ponto_banco_horas`, enum, RLS, funções `fn_ponto_banco_saldo` e `fn_ponto_banco_resumo`.
-- Novo `src/components/ponto/MeuBancoHoras.tsx`.
-- Novo `src/components/ponto/AdminBancoHorasTable.tsx`.
-- Novo `src/components/ponto/LancamentoBancoHorasDialog.tsx`.
-- Novo `src/components/ponto/HistoricoBancoHorasDialog.tsx`.
-- Editado `src/pages/Ponto.tsx` — nova aba "Banco de horas".
-- Editado `src/pages/RelatorioPonto.tsx` — nova aba "Banco de horas".
-- Editado `src/components/ponto/MeuRelatorioPonto.tsx` — saldo do mês inclui banco.
+### 6. Validação pós-correção
 
-Sem mudanças em rotas, sidebar ou permissões existentes.
+- Testar na URL publicada/preview:
+  - login com `nicolas.janovik@gmail.com` + `Fortem@2026`;
+  - recuperação de senha em `/recuperar-senha`;
+  - redirecionamento de funcionário para `/`;
+  - redirecionamento de aluno para `/portal`;
+  - ausência de toast falso “Failed to fetch” após resposta `200`.
+
+## Observação importante
+
+A senha temporária já foi aplicada no banco para as contas listadas. Se algum usuário ainda vê erro, a causa mais provável é cache/sessão antiga do navegador ou uma versão publicada anterior ainda aberta. Mesmo assim, vou tornar o fluxo mais resiliente para não depender dessa condição.
