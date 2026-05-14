@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee, CheckCircle2, CircleDashed } from "lucide-react";
 import { formatHora, formatMinutes, minutesSince, type PontoEstado } from "@/lib/ponto";
+import { STATUS_PONTO_LABEL, STATUS_PONTO_CLASS, type StatusPonto } from "@/lib/pontoTolerancia";
 
 interface Props {
   status: PontoEstado;
@@ -9,6 +11,7 @@ interface Props {
   intervaloInicio?: string | null;
   intervaloFim?: string | null;
   saida?: string | null;
+  statusPonto?: StatusPonto | null;
 }
 
 const STATUS_CONFIG: Record<PontoEstado, { label: string; color: string; icon: typeof Clock }> = {
