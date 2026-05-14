@@ -66,11 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(existing);
         setUser(existing?.user ?? null);
       })
-      .catch(() => {
+      .catch(async () => {
         // Sessão/refresh local pode ficar inválido e prender o login em loop.
         setSession(null);
         setUser(null);
-        removeStoredAuthSession();
+        await clearLocalAuthSession();
       })
       .finally(() => {
         initialized.current.session = true;
