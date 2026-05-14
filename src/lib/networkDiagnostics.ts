@@ -4,6 +4,14 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
+export const SUPABASE_HOST = (() => {
+  try {
+    return new URL(SUPABASE_URL).host;
+  } catch {
+    return SUPABASE_URL;
+  }
+})();
+
 export type NetworkDiagnosis =
   | "ok"
   | "offline"
@@ -39,7 +47,6 @@ export async function diagnoseNetwork(): Promise<DiagnosisResult> {
     };
   }
 
-  // Testa endpoints reais do backend (Auth e REST). HEAD/GET leve com apikey.
   const headers = { apikey: SUPABASE_KEY } as Record<string, string>;
 
   let authReachable = false;
@@ -78,7 +85,7 @@ export async function diagnoseNetwork(): Promise<DiagnosisResult> {
 
   return {
     status: "backend_blocked",
-    detail: "Esta rede Wi-Fi está bloqueando a comunicação com o servidor.",
+    detail: "Esta rede está bloqueando a comunicação com o servidor do app.",
     authReachable,
     restReachable,
   };
@@ -93,13 +100,13 @@ export function describeDiagnosis(d: DiagnosisResult): { title: string; descript
       };
     case "backend_blocked":
       return {
-        title: "Rede Wi-Fi está bloqueando o login",
+        title: "Esta rede está bloqueando o servidor do app",
         description:
-          "Sua rede (firewall, proxy ou DNS) está impedindo o acesso ao servidor. Tente: trocar o DNS para 1.1.1.1 ou 8.8.8.8, desativar VPN/antivírus com inspeção HTTPS, ou usar 4G/5G temporariamente.",
+          `Sua internet pode estar rápida, mas a velocidade só mede a banda até o seu provedor — não garante acesso a todos os sites. Esta rede (firewall, proxy, DNS ou antivírus com inspeção HTTPS) está bloqueando o domínio ${SUPABASE_HOST}. Soluções: trocar o DNS para 1.1.1.1 ou 8.8.8.8, desativar VPN/antivírus com inspeção HTTPS, pedir ao TI/admin para liberar o domínio, ou usar 4G/5G temporariamente.`,
       };
     case "backend_slow":
       return {
-        title: "Conexão muito lenta",
+        title: "Conexão muito lenta com o servidor",
         description: "O servidor não respondeu a tempo nesta rede. Tente novamente ou troque para outra rede.",
       };
     case "app_unreachable":
