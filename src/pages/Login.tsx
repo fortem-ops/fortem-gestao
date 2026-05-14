@@ -43,12 +43,16 @@ export default function Login() {
       return;
     }
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email.trim(), password);
     if (error) {
       setLoading(false);
+      const msg = error.message ?? "";
+      const isNetwork = /fetch|network/i.test(msg);
       toast({
-        title: "Erro ao entrar",
-        description: "Email ou senha incorretos.",
+        title: isNetwork ? "Falha de conexão" : "Erro ao entrar",
+        description: isNetwork
+          ? "Não conseguimos contatar o servidor. Desative extensões do navegador (bloqueadores, VPNs) ou tente em uma janela anônima."
+          : "Email ou senha incorretos.",
         variant: "destructive",
       });
       return;

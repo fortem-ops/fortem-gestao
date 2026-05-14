@@ -38,19 +38,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       markReady();
     });
 
-    supabase.auth.getSession().then(({ data: { session: existing } }) => {
-      setSession(existing);
-      setUser(existing?.user ?? null);
-      initialized.current.session = true;
-      markReady();
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session: existing } }) => {
+        setSession(existing);
+        setUser(existing?.user ?? null);
+      })
+      .catch(() => {
+        // ignora — fallback abaixo garante que isReady acaba ficando true
+      })
+      .finally(() => {
+        initialized.current.session = true;
+        markReady();
+      });
 
-    return () => subscription.unsubscribe();
+    // Safety net: se algo travar, libera a UI após 4s para não ficar em loading infinito.
+    const safety = setTimeout(() => {
+      if (!initialized.current.session || !initialized.current.subscription) {
+        initialized.current.session = true;
+        initialized.current.subscription = true;
+        markReady();
+      }
+    }, 4000);
+
+    return () => {
+      clearTimeout(safety);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    const cleanEmail = email.trim().toLowerCase();
+    // Retry uma vez em erro de rede (extensão/proxy do navegador pode falhar a 1ª chamada).
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+        if (!error) return { error: null };
+        lastError = error;
+        if (!/fetch|network/i.test(error.message)) break;
+      } catch (e: any) {
+        lastError = e;
+      }
+      await new Promise((r) => setTimeout(r, 350));
+    }
+    return { error: lastError as Error | null };
   };
 
   const signOut = async () => {
