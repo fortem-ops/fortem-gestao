@@ -4,9 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatHora, formatMinutes } from "@/lib/ponto";
-import { LogIn, Coffee, Utensils, LogOut, MessageSquarePlus, MapPin } from "lucide-react";
+import {
+  formatDivergencia,
+  STATUS_PONTO_LABEL,
+  STATUS_PONTO_CLASS,
+  type JornadaTolerancia,
+} from "@/lib/pontoTolerancia";
+import { LogIn, Coffee, Utensils, LogOut, MessageSquarePlus, MapPin, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export interface EventoPonto {
@@ -28,6 +36,7 @@ interface Props {
   eventos?: EventoPonto[];
   readOnly?: boolean;
   usuarioAlvoId?: string;
+  tolerancia?: JornadaTolerancia | null;
 }
 
 function LocBadge({ ev }: { ev?: EventoPonto }) {
