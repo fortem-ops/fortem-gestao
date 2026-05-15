@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Utensils, Footprints, MessageCircle } from "lucide-react";
+import { Activity, Utensils, Footprints, MessageCircle, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import AddStudentDialog from "@/components/student/AddStudentDialog";
 import { StudentListFilters, defaultFilters, type StudentFilters } from "@/components/student/StudentListFilters";
