@@ -308,8 +308,35 @@ export function StudentSummary({ student }: { student: Aluno }) {
 
       {/* Seção 1.5: Serviços (Plano + Contratados) */}
       {(() => {
-        const plano = creditos.filter((c) => c.origem_tipo === "plano");
         const servico = creditos.filter((c) => c.origem_tipo === "servico");
+
+        // Serviços do Plano: derivados de plano.servicos (ex.: "4 Avaliação Funcional")
+        // + compras adicionais e usos registrados em consumo_servicos.
+        const PLAN_SERVICES = [
+          { label: "Avaliação Funcional", icon: Activity },
+          { label: "Consultas Nutrição", icon: Utensils },
+          { label: "Consultas Reabilitação", icon: Footprints },
+        ];
+        const parseBase = (tipo: string): number => {
+          for (const s of (plano?.servicos || []) as string[]) {
+            const m = s.match(/^(\d+)\s+(.+)$/);
+            if (m && m[2] === tipo) return parseInt(m[1]);
+          }
+          return 0;
+        };
+        const planoItems = PLAN_SERVICES.map(({ label, icon: Icon }) => {
+          const base = parseBase(label);
+          const comprado = (consumos as any[])
+            .filter((c) => c.tipo_servico === label && c.tipo_registro === "compra")
+            .reduce((s, c) => s + (c.quantidade ?? 1), 0);
+          const usado = (consumos as any[])
+            .filter((c) => c.tipo_servico === label && (!!c.agenda_id || c.tipo_registro === "uso_manual"))
+            .length;
+          const total = base + comprado;
+          const restante = Math.max(0, total - usado);
+          return { label, Icon, total, restante };
+        }).filter((i) => i.total > 0);
+
         const renderItem = (c: any) => {
           const restante = c.ilimitado ? "∞" : Math.max(0, (c.quantidade_inicial ?? 0) - (c.quantidade_usada ?? 0));
           const total = c.ilimitado ? "∞" : (c.quantidade_inicial ?? 0);
@@ -334,12 +361,22 @@ export function StudentSummary({ student }: { student: Aluno }) {
                 <Activity className="w-4 h-4 text-muted-foreground" />
                 Serviços do Plano
               </h3>
-              {plano.length === 0 ? (
+              {planoItems.length === 0 ? (
                 <div className="glass-card rounded-lg p-4">
                   <p className="text-sm text-muted-foreground">Nenhum serviço incluído no plano</p>
                 </div>
               ) : (
-                <div className="space-y-2">{plano.map(renderItem)}</div>
+                <div className="space-y-2">
+                  {planoItems.map(({ label, Icon, total, restante }) => (
+                    <div key={label} className="glass-card rounded-lg p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-4 h-4 text-muted-foreground" />
+                        <p className="text-sm font-semibold text-foreground">{label}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">{restante}/{total}</Badge>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
             <div>
