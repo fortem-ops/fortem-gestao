@@ -103,12 +103,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [desconto, setDesconto] = useState(0);
   const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
   const [parcelas, setParcelas] = useState(1);
+  const [dataInicio, setDataInicio] = useState<Date>(new Date());
 
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
     setSStep(1); setServicoId("");
     setStatusPagamento("pendente"); setObservacoes("");
     setDesconto(0); setFormaPagamento(null); setParcelas(1);
+    setDataInicio(new Date());
   };
 
   useEffect(() => { if (!open) reset(); }, [open]);
