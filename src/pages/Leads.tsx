@@ -86,6 +86,25 @@ export default function Leads() {
     return Array.from(set).map((id) => ({ id, nome: profilesMap[id] || "—" }));
   }, [leads, profilesMap]);
 
+  // Lista de meses disponíveis (anteriores ao mês atual), com base nos leads existentes
+  const mesesDisponiveis = useMemo(() => {
+    if (!leads.length) return [] as { value: string; label: string }[];
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const set = new Set<string>();
+    leads.forEach((l: any) => {
+      const d = new Date(l.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (key < currentKey) set.add(key);
+    });
+    return Array.from(set)
+      .sort((a, b) => (a < b ? 1 : -1))
+      .map((key) => {
+        const [y, m] = key.split("-").map(Number);
+        return { value: key, label: format(new Date(y, m - 1, 1), "MMMM 'de' yyyy", { locale: ptBR }) };
+      });
+  }, [leads]);
+
   const leadsPeriodo = useMemo(() => {
     if (periodo === "sempre") return leads;
     const now = new Date();
@@ -96,7 +115,10 @@ export default function Leads() {
       const m = subMonths(now, 1);
       from = startOfMonth(m); to = endOfMonth(m);
     } else if (periodo === "meses_passados") {
-      to = endOfMonth(subMonths(now, 2));
+      if (!mesPassado) return leads.filter(() => false);
+      const [y, m] = mesPassado.split("-").map(Number);
+      const ref = new Date(y, m - 1, 1);
+      from = startOfMonth(ref); to = endOfMonth(ref);
     } else if (periodo === "custom") {
       if (customDe) from = startOfDay(customDe);
       if (customAte) to = endOfDay(customAte);
@@ -107,7 +129,7 @@ export default function Leads() {
       if (to && d > to) return false;
       return true;
     });
-  }, [leads, periodo, customDe, customAte]);
+  }, [leads, periodo, customDe, customAte, mesPassado]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
