@@ -16,6 +16,8 @@ import { isAutoRenewPlan } from "@/lib/planTipo";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
 import { HistoricoVendas } from "./venda/HistoricoVendas";
+import { useFormasPagamento } from "./venda/PaymentFields";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
