@@ -192,7 +192,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       const { error } = await supabase.from("consumo_servicos").delete().eq("id", id);
       if (error) throw error;
       toast.success("Registro removido");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      invalidatePlanoCaches(queryClient, student.id);
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover registro");
     }
