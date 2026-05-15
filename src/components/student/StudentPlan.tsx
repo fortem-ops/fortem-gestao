@@ -219,11 +219,15 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
   function openEditPlan() {
     if (!data) return;
-    setEditTipo(data.tipo ?? "");
-    setEditValor(data.valor != null ? String(data.valor) : "");
-    setEditInicio(data.data_inicio ?? "");
-    setEditDuracao(data.duracao_meses ?? 1);
-    setEditFim((data as any).data_fim ?? "");
+    const d: any = data;
+    setEditTipo(d.tipo ?? "");
+    setEditValor(d.valor != null ? String(d.valor) : "");
+    setEditInicio(d.data_inicio ?? "");
+    setEditDuracao(d.duracao_meses ?? 1);
+    setEditFim(d.data_fim ?? "");
+    setEditDescRec(d.desconto_recorrente != null ? String(d.desconto_recorrente) : "");
+    setEditFormaRec(d.forma_pagamento_padrao ?? null);
+    setEditParcelasRec(d.parcelas_padrao ?? 1);
     setEditPlanOpen(true);
   }
 
