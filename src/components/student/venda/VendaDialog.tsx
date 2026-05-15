@@ -342,6 +342,16 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       </div>
                     </div>
 
+                    <PaymentFields
+                      valorBase={Number(servicoSelecionado.valor || 0)}
+                      desconto={desconto}
+                      onDescontoChange={setDesconto}
+                      formaPagamentoSlug={formaPagamento}
+                      onFormaPagamentoChange={setFormaPagamento}
+                      parcelas={parcelas}
+                      onParcelasChange={setParcelas}
+                    />
+
                     <div className="space-y-2">
                       <Label>Status do pagamento</Label>
                       <Select value={statusPagamento} onValueChange={(v) => setStatusPagamento(v as any)}>
