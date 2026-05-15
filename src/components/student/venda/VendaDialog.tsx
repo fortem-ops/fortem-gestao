@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { formatBRL, calcularCreditos, type Frequencia } from "@/lib/vendas";
 import { cn } from "@/lib/utils";
 import { PaymentFields } from "./PaymentFields";
+import { invalidatePlanoCaches } from "@/lib/planoCache";
 
 type Props = { alunoId: string; alunoNome: string; open: boolean; onOpenChange: (v: boolean) => void };
 
@@ -155,9 +156,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     onSuccess: () => {
       toast.success("Venda registrada com sucesso");
       qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
-      qc.invalidateQueries({ queryKey: ["plano_ativo", alunoId] });
-      qc.invalidateQueries({ queryKey: ["aluno_display_status", alunoId] });
       qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
+      invalidatePlanoCaches(qc, alunoId);
       onOpenChange(false);
     },
     onError: (e: any) => toast.error(e.message),

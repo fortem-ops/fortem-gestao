@@ -18,6 +18,7 @@ import { VendaDialog } from "./venda/VendaDialog";
 import { HistoricoVendas } from "./venda/HistoricoVendas";
 import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { invalidatePlanoCaches } from "@/lib/planoCache";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
@@ -151,7 +152,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         .eq("id", data.id);
       if (error) throw error;
       toast.success("Créditos atualizados");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      invalidatePlanoCaches(queryClient, student.id);
       setEditingService(null);
     } catch (err: any) {
       toast.error(err.message || "Erro ao atualizar créditos");
@@ -178,7 +179,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       } as any);
       if (error) throw error;
       toast.success("Utilização registrada");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      invalidatePlanoCaches(queryClient, student.id);
       setAddUsageOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Erro ao registrar utilização");
@@ -192,7 +193,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       const { error } = await supabase.from("consumo_servicos").delete().eq("id", id);
       if (error) throw error;
       toast.success("Registro removido");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      invalidatePlanoCaches(queryClient, student.id);
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover registro");
     }
@@ -208,8 +209,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         .eq("id", data.id);
       if (error) throw error;
       toast.success("Contrato cancelado");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["aluno_display_status", student.id] });
+      invalidatePlanoCaches(queryClient, student.id);
     } catch (err: any) {
       toast.error(err.message || "Erro ao cancelar contrato");
     } finally {
@@ -252,8 +252,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         .eq("id", data.id);
       if (error) throw error;
       toast.success("Plano atualizado");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["aluno_display_status", student.id] });
+      invalidatePlanoCaches(queryClient, student.id);
       setEditPlanOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Erro ao atualizar plano");
