@@ -51,9 +51,11 @@ function sumByAtividade(map: Record<string, CreditAgg>) {
   return { total, usado, ilimitado };
 }
 
-export default function StudentList() {
+export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "inativos" } = {}) {
   const [filters, setFilters] = useState<StudentFilters>(defaultFilters);
   const navigate = useNavigate();
+  const isInativos = mode === "inativos";
+  const pageTitle = isInativos ? "Alunos Inativos" : "Alunos Ativos";
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["all_profiles"],
@@ -173,6 +175,10 @@ export default function StudentList() {
       const matchSearch = (s.nome ?? "").toLowerCase().includes(term) ||
         (s.email?.toLowerCase().includes(term) ?? false);
       const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
+      const matchMode = isInativos
+        ? display.key === "encerrado"
+        : display.key === "ativo" || display.key === "licenca";
+      if (!matchMode) return false;
       const matchStatus = filters.status === "todos" || display.key === filters.status;
 
       const matchFreq = filters.frequencia === "todos" ||
@@ -201,7 +207,7 @@ export default function StudentList() {
 
       return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
     });
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte, isInativos]);
 
 
   const iconForAtividade = (atividade: string) => {
@@ -265,9 +271,9 @@ export default function StudentList() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-foreground">Alunos</h1>
+          <h1 className="text-2xl font-heading font-bold text-foreground">{pageTitle}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {alunos.length} aluno{alunos.length !== 1 ? "s" : ""} cadastrado{alunos.length !== 1 ? "s" : ""}
+            {filtered.length} aluno{filtered.length !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">

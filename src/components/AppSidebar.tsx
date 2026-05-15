@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature } from "lucide-react";
+import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
@@ -45,13 +45,15 @@ const tecnicoItems = [
 ];
 
 /* ─── Cadastros ─── */
-const cadastrosItems = [
-  { title: "Prospects", url: "/prospects", icon: Target },
-  { title: "Alunos", url: "/alunos", icon: Users },
-];
-
-const cadastrosAdminItems = [
+const cadastrosLeadsAdmin = [
   { title: "Leads", url: "/leads", icon: UserPlus },
+];
+const cadastrosMidItems = [
+  { title: "Prospects", url: "/prospects", icon: Target },
+  { title: "Alunos Ativos", url: "/alunos", icon: Users },
+  { title: "Alunos Inativos", url: "/alunos-inativos", icon: UserX },
+];
+const cadastrosAdminItems = [
   { title: "Anexos Jurídicos", url: "/anexos", icon: FileSignature },
 ];
 
@@ -181,7 +183,10 @@ export function AppSidebar() {
           <SidebarGroupLabel>Cadastros</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {cadastrosItems.map((item) => (
+              {isAdmin && cadastrosLeadsAdmin.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+              {cadastrosMidItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
               {isAdmin && cadastrosAdminItems.map((item) => (

@@ -1,36 +1,45 @@
-## Regra
+## Reorganização do menu "Cadastros"
 
-Aluno = **Ativo** se possui um **plano ativo** (`planos.ativo = true` E `data_fim >= hoje`, ou plano de renovação automática como Start/Gympass/Wellhub/Totalpass). Caso contrário = **Inativo**.
+Nova ordem no sidebar (todos visíveis conforme permissão atual):
+1. **Leads** (`/leads`) — admin
+2. **Prospects** (`/prospects`)
+3. **Alunos Ativos** (`/alunos`) — renomeado de "Alunos"
+4. **Alunos Inativos** (`/alunos-inativos`) — nova rota
+5. **Anexos Jurídicos** continua (admin)
 
-Isso vale para o badge em **Cadastros > Alunos** e para o posicionamento nos funis **Aluno** e **Inativo** do Pipeline.
+### 1. `src/components/AppSidebar.tsx`
+- Reordenar `cadastrosItems` / `cadastrosAdminItems` para sair na ordem: Leads → Prospects → Alunos Ativos → Alunos Inativos → Anexos Jurídicos.
+- Renomear "Alunos" → "Alunos Ativos".
+- Adicionar item "Alunos Inativos" apontando para `/alunos-inativos` (mesmo ícone `Users` ou `UserX`).
 
-## O que muda
+### 2. Filtragem por status do plano
+A página atual `StudentList.tsx` já calcula `getDisplayStatus` (key `ativo` / `encerrado` / `licenca` / `lead` / `prospect`).
 
-### 1. `src/lib/studentStatus.ts` (badge da lista de Alunos e Perfil)
-- Remover o fallback "ativo" quando não há `planEnd`. Hoje, aluno sem plano aparece como Ativo — passará a Inativo.
-- Nova ordem da lógica:
-  1. `lead`/`prospect` → mantém
-  2. Licença vigente → `Licença`
-  3. Plano auto-renovável vigente (`planos.ativo = true`) → `Ativo`
-  4. `planEnd` existe e `>= hoje` → `Ativo`
-  5. Caso contrário (sem plano OU plano vencido) → `Inativo`
+- **Alunos Ativos** (`/alunos`): mostra apenas alunos cujo `display.key ∈ {ativo, licenca}` (plano ativo vigente, auto-renovável ou licença vigente). Lead/Prospect ficam fora porque já têm página própria.
+- **Alunos Inativos** (`/alunos-inativos`): mostra apenas `display.key === 'encerrado'` (sem plano ativo OU plano vencido).
 
-### 2. `src/pages/StudentList.tsx` e demais consumidores
-- Já usam `getDisplayStatus`; nenhuma alteração necessária além de garantir que `planTipo`/`planEnd` venham só de planos com `ativo = true` (já é o caso na query atual).
-- Filtro de status "Ativo/Inativo" continuará funcionando porque é baseado em `display.key`.
+Implementação: adicionar prop `mode: "ativos" | "inativos"` em `StudentList` (ou criar `StudentListInativos.tsx` que reusa o componente). Dentro do `useMemo filtered`, aplicar pré-filtro fixo por modo, antes do filtro do usuário. O filtro de status do `StudentListFilters` continua funcionando dentro do subconjunto.
 
-### 3. Pipeline — funis "Aluno" e "Inativo"
-Atualizar a função `public.fn_detect_evasao()` (via migration) para refletir a mesma regra:
-- Aluno **sem plano ativo** OU com plano vencido (e sem auto-renovação) → mover para a primeira etapa do funil **Inativo**.
-- Aluno **com plano ativo** (auto-renovação ou `data_fim >= hoje`) atualmente em funil Inativo → mover de volta para a primeira etapa do funil **Aluno** (ex.: "Ativo").
-- Manter as etapas intermediárias existentes (Risco, Renovação) conforme já implementadas.
+Header da página muda conforme modo:
+- Ativos: "Alunos Ativos" + contagem dos ativos
+- Inativos: "Alunos Inativos" + contagem dos inativos
 
-A função roda automaticamente ao abrir o Pipeline e via botão "Detectar evasão agora", então a sincronização é imediata.
+### 3. Rotas em `src/App.tsx`
+- Manter `/alunos` → `StudentList` (modo ativos por default).
+- Adicionar `/alunos-inativos` → `StudentList mode="inativos"`.
 
-### 4. Visual
-- Badge "Inativo" continua usando `status-urgent` (vermelho), label "Inativo".
-- Cards no Pipeline herdam a etapa correta automaticamente após o scan.
+### 4. Pipeline ↔ Cadastros (automação)
+Já existe a função `fn_detect_evasao` que move alunos entre os funis "Aluno" e "Inativo" do Pipeline com base na mesma regra de plano ativo (vide `.lovable/plan.md`). Nada novo a criar:
+- Quando um aluno perde plano ativo → `fn_detect_evasao` o joga no funil **Inativo** do Pipeline → ele aparece automaticamente em **Alunos Inativos** (mesma regra de display status).
+- Quando renova/ganha plano ativo → volta ao funil **Aluno** → aparece em **Alunos Ativos**.
+
+Verificar (sem mudar) que o botão "Recalcular status" continua disponível na lista de Alunos Ativos e Inativos para forçar sincronização.
+
+### 5. Outros consumidores
+- Dashboard widgets, links em `StudentProfile`, breadcrumbs etc. continuam usando `/alunos/:id` para o perfil — sem mudança.
+- Buscas e atalhos que apontam para `/alunos` continuam levando para Alunos Ativos (comportamento esperado).
 
 ## Fora de escopo
-- Não altera tabela `alunos.status` (continua só refletindo lead/prospect/ativo/inativo bruto). A "verdade" do status visual passa a depender do plano ativo.
-- Não mexe na regra de Licença (continua sobrepondo Ativo).
+- Não altera schema do banco (regra de status já está consolidada).
+- Não altera Pipeline visualmente.
+- Não cria nova tabela ou trigger — `fn_detect_evasao` já cuida da automação.
