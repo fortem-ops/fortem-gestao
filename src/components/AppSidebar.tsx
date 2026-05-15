@@ -45,13 +45,15 @@ const tecnicoItems = [
 ];
 
 /* ─── Cadastros ─── */
-const cadastrosItems = [
-  { title: "Prospects", url: "/prospects", icon: Target },
-  { title: "Alunos", url: "/alunos", icon: Users },
-];
-
-const cadastrosAdminItems = [
+const cadastrosLeadsAdmin = [
   { title: "Leads", url: "/leads", icon: UserPlus },
+];
+const cadastrosMidItems = [
+  { title: "Prospects", url: "/prospects", icon: Target },
+  { title: "Alunos Ativos", url: "/alunos", icon: Users },
+  { title: "Alunos Inativos", url: "/alunos-inativos", icon: UserX },
+];
+const cadastrosAdminItems = [
   { title: "Anexos Jurídicos", url: "/anexos", icon: FileSignature },
 ];
 
