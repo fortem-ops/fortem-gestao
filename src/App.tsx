@@ -167,7 +167,15 @@ const App = () => (
                 path="/alunos"
                 element={
                   <Suspense fallback={<RouteFallback />}>
-                    <StudentList />
+                    <StudentList mode="ativos" />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/alunos-inativos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <StudentList mode="inativos" />
                   </Suspense>
                 }
               />
