@@ -134,12 +134,18 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const vender = useMutation({
     mutationFn: async (payload: { tipo: "plano" | "servico"; item: any }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      const valor = Number(payload.item.valor || 0);
+      const valorFinal = Math.max(0, valor - (desconto || 0));
       const { error } = await (supabase as any).from("vendas").insert({
         aluno_id: alunoId,
         tipo: payload.tipo,
         catalogo_id: payload.item.id,
         nome_snapshot: payload.item.nome,
-        valor: payload.item.valor,
+        valor,
+        desconto: desconto || 0,
+        valor_final: valorFinal,
+        forma_pagamento: formaPagamento,
+        parcelas: parcelas || 1,
         vendedor_id: user?.id,
         status_pagamento: statusPagamento,
         observacoes: observacoes.trim() || null,
