@@ -265,6 +265,28 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       </div>
                     </div>
 
+                    <div className="space-y-2">
+                      <Label>Data de Início do Plano</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dataInicio ? format(dataInicio, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione a data</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={dataInicio}
+                            onSelect={(d) => d && setDataInicio(d)}
+                            initialFocus
+                            locale={ptBR}
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
                     <PaymentFields
                       valorBase={Number(planoSelecionado.valor || 0)}
                       desconto={desconto}
