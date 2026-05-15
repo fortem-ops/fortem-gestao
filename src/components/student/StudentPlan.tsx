@@ -198,7 +198,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     try {
       const { error } = await supabase
         .from("planos")
-        .update({ ativo: false, data_fim: new Date().toISOString().split("T")[0] })
+        .update({ ativo: false, renovacao_automatica: false, data_fim: new Date().toISOString().split("T")[0] })
         .eq("id", data.id);
       if (error) throw error;
       toast.success("Contrato cancelado");
