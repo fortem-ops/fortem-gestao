@@ -51,9 +51,11 @@ function sumByAtividade(map: Record<string, CreditAgg>) {
   return { total, usado, ilimitado };
 }
 
-export default function StudentList() {
+export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "inativos" } = {}) {
   const [filters, setFilters] = useState<StudentFilters>(defaultFilters);
   const navigate = useNavigate();
+  const isInativos = mode === "inativos";
+  const pageTitle = isInativos ? "Alunos Inativos" : "Alunos Ativos";
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["all_profiles"],
