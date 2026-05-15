@@ -179,6 +179,42 @@ export default function Leads() {
             {origensAtivas.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={periodo} onValueChange={(v) => setPeriodo(v as Periodo)}>
+          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sempre">Desde sempre</SelectItem>
+            <SelectItem value="mes_atual">Mês atual</SelectItem>
+            <SelectItem value="mes_passado">Mês passado</SelectItem>
+            <SelectItem value="meses_passados">Meses passados</SelectItem>
+            <SelectItem value="custom">Customizado</SelectItem>
+          </SelectContent>
+        </Select>
+        {periodo === "custom" && (
+          <>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customDe && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {customDe ? format(customDe, "dd/MM/yyyy") : "De"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent mode="single" selected={customDe} onSelect={setCustomDe} initialFocus locale={ptBR} className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customAte && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {customAte ? format(customAte, "dd/MM/yyyy") : "Até"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent mode="single" selected={customAte} onSelect={setCustomAte} initialFocus locale={ptBR} className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+          </>
+        )}
         <Select value={responsavel} onValueChange={setResponsavel}>
           <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
           <SelectContent>
