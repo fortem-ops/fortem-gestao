@@ -8,14 +8,20 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Search, Settings2 } from "lucide-react";
+import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Search, Settings2, CalendarIcon } from "lucide-react";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { ManageOrigensDialog } from "@/components/leads/ManageOrigensDialog";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+
+type Periodo = "sempre" | "mes_atual" | "mes_passado" | "meses_passados" | "custom";
 
 export default function Leads() {
   const navigate = useNavigate();
