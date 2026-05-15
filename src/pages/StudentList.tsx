@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Utensils, Footprints, MessageCircle } from "lucide-react";
+import { Activity, Utensils, Footprints, MessageCircle, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import AddStudentDialog from "@/components/student/AddStudentDialog";
 import { StudentListFilters, defaultFilters, type StudentFilters } from "@/components/student/StudentListFilters";
@@ -210,6 +212,27 @@ export default function StudentList() {
     );
   };
 
+  const queryClient = useQueryClient();
+  const [recalculando, setRecalculando] = useState(false);
+
+  async function recalcularStatus() {
+    setRecalculando(true);
+    try {
+      const { data, error } = await supabase.rpc("fn_detect_evasao" as any);
+      if (error) throw error;
+      const r = (data || {}) as any;
+      toast.success(
+        `Recálculo concluído: ${r.movidos_para_recuperado || 0} reativado(s) · ${r.movidos_para_inativo || 0} inativado(s) · ${r.movidos_para_renovacao || 0} renovação · ${r.movidos_para_risco || 0} risco`,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["alunos_with_plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao recalcular status");
+    } finally {
+      setRecalculando(false);
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -219,7 +242,13 @@ export default function StudentList() {
             {alunos.length} aluno{alunos.length !== 1 ? "s" : ""} cadastrado{alunos.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <AddStudentDialog onStudentAdded={() => refetch()} />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={recalcularStatus} disabled={recalculando} className="gap-2">
+            <RefreshCw className={`w-4 h-4 ${recalculando ? "animate-spin" : ""}`} />
+            {recalculando ? "Recalculando..." : "Recalcular status"}
+          </Button>
+          <AddStudentDialog onStudentAdded={() => refetch()} />
+        </div>
       </div>
 
       <StudentListFilters filters={filters} onChange={setFilters} professors={professors} />
