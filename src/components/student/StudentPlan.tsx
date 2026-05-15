@@ -248,23 +248,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       setSaving(false);
     }
   }
-    if (!data) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("planos")
-        .update({ ativo: false, data_fim: new Date().toISOString().split("T")[0] })
-        .eq("id", data.id);
-      if (error) throw error;
-      toast.success("Contrato cancelado");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["aluno_display_status", student.id] });
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao cancelar contrato");
-    } finally {
-      setSaving(false);
-    }
-  }
+
 
   if (isLoading) {
     return (
