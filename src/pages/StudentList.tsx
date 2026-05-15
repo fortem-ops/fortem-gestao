@@ -85,9 +85,16 @@ export default function StudentList() {
       const ids = students.map((s) => s.id);
       const { data: planos } = await supabase
         .from("planos")
-        .select("aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo")
+        .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
         .in("aluno_id", ids)
         .eq("ativo", true);
+      const planoIds = (planos || []).map((p: any) => p.id);
+      const { data: consumos } = planoIds.length
+        ? await supabase
+            .from("consumo_servicos")
+            .select("aluno_id, plano_id, tipo_servico, tipo_registro, quantidade, agenda_id")
+            .in("plano_id", planoIds)
+        : { data: [] as any[] };
       const { data: creditos } = await supabase
         .from("creditos_aluno" as any)
         .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
@@ -106,11 +113,13 @@ export default function StudentList() {
       const planEndMap: Record<string, Date | null> = {};
       const planTipoMap: Record<string, string | null> = {};
 
+      const PLAN_SERVICES = ["Avaliação Funcional", "Consultas Nutrição", "Consultas Reabilitação"];
+
       for (const student of students) {
-        const plano = planos?.find((p) => p.aluno_id === student.id);
+        const plano: any = planos?.find((p) => p.aluno_id === student.id);
         if (plano) {
-          planEndMap[student.id] = (plano as any).data_fim
-            ? new Date((plano as any).data_fim + "T00:00:00")
+          planEndMap[student.id] = plano.data_fim
+            ? new Date(plano.data_fim + "T00:00:00")
             : addMonths(new Date(plano.data_inicio), plano.duracao_meses);
           planTipoMap[student.id] = plano.tipo || null;
         } else {
@@ -118,17 +127,36 @@ export default function StudentList() {
           planTipoMap[student.id] = null;
         }
         creditsMap[student.id] = emptyCredits();
+
+        // Serviços do Plano: derivados de planos.servicos + consumo_servicos do plano ativo
+        if (plano) {
+          const planoConsumos = (consumos as any[] || []).filter((c) => c.plano_id === plano.id);
+          for (const label of PLAN_SERVICES) {
+            const base = parseServiceCount(plano.servicos || [], label);
+            const comprado = planoConsumos
+              .filter((c) => c.tipo_servico === label && c.tipo_registro === "compra")
+              .reduce((s, c) => s + (c.quantidade ?? 1), 0);
+            const usado = planoConsumos
+              .filter((c) => c.tipo_servico === label && (!!c.agenda_id || c.tipo_registro === "uso_manual"))
+              .length;
+            const total = base + comprado;
+            if (total > 0) {
+              creditsMap[student.id].plano[label] = { total, usado, ilimitado: false };
+            }
+          }
+        }
       }
 
+      // Serviços Contratados: continuam vindo de creditos_aluno (origem_tipo='servico')
       ((creditos as any[]) || []).forEach((c) => {
+        if (c.origem_tipo !== "servico") return;
         const bucket = creditsMap[c.aluno_id];
         if (!bucket) return;
-        const target = c.origem_tipo === "plano" ? bucket.plano : bucket.servico;
-        const cur = target[c.atividade] || { total: 0, usado: 0, ilimitado: false };
+        const cur = bucket.servico[c.atividade] || { total: 0, usado: 0, ilimitado: false };
         cur.total += c.quantidade_inicial ?? 0;
         cur.usado += c.quantidade_usada ?? 0;
         if (c.ilimitado) cur.ilimitado = true;
-        target[c.atividade] = cur;
+        bucket.servico[c.atividade] = cur;
       });
 
       return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
