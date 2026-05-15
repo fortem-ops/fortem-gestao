@@ -178,7 +178,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       } as any);
       if (error) throw error;
       toast.success("Utilização registrada");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      invalidatePlanoCaches(queryClient, student.id);
       setAddUsageOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Erro ao registrar utilização");
