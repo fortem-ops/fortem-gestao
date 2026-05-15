@@ -35,6 +35,7 @@ export default function Leads() {
   const [periodo, setPeriodo] = useState<Periodo>("sempre");
   const [customDe, setCustomDe] = useState<Date | undefined>();
   const [customAte, setCustomAte] = useState<Date | undefined>();
+  const [mesPassado, setMesPassado] = useState<string>(""); // formato "YYYY-MM"
   const { data: origensList = [] } = useLeadOrigens(true);
   const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
 
@@ -85,6 +86,25 @@ export default function Leads() {
     return Array.from(set).map((id) => ({ id, nome: profilesMap[id] || "—" }));
   }, [leads, profilesMap]);
 
+  // Lista de meses disponíveis (anteriores ao mês atual), com base nos leads existentes
+  const mesesDisponiveis = useMemo(() => {
+    if (!leads.length) return [] as { value: string; label: string }[];
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const set = new Set<string>();
+    leads.forEach((l: any) => {
+      const d = new Date(l.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (key < currentKey) set.add(key);
+    });
+    return Array.from(set)
+      .sort((a, b) => (a < b ? 1 : -1))
+      .map((key) => {
+        const [y, m] = key.split("-").map(Number);
+        return { value: key, label: format(new Date(y, m - 1, 1), "MMMM 'de' yyyy", { locale: ptBR }) };
+      });
+  }, [leads]);
+
   const leadsPeriodo = useMemo(() => {
     if (periodo === "sempre") return leads;
     const now = new Date();
@@ -95,7 +115,10 @@ export default function Leads() {
       const m = subMonths(now, 1);
       from = startOfMonth(m); to = endOfMonth(m);
     } else if (periodo === "meses_passados") {
-      to = endOfMonth(subMonths(now, 2));
+      if (!mesPassado) return leads.filter(() => false);
+      const [y, m] = mesPassado.split("-").map(Number);
+      const ref = new Date(y, m - 1, 1);
+      from = startOfMonth(ref); to = endOfMonth(ref);
     } else if (periodo === "custom") {
       if (customDe) from = startOfDay(customDe);
       if (customAte) to = endOfDay(customAte);
@@ -106,7 +129,7 @@ export default function Leads() {
       if (to && d > to) return false;
       return true;
     });
-  }, [leads, periodo, customDe, customAte]);
+  }, [leads, periodo, customDe, customAte, mesPassado]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -189,6 +212,22 @@ export default function Leads() {
             <SelectItem value="custom">Customizado</SelectItem>
           </SelectContent>
         </Select>
+        {periodo === "meses_passados" && (
+          <Select value={mesPassado} onValueChange={setMesPassado}>
+            <SelectTrigger className="w-[200px] capitalize">
+              <SelectValue placeholder="Selecione o mês" />
+            </SelectTrigger>
+            <SelectContent>
+              {mesesDisponiveis.length === 0 ? (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum mês anterior disponível</div>
+              ) : (
+                mesesDisponiveis.map((m) => (
+                  <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        )}
         {periodo === "custom" && (
           <>
             <Popover>
