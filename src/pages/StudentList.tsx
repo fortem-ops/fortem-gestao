@@ -175,6 +175,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const matchSearch = (s.nome ?? "").toLowerCase().includes(term) ||
         (s.email?.toLowerCase().includes(term) ?? false);
       const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
+      const matchMode = isInativos
+        ? display.key === "encerrado"
+        : display.key === "ativo" || display.key === "licenca";
+      if (!matchMode) return false;
       const matchStatus = filters.status === "todos" || display.key === filters.status;
 
       const matchFreq = filters.frequencia === "todos" ||
