@@ -35,6 +35,7 @@ export default function Leads() {
   const [periodo, setPeriodo] = useState<Periodo>("sempre");
   const [customDe, setCustomDe] = useState<Date | undefined>();
   const [customAte, setCustomAte] = useState<Date | undefined>();
+  const [mesPassado, setMesPassado] = useState<string>(""); // formato "YYYY-MM"
   const { data: origensList = [] } = useLeadOrigens(true);
   const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
 
