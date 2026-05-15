@@ -155,9 +155,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     onSuccess: () => {
       toast.success("Venda registrada com sucesso");
       qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
-      qc.invalidateQueries({ queryKey: ["plano_ativo", alunoId] });
-      qc.invalidateQueries({ queryKey: ["aluno_display_status", alunoId] });
       qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
+      invalidatePlanoCaches(qc, alunoId);
       onOpenChange(false);
     },
     onError: (e: any) => toast.error(e.message),
