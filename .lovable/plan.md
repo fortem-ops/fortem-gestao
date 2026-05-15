@@ -1,33 +1,67 @@
-## Regra: jornadas até 4h não têm intervalo
+## Objetivo
 
-Hoje a regra já existe parcialmente: na tela de Ponto (`src/pages/Ponto.tsx`), quando a janela do dia tem ≤ 240 minutos (4h), o `BotaoInteligente` recebe `pularIntervalo=true` e pula direto de "Iniciar jornada" para "Encerrar jornada", sem botões de intervalo.
+Planos do tipo **Start**, **Gympass/Wellhub** e **Total Pass** passam a ser sempre "Renovação automática mensal". Todo mês o sistema gera automaticamente uma nova mensalidade no histórico de vendas. A renovação só pode ser interrompida pelo cancelamento manual do contrato.
 
-O que falta é a configuração do Admin refletir isso: hoje o coordenador/admin pode salvar uma janela de 3h com "15 min de intervalo" e gerar divergência no relatório. Vamos fechar essa porta.
+---
 
-### Mudanças (somente frontend)
+## 1. Banco de dados (migração)
 
-**`src/components/ponto/AdminPontoHorarios.tsx` (linha do `DiaRow`)**
+Em `planos`:
+- Adicionar `renovacao_automatica boolean NOT NULL DEFAULT false`
+- Adicionar `proxima_renovacao date` — data da próxima cobrança
+- Trigger `BEFORE INSERT/UPDATE OF tipo, data_inicio` em `planos` que:
+  - Define `renovacao_automatica = true` quando `tipo` ∈ {Start, Gympass/Wellhub, Total Pass}
+  - Inicializa `proxima_renovacao = data_inicio + 1 mês` se nulo
 
-1. Calcular `janelaMin = (fim - início) em minutos` reativamente conforme o usuário muda os selects.
-2. Se `janelaMin > 0 && janelaMin <= 240`:
-   - Forçar `intervalo = 0` (efeito que reseta quando a janela cruza o limite).
-   - Desabilitar o `Select` de Intervalo e fixar o valor visível em "Sem intervalo".
-   - Mostrar um hint discreto abaixo: "Jornadas até 4h não têm intervalo (apenas entrada e saída)."
-3. Se `janelaMin > 240`: comportamento atual (Sem intervalo / 15 min / 1 hora).
+Em `vendas`:
+- Adicionar `origem text NOT NULL DEFAULT 'manual'` (valores: `manual`, `renovacao_automatica`) — para diferenciar mensalidades geradas pelo sistema das vendas humanas no histórico
 
-**`src/pages/Ponto.tsx`**
+Backfill:
+- `UPDATE planos SET renovacao_automatica=true, proxima_renovacao = (data_inicio + interval '1 month')::date WHERE ativo AND tipo IN ('Start','Gympass/Wellhub','Total Pass') AND proxima_renovacao IS NULL`
 
-- Sem mudança de lógica — a regra `pularIntervalo` já cobre os dois caminhos:
-  - há horário cadastrado: `intervaloPrevistoMin === 0 || cargaPrevistaMin ≤ 240`
-  - sem horário cadastrado: fallback `cargaMin ≤ 240`
-- Apenas atualizar o texto do header (linha 185) para deixar a regra explícita quando a janela for ≤ 4h: `"jornada de até 4h • sem intervalo"`.
+Cancelamento manual já zera `ativo=false`; basta também marcar `renovacao_automatica=false` no UPDATE feito por `handleCancelContract`.
 
-### Por que não mexer no banco
+---
 
-- Não há registros corrompidos que motivem migração agora; a UI passa a impedir entradas inválidas daqui pra frente.
-- Se quiser, posso adicionar depois um trigger em `ponto_horarios_professor` que zera `intervalo_min` quando `(horario_fim - horario_inicio) ≤ '4 hours'`. Hoje seria overkill — a regra é só de UX.
+## 2. Edge function + cron
 
-### Fora de escopo
+Criar `supabase/functions/renovar-planos-mensais/index.ts`:
+- Busca todos `planos` com `ativo=true`, `renovacao_automatica=true`, `proxima_renovacao <= CURRENT_DATE`
+- Para cada um, em loop:
+  1. `INSERT INTO vendas` com `tipo='plano'`, `catalogo_id=plano.id` (ou null), `nome_snapshot=plano.tipo`, `valor=plano.valor`, `status_pagamento='pendente'`, `origem='renovacao_automatica'`, `plano_id=plano.id`, `data_venda=CURRENT_DATE`
+  2. `UPDATE planos SET proxima_renovacao = proxima_renovacao + interval '1 month' WHERE id=...` (loop até ficar > hoje, caso a função fique parada por dias)
+- Retorna JSON com contagem.
 
-- Recalcular jornadas históricas com intervalo configurado errado.
-- Mudar o cálculo de divergências/banco de horas (`pontoTolerancia.ts`) — segue usando `prev_intervalo_min` da própria jornada.
+Agendar via `pg_cron` (diariamente às 03:00 BRT) chamando a função via `pg_net.http_post`.
+
+---
+
+## 3. UI — `src/components/student/StudentPlan.tsx`
+
+- Substituir o lookup `isAutoRenewPlan(data.tipo)` pelo campo `data.renovacao_automatica` para exibir o badge "Renovação automática mensal".
+- No diálogo "Editar Plano", **não** permitir alternar `renovacao_automatica` manualmente — texto informativo: *"Esta opção só é alterada via cancelamento de contrato."*
+- Em `handleCancelContract`: incluir `renovacao_automatica: false` no `UPDATE`.
+- Mostrar `Próxima renovação` (data) no card quando `renovacao_automatica=true`.
+
+---
+
+## 4. Histórico de vendas — `HistoricoVendas.tsx`
+
+- Adicionar uma tag visual (`Badge` "Renovação automática") quando `venda.origem === 'renovacao_automatica'`.
+
+---
+
+## Detalhes técnicos
+
+- Tipos auto-renováveis ficam centralizados no trigger SQL e na constante `isAutoRenewPlan` (já existente em `src/lib/planTipo.ts`) — manter as duas listas alinhadas.
+- A função roda diariamente; usa um loop `while proxima_renovacao <= today` para recuperar de paradas.
+- Não altera regras de crédito — apenas registra a mensalidade financeira.
+- Sem mudanças em RLS (insert da função roda com service_role).
+
+---
+
+## Fora de escopo
+
+- Cobrança real / integração com gateway de pagamento.
+- Notificação ao aluno sobre nova mensalidade.
+- Recalcular mensalidades retroativas para planos antigos sem `proxima_renovacao` (o backfill cobre os ativos).
