@@ -1,42 +1,33 @@
-## Por que internet rápida e app que não funciona convivem
+## Regra: jornadas até 4h não têm intervalo
 
-Speedtest mede banda até servidores do provedor (geralmente locais). Não diz nada sobre:
-- DNS conseguir resolver `dmudgqedzeosfpehpgep.supabase.co`
-- Firewall/proxy da rede permitir tráfego HTTPS para esse host
-- Inspeção HTTPS (antivírus/empresa) não quebrar o certificado
-- Bloqueio por categoria ("cloud storage", "developer tools") em controle parental ou rede corporativa
+Hoje a regra já existe parcialmente: na tela de Ponto (`src/pages/Ponto.tsx`), quando a janela do dia tem ≤ 240 minutos (4h), o `BotaoInteligente` recebe `pularIntervalo=true` e pula direto de "Iniciar jornada" para "Encerrar jornada", sem botões de intervalo.
 
-Ou seja: **438 Mbps de download não significa que o pacote consegue chegar ao backend**. O `Failed to fetch` do navegador acontece antes do app conseguir falar com o servidor.
+O que falta é a configuração do Admin refletir isso: hoje o coordenador/admin pode salvar uma janela de 3h com "15 min de intervalo" e gerar divergência no relatório. Vamos fechar essa porta.
 
-## Plano
+### Mudanças (somente frontend)
 
-1. **Rodar diagnóstico automaticamente ao abrir o login** (não só após erro)
-   - Hoje o `diagnoseNetwork()` só roda quando o usuário tenta logar e falha.
-   - Mudar para rodar 1x ao montar a tela de login (`Login.tsx` e `PortalLogin.tsx`), em segundo plano.
-   - Se detectar `backend_blocked` ou `backend_slow`, já mostrar o `NetworkHelpPanel` antes do usuário tentar.
+**`src/components/ponto/AdminPontoHorarios.tsx` (linha do `DiaRow`)**
 
-2. **Mensagem específica para "internet rápida mas backend bloqueado"**
-   - Em `networkDiagnostics.ts`, no caso `backend_blocked`, adicionar texto explicando que velocidade da internet não garante acesso ao servidor e que o bloqueio é de domínio, não de banda.
-   - Listar o domínio exato que precisa ser liberado (`dmudgqedzeosfpehpgep.supabase.co`) para o usuário levar ao TI/admin da rede.
+1. Calcular `janelaMin = (fim - início) em minutos` reativamente conforme o usuário muda os selects.
+2. Se `janelaMin > 0 && janelaMin <= 240`:
+   - Forçar `intervalo = 0` (efeito que reseta quando a janela cruza o limite).
+   - Desabilitar o `Select` de Intervalo e fixar o valor visível em "Sem intervalo".
+   - Mostrar um hint discreto abaixo: "Jornadas até 4h não têm intervalo (apenas entrada e saída)."
+3. Se `janelaMin > 240`: comportamento atual (Sem intervalo / 15 min / 1 hora).
 
-3. **Botão "Copiar domínio para liberar"** no `NetworkHelpPanel`
-   - Facilita o usuário enviar para quem administra a rede.
+**`src/pages/Ponto.tsx`**
 
-4. **Indicador discreto de status da rede** no topo do card de login
-   - Verde "Conexão com servidor OK" / vermelho "Servidor inacessível nesta rede".
-   - Evita o usuário tentar logar várias vezes achando que a senha está errada.
+- Sem mudança de lógica — a regra `pularIntervalo` já cobre os dois caminhos:
+  - há horário cadastrado: `intervaloPrevistoMin === 0 || cargaPrevistaMin ≤ 240`
+  - sem horário cadastrado: fallback `cargaMin ≤ 240`
+- Apenas atualizar o texto do header (linha 185) para deixar a regra explícita quando a janela for ≤ 4h: `"jornada de até 4h • sem intervalo"`.
 
-## Arquivos afetados
+### Por que não mexer no banco
 
-- `src/lib/networkDiagnostics.ts` — refinar texto do `backend_blocked`, expor `SUPABASE_HOST`.
-- `src/components/NetworkHelpPanel.tsx` — botão de copiar domínio + texto sobre velocidade ≠ acesso.
-- `src/pages/Login.tsx` — rodar `diagnoseNetwork()` no `useEffect` inicial.
-- `src/pages/portal/PortalLogin.tsx` — idem.
+- Não há registros corrompidos que motivem migração agora; a UI passa a impedir entradas inválidas daqui pra frente.
+- Se quiser, posso adicionar depois um trigger em `ponto_horarios_professor` que zera `intervalo_min` quando `(horario_fim - horario_inicio) ≤ '4 hours'`. Hoje seria overkill — a regra é só de UX.
 
-Nenhuma mudança de backend, RLS ou autenticação. Apenas frontend/UX.
+### Fora de escopo
 
-## Validação
-
-- Abrir login: diagnóstico roda em background, painel aparece se bloqueado.
-- Em rede normal: nada muda visualmente (status OK fica oculto ou discreto).
-- Em rede que bloqueia: usuário vê instruções e domínio antes de tentar logar.
+- Recalcular jornadas históricas com intervalo configurado errado.
+- Mudar o cálculo de divergências/banco de horas (`pontoTolerancia.ts`) — segue usando `prev_intervalo_min` da própria jornada.

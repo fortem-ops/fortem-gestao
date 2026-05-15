@@ -192,6 +192,17 @@ function DiaRow({
   const valido = fim > inicio;
   const isSabado = dia.val === 6;
 
+  // Regra: jornadas até 4h (≤240 min) não têm intervalo — apenas entrada e saída.
+  const janelaMin = useMemo(() => {
+    const [hi, mi] = inicio.split(":").map(Number);
+    const [hf, mf] = fim.split(":").map(Number);
+    return hf * 60 + mf - (hi * 60 + mi);
+  }, [inicio, fim]);
+  const intervaloBloqueado = janelaMin > 0 && janelaMin <= 240;
+  useEffect(() => {
+    if (intervaloBloqueado && intervalo !== 0) setIntervalo(0);
+  }, [intervaloBloqueado, intervalo]);
+
   return (
     <TableRow>
       <TableCell className="font-medium">{dia.label}</TableCell>
