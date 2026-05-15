@@ -151,7 +151,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         .eq("id", data.id);
       if (error) throw error;
       toast.success("Créditos atualizados");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      invalidatePlanoCaches(queryClient, student.id);
       setEditingService(null);
     } catch (err: any) {
       toast.error(err.message || "Erro ao atualizar créditos");
