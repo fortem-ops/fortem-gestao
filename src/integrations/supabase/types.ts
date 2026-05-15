@@ -829,6 +829,36 @@ export type Database = {
         }
         Relationships: []
       }
+      formas_pagamento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          permite_parcelamento: boolean
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          permite_parcelamento?: boolean
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          permite_parcelamento?: boolean
+          slug?: string
+        }
+        Relationships: []
+      }
       historico_profissional: {
         Row: {
           aluno_id: string
@@ -1392,8 +1422,11 @@ export type Database = {
           created_at: string
           data_fim: string | null
           data_inicio: string
+          desconto_recorrente: number
           duracao_meses: number
+          forma_pagamento_padrao: string | null
           id: string
+          parcelas_padrao: number
           proxima_renovacao: string | null
           renovacao_automatica: boolean
           servicos: string[] | null
@@ -1407,8 +1440,11 @@ export type Database = {
           created_at?: string
           data_fim?: string | null
           data_inicio: string
+          desconto_recorrente?: number
           duracao_meses?: number
+          forma_pagamento_padrao?: string | null
           id?: string
+          parcelas_padrao?: number
           proxima_renovacao?: string | null
           renovacao_automatica?: boolean
           servicos?: string[] | null
@@ -1422,8 +1458,11 @@ export type Database = {
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
+          desconto_recorrente?: number
           duracao_meses?: number
+          forma_pagamento_padrao?: string | null
           id?: string
+          parcelas_padrao?: number
           proxima_renovacao?: string | null
           renovacao_automatica?: boolean
           servicos?: string[] | null
@@ -2341,15 +2380,19 @@ export type Database = {
           catalogo_id: string
           created_at: string
           data_venda: string
+          desconto: number
+          forma_pagamento: string | null
           id: string
           nome_snapshot: string
           observacoes: string | null
           origem: string
+          parcelas: number
           plano_id: string | null
           status_pagamento: Database["public"]["Enums"]["venda_status"]
           tipo: Database["public"]["Enums"]["venda_tipo"]
           updated_at: string
           valor: number
+          valor_final: number
           vendedor_id: string | null
         }
         Insert: {
@@ -2357,15 +2400,19 @@ export type Database = {
           catalogo_id: string
           created_at?: string
           data_venda?: string
+          desconto?: number
+          forma_pagamento?: string | null
           id?: string
           nome_snapshot: string
           observacoes?: string | null
           origem?: string
+          parcelas?: number
           plano_id?: string | null
           status_pagamento?: Database["public"]["Enums"]["venda_status"]
           tipo: Database["public"]["Enums"]["venda_tipo"]
           updated_at?: string
           valor?: number
+          valor_final?: number
           vendedor_id?: string | null
         }
         Update: {
@@ -2373,15 +2420,19 @@ export type Database = {
           catalogo_id?: string
           created_at?: string
           data_venda?: string
+          desconto?: number
+          forma_pagamento?: string | null
           id?: string
           nome_snapshot?: string
           observacoes?: string | null
           origem?: string
+          parcelas?: number
           plano_id?: string | null
           status_pagamento?: Database["public"]["Enums"]["venda_status"]
           tipo?: Database["public"]["Enums"]["venda_tipo"]
           updated_at?: string
           valor?: number
+          valor_final?: number
           vendedor_id?: string | null
         }
         Relationships: [
