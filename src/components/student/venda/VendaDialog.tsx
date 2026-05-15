@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { formatBRL, calcularCreditos, type Frequencia } from "@/lib/vendas";
 import { cn } from "@/lib/utils";
 import { PaymentFields } from "./PaymentFields";
+import { invalidatePlanoCaches } from "@/lib/planoCache";
 
 type Props = { alunoId: string; alunoNome: string; open: boolean; onOpenChange: (v: boolean) => void };
 
