@@ -212,6 +212,22 @@ export default function Leads() {
             <SelectItem value="custom">Customizado</SelectItem>
           </SelectContent>
         </Select>
+        {periodo === "meses_passados" && (
+          <Select value={mesPassado} onValueChange={setMesPassado}>
+            <SelectTrigger className="w-[200px] capitalize">
+              <SelectValue placeholder="Selecione o mês" />
+            </SelectTrigger>
+            <SelectContent>
+              {mesesDisponiveis.length === 0 ? (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum mês anterior disponível</div>
+              ) : (
+                mesesDisponiveis.map((m) => (
+                  <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        )}
         {periodo === "custom" && (
           <>
             <Popover>
