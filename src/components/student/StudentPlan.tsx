@@ -58,6 +58,12 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [addUsageService, setAddUsageService] = useState("");
   const [addUsageDate, setAddUsageDate] = useState(new Date().toISOString().split("T")[0]);
   const [vendaOpen, setVendaOpen] = useState(false);
+  const [editPlanOpen, setEditPlanOpen] = useState(false);
+  const [editTipo, setEditTipo] = useState("");
+  const [editValor, setEditValor] = useState<string>("");
+  const [editInicio, setEditInicio] = useState("");
+  const [editDuracao, setEditDuracao] = useState<number>(1);
+  const [editFim, setEditFim] = useState<string>("");
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin"],
