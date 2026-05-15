@@ -1,45 +1,72 @@
-## Reorganização do menu "Cadastros"
+## 1. Busca global de cadastros no header
 
-Nova ordem no sidebar (todos visíveis conforme permissão atual):
-1. **Leads** (`/leads`) — admin
-2. **Prospects** (`/prospects`)
-3. **Alunos Ativos** (`/alunos`) — renomeado de "Alunos"
-4. **Alunos Inativos** (`/alunos-inativos`) — nova rota
-5. **Anexos Jurídicos** continua (admin)
+Adicionar um campo de busca sempre visível em `src/components/AppLayout.tsx`, ao lado do título "Fortem Gestão Técnica".
 
-### 1. `src/components/AppSidebar.tsx`
-- Reordenar `cadastrosItems` / `cadastrosAdminItems` para sair na ordem: Leads → Prospects → Alunos Ativos → Alunos Inativos → Anexos Jurídicos.
-- Renomear "Alunos" → "Alunos Ativos".
-- Adicionar item "Alunos Inativos" apontando para `/alunos-inativos` (mesmo ícone `Users` ou `UserX`).
+**Comportamento:**
+- Campo com ícone de lupa, placeholder "Buscar cadastro (lead, prospect, aluno)..."
+- Ao digitar (debounce 200ms), abre um popover/dropdown listando os resultados agrupados por tipo:
+  - **Leads** (alunos cuja `current_pipeline_stage_id` = "Novo lead")
+  - **Prospects** (estágios "Prospect" e "Treino experimental agendado")
+  - **Alunos Ativos** (status display = ativo/licenca)
+  - **Alunos Inativos** (status display = encerrado)
+- Cada item mostra: nome, telefone, badge do tipo
+- Atalho de teclado `⌘K` / `Ctrl+K` para focar
+- Limite ~8 resultados por grupo
 
-### 2. Filtragem por status do plano
-A página atual `StudentList.tsx` já calcula `getDisplayStatus` (key `ativo` / `encerrado` / `licenca` / `lead` / `prospect`).
+**Navegação ao clicar:**
+- **Aluno Ativo/Inativo** → `navigate('/alunos/:id')`
+- **Lead** → `navigate('/leads')` + abre `EditLeadDialog` automaticamente via query param (`?edit=:id`)
+- **Prospect** → `navigate('/prospects')` + abre `EditLeadDialog` via `?edit=:id`
 
-- **Alunos Ativos** (`/alunos`): mostra apenas alunos cujo `display.key ∈ {ativo, licenca}` (plano ativo vigente, auto-renovável ou licença vigente). Lead/Prospect ficam fora porque já têm página própria.
-- **Alunos Inativos** (`/alunos-inativos`): mostra apenas `display.key === 'encerrado'` (sem plano ativo OU plano vencido).
+**Implementação técnica:**
+- Novo componente `src/components/GlobalCadastroSearch.tsx` usando `Command` (cmdk) dentro de `Popover`
+- Query única em `alunos` (id, nome, telefone, current_pipeline_stage_id, status) + join leve com `pipeline_stages` para classificar; cacheada com `staleTime: 60s`
+- Classificação client-side por estágio (Novo lead / Prospect / Treino experimental) e status para separar ativos vs inativos
+- `Leads.tsx` e `Prospects.tsx` lerão `useSearchParams` para abrir `EditLeadDialog` quando `?edit=` estiver presente
 
-Implementação: adicionar prop `mode: "ativos" | "inativos"` em `StudentList` (ou criar `StudentListInativos.tsx` que reusa o componente). Dentro do `useMemo filtered`, aplicar pré-filtro fixo por modo, antes do filtro do usuário. O filtro de status do `StudentListFilters` continua funcionando dentro do subconjunto.
+## 2. Padronizar Leads e Prospects com o padrão Alunos
 
-Header da página muda conforme modo:
-- Ativos: "Alunos Ativos" + contagem dos ativos
-- Inativos: "Alunos Inativos" + contagem dos inativos
+Criar um componente compartilhado de filtros avançados análogo a `StudentListFilters`, e aplicar a mesma estrutura visual (cards de KPI + barra de filtros + tabela em `glass-card`) nas páginas Leads e Prospects.
 
-### 3. Rotas em `src/App.tsx`
-- Manter `/alunos` → `StudentList` (modo ativos por default).
-- Adicionar `/alunos-inativos` → `StudentList mode="inativos"`.
+### 2.1 Novo componente `src/components/leads/LeadProspectFilters.tsx`
 
-### 4. Pipeline ↔ Cadastros (automação)
-Já existe a função `fn_detect_evasao` que move alunos entre os funis "Aluno" e "Inativo" do Pipeline com base na mesma regra de plano ativo (vide `.lovable/plan.md`). Nada novo a criar:
-- Quando um aluno perde plano ativo → `fn_detect_evasao` o joga no funil **Inativo** do Pipeline → ele aparece automaticamente em **Alunos Inativos** (mesma regra de display status).
-- Quando renova/ganha plano ativo → volta ao funil **Aluno** → aparece em **Alunos Ativos**.
+Mesmo padrão de UX de `StudentListFilters`:
+- Linha superior: campo de busca + select primário (origem para Leads / etapa para Prospects) + botão **"Filtros"** com ícone `SlidersHorizontal` e badge de contagem ativa
+- Painel "Filtros Avançados" colapsável (`glass-card`) com botão **"Limpar filtros"**
+- Para **Leads**, o painel contém: Período (sempre/mês atual/mês passado/meses passados/customizado), seletor de mês quando aplicável, datas customizadas, Responsável
+- Para **Prospects**, o painel contém: Período (mesmas opções), Etapa, Agendamento (com/sem)
 
-Verificar (sem mudar) que o botão "Recalcular status" continua disponível na lista de Alunos Ativos e Inativos para forçar sincronização.
+### 2.2 KPIs padronizados (cards superiores)
 
-### 5. Outros consumidores
-- Dashboard widgets, links em `StudentProfile`, breadcrumbs etc. continuam usando `/alunos/:id` para o perfil — sem mudança.
-- Buscas e atalhos que apontam para `/alunos` continuam levando para Alunos Ativos (comportamento esperado).
+- **Leads**: Total · Conversão Lead → Prospect (30d) · Leads por Origem (mantém barras horizontais)
+- **Prospects**: Total · Conversão Lead → Prospect (30d) · Origem dos Prospects (mantém barras)
 
-## Fora de escopo
-- Não altera schema do banco (regra de status já está consolidada).
-- Não altera Pipeline visualmente.
-- Não cria nova tabela ou trigger — `fn_detect_evasao` já cuida da automação.
+Ambos passarão a usar o mesmo grid `grid-cols-1 md:grid-cols-3 gap-3` e mesmo estilo de Card visto em Alunos.
+
+### 2.3 Tabela em `glass-card`
+
+Substituir `Card` + `Table` por `<div class="glass-card rounded-lg overflow-hidden overflow-x-auto">` com `<table>` nativa, no mesmo padrão de `StudentList.tsx`:
+- Cabeçalho com `text-xs font-medium text-muted-foreground p-4`
+- Linhas com `border-b border-border/50 hover:bg-secondary/50 cursor-pointer`
+- Clique em qualquer parte da linha abre o `EditLeadDialog` (em vez de só no botão de editar)
+- Colunas mantêm o conteúdo atual de cada página
+
+### 2.4 Refatorações nas páginas
+
+- `src/pages/Leads.tsx`: substitui o bloco atual de filtros por `<LeadProspectFilters mode="leads" .../>`, adapta KPIs ao grid de 3 colunas, troca `Card`+`Table` pela tabela `glass-card`, lê `?edit=` para abrir dialog
+- `src/pages/Prospects.tsx`: idem com `mode="prospects"`, mesmas adaptações; mantém a coluna Etapa/Agenda
+
+## Arquivos afetados
+
+- `src/components/AppLayout.tsx` — inserir busca no header
+- `src/components/GlobalCadastroSearch.tsx` — novo
+- `src/components/leads/LeadProspectFilters.tsx` — novo
+- `src/pages/Leads.tsx` — refatorar filtros, KPIs, tabela, suporte `?edit=`
+- `src/pages/Prospects.tsx` — refatorar filtros, KPIs, tabela, suporte `?edit=`
+
+## Detalhes técnicos
+
+- A busca global classifica o resultado pelo nome do `pipeline_stages` correspondente ao `current_pipeline_stage_id`. Estágios "Novo lead" → Lead; "Prospect"/"Treino experimental agendado" → Prospect; demais (ou nulos) com `status` ∈ {ativo, licenca} → Aluno Ativo; com `status='encerrado'` → Aluno Inativo. Computado client-side a partir de uma query cacheada de stages.
+- O `EditLeadDialog` já existe e aceita `alunoId`; basta acionar via `useSearchParams` no `useEffect` inicial e limpar o param ao fechar.
+- Mantém RLS atual (nenhuma migração de banco). Apenas mudanças de frontend/apresentação.
+- Sem alteração nas dependências (`cmdk`/`Command` já está disponível via shadcn).

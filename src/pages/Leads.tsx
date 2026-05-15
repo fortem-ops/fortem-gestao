@@ -1,43 +1,40 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Search, Settings2, CalendarIcon } from "lucide-react";
+import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Settings2 } from "lucide-react";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { ManageOrigensDialog } from "@/components/leads/ManageOrigensDialog";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
-import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-
-type Periodo = "sempre" | "mes_atual" | "mes_passado" | "meses_passados" | "custom";
+import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
 
 export default function Leads() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [openNew, setOpenNew] = useState(false);
   const [openManageOrigens, setOpenManageOrigens] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [convertId, setConvertId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [origem, setOrigem] = useState<string>("all");
-  const [responsavel, setResponsavel] = useState<string>("all");
-  const [periodo, setPeriodo] = useState<Periodo>("sempre");
-  const [customDe, setCustomDe] = useState<Date | undefined>();
-  const [customAte, setCustomAte] = useState<Date | undefined>();
-  const [mesPassado, setMesPassado] = useState<string>(""); // formato "YYYY-MM"
+  const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
   const { data: origensList = [] } = useLeadOrigens(true);
   const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
+
+  // Abrir edit via ?edit=id (busca global)
+  useEffect(() => {
+    const id = searchParams.get("edit");
+    if (id) {
+      setEditId(id);
+      searchParams.delete("edit");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: leadStage } = useQuery({
     queryKey: ["stage-novo-lead"],
@@ -80,13 +77,31 @@ export default function Leads() {
     staleTime: 5 * 60_000,
   });
 
+  // Conversão Lead → Prospect (30d)
+  const { data: conversionRate = 0 } = useQuery({
+    queryKey: ["leads-conversion-rate"],
+    queryFn: async () => {
+      const since = subDays(new Date(), 30).toISOString();
+      const { data: stagesAll } = await supabase.from("pipeline_stages").select("id,name").in("name", ["Novo lead", "Prospect"]);
+      const novoLeadId = stagesAll?.find((s) => s.name === "Novo lead")?.id;
+      const prospectId = stagesAll?.find((s) => s.name === "Prospect")?.id;
+      if (!novoLeadId || !prospectId) return 0;
+      const { data: leadsCreated } = await supabase
+        .from("pipeline_movements").select("id").eq("to_stage_id", novoLeadId).gte("moved_at", since);
+      const { data: converted } = await supabase
+        .from("pipeline_movements").select("id").eq("from_stage_id", novoLeadId).eq("to_stage_id", prospectId).gte("moved_at", since);
+      const total = leadsCreated?.length || 0;
+      const conv = converted?.length || 0;
+      return total > 0 ? Math.round((conv / total) * 100) : 0;
+    },
+  });
+
   const responsaveisList = useMemo(() => {
     const set = new Set<string>();
     leads.forEach((l: any) => l.responsavel_id && set.add(l.responsavel_id));
     return Array.from(set).map((id) => ({ id, nome: profilesMap[id] || "—" }));
   }, [leads, profilesMap]);
 
-  // Lista de meses disponíveis (anteriores ao mês atual), com base nos leads existentes
   const mesesDisponiveis = useMemo(() => {
     if (!leads.length) return [] as { value: string; label: string }[];
     const now = new Date();
@@ -97,31 +112,27 @@ export default function Leads() {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       if (key < currentKey) set.add(key);
     });
-    return Array.from(set)
-      .sort((a, b) => (a < b ? 1 : -1))
-      .map((key) => {
-        const [y, m] = key.split("-").map(Number);
-        return { value: key, label: format(new Date(y, m - 1, 1), "MMMM 'de' yyyy", { locale: ptBR }) };
-      });
+    return Array.from(set).sort((a, b) => (a < b ? 1 : -1)).map((key) => {
+      const [y, m] = key.split("-").map(Number);
+      return { value: key, label: format(new Date(y, m - 1, 1), "MMMM 'de' yyyy", { locale: ptBR }) };
+    });
   }, [leads]);
 
   const leadsPeriodo = useMemo(() => {
-    if (periodo === "sempre") return leads;
+    if (filters.periodo === "sempre") return leads;
     const now = new Date();
     let from: Date | null = null;
     let to: Date | null = null;
-    if (periodo === "mes_atual") { from = startOfMonth(now); to = endOfMonth(now); }
-    else if (periodo === "mes_passado") {
-      const m = subMonths(now, 1);
-      from = startOfMonth(m); to = endOfMonth(m);
-    } else if (periodo === "meses_passados") {
-      if (!mesPassado) return leads.filter(() => false);
-      const [y, m] = mesPassado.split("-").map(Number);
+    if (filters.periodo === "mes_atual") { from = startOfMonth(now); to = endOfMonth(now); }
+    else if (filters.periodo === "mes_passado") { const m = subMonths(now, 1); from = startOfMonth(m); to = endOfMonth(m); }
+    else if (filters.periodo === "meses_passados") {
+      if (!filters.mesPassado) return leads.filter(() => false);
+      const [y, m] = filters.mesPassado.split("-").map(Number);
       const ref = new Date(y, m - 1, 1);
       from = startOfMonth(ref); to = endOfMonth(ref);
-    } else if (periodo === "custom") {
-      if (customDe) from = startOfDay(customDe);
-      if (customAte) to = endOfDay(customAte);
+    } else if (filters.periodo === "custom") {
+      if (filters.customDe) from = startOfDay(filters.customDe);
+      if (filters.customAte) to = endOfDay(filters.customAte);
     }
     return leads.filter((l: any) => {
       const d = new Date(l.created_at);
@@ -129,19 +140,18 @@ export default function Leads() {
       if (to && d > to) return false;
       return true;
     });
-  }, [leads, periodo, customDe, customAte, mesPassado]);
+  }, [leads, filters.periodo, filters.customDe, filters.customAte, filters.mesPassado]);
 
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = filters.search.trim().toLowerCase();
     return leadsPeriodo.filter((l: any) => {
       if (term && !l.nome.toLowerCase().includes(term)) return false;
-      if (origem !== "all" && l.origem !== origem) return false;
-      if (responsavel !== "all" && l.responsavel_id !== responsavel) return false;
+      if (filters.primary !== "all" && l.origem !== filters.primary) return false;
+      if (filters.responsavel !== "all" && l.responsavel_id !== filters.responsavel) return false;
       return true;
     });
-  }, [leadsPeriodo, search, origem, responsavel]);
+  }, [leadsPeriodo, filters.search, filters.primary, filters.responsavel]);
 
-  // KPIs
   const totalLeads = leadsPeriodo.length;
   const porOrigem = useMemo(() => {
     const m: Record<string, number> = {};
@@ -153,11 +163,13 @@ export default function Leads() {
   const maxOrigem = Math.max(1, ...Object.values(porOrigem));
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-heading font-bold text-foreground">Leads</h1>
-          <p className="text-sm text-muted-foreground mt-1">Captura inicial — topo do funil</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {filtered.length} lead{filtered.length !== 1 ? "s" : ""} · captura inicial — topo do funil
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setOpenManageOrigens(true)} className="gap-2">
@@ -170,130 +182,78 @@ export default function Leads() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card className="p-4">
+        <div className="glass-card rounded-lg p-4">
           <p className="text-xs uppercase text-muted-foreground">Total de leads</p>
           <p className="text-3xl font-bold mt-1 text-foreground">{totalLeads}</p>
-        </Card>
-        <Card className="p-4 md:col-span-2">
+        </div>
+        <div className="glass-card rounded-lg p-4">
+          <p className="text-xs uppercase text-muted-foreground">Conversão Lead → Prospect (30d)</p>
+          <p className="text-3xl font-bold mt-1 text-primary">{conversionRate}%</p>
+        </div>
+        <div className="glass-card rounded-lg p-4">
           <p className="text-xs uppercase text-muted-foreground mb-2">Leads por origem</p>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {Object.entries(porOrigem).map(([o, n]) => (
               <div key={o} className="flex items-center gap-2 text-xs">
-                <span className="w-32 truncate text-muted-foreground">{o}</span>
-                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                <span className="w-28 truncate text-muted-foreground">{o}</span>
+                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div className="h-full bg-primary" style={{ width: `${(n / maxOrigem) * 100}%` }} />
                 </div>
-                <span className="w-6 text-right tabular-nums">{n}</span>
+                <span className="w-5 text-right tabular-nums">{n}</span>
               </div>
             ))}
           </div>
-        </Card>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar lead..." className="pl-8" />
         </div>
-        <Select value={origem} onValueChange={setOrigem}>
-          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas origens</SelectItem>
-            {origensAtivas.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={periodo} onValueChange={(v) => setPeriodo(v as Periodo)}>
-          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="sempre">Desde sempre</SelectItem>
-            <SelectItem value="mes_atual">Mês atual</SelectItem>
-            <SelectItem value="mes_passado">Mês passado</SelectItem>
-            <SelectItem value="meses_passados">Meses passados</SelectItem>
-            <SelectItem value="custom">Customizado</SelectItem>
-          </SelectContent>
-        </Select>
-        {periodo === "meses_passados" && (
-          <Select value={mesPassado} onValueChange={setMesPassado}>
-            <SelectTrigger className="w-[200px] capitalize">
-              <SelectValue placeholder="Selecione o mês" />
-            </SelectTrigger>
-            <SelectContent>
-              {mesesDisponiveis.length === 0 ? (
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum mês anterior disponível</div>
-              ) : (
-                mesesDisponiveis.map((m) => (
-                  <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        )}
-        {periodo === "custom" && (
-          <>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customDe && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {customDe ? format(customDe, "dd/MM/yyyy") : "De"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent mode="single" selected={customDe} onSelect={setCustomDe} initialFocus locale={ptBR} className={cn("p-3 pointer-events-auto")} />
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customAte && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {customAte ? format(customAte, "dd/MM/yyyy") : "Até"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent mode="single" selected={customAte} onSelect={setCustomAte} initialFocus locale={ptBR} className={cn("p-3 pointer-events-auto")} />
-              </PopoverContent>
-            </Popover>
-          </>
-        )}
-        <Select value={responsavel} onValueChange={setResponsavel}>
-          <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos responsáveis</SelectItem>
-            {responsaveisList.map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
-          </SelectContent>
-        </Select>
       </div>
 
-      <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Origem</TableHead>
-              <TableHead>Responsável</TableHead>
-              <TableHead>Criado</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <LeadProspectFilters
+        mode="leads"
+        filters={filters}
+        onChange={setFilters}
+        primaryLabel="Todas origens"
+        primaryOptions={origensAtivas.map((o) => ({ value: o.nome, label: o.nome }))}
+        responsaveis={responsaveisList}
+        mesesDisponiveis={mesesDisponiveis}
+        searchPlaceholder="Buscar lead por nome..."
+      />
+
+      <div className="glass-card rounded-lg overflow-hidden overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Telefone</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Origem</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Responsável</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Criado</th>
+              <th className="text-right text-xs font-medium text-muted-foreground p-4">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
             {isLoading && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
             )}
             {!isLoading && filtered.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum lead encontrado.</TableCell></TableRow>
+              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
             )}
             {filtered.map((l: any) => {
               const wa = waMeLink(l.telefone, `Olá ${l.nome.split(" ")[0]}! Sou da Fortem 💪`);
               return (
-                <TableRow key={l.id}>
-                  <TableCell className="font-medium">{l.nome}</TableCell>
-                  <TableCell className="text-muted-foreground">{l.telefone || "—"}</TableCell>
-                  <TableCell><Badge variant="outline">{l.origem}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground">{profilesMap[l.responsavel_id] || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
+                <tr
+                  key={l.id}
+                  onClick={() => setEditId(l.id)}
+                  className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors"
+                >
+                  <td className="p-4">
+                    <p className="text-sm font-medium text-foreground">{l.nome}</p>
+                  </td>
+                  <td className="p-4 hidden md:table-cell text-sm text-muted-foreground">{l.telefone || "—"}</td>
+                  <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{l.origem}</Badge></td>
+                  <td className="p-4 hidden lg:table-cell text-sm text-muted-foreground">{profilesMap[l.responsavel_id] || "—"}</td>
+                  <td className="p-4 hidden lg:table-cell text-xs text-muted-foreground">
                     {format(new Date(l.created_at), "dd/MM/yyyy")} · {formatDaysAgo(l.created_at)}
-                  </TableCell>
-                  <TableCell className="text-right">
+                  </td>
+                  <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
                       {wa && (
                         <Button size="icon" variant="ghost" asChild title="WhatsApp">
@@ -310,13 +270,13 @@ export default function Leads() {
                         <KanbanSquare className="w-4 h-4" />
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               );
             })}
-          </TableBody>
-        </Table>
-      </Card>
+          </tbody>
+        </table>
+      </div>
 
       <NewLeadDialog open={openNew} onOpenChange={setOpenNew} />
       <EditLeadDialog alunoId={editId} open={!!editId} onOpenChange={(v) => !v && setEditId(null)} />

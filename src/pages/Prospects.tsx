@@ -1,35 +1,38 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MessageCircle, Pencil, KanbanSquare, Search, CalendarPlus, ListTodo } from "lucide-react";
+import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo } from "lucide-react";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
-import { format, subDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
 
 const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
 
 export default function Prospects() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [editId, setEditId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [stageFilter, setStageFilter] = useState<string>("all");
-  const [agendaFilter, setAgendaFilter] = useState<string>("all");
+  const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
+
+  useEffect(() => {
+    const id = searchParams.get("edit");
+    if (id) {
+      setEditId(id);
+      searchParams.delete("edit");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: stages = [] } = useQuery({
     queryKey: ["prospect-stages"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("pipeline_stages")
-        .select("id,name")
-        .in("name", PROSPECT_STAGE_NAMES);
+      const { data } = await supabase.from("pipeline_stages").select("id,name").in("name", PROSPECT_STAGE_NAMES);
       return data || [];
     },
   });
@@ -68,7 +71,6 @@ export default function Prospects() {
     enabled: stageIds.length > 0,
   });
 
-  // Conversion rate (last 30 days)
   const { data: conversionRate = 0 } = useQuery({
     queryKey: ["prospects-conversion-rate"],
     queryFn: async () => {
@@ -78,60 +80,95 @@ export default function Prospects() {
       const prospectId = stagesAll?.find((s) => s.name === "Prospect")?.id;
       if (!novoLeadId || !prospectId) return 0;
       const { data: leadsCreated } = await supabase
-        .from("pipeline_movements")
-        .select("id")
-        .eq("to_stage_id", novoLeadId)
-        .gte("moved_at", since);
+        .from("pipeline_movements").select("id").eq("to_stage_id", novoLeadId).gte("moved_at", since);
       const { data: converted } = await supabase
-        .from("pipeline_movements")
-        .select("id")
-        .eq("from_stage_id", novoLeadId)
-        .eq("to_stage_id", prospectId)
-        .gte("moved_at", since);
+        .from("pipeline_movements").select("id").eq("from_stage_id", novoLeadId).eq("to_stage_id", prospectId).gte("moved_at", since);
       const total = leadsCreated?.length || 0;
       const conv = converted?.length || 0;
       return total > 0 ? Math.round((conv / total) * 100) : 0;
     },
   });
 
+  const mesesDisponiveis = useMemo(() => {
+    if (!prospects.length) return [] as { value: string; label: string }[];
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const set = new Set<string>();
+    prospects.forEach((p: any) => {
+      const d = new Date(p.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (key < currentKey) set.add(key);
+    });
+    return Array.from(set).sort((a, b) => (a < b ? 1 : -1)).map((key) => {
+      const [y, m] = key.split("-").map(Number);
+      return { value: key, label: format(new Date(y, m - 1, 1), "MMMM 'de' yyyy", { locale: ptBR }) };
+    });
+  }, [prospects]);
+
+  const prospectsPeriodo = useMemo(() => {
+    if (filters.periodo === "sempre") return prospects;
+    const now = new Date();
+    let from: Date | null = null;
+    let to: Date | null = null;
+    if (filters.periodo === "mes_atual") { from = startOfMonth(now); to = endOfMonth(now); }
+    else if (filters.periodo === "mes_passado") { const m = subMonths(now, 1); from = startOfMonth(m); to = endOfMonth(m); }
+    else if (filters.periodo === "meses_passados") {
+      if (!filters.mesPassado) return prospects.filter(() => false);
+      const [y, m] = filters.mesPassado.split("-").map(Number);
+      const ref = new Date(y, m - 1, 1);
+      from = startOfMonth(ref); to = endOfMonth(ref);
+    } else if (filters.periodo === "custom") {
+      if (filters.customDe) from = startOfDay(filters.customDe);
+      if (filters.customAte) to = endOfDay(filters.customAte);
+    }
+    return prospects.filter((p: any) => {
+      const d = new Date(p.created_at);
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    });
+  }, [prospects, filters.periodo, filters.customDe, filters.customAte, filters.mesPassado]);
+
   const porOrigem = useMemo(() => {
     const m: Record<string, number> = {};
     ORIGEM_LEAD_OPTIONS.forEach((o) => (m[o] = 0));
-    prospects.forEach((p: any) => { if (m[p.origem] !== undefined) m[p.origem]++; });
+    prospectsPeriodo.forEach((p: any) => { if (m[p.origem] !== undefined) m[p.origem]++; });
     return m;
-  }, [prospects]);
+  }, [prospectsPeriodo]);
   const maxOrigem = Math.max(1, ...Object.values(porOrigem));
 
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return prospects.filter((p: any) => {
+    const term = filters.search.trim().toLowerCase();
+    return prospectsPeriodo.filter((p: any) => {
       if (term && !p.nome.toLowerCase().includes(term)) return false;
-      if (stageFilter !== "all" && p.current_pipeline_stage_id !== stageFilter) return false;
-      if (agendaFilter === "sim" && !p.tem_agenda) return false;
-      if (agendaFilter === "nao" && p.tem_agenda) return false;
+      if (filters.primary !== "all" && p.current_pipeline_stage_id !== filters.primary) return false;
+      if (filters.agenda === "sim" && !p.tem_agenda) return false;
+      if (filters.agenda === "nao" && p.tem_agenda) return false;
       return true;
     });
-  }, [prospects, search, stageFilter, agendaFilter]);
+  }, [prospectsPeriodo, filters.search, filters.primary, filters.agenda]);
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-heading font-bold text-foreground">Prospects</h1>
-          <p className="text-sm text-muted-foreground mt-1">Leads qualificados — meio de funil</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {filtered.length} prospect{filtered.length !== 1 ? "s" : ""} · meio do funil
+          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card className="p-4">
+        <div className="glass-card rounded-lg p-4">
           <p className="text-xs uppercase text-muted-foreground">Total de prospects</p>
-          <p className="text-3xl font-bold mt-1 text-foreground">{prospects.length}</p>
-        </Card>
-        <Card className="p-4">
+          <p className="text-3xl font-bold mt-1 text-foreground">{prospectsPeriodo.length}</p>
+        </div>
+        <div className="glass-card rounded-lg p-4">
           <p className="text-xs uppercase text-muted-foreground">Conversão Lead → Prospect (30d)</p>
           <p className="text-3xl font-bold mt-1 text-primary">{conversionRate}%</p>
-        </Card>
-        <Card className="p-4">
+        </div>
+        <div className="glass-card rounded-lg p-4">
           <p className="text-xs uppercase text-muted-foreground mb-2">Origem dos prospects</p>
           <div className="space-y-1">
             {Object.entries(porOrigem).map(([o, n]) => (
@@ -144,66 +181,60 @@ export default function Prospects() {
               </div>
             ))}
           </div>
-        </Card>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar prospect..." className="pl-8" />
         </div>
-        <Select value={stageFilter} onValueChange={setStageFilter}>
-          <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas etapas</SelectItem>
-            {stages.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={agendaFilter} onValueChange={setAgendaFilter}>
-          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="sim">Com agendamento</SelectItem>
-            <SelectItem value="nao">Sem agendamento</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
-      <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Origem</TableHead>
-              <TableHead>Etapa</TableHead>
-              <TableHead>Agenda</TableHead>
-              <TableHead>Criado</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <LeadProspectFilters
+        mode="prospects"
+        filters={filters}
+        onChange={setFilters}
+        primaryLabel="Todas etapas"
+        primaryOptions={stages.map((s: any) => ({ value: s.id, label: s.name }))}
+        mesesDisponiveis={mesesDisponiveis}
+        searchPlaceholder="Buscar prospect por nome..."
+      />
+
+      <div className="glass-card rounded-lg overflow-hidden overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Telefone</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Origem</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Etapa</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Agenda</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Criado</th>
+              <th className="text-right text-xs font-medium text-muted-foreground p-4">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
             {isLoading && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
             )}
             {!isLoading && filtered.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum prospect encontrado.</TableCell></TableRow>
+              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum prospect encontrado.</td></tr>
             )}
             {filtered.map((p: any) => {
               const wa = waMeLink(p.telefone, `Olá ${p.nome.split(" ")[0]}! Vamos agendar sua aula experimental?`);
               return (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{p.nome}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.telefone || "—"}</TableCell>
-                  <TableCell><Badge variant="outline">{p.origem}</Badge></TableCell>
-                  <TableCell><Badge>{stageNameMap[p.current_pipeline_stage_id] || "—"}</Badge></TableCell>
-                  <TableCell>
-                    {p.tem_agenda ? <Badge variant="secondary">Agendado</Badge> : <span className="text-muted-foreground text-xs">—</span>}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
+                <tr
+                  key={p.id}
+                  onClick={() => setEditId(p.id)}
+                  className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors"
+                >
+                  <td className="p-4">
+                    <p className="text-sm font-medium text-foreground">{p.nome}</p>
+                  </td>
+                  <td className="p-4 hidden md:table-cell text-sm text-muted-foreground">{p.telefone || "—"}</td>
+                  <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{p.origem}</Badge></td>
+                  <td className="p-4 hidden lg:table-cell"><Badge className="text-xs">{stageNameMap[p.current_pipeline_stage_id] || "—"}</Badge></td>
+                  <td className="p-4 hidden lg:table-cell">
+                    {p.tem_agenda ? <Badge variant="secondary" className="text-xs">Agendado</Badge> : <span className="text-muted-foreground text-xs">—</span>}
+                  </td>
+                  <td className="p-4 hidden xl:table-cell text-xs text-muted-foreground">
                     {format(new Date(p.created_at), "dd/MM/yyyy")} · {formatDaysAgo(p.created_at)}
-                  </TableCell>
-                  <TableCell className="text-right">
+                  </td>
+                  <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
                       {wa && (
                         <Button size="icon" variant="ghost" asChild title="WhatsApp">
@@ -223,13 +254,13 @@ export default function Prospects() {
                         <KanbanSquare className="w-4 h-4" />
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               );
             })}
-          </TableBody>
-        </Table>
-      </Card>
+          </tbody>
+        </table>
+      </div>
 
       <EditLeadDialog alunoId={editId} open={!!editId} onOpenChange={(v) => !v && setEditId(null)} />
     </div>
