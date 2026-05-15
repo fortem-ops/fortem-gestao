@@ -182,7 +182,11 @@ export default function Ponto() {
           {janelaLabel ? (
             <p className="text-xs text-muted-foreground mt-1">
               Jornada prevista hoje: <span className="font-medium text-foreground">{janelaLabel}</span>
-              {intervaloPrevistoMin > 0 ? ` • intervalo de ${intervaloPrevistoMin}min` : " • sem intervalo"}
+              {pularIntervalo
+                ? " • jornada de até 4h, sem intervalo"
+                : intervaloPrevistoMin > 0
+                  ? ` • intervalo de ${intervaloPrevistoMin}min`
+                  : " • sem intervalo"}
             </p>
           ) : (
             <p className="text-xs text-warning mt-1">Sem jornada prevista para hoje (verifique Admin Ponto).</p>

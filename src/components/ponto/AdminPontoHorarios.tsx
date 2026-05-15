@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -192,6 +192,17 @@ function DiaRow({
   const valido = fim > inicio;
   const isSabado = dia.val === 6;
 
+  // Regra: jornadas até 4h (≤240 min) não têm intervalo — apenas entrada e saída.
+  const janelaMin = useMemo(() => {
+    const [hi, mi] = inicio.split(":").map(Number);
+    const [hf, mf] = fim.split(":").map(Number);
+    return hf * 60 + mf - (hi * 60 + mi);
+  }, [inicio, fim]);
+  const intervaloBloqueado = janelaMin > 0 && janelaMin <= 240;
+  useEffect(() => {
+    if (intervaloBloqueado && intervalo !== 0) setIntervalo(0);
+  }, [intervaloBloqueado, intervalo]);
+
   return (
     <TableRow>
       <TableCell className="font-medium">{dia.label}</TableCell>
@@ -212,7 +223,7 @@ function DiaRow({
         </Select>
       </TableCell>
       <TableCell>
-        <Select value={String(intervalo)} onValueChange={(v) => setIntervalo(Number(v))}>
+        <Select value={String(intervalo)} onValueChange={(v) => setIntervalo(Number(v))} disabled={intervaloBloqueado}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="0">Sem intervalo</SelectItem>
@@ -220,6 +231,11 @@ function DiaRow({
             <SelectItem value="60">1 hora</SelectItem>
           </SelectContent>
         </Select>
+        {intervaloBloqueado && (
+          <p className="text-[10px] text-muted-foreground mt-1 leading-tight max-w-[140px]">
+            Jornadas até 4h: apenas entrada e saída.
+          </p>
+        )}
       </TableCell>
       <TableCell>
         {isSabado ? (
