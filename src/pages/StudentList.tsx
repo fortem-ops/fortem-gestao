@@ -271,9 +271,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-foreground">Alunos</h1>
+          <h1 className="text-2xl font-heading font-bold text-foreground">{pageTitle}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {alunos.length} aluno{alunos.length !== 1 ? "s" : ""} cadastrado{alunos.length !== 1 ? "s" : ""}
+            {filtered.length} aluno{filtered.length !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
