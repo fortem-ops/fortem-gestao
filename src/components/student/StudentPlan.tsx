@@ -211,6 +211,61 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     }
   }
 
+  function openEditPlan() {
+    if (!data) return;
+    setEditTipo(data.tipo ?? "");
+    setEditValor(data.valor != null ? String(data.valor) : "");
+    setEditInicio(data.data_inicio ?? "");
+    setEditDuracao(data.duracao_meses ?? 1);
+    setEditFim((data as any).data_fim ?? "");
+    setEditPlanOpen(true);
+  }
+
+  async function handleSavePlan() {
+    if (!data) return;
+    if (!editTipo.trim()) { toast.error("Tipo é obrigatório"); return; }
+    if (!editInicio) { toast.error("Data de início é obrigatória"); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("planos")
+        .update({
+          tipo: editTipo.trim(),
+          valor: editValor === "" ? 0 : Number(editValor),
+          data_inicio: editInicio,
+          duracao_meses: editDuracao,
+          data_fim: editFim || null,
+        })
+        .eq("id", data.id);
+      if (error) throw error;
+      toast.success("Plano atualizado");
+      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["aluno_display_status", student.id] });
+      setEditPlanOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar plano");
+    } finally {
+      setSaving(false);
+    }
+  }
+    if (!data) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("planos")
+        .update({ ativo: false, data_fim: new Date().toISOString().split("T")[0] })
+        .eq("id", data.id);
+      if (error) throw error;
+      toast.success("Contrato cancelado");
+      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["aluno_display_status", student.id] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao cancelar contrato");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-4 mt-4">
