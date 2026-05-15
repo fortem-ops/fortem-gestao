@@ -16,6 +16,8 @@ import { isAutoRenewPlan } from "@/lib/planTipo";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
 import { HistoricoVendas } from "./venda/HistoricoVendas";
+import { useFormasPagamento } from "./venda/PaymentFields";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
@@ -64,6 +66,10 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [editInicio, setEditInicio] = useState("");
   const [editDuracao, setEditDuracao] = useState<number>(1);
   const [editFim, setEditFim] = useState<string>("");
+  const [editDescRec, setEditDescRec] = useState<string>("");
+  const [editFormaRec, setEditFormaRec] = useState<string | null>(null);
+  const [editParcelasRec, setEditParcelasRec] = useState<number>(1);
+  const { data: formasPag = [] } = useFormasPagamento();
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin"],
@@ -213,11 +219,15 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
   function openEditPlan() {
     if (!data) return;
-    setEditTipo(data.tipo ?? "");
-    setEditValor(data.valor != null ? String(data.valor) : "");
-    setEditInicio(data.data_inicio ?? "");
-    setEditDuracao(data.duracao_meses ?? 1);
-    setEditFim((data as any).data_fim ?? "");
+    const d: any = data;
+    setEditTipo(d.tipo ?? "");
+    setEditValor(d.valor != null ? String(d.valor) : "");
+    setEditInicio(d.data_inicio ?? "");
+    setEditDuracao(d.duracao_meses ?? 1);
+    setEditFim(d.data_fim ?? "");
+    setEditDescRec(d.desconto_recorrente != null ? String(d.desconto_recorrente) : "");
+    setEditFormaRec(d.forma_pagamento_padrao ?? null);
+    setEditParcelasRec(d.parcelas_padrao ?? 1);
     setEditPlanOpen(true);
   }
 
@@ -235,7 +245,10 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
           data_inicio: editInicio,
           duracao_meses: editDuracao,
           data_fim: editFim || null,
-        })
+          desconto_recorrente: editDescRec === "" ? 0 : Number(editDescRec),
+          forma_pagamento_padrao: editFormaRec,
+          parcelas_padrao: editParcelasRec || 1,
+        } as any)
         .eq("id", data.id);
       if (error) throw error;
       toast.success("Plano atualizado");
@@ -567,10 +580,64 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               <p className="text-xs text-muted-foreground">Deixe em branco para usar o término calculado pela duração.</p>
             </div>
             {((data as any)?.renovacao_automatica || isAutoRenewPlan(editTipo)) && (
-              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
-                <RefreshCw className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                <span>Este plano possui <strong>renovação automática mensal</strong>. Para encerrar a renovação, use "Cancelar Contrato".</span>
-              </div>
+              <>
+                <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
+                  <RefreshCw className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>Este plano possui <strong>renovação automática mensal</strong>. Para encerrar a renovação, use "Cancelar Contrato".</span>
+                </div>
+
+                <div className="rounded-md border border-border p-3 space-y-3">
+                  <p className="text-sm font-medium text-foreground">Cobrança recorrente (próximas renovações)</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Forma de pagamento padrão</Label>
+                      <Select value={editFormaRec ?? ""} onValueChange={(v) => {
+                        setEditFormaRec(v || null);
+                        const f = formasPag.find((x) => x.slug === v);
+                        if (!f?.permite_parcelamento) setEditParcelasRec(1);
+                      }}>
+                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {formasPag.map((f) => (
+                            <SelectItem key={f.id} value={f.slug}>{f.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Desconto recorrente (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        value={editDescRec}
+                        onChange={(e) => setEditDescRec(e.target.value)}
+                        placeholder="0,00"
+                      />
+                    </div>
+                  </div>
+                  {(() => {
+                    const f = formasPag.find((x) => x.slug === editFormaRec);
+                    if (!f?.permite_parcelamento) return null;
+                    return (
+                      <div className="space-y-2">
+                        <Label>Parcelas padrão</Label>
+                        <Select value={String(editParcelasRec)} onValueChange={(v) => setEditParcelasRec(parseInt(v))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                              <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })()}
+                  <p className="text-xs text-muted-foreground">
+                    Aplicado automaticamente em cada renovação mensal gerada pelo sistema.
+                  </p>
+                </div>
+              </>
             )}
           </div>
           <DialogFooter>

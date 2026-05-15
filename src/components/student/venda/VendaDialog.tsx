@@ -13,6 +13,7 @@ import { ShoppingCart, Calendar, Repeat, Zap, Check, ArrowLeft, Activity, Infini
 import { toast } from "sonner";
 import { formatBRL, calcularCreditos, type Frequencia } from "@/lib/vendas";
 import { cn } from "@/lib/utils";
+import { PaymentFields } from "./PaymentFields";
 
 type Props = { alunoId: string; alunoNome: string; open: boolean; onOpenChange: (v: boolean) => void };
 
@@ -94,11 +95,15 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   // Resumo
   const [statusPagamento, setStatusPagamento] = useState<"pendente" | "pago">("pendente");
   const [observacoes, setObservacoes] = useState("");
+  const [desconto, setDesconto] = useState(0);
+  const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
+  const [parcelas, setParcelas] = useState(1);
 
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
     setSStep(1); setServicoId("");
     setStatusPagamento("pendente"); setObservacoes("");
+    setDesconto(0); setFormaPagamento(null); setParcelas(1);
   };
 
   useEffect(() => { if (!open) reset(); }, [open]);
@@ -129,12 +134,18 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const vender = useMutation({
     mutationFn: async (payload: { tipo: "plano" | "servico"; item: any }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      const valor = Number(payload.item.valor || 0);
+      const valorFinal = Math.max(0, valor - (desconto || 0));
       const { error } = await (supabase as any).from("vendas").insert({
         aluno_id: alunoId,
         tipo: payload.tipo,
         catalogo_id: payload.item.id,
         nome_snapshot: payload.item.nome,
-        valor: payload.item.valor,
+        valor,
+        desconto: desconto || 0,
+        valor_final: valorFinal,
+        forma_pagamento: formaPagamento,
+        parcelas: parcelas || 1,
         vendedor_id: user?.id,
         status_pagamento: statusPagamento,
         observacoes: observacoes.trim() || null,
@@ -247,6 +258,16 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       </div>
                     </div>
 
+                    <PaymentFields
+                      valorBase={Number(planoSelecionado.valor || 0)}
+                      desconto={desconto}
+                      onDescontoChange={setDesconto}
+                      formaPagamentoSlug={formaPagamento}
+                      onFormaPagamentoChange={setFormaPagamento}
+                      parcelas={parcelas}
+                      onParcelasChange={setParcelas}
+                    />
+
                     <div className="space-y-2">
                       <Label>Status do pagamento</Label>
                       <Select value={statusPagamento} onValueChange={(v) => setStatusPagamento(v as any)}>
@@ -320,6 +341,16 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                         <div><span className="text-muted-foreground">Sessões:</span> <span className="font-medium">{servicoSelecionado.quantidade_sessoes}</span></div>
                       </div>
                     </div>
+
+                    <PaymentFields
+                      valorBase={Number(servicoSelecionado.valor || 0)}
+                      desconto={desconto}
+                      onDescontoChange={setDesconto}
+                      formaPagamentoSlug={formaPagamento}
+                      onFormaPagamentoChange={setFormaPagamento}
+                      parcelas={parcelas}
+                      onParcelasChange={setParcelas}
+                    />
 
                     <div className="space-y-2">
                       <Label>Status do pagamento</Label>

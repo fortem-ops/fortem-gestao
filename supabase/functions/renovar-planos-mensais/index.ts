@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
 
     const { data: planos, error } = await supabase
       .from("planos")
-      .select("id, aluno_id, tipo, valor, proxima_renovacao")
+      .select("id, aluno_id, tipo, valor, proxima_renovacao, desconto_recorrente, forma_pagamento_padrao, parcelas_padrao")
       .eq("ativo", true)
       .eq("renovacao_automatica", true)
       .lte("proxima_renovacao", today);
@@ -32,6 +32,9 @@ Deno.serve(async (req) => {
 
       while (proxima <= todayDt) {
         const dataVenda = proxima.toISOString().split("T")[0];
+        const valor = Number(p.valor ?? 0);
+        const desconto = Number((p as any).desconto_recorrente ?? 0);
+        const valorFinal = Math.max(0, valor - desconto);
 
         const { error: vErr } = await supabase.from("vendas").insert({
           aluno_id: p.aluno_id,
@@ -39,7 +42,11 @@ Deno.serve(async (req) => {
           catalogo_id: p.id,
           plano_id: p.id,
           nome_snapshot: `${p.tipo} (renovação automática)`,
-          valor: p.valor ?? 0,
+          valor,
+          desconto,
+          valor_final: valorFinal,
+          forma_pagamento: (p as any).forma_pagamento_padrao ?? null,
+          parcelas: (p as any).parcelas_padrao ?? 1,
           status_pagamento: "pendente",
           data_venda: dataVenda,
           origem: "renovacao_automatica",
