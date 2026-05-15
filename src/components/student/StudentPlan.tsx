@@ -580,10 +580,64 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               <p className="text-xs text-muted-foreground">Deixe em branco para usar o término calculado pela duração.</p>
             </div>
             {((data as any)?.renovacao_automatica || isAutoRenewPlan(editTipo)) && (
-              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
-                <RefreshCw className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                <span>Este plano possui <strong>renovação automática mensal</strong>. Para encerrar a renovação, use "Cancelar Contrato".</span>
-              </div>
+              <>
+                <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
+                  <RefreshCw className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>Este plano possui <strong>renovação automática mensal</strong>. Para encerrar a renovação, use "Cancelar Contrato".</span>
+                </div>
+
+                <div className="rounded-md border border-border p-3 space-y-3">
+                  <p className="text-sm font-medium text-foreground">Cobrança recorrente (próximas renovações)</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Forma de pagamento padrão</Label>
+                      <Select value={editFormaRec ?? ""} onValueChange={(v) => {
+                        setEditFormaRec(v || null);
+                        const f = formasPag.find((x) => x.slug === v);
+                        if (!f?.permite_parcelamento) setEditParcelasRec(1);
+                      }}>
+                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {formasPag.map((f) => (
+                            <SelectItem key={f.id} value={f.slug}>{f.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Desconto recorrente (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        value={editDescRec}
+                        onChange={(e) => setEditDescRec(e.target.value)}
+                        placeholder="0,00"
+                      />
+                    </div>
+                  </div>
+                  {(() => {
+                    const f = formasPag.find((x) => x.slug === editFormaRec);
+                    if (!f?.permite_parcelamento) return null;
+                    return (
+                      <div className="space-y-2">
+                        <Label>Parcelas padrão</Label>
+                        <Select value={String(editParcelasRec)} onValueChange={(v) => setEditParcelasRec(parseInt(v))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                              <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })()}
+                  <p className="text-xs text-muted-foreground">
+                    Aplicado automaticamente em cada renovação mensal gerada pelo sistema.
+                  </p>
+                </div>
+              </>
             )}
           </div>
           <DialogFooter>
