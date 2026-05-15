@@ -198,7 +198,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     try {
       const { error } = await supabase
         .from("planos")
-        .update({ ativo: false, data_fim: new Date().toISOString().split("T")[0] })
+        .update({ ativo: false, renovacao_automatica: false, data_fim: new Date().toISOString().split("T")[0] })
         .eq("id", data.id);
       if (error) throw error;
       toast.success("Contrato cancelado");
@@ -304,7 +304,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
           <div className="flex items-center gap-3 flex-wrap">
             <Badge className="text-sm px-3 py-1">{data.tipo}</Badge>
             <Badge variant="outline" className="status-active">Ativo</Badge>
-            {isAutoRenewPlan(data.tipo) && (
+            {((data as any).renovacao_automatica || isAutoRenewPlan(data.tipo)) && (
               <Badge variant="outline" className="status-info gap-1">
                 <RefreshCw className="h-3 w-3" /> Renovação automática mensal
               </Badge>
@@ -374,6 +374,17 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               <p className="font-medium text-foreground">{data.duracao_meses} {data.duracao_meses === 1 ? "mês" : "meses"}</p>
             </div>
           </div>
+          {(data as any).renovacao_automatica && (data as any).proxima_renovacao && (
+            <div className="flex items-center gap-2 text-sm">
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-muted-foreground">Próxima renovação</p>
+                <p className="font-medium text-foreground">
+                  {new Date((data as any).proxima_renovacao + "T00:00:00").toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {visibleServices.length > 0 && (
@@ -555,6 +566,12 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               <Input type="date" value={editFim} onChange={(e) => setEditFim(e.target.value)} />
               <p className="text-xs text-muted-foreground">Deixe em branco para usar o término calculado pela duração.</p>
             </div>
+            {((data as any)?.renovacao_automatica || isAutoRenewPlan(editTipo)) && (
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
+                <RefreshCw className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span>Este plano possui <strong>renovação automática mensal</strong>. Para encerrar a renovação, use "Cancelar Contrato".</span>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditPlanOpen(false)}>Cancelar</Button>

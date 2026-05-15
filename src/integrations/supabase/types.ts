@@ -1394,6 +1394,8 @@ export type Database = {
           data_inicio: string
           duracao_meses: number
           id: string
+          proxima_renovacao: string | null
+          renovacao_automatica: boolean
           servicos: string[] | null
           tipo: string
           updated_at: string
@@ -1407,6 +1409,8 @@ export type Database = {
           data_inicio: string
           duracao_meses?: number
           id?: string
+          proxima_renovacao?: string | null
+          renovacao_automatica?: boolean
           servicos?: string[] | null
           tipo: string
           updated_at?: string
@@ -1420,6 +1424,8 @@ export type Database = {
           data_inicio?: string
           duracao_meses?: number
           id?: string
+          proxima_renovacao?: string | null
+          renovacao_automatica?: boolean
           servicos?: string[] | null
           tipo?: string
           updated_at?: string
@@ -2338,6 +2344,7 @@ export type Database = {
           id: string
           nome_snapshot: string
           observacoes: string | null
+          origem: string
           plano_id: string | null
           status_pagamento: Database["public"]["Enums"]["venda_status"]
           tipo: Database["public"]["Enums"]["venda_tipo"]
@@ -2353,6 +2360,7 @@ export type Database = {
           id?: string
           nome_snapshot: string
           observacoes?: string | null
+          origem?: string
           plano_id?: string | null
           status_pagamento?: Database["public"]["Enums"]["venda_status"]
           tipo: Database["public"]["Enums"]["venda_tipo"]
@@ -2368,6 +2376,7 @@ export type Database = {
           id?: string
           nome_snapshot?: string
           observacoes?: string | null
+          origem?: string
           plano_id?: string | null
           status_pagamento?: Database["public"]["Enums"]["venda_status"]
           tipo?: Database["public"]["Enums"]["venda_tipo"]
