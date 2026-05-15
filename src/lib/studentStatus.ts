@@ -40,14 +40,16 @@ export function getDisplayStatus(
     return { key: "licenca", label: LABELS.licenca, className: CLASSES.licenca };
   }
 
-  // Planos auto-renováveis (Start, Gympass/Wellhub, Total Pass) são sempre ativos
+  // Planos auto-renováveis vigentes (planTipo só vem de planos.ativo=true) são sempre ativos
   if (isAutoRenewPlan(planTipo)) {
     return { key: "ativo", label: LABELS.ativo, className: CLASSES.ativo };
   }
 
-  if (planEnd && planEnd < new Date(new Date().toDateString())) {
-    return { key: "encerrado", label: LABELS.encerrado, className: CLASSES.encerrado };
+  // Aluno só é Ativo se houver plano ativo com data_fim >= hoje
+  const today = new Date(new Date().toDateString());
+  if (planEnd && planEnd >= today) {
+    return { key: "ativo", label: LABELS.ativo, className: CLASSES.ativo };
   }
 
-  return { key: "ativo", label: LABELS.ativo, className: CLASSES.ativo };
+  return { key: "encerrado", label: LABELS.encerrado, className: CLASSES.encerrado };
 }
