@@ -318,6 +318,11 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               </div>
             )}
             {isCoordAdmin && (
+              <Button size="sm" variant="outline" onClick={openEditPlan} disabled={saving} className="gap-1.5">
+                <Edit3 className="h-3.5 w-3.5" /> Editar Plano
+              </Button>
+            )}
+            {isCoordAdmin && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" disabled={saving}>
