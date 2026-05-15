@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban, ShoppingCart } from "lucide-react";
+import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban, ShoppingCart, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
@@ -58,6 +58,12 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [addUsageService, setAddUsageService] = useState("");
   const [addUsageDate, setAddUsageDate] = useState(new Date().toISOString().split("T")[0]);
   const [vendaOpen, setVendaOpen] = useState(false);
+  const [editPlanOpen, setEditPlanOpen] = useState(false);
+  const [editTipo, setEditTipo] = useState("");
+  const [editValor, setEditValor] = useState<string>("");
+  const [editInicio, setEditInicio] = useState("");
+  const [editDuracao, setEditDuracao] = useState<number>(1);
+  const [editFim, setEditFim] = useState<string>("");
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin"],
@@ -205,6 +211,45 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     }
   }
 
+  function openEditPlan() {
+    if (!data) return;
+    setEditTipo(data.tipo ?? "");
+    setEditValor(data.valor != null ? String(data.valor) : "");
+    setEditInicio(data.data_inicio ?? "");
+    setEditDuracao(data.duracao_meses ?? 1);
+    setEditFim((data as any).data_fim ?? "");
+    setEditPlanOpen(true);
+  }
+
+  async function handleSavePlan() {
+    if (!data) return;
+    if (!editTipo.trim()) { toast.error("Tipo é obrigatório"); return; }
+    if (!editInicio) { toast.error("Data de início é obrigatória"); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("planos")
+        .update({
+          tipo: editTipo.trim(),
+          valor: editValor === "" ? 0 : Number(editValor),
+          data_inicio: editInicio,
+          duracao_meses: editDuracao,
+          data_fim: editFim || null,
+        })
+        .eq("id", data.id);
+      if (error) throw error;
+      toast.success("Plano atualizado");
+      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["aluno_display_status", student.id] });
+      setEditPlanOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar plano");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+
   if (isLoading) {
     return (
       <div className="space-y-4 mt-4">
@@ -271,6 +316,11 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                 <DollarSign className="h-4 w-4" />
                 <span>R$ {Number(data.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
               </div>
+            )}
+            {isCoordAdmin && (
+              <Button size="sm" variant="outline" onClick={openEditPlan} disabled={saving} className="gap-1.5">
+                <Edit3 className="h-3.5 w-3.5" /> Editar Plano
+              </Button>
             )}
             {isCoordAdmin && (
               <AlertDialog>
@@ -475,6 +525,43 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       <HistoricoVendas alunoId={student.id} />
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
+
+      <Dialog open={editPlanOpen} onOpenChange={setEditPlanOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Plano Contratado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo do plano</Label>
+              <Input value={editTipo} onChange={(e) => setEditTipo(e.target.value)} placeholder="Ex.: Start, Pro, Max" />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor (R$)</Label>
+              <Input type="number" step="0.01" min={0} value={editValor} onChange={(e) => setEditValor(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Data de início</Label>
+                <Input type="date" value={editInicio} onChange={(e) => setEditInicio(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Duração (meses)</Label>
+                <Input type="number" min={1} value={editDuracao} onChange={(e) => setEditDuracao(parseInt(e.target.value) || 1)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Data de término (opcional)</Label>
+              <Input type="date" value={editFim} onChange={(e) => setEditFim(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Deixe em branco para usar o término calculado pela duração.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPlanOpen(false)}>Cancelar</Button>
+            <Button disabled={saving} onClick={handleSavePlan}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
