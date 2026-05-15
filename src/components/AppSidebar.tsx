@@ -183,7 +183,10 @@ export function AppSidebar() {
           <SidebarGroupLabel>Cadastros</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {cadastrosItems.map((item) => (
+              {isAdmin && cadastrosLeadsAdmin.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+              {cadastrosMidItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
               {isAdmin && cadastrosAdminItems.map((item) => (
