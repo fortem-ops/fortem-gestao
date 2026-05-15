@@ -104,7 +104,16 @@ export function HistoricoVendas({ alunoId }: Props) {
               {vendas.map((v: any) => (
                 <TableRow key={v.id}>
                   <TableCell>{new Date(v.data_venda + "T12:00:00").toLocaleDateString("pt-BR")}</TableCell>
-                  <TableCell><Badge variant="outline">{v.tipo}</Badge></TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="outline">{v.tipo}</Badge>
+                      {v.origem === "renovacao_automatica" && (
+                        <Badge variant="outline" className="status-info gap-1 text-[10px]">
+                          <RefreshCw className="w-2.5 h-2.5" /> Auto
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="font-medium">{v.nome_snapshot}</TableCell>
                   <TableCell>{formatBRL(v.valor)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{vendedores[v.vendedor_id] || "—"}</TableCell>
