@@ -8,14 +8,20 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Search, Settings2 } from "lucide-react";
+import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Search, Settings2, CalendarIcon } from "lucide-react";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { ManageOrigensDialog } from "@/components/leads/ManageOrigensDialog";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+
+type Periodo = "sempre" | "mes_atual" | "mes_passado" | "meses_passados" | "custom";
 
 export default function Leads() {
   const navigate = useNavigate();
@@ -26,6 +32,9 @@ export default function Leads() {
   const [search, setSearch] = useState("");
   const [origem, setOrigem] = useState<string>("all");
   const [responsavel, setResponsavel] = useState<string>("all");
+  const [periodo, setPeriodo] = useState<Periodo>("sempre");
+  const [customDe, setCustomDe] = useState<Date | undefined>();
+  const [customAte, setCustomAte] = useState<Date | undefined>();
   const { data: origensList = [] } = useLeadOrigens(true);
   const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
 
@@ -76,25 +85,48 @@ export default function Leads() {
     return Array.from(set).map((id) => ({ id, nome: profilesMap[id] || "—" }));
   }, [leads, profilesMap]);
 
+  const leadsPeriodo = useMemo(() => {
+    if (periodo === "sempre") return leads;
+    const now = new Date();
+    let from: Date | null = null;
+    let to: Date | null = null;
+    if (periodo === "mes_atual") { from = startOfMonth(now); to = endOfMonth(now); }
+    else if (periodo === "mes_passado") {
+      const m = subMonths(now, 1);
+      from = startOfMonth(m); to = endOfMonth(m);
+    } else if (periodo === "meses_passados") {
+      to = endOfMonth(subMonths(now, 2));
+    } else if (periodo === "custom") {
+      if (customDe) from = startOfDay(customDe);
+      if (customAte) to = endOfDay(customAte);
+    }
+    return leads.filter((l: any) => {
+      const d = new Date(l.created_at);
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    });
+  }, [leads, periodo, customDe, customAte]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return leads.filter((l: any) => {
+    return leadsPeriodo.filter((l: any) => {
       if (term && !l.nome.toLowerCase().includes(term)) return false;
       if (origem !== "all" && l.origem !== origem) return false;
       if (responsavel !== "all" && l.responsavel_id !== responsavel) return false;
       return true;
     });
-  }, [leads, search, origem, responsavel]);
+  }, [leadsPeriodo, search, origem, responsavel]);
 
   // KPIs
-  const totalLeads = leads.length;
+  const totalLeads = leadsPeriodo.length;
   const porOrigem = useMemo(() => {
     const m: Record<string, number> = {};
     origensAtivas.forEach((o) => (m[o.nome] = 0));
-    leads.forEach((l: any) => { if (l.origem && l.origem !== "—" && m[l.origem] === undefined) m[l.origem] = 0; });
-    leads.forEach((l: any) => { if (m[l.origem] !== undefined) m[l.origem]++; });
+    leadsPeriodo.forEach((l: any) => { if (l.origem && l.origem !== "—" && m[l.origem] === undefined) m[l.origem] = 0; });
+    leadsPeriodo.forEach((l: any) => { if (m[l.origem] !== undefined) m[l.origem]++; });
     return m;
-  }, [leads, origensAtivas]);
+  }, [leadsPeriodo, origensAtivas]);
   const maxOrigem = Math.max(1, ...Object.values(porOrigem));
 
   return (
@@ -147,6 +179,42 @@ export default function Leads() {
             {origensAtivas.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={periodo} onValueChange={(v) => setPeriodo(v as Periodo)}>
+          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sempre">Desde sempre</SelectItem>
+            <SelectItem value="mes_atual">Mês atual</SelectItem>
+            <SelectItem value="mes_passado">Mês passado</SelectItem>
+            <SelectItem value="meses_passados">Meses passados</SelectItem>
+            <SelectItem value="custom">Customizado</SelectItem>
+          </SelectContent>
+        </Select>
+        {periodo === "custom" && (
+          <>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customDe && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {customDe ? format(customDe, "dd/MM/yyyy") : "De"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent mode="single" selected={customDe} onSelect={setCustomDe} initialFocus locale={ptBR} className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customAte && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {customAte ? format(customAte, "dd/MM/yyyy") : "Até"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent mode="single" selected={customAte} onSelect={setCustomAte} initialFocus locale={ptBR} className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+          </>
+        )}
         <Select value={responsavel} onValueChange={setResponsavel}>
           <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
           <SelectContent>
