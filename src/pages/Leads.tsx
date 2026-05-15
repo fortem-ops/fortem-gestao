@@ -32,6 +32,9 @@ export default function Leads() {
   const [search, setSearch] = useState("");
   const [origem, setOrigem] = useState<string>("all");
   const [responsavel, setResponsavel] = useState<string>("all");
+  const [periodo, setPeriodo] = useState<Periodo>("sempre");
+  const [customDe, setCustomDe] = useState<Date | undefined>();
+  const [customAte, setCustomAte] = useState<Date | undefined>();
   const { data: origensList = [] } = useLeadOrigens(true);
   const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
 
