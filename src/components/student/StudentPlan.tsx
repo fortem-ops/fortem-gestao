@@ -18,6 +18,7 @@ import { VendaDialog } from "./venda/VendaDialog";
 import { HistoricoVendas } from "./venda/HistoricoVendas";
 import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { invalidatePlanoCaches } from "@/lib/planoCache";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
