@@ -525,6 +525,43 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       <HistoricoVendas alunoId={student.id} />
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
+
+      <Dialog open={editPlanOpen} onOpenChange={setEditPlanOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Plano Contratado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo do plano</Label>
+              <Input value={editTipo} onChange={(e) => setEditTipo(e.target.value)} placeholder="Ex.: Start, Pro, Max" />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor (R$)</Label>
+              <Input type="number" step="0.01" min={0} value={editValor} onChange={(e) => setEditValor(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Data de início</Label>
+                <Input type="date" value={editInicio} onChange={(e) => setEditInicio(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Duração (meses)</Label>
+                <Input type="number" min={1} value={editDuracao} onChange={(e) => setEditDuracao(parseInt(e.target.value) || 1)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Data de término (opcional)</Label>
+              <Input type="date" value={editFim} onChange={(e) => setEditFim(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Deixe em branco para usar o término calculado pela duração.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPlanOpen(false)}>Cancelar</Button>
+            <Button disabled={saving} onClick={handleSavePlan}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
