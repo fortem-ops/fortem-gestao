@@ -85,25 +85,48 @@ export default function Leads() {
     return Array.from(set).map((id) => ({ id, nome: profilesMap[id] || "—" }));
   }, [leads, profilesMap]);
 
+  const leadsPeriodo = useMemo(() => {
+    if (periodo === "sempre") return leads;
+    const now = new Date();
+    let from: Date | null = null;
+    let to: Date | null = null;
+    if (periodo === "mes_atual") { from = startOfMonth(now); to = endOfMonth(now); }
+    else if (periodo === "mes_passado") {
+      const m = subMonths(now, 1);
+      from = startOfMonth(m); to = endOfMonth(m);
+    } else if (periodo === "meses_passados") {
+      to = endOfMonth(subMonths(now, 2));
+    } else if (periodo === "custom") {
+      if (customDe) from = startOfDay(customDe);
+      if (customAte) to = endOfDay(customAte);
+    }
+    return leads.filter((l: any) => {
+      const d = new Date(l.created_at);
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    });
+  }, [leads, periodo, customDe, customAte]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return leads.filter((l: any) => {
+    return leadsPeriodo.filter((l: any) => {
       if (term && !l.nome.toLowerCase().includes(term)) return false;
       if (origem !== "all" && l.origem !== origem) return false;
       if (responsavel !== "all" && l.responsavel_id !== responsavel) return false;
       return true;
     });
-  }, [leads, search, origem, responsavel]);
+  }, [leadsPeriodo, search, origem, responsavel]);
 
   // KPIs
-  const totalLeads = leads.length;
+  const totalLeads = leadsPeriodo.length;
   const porOrigem = useMemo(() => {
     const m: Record<string, number> = {};
     origensAtivas.forEach((o) => (m[o.nome] = 0));
-    leads.forEach((l: any) => { if (l.origem && l.origem !== "—" && m[l.origem] === undefined) m[l.origem] = 0; });
-    leads.forEach((l: any) => { if (m[l.origem] !== undefined) m[l.origem]++; });
+    leadsPeriodo.forEach((l: any) => { if (l.origem && l.origem !== "—" && m[l.origem] === undefined) m[l.origem] = 0; });
+    leadsPeriodo.forEach((l: any) => { if (m[l.origem] !== undefined) m[l.origem]++; });
     return m;
-  }, [leads, origensAtivas]);
+  }, [leadsPeriodo, origensAtivas]);
   const maxOrigem = Math.max(1, ...Object.values(porOrigem));
 
   return (
