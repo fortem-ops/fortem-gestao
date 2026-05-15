@@ -374,6 +374,17 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               <p className="font-medium text-foreground">{data.duracao_meses} {data.duracao_meses === 1 ? "mês" : "meses"}</p>
             </div>
           </div>
+          {(data as any).renovacao_automatica && (data as any).proxima_renovacao && (
+            <div className="flex items-center gap-2 text-sm">
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-muted-foreground">Próxima renovação</p>
+                <p className="font-medium text-foreground">
+                  {new Date((data as any).proxima_renovacao + "T00:00:00").toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {visibleServices.length > 0 && (
