@@ -223,7 +223,7 @@ function DiaRow({
         </Select>
       </TableCell>
       <TableCell>
-        <Select value={String(intervalo)} onValueChange={(v) => setIntervalo(Number(v))}>
+        <Select value={String(intervalo)} onValueChange={(v) => setIntervalo(Number(v))} disabled={intervaloBloqueado}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="0">Sem intervalo</SelectItem>
@@ -231,6 +231,11 @@ function DiaRow({
             <SelectItem value="60">1 hora</SelectItem>
           </SelectContent>
         </Select>
+        {intervaloBloqueado && (
+          <p className="text-[10px] text-muted-foreground mt-1 leading-tight max-w-[140px]">
+            Jornadas até 4h: apenas entrada e saída.
+          </p>
+        )}
       </TableCell>
       <TableCell>
         {isSabado ? (
