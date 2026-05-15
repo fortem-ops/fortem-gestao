@@ -566,6 +566,12 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               <Input type="date" value={editFim} onChange={(e) => setEditFim(e.target.value)} />
               <p className="text-xs text-muted-foreground">Deixe em branco para usar o término calculado pela duração.</p>
             </div>
+            {((data as any)?.renovacao_automatica || isAutoRenewPlan(editTipo)) && (
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
+                <RefreshCw className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span>Este plano possui <strong>renovação automática mensal</strong>. Para encerrar a renovação, use "Cancelar Contrato".</span>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditPlanOpen(false)}>Cancelar</Button>
