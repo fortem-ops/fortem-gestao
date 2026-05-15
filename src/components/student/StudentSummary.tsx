@@ -103,6 +103,19 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
+  const { data: consumos = [] } = useQuery({
+    queryKey: ["consumos_resumo", student.id, plano?.id],
+    queryFn: async () => {
+      if (!plano) return [];
+      const { data } = await supabase
+        .from("consumo_servicos")
+        .select("*")
+        .eq("aluno_id", student.id)
+        .eq("plano_id", plano.id);
+      return data || [];
+    },
+    enabled: !!plano,
+  });
   const { data: lastAval } = useQuery({
     queryKey: ["last_aval_funcional", student.id],
     queryFn: async () => {
