@@ -304,7 +304,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
           <div className="flex items-center gap-3 flex-wrap">
             <Badge className="text-sm px-3 py-1">{data.tipo}</Badge>
             <Badge variant="outline" className="status-active">Ativo</Badge>
-            {isAutoRenewPlan(data.tipo) && (
+            {((data as any).renovacao_automatica || isAutoRenewPlan(data.tipo)) && (
               <Badge variant="outline" className="status-info gap-1">
                 <RefreshCw className="h-3 w-3" /> Renovação automática mensal
               </Badge>
