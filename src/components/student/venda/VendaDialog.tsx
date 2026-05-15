@@ -9,8 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Calendar, Repeat, Zap, Check, ArrowLeft, Activity, Infinity as InfinityIcon } from "lucide-react";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ShoppingCart, Calendar, Repeat, Zap, Check, ArrowLeft, Activity, Infinity as InfinityIcon, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { formatBRL, calcularCreditos, type Frequencia } from "@/lib/vendas";
 import { cn } from "@/lib/utils";
 import { PaymentFields } from "./PaymentFields";
@@ -99,12 +103,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [desconto, setDesconto] = useState(0);
   const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
   const [parcelas, setParcelas] = useState(1);
+  const [dataInicio, setDataInicio] = useState<Date>(new Date());
 
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
     setSStep(1); setServicoId("");
     setStatusPagamento("pendente"); setObservacoes("");
     setDesconto(0); setFormaPagamento(null); setParcelas(1);
+    setDataInicio(new Date());
   };
 
   useEffect(() => { if (!open) reset(); }, [open]);
@@ -150,6 +156,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         vendedor_id: user?.id,
         status_pagamento: statusPagamento,
         observacoes: observacoes.trim() || null,
+        ...(payload.tipo === "plano" ? { data_venda: format(dataInicio, "yyyy-MM-dd") } : {}),
       });
       if (error) throw error;
     },
@@ -256,6 +263,28 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                         <div><span className="text-muted-foreground">Período:</span> <span className="font-medium">{planoSelecionado.periodo_meses} {planoSelecionado.periodo_meses === 1 ? "mês" : "meses"}</span></div>
                         <div><span className="text-muted-foreground">Créditos:</span> <span className="font-medium">{creditosCalc?.ilimitado ? "Ilimitado" : `${creditosCalc?.quantidade}`}</span></div>
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Data de Início do Plano</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dataInicio ? format(dataInicio, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione a data</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={dataInicio}
+                            onSelect={(d) => d && setDataInicio(d)}
+                            initialFocus
+                            locale={ptBR}
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     <PaymentFields
