@@ -156,6 +156,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         vendedor_id: user?.id,
         status_pagamento: statusPagamento,
         observacoes: observacoes.trim() || null,
+        ...(payload.tipo === "plano" ? { data_venda: format(dataInicio, "yyyy-MM-dd") } : {}),
       });
       if (error) throw error;
     },
