@@ -66,6 +66,10 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [editInicio, setEditInicio] = useState("");
   const [editDuracao, setEditDuracao] = useState<number>(1);
   const [editFim, setEditFim] = useState<string>("");
+  const [editDescRec, setEditDescRec] = useState<string>("");
+  const [editFormaRec, setEditFormaRec] = useState<string | null>(null);
+  const [editParcelasRec, setEditParcelasRec] = useState<number>(1);
+  const { data: formasPag = [] } = useFormasPagamento();
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin"],
