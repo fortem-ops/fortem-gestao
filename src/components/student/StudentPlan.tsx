@@ -251,8 +251,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         .eq("id", data.id);
       if (error) throw error;
       toast.success("Plano atualizado");
-      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["aluno_display_status", student.id] });
+      invalidatePlanoCaches(queryClient, student.id);
       setEditPlanOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Erro ao atualizar plano");
