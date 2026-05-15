@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDebounce } from "@/hooks/useDebounce";
 
 type Tipo = "lead" | "prospect" | "ativo" | "inativo";
@@ -113,7 +113,7 @@ export function GlobalCadastroSearch() {
 
   return (
     <Popover open={showPopover} onOpenChange={setOpen}>
-      <PopoverAnchor asChild>
+      <PopoverTrigger asChild>
         <div className="relative w-full max-w-md">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
@@ -125,7 +125,7 @@ export function GlobalCadastroSearch() {
             className="pl-8 h-9"
           />
         </div>
-      </PopoverAnchor>
+      </PopoverTrigger>
       <PopoverContent
         className="w-[480px] p-0 max-h-[60vh] overflow-y-auto"
         align="start"
