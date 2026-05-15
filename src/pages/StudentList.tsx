@@ -207,7 +207,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
     });
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte, isInativos]);
 
 
   const iconForAtividade = (atividade: string) => {
