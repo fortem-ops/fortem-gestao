@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Settings2, ShieldAlert, ChevronDown, ChevronRight } from "lucide-react";
+import { Settings2, ShieldAlert, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { PipelineKanban } from "@/components/pipeline/PipelineKanban";
 import { PipelineFilters, type PipelineFiltersValue } from "@/components/pipeline/PipelineFilters";
 import { ManageStagesDialog } from "@/components/pipeline/ManageStagesDialog";
@@ -60,18 +60,18 @@ export default function Pipeline() {
           <h1 className="text-2xl font-heading font-bold text-foreground">Pipeline Comercial</h1>
           <p className="text-sm text-muted-foreground mt-1">CRM Fortem — jornada do lead ao aluno ativo</p>
         </div>
-        {isAdmin && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={runEvasaoScan} disabled={scanning} className="gap-2">
+            <RefreshCw className={`w-4 h-4 ${scanning ? "animate-spin" : ""}`} />
+            {scanning ? "Recalculando..." : "Recalcular status"}
+          </Button>
+          {isAdmin && (
             <Button variant="outline" onClick={() => setManageOpen(true)} className="gap-2">
               <Settings2 className="w-4 h-4" />
               Gerenciar etapas
             </Button>
-            <Button variant="outline" onClick={runEvasaoScan} disabled={scanning} className="gap-2">
-              <ShieldAlert className="w-4 h-4" />
-              {scanning ? "Analisando..." : "Detectar evasão agora"}
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <PipelineFilters value={filters} onChange={setFilters} />
