@@ -180,23 +180,13 @@ const AnexosJuridicos = () => {
                     <td className="px-5 py-4 text-sm text-muted-foreground">{isExp ? "—" : doc.image_usage ? "Sim" : "Não"}</td>
                     <td className="px-5 py-4 text-sm">
                       {(() => {
-                        if (doc.aluno) {
-                          return (
-                            <Link to={`/alunos/${doc.aluno.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
-                              <Link2 className="w-3 h-3" /> {doc.aluno.nome}
-                            </Link>
-                          );
-                        }
-                        const viaCpf = alunosByCpf?.get((doc.cpf || "").replace(/\D/g, ""));
-                        if (viaCpf) {
-                          return (
-                            <Link to={`/alunos/${viaCpf.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
-                              <Link2 className="w-3 h-3" /> {viaCpf.nome}
-                              <span className="text-[10px] text-muted-foreground ml-1">(via CPF)</span>
-                            </Link>
-                          );
-                        }
-                        return <span className="text-muted-foreground/60 text-xs">—</span>;
+                        const match = alunosByCpf?.get((doc.cpf || "").replace(/\D/g, ""));
+                        if (!match) return <span className="text-muted-foreground/60 text-xs">—</span>;
+                        return (
+                          <Link to={`/alunos/${match.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
+                            <Link2 className="w-3 h-3" /> {match.nome}
+                          </Link>
+                        );
                       })()}
                     </td>
                     <td className="px-3 py-4 text-center">
