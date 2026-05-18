@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Save, FileDown, Loader2 } from "lucide-react";
 import { BodyDiagram } from "./BodyDiagram";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
+import { ExperimentalAssessment } from "./ExperimentalAssessment";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
