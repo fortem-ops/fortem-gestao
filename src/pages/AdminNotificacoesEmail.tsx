@@ -112,6 +112,12 @@ export default function AdminNotificacoesEmail() {
         exigir_aluno_vinculado: form.exigir_aluno_vinculado,
         destinatarios_regra: form.destinatarios_regra,
         emails_extras: form.emails_extras,
+        enviar_tarefa_criada: form.enviar_tarefa_criada,
+        enviar_tarefa_automatica: form.enviar_tarefa_automatica,
+        enviar_notificacao_nova: form.enviar_notificacao_nova,
+        enviar_notificacao_resposta: form.enviar_notificacao_resposta,
+        enviar_agenda_diaria: form.enviar_agenda_diaria,
+        agenda_diaria_horario: form.agenda_diaria_horario,
         updated_by: user?.id,
       })
       .eq("id", 1);
