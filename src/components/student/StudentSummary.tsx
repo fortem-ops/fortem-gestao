@@ -1,5 +1,5 @@
 import type { Tables } from "@/integrations/supabase/types";
-import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles } from "lucide-react";
+import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles, Scale, ShieldCheck, Camera, Eye } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
 import { EditDadosCadastraisDialog } from "./EditDadosCadastraisDialog";
+import AnnexDetailModal, { type AnnexDetail } from "@/components/legal-annex/AnnexDetailModal";
+import { Link } from "react-router-dom";
 
 
 type Aluno = Tables<"alunos">;
