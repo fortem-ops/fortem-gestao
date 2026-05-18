@@ -18,7 +18,9 @@ import { getClassificationColor } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { BodyDiagram } from "./BodyDiagram";
-import { ExperimentalAssessment, type ExperimentalDados } from "./ExperimentalAssessment";
+import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAssessment";
+import { fetchExperimentalSchema, migrateLegacyDados, type ExperimentalRecordDados } from "./experimentalTemplate";
+import { useQuery as useTplQuery } from "@tanstack/react-query";
 
 interface Props {
   open: boolean;
