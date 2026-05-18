@@ -21,6 +21,8 @@ interface Props {
   title?: string;
   /** Se true, exige CPF/Email/Endereço (conversão). Se false, só plano (renovação). */
   fullConvert?: boolean;
+  /** Callback opcional disparado após conversão/renovação bem-sucedida. */
+  onConverted?: () => void;
 }
 
 export function ConvertToAlunoDialog({
