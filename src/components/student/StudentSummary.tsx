@@ -484,10 +484,21 @@ export function StudentSummary({ student }: { student: Aluno }) {
 
       {/* Seção 5: Dados Cadastrais */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <FileText className="w-4 h-4 text-muted-foreground" />
-          Dados Cadastrais
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            Dados Cadastrais
+          </h3>
+          {isCoordAdmin && (
+            <button
+              className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 text-xs"
+              onClick={() => setEditingCadastro(true)}
+              title="Editar dados cadastrais"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -509,10 +520,33 @@ export function StudentSummary({ student }: { student: Aluno }) {
           </div>
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Sexo</span>
+            </div>
+            <p className="text-sm font-semibold text-foreground capitalize">
+              {(student as any).sexo ? String((student as any).sexo).replace("_", " ") : "Não informado"}
+            </p>
+          </div>
+          <div className="glass-card rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">CPF</span>
+            </div>
+            <p className="text-sm font-semibold text-foreground font-mono">{(student as any).cpf || "Não informado"}</p>
+          </div>
+          <div className="glass-card rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">RG</span>
+            </div>
+            <p className="text-sm font-semibold text-foreground font-mono">{(student as any).rg || "Não informado"}</p>
+          </div>
+          <div className="glass-card rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
               <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Email</span>
             </div>
-            <p className="text-sm font-semibold text-foreground">{student.email || "Não informado"}</p>
+            <p className="text-sm font-semibold text-foreground break-all">{student.email || "Não informado"}</p>
           </div>
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -520,6 +554,29 @@ export function StudentSummary({ student }: { student: Aluno }) {
               <span className="text-xs text-muted-foreground">Telefone</span>
             </div>
             <p className="text-sm font-semibold text-foreground">{student.telefone || "Não informado"}</p>
+          </div>
+          <div className="glass-card rounded-lg p-4 lg:col-span-2">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Endereço</span>
+            </div>
+            {(() => {
+              const a: any = student;
+              const linha = [
+                a.logradouro,
+                a.numero,
+                a.complemento,
+              ].filter(Boolean).join(", ");
+              const cidade = [a.bairro, a.cidade && a.uf ? `${a.cidade}/${a.uf}` : a.cidade || a.uf]
+                .filter(Boolean).join(" · ");
+              const cep = a.cep ? `CEP ${a.cep}` : null;
+              const parts = [linha, cidade, cep].filter(Boolean);
+              return parts.length > 0 ? (
+                <p className="text-sm font-semibold text-foreground">{parts.join(" — ")}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Não informado</p>
+              );
+            })()}
           </div>
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
