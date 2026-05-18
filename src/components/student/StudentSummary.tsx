@@ -45,6 +45,8 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const statusMap: Record<string, string> = { ativo: "Ativo", licenca: "Licença", encerrado: "Encerrado" };
   const queryClient = useQueryClient();
   const [editingEndDate, setEditingEndDate] = useState(false);
+  const [editingCadastro, setEditingCadastro] = useState(false);
+
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin_summary"],
