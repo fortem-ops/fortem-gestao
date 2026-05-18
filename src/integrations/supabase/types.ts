@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_diaria_log: {
+        Row: {
+          data: string
+          enviado_em: string
+          id: string
+          profissional_id: string
+          total_eventos: number
+        }
+        Insert: {
+          data: string
+          enviado_em?: string
+          id?: string
+          profissional_id: string
+          total_eventos?: number
+        }
+        Update: {
+          data?: string
+          enviado_em?: string
+          id?: string
+          profissional_id?: string
+          total_eventos?: number
+        }
+        Relationships: []
+      }
       agenda_notificacoes_log: {
         Row: {
           agenda_id: string
@@ -1262,11 +1286,17 @@ export type Database = {
       }
       notificacao_email_config: {
         Row: {
+          agenda_diaria_horario: string
           atividades_monitoradas: string[]
           destinatarios_regra: string
           emails_extras: string[]
+          enviar_agenda_diaria: boolean
           enviar_em_agendamento: boolean
           enviar_em_cancelamento: boolean
+          enviar_notificacao_nova: boolean
+          enviar_notificacao_resposta: boolean
+          enviar_tarefa_automatica: boolean
+          enviar_tarefa_criada: boolean
           exigir_aluno_vinculado: boolean
           id: number
           remetente_email: string
@@ -1275,11 +1305,17 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          agenda_diaria_horario?: string
           atividades_monitoradas?: string[]
           destinatarios_regra?: string
           emails_extras?: string[]
+          enviar_agenda_diaria?: boolean
           enviar_em_agendamento?: boolean
           enviar_em_cancelamento?: boolean
+          enviar_notificacao_nova?: boolean
+          enviar_notificacao_resposta?: boolean
+          enviar_tarefa_automatica?: boolean
+          enviar_tarefa_criada?: boolean
           exigir_aluno_vinculado?: boolean
           id?: number
           remetente_email?: string
@@ -1288,17 +1324,47 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          agenda_diaria_horario?: string
           atividades_monitoradas?: string[]
           destinatarios_regra?: string
           emails_extras?: string[]
+          enviar_agenda_diaria?: boolean
           enviar_em_agendamento?: boolean
           enviar_em_cancelamento?: boolean
+          enviar_notificacao_nova?: boolean
+          enviar_notificacao_resposta?: boolean
+          enviar_tarefa_automatica?: boolean
+          enviar_tarefa_criada?: boolean
           exigir_aluno_vinculado?: boolean
           id?: number
           remetente_email?: string
           remetente_nome?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      notificacao_email_log: {
+        Row: {
+          enviado_em: string
+          evento: string
+          id: string
+          notificacao_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          enviado_em?: string
+          evento: string
+          id?: string
+          notificacao_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          enviado_em?: string
+          evento?: string
+          id?: string
+          notificacao_id?: string
+          usuario_id?: string | null
         }
         Relationships: []
       }
@@ -2337,6 +2403,27 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefa_notificacoes_log: {
+        Row: {
+          enviado_em: string
+          evento: string
+          id: string
+          tarefa_id: string
+        }
+        Insert: {
+          enviado_em?: string
+          evento: string
+          id?: string
+          tarefa_id: string
+        }
+        Update: {
+          enviado_em?: string
+          evento?: string
+          id?: string
+          tarefa_id?: string
+        }
+        Relationships: []
+      }
       tarefas: {
         Row: {
           aluno_id: string | null
@@ -2652,6 +2739,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_call_edge_function: {
+        Args: { p_body: Json; p_name: string }
+        Returns: undefined
+      }
       fn_clube_check_divergencias: { Args: never; Returns: Json }
       fn_clube_dashboard: { Args: { _periodo_dias?: number }; Returns: Json }
       fn_clube_generate_qr_token: { Args: { _aluno_id: string }; Returns: Json }
