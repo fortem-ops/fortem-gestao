@@ -51,6 +51,22 @@ const ATIVIDADES_COM_CREDITO = new Set([
   "Avaliação Física",
 ]);
 
+// Mapeamento entre atividade da agenda e o rótulo do serviço dentro de planos.servicos
+const PLAN_SERVICE_LABEL: Record<string, string> = {
+  "Avaliação Funcional": "Avaliação Funcional",
+  "Nutrição": "Consultas Nutrição",
+  "Reabilitação": "Consultas Reabilitação",
+};
+
+function parsePlanServiceCount(servicos: string[] | null | undefined, label: string): number {
+  if (!servicos) return 0;
+  for (const s of servicos) {
+    const m = s.match(/^(\d+)\s+(.+)$/);
+    if (m && m[2] === label) return parseInt(m[1], 10);
+  }
+  return 0;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -143,6 +159,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     enabled: !!alunoId && !!atividade && ATIVIDADES_COM_CREDITO.has(atividade),
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
+
+      // 1) Créditos de serviço avulso (creditos_aluno)
       const { data } = await supabase
         .from("creditos_aluno")
         .select("quantidade_inicial, quantidade_usada, ilimitado, origem_tipo, data_validade")
@@ -154,17 +172,50 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         (c: any) => !c.data_validade || c.data_validade >= today,
       );
 
-      const resumoPor = (origem: "plano" | "servico") => {
-        const ls = linhas.filter((c: any) => c.origem_tipo === origem);
-        if (ls.length === 0) return { temLinhas: false, ilimitado: false, total: 0, usado: 0, restante: 0 };
-        const ilimitado = ls.some((c: any) => c.ilimitado);
-        const total = ls.reduce((s: number, c: any) => s + (c.quantidade_inicial ?? 0), 0);
-        const usado = ls.reduce((s: number, c: any) => s + (c.quantidade_usada ?? 0), 0);
-        return { temLinhas: true, ilimitado, total, usado, restante: ilimitado ? Infinity : total - usado };
-      };
+      const servicoLs = linhas.filter((c: any) => c.origem_tipo === "servico");
+      const servico = servicoLs.length === 0
+        ? { temLinhas: false, ilimitado: false, total: 0, usado: 0, restante: 0 }
+        : (() => {
+            const ilimitado = servicoLs.some((c: any) => c.ilimitado);
+            const total = servicoLs.reduce((s: number, c: any) => s + (c.quantidade_inicial ?? 0), 0);
+            const usado = servicoLs.reduce((s: number, c: any) => s + (c.quantidade_usada ?? 0), 0);
+            return { temLinhas: true, ilimitado, total, usado, restante: ilimitado ? Infinity : total - usado };
+          })();
 
-      const plano = resumoPor("plano");
-      const servico = resumoPor("servico");
+      // 2) Créditos do plano (planos.servicos + consumo_servicos) — somente p/ atividades mapeadas
+      const planLabel = PLAN_SERVICE_LABEL[atividade];
+      let plano = { temLinhas: false, ilimitado: false, total: 0, usado: 0, restante: 0 };
+      if (planLabel) {
+        const { data: planoAtivo } = await supabase
+          .from("planos")
+          .select("id, servicos")
+          .eq("aluno_id", alunoId)
+          .eq("ativo", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (planoAtivo) {
+          const base = parsePlanServiceCount(planoAtivo.servicos as any, planLabel);
+          const { data: consumos } = await supabase
+            .from("consumo_servicos")
+            .select("quantidade, agenda_id, tipo_registro, tipo_servico")
+            .eq("aluno_id", alunoId)
+            .eq("plano_id", planoAtivo.id)
+            .eq("tipo_servico", planLabel);
+
+          const comprado = (consumos || [])
+            .filter((c: any) => c.tipo_registro === "compra")
+            .reduce((s: number, c: any) => s + (c.quantidade ?? 1), 0);
+          const usado = (consumos || [])
+            .filter((c: any) => !!c.agenda_id || c.tipo_registro === "uso_manual").length;
+          const total = base + comprado;
+          if (total > 0 || usado > 0) {
+            plano = { temLinhas: true, ilimitado: false, total, usado, restante: total - usado };
+          }
+        }
+      }
+
       const temLinhas = plano.temLinhas || servico.temLinhas;
       const ilimitado = plano.ilimitado || servico.ilimitado;
       const total = plano.total + servico.total;
