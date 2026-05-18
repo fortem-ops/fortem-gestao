@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { classifyAngle, getClassificationColor, assessmentReferences } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import type { Tables } from "@/integrations/supabase/types";
@@ -6,14 +7,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, FileDown, Loader2 } from "lucide-react";
 import { BodyDiagram } from "./BodyDiagram";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
-import { ExperimentalAssessment } from "./ExperimentalAssessment";
+import { DynamicAssessment } from "./DynamicAssessment";
+import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
+import type { ExperimentalSchema } from "./experimentalTemplate";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
