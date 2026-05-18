@@ -145,7 +145,9 @@ export function ConvertToAlunoDialog({
 
     toast.success(fullConvert ? "Convertido em aluno!" : "Plano renovado!");
     qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+    qc.invalidateQueries({ queryKey: ["prospects-list"] });
     onOpenChange(false);
+    onConverted?.();
   }
 
   return (
