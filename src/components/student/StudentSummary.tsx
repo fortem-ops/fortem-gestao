@@ -631,6 +631,97 @@ export function StudentSummary({ student }: { student: Aluno }) {
         </div>
       </div>
 
+      {/* Seção 6: Jurídico */}
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Scale className="w-4 h-4 text-muted-foreground" />
+          Jurídico
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Contrato */}
+          <div className="glass-card rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Contrato</span>
+            </div>
+            <Badge variant="outline" className="status-info text-xs">A configurar</Badge>
+          </div>
+
+          {/* Termo de Aptidão Física */}
+          <div className="glass-card rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Termo de Aptidão Física</span>
+              </div>
+              {legalAnnex && (
+                <button
+                  onClick={() => setViewingAnnex(legalAnnex)}
+                  className="text-muted-foreground hover:text-primary"
+                  title="Ver termo"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {!cpfDigits ? (
+              <p className="text-xs text-muted-foreground">Cadastre o CPF para vincular</p>
+            ) : legalAnnex ? (
+              <div className="space-y-1">
+                <Badge variant="outline" className={`text-xs ${legalAnnex.medical_status === "ok" ? "status-active" : "status-warning"}`}>
+                  {legalAnnex.medical_status === "ok" ? "Sem restrições" : "Com restrições"}
+                </Badge>
+                <p className="text-xs text-muted-foreground">
+                  Assinado em {new Date(legalAnnex.signed_at).toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Badge variant="outline" className="status-urgent text-xs">Não assinado</Badge>
+                <a href="/assinar" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline block">
+                  Link de assinatura
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Direito de Imagem */}
+          <div className="glass-card rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Direito de Imagem</span>
+              </div>
+              {legalAnnex && legalAnnex.document_type !== "experimental" && (
+                <button
+                  onClick={() => setViewingAnnex(legalAnnex)}
+                  className="text-muted-foreground hover:text-primary"
+                  title="Ver termo"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {!cpfDigits ? (
+              <p className="text-xs text-muted-foreground">Cadastre o CPF para vincular</p>
+            ) : !legalAnnex ? (
+              <Badge variant="outline" className="status-urgent text-xs">Não assinado</Badge>
+            ) : legalAnnex.document_type === "experimental" ? (
+              <p className="text-xs text-muted-foreground">N/A (Experimental)</p>
+            ) : (
+              <div className="space-y-1">
+                <Badge variant="outline" className={`text-xs ${legalAnnex.image_usage ? "status-active" : "status-warning"}`}>
+                  {legalAnnex.image_usage ? "Autorizado" : "Não autorizado"}
+                </Badge>
+                <p className="text-xs text-muted-foreground">
+                  Assinado em {new Date(legalAnnex.signed_at).toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Observações */}
       {student.observacoes && (
         <div className="glass-card rounded-lg p-4">
@@ -638,6 +729,8 @@ export function StudentSummary({ student }: { student: Aluno }) {
           <p className="text-sm text-muted-foreground">{student.observacoes}</p>
         </div>
       )}
+
+      <AnnexDetailModal annex={viewingAnnex} open={!!viewingAnnex} onClose={() => setViewingAnnex(null)} />
 
       <EditDadosCadastraisDialog
         open={editingCadastro}
