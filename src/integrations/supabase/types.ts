@@ -312,6 +312,30 @@ export type Database = {
           },
         ]
       }
+      avaliacao_templates: {
+        Row: {
+          id: string
+          schema: Json
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          schema?: Json
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          schema?: Json
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       avaliacoes: {
         Row: {
           aluno_id: string
