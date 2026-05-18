@@ -133,7 +133,7 @@ export function newQuestion(type: QuestionType = "sim_nao_detalhe"): TemplateQue
     base.labelSim = "Se sim, qual?";
     base.labelNao = "Se não, há quanto tempo?";
   }
-  if (type === "opcoes") base.options = [
+  if (type === "opcoes" || type === "opcoes_multi") base.options = [
     { value: "opcao_1", label: "Opção 1" },
     { value: "opcao_2", label: "Opção 2" },
   ];
@@ -148,4 +148,5 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   texto: "Texto livre",
   numero: "Número",
   opcoes: "Múltipla escolha (única seleção)",
+  opcoes_multi: "Múltipla escolha (selecionar várias)",
 };
