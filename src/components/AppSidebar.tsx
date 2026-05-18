@@ -67,8 +67,10 @@ const comercialAdminItems = [
 ];
 
 /* ─── Sistema ─── */
-const sistemaAdminItems = [
+const sistemaCoordAdminItems = [
   { title: "Administração", url: "/admin", icon: Settings },
+];
+const sistemaAdminItems = [
   { title: "Admin Clube", url: "/admin/clube", icon: Sparkles },
 ];
 
@@ -216,6 +218,9 @@ export function AppSidebar() {
           <SidebarGroupLabel>Sistema</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {isCoordAdmin && sistemaCoordAdminItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
               {isAdmin && sistemaAdminItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
