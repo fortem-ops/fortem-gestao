@@ -170,7 +170,8 @@ export function StudentSummary({ student }: { student: Aluno }) {
       const { data } = await supabase
         .from("legal_annexes")
         .select("id, nome, cpf, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone")
-        .or(`cpf.eq.${cpfDigits},cpf.eq.${(student as any).cpf}`)
+        .in("cpf", Array.from(new Set([cpfDigits, (student as any).cpf]).values()).filter(Boolean) as string[])
+        .order("signed_at", { ascending: false })
         .order("signed_at", { ascending: false })
         .limit(1)
         .maybeSingle();
