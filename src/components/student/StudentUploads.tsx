@@ -118,6 +118,21 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
   });
 
   const isImage = (tipo: string) => tipo === "imagem" || tipo === "Imagem";
+  const isPdf = (tipo: string, name: string) => tipo === "pdf" || name.toLowerCase().endsWith(".pdf");
+  const canPreview = (file: Tables<"uploads">) => isImage(file.tipo) || isPdf(file.tipo, file.nome_arquivo);
+
+  const handlePreview = async (file: Tables<"uploads">) => {
+    setLoadingPreviewId(file.id);
+    const { data, error } = await supabase.storage
+      .from("aluno-files")
+      .createSignedUrl(file.storage_path, 300);
+    setLoadingPreviewId(null);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Erro ao pré-visualizar", description: error?.message || "URL não gerada", variant: "destructive" });
+      return;
+    }
+    setPreview({ url: data.signedUrl, file });
+  };
 
   return (
     <div className="space-y-4 mt-4">
