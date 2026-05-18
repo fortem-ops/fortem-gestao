@@ -186,16 +186,52 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
                   {profiles?.[file.autor_id] ? ` · ${profiles[file.autor_id]}` : ""}
                 </p>
               </div>
-              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDownload(file)}>
+              {canPreview(file) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => handlePreview(file)}
+                  disabled={loadingPreviewId === file.id}
+                  title="Pré-visualizar"
+                >
+                  {loadingPreviewId === file.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDownload(file)} title="Baixar">
                 <Download className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="shrink-0 text-destructive" onClick={() => deleteMutation.mutate(file)}>
+              <Button variant="ghost" size="icon" className="shrink-0 text-destructive" onClick={() => deleteMutation.mutate(file)} title="Remover">
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           ))}
         </div>
       )}
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-5 py-3 border-b border-border flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-sm font-medium truncate pr-4">
+              {preview?.file.nome_arquivo}
+            </DialogTitle>
+            {preview && (
+              <Button variant="outline" size="sm" asChild className="gap-1 mr-6">
+                <a href={preview.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-3.5 h-3.5" /> Abrir
+                </a>
+              </Button>
+            )}
+          </DialogHeader>
+          <div className="flex-1 min-h-0 bg-secondary/30 overflow-auto flex items-center justify-center">
+            {preview && (isImage(preview.file.tipo) ? (
+              <img src={preview.url} alt={preview.file.nome_arquivo} className="max-w-full max-h-full object-contain" />
+            ) : (
+              <iframe src={preview.url} title={preview.file.nome_arquivo} className="w-full h-full border-0" />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
