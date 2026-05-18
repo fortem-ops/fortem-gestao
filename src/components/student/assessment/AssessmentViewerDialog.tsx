@@ -18,7 +18,9 @@ import { getClassificationColor } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { BodyDiagram } from "./BodyDiagram";
-import { ExperimentalAssessment, type ExperimentalDados } from "./ExperimentalAssessment";
+import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAssessment";
+import { fetchExperimentalSchema, migrateLegacyDados, type ExperimentalRecordDados } from "./experimentalTemplate";
+import { useQuery as useTplQuery } from "@tanstack/react-query";
 
 interface Props {
   open: boolean;
@@ -70,7 +72,13 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
   const dados = (avaliacao.dados as Record<string, unknown>) || {};
   const metricasFromJson = (dados.metricas as FuncMetric[] | undefined) || [];
-  const expDados = isExperimental ? (dados as unknown as ExperimentalDados) : null;
+  const expDados: ExperimentalRecordDados | null = isExperimental ? migrateLegacyDados(dados) : null;
+
+  const { data: expSchema } = useTplQuery({
+    queryKey: ["avaliacao-template", "experimental"],
+    queryFn: fetchExperimentalSchema,
+    enabled: isExperimental,
+  });
 
   async function handleDelete() {
     if (!avaliacao) return;
@@ -149,7 +157,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           editing ? (
             <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
           ) : (
-            <ExperimentalView dados={expDados!} />
+            <ExperimentalView dados={expDados!} schema={expSchema} />
           )
         ) : isLoading && isFuncional ? (
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
@@ -277,45 +285,21 @@ function Item({ label, value, highlight }: { label: string; value: string; highl
   );
 }
 
-function ExperimentalView({ dados }: { dados: ExperimentalDados }) {
-  const a = dados.anamnese;
-  const m = dados.mobilidade;
-  const mobLabel = (v: string) =>
-    v === "movel" ? "Móvel" : v === "restrito" ? "Restrito" : v === "dificuldade" ? "Dificuldade de compreensão e execução" : "—";
-  const sn = (v: string) => v === "sim" ? "Sim" : v === "nao" ? "Não" : "—";
-
+function ExperimentalView({ dados, schema }: { dados: ExperimentalRecordDados; schema?: { sections: { id: string; title: string; questions: { id: string; label: string; type: string; detalheLabel?: string; labelSim?: string; labelNao?: string; options?: { value: string; label: string }[] }[] }[] } }) {
+  if (!schema) {
+    return <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
+  }
   return (
     <div className="space-y-4">
-      <section className="glass-card rounded-lg p-4 space-y-3">
-        <h4 className="text-sm font-semibold text-foreground">Anamnese</h4>
-        <Row label="Histórico de saúde diagnosticado" value={sn(a.saude.tem)} detail={a.saude.detalhe} />
-        <Row label="Uso de medicação" value={sn(a.medicacao.usa)} detail={a.medicacao.qual} />
-        <Row label="Gestante" value={sn(a.gestante.esta)} detail={a.gestante.semanas ? `${a.gestante.semanas} semanas` : ""} />
-        <Row label="Limitações / dores / lesões" value={sn(a.limitacoes.tem)} detail={a.limitacoes.quais} />
-        <Row
-          label="Pratica atividade física regular"
-          value={sn(a.atividade.pratica)}
-          detail={a.atividade.pratica === "sim" ? a.atividade.qual : a.atividade.pratica === "nao" ? (a.atividade.tempo_parado ? `Parado(a) há ${a.atividade.tempo_parado}` : "") : ""}
-        />
-        <div>
-          <p className="text-xs text-muted-foreground">Motivo e objetivo principal</p>
-          <p className="text-sm text-foreground whitespace-pre-wrap">{a.motivo_objetivo || "—"}</p>
-        </div>
-      </section>
-
-      <section className="glass-card rounded-lg p-4 space-y-2">
-        <h4 className="text-sm font-semibold text-foreground mb-2">Avaliação de Mobilidade</h4>
-        <Row label="Gatinho" value={mobLabel(m.gatinho)} />
-        <Row label="Rocking" value={mobLabel(m.rocking)} />
-        <Row label="Rotação Interna e Externa de Ombro na Parede" value={mobLabel(m.rotacao_ombro)} />
-        <Row label="Hip Hinge com bastão nas costas" value={mobLabel(m.hip_hinge)} />
-        {m.observacoes && (
-          <div className="pt-2">
-            <p className="text-xs text-muted-foreground">Observações</p>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{m.observacoes}</p>
-          </div>
-        )}
-      </section>
+      {schema.sections.map((sec) => (
+        <section key={sec.id} className="glass-card rounded-lg p-4 space-y-3">
+          <h4 className="text-sm font-semibold text-foreground">{sec.title}</h4>
+          {sec.questions.map((q) => {
+            const summary = renderAnswerSummary(q as never, dados.answers[q.id]);
+            return <Row key={q.id} label={q.label} value={summary.value} detail={summary.detail} />;
+          })}
+        </section>
+      ))}
     </div>
   );
 }

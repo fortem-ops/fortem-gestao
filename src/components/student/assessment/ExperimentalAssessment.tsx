@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,51 +9,26 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle2, Lock } from "lucide-react";
+import { Loader2, CheckCircle2, Lock, Settings2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
+import {
+  fetchExperimentalSchema,
+  migrateLegacyDados,
+  EMPTY_DADOS,
+  type ExperimentalRecordDados,
+  type TemplateQuestion,
+  type ExperimentalAnswers,
+} from "./experimentalTemplate";
+import { ExperimentalTemplateEditor } from "./ExperimentalTemplateEditor";
 
-type SimNao = "sim" | "nao" | "";
-type MobOpt = "movel" | "restrito" | "dificuldade" | "";
-
-export interface ExperimentalDados {
-  status: "rascunho" | "finalizado";
-  anamnese: {
-    saude: { tem: SimNao; detalhe: string };
-    medicacao: { usa: SimNao; qual: string };
-    gestante: { esta: SimNao; semanas: string };
-    limitacoes: { tem: SimNao; quais: string };
-    atividade: { pratica: SimNao; qual: string; tempo_parado: string };
-    motivo_objetivo: string;
-  };
-  mobilidade: {
-    gatinho: MobOpt;
-    rocking: MobOpt;
-    rotacao_ombro: MobOpt;
-    hip_hinge: MobOpt;
-    observacoes: string;
-  };
-  finalized_at: string | null;
-}
-
-const empty: ExperimentalDados = {
-  status: "rascunho",
-  anamnese: {
-    saude: { tem: "", detalhe: "" },
-    medicacao: { usa: "", qual: "" },
-    gestante: { esta: "", semanas: "" },
-    limitacoes: { tem: "", quais: "" },
-    atividade: { pratica: "", qual: "", tempo_parado: "" },
-    motivo_objetivo: "",
-  },
-  mobilidade: { gatinho: "", rocking: "", rotacao_ombro: "", hip_hinge: "", observacoes: "" },
-  finalized_at: null,
-};
+// Re-export para compatibilidade com imports existentes
+export type ExperimentalDados = ExperimentalRecordDados;
 
 interface Props {
   student: Tables<"alunos">;
-  avaliacaoId?: string; // edição de existente
+  avaliacaoId?: string;
 }
 
 export function ExperimentalAssessment({ student, avaliacaoId }: Props) {
@@ -69,21 +44,29 @@ export function ExperimentalAssessment({ student, avaliacaoId }: Props) {
     },
   });
 
+  const { data: schema, isLoading: loadingSchema } = useQuery({
+    queryKey: ["avaliacao-template", "experimental"],
+    queryFn: fetchExperimentalSchema,
+  });
+
   const [id, setId] = useState<string | null>(avaliacaoId ?? null);
-  const [dados, setDados] = useState<ExperimentalDados>(empty);
+  const [dados, setDados] = useState<ExperimentalRecordDados>(EMPTY_DADOS);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
   const lastSerialized = useRef<string>("");
   const initialized = useRef(false);
 
-  // Carrega existente se houver id
   useEffect(() => {
-    if (!avaliacaoId) return;
+    if (!avaliacaoId) {
+      initialized.current = true;
+      return;
+    }
     (async () => {
       const { data } = await supabase.from("avaliacoes").select("*").eq("id", avaliacaoId).maybeSingle();
       if (data?.dados) {
-        const merged = mergeDados(data.dados as Partial<ExperimentalDados>);
+        const merged = migrateLegacyDados(data.dados as Record<string, unknown>);
         setDados(merged);
         lastSerialized.current = JSON.stringify(merged);
         setId(data.id);
@@ -92,19 +75,12 @@ export function ExperimentalAssessment({ student, avaliacaoId }: Props) {
     })();
   }, [avaliacaoId]);
 
-  // Sem id em edição: marcar inicializado para permitir autosave após primeira interação
-  useEffect(() => {
-    if (!avaliacaoId) initialized.current = true;
-  }, [avaliacaoId]);
-
   const debounced = useDebounce(dados, 800);
 
-  // Autosave
   useEffect(() => {
     if (!canEdit || !user || !initialized.current) return;
     const serialized = JSON.stringify(debounced);
     if (serialized === lastSerialized.current) return;
-
     (async () => {
       try {
         setSaving(true);
@@ -146,25 +122,20 @@ export function ExperimentalAssessment({ student, avaliacaoId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced, canEdit, user, student.id]);
 
-  const finalizar = async () => {
-    if (!id) {
-      toast.error("Preencha ao menos um campo antes de finalizar.");
-      return;
-    }
-    const next: ExperimentalDados = { ...dados, status: "finalizado", finalized_at: new Date().toISOString() };
-    setDados(next);
+  const setAnswer = (qid: string, value: unknown) => {
+    setDados((d) => ({ ...d, answers: { ...d.answers, [qid]: value } }));
+  };
+
+  const finalizar = () => {
+    if (!id) { toast.error("Preencha ao menos um campo antes de finalizar."); return; }
+    setDados((d) => ({ ...d, status: "finalizado", finalized_at: new Date().toISOString() }));
     toast.success("Avaliação finalizada. Edições continuam permitidas.");
   };
+  const reabrir = () => setDados((d) => ({ ...d, status: "rascunho", finalized_at: null }));
 
-  const reabrir = async () => {
-    const next: ExperimentalDados = { ...dados, status: "rascunho", finalized_at: null };
-    setDados(next);
-  };
-
-  if (loadingPerm) {
+  if (loadingPerm || loadingSchema) {
     return <div className="glass-card rounded-lg p-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
   }
-
   if (!canEdit) {
     return (
       <div className="glass-card rounded-lg p-8 text-center text-sm text-muted-foreground">
@@ -176,8 +147,7 @@ export function ExperimentalAssessment({ student, avaliacaoId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Status bar */}
-      <div className="flex items-center justify-between glass-card rounded-lg px-4 py-2">
+      <div className="flex items-center justify-between glass-card rounded-lg px-4 py-2 gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Badge variant="outline" className={dados.status === "finalizado" ? "border-success/40 text-success" : "border-warning/40 text-warning"}>
             {dados.status === "finalizado" ? "Finalizada" : "Rascunho"}
@@ -186,148 +156,26 @@ export function ExperimentalAssessment({ student, avaliacaoId }: Props) {
             <span className="text-xs text-muted-foreground">em {format(new Date(dados.finalized_at), "dd/MM/yyyy HH:mm")}</span>
           )}
         </div>
-        <div className="text-xs text-muted-foreground flex items-center gap-1">
-          {saving ? (
-            <><Loader2 className="w-3 h-3 animate-spin" /> Salvando…</>
-          ) : lastSavedAt ? (
-            <><CheckCircle2 className="w-3 h-3 text-success" /> Salvo às {format(lastSavedAt, "HH:mm:ss")}</>
-          ) : (
-            <span>Comece a preencher — o sistema salva automaticamente</span>
-          )}
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
+            {saving ? (<><Loader2 className="w-3 h-3 animate-spin" /> Salvando…</>)
+              : lastSavedAt ? (<><CheckCircle2 className="w-3 h-3 text-success" /> Salvo às {format(lastSavedAt, "HH:mm:ss")}</>)
+              : (<span>Comece a preencher — o sistema salva automaticamente</span>)}
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setEditorOpen(true)}>
+            <Settings2 className="w-4 h-4 mr-1" /> Editar formulário
+          </Button>
         </div>
       </div>
 
-      {/* Anamnese */}
-      <section className="glass-card rounded-lg p-5 space-y-5">
-        <h3 className="font-heading font-semibold text-foreground">Anamnese</h3>
-
-        <SimNaoField
-          label="Histórico de saúde: você possui alguma condição de saúde diagnosticada (cardíaca, respiratória, metabólica, ortopédica, etc.)?"
-          value={dados.anamnese.saude.tem}
-          onChange={(v) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, saude: { ...d.anamnese.saude, tem: v } } }))}
-        >
-          {dados.anamnese.saude.tem === "sim" && (
-            <Textarea
-              placeholder="Quais condições?"
-              value={dados.anamnese.saude.detalhe}
-              onChange={(e) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, saude: { ...d.anamnese.saude, detalhe: e.target.value } } }))}
-              rows={2}
-              className="mt-2"
-            />
-          )}
-        </SimNaoField>
-
-        <SimNaoField
-          label="Você faz uso de alguma medicação?"
-          value={dados.anamnese.medicacao.usa}
-          onChange={(v) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, medicacao: { ...d.anamnese.medicacao, usa: v } } }))}
-        >
-          {dados.anamnese.medicacao.usa === "sim" && (
-            <Textarea
-              placeholder="Qual(is) medicação(ões)?"
-              value={dados.anamnese.medicacao.qual}
-              onChange={(e) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, medicacao: { ...d.anamnese.medicacao, qual: e.target.value } } }))}
-              rows={2}
-              className="mt-2"
-            />
-          )}
-        </SimNaoField>
-
-        <SimNaoField
-          label="Está gestante?"
-          value={dados.anamnese.gestante.esta}
-          onChange={(v) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, gestante: { ...d.anamnese.gestante, esta: v } } }))}
-        >
-          {dados.anamnese.gestante.esta === "sim" && (
-            <div className="mt-2 flex items-center gap-2">
-              <Input
-                type="number"
-                placeholder="Semanas"
-                value={dados.anamnese.gestante.semanas}
-                onChange={(e) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, gestante: { ...d.anamnese.gestante, semanas: e.target.value } } }))}
-                className="w-32"
-              />
-              <span className="text-sm text-muted-foreground">semanas</span>
-            </div>
-          )}
-        </SimNaoField>
-
-        <SimNaoField
-          label="Possui limitações de movimentos, dores ou lesões (antigas ou recentes)?"
-          value={dados.anamnese.limitacoes.tem}
-          onChange={(v) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, limitacoes: { ...d.anamnese.limitacoes, tem: v } } }))}
-        >
-          {dados.anamnese.limitacoes.tem === "sim" && (
-            <Textarea
-              placeholder="Quais limitações, dores ou lesões?"
-              value={dados.anamnese.limitacoes.quais}
-              onChange={(e) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, limitacoes: { ...d.anamnese.limitacoes, quais: e.target.value } } }))}
-              rows={2}
-              className="mt-2"
-            />
-          )}
-        </SimNaoField>
-
-        <SimNaoField
-          label="Você pratica alguma atividade física com regularidade?"
-          value={dados.anamnese.atividade.pratica}
-          onChange={(v) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, atividade: { ...d.anamnese.atividade, pratica: v } } }))}
-        >
-          {dados.anamnese.atividade.pratica === "sim" && (
-            <Textarea
-              placeholder="Qual atividade?"
-              value={dados.anamnese.atividade.qual}
-              onChange={(e) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, atividade: { ...d.anamnese.atividade, qual: e.target.value } } }))}
-              rows={2}
-              className="mt-2"
-            />
-          )}
-          {dados.anamnese.atividade.pratica === "nao" && (
-            <Input
-              placeholder="Há quanto tempo está parado(a)?"
-              value={dados.anamnese.atividade.tempo_parado}
-              onChange={(e) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, atividade: { ...d.anamnese.atividade, tempo_parado: e.target.value } } }))}
-              className="mt-2"
-            />
-          )}
-        </SimNaoField>
-
-        <div>
-          <Label className="text-sm">O que te trouxe até a Fortem (na procura deste tipo de serviço) e qual é o seu principal objetivo?</Label>
-          <Textarea
-            value={dados.anamnese.motivo_objetivo}
-            onChange={(e) => setDados(d => ({ ...d, anamnese: { ...d.anamnese, motivo_objetivo: e.target.value } }))}
-            rows={3}
-            className="mt-2"
-            placeholder="Descreva o motivo e objetivo principal..."
-          />
-        </div>
-      </section>
-
-      {/* Avaliação de mobilidade */}
-      <section className="glass-card rounded-lg p-5 space-y-5">
-        <h3 className="font-heading font-semibold text-foreground">Avaliação de Mobilidade</h3>
-
-        <MobField label="Gatinho" value={dados.mobilidade.gatinho}
-          onChange={(v) => setDados(d => ({ ...d, mobilidade: { ...d.mobilidade, gatinho: v } }))} />
-        <MobField label="Rocking" value={dados.mobilidade.rocking}
-          onChange={(v) => setDados(d => ({ ...d, mobilidade: { ...d.mobilidade, rocking: v } }))} />
-        <MobField label="Rotação Interna e Externa de Ombro na Parede" value={dados.mobilidade.rotacao_ombro}
-          onChange={(v) => setDados(d => ({ ...d, mobilidade: { ...d.mobilidade, rotacao_ombro: v } }))} />
-        <MobField label="Hip Hinge com bastão nas costas" value={dados.mobilidade.hip_hinge}
-          onChange={(v) => setDados(d => ({ ...d, mobilidade: { ...d.mobilidade, hip_hinge: v } }))} />
-
-        <div>
-          <Label className="text-sm">Observações sobre os padrões de mobilidade</Label>
-          <Textarea
-            value={dados.mobilidade.observacoes}
-            onChange={(e) => setDados(d => ({ ...d, mobilidade: { ...d.mobilidade, observacoes: e.target.value } }))}
-            rows={3}
-            className="mt-2"
-            placeholder="Anotações livres..."
-          />
-        </div>
-      </section>
+      {schema?.sections.map((section) => (
+        <section key={section.id} className="glass-card rounded-lg p-5 space-y-5">
+          <h3 className="font-heading font-semibold text-foreground">{section.title}</h3>
+          {section.questions.map((q) => (
+            <QuestionField key={q.id} question={q} value={dados.answers[q.id]} onChange={(v) => setAnswer(q.id, v)} />
+          ))}
+        </section>
+      ))}
 
       <div className="flex flex-wrap gap-2 justify-end">
         {dados.status === "rascunho" ? (
@@ -336,57 +184,159 @@ export function ExperimentalAssessment({ student, avaliacaoId }: Props) {
           <Button variant="outline" onClick={reabrir}>Reabrir como rascunho</Button>
         )}
       </div>
+
+      <ExperimentalTemplateEditor open={editorOpen} onOpenChange={setEditorOpen} />
     </div>
   );
 }
 
-function mergeDados(partial: Partial<ExperimentalDados>): ExperimentalDados {
-  return {
-    status: partial.status ?? empty.status,
-    finalized_at: partial.finalized_at ?? null,
-    anamnese: { ...empty.anamnese, ...(partial.anamnese as object) } as ExperimentalDados["anamnese"],
-    mobilidade: { ...empty.mobilidade, ...(partial.mobilidade as object) } as ExperimentalDados["mobilidade"],
-  };
+function QuestionField({ question: q, value, onChange }: { question: TemplateQuestion; value: unknown; onChange: (v: unknown) => void }) {
+  switch (q.type) {
+    case "sim_nao": {
+      const v = (value as string) ?? "";
+      return (
+        <FieldWrap label={q.label}>
+          <SimNao value={v} onChange={onChange} idKey={q.id} />
+        </FieldWrap>
+      );
+    }
+    case "sim_nao_detalhe": {
+      const cur = (value as { v: string; detalhe: string } | undefined) ?? { v: "", detalhe: "" };
+      return (
+        <FieldWrap label={q.label}>
+          <SimNao value={cur.v} onChange={(v) => onChange({ ...cur, v })} idKey={q.id} />
+          {cur.v === "sim" && (
+            <Textarea
+              className="mt-2"
+              placeholder={q.detalheLabel || "Detalhe"}
+              rows={2}
+              value={cur.detalhe}
+              onChange={(e) => onChange({ ...cur, detalhe: e.target.value })}
+            />
+          )}
+        </FieldWrap>
+      );
+    }
+    case "sim_nao_numero": {
+      const cur = (value as { v: string; numero: string } | undefined) ?? { v: "", numero: "" };
+      return (
+        <FieldWrap label={q.label}>
+          <SimNao value={cur.v} onChange={(v) => onChange({ ...cur, v })} idKey={q.id} />
+          {cur.v === "sim" && (
+            <div className="mt-2 flex items-center gap-2">
+              <Input
+                type="number"
+                className="w-32"
+                placeholder={q.detalheLabel || "Número"}
+                value={cur.numero}
+                onChange={(e) => onChange({ ...cur, numero: e.target.value })}
+              />
+              <span className="text-sm text-muted-foreground">{q.detalheLabel || ""}</span>
+            </div>
+          )}
+        </FieldWrap>
+      );
+    }
+    case "sim_nao_dupla": {
+      const cur = (value as { v: string; sim: string; nao: string } | undefined) ?? { v: "", sim: "", nao: "" };
+      return (
+        <FieldWrap label={q.label}>
+          <SimNao value={cur.v} onChange={(v) => onChange({ ...cur, v })} idKey={q.id} />
+          {cur.v === "sim" && (
+            <Textarea className="mt-2" rows={2} placeholder={q.labelSim || ""} value={cur.sim} onChange={(e) => onChange({ ...cur, sim: e.target.value })} />
+          )}
+          {cur.v === "nao" && (
+            <Input className="mt-2" placeholder={q.labelNao || ""} value={cur.nao} onChange={(e) => onChange({ ...cur, nao: e.target.value })} />
+          )}
+        </FieldWrap>
+      );
+    }
+    case "texto":
+      return (
+        <FieldWrap label={q.label}>
+          <Textarea className="mt-2" rows={3} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} />
+        </FieldWrap>
+      );
+    case "numero":
+      return (
+        <FieldWrap label={q.label}>
+          <Input className="mt-2 w-40" type="number" value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} />
+        </FieldWrap>
+      );
+    case "opcoes": {
+      const cur = (value as string) ?? "";
+      return (
+        <FieldWrap label={q.label}>
+          <RadioGroup value={cur} onValueChange={onChange} className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mt-2">
+            {(q.options ?? []).map((o) => (
+              <div key={o.value} className="flex items-center gap-2">
+                <RadioGroupItem value={o.value} id={`${q.id}-${o.value}`} />
+                <Label htmlFor={`${q.id}-${o.value}`} className="text-sm font-normal cursor-pointer">{o.label}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </FieldWrap>
+      );
+    }
+    default:
+      return null;
+  }
 }
 
-function SimNaoField({
-  label, value, onChange, children,
-}: { label: string; value: SimNao; onChange: (v: SimNao) => void; children?: React.ReactNode }) {
+function FieldWrap({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <Label className="text-sm">{label}</Label>
-      <RadioGroup value={value} onValueChange={(v) => onChange(v as SimNao)} className="flex gap-4 mt-2">
-        <div className="flex items-center gap-2">
-          <RadioGroupItem value="sim" id={`${label}-sim`} />
-          <Label htmlFor={`${label}-sim`} className="text-sm font-normal cursor-pointer">Sim</Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <RadioGroupItem value="nao" id={`${label}-nao`} />
-          <Label htmlFor={`${label}-nao`} className="text-sm font-normal cursor-pointer">Não</Label>
-        </div>
-      </RadioGroup>
       {children}
     </div>
   );
 }
 
-function MobField({ label, value, onChange }: { label: string; value: MobOpt; onChange: (v: MobOpt) => void }) {
-  const opts: { v: MobOpt; l: string }[] = [
-    { v: "movel", l: "Móvel" },
-    { v: "restrito", l: "Restrito" },
-    { v: "dificuldade", l: "Dificuldade de compreensão e execução" },
-  ];
+function SimNao({ value, onChange, idKey }: { value: string; onChange: (v: string) => void; idKey: string }) {
   return (
-    <div>
-      <Label className="text-sm">{label}</Label>
-      <RadioGroup value={value} onValueChange={(v) => onChange(v as MobOpt)} className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mt-2">
-        {opts.map((o) => (
-          <div key={o.v} className="flex items-center gap-2">
-            <RadioGroupItem value={o.v} id={`${label}-${o.v}`} />
-            <Label htmlFor={`${label}-${o.v}`} className="text-sm font-normal cursor-pointer">{o.l}</Label>
-          </div>
-        ))}
-      </RadioGroup>
-    </div>
+    <RadioGroup value={value} onValueChange={onChange} className="flex gap-4 mt-2">
+      <div className="flex items-center gap-2">
+        <RadioGroupItem value="sim" id={`${idKey}-sim`} />
+        <Label htmlFor={`${idKey}-sim`} className="text-sm font-normal cursor-pointer">Sim</Label>
+      </div>
+      <div className="flex items-center gap-2">
+        <RadioGroupItem value="nao" id={`${idKey}-nao`} />
+        <Label htmlFor={`${idKey}-nao`} className="text-sm font-normal cursor-pointer">Não</Label>
+      </div>
+    </RadioGroup>
   );
 }
+
+// Helper p/ render somente-leitura no visualizador
+export function renderAnswerSummary(q: TemplateQuestion, value: unknown): { value: string; detail?: string } {
+  switch (q.type) {
+    case "sim_nao":
+      return { value: value === "sim" ? "Sim" : value === "nao" ? "Não" : "—" };
+    case "sim_nao_detalhe": {
+      const c = value as { v?: string; detalhe?: string } | undefined;
+      return { value: c?.v === "sim" ? "Sim" : c?.v === "nao" ? "Não" : "—", detail: c?.detalhe || undefined };
+    }
+    case "sim_nao_numero": {
+      const c = value as { v?: string; numero?: string } | undefined;
+      return { value: c?.v === "sim" ? "Sim" : c?.v === "nao" ? "Não" : "—", detail: c?.numero ? `${c.numero} ${q.detalheLabel || ""}`.trim() : undefined };
+    }
+    case "sim_nao_dupla": {
+      const c = value as { v?: string; sim?: string; nao?: string } | undefined;
+      return {
+        value: c?.v === "sim" ? "Sim" : c?.v === "nao" ? "Não" : "—",
+        detail: c?.v === "sim" ? c?.sim : c?.v === "nao" ? c?.nao : undefined,
+      };
+    }
+    case "texto":
+    case "numero":
+      return { value: (value as string) || "—" };
+    case "opcoes": {
+      const opt = q.options?.find((o) => o.value === value);
+      return { value: opt?.label || "—" };
+    }
+    default:
+      return { value: "—" };
+  }
+}
+
+export type { ExperimentalAnswers };
