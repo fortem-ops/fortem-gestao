@@ -33,6 +33,7 @@ export function ConvertToAlunoDialog({
   destinoStage = "Aluno ativo",
   title,
   fullConvert = true,
+  onConverted,
 }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
