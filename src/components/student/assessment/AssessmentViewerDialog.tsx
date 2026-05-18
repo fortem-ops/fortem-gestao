@@ -1,15 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileDown, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getClassificationColor } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { BodyDiagram } from "./BodyDiagram";
+import { ExperimentalAssessment, type ExperimentalDados } from "./ExperimentalAssessment";
 
 interface Props {
   open: boolean;
@@ -27,8 +36,22 @@ interface FuncMetric {
 }
 
 export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student }: Props) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+
   const isFuncional = avaliacao?.tipo === "funcional";
   const isComposicao = avaliacao?.tipo === "composicao_corporal";
+  const isExperimental = avaliacao?.tipo === "experimental";
+
+  const { data: canEdit } = useQuery({
+    queryKey: ["is-coord-or-admin", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+  });
 
   const { data: funcional, isLoading } = useQuery({
     queryKey: ["avaliacao-funcional", avaliacao?.id],
@@ -47,6 +70,21 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
   const dados = (avaliacao.dados as Record<string, unknown>) || {};
   const metricasFromJson = (dados.metricas as FuncMetric[] | undefined) || [];
+  const expDados = isExperimental ? (dados as unknown as ExperimentalDados) : null;
+
+  async function handleDelete() {
+    if (!avaliacao) return;
+    try {
+      const { error } = await supabase.from("avaliacoes").delete().eq("id", avaliacao.id);
+      if (error) throw error;
+      toast.success("Avaliação excluída");
+      queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao excluir");
+    }
+  }
 
   const handleExport = () => {
     if (isFuncional) {
@@ -94,15 +132,26 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="capitalize">
+          <DialogTitle className="capitalize flex items-center gap-2 flex-wrap">
             {avaliacao.tipo.replace(/_/g, ' ')} — {format(new Date(avaliacao.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            {isExperimental && expDados && (
+              <Badge variant="outline" className={expDados.status === "finalizado" ? "border-success/40 text-success" : "border-warning/40 text-warning"}>
+                {expDados.status === "finalizado" ? "Finalizada" : "Rascunho"}
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
-        {isLoading && isFuncional ? (
+        {isExperimental ? (
+          editing ? (
+            <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
+          ) : (
+            <ExperimentalView dados={expDados!} />
+          )
+        ) : isLoading && isFuncional ? (
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
@@ -171,7 +220,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
               </div>
             )}
 
-            {!isFuncional && !isComposicao && (
+            {!isFuncional && !isComposicao && !isExperimental && (
               <div className="glass-card rounded-lg p-4">
                 <pre className="text-xs text-muted-foreground whitespace-pre-wrap">{JSON.stringify(dados, null, 2)}</pre>
               </div>
@@ -179,7 +228,35 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 flex-wrap">
+          {isExperimental && canEdit && !editing && (
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              <Pencil className="w-4 h-4 mr-2" /> Editar
+            </Button>
+          )}
+          {canEdit && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir avaliação</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação é irreversível. Deseja realmente excluir esta avaliação?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
           {(isFuncional || isComposicao) && (
             <Button onClick={handleExport}><FileDown className="w-4 h-4 mr-2" /> Exportar PDF</Button>
@@ -196,6 +273,61 @@ function Item({ label, value, highlight }: { label: string; value: string; highl
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-base font-bold text-foreground">{value}</p>
       {highlight && <p className="text-xs font-semibold text-success mt-0.5">{highlight}</p>}
+    </div>
+  );
+}
+
+function ExperimentalView({ dados }: { dados: ExperimentalDados }) {
+  const a = dados.anamnese;
+  const m = dados.mobilidade;
+  const mobLabel = (v: string) =>
+    v === "movel" ? "Móvel" : v === "restrito" ? "Restrito" : v === "dificuldade" ? "Dificuldade de compreensão e execução" : "—";
+  const sn = (v: string) => v === "sim" ? "Sim" : v === "nao" ? "Não" : "—";
+
+  return (
+    <div className="space-y-4">
+      <section className="glass-card rounded-lg p-4 space-y-3">
+        <h4 className="text-sm font-semibold text-foreground">Anamnese</h4>
+        <Row label="Histórico de saúde diagnosticado" value={sn(a.saude.tem)} detail={a.saude.detalhe} />
+        <Row label="Uso de medicação" value={sn(a.medicacao.usa)} detail={a.medicacao.qual} />
+        <Row label="Gestante" value={sn(a.gestante.esta)} detail={a.gestante.semanas ? `${a.gestante.semanas} semanas` : ""} />
+        <Row label="Limitações / dores / lesões" value={sn(a.limitacoes.tem)} detail={a.limitacoes.quais} />
+        <Row
+          label="Pratica atividade física regular"
+          value={sn(a.atividade.pratica)}
+          detail={a.atividade.pratica === "sim" ? a.atividade.qual : a.atividade.pratica === "nao" ? (a.atividade.tempo_parado ? `Parado(a) há ${a.atividade.tempo_parado}` : "") : ""}
+        />
+        <div>
+          <p className="text-xs text-muted-foreground">Motivo e objetivo principal</p>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{a.motivo_objetivo || "—"}</p>
+        </div>
+      </section>
+
+      <section className="glass-card rounded-lg p-4 space-y-2">
+        <h4 className="text-sm font-semibold text-foreground mb-2">Avaliação de Mobilidade</h4>
+        <Row label="Gatinho" value={mobLabel(m.gatinho)} />
+        <Row label="Rocking" value={mobLabel(m.rocking)} />
+        <Row label="Rotação Interna e Externa de Ombro na Parede" value={mobLabel(m.rotacao_ombro)} />
+        <Row label="Hip Hinge com bastão nas costas" value={mobLabel(m.hip_hinge)} />
+        {m.observacoes && (
+          <div className="pt-2">
+            <p className="text-xs text-muted-foreground">Observações</p>
+            <p className="text-sm text-foreground whitespace-pre-wrap">{m.observacoes}</p>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function Row({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 border-b border-border/40 pb-2 last:border-0 last:pb-0">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm text-foreground text-right">
+        {value}
+        {detail ? <span className="text-muted-foreground"> — {detail}</span> : null}
+      </span>
     </div>
   );
 }
