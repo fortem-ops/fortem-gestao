@@ -154,18 +154,51 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         (c: any) => !c.data_validade || c.data_validade >= today,
       );
 
-      if (linhas.length === 0) {
-        return { total: 0, usado: 0, restante: 0, ilimitado: false, origens: [] as string[], temLinhas: false };
-      }
+      const resumoPor = (origem: "plano" | "servico") => {
+        const ls = linhas.filter((c: any) => c.origem_tipo === origem);
+        if (ls.length === 0) return { temLinhas: false, ilimitado: false, total: 0, usado: 0, restante: 0 };
+        const ilimitado = ls.some((c: any) => c.ilimitado);
+        const total = ls.reduce((s: number, c: any) => s + (c.quantidade_inicial ?? 0), 0);
+        const usado = ls.reduce((s: number, c: any) => s + (c.quantidade_usada ?? 0), 0);
+        return { temLinhas: true, ilimitado, total, usado, restante: ilimitado ? Infinity : total - usado };
+      };
 
-      const ilimitado = linhas.some((c: any) => c.ilimitado);
-      const total = linhas.reduce((s: number, c: any) => s + (c.quantidade_inicial ?? 0), 0);
-      const usado = linhas.reduce((s: number, c: any) => s + (c.quantidade_usada ?? 0), 0);
-      const origens = Array.from(new Set(linhas.map((c: any) => c.origem_tipo))) as string[];
+      const plano = resumoPor("plano");
+      const servico = resumoPor("servico");
+      const temLinhas = plano.temLinhas || servico.temLinhas;
+      const ilimitado = plano.ilimitado || servico.ilimitado;
+      const total = plano.total + servico.total;
+      const usado = plano.usado + servico.usado;
+      const restante = ilimitado ? Infinity : total - usado;
+      const origens = [
+        plano.temLinhas ? "plano" : null,
+        servico.temLinhas ? "servico" : null,
+      ].filter(Boolean) as string[];
 
-      return { total, usado, restante: ilimitado ? Infinity : total - usado, ilimitado, origens, temLinhas: true };
+      return { total, usado, restante, ilimitado, origens, temLinhas, plano, servico };
     },
   });
+
+  const planoTemSaldo = !!studentCredits?.plano.temLinhas && (studentCredits.plano.ilimitado || studentCredits.plano.restante > 0);
+  const servicoTemSaldo = !!studentCredits?.servico.temLinhas && (studentCredits.servico.ilimitado || studentCredits.servico.restante > 0);
+  const exigeEscolhaOrigem = planoTemSaldo && servicoTemSaldo;
+
+  // Auto-seleção quando há apenas uma origem com saldo
+  useEffect(() => {
+    if (!studentCredits) { setCreditoOrigem(""); return; }
+    if (exigeEscolhaOrigem) {
+      // Mantém escolha do usuário; reseta só se virou inválida
+      if (creditoOrigem !== "plano" && creditoOrigem !== "servico") setCreditoOrigem("");
+    } else if (planoTemSaldo) {
+      setCreditoOrigem("plano");
+    } else if (servicoTemSaldo) {
+      setCreditoOrigem("servico");
+    } else {
+      setCreditoOrigem("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentCredits, planoTemSaldo, servicoTemSaldo, exigeEscolhaOrigem]);
+
 
   const filteredAlunos = useMemo(() => {
     if (!alunoSearch.trim()) return alunos;
