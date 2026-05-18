@@ -157,7 +157,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           editing ? (
             <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
           ) : (
-            <ExperimentalView dados={expDados!} />
+            <ExperimentalView dados={expDados!} schema={expSchema} />
           )
         ) : isLoading && isFuncional ? (
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
