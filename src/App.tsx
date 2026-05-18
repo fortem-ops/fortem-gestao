@@ -342,6 +342,14 @@ const App = () => (
                   </Suspense>
                 }
               />
+              <Route
+                path="/admin/notificacoes-email"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <AdminNotificacoesEmail />
+                  </Suspense>
+                }
+              />
             </Route>
             <Route
               path="*"
