@@ -369,6 +369,8 @@ export function renderAnswerSummary(q: TemplateQuestion, value: unknown): { valu
       const labels = arr.map((v) => q.options?.find((o) => o.value === v)?.label || v);
       return { value: labels.join(", ") };
     }
+    case "fase_inicial":
+      return { value: (value as string) || "—", detail: value ? "Treino vinculado ao aluno" : undefined };
     default:
       return { value: "—" };
   }
