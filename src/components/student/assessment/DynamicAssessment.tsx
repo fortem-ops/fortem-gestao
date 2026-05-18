@@ -205,7 +205,14 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
         <section key={section.id} className="glass-card rounded-lg p-5 space-y-5">
           <h3 className="font-heading font-semibold text-foreground">{section.title}</h3>
           {section.questions.map((q) => (
-            <QuestionField key={q.id} question={q} value={dados.answers[q.id]} onChange={(v) => setAnswer(q.id, v)} />
+            <QuestionField
+              key={q.id}
+              question={q}
+              value={dados.answers[q.id]}
+              onChange={(v) => setAnswer(q.id, v)}
+              onFaseInicialChange={q.type === "fase_inicial" ? handleFaseInicialChange : undefined}
+              faseLoading={prescribing}
+            />
           ))}
         </section>
       ))}
@@ -217,6 +224,23 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
           <Button variant="outline" onClick={reabrir}>Reabrir como rascunho</Button>
         )}
       </div>
+
+      <AlertDialog open={confirmReplace} onOpenChange={(o) => { if (!o) { setConfirmReplace(false); setPendingFase(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Substituir treino atual?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Já existe um treino "atual" prescrito para este aluno. Ao confirmar, ele será arquivado e o treino <strong>{pendingFase}</strong> entrará como atual (uma nova versão).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => pendingFase && runPrescribe(pendingFase)} disabled={prescribing}>
+              {prescribing ? "Aplicando..." : "Substituir e vincular"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
