@@ -152,4 +152,29 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   numero: "Número",
   opcoes: "Múltipla escolha (única seleção)",
   opcoes_multi: "Múltipla escolha (selecionar várias)",
+  fase_inicial: "Indicação da Fase Inicial (vincula treino)",
 };
+
+/** Garante que o protocolo experimental termine com a pergunta de Fase Inicial. */
+export function ensureFaseInicialQuestion(schema: ExperimentalSchema): ExperimentalSchema {
+  const existsAnywhere = schema.sections.some((s) =>
+    s.questions.some((q) => q.type === "fase_inicial" || q.id === FASE_INICIAL_QUESTION_ID),
+  );
+  if (existsAnywhere) return schema;
+  const sections = schema.sections.length
+    ? [...schema.sections]
+    : [{ id: crypto.randomUUID(), title: "Indicação Final", questions: [] }];
+  const lastIdx = sections.length - 1;
+  sections[lastIdx] = {
+    ...sections[lastIdx],
+    questions: [
+      ...sections[lastIdx].questions,
+      {
+        id: FASE_INICIAL_QUESTION_ID,
+        label: "Indicação da Fase Inicial",
+        type: "fase_inicial",
+      },
+    ],
+  };
+  return { ...schema, sections };
+}
