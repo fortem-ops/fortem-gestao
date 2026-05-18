@@ -7,6 +7,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function normalizeEmailSubject(subject: string) {
+  return subject
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[–—]/g, "-")
+    .replace(/[^\x20-\x7E]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function sendGmailEmail(to: string, subject: string, htmlBody: string) {
   const password = Deno.env.get("GMAIL_APP_PASSWORD");
   if (!password) throw new Error("GMAIL_APP_PASSWORD not configured");
@@ -18,7 +28,7 @@ async function sendGmailEmail(to: string, subject: string, htmlBody: string) {
       auth: { username: "contatofortem@gmail.com", password },
     },
   });
-  await client.send({ from: "contatofortem@gmail.com", to, subject, html: htmlBody });
+  await client.send({ from: "contatofortem@gmail.com", to, subject: normalizeEmailSubject(subject), content: "auto", html: htmlBody });
   await client.close();
 }
 
