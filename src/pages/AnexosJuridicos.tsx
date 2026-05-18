@@ -51,6 +51,17 @@ const AnexosJuridicos = () => {
 
   const { data: annexes = [], isLoading, refetch } = useQuery({ queryKey: ["legal_annexes"], queryFn: fetchAnnexes });
 
+  const cpfsToLookup = useMemo(() => {
+    const set = new Set<string>();
+    annexes.forEach((d) => { if (!d.aluno && d.cpf) set.add(d.cpf.replace(/\D/g, "")); });
+    return Array.from(set);
+  }, [annexes]);
+  const { data: alunosByCpf } = useQuery({
+    queryKey: ["alunos_by_cpf", cpfsToLookup],
+    queryFn: () => fetchAlunosByCpf(cpfsToLookup),
+    enabled: cpfsToLookup.length > 0,
+  });
+
   const handleImport = async () => {
     setImporting(true);
     try {
