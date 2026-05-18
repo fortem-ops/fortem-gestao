@@ -23,6 +23,12 @@ type Config = {
   exigir_aluno_vinculado: boolean;
   destinatarios_regra: string;
   emails_extras: string[];
+  enviar_tarefa_criada: boolean;
+  enviar_tarefa_automatica: boolean;
+  enviar_notificacao_nova: boolean;
+  enviar_notificacao_resposta: boolean;
+  enviar_agenda_diaria: boolean;
+  agenda_diaria_horario: string;
 };
 
 const REGRAS = [
