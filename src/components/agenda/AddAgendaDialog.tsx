@@ -276,10 +276,12 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setObservacoes("");
     setAlunoId("");
     setAlunoSearch("");
+    setCreditoOrigem("");
   };
 
   const canSubmit = atividade && local && horarioInicio && horarioFim &&
-    (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "");
+    (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "") &&
+    (!exigeEscolhaOrigem || !!creditoOrigem);
 
   const hasCredits =
     !alunoId ||
