@@ -7,6 +7,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function normalizeEmailSubject(subject: string) {
+  return subject
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[–—]/g, "-")
+    .replace(/[^\x20-\x7E]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const DIAS = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
 
 const DEFAULT_CONFIG = {
@@ -35,7 +45,7 @@ async function sendGmailEmail(opts: { from: string; to: string; cc?: string[]; s
     from: opts.from,
     to: opts.to,
     cc: opts.cc && opts.cc.length ? opts.cc : undefined,
-    subject: opts.subject,
+    subject: normalizeEmailSubject(opts.subject),
     content: "auto",
     html: opts.html,
   });
