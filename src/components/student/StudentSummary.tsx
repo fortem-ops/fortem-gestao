@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
+import { EditDadosCadastraisDialog } from "./EditDadosCadastraisDialog";
+
 
 type Aluno = Tables<"alunos">;
 
