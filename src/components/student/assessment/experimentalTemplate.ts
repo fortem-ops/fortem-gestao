@@ -8,7 +8,10 @@ export type QuestionType =
   | "texto"
   | "numero"
   | "opcoes"
-  | "opcoes_multi";
+  | "opcoes_multi"
+  | "fase_inicial";
+
+export const FASE_INICIAL_QUESTION_ID = "fase_inicial_treino";
 
 export interface OpcaoItem { value: string; label: string }
 
