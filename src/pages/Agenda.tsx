@@ -88,12 +88,23 @@ export default function Agenda() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const ev = agendas.find((a: any) => a.id === id);
       const { error } = await supabase.from("agenda_servicos").delete().eq("id", id);
       if (error) throw error;
+      return ev;
     },
-    onSuccess: () => {
+    onSuccess: (ev: any) => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       toast.success("Horário removido");
+
+      // Fallback de notificação de cancelamento (idempotente no servidor)
+      if (ev?.id && ev.aluno_id &&
+          ["Treino Experimental","Avaliação Funcional"].includes(ev.atividade)) {
+        supabase.functions.invoke("notify-agenda-evento", {
+          body: { evento: "cancelado", agenda_id: ev.id, agenda: ev, origem: "frontend" },
+        }).catch((e) => console.error("notify-agenda-evento (delete):", e));
+      }
+
       setDeleteId(null);
     },
     onError: () => toast.error("Erro ao remover horário"),

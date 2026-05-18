@@ -199,17 +199,29 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         if (error) throw error;
       } else {
         // Insert new event — débito de crédito é feito pelo trigger no banco
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from("agenda_servicos")
-          .insert(payload);
+          .insert(payload)
+          .select()
+          .single();
         if (error) throw error;
+        return inserted;
       }
     },
-    onSuccess: () => {
+    onSuccess: (inserted: any) => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       queryClient.invalidateQueries({ queryKey: ["student_credits"] });
       queryClient.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
       toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
+
+      // Fallback de notificação (idempotente via tabela agenda_notificacoes_log)
+      if (!isEditing && inserted?.id && inserted.aluno_id &&
+          ["Treino Experimental","Avaliação Funcional"].includes(inserted.atividade)) {
+        supabase.functions.invoke("notify-agenda-evento", {
+          body: { evento: "agendado", agenda_id: inserted.id, agenda: inserted, origem: "frontend" },
+        }).catch((e) => console.error("notify-agenda-evento (insert):", e));
+      }
+
       resetForm();
       onOpenChange(false);
     },
