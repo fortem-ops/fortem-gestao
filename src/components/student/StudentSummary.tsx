@@ -483,8 +483,8 @@ export function StudentSummary({ student }: { student: Aluno }) {
               </div>
             ))}
           </div>
-      )}
-
+        )}
+      </div>
 
       {/* Seção 5: Dados Cadastrais */}
       <div>
