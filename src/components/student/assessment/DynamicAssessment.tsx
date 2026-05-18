@@ -245,8 +245,38 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
   );
 }
 
-function QuestionField({ question: q, value, onChange }: { question: TemplateQuestion; value: unknown; onChange: (v: unknown) => void }) {
+function QuestionField({ question: q, value, onChange, onFaseInicialChange, faseLoading }: { question: TemplateQuestion; value: unknown; onChange: (v: unknown) => void; onFaseInicialChange?: (fase: string) => void; faseLoading?: boolean }) {
   switch (q.type) {
+    case "fase_inicial": {
+      const cur = (value as string) ?? "";
+      return (
+        <FieldWrap label={q.label}>
+          <div className="mt-2 flex items-center gap-2">
+            <Select value={cur} onValueChange={(v) => onFaseInicialChange?.(v)} disabled={faseLoading}>
+              <SelectTrigger className="w-full sm:w-80">
+                <SelectValue placeholder="Selecione a fase inicial..." />
+              </SelectTrigger>
+              <SelectContent>
+                {FASE_INICIAL_GROUPS.map((grp) => (
+                  <SelectGroup key={grp.label}>
+                    <SelectLabel>{grp.label}</SelectLabel>
+                    {grp.fases.map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+            {faseLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+          </div>
+          {cur && (
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Treino vinculado: <strong>{cur}</strong> (importado do Banco de Treinos como versão atual).
+            </p>
+          )}
+        </FieldWrap>
+      );
+    }
     case "sim_nao": {
       return (
         <FieldWrap label={q.label}>
