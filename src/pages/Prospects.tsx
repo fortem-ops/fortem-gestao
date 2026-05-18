@@ -20,6 +20,9 @@ export default function Prospects() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [editId, setEditId] = useState<string | null>(null);
+  const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [vendaTarget, setVendaTarget] = useState<{ id: string; nome: string } | null>(null);
+
   const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
 
   useEffect(() => {
