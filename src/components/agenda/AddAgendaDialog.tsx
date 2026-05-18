@@ -471,6 +471,40 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             </div>
           )}
 
+          {/* Seletor de origem do crédito quando há saldo em ambas as origens */}
+          {alunoId && atividade && ATIVIDADES_COM_CREDITO.has(atividade) && exigeEscolhaOrigem && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <Label className="text-sm">Usar crédito de</Label>
+              <RadioGroup value={creditoOrigem} onValueChange={(v) => setCreditoOrigem(v as any)} className="space-y-2">
+                <label className="flex items-center justify-between gap-3 rounded-md border bg-background/50 p-2 cursor-pointer hover:bg-accent">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="plano" id="origem-plano" />
+                    <span className="text-sm font-medium">Plano contratado</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {studentCredits!.plano.ilimitado
+                      ? "∞ ilimitado"
+                      : `${studentCredits!.plano.restante} restante${studentCredits!.plano.restante > 1 ? "s" : ""}`}
+                  </span>
+                </label>
+                <label className="flex items-center justify-between gap-3 rounded-md border bg-background/50 p-2 cursor-pointer hover:bg-accent">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="servico" id="origem-servico" />
+                    <span className="text-sm font-medium">Serviço avulso</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {studentCredits!.servico.ilimitado
+                      ? "∞ ilimitado"
+                      : `${studentCredits!.servico.restante} restante${studentCredits!.servico.restante > 1 ? "s" : ""}`}
+                  </span>
+                </label>
+              </RadioGroup>
+              {!creditoOrigem && (
+                <p className="text-xs text-destructive">Selecione a origem do crédito para continuar.</p>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Observações</Label>
             <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Opcional" rows={2} />
