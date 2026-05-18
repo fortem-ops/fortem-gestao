@@ -221,35 +221,37 @@ export function ConvertToAlunoDialog({
             </>
           )}
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase">Plano</p>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs">Tipo</Label>
-                <Select value={tipoPlano} onValueChange={setTipoPlano}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Mensal">Mensal</SelectItem>
-                    <SelectItem value="Trimestral">Trimestral</SelectItem>
-                    <SelectItem value="Semestral">Semestral</SelectItem>
-                    <SelectItem value="Anual">Anual</SelectItem>
-                  </SelectContent>
-                </Select>
+          {!fullConvert && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase">Plano</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs">Tipo</Label>
+                  <Select value={tipoPlano} onValueChange={setTipoPlano}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Mensal">Mensal</SelectItem>
+                      <SelectItem value="Trimestral">Trimestral</SelectItem>
+                      <SelectItem value="Semestral">Semestral</SelectItem>
+                      <SelectItem value="Anual">Anual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Duração (meses)</Label>
+                  <Input type="number" min={1} value={duracaoMeses} onChange={(e) => setDuracaoMeses(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Valor (R$)</Label>
+                  <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+                </div>
               </div>
               <div>
-                <Label className="text-xs">Duração (meses)</Label>
-                <Input type="number" min={1} value={duracaoMeses} onChange={(e) => setDuracaoMeses(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs">Valor (R$)</Label>
-                <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+                <Label className="text-xs">Data de início</Label>
+                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
               </div>
             </div>
-            <div>
-              <Label className="text-xs">Data de início</Label>
-              <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-            </div>
-          </div>
+          )}
         </div>
 
         <DialogFooter>
