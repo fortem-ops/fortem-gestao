@@ -30,11 +30,13 @@ const fetchAnnexes = async (): Promise<AnnexRow[]> => {
   return (data ?? []) as unknown as AnnexRow[];
 };
 
-const fetchAlunosByCpf = async (cpfs: string[]): Promise<Map<string, { id: string; nome: string }>> => {
+const fetchAlunosByCpf = async (): Promise<Map<string, { id: string; nome: string }>> => {
   const map = new Map<string, { id: string; nome: string }>();
-  if (cpfs.length === 0) return map;
-  const { data } = await supabase.from("alunos").select("id, nome, cpf").in("cpf", cpfs);
-  (data ?? []).forEach((a: any) => { if (a.cpf) map.set(a.cpf.replace(/\D/g, ""), { id: a.id, nome: a.nome }); });
+  const { data } = await supabase.from("alunos").select("id, nome, cpf").not("cpf", "is", null);
+  (data ?? []).forEach((a: any) => {
+    const norm = (a.cpf || "").replace(/\D/g, "");
+    if (norm) map.set(norm, { id: a.id, nome: a.nome });
+  });
   return map;
 };
 
