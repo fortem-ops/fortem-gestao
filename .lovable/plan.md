@@ -1,72 +1,82 @@
 ## Objetivo
 
-1. Adicionar ações **"+Nova Avaliação"** e **"Converter em Aluno"** em cada linha de `/prospects`.
-2. Em **Aluno → Resumo → Dados Cadastrais**, permitir editar os dados e adicionar campos novos (CPF, RG, CEP e endereço completo).
+Criar uma tela em **Admin → Notificações por Email** para gerenciar de forma visual:
+- **Remetente** (nome e email exibidos no FROM, atualmente fixo `FORTEM <contatofortem@gmail.com>`)
+- **Destinatários** por tipo de evento (atividades monitoradas + regra de quem recebe)
+- **Regras de disparo** (ativar/desativar agendado, cancelado, exigir aluno vinculado)
+
+Acesso restrito a **admin/coordenador**.
 
 ---
 
-## 1. Prospects — novas ações
+## 1. Banco de dados
 
-Arquivo: `src/pages/Prospects.tsx`
+Nova tabela `notificacao_email_config` (single-row, padrão `id = 1`):
 
-Na coluna "Ações" de cada linha, acrescentar dois botões ícone (com tooltip), antes do botão de Pipeline:
+| Coluna | Tipo | Default |
+|---|---|---|
+| `id` | int | 1 (check =1) |
+| `remetente_nome` | text | 'FORTEM' |
+| `remetente_email` | text | 'contatofortem@gmail.com' |
+| `atividades_monitoradas` | text[] | `{Treino Experimental, Avaliação Funcional}` |
+| `enviar_em_agendamento` | bool | true |
+| `enviar_em_cancelamento` | bool | true |
+| `exigir_aluno_vinculado` | bool | true |
+| `destinatarios_regra` | text | 'profissional_vinculado' (enum: profissional_vinculado, profissional_e_coordenadores, profissional_coord_admin, todos_staff) |
+| `emails_extras` | text[] | `{}` (cópia fixa em todo disparo) |
+| `updated_at`, `updated_by` | — | — |
 
-- **+Nova Avaliação** (ícone `ClipboardPlus`)  
-  → navega para `/alunos/{id}?tab=avaliacoes&new=1`.
-- **Converter em Aluno** (ícone `UserCheck`)  
-  → abre o `ConvertToAlunoDialog` (já existente) com `alunoId`, `alunoNome`, `fullConvert=true`.  
-  Ao fechar com sucesso, abrir automaticamente o `VendaDialog` (tela de venda de planos) para o mesmo aluno, já com cadastro completo.
+RLS:
+- SELECT: qualquer authenticated
+- UPDATE: apenas `is_coordinator_or_admin(auth.uid())`
+- Sem INSERT/DELETE (row seed via migration)
 
-Detalhes:
-- Adicionar estado local `convertId` e `vendaId` (com nome).
-- Após o `ConvertToAlunoDialog` chamar `onOpenChange(false)` em sucesso, definir `vendaId` para abrir `VendaDialog`.  
-  Como o `ConvertToAlunoDialog` atual fecha sempre via `onOpenChange(false)`, adicionar uma prop opcional `onConverted?: () => void` chamada depois do `toast.success` apenas quando `fullConvert=true`. Usar essa prop em Prospects para abrir a venda.
-- Invalidate de `prospects-list` ao concluir.
+Seed da linha única com defaults atuais.
 
-### Pequeno ajuste em `ConvertToAlunoDialog.tsx`
-Adicionar prop opcional `onConverted?: () => void` e chamá-la após `toast.success(...)` no caminho `fullConvert`. Sem mudança de comportamento padrão.
+## 2. Edge function `notify-agenda-evento`
+
+Ajustar para:
+1. Ler `notificacao_email_config` no início; se `id=1` não existe, usar defaults atuais.
+2. Validar evento (`agendado`/`cancelado`) contra flags `enviar_em_*`.
+3. Validar `atividade` contra `atividades_monitoradas` (substitui `ATIVIDADES_PERMITIDAS` hardcoded).
+4. Aplicar `exigir_aluno_vinculado`.
+5. Resolver destinatários conforme `destinatarios_regra` consultando `user_roles` (já existente). Sempre inclui `emails_extras` em cópia.
+6. Usar `remetente_nome`/`remetente_email` no `from` (SMTP continua usando `contatofortem@gmail.com` + `GMAIL_APP_PASSWORD`; se `remetente_email` divergir, ainda enviamos via Gmail mas com header `from` configurado — observação no UI).
+
+Trigger `fn_notificar_agenda_evento` continua igual (filtragem detalhada migra para a edge function, fonte única de verdade).
+
+## 3. Frontend
+
+Nova página `src/pages/AdminNotificacoesEmail.tsx` em rota `/admin/notificacoes-email` (lazy + ProtectedRoute coord/admin), com seções:
+
+- **Remetente**: inputs nome + email (helper: "O envio usa a conta Gmail contatofortem@gmail.com; alterar o email aqui muda apenas o nome exibido no header From.")
+- **Atividades monitoradas**: multi-select com chips (Treino Experimental, Avaliação Funcional, livre para adicionar outras).
+- **Eventos**: dois switches (agendamento / cancelamento).
+- **Regra de destinatários**: radio com as 4 opções.
+- **Aluno obrigatório**: switch.
+- **Emails extras (cópia)**: lista editável de emails.
+- Botão **Salvar** → `update` em `notificacao_email_config` (id=1).
+- Botão **Enviar email de teste** → invoca `notify-agenda-evento` com payload sintético `evento=teste`, ou função dedicada `notify-agenda-test`.
+
+Adicionar entrada no menu do AppLayout (seção Admin) e rota em `App.tsx`.
+
+## 4. Frontend fallback existente
+
+Em `AddAgendaDialog.tsx` e `Agenda.tsx`, manter o invoke; a edge function agora decide tudo (atividades, evento, regras), então a checagem hardcoded de atividade pode permanecer apenas como atalho.
 
 ---
 
-## 2. Dados Cadastrais editáveis com campos novos
+## Detalhes técnicos
 
-### 2.1 Banco de dados
-Migration única adicionando colunas faltantes em `public.alunos`:
+```text
+src/
+├── pages/AdminNotificacoesEmail.tsx        (nova)
+├── App.tsx                                  (+ rota)
+├── components/AppLayout.tsx                 (+ item menu)
 
-- `rg text`
-- Demais colunas já existem (`cpf`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `email`, `telefone`, `data_nascimento`, `sexo`).
+supabase/
+├── migrations/...                           (nova tabela + RLS + seed)
+└── functions/notify-agenda-evento/index.ts  (lê config dinâmica)
+```
 
-### 2.2 Novo componente `EditDadosCadastraisDialog.tsx`
-
-Local: `src/components/student/EditDadosCadastraisDialog.tsx`.
-
-Dialog focado só nos dados cadastrais (separado do `EditStudentDialog` que mistura plano). Campos:
-
-- Nome, Data de nascimento, Sexo
-- CPF (com máscara), RG
-- Telefone, Email
-- CEP (com lookup ViaCEP via `fetchCep`), Logradouro, Número, Complemento, Bairro, Cidade, UF
-
-Validação com `zod`. Salva via `supabase.from("alunos").update(...)`. Invalida `["aluno", id]`. Botão "Salvar".
-
-### 2.3 Atualizar `StudentSummary.tsx`
-
-Na seção **Dados Cadastrais**:
-- Adicionar botão "Editar" (`Pencil`) no cabeçalho da seção, visível somente para Coordenador/Admin (já existe `isCoordAdmin`).
-- Adicionar cards para **CPF**, **RG**, **Sexo** e **Endereço** (CEP + linha formatada).
-- O botão abre `EditDadosCadastraisDialog`. Ao salvar, refaz a query do aluno (lift up: passar `onUpdated` que invalida a query do StudentProfile, ou chamar `queryClient.invalidateQueries(["aluno", student.id])`).
-
----
-
-## Arquivos
-
-**Criar**
-- `src/components/student/EditDadosCadastraisDialog.tsx`
-
-**Editar**
-- `src/pages/Prospects.tsx` — ícones de Nova Avaliação e Converter em Aluno; estados; abertura de `VendaDialog`.
-- `src/components/pipeline/ConvertToAlunoDialog.tsx` — prop `onConverted`.
-- `src/components/student/StudentSummary.tsx` — novos cards (CPF, RG, Sexo, Endereço) + botão editar.
-
-**Migration**
-- Adicionar `rg text` em `public.alunos`.
+Sem novos secrets — continua `GMAIL_APP_PASSWORD`.

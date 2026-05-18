@@ -8,9 +8,19 @@ const corsHeaders = {
 };
 
 const DIAS = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
-const ATIVIDADES_PERMITIDAS = new Set(["Treino Experimental","Avaliação Funcional"]);
 
-async function sendGmailEmail(to: string, subject: string, htmlBody: string) {
+const DEFAULT_CONFIG = {
+  remetente_nome: "FORTEM",
+  remetente_email: "contatofortem@gmail.com",
+  atividades_monitoradas: ["Treino Experimental", "Avaliação Funcional"],
+  enviar_em_agendamento: true,
+  enviar_em_cancelamento: true,
+  exigir_aluno_vinculado: true,
+  destinatarios_regra: "profissional_vinculado",
+  emails_extras: [] as string[],
+};
+
+async function sendGmailEmail(opts: { from: string; to: string; cc?: string[]; subject: string; html: string }) {
   const password = Deno.env.get("GMAIL_APP_PASSWORD");
   if (!password) throw new Error("GMAIL_APP_PASSWORD not configured");
   const client = new SMTPClient({
@@ -21,7 +31,13 @@ async function sendGmailEmail(to: string, subject: string, htmlBody: string) {
       auth: { username: "contatofortem@gmail.com", password },
     },
   });
-  await client.send({ from: "FORTEM <contatofortem@gmail.com>", to, subject, html: htmlBody });
+  await client.send({
+    from: opts.from,
+    to: opts.to,
+    cc: opts.cc && opts.cc.length ? opts.cc : undefined,
+    subject: opts.subject,
+    html: opts.html,
+  });
   await client.close();
 }
 
@@ -52,6 +68,30 @@ function buildHtml(opts: {
   </div></body></html>`;
 }
 
+async function resolveExtraRecipients(admin: any, regra: string, profissionalId: string | null): Promise<string[]> {
+  if (regra === "profissional_vinculado") return [];
+  const roles: string[] = [];
+  if (regra === "profissional_e_coordenadores") roles.push("coordinator");
+  if (regra === "profissional_coord_admin") roles.push("coordinator", "admin");
+  let userIds: string[] = [];
+  if (regra === "todos_staff") {
+    const { data } = await admin.from("user_roles").select("user_id");
+    userIds = (data ?? []).map((r: any) => r.user_id);
+  } else if (roles.length) {
+    const { data } = await admin.from("user_roles").select("user_id").in("role", roles);
+    userIds = (data ?? []).map((r: any) => r.user_id);
+  }
+  userIds = Array.from(new Set(userIds)).filter((id) => id !== profissionalId);
+  const emails: string[] = [];
+  for (const id of userIds) {
+    try {
+      const { data: u } = await admin.auth.admin.getUserById(id);
+      if (u?.user?.email) emails.push(u.user.email);
+    } catch { /* ignore */ }
+  }
+  return emails;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -61,12 +101,42 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const { evento, agenda_id, agenda: agendaFromBody, origem } = await req.json();
+    const body = await req.json();
+    const { evento, agenda_id, agenda: agendaFromBody, origem, teste } = body;
+
+    // Carrega config dinâmica
+    const { data: cfgRow } = await admin
+      .from("notificacao_email_config").select("*").eq("id", 1).maybeSingle();
+    const cfg = { ...DEFAULT_CONFIG, ...(cfgRow || {}) };
+    const fromHeader = `${cfg.remetente_nome} <${cfg.remetente_email}>`;
+
+    // === MODO TESTE ===
+    if (teste) {
+      const to = typeof teste === "string" ? teste : cfg.remetente_email;
+      const html = buildHtml({
+        evento: "agendado", atividade: "Teste de configuração", aluno: "Aluno de Teste",
+        profissional: "Profissional de Teste",
+        quando: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }),
+        horario: "10:00 - 11:00", local: "Sala 1", observacoes: "Este é um disparo de teste enviado pela tela de configurações.",
+      });
+      await sendGmailEmail({ from: fromHeader, to, subject: "FORTEM — Teste de notificação por email", html });
+      return new Response(JSON.stringify({ success: true, teste: true, to }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!evento || !["agendado","cancelado"].includes(evento)) {
       return new Response(JSON.stringify({ error: "evento inválido" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (!agenda_id && !agendaFromBody?.id) {
       return new Response(JSON.stringify({ error: "agenda_id ausente" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (evento === "agendado" && !cfg.enviar_em_agendamento) {
+      return new Response(JSON.stringify({ skipped: true, reason: "agendamento desativado" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (evento === "cancelado" && !cfg.enviar_em_cancelamento) {
+      return new Response(JSON.stringify({ skipped: true, reason: "cancelamento desativado" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aId = agenda_id || agendaFromBody.id;
@@ -76,13 +146,11 @@ Deno.serve(async (req) => {
       .from("agenda_notificacoes_log")
       .insert({ agenda_id: aId, evento, origem: origem || "desconhecido" });
     if (lockErr) {
-      // Já enviado — sucesso silencioso
       return new Response(JSON.stringify({ skipped: true, reason: "duplicate" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Carrega agenda. No DELETE+trigger a linha pode não existir mais — usa fallback do body
     let agenda: any = null;
     const { data: ag } = await admin
       .from("agenda_servicos")
@@ -92,12 +160,12 @@ Deno.serve(async (req) => {
     agenda = ag || agendaFromBody;
     if (!agenda) throw new Error("agenda não encontrada");
 
-    if (!ATIVIDADES_PERMITIDAS.has(agenda.atividade)) {
+    if (!cfg.atividades_monitoradas.includes(agenda.atividade)) {
       return new Response(JSON.stringify({ skipped: true, reason: "atividade fora do escopo" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!agenda.aluno_id) {
+    if (cfg.exigir_aluno_vinculado && !agenda.aluno_id) {
       return new Response(JSON.stringify({ skipped: true, reason: "sem aluno" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -108,7 +176,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Email + nome do profissional
     const { data: userResp, error: userErr } = await admin.auth.admin.getUserById(agenda.profissional_id);
     if (userErr || !userResp?.user?.email) throw new Error("profissional sem email");
     const profEmail = userResp.user.email;
@@ -117,9 +184,12 @@ Deno.serve(async (req) => {
       .from("profiles").select("full_name").eq("user_id", agenda.profissional_id).maybeSingle();
     const profNome = profile?.full_name || profEmail;
 
-    const { data: aluno } = await admin
-      .from("alunos").select("nome").eq("id", agenda.aluno_id).maybeSingle();
-    const alunoNome = aluno?.nome || "Aluno";
+    let alunoNome = "—";
+    if (agenda.aluno_id) {
+      const { data: aluno } = await admin
+        .from("alunos").select("nome").eq("id", agenda.aluno_id).maybeSingle();
+      alunoNome = aluno?.nome || "Aluno";
+    }
 
     const quando = agenda.tipo === "avulso" && agenda.data_especifica
       ? new Date(agenda.data_especifica + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
@@ -133,10 +203,16 @@ Deno.serve(async (req) => {
       quando, horario, local: agenda.local || "—", observacoes: agenda.observacoes,
     });
 
-    await sendGmailEmail(profEmail, subject, html);
-    console.log(`Notificação ${evento} enviada para ${profEmail} (agenda ${aId})`);
+    // Destinatários extra conforme regra + emails fixos
+    const extras = await resolveExtraRecipients(admin, cfg.destinatarios_regra, agenda.profissional_id);
+    const cc = Array.from(new Set([...extras, ...(cfg.emails_extras || [])])).filter(
+      (e) => e && e.toLowerCase() !== profEmail.toLowerCase()
+    );
 
-    return new Response(JSON.stringify({ success: true }), {
+    await sendGmailEmail({ from: fromHeader, to: profEmail, cc, subject, html });
+    console.log(`Notificação ${evento} enviada para ${profEmail} (cc: ${cc.length}) — agenda ${aId}`);
+
+    return new Response(JSON.stringify({ success: true, cc_count: cc.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
