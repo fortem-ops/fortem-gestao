@@ -72,7 +72,13 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
   const dados = (avaliacao.dados as Record<string, unknown>) || {};
   const metricasFromJson = (dados.metricas as FuncMetric[] | undefined) || [];
-  const expDados = isExperimental ? (dados as unknown as ExperimentalDados) : null;
+  const expDados: ExperimentalRecordDados | null = isExperimental ? migrateLegacyDados(dados) : null;
+
+  const { data: expSchema } = useTplQuery({
+    queryKey: ["avaliacao-template", "experimental"],
+    queryFn: fetchExperimentalSchema,
+    enabled: isExperimental,
+  });
 
   async function handleDelete() {
     if (!avaliacao) return;
