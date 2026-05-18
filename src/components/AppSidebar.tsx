@@ -218,6 +218,9 @@ export function AppSidebar() {
           <SidebarGroupLabel>Sistema</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {isCoordAdmin && sistemaCoordAdminItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
               {isAdmin && sistemaAdminItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
