@@ -1,72 +1,91 @@
-## 1. Busca global de cadastros no header
+## Objetivo
 
-Adicionar um campo de busca sempre visível em `src/components/AppLayout.tsx`, ao lado do título "Fortem Gestão Técnica".
+Implementar a aba **Experimental** em **Avaliações** com formulário estruturado de **Anamnese** + **Avaliação de Mobilidade**, com autosave contínuo, edição pós-finalização e permissões restritas a **Coordenadores e Administradores**.
 
-**Comportamento:**
-- Campo com ícone de lupa, placeholder "Buscar cadastro (lead, prospect, aluno)..."
-- Ao digitar (debounce 200ms), abre um popover/dropdown listando os resultados agrupados por tipo:
-  - **Leads** (alunos cuja `current_pipeline_stage_id` = "Novo lead")
-  - **Prospects** (estágios "Prospect" e "Treino experimental agendado")
-  - **Alunos Ativos** (status display = ativo/licenca)
-  - **Alunos Inativos** (status display = encerrado)
-- Cada item mostra: nome, telefone, badge do tipo
-- Atalho de teclado `⌘K` / `Ctrl+K` para focar
-- Limite ~8 resultados por grupo
+## 1. Estrutura do formulário
 
-**Navegação ao clicar:**
-- **Aluno Ativo/Inativo** → `navigate('/alunos/:id')`
-- **Lead** → `navigate('/leads')` + abre `EditLeadDialog` automaticamente via query param (`?edit=:id`)
-- **Prospect** → `navigate('/prospects')` + abre `EditLeadDialog` via `?edit=:id`
+Substituir o placeholder atual da aba `experimental` em `AssessmentForm.tsx` por um novo componente `ExperimentalAssessment`.
 
-**Implementação técnica:**
-- Novo componente `src/components/GlobalCadastroSearch.tsx` usando `Command` (cmdk) dentro de `Popover`
-- Query única em `alunos` (id, nome, telefone, current_pipeline_stage_id, status) + join leve com `pipeline_stages` para classificar; cacheada com `staleTime: 60s`
-- Classificação client-side por estágio (Novo lead / Prospect / Treino experimental) e status para separar ativos vs inativos
-- `Leads.tsx` e `Prospects.tsx` lerão `useSearchParams` para abrir `EditLeadDialog` quando `?edit=` estiver presente
+### Seção — Anamnese (todas perguntas em par "sim/não" + campo de detalhe quando "sim")
 
-## 2. Padronizar Leads e Prospects com o padrão Alunos
+1. Histórico de saúde — condição diagnosticada (cardíaca, respiratória, metabólica, ortopédica, etc.) — `Radio Sim/Não` + `Textarea "Quais?"`
+2. Uso de medicação — `Radio` + `Textarea "Qual?"`
+3. Gestante — `Radio` + `Input numérico "Semanas"`
+4. Limitações/dores/lesões — `Radio` + `Textarea "Quais?"`
+5. Atividade física regular — `Radio`:
+   - Se "Sim" → `Textarea "Qual?"`
+   - Se "Não" → `Input "Há quanto tempo está parado(a)?"`
+6. O que trouxe à Fortem e objetivo principal — `Textarea` (livre, obrigatório)
 
-Criar um componente compartilhado de filtros avançados análogo a `StudentListFilters`, e aplicar a mesma estrutura visual (cards de KPI + barra de filtros + tabela em `glass-card`) nas páginas Leads e Prospects.
+### Seção — Avaliação de Mobilidade
 
-### 2.1 Novo componente `src/components/leads/LeadProspectFilters.tsx`
+Quatro testes, cada um com 3 opções mutuamente exclusivas (`RadioGroup`):
 
-Mesmo padrão de UX de `StudentListFilters`:
-- Linha superior: campo de busca + select primário (origem para Leads / etapa para Prospects) + botão **"Filtros"** com ícone `SlidersHorizontal` e badge de contagem ativa
-- Painel "Filtros Avançados" colapsável (`glass-card`) com botão **"Limpar filtros"**
-- Para **Leads**, o painel contém: Período (sempre/mês atual/mês passado/meses passados/customizado), seletor de mês quando aplicável, datas customizadas, Responsável
-- Para **Prospects**, o painel contém: Período (mesmas opções), Etapa, Agendamento (com/sem)
+| Teste | Opções |
+|---|---|
+| Gatinho | Móvel · Restrito · Dificuldade de compreensão e execução |
+| Rocking | Móvel · Restrito · Dificuldade de compreensão e execução |
+| Rotação Interna e Externa de Ombro na Parede | Móvel · Restrito · Dificuldade de compreensão e execução |
+| Hip Hinge com bastão nas costas | Móvel · Restrito · Dificuldade de compreensão e execução |
 
-### 2.2 KPIs padronizados (cards superiores)
+Mais um `Textarea` "Observações sobre os padrões de mobilidade".
 
-- **Leads**: Total · Conversão Lead → Prospect (30d) · Leads por Origem (mantém barras horizontais)
-- **Prospects**: Total · Conversão Lead → Prospect (30d) · Origem dos Prospects (mantém barras)
+## 2. Autosave contínuo
 
-Ambos passarão a usar o mesmo grid `grid-cols-1 md:grid-cols-3 gap-3` e mesmo estilo de Card visto em Alunos.
+- Ao abrir a aba, criar (uma única vez) um registro em `avaliacoes` com `tipo='experimental'` e `dados = { status: 'rascunho', anamnese: {}, mobilidade: {} }`.
+- A cada alteração de campo, fazer **debounce 800ms** e `UPDATE avaliacoes SET dados = ... WHERE id = ...`.
+- Indicador visual no topo: "Salvando…" / "Salvo às HH:MM".
+- Botão **"Finalizar avaliação"** apenas marca `dados.status = 'finalizado'` — o registro continua editável (autosave segue ativo) conforme requisito "Editável pós finalização".
 
-### 2.3 Tabela em `glass-card`
+## 3. Permissões (RLS + UI)
 
-Substituir `Card` + `Table` por `<div class="glass-card rounded-lg overflow-hidden overflow-x-auto">` com `<table>` nativa, no mesmo padrão de `StudentList.tsx`:
-- Cabeçalho com `text-xs font-medium text-muted-foreground p-4`
-- Linhas com `border-b border-border/50 hover:bg-secondary/50 cursor-pointer`
-- Clique em qualquer parte da linha abre o `EditLeadDialog` (em vez de só no botão de editar)
-- Colunas mantêm o conteúdo atual de cada página
+- **Migration** ajustando a policy de DELETE de `avaliacoes` para permitir também coordenadores:
+  ```sql
+  DROP POLICY "Admin can delete avaliacoes" ON public.avaliacoes;
+  CREATE POLICY "Coord/Admin can delete avaliacoes"
+    ON public.avaliacoes FOR DELETE
+    USING (public.is_coordinator_or_admin(auth.uid()));
+  ```
+- INSERT/UPDATE já estão cobertas (autor ou coord/admin). Na UI da aba Experimental, **bloquear** todos os inputs e ocultar botão Salvar/Excluir caso o usuário não seja coord/admin (consulta via `is_coordinator_or_admin` rpc) — exibir mensagem "Somente Coordenadores e Administradores podem preencher avaliações experimentais".
 
-### 2.4 Refatorações nas páginas
+## 4. Visualização
 
-- `src/pages/Leads.tsx`: substitui o bloco atual de filtros por `<LeadProspectFilters mode="leads" .../>`, adapta KPIs ao grid de 3 colunas, troca `Card`+`Table` pela tabela `glass-card`, lê `?edit=` para abrir dialog
-- `src/pages/Prospects.tsx`: idem com `mode="prospects"`, mesmas adaptações; mantém a coluna Etapa/Agenda
+Atualizar `AssessmentViewerDialog.tsx`:
+- Adicionar render para `tipo === 'experimental'`: listar respostas da anamnese e quadro com os 4 testes de mobilidade + observações.
+- Mostrar badge "Rascunho" / "Finalizada" baseado em `dados.status`.
+- Para coord/admin, botão **Editar** que reabre o formulário (reaproveitando `ExperimentalAssessment` em modo "edição" via prop `avaliacaoId`).
+- Para admin/coord, botão **Excluir** com confirmação.
 
-## Arquivos afetados
+## 5. Arquivos afetados
 
-- `src/components/AppLayout.tsx` — inserir busca no header
-- `src/components/GlobalCadastroSearch.tsx` — novo
-- `src/components/leads/LeadProspectFilters.tsx` — novo
-- `src/pages/Leads.tsx` — refatorar filtros, KPIs, tabela, suporte `?edit=`
-- `src/pages/Prospects.tsx` — refatorar filtros, KPIs, tabela, suporte `?edit=`
+- **edit** `src/components/student/assessment/AssessmentForm.tsx` — substituir TabsContent "experimental" pelo novo componente.
+- **new** `src/components/student/assessment/ExperimentalAssessment.tsx` — formulário + autosave + permissões.
+- **edit** `src/components/student/assessment/AssessmentViewerDialog.tsx` — render experimental + ações editar/excluir.
+- **migration** — atualizar policy de DELETE para incluir coordenadores.
 
-## Detalhes técnicos
+## 6. Detalhes técnicos
 
-- A busca global classifica o resultado pelo nome do `pipeline_stages` correspondente ao `current_pipeline_stage_id`. Estágios "Novo lead" → Lead; "Prospect"/"Treino experimental agendado" → Prospect; demais (ou nulos) com `status` ∈ {ativo, licenca} → Aluno Ativo; com `status='encerrado'` → Aluno Inativo. Computado client-side a partir de uma query cacheada de stages.
-- O `EditLeadDialog` já existe e aceita `alunoId`; basta acionar via `useSearchParams` no `useEffect` inicial e limpar o param ao fechar.
-- Mantém RLS atual (nenhuma migração de banco). Apenas mudanças de frontend/apresentação.
-- Sem alteração nas dependências (`cmdk`/`Command` já está disponível via shadcn).
+- Schema do `dados` jsonb:
+  ```json
+  {
+    "status": "rascunho" | "finalizado",
+    "anamnese": {
+      "saude": { "tem": bool, "detalhe": "" },
+      "medicacao": { "usa": bool, "qual": "" },
+      "gestante": { "esta": bool, "semanas": null },
+      "limitacoes": { "tem": bool, "quais": "" },
+      "atividade": { "pratica": bool, "qual": "", "tempo_parado": "" },
+      "motivo_objetivo": ""
+    },
+    "mobilidade": {
+      "gatinho": "movel" | "restrito" | "dificuldade",
+      "rocking": "...",
+      "rotacao_ombro": "...",
+      "hip_hinge": "...",
+      "observacoes": ""
+    },
+    "finalized_at": "ISO" | null
+  }
+  ```
+- Hook `useDebounce` já existe em `src/hooks/useDebounce.ts` — usar para o autosave.
+- Invalidar queries `["avaliacoes-aluno", student.id]` e `["avaliacoes-global", student.id]` após cada save bem-sucedido (com throttle para não floodar).

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Save, FileDown, Loader2 } from "lucide-react";
 import { BodyDiagram } from "./BodyDiagram";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
+import { ExperimentalAssessment } from "./ExperimentalAssessment";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
@@ -378,15 +379,7 @@ export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
       <TabsContent value="pliometria"><div className="glass-card rounded-lg p-6 text-center text-muted-foreground">Módulo de pliometria em desenvolvimento</div></TabsContent>
       <TabsContent value="forca"><div className="glass-card rounded-lg p-6 text-center text-muted-foreground">Módulo de força em desenvolvimento</div></TabsContent>
       <TabsContent value="experimental">
-        <div className="glass-card rounded-lg p-6 text-center text-muted-foreground">
-          <div className="space-y-4 text-left max-w-md mx-auto">
-            {['Data', 'Avaliador', 'Classificação Inicial'].map(f => (
-              <div key={f}><label className="text-xs text-muted-foreground">{f}</label><Input className="mt-1 h-8" /></div>
-            ))}
-            <div><label className="text-xs text-muted-foreground">Observações</label><Textarea rows={3} className="mt-1" /></div>
-            <Button size="sm"><Save className="w-3 h-3 mr-1" /> Salvar</Button>
-          </div>
-        </div>
+        <ExperimentalAssessment student={student} />
       </TabsContent>
       <TabsContent value="kinology">
         <div className="glass-card rounded-lg p-6 text-center text-muted-foreground">
