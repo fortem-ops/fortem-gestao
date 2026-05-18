@@ -73,6 +73,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [observacoes, setObservacoes] = useState("");
   const [alunoId, setAlunoId] = useState("");
   const [alunoSearch, setAlunoSearch] = useState("");
+  const [creditoOrigem, setCreditoOrigem] = useState<"" | "plano" | "servico">("");
 
   const isEditing = !!editEvent;
 
