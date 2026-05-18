@@ -30,11 +30,13 @@ const fetchAnnexes = async (): Promise<AnnexRow[]> => {
   return (data ?? []) as unknown as AnnexRow[];
 };
 
-const fetchAlunosByCpf = async (cpfs: string[]): Promise<Map<string, { id: string; nome: string }>> => {
+const fetchAlunosByCpf = async (): Promise<Map<string, { id: string; nome: string }>> => {
   const map = new Map<string, { id: string; nome: string }>();
-  if (cpfs.length === 0) return map;
-  const { data } = await supabase.from("alunos").select("id, nome, cpf").in("cpf", cpfs);
-  (data ?? []).forEach((a: any) => { if (a.cpf) map.set(a.cpf.replace(/\D/g, ""), { id: a.id, nome: a.nome }); });
+  const { data } = await supabase.from("alunos").select("id, nome, cpf").not("cpf", "is", null);
+  (data ?? []).forEach((a: any) => {
+    const norm = (a.cpf || "").replace(/\D/g, "");
+    if (norm) map.set(norm, { id: a.id, nome: a.nome });
+  });
   return map;
 };
 
@@ -51,15 +53,9 @@ const AnexosJuridicos = () => {
 
   const { data: annexes = [], isLoading, refetch } = useQuery({ queryKey: ["legal_annexes"], queryFn: fetchAnnexes });
 
-  const cpfsToLookup = useMemo(() => {
-    const set = new Set<string>();
-    annexes.forEach((d) => { if (!d.aluno && d.cpf) set.add(d.cpf.replace(/\D/g, "")); });
-    return Array.from(set);
-  }, [annexes]);
   const { data: alunosByCpf } = useQuery({
-    queryKey: ["alunos_by_cpf", cpfsToLookup],
-    queryFn: () => fetchAlunosByCpf(cpfsToLookup),
-    enabled: cpfsToLookup.length > 0,
+    queryKey: ["alunos_by_cpf_all"],
+    queryFn: fetchAlunosByCpf,
   });
 
   const handleImport = async () => {
@@ -184,23 +180,13 @@ const AnexosJuridicos = () => {
                     <td className="px-5 py-4 text-sm text-muted-foreground">{isExp ? "—" : doc.image_usage ? "Sim" : "Não"}</td>
                     <td className="px-5 py-4 text-sm">
                       {(() => {
-                        if (doc.aluno) {
-                          return (
-                            <Link to={`/alunos/${doc.aluno.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
-                              <Link2 className="w-3 h-3" /> {doc.aluno.nome}
-                            </Link>
-                          );
-                        }
-                        const viaCpf = alunosByCpf?.get((doc.cpf || "").replace(/\D/g, ""));
-                        if (viaCpf) {
-                          return (
-                            <Link to={`/alunos/${viaCpf.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
-                              <Link2 className="w-3 h-3" /> {viaCpf.nome}
-                              <span className="text-[10px] text-muted-foreground ml-1">(via CPF)</span>
-                            </Link>
-                          );
-                        }
-                        return <span className="text-muted-foreground/60 text-xs">—</span>;
+                        const match = alunosByCpf?.get((doc.cpf || "").replace(/\D/g, ""));
+                        if (!match) return <span className="text-muted-foreground/60 text-xs">—</span>;
+                        return (
+                          <Link to={`/alunos/${match.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
+                            <Link2 className="w-3 h-3" /> {match.nome}
+                          </Link>
+                        );
                       })()}
                     </td>
                     <td className="px-3 py-4 text-center">
