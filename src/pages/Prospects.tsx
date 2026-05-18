@@ -4,8 +4,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo } from "lucide-react";
+import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck } from "lucide-react";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
+import { ConvertToAlunoDialog } from "@/components/pipeline/ConvertToAlunoDialog";
+import { VendaDialog } from "@/components/student/venda/VendaDialog";
 import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
@@ -18,6 +20,9 @@ export default function Prospects() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [editId, setEditId] = useState<string | null>(null);
+  const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [vendaTarget, setVendaTarget] = useState<{ id: string; nome: string } | null>(null);
+
   const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
 
   useEffect(() => {
@@ -250,6 +255,12 @@ export default function Prospects() {
                       <Button size="icon" variant="ghost" onClick={() => navigate("/tarefas")} title="Nova tarefa">
                         <ListTodo className="w-4 h-4" />
                       </Button>
+                      <Button size="icon" variant="ghost" onClick={() => navigate(`/avaliacoes?aluno=${p.id}&new=1`)} title="Nova avaliação">
+                        <ClipboardPlus className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setConvertTarget({ id: p.id, nome: p.nome })} title="Converter em aluno">
+                        <UserCheck className="w-4 h-4" />
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => navigate("/pipeline")} title="Pipeline">
                         <KanbanSquare className="w-4 h-4" />
                       </Button>
@@ -263,6 +274,25 @@ export default function Prospects() {
       </div>
 
       <EditLeadDialog alunoId={editId} open={!!editId} onOpenChange={(v) => !v && setEditId(null)} />
+
+      {convertTarget && (
+        <ConvertToAlunoDialog
+          open={!!convertTarget}
+          onOpenChange={(v) => !v && setConvertTarget(null)}
+          alunoId={convertTarget.id}
+          alunoNome={convertTarget.nome}
+          onConverted={() => setVendaTarget(convertTarget)}
+        />
+      )}
+
+      {vendaTarget && (
+        <VendaDialog
+          alunoId={vendaTarget.id}
+          alunoNome={vendaTarget.nome}
+          open={!!vendaTarget}
+          onOpenChange={(v) => !v && setVendaTarget(null)}
+        />
+      )}
     </div>
   );
 }

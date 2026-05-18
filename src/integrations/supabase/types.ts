@@ -127,6 +127,7 @@ export type Database = {
           numero: string | null
           observacoes: string | null
           responsavel_id: string | null
+          rg: string | null
           sexo: string | null
           status: string
           telefone: string | null
@@ -153,6 +154,7 @@ export type Database = {
           numero?: string | null
           observacoes?: string | null
           responsavel_id?: string | null
+          rg?: string | null
           sexo?: string | null
           status?: string
           telefone?: string | null
@@ -179,6 +181,7 @@ export type Database = {
           numero?: string | null
           observacoes?: string | null
           responsavel_id?: string | null
+          rg?: string | null
           sexo?: string | null
           status?: string
           telefone?: string | null

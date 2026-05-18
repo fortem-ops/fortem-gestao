@@ -21,6 +21,8 @@ interface Props {
   title?: string;
   /** Se true, exige CPF/Email/Endereço (conversão). Se false, só plano (renovação). */
   fullConvert?: boolean;
+  /** Callback opcional disparado após conversão/renovação bem-sucedida. */
+  onConverted?: () => void;
 }
 
 export function ConvertToAlunoDialog({
@@ -31,6 +33,7 @@ export function ConvertToAlunoDialog({
   destinoStage = "Aluno ativo",
   title,
   fullConvert = true,
+  onConverted,
 }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -142,7 +145,9 @@ export function ConvertToAlunoDialog({
 
     toast.success(fullConvert ? "Convertido em aluno!" : "Plano renovado!");
     qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+    qc.invalidateQueries({ queryKey: ["prospects-list"] });
     onOpenChange(false);
+    onConverted?.();
   }
 
   return (
