@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_notificacoes_log: {
+        Row: {
+          agenda_id: string
+          enviado_em: string
+          evento: string
+          id: string
+          origem: string | null
+        }
+        Insert: {
+          agenda_id: string
+          enviado_em?: string
+          evento: string
+          id?: string
+          origem?: string | null
+        }
+        Update: {
+          agenda_id?: string
+          enviado_em?: string
+          evento?: string
+          id?: string
+          origem?: string | null
+        }
+        Relationships: []
+      }
       agenda_servicos: {
         Row: {
           aluno_id: string | null
