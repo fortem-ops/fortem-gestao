@@ -214,6 +214,49 @@ export default function AdminNotificacoesEmail() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Tarefas, notificações e agenda diária</CardTitle>
+          <CardDescription>Disparos automáticos adicionais.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label>Nova tarefa criada</Label>
+              <p className="text-xs text-muted-foreground">Email ao responsável quando uma tarefa é criada.</p>
+            </div>
+            <Switch checked={form.enviar_tarefa_criada} onCheckedChange={(v) => update("enviar_tarefa_criada", v)} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label>Incluir tarefas automáticas</Label>
+              <p className="text-xs text-muted-foreground">Se desligado, apenas tarefas criadas manualmente disparam email.</p>
+            </div>
+            <Switch checked={form.enviar_tarefa_automatica} onCheckedChange={(v) => update("enviar_tarefa_automatica", v)} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label>Nova notificação (aguardando resposta)</Label>
+              <p className="text-xs text-muted-foreground">Email aos destinatários quando uma notificação é criada.</p>
+            </div>
+            <Switch checked={form.enviar_notificacao_nova} onCheckedChange={(v) => update("enviar_notificacao_nova", v)} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label>Notificação respondida</Label>
+              <p className="text-xs text-muted-foreground">Email ao criador quando há resposta ou comentário.</p>
+            </div>
+            <Switch checked={form.enviar_notificacao_resposta} onCheckedChange={(v) => update("enviar_notificacao_resposta", v)} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label>Agenda diária do profissional</Label>
+              <p className="text-xs text-muted-foreground">Email matinal listando todos os agendamentos do dia (cron diário às 07:00 BRT).</p>
+            </div>
+            <Switch checked={form.enviar_agenda_diaria} onCheckedChange={(v) => update("enviar_agenda_diaria", v)} />
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Atividades monitoradas</CardTitle>
           <CardDescription>Somente estas atividades disparam notificação.</CardDescription>
         </CardHeader>
