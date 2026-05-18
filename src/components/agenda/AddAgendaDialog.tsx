@@ -27,7 +27,10 @@ const ATIVIDADES = [
   "Treino Experimental",
 ];
 
-const LOCAIS = ["Sala de Nutrição", "Sala de Reabilitação"];
+const LOCAIS = ["Sala de Nutrição", "Sala de Reabilitação", "Sala de Treinamento"];
+
+const PROSPECT_STAGES = ["Prospect", "Treino experimental agendado"];
+const LEAD_STAGE = "Novo lead";
 
 const DIAS_SEMANA = [
   { value: "1", label: "Segunda-feira" },
@@ -110,15 +113,26 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   });
 
   const { data: alunos = [] } = useQuery({
-    queryKey: ["alunos_list"],
+    queryKey: ["alunos_agenda_picker"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("alunos")
-        .select("id, nome, status")
-        .eq("status", "ativo")
-        .order("nome");
+      const [{ data: alunosData, error }, { data: stagesData }] = await Promise.all([
+        supabase.from("alunos").select("id, nome, status, current_pipeline_stage_id").order("nome"),
+        supabase.from("pipeline_stages").select("id, name"),
+      ]);
       if (error) throw error;
-      return data;
+      const stageMap: Record<string, string> = {};
+      (stagesData || []).forEach((s: any) => { stageMap[s.id] = s.name; });
+      return (alunosData || [])
+        .map((a: any) => {
+          const stageName = a.current_pipeline_stage_id ? stageMap[a.current_pipeline_stage_id] : null;
+          let tipo: "ativo" | "inativo" | "prospect" | "lead";
+          if (stageName === LEAD_STAGE) tipo = "lead";
+          else if (stageName && PROSPECT_STAGES.includes(stageName)) tipo = "prospect";
+          else if (a.status === "encerrado" || a.status === "inativo") tipo = "inativo";
+          else tipo = "ativo";
+          return { ...a, tipo };
+        })
+        .filter((a: any) => a.tipo !== "lead");
     },
   });
 
@@ -348,10 +362,20 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                   <button
                     key={a.id}
                     type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center justify-between gap-2"
                     onClick={() => { setAlunoId(a.id); setAlunoSearch(""); }}
                   >
-                    {a.nome}
+                    <span className="truncate">{a.nome}</span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] shrink-0 ${
+                        a.tipo === "ativo" ? "status-active"
+                          : a.tipo === "prospect" ? "status-warning"
+                          : "status-urgent"
+                      }`}
+                    >
+                      {a.tipo === "ativo" ? "Ativo" : a.tipo === "prospect" ? "Prospect" : "Inativo"}
+                    </Badge>
                   </button>
                 ))}
               </ScrollArea>
