@@ -15,6 +15,7 @@ import { Search, AlertTriangle } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
@@ -72,6 +73,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [observacoes, setObservacoes] = useState("");
   const [alunoId, setAlunoId] = useState("");
   const [alunoSearch, setAlunoSearch] = useState("");
+  const [creditoOrigem, setCreditoOrigem] = useState<"" | "plano" | "servico">("");
 
   const isEditing = !!editEvent;
 
@@ -152,18 +154,51 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         (c: any) => !c.data_validade || c.data_validade >= today,
       );
 
-      if (linhas.length === 0) {
-        return { total: 0, usado: 0, restante: 0, ilimitado: false, origens: [] as string[], temLinhas: false };
-      }
+      const resumoPor = (origem: "plano" | "servico") => {
+        const ls = linhas.filter((c: any) => c.origem_tipo === origem);
+        if (ls.length === 0) return { temLinhas: false, ilimitado: false, total: 0, usado: 0, restante: 0 };
+        const ilimitado = ls.some((c: any) => c.ilimitado);
+        const total = ls.reduce((s: number, c: any) => s + (c.quantidade_inicial ?? 0), 0);
+        const usado = ls.reduce((s: number, c: any) => s + (c.quantidade_usada ?? 0), 0);
+        return { temLinhas: true, ilimitado, total, usado, restante: ilimitado ? Infinity : total - usado };
+      };
 
-      const ilimitado = linhas.some((c: any) => c.ilimitado);
-      const total = linhas.reduce((s: number, c: any) => s + (c.quantidade_inicial ?? 0), 0);
-      const usado = linhas.reduce((s: number, c: any) => s + (c.quantidade_usada ?? 0), 0);
-      const origens = Array.from(new Set(linhas.map((c: any) => c.origem_tipo))) as string[];
+      const plano = resumoPor("plano");
+      const servico = resumoPor("servico");
+      const temLinhas = plano.temLinhas || servico.temLinhas;
+      const ilimitado = plano.ilimitado || servico.ilimitado;
+      const total = plano.total + servico.total;
+      const usado = plano.usado + servico.usado;
+      const restante = ilimitado ? Infinity : total - usado;
+      const origens = [
+        plano.temLinhas ? "plano" : null,
+        servico.temLinhas ? "servico" : null,
+      ].filter(Boolean) as string[];
 
-      return { total, usado, restante: ilimitado ? Infinity : total - usado, ilimitado, origens, temLinhas: true };
+      return { total, usado, restante, ilimitado, origens, temLinhas, plano, servico };
     },
   });
+
+  const planoTemSaldo = !!studentCredits?.plano.temLinhas && (studentCredits.plano.ilimitado || studentCredits.plano.restante > 0);
+  const servicoTemSaldo = !!studentCredits?.servico.temLinhas && (studentCredits.servico.ilimitado || studentCredits.servico.restante > 0);
+  const exigeEscolhaOrigem = planoTemSaldo && servicoTemSaldo;
+
+  // Auto-seleção quando há apenas uma origem com saldo
+  useEffect(() => {
+    if (!studentCredits) { setCreditoOrigem(""); return; }
+    if (exigeEscolhaOrigem) {
+      // Mantém escolha do usuário; reseta só se virou inválida
+      if (creditoOrigem !== "plano" && creditoOrigem !== "servico") setCreditoOrigem("");
+    } else if (planoTemSaldo) {
+      setCreditoOrigem("plano");
+    } else if (servicoTemSaldo) {
+      setCreditoOrigem("servico");
+    } else {
+      setCreditoOrigem("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentCredits, planoTemSaldo, servicoTemSaldo, exigeEscolhaOrigem]);
+
 
   const filteredAlunos = useMemo(() => {
     if (!alunoSearch.trim()) return alunos;
@@ -185,6 +220,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         observacoes: observacoes || null,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
         aluno_id: alunoId || null,
+        credito_origem: (alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
       };
       if (tipo === "avulso") {
         payload.data_especifica = dataEspecifica;
@@ -240,10 +276,12 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setObservacoes("");
     setAlunoId("");
     setAlunoSearch("");
+    setCreditoOrigem("");
   };
 
   const canSubmit = atividade && local && horarioInicio && horarioFim &&
-    (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "");
+    (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "") &&
+    (!exigeEscolhaOrigem || !!creditoOrigem);
 
   const hasCredits =
     !alunoId ||
@@ -429,6 +467,40 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                     <span className="text-destructive ml-2">(sem créditos)</span>
                   )}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Seletor de origem do crédito quando há saldo em ambas as origens */}
+          {alunoId && atividade && ATIVIDADES_COM_CREDITO.has(atividade) && exigeEscolhaOrigem && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <Label className="text-sm">Usar crédito de</Label>
+              <RadioGroup value={creditoOrigem} onValueChange={(v) => setCreditoOrigem(v as any)} className="space-y-2">
+                <label className="flex items-center justify-between gap-3 rounded-md border bg-background/50 p-2 cursor-pointer hover:bg-accent">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="plano" id="origem-plano" />
+                    <span className="text-sm font-medium">Plano contratado</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {studentCredits!.plano.ilimitado
+                      ? "∞ ilimitado"
+                      : `${studentCredits!.plano.restante} restante${studentCredits!.plano.restante > 1 ? "s" : ""}`}
+                  </span>
+                </label>
+                <label className="flex items-center justify-between gap-3 rounded-md border bg-background/50 p-2 cursor-pointer hover:bg-accent">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="servico" id="origem-servico" />
+                    <span className="text-sm font-medium">Serviço avulso</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {studentCredits!.servico.ilimitado
+                      ? "∞ ilimitado"
+                      : `${studentCredits!.servico.restante} restante${studentCredits!.servico.restante > 1 ? "s" : ""}`}
+                  </span>
+                </label>
+              </RadioGroup>
+              {!creditoOrigem && (
+                <p className="text-xs text-destructive">Selecione a origem do crédito para continuar.</p>
               )}
             </div>
           )}
