@@ -1257,6 +1257,48 @@ export type Database = {
           },
         ]
       }
+      notificacao_email_config: {
+        Row: {
+          atividades_monitoradas: string[]
+          destinatarios_regra: string
+          emails_extras: string[]
+          enviar_em_agendamento: boolean
+          enviar_em_cancelamento: boolean
+          exigir_aluno_vinculado: boolean
+          id: number
+          remetente_email: string
+          remetente_nome: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          atividades_monitoradas?: string[]
+          destinatarios_regra?: string
+          emails_extras?: string[]
+          enviar_em_agendamento?: boolean
+          enviar_em_cancelamento?: boolean
+          exigir_aluno_vinculado?: boolean
+          id?: number
+          remetente_email?: string
+          remetente_nome?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          atividades_monitoradas?: string[]
+          destinatarios_regra?: string
+          emails_extras?: string[]
+          enviar_em_agendamento?: boolean
+          enviar_em_cancelamento?: boolean
+          exigir_aluno_vinculado?: boolean
+          id?: number
+          remetente_email?: string
+          remetente_nome?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       notificacao_historico: {
         Row: {
           acao: Database["public"]["Enums"]["notif_acao"]
