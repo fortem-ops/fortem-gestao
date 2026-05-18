@@ -91,10 +91,15 @@ export function ConvertToAlunoDialog({
       if (!cpf.trim()) return toast.error("CPF é obrigatório");
       if (!email.trim()) return toast.error("Email é obrigatório");
     }
-    const valorNum = parseFloat(valor.replace(",", "."));
-    if (!valor || isNaN(valorNum)) return toast.error("Informe o valor do plano");
-    const meses = parseInt(duracaoMeses, 10);
-    if (!meses || meses < 1) return toast.error("Duração inválida");
+
+    let valorNum = 0;
+    let meses = 0;
+    if (!fullConvert) {
+      valorNum = parseFloat(valor.replace(",", "."));
+      if (!valor || isNaN(valorNum)) return toast.error("Informe o valor do plano");
+      meses = parseInt(duracaoMeses, 10);
+      if (!meses || meses < 1) return toast.error("Duração inválida");
+    }
 
     setBusy(true);
 
@@ -115,22 +120,22 @@ export function ConvertToAlunoDialog({
         } as any)
         .eq("id", alunoId);
       if (e1) { setBusy(false); return toast.error(e1.message); }
+    } else {
+      // Renovação: cria plano
+      const inicio = new Date(dataInicio);
+      const fim = new Date(inicio);
+      fim.setMonth(fim.getMonth() + meses);
+      const { error: e2 } = await supabase.from("planos").insert({
+        aluno_id: alunoId,
+        tipo: tipoPlano,
+        valor: valorNum,
+        duracao_meses: meses,
+        data_inicio: dataInicio,
+        data_fim: fim.toISOString().slice(0, 10),
+        ativo: true,
+      } as any);
+      if (e2) { setBusy(false); return toast.error(e2.message); }
     }
-
-    // Cria plano
-    const inicio = new Date(dataInicio);
-    const fim = new Date(inicio);
-    fim.setMonth(fim.getMonth() + meses);
-    const { error: e2 } = await supabase.from("planos").insert({
-      aluno_id: alunoId,
-      tipo: tipoPlano,
-      valor: valorNum,
-      duracao_meses: meses,
-      data_inicio: dataInicio,
-      data_fim: fim.toISOString().slice(0, 10),
-      ativo: true,
-    } as any);
-    if (e2) { setBusy(false); return toast.error(e2.message); }
 
     // Move pipeline
     const { error: e3 } = await supabase.rpc("fn_move_pipeline", {
@@ -216,35 +221,37 @@ export function ConvertToAlunoDialog({
             </>
           )}
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase">Plano</p>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs">Tipo</Label>
-                <Select value={tipoPlano} onValueChange={setTipoPlano}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Mensal">Mensal</SelectItem>
-                    <SelectItem value="Trimestral">Trimestral</SelectItem>
-                    <SelectItem value="Semestral">Semestral</SelectItem>
-                    <SelectItem value="Anual">Anual</SelectItem>
-                  </SelectContent>
-                </Select>
+          {!fullConvert && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase">Plano</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs">Tipo</Label>
+                  <Select value={tipoPlano} onValueChange={setTipoPlano}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Mensal">Mensal</SelectItem>
+                      <SelectItem value="Trimestral">Trimestral</SelectItem>
+                      <SelectItem value="Semestral">Semestral</SelectItem>
+                      <SelectItem value="Anual">Anual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Duração (meses)</Label>
+                  <Input type="number" min={1} value={duracaoMeses} onChange={(e) => setDuracaoMeses(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Valor (R$)</Label>
+                  <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+                </div>
               </div>
               <div>
-                <Label className="text-xs">Duração (meses)</Label>
-                <Input type="number" min={1} value={duracaoMeses} onChange={(e) => setDuracaoMeses(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs">Valor (R$)</Label>
-                <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+                <Label className="text-xs">Data de início</Label>
+                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
               </div>
             </div>
-            <div>
-              <Label className="text-xs">Data de início</Label>
-              <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-            </div>
-          </div>
+          )}
         </div>
 
         <DialogFooter>
