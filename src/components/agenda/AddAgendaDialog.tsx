@@ -27,7 +27,10 @@ const ATIVIDADES = [
   "Treino Experimental",
 ];
 
-const LOCAIS = ["Sala de Nutrição", "Sala de Reabilitação"];
+const LOCAIS = ["Sala de Nutrição", "Sala de Reabilitação", "Sala de Treinamento"];
+
+const PROSPECT_STAGES = ["Prospect", "Treino experimental agendado"];
+const LEAD_STAGE = "Novo lead";
 
 const DIAS_SEMANA = [
   { value: "1", label: "Segunda-feira" },
