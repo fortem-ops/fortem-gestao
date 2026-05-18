@@ -485,12 +485,6 @@ export function StudentSummary({ student }: { student: Aluno }) {
           </div>
       )}
 
-      <EditDadosCadastraisDialog
-        open={editingCadastro}
-        onOpenChange={setEditingCadastro}
-        alunoId={student.id}
-      />
-    </div>
 
       {/* Seção 5: Dados Cadastrais */}
       <div>
