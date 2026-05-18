@@ -278,6 +278,35 @@ function QuestionField({ question: q, value, onChange }: { question: TemplateQue
         </FieldWrap>
       );
     }
+    case "opcoes_multi": {
+      const cur = Array.isArray(value) ? (value as string[]) : [];
+      const toggle = (v: string) => {
+        const set = new Set(cur);
+        if (set.has(v)) set.delete(v); else set.add(v);
+        onChange(Array.from(set));
+      };
+      return (
+        <FieldWrap label={q.label}>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mt-2">
+            {(q.options ?? []).map((o) => {
+              const checked = cur.includes(o.value);
+              return (
+                <label key={o.value} htmlFor={`${q.id}-${o.value}`} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    id={`${q.id}-${o.value}`}
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-input"
+                    checked={checked}
+                    onChange={() => toggle(o.value)}
+                  />
+                  <span className="text-sm">{o.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </FieldWrap>
+      );
+    }
     default:
       return null;
   }
@@ -333,6 +362,12 @@ export function renderAnswerSummary(q: TemplateQuestion, value: unknown): { valu
     case "opcoes": {
       const opt = q.options?.find((o) => o.value === value);
       return { value: opt?.label || "—" };
+    }
+    case "opcoes_multi": {
+      const arr = Array.isArray(value) ? (value as string[]) : [];
+      if (!arr.length) return { value: "—" };
+      const labels = arr.map((v) => q.options?.find((o) => o.value === v)?.label || v);
+      return { value: labels.join(", ") };
     }
     default:
       return { value: "—" };

@@ -160,7 +160,7 @@ export function DynamicSchemaEditor({ value, onChange }: Props) {
                   )}
                 </div>
 
-                {q.type === "opcoes" && (
+                {(q.type === "opcoes" || q.type === "opcoes_multi") && (
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">Opções de resposta</Label>
                     {(q.options ?? []).map((o, oi) => (
