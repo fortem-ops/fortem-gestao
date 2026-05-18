@@ -7,7 +7,8 @@ export type QuestionType =
   | "sim_nao_dupla"
   | "texto"
   | "numero"
-  | "opcoes";
+  | "opcoes"
+  | "opcoes_multi";
 
 export interface OpcaoItem { value: string; label: string }
 
