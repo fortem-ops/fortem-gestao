@@ -114,8 +114,10 @@ export function DynamicSchemaEditor({ value, onChange }: Props) {
           </div>
 
           <div className="space-y-3 pl-2 border-l-2 border-border/50">
-            {sec.questions.map((q, qi) => (
-              <div key={q.id} className="rounded-md border border-border/60 p-3 space-y-2 bg-background/30">
+            {sec.questions.map((q, qi) => {
+              const isSystem = q.type === "fase_inicial";
+              return (
+              <div key={q.id} className={`rounded-md border p-3 space-y-2 ${isSystem ? "border-primary/40 bg-primary/5" : "border-border/60 bg-background/30"}`}>
                 <div className="flex items-start gap-2">
                   <AutoTextarea
                     value={q.label}
@@ -124,13 +126,15 @@ export function DynamicSchemaEditor({ value, onChange }: Props) {
                   />
                   <Button size="icon" variant="ghost" onClick={() => moveQuestion(si, qi, -1)} disabled={qi === 0}><ChevronUp className="w-4 h-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => moveQuestion(si, qi, 1)} disabled={qi === sec.questions.length - 1}><ChevronDown className="w-4 h-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => removeQuestion(si, qi)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => removeQuestion(si, qi)} disabled={isSystem} title={isSystem ? "Pergunta do sistema — não removível" : undefined}>
+                    <Trash2 className={`w-4 h-4 ${isSystem ? "text-muted-foreground/40" : "text-destructive"}`} />
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs text-muted-foreground">Tipo</Label>
-                    <Select value={q.type} onValueChange={(v) => changeType(si, qi, v as QuestionType)}>
+                    <Select value={q.type} onValueChange={(v) => changeType(si, qi, v as QuestionType)} disabled={isSystem}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {(Object.keys(QUESTION_TYPE_LABELS) as QuestionType[]).map((t) => (
@@ -177,8 +181,15 @@ export function DynamicSchemaEditor({ value, onChange }: Props) {
                     <Button size="sm" variant="outline" onClick={() => addOption(si, qi)}><Plus className="w-3 h-3 mr-1" /> Adicionar opção</Button>
                   </div>
                 )}
+
+                {isSystem && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Pergunta do sistema. As opções vêm do Banco de Treinos (Fases, Métodos e Corrida). Ao selecionar uma opção durante a avaliação, o treino é automaticamente vinculado ao perfil do aluno.
+                  </p>
+                )}
               </div>
-            ))}
+              );
+            })}
             <Button size="sm" variant="outline" onClick={() => addQuestion(si)}><Plus className="w-3 h-3 mr-1" /> Adicionar pergunta</Button>
           </div>
         </div>

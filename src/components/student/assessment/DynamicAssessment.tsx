@@ -16,10 +16,24 @@ import { useDebounce } from "@/hooks/useDebounce";
 import {
   migrateLegacyDados,
   EMPTY_DADOS,
+  ensureFaseInicialQuestion,
+  FASE_INICIAL_QUESTION_ID,
   type ExperimentalRecordDados,
   type ExperimentalSchema,
   type TemplateQuestion,
 } from "./experimentalTemplate";
+import { FASE_INICIAL_GROUPS, hasTreinoAtual, prescribeFaseInicial } from "@/lib/workoutImport";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   student: Tables<"alunos">;
@@ -34,7 +48,8 @@ interface Props {
  * Usada por Pliometria, Força, Experimental e novos tipos dinâmicos.
  * Mantém autosave (debounce 800ms) e fluxo finalizar/reabrir.
  */
-export function DynamicAssessment({ student, tipoSlug, protocoloId, schema, avaliacaoId }: Props) {
+export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawSchema, avaliacaoId }: Props) {
+  const schema = tipoSlug === "experimental" ? ensureFaseInicialQuestion(rawSchema) : rawSchema;
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -115,6 +130,44 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema, aval
     setDados((d) => ({ ...d, answers: { ...d.answers, [qid]: value } }));
   };
 
+  // ===== Fase Inicial → vincula treino =====
+  const [pendingFase, setPendingFase] = useState<string | null>(null);
+  const [confirmReplace, setConfirmReplace] = useState(false);
+  const [prescribing, setPrescribing] = useState(false);
+
+  const handleFaseInicialChange = async (fase: string) => {
+    const prev = (dados.answers[FASE_INICIAL_QUESTION_ID] as string) || "";
+    setAnswer(FASE_INICIAL_QUESTION_ID, fase);
+    if (!fase || fase === prev || !user) return;
+    try {
+      const exists = await hasTreinoAtual(student.id);
+      if (exists) {
+        setPendingFase(fase);
+        setConfirmReplace(true);
+      } else {
+        await runPrescribe(fase);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao verificar treinos");
+    }
+  };
+
+  const runPrescribe = async (fase: string) => {
+    if (!user) return;
+    try {
+      setPrescribing(true);
+      await prescribeFaseInicial(fase, student.id, user.id);
+      toast.success(`Treino "${fase}" vinculado ao aluno.`);
+      queryClient.invalidateQueries({ queryKey: ["treinos-aluno", student.id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao prescrever treino");
+    } finally {
+      setPrescribing(false);
+      setPendingFase(null);
+      setConfirmReplace(false);
+    }
+  };
+
   const finalizar = () => {
     if (!id) { toast.error("Preencha ao menos um campo antes de finalizar."); return; }
     setDados((d) => ({ ...d, status: "finalizado", finalized_at: new Date().toISOString() }));
@@ -152,7 +205,14 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema, aval
         <section key={section.id} className="glass-card rounded-lg p-5 space-y-5">
           <h3 className="font-heading font-semibold text-foreground">{section.title}</h3>
           {section.questions.map((q) => (
-            <QuestionField key={q.id} question={q} value={dados.answers[q.id]} onChange={(v) => setAnswer(q.id, v)} />
+            <QuestionField
+              key={q.id}
+              question={q}
+              value={dados.answers[q.id]}
+              onChange={(v) => setAnswer(q.id, v)}
+              onFaseInicialChange={q.type === "fase_inicial" ? handleFaseInicialChange : undefined}
+              faseLoading={prescribing}
+            />
           ))}
         </section>
       ))}
@@ -164,12 +224,59 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema, aval
           <Button variant="outline" onClick={reabrir}>Reabrir como rascunho</Button>
         )}
       </div>
+
+      <AlertDialog open={confirmReplace} onOpenChange={(o) => { if (!o) { setConfirmReplace(false); setPendingFase(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Substituir treino atual?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Já existe um treino "atual" prescrito para este aluno. Ao confirmar, ele será arquivado e o treino <strong>{pendingFase}</strong> entrará como atual (uma nova versão).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => pendingFase && runPrescribe(pendingFase)} disabled={prescribing}>
+              {prescribing ? "Aplicando..." : "Substituir e vincular"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-function QuestionField({ question: q, value, onChange }: { question: TemplateQuestion; value: unknown; onChange: (v: unknown) => void }) {
+function QuestionField({ question: q, value, onChange, onFaseInicialChange, faseLoading }: { question: TemplateQuestion; value: unknown; onChange: (v: unknown) => void; onFaseInicialChange?: (fase: string) => void; faseLoading?: boolean }) {
   switch (q.type) {
+    case "fase_inicial": {
+      const cur = (value as string) ?? "";
+      return (
+        <FieldWrap label={q.label}>
+          <div className="mt-2 flex items-center gap-2">
+            <Select value={cur} onValueChange={(v) => onFaseInicialChange?.(v)} disabled={faseLoading}>
+              <SelectTrigger className="w-full sm:w-80">
+                <SelectValue placeholder="Selecione a fase inicial..." />
+              </SelectTrigger>
+              <SelectContent>
+                {FASE_INICIAL_GROUPS.map((grp) => (
+                  <SelectGroup key={grp.label}>
+                    <SelectLabel>{grp.label}</SelectLabel>
+                    {grp.fases.map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+            {faseLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+          </div>
+          {cur && (
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Treino vinculado: <strong>{cur}</strong> (importado do Banco de Treinos como versão atual).
+            </p>
+          )}
+        </FieldWrap>
+      );
+    }
     case "sim_nao": {
       return (
         <FieldWrap label={q.label}>
