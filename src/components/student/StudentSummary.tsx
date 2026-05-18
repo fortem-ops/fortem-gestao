@@ -162,6 +162,24 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
+  const cpfDigits = ((student as any).cpf || "").replace(/\D/g, "");
+  const { data: legalAnnex } = useQuery({
+    queryKey: ["legal_annex_by_cpf", cpfDigits],
+    queryFn: async () => {
+      if (!cpfDigits) return null;
+      const { data } = await supabase
+        .from("legal_annexes")
+        .select("id, nome, cpf, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone")
+        .or(`cpf.eq.${cpfDigits},cpf.eq.${(student as any).cpf}`)
+        .order("signed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return (data as AnnexDetail | null) ?? null;
+    },
+    enabled: !!cpfDigits,
+  });
+
+
   // Build alerts for this student
   const alerts: Alert[] = [];
   const today = new Date();
