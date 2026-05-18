@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { classifyAngle, getClassificationColor, assessmentReferences } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import type { Tables } from "@/integrations/supabase/types";
@@ -6,14 +7,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, FileDown, Loader2 } from "lucide-react";
 import { BodyDiagram } from "./BodyDiagram";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
-import { ExperimentalAssessment } from "./ExperimentalAssessment";
+import { DynamicAssessment } from "./DynamicAssessment";
+import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
+import type { ExperimentalSchema } from "./experimentalTemplate";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
@@ -40,7 +44,7 @@ const metricColumnMap: Record<string, string> = {
   'Mobilidade Tornozelo': 'tornozelo',
 };
 
-function FunctionalAssessment({ student }: { student: Tables<"alunos"> }) {
+function FunctionalAssessment({ student, protocoloId }: { student: Tables<"alunos">; protocoloId: string | null }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
@@ -97,9 +101,10 @@ function FunctionalAssessment({ student }: { student: Tables<"alunos"> }) {
           aluno_id: student.id,
           avaliador_id: user.id,
           tipo: "funcional",
+          protocolo_id: protocoloId,
           observacoes: notes || null,
           dados: { metricas: rows.map(r => ({ ...r })) },
-        })
+        } as never)
         .select()
         .single();
       if (avalErr) throw avalErr;
@@ -227,7 +232,7 @@ function classifyBF(pct: number, sexo: 'M' | 'F'): { label: string; color: strin
   return { label: 'Elevado', color: 'text-destructive' };
 }
 
-function BodyComposition({ student }: { student: Tables<"alunos"> }) {
+function BodyComposition({ student, protocoloId }: { student: Tables<"alunos">; protocoloId: string | null }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [sexo, setSexo] = useState<'M' | 'F'>('M');
@@ -264,13 +269,14 @@ function BodyComposition({ student }: { student: Tables<"alunos"> }) {
         aluno_id: student.id,
         avaliador_id: user.id,
         tipo: "composicao_corporal",
+        protocolo_id: protocoloId,
         dados: {
           sexo, idade: parseFloat(idade), peso: parseFloat(peso), altura: parseFloat(altura),
           dobras, sigma7: results.sigma7, densidade: results.dc, percentual_gordura: results.bf,
           classificacao: results.classification.label, imc: results.imc,
           massa_magra: results.massaMagra, massa_gorda: results.massaGorda,
         },
-      });
+      } as never);
       if (error) throw error;
       toast.success("Composição corporal salva com sucesso");
       queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
@@ -363,30 +369,98 @@ function BodyComposition({ student }: { student: Tables<"alunos"> }) {
 }
 
 export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
-  return (
-    <Tabs defaultValue="funcional">
-      <TabsList className="bg-secondary/50 border border-border">
-        <TabsTrigger value="funcional">Funcional</TabsTrigger>
-        <TabsTrigger value="composicao">Composição Corporal</TabsTrigger>
-        <TabsTrigger value="pliometria">Pliometria</TabsTrigger>
-        <TabsTrigger value="forca">Força</TabsTrigger>
-        <TabsTrigger value="experimental">Experimental</TabsTrigger>
-        <TabsTrigger value="kinology">Kinology</TabsTrigger>
-      </TabsList>
+  const { data: tipos = [], isLoading: loadingTipos } = useQuery({
+    queryKey: ["avaliacao-tipos"],
+    queryFn: fetchTipos,
+  });
+  const tiposAtivos = useMemo(() => tipos.filter((t) => t.ativo), [tipos]);
 
-      <TabsContent value="funcional"><FunctionalAssessment student={student} /></TabsContent>
-      <TabsContent value="composicao"><BodyComposition student={student} /></TabsContent>
-      <TabsContent value="pliometria"><div className="glass-card rounded-lg p-6 text-center text-muted-foreground">Módulo de pliometria em desenvolvimento</div></TabsContent>
-      <TabsContent value="forca"><div className="glass-card rounded-lg p-6 text-center text-muted-foreground">Módulo de força em desenvolvimento</div></TabsContent>
-      <TabsContent value="experimental">
-        <ExperimentalAssessment student={student} />
-      </TabsContent>
-      <TabsContent value="kinology">
-        <div className="glass-card rounded-lg p-6 text-center text-muted-foreground">
-          <p className="mb-4">Upload de PDF Kinology</p>
-          <Button variant="outline" size="sm">Selecionar PDF</Button>
+  const [tipoId, setTipoId] = useState<string>("");
+  const [protocoloId, setProtocoloId] = useState<string>("");
+
+  useEffect(() => {
+    if (!tipoId && tiposAtivos.length) setTipoId(tiposAtivos[0].id);
+  }, [tipoId, tiposAtivos]);
+
+  const tipoSel = tiposAtivos.find((t) => t.id === tipoId) ?? null;
+
+  const { data: protocolos = [] } = useQuery({
+    queryKey: ["avaliacao-protocolos", tipoId],
+    enabled: !!tipoId,
+    queryFn: () => fetchProtocolos(tipoId),
+  });
+  const protocolosAtivos = useMemo(() => protocolos.filter((p) => p.ativo), [protocolos]);
+
+  useEffect(() => {
+    if (!protocolosAtivos.length) { setProtocoloId(""); return; }
+    if (!protocolosAtivos.find((p) => p.id === protocoloId)) {
+      const def = protocolosAtivos.find((p) => p.is_default) ?? protocolosAtivos[0];
+      setProtocoloId(def.id);
+    }
+  }, [protocolosAtivos, protocoloId]);
+
+  const protoSel = protocolosAtivos.find((p) => p.id === protocoloId) ?? null;
+
+  if (loadingTipos) {
+    return <div className="glass-card rounded-lg p-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="glass-card rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs text-muted-foreground">Tipo de avaliação</Label>
+          <Select value={tipoId} onValueChange={setTipoId}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {tiposAtivos.map((t) => (<SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>))}
+            </SelectContent>
+          </Select>
         </div>
-      </TabsContent>
-    </Tabs>
+        <div>
+          <Label className="text-xs text-muted-foreground">Protocolo</Label>
+          <Select value={protocoloId} onValueChange={setProtocoloId} disabled={protocolosAtivos.length === 0}>
+            <SelectTrigger><SelectValue placeholder={protocolosAtivos.length ? "Selecione" : "Nenhum protocolo"} /></SelectTrigger>
+            <SelectContent>
+              {protocolosAtivos.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.nome}{p.is_default ? " (padrão)" : ""}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {protoSel?.descricao && <p className="text-[11px] text-muted-foreground mt-1">{protoSel.descricao}</p>}
+        </div>
+      </div>
+
+      {tipoSel ? (
+        <EngineDispatcher student={student} tipo={tipoSel} protocolo={protoSel} />
+      ) : (
+        <div className="glass-card rounded-lg p-6 text-center text-sm text-muted-foreground">
+          Nenhum tipo de avaliação configurado. Acesse Admin → Tipos de Avaliação.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"alunos">; tipo: AvaliacaoTipo; protocolo: AvaliacaoProtocolo | null }) {
+  if (tipo.engine === "funcional_fixo") {
+    return <FunctionalAssessment student={student} protocoloId={protocolo?.id ?? null} />;
+  }
+  if (tipo.engine === "composicao_pollock") {
+    return <BodyComposition student={student} protocoloId={protocolo?.id ?? null} />;
+  }
+  // dinamico
+  if (!protocolo) {
+    return <div className="glass-card rounded-lg p-6 text-center text-sm text-muted-foreground">Selecione um protocolo para começar.</div>;
+  }
+  const schema = (protocolo.schema as ExperimentalSchema) ?? { sections: [] };
+  return (
+    <DynamicAssessment
+      key={protocolo.id}
+      student={student}
+      tipoSlug={tipo.slug}
+      protocoloId={protocolo.id}
+      schema={schema}
+    />
   );
 }

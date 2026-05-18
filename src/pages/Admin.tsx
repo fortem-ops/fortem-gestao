@@ -4,6 +4,7 @@ import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminPlanos } from "@/components/admin/AdminPlanos";
 import { AdminServicos } from "@/components/admin/AdminServicos";
 import { AdminComingSoon } from "@/components/admin/AdminComingSoon";
+import { AdminTiposAvaliacao } from "@/components/admin/AdminTiposAvaliacao";
 
 const tabs = [
   { value: "usuarios", label: "Usuários & Permissões", icon: Users },
@@ -44,7 +45,7 @@ export default function Admin() {
           <AdminServicos />
         </TabsContent>
         <TabsContent value="avaliacoes" className="mt-4">
-          <AdminComingSoon title="Tipos de Avaliação" />
+          <AdminTiposAvaliacao />
         </TabsContent>
         <TabsContent value="templates" className="mt-4">
           <AdminComingSoon title="Templates de Treino" />
