@@ -1,53 +1,78 @@
 ## Objetivo
 
-Permitir que ao agendar uma atividade que consome crédito (Avaliação Funcional, Consulta Nutricional, Consulta Reabilitação, etc.), o usuário escolha de qual **origem** o crédito será debitado quando o aluno tiver saldo em **Plano Contratado** E em **Serviços e Créditos Contratados** ao mesmo tempo.
+Disparar e-mails automáticos via Gmail SMTP (mesma infra do `notify-agenda-evento`) para três eventos:
 
-Quando houver saldo em apenas uma das origens, o sistema usa essa origem automaticamente (comportamento atual).
+1. **Tarefas** — quando uma tarefa é criada (manual ou automática) → e-mail ao responsável.
+2. **Notificações** (Principal → Notificar) — quando uma nova notificação é criada que aguarda resposta → e-mail aos destinatários; quando alguém responde (status muda para `respondida` ou novo comentário) → e-mail ao criador.
+3. **Agendamentos do dia** — todo dia de manhã, e-mail ao profissional listando seus agendamentos daquela data.
 
-A parte "Quando realizada uma Venda de Serviço, a informação de Créditos aparece em Serviços e Créditos Contratados" **já funciona hoje** — `fn_processar_venda` insere a linha em `creditos_aluno` com `origem_tipo='servico'`, e o componente `StudentServicos` lista créditos dessa origem. Não há mudança nessa parte; apenas confirmar o comportamento.
+Toda a lógica reutiliza `GMAIL_APP_PASSWORD` e o padrão visual do template de e-mail já existente.
 
-## Estado atual relevante
+## Novas Edge Functions
 
-- Trigger `fn_agenda_debitar_credito` faz FIFO por `data_validade NULLS LAST, created_at`, sem distinguir origem (plano/serviço).
-- `AddAgendaDialog` mostra um único bloco resumido com badges "Plano" e "Serviço" quando ambas existem, mas não deixa o usuário escolher.
-- `creditos_aluno.origem_tipo` é o enum 'plano' | 'servico'.
+### `notify-tarefa-evento`
+- Acionada por **trigger Postgres** em `tarefas` (AFTER INSERT) via `pg_net.http_post`.
+- Payload: `tarefa_id`, `evento` (`criada`).
+- Busca dados da tarefa, e-mail do `responsavel_id` (via `profiles` → `auth.users`), aluno vinculado e remetente da config.
+- Envia 1 e-mail ao responsável com título, prioridade, data limite, aluno, criada por, marca se é automática.
+- Loga em nova tabela `tarefa_notificacoes_log` (idempotência por `tarefa_id+evento`).
 
-## Mudanças
+### `notify-notificacao-evento`
+- Acionada por triggers:
+  - `notificacoes` AFTER INSERT → evento `nova` → e-mail a todos os destinatários (consulta `notificacao_destinatarios`).
+  - `notificacao_comentarios` AFTER INSERT → evento `resposta` → e-mail ao criador da notificação (`notificacoes.criado_por`) e demais destinatários, exceto quem comentou.
+  - `notificacoes` AFTER UPDATE quando `status` muda para `respondida` → evento `respondida` → e-mail ao criador.
+- Inclui na mensagem: título, descrição, prioridade, categoria, prazo, link para a página `/notificar`.
+- Loga em `notificacao_email_log` para idempotência por `notificacao_id+evento+usuario_id`.
 
-### 1. Banco
+### `notify-agenda-diaria` (cron)
+- Roda às **07:00 BRT diariamente** via `pg_cron` + `pg_net.http_post`.
+- Para cada profissional com agendamentos hoje (em `agenda_servicos`), envia 1 e-mail consolidado listando: horário, atividade, aluno, local, observações.
+- Loga em `agenda_diaria_log` (chave: `profissional_id+data`) para evitar duplicidade.
 
-Migração:
-- `ALTER TABLE agenda_servicos ADD COLUMN credito_origem text NULL CHECK (credito_origem IN ('plano','servico'))`.
-- Alterar `fn_agenda_debitar_credito` para, ao buscar o crédito FIFO, aplicar `AND (NEW.credito_origem IS NULL OR origem_tipo = NEW.credito_origem)`. Resto da lógica preservado (FIFO por validade/criado).
-- Estorno (`fn_agenda_estornar_credito`) já opera por `creditos_movimentos.agenda_id`, não precisa mudar.
+## Banco de dados (migração única)
 
-### 2. Edge function
+- **Tabelas de log** (estrutura: `id`, `*_id`, `evento`, `enviado_em`, índice único para idempotência):
+  - `tarefa_notificacoes_log`
+  - `notificacao_email_log`
+  - `agenda_diaria_log`
+- **RLS**: somente coord/admin podem ler (igual ao `agenda_notificacoes_log`).
+- **Triggers**:
+  - `trg_tarefa_after_insert` em `tarefas`.
+  - `trg_notificacao_after_insert` em `notificacoes`.
+  - `trg_notificacao_status_update` em `notificacoes` (quando status vai para `respondida`).
+  - `trg_notificacao_comentario_insert` em `notificacao_comentarios`.
+  - Cada trigger usa `pg_net.http_post` para chamar a edge function correspondente, passando o anon key (mesmo padrão do `notify-agenda-evento`).
+- **Cron job** `agenda-diaria-email` agendado para `0 10 * * *` UTC (07:00 BRT).
 
-Sem alteração — a notificação de email não depende disso.
+## Painel admin (Administração → Notificações por E-mail)
 
-### 3. Frontend — `AddAgendaDialog.tsx`
+Acrescentar à `notificacao_email_config` (e à UI `AdminNotificacoesEmail.tsx`) toggles independentes:
 
-- Query de créditos passa a retornar resumo por origem:
-  `{ plano: { temLinhas, ilimitado, restante }, servico: { ... }, qualquerCom Saldo }`.
-- Novo estado `creditoOrigem: '' | 'plano' | 'servico'`.
-- Regra de exibição:
-  - Se ambas as origens têm saldo (ilimitado ou restante > 0) → renderiza `RadioGroup` "Usar crédito de:" com duas opções:
-    - **Plano contratado** — mostra restante/ilimitado
-    - **Serviço avulso** — mostra restante/ilimitado
-  - Se só uma tem saldo → não mostra seletor; `creditoOrigem` é preenchido automaticamente com a origem disponível (apenas para exibição; o backend continua decidindo).
-  - `canSubmit` exige seleção quando ambas as origens estão disponíveis.
-- Resumo de saldo no card já existente passa a refletir a origem escolhida.
-- Payload do insert envia `credito_origem` quando definido.
+- `enviar_tarefa_criada` (default ON)
+- `enviar_tarefa_automatica` (default ON)
+- `enviar_notificacao_nova` (default ON)
+- `enviar_notificacao_resposta` (default ON)
+- `enviar_agenda_diaria` (default ON)
+- `agenda_diaria_horario` (campo livre, default `07:00`)
 
-### 4. Frontend — `StudentServicos.tsx` / `StudentPlan.tsx`
-
-Sem alterações funcionais. Apenas confirmar via leitura que créditos de venda de serviço aparecem em "Serviços e Créditos Contratados" — já estão.
+As edge functions consultam estes flags antes de enviar.
 
 ## Detalhes técnicos
 
 ```text
-supabase/migrations/...  (coluna + alter trigger function)
-src/components/agenda/AddAgendaDialog.tsx  (query, estado, UI seletor, payload)
+Trigger (Postgres) → pg_net.http_post → Edge Function → SMTP Gmail
+                                                     → INSERT em *_log
 ```
 
-Atividades elegíveis para crédito permanecem definidas em `ATIVIDADES_COM_CREDITO` no dialog (já inclui Avaliação Funcional, Consulta Nutricional, Consulta Reabilitação). Nenhuma nova lista hardcoded.
+- Edge functions seguem o mesmo padrão de `notify-agenda-evento`: CORS, `SUPABASE_SERVICE_ROLE_KEY`, `denomailer`.
+- Resolução de e-mail do usuário: `auth.users.email` via `admin.auth.admin.getUserById(uid)`.
+- Idempotência: cada função tenta `INSERT` no log antes de enviar; se conflitar (unique), aborta.
+- Templates HTML reutilizam o cabeçalho/footer FORTEM já existente.
+
+## Entregas
+
+1. Migração SQL: tabelas de log, colunas novas em `notificacao_email_config`, triggers, cron job.
+2. 3 edge functions novas em `supabase/functions/`.
+3. UI: novos toggles em `AdminNotificacoesEmail.tsx`.
+4. Sem alterações de schema em `tarefas` / `notificacoes` além das triggers.
