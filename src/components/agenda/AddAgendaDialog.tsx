@@ -220,6 +220,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         observacoes: observacoes || null,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
         aluno_id: alunoId || null,
+        credito_origem: (alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
       };
       if (tipo === "avulso") {
         payload.data_especifica = dataEspecifica;
