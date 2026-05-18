@@ -24,6 +24,8 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [categoria, setCategoria] = useState("documento");
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<{ url: string; file: Tables<"uploads"> } | null>(null);
+  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
 
   const { data: profiles } = useQuery({
     queryKey: ["profiles-map"],
