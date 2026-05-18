@@ -362,10 +362,20 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                   <button
                     key={a.id}
                     type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center justify-between gap-2"
                     onClick={() => { setAlunoId(a.id); setAlunoSearch(""); }}
                   >
-                    {a.nome}
+                    <span className="truncate">{a.nome}</span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] shrink-0 ${
+                        a.tipo === "ativo" ? "status-active"
+                          : a.tipo === "prospect" ? "status-warning"
+                          : "status-urgent"
+                      }`}
+                    >
+                      {a.tipo === "ativo" ? "Ativo" : a.tipo === "prospect" ? "Prospect" : "Inativo"}
+                    </Badge>
                   </button>
                 ))}
               </ScrollArea>
