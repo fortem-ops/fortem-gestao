@@ -599,6 +599,12 @@ export function StudentSummary({ student }: { student: Aluno }) {
           <p className="text-sm text-muted-foreground">{student.observacoes}</p>
         </div>
       )}
+
+      <EditDadosCadastraisDialog
+        open={editingCadastro}
+        onOpenChange={setEditingCadastro}
+        alunoId={student.id}
+      />
     </div>
   );
 }
