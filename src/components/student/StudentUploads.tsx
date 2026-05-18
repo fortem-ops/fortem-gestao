@@ -2,12 +2,13 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Image, Upload, Loader2, Download, Trash2 } from "lucide-react";
+import { FileText, Image, Upload, Loader2, Download, Trash2, Eye, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const CATEGORIES = [
   { value: "exame", label: "Exame" },
@@ -23,6 +24,8 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [categoria, setCategoria] = useState("documento");
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<{ url: string; file: Tables<"uploads"> } | null>(null);
+  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
 
   const { data: profiles } = useQuery({
     queryKey: ["profiles-map"],
@@ -115,6 +118,21 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
   });
 
   const isImage = (tipo: string) => tipo === "imagem" || tipo === "Imagem";
+  const isPdf = (tipo: string, name: string) => tipo === "pdf" || name.toLowerCase().endsWith(".pdf");
+  const canPreview = (file: Tables<"uploads">) => isImage(file.tipo) || isPdf(file.tipo, file.nome_arquivo);
+
+  const handlePreview = async (file: Tables<"uploads">) => {
+    setLoadingPreviewId(file.id);
+    const { data, error } = await supabase.storage
+      .from("aluno-files")
+      .createSignedUrl(file.storage_path, 300);
+    setLoadingPreviewId(null);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Erro ao pré-visualizar", description: error?.message || "URL não gerada", variant: "destructive" });
+      return;
+    }
+    setPreview({ url: data.signedUrl, file });
+  };
 
   return (
     <div className="space-y-4 mt-4">
@@ -168,16 +186,52 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
                   {profiles?.[file.autor_id] ? ` · ${profiles[file.autor_id]}` : ""}
                 </p>
               </div>
-              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDownload(file)}>
+              {canPreview(file) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => handlePreview(file)}
+                  disabled={loadingPreviewId === file.id}
+                  title="Pré-visualizar"
+                >
+                  {loadingPreviewId === file.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDownload(file)} title="Baixar">
                 <Download className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="shrink-0 text-destructive" onClick={() => deleteMutation.mutate(file)}>
+              <Button variant="ghost" size="icon" className="shrink-0 text-destructive" onClick={() => deleteMutation.mutate(file)} title="Remover">
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           ))}
         </div>
       )}
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-5 py-3 border-b border-border flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-sm font-medium truncate pr-4">
+              {preview?.file.nome_arquivo}
+            </DialogTitle>
+            {preview && (
+              <Button variant="outline" size="sm" asChild className="gap-1 mr-6">
+                <a href={preview.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-3.5 h-3.5" /> Abrir
+                </a>
+              </Button>
+            )}
+          </DialogHeader>
+          <div className="flex-1 min-h-0 bg-secondary/30 overflow-auto flex items-center justify-center">
+            {preview && (isImage(preview.file.tipo) ? (
+              <img src={preview.url} alt={preview.file.nome_arquivo} className="max-w-full max-h-full object-contain" />
+            ) : (
+              <iframe src={preview.url} title={preview.file.nome_arquivo} className="w-full h-full border-0" />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
