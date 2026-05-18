@@ -312,6 +312,56 @@ export type Database = {
           },
         ]
       }
+      avaliacao_protocolos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          is_default: boolean
+          nome: string
+          ordem: number
+          schema: Json
+          tipo_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          is_default?: boolean
+          nome: string
+          ordem?: number
+          schema?: Json
+          tipo_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          is_default?: boolean
+          nome?: string
+          ordem?: number
+          schema?: Json
+          tipo_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacao_protocolos_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "avaliacao_tipos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avaliacao_templates: {
         Row: {
           id: string
@@ -336,6 +386,45 @@ export type Database = {
         }
         Relationships: []
       }
+      avaliacao_tipos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          engine: string
+          icone: string | null
+          id: string
+          is_sistema: boolean
+          nome: string
+          ordem: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          engine?: string
+          icone?: string | null
+          id?: string
+          is_sistema?: boolean
+          nome: string
+          ordem?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          engine?: string
+          icone?: string | null
+          id?: string
+          is_sistema?: boolean
+          nome?: string
+          ordem?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       avaliacoes: {
         Row: {
           aluno_id: string
@@ -346,6 +435,7 @@ export type Database = {
           data: string
           id: string
           observacoes: string | null
+          protocolo_id: string | null
           tipo: string
           updated_at: string
         }
@@ -358,6 +448,7 @@ export type Database = {
           data?: string
           id?: string
           observacoes?: string | null
+          protocolo_id?: string | null
           tipo: string
           updated_at?: string
         }
@@ -370,6 +461,7 @@ export type Database = {
           data?: string
           id?: string
           observacoes?: string | null
+          protocolo_id?: string | null
           tipo?: string
           updated_at?: string
         }
@@ -379,6 +471,13 @@ export type Database = {
             columns: ["aluno_id"]
             isOneToOne: false
             referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "avaliacao_protocolos"
             referencedColumns: ["id"]
           },
         ]
