@@ -43,6 +43,7 @@ export type Database = {
           aluno_id: string | null
           atividade: string
           created_at: string
+          credito_origem: string | null
           data_especifica: string | null
           dia_semana: number
           horario_fim: string
@@ -58,6 +59,7 @@ export type Database = {
           aluno_id?: string | null
           atividade: string
           created_at?: string
+          credito_origem?: string | null
           data_especifica?: string | null
           dia_semana: number
           horario_fim: string
@@ -73,6 +75,7 @@ export type Database = {
           aluno_id?: string | null
           atividade?: string
           created_at?: string
+          credito_origem?: string | null
           data_especifica?: string | null
           dia_semana?: number
           horario_fim?: string
