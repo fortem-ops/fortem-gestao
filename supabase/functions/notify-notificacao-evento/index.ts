@@ -13,7 +13,7 @@ async function sendGmailEmail(opts: { from: string; to: string; subject: string;
     connection: { hostname: "smtp.gmail.com", port: 465, tls: true,
       auth: { username: "contatofortem@gmail.com", password } },
   });
-  await client.send({ from: opts.from, to: opts.to, subject: opts.subject, html: opts.html });
+  await client.send({ from: opts.from, to: opts.to, subject: opts.subject, content: "auto", html: opts.html });
   await client.close();
 }
 

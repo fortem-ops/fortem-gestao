@@ -36,6 +36,7 @@ async function sendGmailEmail(opts: { from: string; to: string; cc?: string[]; s
     to: opts.to,
     cc: opts.cc && opts.cc.length ? opts.cc : undefined,
     subject: opts.subject,
+    content: "auto",
     html: opts.html,
   });
   await client.close();
