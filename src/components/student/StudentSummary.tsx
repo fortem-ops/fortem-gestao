@@ -148,6 +148,18 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
+  const { data: origemLead } = useQuery({
+    queryKey: ["pipeline_metadata_origem", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pipeline_metadata")
+        .select("origem_lead")
+        .eq("aluno_id", student.id)
+        .maybeSingle();
+      return (data as any)?.origem_lead ?? null;
+    },
+  });
+
   // Build alerts for this student
   const alerts: Alert[] = [];
   const today = new Date();
