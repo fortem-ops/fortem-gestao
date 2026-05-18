@@ -274,6 +274,25 @@ export default function Prospects() {
       </div>
 
       <EditLeadDialog alunoId={editId} open={!!editId} onOpenChange={(v) => !v && setEditId(null)} />
+
+      {convertTarget && (
+        <ConvertToAlunoDialog
+          open={!!convertTarget}
+          onOpenChange={(v) => !v && setConvertTarget(null)}
+          alunoId={convertTarget.id}
+          alunoNome={convertTarget.nome}
+          onConverted={() => setVendaTarget(convertTarget)}
+        />
+      )}
+
+      {vendaTarget && (
+        <VendaDialog
+          alunoId={vendaTarget.id}
+          alunoNome={vendaTarget.nome}
+          open={!!vendaTarget}
+          onOpenChange={(v) => !v && setVendaTarget(null)}
+        />
+      )}
     </div>
   );
 }
