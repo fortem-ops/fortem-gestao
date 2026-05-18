@@ -51,6 +51,22 @@ const ATIVIDADES_COM_CREDITO = new Set([
   "Avaliação Física",
 ]);
 
+// Mapeamento entre atividade da agenda e o rótulo do serviço dentro de planos.servicos
+const PLAN_SERVICE_LABEL: Record<string, string> = {
+  "Avaliação Funcional": "Avaliação Funcional",
+  "Nutrição": "Consultas Nutrição",
+  "Reabilitação": "Consultas Reabilitação",
+};
+
+function parsePlanServiceCount(servicos: string[] | null | undefined, label: string): number {
+  if (!servicos) return 0;
+  for (const s of servicos) {
+    const m = s.match(/^(\d+)\s+(.+)$/);
+    if (m && m[2] === label) return parseInt(m[1], 10);
+  }
+  return 0;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
