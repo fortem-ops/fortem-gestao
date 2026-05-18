@@ -16,10 +16,24 @@ import { useDebounce } from "@/hooks/useDebounce";
 import {
   migrateLegacyDados,
   EMPTY_DADOS,
+  ensureFaseInicialQuestion,
+  FASE_INICIAL_QUESTION_ID,
   type ExperimentalRecordDados,
   type ExperimentalSchema,
   type TemplateQuestion,
 } from "./experimentalTemplate";
+import { FASE_INICIAL_GROUPS, hasTreinoAtual, prescribeFaseInicial } from "@/lib/workoutImport";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   student: Tables<"alunos">;
