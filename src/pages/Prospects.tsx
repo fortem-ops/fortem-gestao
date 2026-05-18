@@ -255,6 +255,12 @@ export default function Prospects() {
                       <Button size="icon" variant="ghost" onClick={() => navigate("/tarefas")} title="Nova tarefa">
                         <ListTodo className="w-4 h-4" />
                       </Button>
+                      <Button size="icon" variant="ghost" onClick={() => navigate(`/alunos/${p.id}?tab=avaliacoes&new=1`)} title="Nova avaliação">
+                        <ClipboardPlus className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setConvertTarget({ id: p.id, nome: p.nome })} title="Converter em aluno">
+                        <UserCheck className="w-4 h-4" />
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => navigate("/pipeline")} title="Pipeline">
                         <KanbanSquare className="w-4 h-4" />
                       </Button>
