@@ -1,5 +1,5 @@
 import type { Tables } from "@/integrations/supabase/types";
-import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints } from "lucide-react";
+import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -145,6 +145,18 @@ export function StudentSummary({ student }: { student: Aluno }) {
         .order("created_at", { ascending: false })
         .limit(1);
       return data && data.length > 0 ? data[0] : null;
+    },
+  });
+
+  const { data: origemLead } = useQuery({
+    queryKey: ["pipeline_metadata_origem", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pipeline_metadata")
+        .select("origem_lead")
+        .eq("aluno_id", student.id)
+        .maybeSingle();
+      return (data as any)?.origem_lead ?? null;
     },
   });
 
@@ -581,6 +593,13 @@ export function StudentSummary({ student }: { student: Aluno }) {
                 <p className="text-sm text-muted-foreground">Não informado</p>
               );
             })()}
+          </div>
+          <div className="glass-card rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Origem</span>
+            </div>
+            <p className="text-sm font-semibold text-foreground">{origemLead || "Não informada"}</p>
           </div>
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
