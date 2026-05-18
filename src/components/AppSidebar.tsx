@@ -67,8 +67,10 @@ const comercialAdminItems = [
 ];
 
 /* ─── Sistema ─── */
-const sistemaAdminItems = [
+const sistemaCoordAdminItems = [
   { title: "Administração", url: "/admin", icon: Settings },
+];
+const sistemaAdminItems = [
   { title: "Admin Clube", url: "/admin/clube", icon: Sparkles },
 ];
 
