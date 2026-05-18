@@ -363,6 +363,12 @@ export function renderAnswerSummary(q: TemplateQuestion, value: unknown): { valu
       const opt = q.options?.find((o) => o.value === value);
       return { value: opt?.label || "—" };
     }
+    case "opcoes_multi": {
+      const arr = Array.isArray(value) ? (value as string[]) : [];
+      if (!arr.length) return { value: "—" };
+      const labels = arr.map((v) => q.options?.find((o) => o.value === v)?.label || v);
+      return { value: labels.join(", ") };
+    }
     default:
       return { value: "—" };
   }
