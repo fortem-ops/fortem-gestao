@@ -130,6 +130,44 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
     setDados((d) => ({ ...d, answers: { ...d.answers, [qid]: value } }));
   };
 
+  // ===== Fase Inicial → vincula treino =====
+  const [pendingFase, setPendingFase] = useState<string | null>(null);
+  const [confirmReplace, setConfirmReplace] = useState(false);
+  const [prescribing, setPrescribing] = useState(false);
+
+  const handleFaseInicialChange = async (fase: string) => {
+    const prev = (dados.answers[FASE_INICIAL_QUESTION_ID] as string) || "";
+    setAnswer(FASE_INICIAL_QUESTION_ID, fase);
+    if (!fase || fase === prev || !user) return;
+    try {
+      const exists = await hasTreinoAtual(student.id);
+      if (exists) {
+        setPendingFase(fase);
+        setConfirmReplace(true);
+      } else {
+        await runPrescribe(fase);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao verificar treinos");
+    }
+  };
+
+  const runPrescribe = async (fase: string) => {
+    if (!user) return;
+    try {
+      setPrescribing(true);
+      await prescribeFaseInicial(fase, student.id, user.id);
+      toast.success(`Treino "${fase}" vinculado ao aluno.`);
+      queryClient.invalidateQueries({ queryKey: ["treinos-aluno", student.id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao prescrever treino");
+    } finally {
+      setPrescribing(false);
+      setPendingFase(null);
+      setConfirmReplace(false);
+    }
+  };
+
   const finalizar = () => {
     if (!id) { toast.error("Preencha ao menos um campo antes de finalizar."); return; }
     setDados((d) => ({ ...d, status: "finalizado", finalized_at: new Date().toISOString() }));
