@@ -214,15 +214,3 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
     </div>
   );
 }
-        </div>
-      )}
-
-      <AssessmentViewerDialog
-        open={viewerOpen}
-        onOpenChange={setViewerOpen}
-        avaliacao={selected}
-        student={student}
-      />
-    </div>
-  );
-}
