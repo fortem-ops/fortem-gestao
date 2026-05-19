@@ -1,51 +1,86 @@
 ## Objetivo
 
-Corrigir a atribuição da comissão de R$35 da Avaliação Funcional para ir sempre ao **profissional do agendamento da avaliação**, e não ao ADM que registrou.
+1. Substituir a coluna **WhatsApp** em Cadastros → Alunos Ativos / Inativos pela coluna **Data Última Avaliação Funcional**.
+2. Exibir essa mesma data, com destaque, no **Perfil do Aluno → Resumo** e em **Histórico de Avaliações**.
+3. Atualizar a data automaticamente sempre que uma Avaliação Funcional for **agendada na Agenda** ou **concluída**.
+4. **NOVO:** Criar automaticamente uma **tarefa para o professor responsável agendar nova avaliação** quando completarem **4 meses** desde a última avaliação funcional.
 
-## Causa raiz
+## Regra: "Última Avaliação Funcional"
 
-Em `trg_comissao_avaliacao_insert` (e `trg_comissao_anexo_insert`), quando não existe pendência aberta `concluir_avaliacao_funcional` (criada pelo INSERT em `agenda_servicos` com atividade "Avaliação Funcional"), o sistema faz fallback para `NEW.avaliador_id` — que é o ADM logado. Resultado: comissão cai para o ADM.
+A data é derivada (não armazenada) como o **maior valor** entre:
+- `avaliacoes.data` com `tipo = 'funcional'` para o aluno
+- `agenda_servicos.data_especifica` com `atividade ILIKE '%funcional%'` e `data_especifica <= hoje`
 
-## Mudança (uma migration)
+## Mudanças de UI
 
-Substituir `CREATE OR REPLACE FUNCTION public.trg_comissao_avaliacao_insert()` com esta cadeia de fallback para `_profissional`:
+### `src/pages/StudentList.tsx`
+- Remover coluna **WhatsApp** (header, célula, skeleton, `colSpan`).
+- Adicionar coluna **"Última Aval. Funcional"** (visível em `lg:table-cell`).
+- Estender a query `alunos_with_plans` para carregar em batch:
+  - `avaliacoes` (aluno_id, data) tipo funcional dos IDs visíveis
+  - `agenda_servicos` (aluno_id, data_especifica) `atividade ILIKE '%funcional%'` e `data_especifica <= hoje`
+- Combinar em `lastFuncionalMap[aluno_id] = MAX(...)`.
+- Cor: `text-warning` se >4 meses, `text-destructive` se >6 meses, `—` se nunca.
 
-1. `profissional_id` da pendência aberta `concluir_avaliacao_funcional` (igual hoje).
-2. Se nulo: buscar em `agenda_servicos` o agendamento mais recente do mesmo `aluno_id` com `atividade ILIKE '%avaliação funcional%' OR atividade ILIKE '%avaliacao funcional%'` cuja `data_especifica` (ou geração da semana) seja ≤ `NEW.data` e mais próxima — pegar `profissional_id`.
-3. Se ainda nulo: `alunos.responsavel_id`.
-4. Se o resultado for ADM (verificar via `has_role(_profissional, 'admin')`), aplicar fallback 3.
-5. Nunca atribuir ao ADM: se ao final continuar admin/nulo, **não gerar comissão** e registrar pendência `concluir_avaliacao_funcional` órfã (descrição: "Sem profissional vinculado — revisar").
+### `src/components/student/StudentSummary.tsx`
+- Ampliar a query `last_aval_funcional` para considerar `avaliacoes + agenda_servicos`.
+- Adicionar **card destacado** ("Última Avaliação Funcional") logo após a seção Plano, com badge de severidade (≤4m verde, 4–6m amarelo, >6m vermelho).
 
-Mesma cadeia aplicada em `trg_comissao_anexo_insert` quando `_pend.profissional_id` for nulo ou admin.
+### `src/components/student/StudentAssessments.tsx`
+- Adicionar **cabeçalho destaque** acima do botão "Realizar Avaliação":
+  - "Última Avaliação Funcional: dd/MM/yyyy" (ou "Nunca realizada").
 
-## Backfill (opcional, na mesma migration)
-
-Para comissões já criadas com `tipo='avaliacao_funcional'` cujo `profissional_id` seja ADM:
-- Recalcular usando a mesma lógica (passos 2→3) e fazer `UPDATE` em `comissionamentos.profissional_id`.
-- Se não encontrar substituto, marcar `status='cancelado'` com observação "Reatribuição manual necessária".
-
-## Sem mudanças
-
-- Frontend (`Comissionamentos.tsx`, hooks): nenhuma alteração — RLS `profissional_id = auth.uid() OR coord/admin` já cobre o novo destinatário.
-- Regras de Treino Experimental e Carteira: inalteradas.
-
-## Detalhes técnicos
-
-```sql
--- pseudo da resolução
-SELECT profissional_id INTO _profissional
-FROM agenda_servicos
-WHERE aluno_id = NEW.aluno_id
-  AND (atividade ILIKE '%funcional%')
-  AND COALESCE(data_especifica, CURRENT_DATE) <= NEW.data
-ORDER BY COALESCE(data_especifica, NEW.data) DESC, created_at DESC
-LIMIT 1;
-
-IF _profissional IS NULL OR public.has_role(_profissional, 'admin') THEN
-  SELECT responsavel_id INTO _profissional FROM alunos WHERE id = NEW.aluno_id;
-END IF;
-
-IF _profissional IS NULL OR public.has_role(_profissional, 'admin') THEN
-  -- não gera comissão; cria pendência órfã
-END IF;
+### Helper compartilhado `src/lib/avaliacaoFuncional.ts`
+```ts
+fetchLastFuncionalDate(alunoId): Date | null
+fetchLastFuncionalDateBatch(alunoIds[]): Record<id, Date | null>
 ```
+
+## NOVO: Tarefa automática "Agendar reavaliação funcional"
+
+### Onde acontece
+Uma **edge function agendada (cron diário)** + um **trigger pós-inserção** garantem cobertura.
+
+### Trigger 1 — após nova avaliação funcional concluída
+Função `fn_agendar_tarefa_reavaliacao_4m()` em `AFTER INSERT` em `avaliacoes` quando `tipo='funcional'`:
+
+1. Calcular `data_limite = NEW.data + INTERVAL '4 months'`.
+2. Resolver `responsavel_id`:
+   - `alunos.responsavel_id`; se nulo ou ADM, usar `NEW.avaliador_id`; se ainda ADM, abortar (sem tarefa).
+3. **Idempotência**: só inserir se NÃO existir `tarefas` com `aluno_id = NEW.aluno_id`, `tipo_auto = 'reavaliacao_funcional'`, `status = 'pendente'`.
+4. Inserir em `tarefas`:
+   - `titulo`: "Agendar reavaliação funcional"
+   - `descricao`: "Última avaliação funcional realizada em <dd/mm/yyyy>. Agende uma nova avaliação."
+   - `aluno_id`, `responsavel_id` (resolvido), `criado_por_id = NEW.avaliador_id`
+   - `prioridade = 'media'`, `data_limite` (4 meses), `automatica = true`, `tipo_auto = 'reavaliacao_funcional'`.
+
+### Trigger 2 — ao concluir pendência ou agenda funcional
+Mesmo helper chamado também em `AFTER UPDATE` de `comissionamento_pendencias` quando `concluido` muda para `true` e `tipo_pendencia = 'concluir_avaliacao_funcional'`, para cobrir o caso de a avaliação ter sido feita apenas via Agenda.
+
+### Job diário — varrer alunos sem reavaliação em 4 meses
+Edge function `agendar-reavaliacoes-funcionais` (cron diário 07:00 BRT):
+1. Para cada aluno `status='ativo'`:
+   - Pegar `last_funcional` (mesma regra do helper).
+   - Se `last_funcional IS NULL` **ou** `hoje >= last_funcional + 4 meses`:
+     - Resolver `responsavel_id` (com fallback igual ao trigger).
+     - Inserir tarefa idempotente (mesma checagem `tipo_auto = 'reavaliacao_funcional'` + `status = 'pendente'`).
+
+> Garante que alunos antigos (sem trigger de avaliação recente) também recebam a tarefa, e que a tarefa seja recriada após ser concluída.
+
+### Integração com alertas existentes
+O `StudentSummary` e `AlertsWidget` já mostram "Agendar reavaliação funcional" no UI quando >4 meses — passa a ser também uma tarefa real em `tarefas`, visível em `TaskCenter` e `TasksWidget`.
+
+## Backend changes resumo
+
+1. Migração SQL:
+   - `fn_resolver_responsavel_reavaliacao(aluno_id, fallback_user_id)` — utilitário.
+   - `fn_agendar_tarefa_reavaliacao_4m()` — função do trigger.
+   - Trigger `trg_avaliacao_reavaliacao_4m` em `avaliacoes`.
+   - Trigger `trg_pendencia_reavaliacao_4m` em `comissionamento_pendencias`.
+2. Edge function `supabase/functions/agendar-reavaliacoes-funcionais/index.ts`.
+3. Cron job diário (07:00 BRT) via `pg_cron` + `pg_net` (insert direto via tool, não migration).
+
+## Fora de escopo
+- Não criar coluna nova em `alunos`. Data é sempre derivada.
+- Não mexer nos triggers de comissionamento de Avaliação Funcional (já corrigidos).
+- Não alterar `StudentHistory` (já lista cronologicamente).
