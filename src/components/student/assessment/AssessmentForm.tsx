@@ -452,11 +452,12 @@ export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
 }
 
 function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"alunos">; tipo: AvaliacaoTipo; protocolo: AvaliacaoProtocolo | null }) {
+  const permiteUpload = !!protocolo?.permite_upload;
   if (tipo.engine === "funcional_fixo") {
-    return <FunctionalAssessment student={student} protocoloId={protocolo?.id ?? null} />;
+    return <FunctionalAssessment student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
   }
   if (tipo.engine === "composicao_pollock") {
-    return <BodyComposition student={student} protocoloId={protocolo?.id ?? null} />;
+    return <BodyComposition student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
   }
   // dinamico
   if (!protocolo) {
@@ -470,6 +471,7 @@ function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"aluno
       tipoSlug={tipo.slug}
       protocoloId={protocolo.id}
       schema={schema}
+      permiteUpload={permiteUpload}
     />
   );
 }
