@@ -1,20 +1,37 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ClipboardCheck, Eye, Activity } from "lucide-react";
+import { Plus, ClipboardCheck, Eye, Activity, Pencil, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AssessmentViewerDialog } from "./assessment/AssessmentViewerDialog";
 import { fetchLastFuncionalDate, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
+import { useAuth } from "@/contexts/AuthContext";
+import { userHasStaffAccess } from "@/lib/authAccess";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
 
 export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user } = useAuth();
   const [selected, setSelected] = useState<Tables<"avaliacoes"> | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editDate, setEditDate] = useState<Date | undefined>(undefined);
+
+  const { data: canEdit } = useQuery({
+    queryKey: ["staff-access", user?.id],
+    queryFn: () => userHasStaffAccess(user!.id),
+    enabled: !!user,
+  });
 
   const { data: lastFuncional } = useQuery({
     queryKey: ["last_funcional_aluno", student.id],
@@ -39,6 +56,32 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
     setViewerOpen(true);
   };
 
+  const saveHistoricoMutation = useSupabaseMutation({
+    mutationFn: async (date: Date) => {
+      const iso = format(date, "yyyy-MM-dd");
+      const { error } = await supabase.from("avaliacoes").insert({
+        aluno_id: student.id,
+        avaliador_id: user!.id,
+        tipo: "funcional",
+        data: iso,
+        observacoes: "Data registrada manualmente (avaliação realizada anteriormente fora do sistema)",
+        dados: {},
+        origem: "historico_manual",
+      } as any);
+      if (error) throw error;
+    },
+    successMessage: "Data da última avaliação registrada.",
+    invalidates: [
+      ["last_funcional_aluno", student.id],
+      ["avaliacoes-aluno", student.id],
+      ["alunos_with_last_funcional"],
+    ],
+    onSuccess: () => {
+      setEditOpen(false);
+      setEditDate(undefined);
+    },
+  });
+
   const sev = severityForLastFuncional(lastFuncional ?? null);
 
   return (
@@ -57,7 +100,22 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
             </p>
           </div>
         </div>
-        <Badge variant="outline" className={`${sev.className} text-xs shrink-0`}>{sev.label}</Badge>
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge variant="outline" className={`${sev.className} text-xs`}>{sev.label}</Badge>
+          {canEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Editar data da última avaliação"
+              onClick={() => {
+                setEditDate(lastFuncional ?? undefined);
+                setEditOpen(true);
+              }}
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
@@ -84,7 +142,12 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
                 <ClipboardCheck className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground capitalize">{a.tipo.replace(/_/g, ' ')}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-foreground capitalize">{a.tipo.replace(/_/g, ' ')}</p>
+                  {(a as any).origem === "historico_manual" && (
+                    <Badge variant="outline" className="status-info text-[10px]">Registro histórico</Badge>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {format(new Date(a.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                 </p>
@@ -104,6 +167,50 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
         avaliacao={selected}
         student={student}
       />
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar data da última avaliação funcional</DialogTitle>
+            <DialogDescription>
+              Use para registrar uma avaliação funcional realizada anteriormente fora do sistema.
+              A data informada passa a contar para alertas e para o agendamento automático de reavaliação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn("w-full justify-start text-left font-normal", !editDate && "text-muted-foreground")}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {editDate ? format(editDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "Selecione a data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={editDate}
+                  onSelect={setEditDate}
+                  disabled={(d) => d > new Date() || d < new Date("1990-01-01")}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => editDate && saveHistoricoMutation.mutate(editDate)}
+              disabled={!editDate || saveHistoricoMutation.isPending}
+            >
+              {saveHistoricoMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

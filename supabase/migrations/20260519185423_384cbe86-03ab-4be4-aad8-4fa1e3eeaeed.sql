@@ -1,0 +1,1 @@
+ALTER TABLE public.avaliacoes ADD COLUMN IF NOT EXISTS origem text NOT NULL DEFAULT 'sistema';
