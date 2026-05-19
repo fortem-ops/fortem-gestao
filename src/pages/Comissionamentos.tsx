@@ -317,14 +317,28 @@ function CarteiraDetalhe({ profissionalId }: { profissionalId?: string | null })
   const { data = [], isLoading } = useQuery({
     queryKey: ["carteira-detalhe", profissionalId],
     queryFn: async () => {
-      let q = supabase.from("alunos").select("id, nome, status, responsavel_id, planos(tipo, ativo), aluno_licencas(data_inicio, data_fim)").eq("status", "ativo");
+      let q = supabase.from("alunos").select("id, nome, status, responsavel_id").eq("status", "ativo");
       if (profissionalId) q = q.eq("responsavel_id", profissionalId);
-      const { data, error } = await q;
+      const { data: alunos, error } = await q;
       if (error) throw error;
+      const ids = (alunos || []).map((a: any) => a.id);
+      if (!ids.length) return [];
       const hoje = new Date().toISOString().slice(0, 10);
-      return (data || []).map((a: any) => {
-        const planoExcluido = !(a.planos || []).some((p: any) => p.ativo && !["Gympass/Wellhub", "Total Pass"].includes(p.tipo));
-        const emLicenca = (a.aluno_licencas || []).some((l: any) => hoje >= l.data_inicio && hoje <= l.data_fim);
+      const [{ data: planos }, { data: licencas }] = await Promise.all([
+        supabase.from("planos").select("aluno_id, tipo, ativo").in("aluno_id", ids).eq("ativo", true),
+        supabase.from("aluno_licencas").select("aluno_id, data_inicio, data_fim").in("aluno_id", ids).lte("data_inicio", hoje).gte("data_fim", hoje),
+      ]);
+      const planosByAluno = new Map<string, any[]>();
+      (planos || []).forEach((p: any) => {
+        const arr = planosByAluno.get(p.aluno_id) || [];
+        arr.push(p);
+        planosByAluno.set(p.aluno_id, arr);
+      });
+      const licencaSet = new Set((licencas || []).map((l: any) => l.aluno_id));
+      return (alunos || []).map((a: any) => {
+        const ps = planosByAluno.get(a.id) || [];
+        const planoExcluido = !ps.some((p: any) => !["Gympass/Wellhub", "Total Pass"].includes(p.tipo));
+        const emLicenca = licencaSet.has(a.id);
         const motivo = emLicenca ? "Em licença" : planoExcluido ? "Plano Gympass/TotalPass ou inativo" : null;
         return { ...a, qualificado: !motivo, motivo };
       });
