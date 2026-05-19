@@ -20,8 +20,18 @@ import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
 
 export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user } = useAuth();
   const [selected, setSelected] = useState<Tables<"avaliacoes"> | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editDate, setEditDate] = useState<Date | undefined>(undefined);
+
+  const { data: canEdit } = useQuery({
+    queryKey: ["staff-access", user?.id],
+    queryFn: () => userHasStaffAccess(user!.id),
+    enabled: !!user,
+  });
 
   const { data: lastFuncional } = useQuery({
     queryKey: ["last_funcional_aluno", student.id],
@@ -45,6 +55,32 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
     setSelected(a);
     setViewerOpen(true);
   };
+
+  const saveHistoricoMutation = useSupabaseMutation({
+    mutationFn: async (date: Date) => {
+      const iso = format(date, "yyyy-MM-dd");
+      const { error } = await supabase.from("avaliacoes").insert({
+        aluno_id: student.id,
+        avaliador_id: user!.id,
+        tipo: "funcional",
+        data: iso,
+        observacoes: "Data registrada manualmente (avaliação realizada anteriormente fora do sistema)",
+        dados: {},
+        origem: "historico_manual",
+      } as any);
+      if (error) throw error;
+    },
+    successMessage: "Data da última avaliação registrada.",
+    invalidates: [
+      ["last_funcional_aluno", student.id],
+      ["avaliacoes-aluno", student.id],
+      ["alunos_with_last_funcional"],
+    ],
+    onSuccess: () => {
+      setEditOpen(false);
+      setEditDate(undefined);
+    },
+  });
 
   const sev = severityForLastFuncional(lastFuncional ?? null);
 
