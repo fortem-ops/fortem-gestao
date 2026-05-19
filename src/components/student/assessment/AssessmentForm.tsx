@@ -362,6 +362,8 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
         </div>
       )}
 
+      {permiteUpload && <AvaliacaoAnexos avaliacaoId={savedAvaliacaoId} />}
+
       <div className="flex flex-wrap gap-2">
         <Button onClick={handleSave} disabled={saving}>
           {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
