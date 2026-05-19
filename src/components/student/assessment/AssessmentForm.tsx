@@ -110,6 +110,7 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
         .select()
         .single();
       if (avalErr) throw avalErr;
+      setSavedAvaliacaoId(aval.id);
 
       const funcRow: Record<string, unknown> = { avaliacao_id: aval.id, observacoes: notes || null };
       rows.forEach(r => {
