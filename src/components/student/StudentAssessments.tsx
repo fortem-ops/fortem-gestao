@@ -1,15 +1,22 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ClipboardCheck, Eye, Activity } from "lucide-react";
+import { Plus, ClipboardCheck, Eye, Activity, Pencil, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AssessmentViewerDialog } from "./assessment/AssessmentViewerDialog";
 import { fetchLastFuncionalDate, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
+import { useAuth } from "@/contexts/AuthContext";
+import { userHasStaffAccess } from "@/lib/authAccess";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
 
 export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
   const navigate = useNavigate();
