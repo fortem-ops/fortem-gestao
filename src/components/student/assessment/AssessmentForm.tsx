@@ -237,7 +237,7 @@ function classifyBF(pct: number, sexo: 'M' | 'F'): { label: string; color: strin
   return { label: 'Elevado', color: 'text-destructive' };
 }
 
-function BodyComposition({ student, protocoloId }: { student: Tables<"alunos">; protocoloId: string | null }) {
+function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tables<"alunos">; protocoloId: string | null; permiteUpload: boolean }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [sexo, setSexo] = useState<'M' | 'F'>('M');
@@ -246,6 +246,7 @@ function BodyComposition({ student, protocoloId }: { student: Tables<"alunos">; 
   const [altura, setAltura] = useState('');
   const [dobras, setDobras] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [savedAvaliacaoId, setSavedAvaliacaoId] = useState<string | null>(null);
 
   const results = useMemo(() => {
     const idadeNum = parseFloat(idade);
