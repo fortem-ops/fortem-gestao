@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StudentPicker } from "@/components/student/StudentPicker";
+import { useNotifChat } from "@/contexts/NotifChatContext";
 import { RecipientPicker } from "./RecipientPicker";
 import {
   NOTIF_CATEGORIAS,
@@ -36,6 +37,7 @@ export function NewNotificacaoDialog() {
   const [destinatarios, setDestinatarios] = useState<RecipientGroup[]>([]);
 
   const qc = useQueryClient();
+  const { openChat } = useNotifChat();
   const mutation = useMutation({
     mutationFn: async () => {
       if (!titulo.trim()) throw new Error("Informe um título");
@@ -72,12 +74,13 @@ export function NewNotificacaoDialog() {
 
       return notifId;
     },
-    onSuccess: () => {
+    onSuccess: (notifId) => {
       toast.success("Notificação enviada");
       qc.invalidateQueries({ queryKey: ["notif"] });
       setOpen(false);
       setTitulo(""); setDescricao(""); setPrazo(""); setAlunoId("");
       setReuniaoData(""); setReuniaoLocal(""); setDestinatarios([]);
+      if (notifId) openChat(notifId);
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao enviar"),
   });
