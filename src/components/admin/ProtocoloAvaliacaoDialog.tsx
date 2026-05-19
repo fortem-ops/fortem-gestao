@@ -93,6 +93,10 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
                 <Switch checked={ativo} onCheckedChange={setAtivo} />
                 Ativo
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={permiteUpload} onCheckedChange={setPermiteUpload} />
+                Permite upload de arquivos
+              </label>
             </div>
           </div>
           <div>
