@@ -71,6 +71,29 @@ function emptyPersonalizado2(): PersonalizadoConteudo {
   };
 }
 
+/** Converte um WorkoutTemplate (estrutura fixa) em PersonalizadoConteudo editável. */
+function seedFromWorkoutTemplate(template: WorkoutTemplate): PersonalizadoConteudo {
+  return {
+    aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
+    treinos: template.treinos.map((t) => ({
+      nome: t.nome,
+      blocos: [
+        {
+          nome: "Bloco 1 (Principais)",
+          exercicios: t.exercicios.map((ex) => ({
+            tipo: "simples" as const,
+            categoria: ex.categoria,
+            exercicio: ex.exercicio,
+            series: ex.series,
+            repeticoes: String(ex.repeticoes ?? ""),
+          })),
+        },
+      ],
+    })),
+    observacoes: "",
+  };
+}
+
 function findBankMatch(ex: WorkoutExercise, bank: BankExercise[]): BankExercise | null {
   if (ex.exercicio?.trim()) {
     const nameLower = ex.exercicio.trim().toLowerCase();
