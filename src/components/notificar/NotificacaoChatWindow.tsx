@@ -152,7 +152,7 @@ function ChatBubble({ c, mine, authorName }: { c: any; mine: boolean; authorName
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-        {!mine && <div className="text-[10px] font-semibold opacity-80 mb-0.5">{authorName ?? "—"}</div>}
+        {!mine && <div className="text-[10px] font-semibold opacity-80 mb-0.5">{(authorName ?? "—").split(" ")[0]}</div>}
         <div className="whitespace-pre-wrap">{c.comentario}</div>
         {url && (
           <a href={url} target="_blank" rel="noreferrer" className="text-[10px] underline block mt-0.5">📎 {c.anexo_nome ?? "Anexo"}</a>
