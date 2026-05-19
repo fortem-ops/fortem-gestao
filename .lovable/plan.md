@@ -1,86 +1,52 @@
 ## Objetivo
 
-1. Substituir a coluna **WhatsApp** em Cadastros → Alunos Ativos / Inativos pela coluna **Data Última Avaliação Funcional**.
-2. Exibir essa mesma data, com destaque, no **Perfil do Aluno → Resumo** e em **Histórico de Avaliações**.
-3. Atualizar a data automaticamente sempre que uma Avaliação Funcional for **agendada na Agenda** ou **concluída**.
-4. **NOVO:** Criar automaticamente uma **tarefa para o professor responsável agendar nova avaliação** quando completarem **4 meses** desde a última avaliação funcional.
+Permitir que **Professores, Coordenadores e Administradores** editem manualmente a data da última avaliação funcional de um aluno. Isso é útil principalmente para alunos legados que já realizaram avaliações no passado fora do sistema.
 
-## Regra: "Última Avaliação Funcional"
+As regras existentes (cores ≤4m/4-6m/>6m, tarefa automática de reavaliação após 4 meses, agendamento via cron diário) **continuam funcionando da mesma forma** — uma data editada manualmente passa a ser tratada como uma avaliação real para todos os fins.
 
-A data é derivada (não armazenada) como o **maior valor** entre:
-- `avaliacoes.data` com `tipo = 'funcional'` para o aluno
-- `agenda_servicos.data_especifica` com `atividade ILIKE '%funcional%'` e `data_especifica <= hoje`
+## Abordagem
 
-## Mudanças de UI
+Em vez de alterar `avaliacoes` ou `agenda_servicos` (que carregam dados clínicos e comissionamento), criar um registro tipo "marco histórico" em `avaliacoes` com flag indicando origem manual. Assim:
 
-### `src/pages/StudentList.tsx`
-- Remover coluna **WhatsApp** (header, célula, skeleton, `colSpan`).
-- Adicionar coluna **"Última Aval. Funcional"** (visível em `lg:table-cell`).
-- Estender a query `alunos_with_plans` para carregar em batch:
-  - `avaliacoes` (aluno_id, data) tipo funcional dos IDs visíveis
-  - `agenda_servicos` (aluno_id, data_especifica) `atividade ILIKE '%funcional%'` e `data_especifica <= hoje`
-- Combinar em `lastFuncionalMap[aluno_id] = MAX(...)`.
-- Cor: `text-warning` se >4 meses, `text-destructive` se >6 meses, `—` se nunca.
+- O helper `fetchLastFuncionalDateBatch` continua somando todas as fontes sem mudanças.
+- Os triggers de reavaliação (`trg_aval_reavaliacao_4m`) disparam normalmente e agendam a tarefa para 4 meses depois.
+- O Histórico de Avaliações mostra o registro com um badge "Registro histórico" para não confundir com avaliação completa.
 
-### `src/components/student/StudentSummary.tsx`
-- Ampliar a query `last_aval_funcional` para considerar `avaliacoes + agenda_servicos`.
-- Adicionar **card destacado** ("Última Avaliação Funcional") logo após a seção Plano, com badge de severidade (≤4m verde, 4–6m amarelo, >6m vermelho).
+## Mudanças
 
-### `src/components/student/StudentAssessments.tsx`
-- Adicionar **cabeçalho destaque** acima do botão "Realizar Avaliação":
-  - "Última Avaliação Funcional: dd/MM/yyyy" (ou "Nunca realizada").
+### 1. Banco de dados (migração)
 
-### Helper compartilhado `src/lib/avaliacaoFuncional.ts`
-```ts
-fetchLastFuncionalDate(alunoId): Date | null
-fetchLastFuncionalDateBatch(alunoIds[]): Record<id, Date | null>
-```
+- Adicionar coluna `origem text` em `avaliacoes` (valores: `sistema` padrão, `historico_manual`).
+- Ajustar trigger `trg_aval_reavaliacao_4m` para também aceitar registros com `origem = 'historico_manual'` (já aceita por ser `tipo = 'funcional'`, apenas garantir).
+- RLS de INSERT em `avaliacoes` já permite qualquer autenticado com `avaliador_id = auth.uid()` — Professor/Coord/Admin já contemplados.
 
-## NOVO: Tarefa automática "Agendar reavaliação funcional"
+### 2. UI
 
-### Onde acontece
-Uma **edge function agendada (cron diário)** + um **trigger pós-inserção** garantem cobertura.
+**`StudentAssessments.tsx`** — adicionar botão "Editar data da última avaliação" ao lado do header "Última Avaliação Funcional":
 
-### Trigger 1 — após nova avaliação funcional concluída
-Função `fn_agendar_tarefa_reavaliacao_4m()` em `AFTER INSERT` em `avaliacoes` quando `tipo='funcional'`:
+- Abre um diálogo com um único campo (shadcn DatePicker) limitado a datas passadas (≤ hoje).
+- Texto explicativo: "Use para registrar uma avaliação funcional realizada anteriormente fora do sistema."
+- Confirmação cria um registro em `avaliacoes` com:
+  - `tipo = 'funcional'`
+  - `data = <data escolhida>`
+  - `aluno_id = student.id`
+  - `avaliador_id = auth.uid()`
+  - `origem = 'historico_manual'`
+  - `observacoes = 'Data registrada manualmente'`
+  - `dados = {}`
+- Após salvar: invalidar queries `last_funcional_aluno`, `avaliacoes-aluno`, `alunos_with_last_funcional` (lista).
 
-1. Calcular `data_limite = NEW.data + INTERVAL '4 months'`.
-2. Resolver `responsavel_id`:
-   - `alunos.responsavel_id`; se nulo ou ADM, usar `NEW.avaliador_id`; se ainda ADM, abortar (sem tarefa).
-3. **Idempotência**: só inserir se NÃO existir `tarefas` com `aluno_id = NEW.aluno_id`, `tipo_auto = 'reavaliacao_funcional'`, `status = 'pendente'`.
-4. Inserir em `tarefas`:
-   - `titulo`: "Agendar reavaliação funcional"
-   - `descricao`: "Última avaliação funcional realizada em <dd/mm/yyyy>. Agende uma nova avaliação."
-   - `aluno_id`, `responsavel_id` (resolvido), `criado_por_id = NEW.avaliador_id`
-   - `prioridade = 'media'`, `data_limite` (4 meses), `automatica = true`, `tipo_auto = 'reavaliacao_funcional'`.
+**`StudentList.tsx`** — sem mudanças (já lê via helper batch).
 
-### Trigger 2 — ao concluir pendência ou agenda funcional
-Mesmo helper chamado também em `AFTER UPDATE` de `comissionamento_pendencias` quando `concluido` muda para `true` e `tipo_pendencia = 'concluir_avaliacao_funcional'`, para cobrir o caso de a avaliação ter sido feita apenas via Agenda.
+**Histórico** — registros `origem = 'historico_manual'` recebem badge "Registro histórico" no card do `StudentAssessments` para diferenciar visualmente.
 
-### Job diário — varrer alunos sem reavaliação em 4 meses
-Edge function `agendar-reavaliacoes-funcionais` (cron diário 07:00 BRT):
-1. Para cada aluno `status='ativo'`:
-   - Pegar `last_funcional` (mesma regra do helper).
-   - Se `last_funcional IS NULL` **ou** `hoje >= last_funcional + 4 meses`:
-     - Resolver `responsavel_id` (com fallback igual ao trigger).
-     - Inserir tarefa idempotente (mesma checagem `tipo_auto = 'reavaliacao_funcional'` + `status = 'pendente'`).
+### 3. Permissões de acesso ao botão
 
-> Garante que alunos antigos (sem trigger de avaliação recente) também recebam a tarefa, e que a tarefa seja recriada após ser concluída.
-
-### Integração com alertas existentes
-O `StudentSummary` e `AlertsWidget` já mostram "Agendar reavaliação funcional" no UI quando >4 meses — passa a ser também uma tarefa real em `tarefas`, visível em `TaskCenter` e `TasksWidget`.
-
-## Backend changes resumo
-
-1. Migração SQL:
-   - `fn_resolver_responsavel_reavaliacao(aluno_id, fallback_user_id)` — utilitário.
-   - `fn_agendar_tarefa_reavaliacao_4m()` — função do trigger.
-   - Trigger `trg_avaliacao_reavaliacao_4m` em `avaliacoes`.
-   - Trigger `trg_pendencia_reavaliacao_4m` em `comissionamento_pendencias`.
-2. Edge function `supabase/functions/agendar-reavaliacoes-funcionais/index.ts`.
-3. Cron job diário (07:00 BRT) via `pg_cron` + `pg_net` (insert direto via tool, não migration).
+Mostrar botão se o usuário tiver papel `professor`, `coordenador` ou `admin`. Usar `userHasStaffAccess` já existente em `src/lib/authAccess.ts` via hook simples (`useQuery` no componente).
 
 ## Fora de escopo
-- Não criar coluna nova em `alunos`. Data é sempre derivada.
-- Não mexer nos triggers de comissionamento de Avaliação Funcional (já corrigidos).
-- Não alterar `StudentHistory` (já lista cronologicamente).
+
+- Não editar/alterar avaliações existentes da tabela `avaliacoes` (continua só pelo dono via tela de Avaliações).
+- Não criar comissionamento para o registro histórico (não passa por `comissionamento_pendencias`).
+- Sem alterações em `agenda_servicos`.
+- Cron diário e triggers permanecem inalterados em lógica — apenas se beneficiam do novo registro.

@@ -522,6 +522,7 @@ export type Database = {
           data: string
           id: string
           observacoes: string | null
+          origem: string
           protocolo_id: string | null
           tipo: string
           updated_at: string
@@ -535,6 +536,7 @@ export type Database = {
           data?: string
           id?: string
           observacoes?: string | null
+          origem?: string
           protocolo_id?: string | null
           tipo: string
           updated_at?: string
@@ -548,6 +550,7 @@ export type Database = {
           data?: string
           id?: string
           observacoes?: string | null
+          origem?: string
           protocolo_id?: string | null
           tipo?: string
           updated_at?: string
