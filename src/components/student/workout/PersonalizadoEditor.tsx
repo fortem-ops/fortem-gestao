@@ -69,6 +69,8 @@ interface Props {
   treinoId?: string;
   onBack: () => void;
   onSaved?: () => void;
+  /** Quando true, oculta botões de salvar/aplicar e desliga autosave remoto. */
+  readOnly?: boolean;
 }
 
 const FORCA_CATEGORIAS = [
