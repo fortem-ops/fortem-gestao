@@ -123,16 +123,31 @@ export function StudentSummary({ student }: { student: Aluno }) {
     enabled: !!plano,
   });
   const { data: lastAval } = useQuery({
-    queryKey: ["last_aval_funcional", student.id],
+    queryKey: ["last_aval_funcional_combined", student.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("avaliacoes")
-        .select("id, data")
-        .eq("aluno_id", student.id)
-        .eq("tipo", "funcional")
-        .order("data", { ascending: false })
-        .limit(1);
-      return data && data.length > 0 ? data[0] : null;
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const [av, ag] = await Promise.all([
+        supabase
+          .from("avaliacoes")
+          .select("id, data")
+          .eq("aluno_id", student.id)
+          .ilike("tipo", "%funcional%")
+          .order("data", { ascending: false })
+          .limit(1),
+        supabase
+          .from("agenda_servicos")
+          .select("id, data_especifica")
+          .eq("aluno_id", student.id)
+          .ilike("atividade", "%funcional%")
+          .not("data_especifica", "is", null)
+          .lte("data_especifica", todayISO)
+          .order("data_especifica", { ascending: false })
+          .limit(1),
+      ]);
+      const a = av.data?.[0]?.data ?? null;
+      const b = ag.data?.[0]?.data_especifica ?? null;
+      const max = a && b ? (a > b ? a : b) : (a || b);
+      return max ? { id: av.data?.[0]?.id ?? ag.data?.[0]?.id ?? "", data: max as string } : null;
     },
   });
 
