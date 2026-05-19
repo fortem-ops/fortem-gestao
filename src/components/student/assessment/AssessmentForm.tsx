@@ -271,7 +271,7 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
     if (!results) { toast.error("Preencha todos os dados antes de salvar"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("avaliacoes").insert({
+      const { data: inserted, error } = await supabase.from("avaliacoes").insert({
         aluno_id: student.id,
         avaliador_id: user.id,
         tipo: "composicao_corporal",
@@ -282,8 +282,9 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
           classificacao: results.classification.label, imc: results.imc,
           massa_magra: results.massaMagra, massa_gorda: results.massaGorda,
         },
-      } as never);
+      } as never).select().single();
       if (error) throw error;
+      setSavedAvaliacaoId(inserted.id);
       toast.success("Composição corporal salva com sucesso");
       queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
       queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
