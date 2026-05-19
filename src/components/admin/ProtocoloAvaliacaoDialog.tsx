@@ -56,6 +56,7 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
         descricao: descricao.trim() || null,
         is_default: isDefault,
         ativo,
+        permite_upload: permiteUpload,
         schema: tipo.engine === "dinamico" ? (schema as unknown as Record<string, unknown>) : (protocolo?.schema as Record<string, unknown> ?? {}),
         updated_by: user?.id,
       } as never);
