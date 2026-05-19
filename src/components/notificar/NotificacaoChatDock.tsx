@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifChat } from "@/contexts/NotifChatContext";
@@ -12,8 +12,6 @@ export function NotificacaoChatDock() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { openChats, minimizedChats, openChat, expand, dismiss } = useNotifChat();
-  const location = useLocation();
-  const onNotificarPage = location.pathname.startsWith("/notificar");
 
   // Realtime: open chat on new notifications received
   useEffect(() => {
