@@ -1070,6 +1070,9 @@ export default function BancoTreinos() {
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
+    const isCorridaEdit =
+      personalizadoOpen.mode === "edit" && personalizadoOpen.nome?.startsWith("Corrida");
+    const isCorridaCard = isCorrida || isCorridaEdit;
     const initialData =
       personalizadoOpen.mode === "edit"
         ? personalizadoOpen.conteudo
@@ -1094,7 +1097,7 @@ export default function BancoTreinos() {
           modeloId={personalizadoOpen.mode === "edit" ? personalizadoOpen.id : undefined}
           onBack={() => setPersonalizadoOpen(null)}
           onSaved={() => { refetchModelos(); }}
-          readOnly={isCorrida && !canEdit ? true : (personalizadoOpen.mode === "edit" && (personalizadoOpen as any).readOnly === true)}
+          readOnly={isCorridaCard && !canEdit}
         />
       </div>
     );
