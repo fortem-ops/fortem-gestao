@@ -27,89 +27,41 @@ export function StatsCards({ professorId }: Props) {
       const mesInicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
       const mesFim = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
 
-      // 1) Comissão treino experimental: agenda concluída (horário passado) + relatório experimental
-      const diaSemanaHoje = now.getDay();
-      const todayStr = now.toISOString().split("T")[0];
-      const nowTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:00`;
+      let q = supabase
+        .from("comissionamentos" as any)
+        .select("valor, tipo, status")
+        .gte("data_referencia", mesInicio)
+        .lte("data_referencia", mesFim)
+        .neq("status", "cancelado");
+      if (professorId) q = q.eq("profissional_id", professorId);
+      const { data } = await q;
 
-      // Get all experimental training events this month that are concluded (time passed)
-      let expQ = supabase
-        .from("agenda_servicos")
-        .select("id, aluno_id, profissional_id, horario_fim, dia_semana, data_especifica, tipo")
-        .eq("atividade", "Treino Experimental");
-      if (professorId) expQ = expQ.eq("profissional_id", professorId);
-      const { data: expEvents } = await expQ;
-
-      // Get experimental reports this month
-      const { data: expReports } = await supabase
-        .from("avaliacoes")
-        .select("aluno_id, data")
-        .eq("tipo", "experimental")
-        .gte("data", mesInicio)
-        .lte("data", mesFim);
-
-      const expReportAlunos = new Set((expReports || []).map((r) => r.aluno_id));
-
-      // Count concluded experimental trainings this month with reports
-      let comissaoExp = 0;
-      (expEvents || []).forEach((ev) => {
-        if (!ev.aluno_id || !expReportAlunos.has(ev.aluno_id)) return;
-        // Check if event is in this month and concluded
-        if (ev.tipo === "avulso" && ev.data_especifica) {
-          if (ev.data_especifica >= mesInicio && ev.data_especifica <= mesFim) {
-            // Check if time passed
-            if (ev.data_especifica < todayStr || (ev.data_especifica === todayStr && ev.horario_fim <= nowTime)) {
-              comissaoExp++;
-            }
-          }
-        }
-        // For fixed events, approximate: count occurrences this month that have passed
-        if (ev.tipo === "fixo") {
-          const start = new Date(mesInicio + "T00:00:00");
-          const end = new Date(mesFim + "T23:59:59");
-          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            if (d.getDay() === ev.dia_semana) {
-              const dStr = d.toISOString().split("T")[0];
-              if (dStr < todayStr || (dStr === todayStr && ev.horario_fim <= nowTime)) {
-                comissaoExp++;
-              }
-            }
-          }
+      const rows = ((data || []) as unknown) as Array<{ valor: number; tipo: string; status: string }>;
+      let totalExp = 0;
+      let totalAval = 0;
+      let totalCart = 0;
+      let experimentais = 0;
+      let avaliacoes = 0;
+      rows.forEach((r) => {
+        const v = Number(r.valor) || 0;
+        if (r.tipo === "treino_experimental") {
+          totalExp += v;
+          experimentais++;
+        } else if (r.tipo === "avaliacao_funcional") {
+          totalAval += v;
+          avaliacoes++;
+        } else {
+          totalCart += v;
         }
       });
 
-      // 2) Comissão avaliação funcional: avaliação funcional + upload avaliação de força
-      const { data: funcAvals } = await supabase
-        .from("avaliacoes")
-        .select("aluno_id, avaliador_id, data")
-        .eq("tipo", "funcional")
-        .gte("data", mesInicio)
-        .lte("data", mesFim);
-
-      let filteredAvals = funcAvals || [];
-      if (professorId) {
-        filteredAvals = filteredAvals.filter((a) => a.avaliador_id === professorId);
-      }
-
-      const { data: forcaUploads } = await supabase
-        .from("uploads")
-        .select("aluno_id, created_at")
-        .eq("categoria", "avaliacao_forca")
-        .gte("created_at", mesInicio + "T00:00:00")
-        .lte("created_at", mesFim + "T23:59:59");
-
-      const forcaAlunos = new Set((forcaUploads || []).map((u) => u.aluno_id));
-      const comissaoAval = filteredAvals.filter((a) => forcaAlunos.has(a.aluno_id)).length;
-
-      const totalExp = comissaoExp * 30;
-      const totalAval = comissaoAval * 35;
-
       return {
-        experimentais: comissaoExp,
-        avaliacoes: comissaoAval,
+        experimentais,
+        avaliacoes,
         totalExp,
         totalAval,
-        total: totalExp + totalAval,
+        totalCart,
+        total: totalExp + totalAval + totalCart,
       };
     },
     staleTime: 60_000,
