@@ -1094,6 +1094,7 @@ export default function BancoTreinos() {
           modeloId={personalizadoOpen.mode === "edit" ? personalizadoOpen.id : undefined}
           onBack={() => setPersonalizadoOpen(null)}
           onSaved={() => { refetchModelos(); }}
+          readOnly={isCorrida && !canEdit ? true : (personalizadoOpen.mode === "edit" && (personalizadoOpen as any).readOnly === true)}
         />
       </div>
     );
