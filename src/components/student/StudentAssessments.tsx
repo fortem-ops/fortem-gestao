@@ -37,6 +37,28 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
     enabled: !!user,
   });
 
+  const { data: canDelete } = useQuery({
+    queryKey: ["is-coord-or-admin", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+  });
+
+  const deleteMutation = useSupabaseMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("avaliacoes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    successMessage: "Avaliação excluída.",
+    invalidates: [
+      ["avaliacoes-aluno", student.id],
+      ["last_funcional_aluno", student.id],
+      ["alunos_with_last_funcional"],
+    ],
+  });
+
   const { data: lastFuncional } = useQuery({
     queryKey: ["last_funcional_aluno", student.id],
     queryFn: () => fetchLastFuncionalDate(student.id),
