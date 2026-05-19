@@ -166,6 +166,13 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
     },
   });
 
+  const alunoIds = useMemo(() => alunos.map((a) => a.id), [alunos]);
+  const { data: lastFuncionalMap } = useQuery({
+    queryKey: ["last_funcional_batch", alunoIds],
+    queryFn: () => fetchLastFuncionalDateBatch(alunoIds),
+    enabled: alunoIds.length > 0,
+    staleTime: 30_000,
+  });
 
   const debouncedSearch = useDebounce(filters.search, 250);
 
