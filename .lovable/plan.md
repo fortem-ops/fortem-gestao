@@ -1,35 +1,41 @@
-## Problema
+## Objetivo
 
-As três Edge Functions novas (`notify-tarefa-evento`, `notify-notificacao-evento`, `notify-agenda-diaria`) chamam `client.send({ from, to, subject, html })` no `denomailer` sem passar o campo `content`. Nessa configuração o denomailer envia a mensagem sem definir corretamente o `Content-Type: text/html` multipart, e clientes como Gmail acabam exibindo o HTML como texto bruto (o usuário "vê só códigos").
+Hoje os cards de **Corrida - Fase 1..4** abrem o `TemplateDetail` (mesmo das Fases), que só permite ajustar séries/reps/dias e trocar o exercício pelo Banco — sem adicionar/remover exercícios nem renomear. Vamos passar a abrir o **`PersonalizadoEditor`** (edição livre) para Corrida, pré-carregado com a estrutura atual do template.
 
-A função antiga `notify-agenda-evento` apresenta o mesmo padrão e provavelmente também está com o problema — vou corrigi-la junto.
+## Comportamento
 
-## Correção
+- Clicar em um card de Corrida abre o `PersonalizadoEditor` com:
+  - **Se já existe** um modelo salvo em `banco_treinos_personalizados` com `nome = template.fase` (ex.: "Corrida - Fase 1"): abre no modo **edit** com o conteúdo salvo.
+  - **Se não existe**: abre no modo **new**, pré-populado a partir do `WorkoutTemplate` (convertendo cada exercício em `PersonalizadoExercicioSimples` em "Bloco 1 (Principais)").
+- Ao salvar, o `PersonalizadoEditor` grava em `banco_treinos_personalizados` como qualquer outro modelo personalizado — passa a aparecer também na seção "Meus Modelos" / "Modelos {autor}".
+- Fases (Fase 1..4), Métodos (Planilha 5RM, 5-3-1, M102) e Personalizado/Personalizado 2 **continuam exatamente como estão**. Mudança escopada só a Corrida.
 
-Em cada `sendGmailEmail`, passar `content: "auto"` para que o denomailer gere automaticamente a versão texto a partir do HTML e marque o corpo como `text/html`:
+## Mudanças técnicas
 
-```ts
-await client.send({
-  from: opts.from,
-  to: opts.to,
-  cc: opts.cc?.length ? opts.cc : undefined, // só em agenda-evento
-  subject: opts.subject,
-  content: "auto",
-  html: opts.html,
-});
-```
+Arquivo único: `src/pages/BancoTreinos.tsx`.
 
-## Arquivos a editar
+1. **Nova helper** `seedFromWorkoutTemplate(template: WorkoutTemplate): PersonalizadoConteudo`
+   - `aquecimento`: `{ LIB: [], MOB: [], ATI: [], PREV: [] }` (Corrida não tem aquecimento; se um dia tiver, mapeia por `categoria`).
+   - `treinos`: para cada `template.treinos[i]`, cria `{ nome, blocos: [{ nome: "Bloco 1 (Principais)", exercicios: [...simples] }] }`.
+   - Cada exercício vira `{ tipo: "simples", categoria, exercicio, series, repeticoes }`.
 
-1. `supabase/functions/notify-tarefa-evento/index.ts` — adicionar `content: "auto"`.
-2. `supabase/functions/notify-notificacao-evento/index.ts` — idem.
-3. `supabase/functions/notify-agenda-diaria/index.ts` — idem.
-4. `supabase/functions/notify-agenda-evento/index.ts` — idem (preventivo, mesmo bug latente).
+2. **Estado** `personalizadoOpen` ganha nova variante:
+   ```ts
+   | { mode: "new"; variante: "corrida"; templateFase: string; seed: PersonalizadoConteudo }
+   ```
 
-## Deploy & validação
+3. **Click handler** do card (linhas 1121-1129):
+   - Se `template.fase.startsWith("Corrida")`:
+     - Procura em `modelosPersonalizados` um item com `nome === template.fase`.
+     - Se achou → `setPersonalizadoOpen({ mode: "edit", id, nome, conteudo })`.
+     - Senão → `setPersonalizadoOpen({ mode: "new", variante: "corrida", templateFase: template.fase, seed: seedFromWorkoutTemplate(template) })`.
+   - Demais cards: mantém o `setSelected(template)` atual.
 
-- Redeploy das 4 funções via `deploy_edge_functions`.
-- Validar enviando uma tarefa de teste e verificando o e-mail recebido (deve renderizar o cartão FORTEM em vez de mostrar `<html>...`).
-- Conferir logs de cada função para garantir status 200 sem erros do SMTP.
+4. **Render do `PersonalizadoEditor`** (linhas 1046-1071): adiciona o terceiro caso para `variante === "corrida"` — usa `seed` como `initial` e `templateFase` como `initialName`.
 
-Sem mudanças de banco, RLS, UI ou triggers.
+5. Nenhuma alteração de banco, RLS, tipos ou outras telas. `WORKOUT_TEMPLATES` segue como seed read-only.
+
+## Notas
+
+- Não há migração de dados: a primeira edição cria o registro em `banco_treinos_personalizados`. Antes disso, o template original (`WORKOUT_TEMPLATES`) é a fonte da visualização inicial.
+- A "Indicação da Fase Inicial" da aula experimental (que usa `WORKOUT_TEMPLATES`) **não muda** — continua prescrevendo a versão base do template; se quiser que ela leia o modelo editado, abre como nova issue separada.

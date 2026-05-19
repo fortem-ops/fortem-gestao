@@ -71,6 +71,29 @@ function emptyPersonalizado2(): PersonalizadoConteudo {
   };
 }
 
+/** Converte um WorkoutTemplate (estrutura fixa) em PersonalizadoConteudo editável. */
+function seedFromWorkoutTemplate(template: WorkoutTemplate): PersonalizadoConteudo {
+  return {
+    aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
+    treinos: template.treinos.map((t) => ({
+      nome: t.nome,
+      blocos: [
+        {
+          nome: "Bloco 1 (Principais)",
+          exercicios: t.exercicios.map((ex) => ({
+            tipo: "simples" as const,
+            categoria: ex.categoria,
+            exercicio: ex.exercicio,
+            series: ex.series,
+            repeticoes: String(ex.repeticoes ?? ""),
+          })),
+        },
+      ],
+    })),
+    observacoes: "",
+  };
+}
+
 function findBankMatch(ex: WorkoutExercise, bank: BankExercise[]): BankExercise | null {
   if (ex.exercicio?.trim()) {
     const nameLower = ex.exercicio.trim().toLowerCase();
@@ -791,6 +814,7 @@ export default function BancoTreinos() {
   const [personalizadoOpen, setPersonalizadoOpen] = useState<
     | null
     | { mode: "new"; variante?: "personalizado" | "personalizado2" }
+    | { mode: "new"; variante: "corrida"; templateFase: string; seed: PersonalizadoConteudo }
     | { mode: "edit"; id: string; nome: string; conteudo: PersonalizadoConteudo }
   >(null);
 
@@ -1045,18 +1069,23 @@ export default function BancoTreinos() {
 
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
+    const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
     const initialData =
       personalizadoOpen.mode === "edit"
         ? personalizadoOpen.conteudo
-        : isP2
-          ? emptyPersonalizado2()
-          : emptyPersonalizado();
+        : isCorrida
+          ? (personalizadoOpen as { seed: PersonalizadoConteudo }).seed
+          : isP2
+            ? emptyPersonalizado2()
+            : emptyPersonalizado();
     const initialName =
       personalizadoOpen.mode === "edit"
         ? personalizadoOpen.nome
-        : isP2
-          ? "Modelo Personalizado 2"
-          : "Modelo Personalizado";
+        : isCorrida
+          ? (personalizadoOpen as { templateFase: string }).templateFase
+          : isP2
+            ? "Modelo Personalizado 2"
+            : "Modelo Personalizado";
     return (
       <div className="container mx-auto p-6 max-w-6xl">
         <PersonalizadoEditor
@@ -1123,6 +1152,23 @@ export default function BancoTreinos() {
                         setPersonalizadoOpen({ mode: "new", variante: "personalizado" });
                       } else if (template.fase === "Personalizado 2") {
                         setPersonalizadoOpen({ mode: "new", variante: "personalizado2" });
+                      } else if (template.fase.startsWith("Corrida")) {
+                        const existing = modelosPersonalizados.find((m) => m.nome === template.fase);
+                        if (existing) {
+                          setPersonalizadoOpen({
+                            mode: "edit",
+                            id: existing.id,
+                            nome: existing.nome,
+                            conteudo: (existing.conteudo as unknown) as PersonalizadoConteudo,
+                          });
+                        } else {
+                          setPersonalizadoOpen({
+                            mode: "new",
+                            variante: "corrida",
+                            templateFase: template.fase,
+                            seed: seedFromWorkoutTemplate(template),
+                          });
+                        }
                       } else {
                         setSelected(template);
                       }
