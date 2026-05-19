@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifChat } from "@/contexts/NotifChatContext";
@@ -12,8 +12,6 @@ export function NotificacaoChatDock() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { openChats, minimizedChats, openChat, expand, dismiss } = useNotifChat();
-  const location = useLocation();
-  const onNotificarPage = location.pathname.startsWith("/notificar");
 
   // Realtime: open chat on new notifications received
   useEffect(() => {
@@ -69,10 +67,10 @@ export function NotificacaoChatDock() {
   return (
     <>
       {openChats.map((id, idx) => {
-        if (onNotificarPage) return null; // avoid duplicating UI on the page itself
+        
         return <NotificacaoChatWindow key={id} id={id} offsetIndex={idx} />;
       })}
-      {minimizedChats.length > 0 && !onNotificarPage && (
+      {minimizedChats.length > 0  && (
         <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2 max-w-xs">
           {minimizedChats.map((id) => (
             <div key={id} className="flex items-center gap-2 bg-card border border-border rounded-full shadow-lg pl-3 pr-1 py-1">
