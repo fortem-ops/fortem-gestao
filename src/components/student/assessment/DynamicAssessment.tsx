@@ -219,6 +219,8 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
         </section>
       ))}
 
+      {permiteUpload && <AvaliacaoAnexos avaliacaoId={id} />}
+
       <div className="flex flex-wrap gap-2 justify-end">
         {dados.status === "rascunho" ? (
           <Button onClick={finalizar}><CheckCircle2 className="w-4 h-4 mr-2" /> Finalizar avaliação</Button>
