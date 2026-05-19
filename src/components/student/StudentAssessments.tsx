@@ -159,10 +159,13 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
       ) : (
         <div className="space-y-2">
           {avaliacoes.map((a) => (
-            <button
+            <div
               key={a.id}
+              role="button"
+              tabIndex={0}
               onClick={() => openViewer(a)}
-              className="glass-card rounded-lg p-4 flex items-start gap-3 w-full text-left hover:bg-secondary/30 transition-colors group"
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openViewer(a); } }}
+              className="glass-card rounded-lg p-4 flex items-start gap-3 w-full text-left hover:bg-secondary/30 transition-colors group cursor-pointer"
             >
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <ClipboardCheck className="w-5 h-5 text-primary" />
@@ -181,8 +184,36 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
                   <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{a.observacoes}</p>
                 )}
               </div>
-              <Eye className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center" />
-            </button>
+              <div className="flex items-center gap-1 self-center" onClick={(e) => e.stopPropagation()}>
+                <Eye className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                {canDelete && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Excluir avaliação">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir avaliação</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir esta avaliação de {format(new Date(a.data), "dd/MM/yyyy")}? Esta ação é irreversível.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteMutation.mutate(a.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}
