@@ -236,7 +236,7 @@ export function PersonalizadoEditor({
     }, 800);
 
     // Auto-save remoto silencioso, apenas para registros já existentes.
-    if (modeloId || treinoId) {
+    if ((modeloId || treinoId) && !readOnly) {
       if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
       remoteTimerRef.current = setTimeout(async () => {
         const u = userRef.current;
