@@ -142,7 +142,12 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
                 <ClipboardCheck className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground capitalize">{a.tipo.replace(/_/g, ' ')}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-foreground capitalize">{a.tipo.replace(/_/g, ' ')}</p>
+                  {(a as any).origem === "historico_manual" && (
+                    <Badge variant="outline" className="status-info text-[10px]">Registro histórico</Badge>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {format(new Date(a.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                 </p>
@@ -153,6 +158,62 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
               <Eye className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center" />
             </button>
           ))}
+        </div>
+      )}
+
+      <AssessmentViewerDialog
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+        avaliacao={selected}
+        student={student}
+      />
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar data da última avaliação funcional</DialogTitle>
+            <DialogDescription>
+              Use para registrar uma avaliação funcional realizada anteriormente fora do sistema.
+              A data informada passa a contar para alertas e para o agendamento automático de reavaliação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn("w-full justify-start text-left font-normal", !editDate && "text-muted-foreground")}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {editDate ? format(editDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "Selecione a data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={editDate}
+                  onSelect={setEditDate}
+                  disabled={(d) => d > new Date() || d < new Date("1990-01-01")}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => editDate && saveHistoricoMutation.mutate(editDate)}
+              disabled={!editDate || saveHistoricoMutation.isPending}
+            >
+              {saveHistoricoMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
         </div>
       )}
 
