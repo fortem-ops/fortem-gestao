@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature } from "lucide-react";
+import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
@@ -28,6 +28,7 @@ const principalItems = [
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
   { title: "Notificar", url: "/notificar", icon: Bell, badge: "unread" as const },
   { title: "Agenda", url: "/agenda", icon: CalendarDays },
+  { title: "Comissionamentos", url: "/comissionamentos", icon: DollarSign },
 ];
 
 const principalCoordItems = [

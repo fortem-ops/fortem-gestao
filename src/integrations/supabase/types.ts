@@ -812,6 +812,155 @@ export type Database = {
           },
         ]
       }
+      comissionamento_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          meta_minima: number
+          regras_json: Json
+          tipo: Database["public"]["Enums"]["comissao_tipo"]
+          updated_at: string
+          updated_by: string | null
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          meta_minima?: number
+          regras_json?: Json
+          tipo: Database["public"]["Enums"]["comissao_tipo"]
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          meta_minima?: number
+          regras_json?: Json
+          tipo?: Database["public"]["Enums"]["comissao_tipo"]
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      comissionamento_pendencias: {
+        Row: {
+          agenda_id: string | null
+          aluno_id: string | null
+          avaliacao_id: string | null
+          comissionamento_id: string | null
+          concluido: boolean
+          concluido_em: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          profissional_id: string
+          responsavel_id: string | null
+          tipo_pendencia: Database["public"]["Enums"]["comissao_pendencia_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          agenda_id?: string | null
+          aluno_id?: string | null
+          avaliacao_id?: string | null
+          comissionamento_id?: string | null
+          concluido?: boolean
+          concluido_em?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          profissional_id: string
+          responsavel_id?: string | null
+          tipo_pendencia: Database["public"]["Enums"]["comissao_pendencia_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          agenda_id?: string | null
+          aluno_id?: string | null
+          avaliacao_id?: string | null
+          comissionamento_id?: string | null
+          concluido?: boolean
+          concluido_em?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          profissional_id?: string
+          responsavel_id?: string | null
+          tipo_pendencia?: Database["public"]["Enums"]["comissao_pendencia_tipo"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissionamento_pendencias_comissionamento_id_fkey"
+            columns: ["comissionamento_id"]
+            isOneToOne: false
+            referencedRelation: "comissionamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comissionamentos: {
+        Row: {
+          aluno_id: string | null
+          aprovado_por: string | null
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string | null
+          data_referencia: string
+          descricao: string | null
+          id: string
+          observacoes: string | null
+          origem_id: string | null
+          origem_tabela: string | null
+          profissional_id: string
+          status: Database["public"]["Enums"]["comissao_status"]
+          tipo: Database["public"]["Enums"]["comissao_tipo"]
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          aluno_id?: string | null
+          aprovado_por?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          data_referencia?: string
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          origem_id?: string | null
+          origem_tabela?: string | null
+          profissional_id: string
+          status?: Database["public"]["Enums"]["comissao_status"]
+          tipo: Database["public"]["Enums"]["comissao_tipo"]
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          aluno_id?: string | null
+          aprovado_por?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          data_referencia?: string
+          descricao?: string | null
+          id?: string
+          observacoes?: string | null
+          origem_id?: string | null
+          origem_tabela?: string | null
+          profissional_id?: string
+          status?: Database["public"]["Enums"]["comissao_status"]
+          tipo?: Database["public"]["Enums"]["comissao_tipo"]
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       consumo_servicos: {
         Row: {
           agenda_id: string | null
@@ -2776,6 +2925,14 @@ export type Database = {
         Args: { p_body: Json; p_name: string }
         Returns: undefined
       }
+      fn_carteira_ativos_por_profissional: {
+        Args: never
+        Returns: {
+          profissional_id: string
+          qtd_alunos: number
+        }[]
+      }
+      fn_carteira_total_ativos: { Args: never; Returns: number }
       fn_clube_check_divergencias: { Args: never; Returns: Json }
       fn_clube_dashboard: { Args: { _periodo_dias?: number }; Returns: Json }
       fn_clube_generate_qr_token: { Args: { _aluno_id: string }; Returns: Json }
@@ -2792,6 +2949,10 @@ export type Database = {
         Args: { _beneficio_id: string; _token: string }
         Returns: Json
       }
+      fn_comissao_valor: {
+        Args: { _tipo: Database["public"]["Enums"]["comissao_tipo"] }
+        Returns: number
+      }
       fn_convert_lead_to_prospect: {
         Args: {
           _aluno_id: string
@@ -2807,6 +2968,17 @@ export type Database = {
       }
       fn_current_aluno_id: { Args: never; Returns: string }
       fn_detect_evasao: { Args: never; Returns: Json }
+      fn_gerar_comissao: {
+        Args: {
+          _aluno: string
+          _descricao: string
+          _origem_id: string
+          _origem_tabela: string
+          _profissional: string
+          _tipo: Database["public"]["Enums"]["comissao_tipo"]
+        }
+        Returns: string
+      }
       fn_is_auto_renew_plan: { Args: { _tipo: string }; Returns: boolean }
       fn_move_pipeline: {
         Args: {
@@ -2892,6 +3064,14 @@ export type Database = {
         Returns: Json
       }
       fn_portal_link_aluno: { Args: never; Returns: Json }
+      fn_processar_comissao_carteira: {
+        Args: { _ref: string }
+        Returns: number
+      }
+      fn_tentar_comissao_experimental: {
+        Args: { _agenda: string; _aluno: string; _profissional: string }
+        Returns: undefined
+      }
       fn_user_can_see_notificacao: {
         Args: { _notif_id: string; _user_id: string }
         Returns: boolean
@@ -2949,6 +3129,21 @@ export type Database = {
         | "max"
         | "agregador"
       clube_status_membro: "ativo" | "bloqueado" | "inadimplente" | "cancelado"
+      comissao_pendencia_tipo:
+        | "avaliar_experimental"
+        | "concluir_avaliacao_funcional"
+        | "upload_arquivo_forca"
+        | "aguardando_pagamento_plano"
+      comissao_status:
+        | "pendente"
+        | "em_validacao"
+        | "aprovado"
+        | "pago"
+        | "cancelado"
+      comissao_tipo:
+        | "treino_experimental"
+        | "avaliacao_funcional"
+        | "carteira_ativa"
       credito_movimento_tipo: "compra" | "consumo" | "estorno" | "ajuste"
       notif_acao:
         | "criada"
@@ -3202,6 +3397,24 @@ export const Constants = {
         "agregador",
       ],
       clube_status_membro: ["ativo", "bloqueado", "inadimplente", "cancelado"],
+      comissao_pendencia_tipo: [
+        "avaliar_experimental",
+        "concluir_avaliacao_funcional",
+        "upload_arquivo_forca",
+        "aguardando_pagamento_plano",
+      ],
+      comissao_status: [
+        "pendente",
+        "em_validacao",
+        "aprovado",
+        "pago",
+        "cancelado",
+      ],
+      comissao_tipo: [
+        "treino_experimental",
+        "avaliacao_funcional",
+        "carteira_ativa",
+      ],
       credito_movimento_tipo: ["compra", "consumo", "estorno", "ajuste"],
       notif_acao: [
         "criada",
