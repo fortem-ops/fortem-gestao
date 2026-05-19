@@ -36,7 +36,7 @@ export function StatsCards({ professorId }: Props) {
       if (professorId) q = q.eq("profissional_id", professorId);
       const { data } = await q;
 
-      const rows = (data || []) as Array<{ valor: number; tipo: string; status: string }>;
+      const rows = ((data || []) as unknown) as Array<{ valor: number; tipo: string; status: string }>;
       let totalExp = 0;
       let totalAval = 0;
       let totalCart = 0;
