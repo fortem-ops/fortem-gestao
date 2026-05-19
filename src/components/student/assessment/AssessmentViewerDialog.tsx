@@ -237,6 +237,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           </div>
         )}
 
+        <AvaliacaoAnexos avaliacaoId={avaliacao.id} canEdit={!!canEdit} />
+
         <DialogFooter className="gap-2 flex-wrap">
           {isExperimental && canEdit && !editing && (
             <Button variant="outline" onClick={() => setEditing(true)}>
