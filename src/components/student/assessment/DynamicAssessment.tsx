@@ -22,6 +22,7 @@ import {
   type ExperimentalSchema,
   type TemplateQuestion,
 } from "./experimentalTemplate";
+import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FASE_INICIAL_GROUPS, hasTreinoAtual, prescribeFaseInicial } from "@/lib/workoutImport";
 import {
   AlertDialog,
