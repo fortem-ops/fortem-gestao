@@ -69,6 +69,8 @@ interface Props {
   treinoId?: string;
   onBack: () => void;
   onSaved?: () => void;
+  /** Quando true, oculta botões de salvar/aplicar e desliga autosave remoto. */
+  readOnly?: boolean;
 }
 
 const FORCA_CATEGORIAS = [
@@ -98,6 +100,7 @@ export function PersonalizadoEditor({
   treinoId,
   onBack,
   onSaved,
+  readOnly = false,
 }: Props) {
   const { user } = useAuth();
   const { categories, grupoSubcategorias } = useExerciseCategories();
@@ -233,7 +236,7 @@ export function PersonalizadoEditor({
     }, 800);
 
     // Auto-save remoto silencioso, apenas para registros já existentes.
-    if (modeloId || treinoId) {
+    if ((modeloId || treinoId) && !readOnly) {
       if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
       remoteTimerRef.current = setTimeout(async () => {
         const u = userRef.current;
@@ -702,7 +705,7 @@ export function PersonalizadoEditor({
           <Button size="sm" variant="outline" onClick={() => setExportOpen("print")}>
             <Printer className="w-3 h-3 mr-1" /> Imprimir
           </Button>
-          {!isAluno && (
+          {!isAluno && !readOnly && (
             <>
               <Button size="sm" variant="outline" onClick={() => setApplyOpen(true)}>
                 <Users className="w-3 h-3 mr-1" /> Aplicar a aluno
@@ -712,10 +715,13 @@ export function PersonalizadoEditor({
               </Button>
             </>
           )}
-          {isAluno && (
+          {isAluno && !readOnly && (
             <Button size="sm" onClick={() => saveToAluno(alunoId!)} disabled={saving}>
               <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar no aluno"}
             </Button>
+          )}
+          {readOnly && (
+            <span className="text-xs text-muted-foreground italic px-2">Somente leitura</span>
           )}
         </div>
       </div>

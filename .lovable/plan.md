@@ -1,41 +1,38 @@
 ## Objetivo
 
-Hoje os cards de **Corrida - Fase 1..4** abrem o `TemplateDetail` (mesmo das Fases), que só permite ajustar séries/reps/dias e trocar o exercício pelo Banco — sem adicionar/remover exercícios nem renomear. Vamos passar a abrir o **`PersonalizadoEditor`** (edição livre) para Corrida, pré-carregado com a estrutura atual do template.
+Modelos da seção **Corrida** em `Banco de Treinos` passam a ser:
+- **Editáveis** apenas por coordenadores/administradores (`canEdit`).
+- Salvos como **registro único compartilhado por template** (um por `template.fase`, ex.: "Corrida - Fase 1") em `banco_treinos_personalizados`.
+- **Ocultos** das listagens "Meus Modelos" / "Modelos de {autor}", aparecendo somente como cards da própria seção Corrida.
+- Para professor/nutri/fisio: o editor abre normalmente em modo somente leitura (sem botão Salvar / botões desabilitados).
 
-## Comportamento
+## Mudanças
 
-- Clicar em um card de Corrida abre o `PersonalizadoEditor` com:
-  - **Se já existe** um modelo salvo em `banco_treinos_personalizados` com `nome = template.fase` (ex.: "Corrida - Fase 1"): abre no modo **edit** com o conteúdo salvo.
-  - **Se não existe**: abre no modo **new**, pré-populado a partir do `WorkoutTemplate` (convertendo cada exercício em `PersonalizadoExercicioSimples` em "Bloco 1 (Principais)").
-- Ao salvar, o `PersonalizadoEditor` grava em `banco_treinos_personalizados` como qualquer outro modelo personalizado — passa a aparecer também na seção "Meus Modelos" / "Modelos {autor}".
-- Fases (Fase 1..4), Métodos (Planilha 5RM, 5-3-1, M102) e Personalizado/Personalizado 2 **continuam exatamente como estão**. Mudança escopada só a Corrida.
+Arquivo único: `src/pages/BancoTreinos.tsx` + um pequeno ajuste em `src/components/student/workout/PersonalizadoEditor.tsx`.
 
-## Mudanças técnicas
+### 1. `PersonalizadoEditor` — prop `readOnly`
+- Adicionar prop opcional `readOnly?: boolean`.
+- Quando `true`: ocultar (ou desabilitar) o botão **Salvar** e o botão **Excluir**. Inputs continuam editáveis localmente (UX igual à opção 1), mas nada persiste.
+- Atalho `Ctrl/Cmd+S` desativado quando `readOnly`.
 
-Arquivo único: `src/pages/BancoTreinos.tsx`.
+### 2. `BancoTreinos.tsx` — comportamento dos cards Corrida
+- `onClick` do card (`template.fase.startsWith("Corrida")`):
+  - Procurar `existing = modelosPersonalizados.find(m => m.nome === template.fase)`.
+  - Se existe → abrir em `mode: "edit"` (mantém atual).
+  - Se não existe **e** `canEdit` → abrir em `mode: "new"` com `seed` (mantém atual).
+  - Se não existe **e** não tem permissão → abrir em modo "new" somente leitura usando o seed do template (para visualização).
+- Passar `readOnly={!canEdit}` para `PersonalizadoEditor` quando o template aberto for Corrida.
 
-1. **Nova helper** `seedFromWorkoutTemplate(template: WorkoutTemplate): PersonalizadoConteudo`
-   - `aquecimento`: `{ LIB: [], MOB: [], ATI: [], PREV: [] }` (Corrida não tem aquecimento; se um dia tiver, mapeia por `categoria`).
-   - `treinos`: para cada `template.treinos[i]`, cria `{ nome, blocos: [{ nome: "Bloco 1 (Principais)", exercicios: [...simples] }] }`.
-   - Cada exercício vira `{ tipo: "simples", categoria, exercicio, series, repeticoes }`.
+### 3. Ocultar Corrida das listagens de personalizados
+- Em `modelosPorAutor` (linhas ~849-867): antes de agrupar, filtrar `modelosPersonalizados` removendo registros cujo `nome` corresponda a algum `WORKOUT_TEMPLATES[].fase` que começa com `"Corrida"`.
+- Assim a edição salva no card Corrida não aparece duplicada em "Meus Modelos" / "Modelos de X".
 
-2. **Estado** `personalizadoOpen` ganha nova variante:
-   ```ts
-   | { mode: "new"; variante: "corrida"; templateFase: string; seed: PersonalizadoConteudo }
-   ```
+### 4. (Opcional) Badge "Editado" no card Corrida
+- Mostrar um pequeno indicador quando `existing` foi encontrado, sinalizando que o modelo da equipe foi customizado em relação ao seed.
 
-3. **Click handler** do card (linhas 1121-1129):
-   - Se `template.fase.startsWith("Corrida")`:
-     - Procura em `modelosPersonalizados` um item com `nome === template.fase`.
-     - Se achou → `setPersonalizadoOpen({ mode: "edit", id, nome, conteudo })`.
-     - Senão → `setPersonalizadoOpen({ mode: "new", variante: "corrida", templateFase: template.fase, seed: seedFromWorkoutTemplate(template) })`.
-   - Demais cards: mantém o `setSelected(template)` atual.
+## Não muda
 
-4. **Render do `PersonalizadoEditor`** (linhas 1046-1071): adiciona o terceiro caso para `variante === "corrida"` — usa `seed` como `initial` e `templateFase` como `initialName`.
-
-5. Nenhuma alteração de banco, RLS, tipos ou outras telas. `WORKOUT_TEMPLATES` segue como seed read-only.
-
-## Notas
-
-- Não há migração de dados: a primeira edição cria o registro em `banco_treinos_personalizados`. Antes disso, o template original (`WORKOUT_TEMPLATES`) é a fonte da visualização inicial.
-- A "Indicação da Fase Inicial" da aula experimental (que usa `WORKOUT_TEMPLATES`) **não muda** — continua prescrevendo a versão base do template; se quiser que ela leia o modelo editado, abre como nova issue separada.
+- Schema do banco e RLS — as policies atuais de `banco_treinos_personalizados` já permitem coord/admin atualizar qualquer registro (`Author or coord/admin can update personalizados`).
+- Fases, Métodos, Personalizado, Personalizado 2 — comportamento idêntico.
+- "Indicação da Fase Inicial" da aula experimental — continua usando `WORKOUT_TEMPLATES` (seed read-only).
+- Cards do Banco mostram contagens do seed (`WORKOUT_TEMPLATES`); o conteúdo editado é exibido ao abrir o editor.

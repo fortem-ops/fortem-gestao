@@ -847,8 +847,12 @@ export default function BancoTreinos() {
   });
 
   const modelosPorAutor = useMemo(() => {
+    const corridaNomes = new Set(
+      WORKOUT_TEMPLATES.filter((t) => t.fase.startsWith("Corrida")).map((t) => t.fase),
+    );
+    const visiveis = modelosPersonalizados.filter((m) => !corridaNomes.has(m.nome));
     const groups = new Map<string, typeof modelosPersonalizados>();
-    modelosPersonalizados.forEach((m) => {
+    visiveis.forEach((m) => {
       const arr = groups.get(m.criado_por) || [];
       arr.push(m);
       groups.set(m.criado_por, arr);
@@ -1070,6 +1074,9 @@ export default function BancoTreinos() {
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
+    const isCorridaEdit =
+      personalizadoOpen.mode === "edit" && personalizadoOpen.nome?.startsWith("Corrida");
+    const isCorridaCard = isCorrida || isCorridaEdit;
     const initialData =
       personalizadoOpen.mode === "edit"
         ? personalizadoOpen.conteudo
@@ -1094,6 +1101,7 @@ export default function BancoTreinos() {
           modeloId={personalizadoOpen.mode === "edit" ? personalizadoOpen.id : undefined}
           onBack={() => setPersonalizadoOpen(null)}
           onSaved={() => { refetchModelos(); }}
+          readOnly={isCorridaCard && !canEdit}
         />
       </div>
     );
