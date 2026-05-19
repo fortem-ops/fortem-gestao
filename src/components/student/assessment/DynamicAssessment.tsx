@@ -49,7 +49,7 @@ interface Props {
  * Usada por Pliometria, Força, Experimental e novos tipos dinâmicos.
  * Mantém autosave (debounce 800ms) e fluxo finalizar/reabrir.
  */
-export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawSchema, avaliacaoId }: Props) {
+export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawSchema, avaliacaoId, permiteUpload }: Props) {
   const schema = tipoSlug === "experimental" ? ensureFaseInicialQuestion(rawSchema) : rawSchema;
   const { user } = useAuth();
   const queryClient = useQueryClient();
