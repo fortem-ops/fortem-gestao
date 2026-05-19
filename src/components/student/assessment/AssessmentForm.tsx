@@ -45,12 +45,13 @@ const metricColumnMap: Record<string, string> = {
   'Mobilidade Tornozelo': 'tornozelo',
 };
 
-function FunctionalAssessment({ student, protocoloId }: { student: Tables<"alunos">; protocoloId: string | null }) {
+function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student: Tables<"alunos">; protocoloId: string | null; permiteUpload: boolean }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savedAvaliacaoId, setSavedAvaliacaoId] = useState<string | null>(null);
 
   const handleChange = (metric: string, side: 'left' | 'right', val: string) => {
     setValues(prev => ({ ...prev, [metric]: { ...prev[metric], [side]: val } }));
