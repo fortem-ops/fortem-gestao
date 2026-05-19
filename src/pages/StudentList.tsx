@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Utensils, Footprints, MessageCircle, RefreshCw } from "lucide-react";
+import { Activity, Utensils, Footprints, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
 import { useDebounce } from "@/hooks/useDebounce";
+import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
 
 const ALUNOS_COLUMNS =
   "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id";
@@ -165,6 +166,13 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
     },
   });
 
+  const alunoIds = useMemo(() => alunos.map((a) => a.id), [alunos]);
+  const { data: lastFuncionalMap } = useQuery({
+    queryKey: ["last_funcional_batch", alunoIds],
+    queryFn: () => fetchLastFuncionalDateBatch(alunoIds),
+    enabled: alunoIds.length > 0,
+    staleTime: 30_000,
+  });
 
   const debouncedSearch = useDebounce(filters.search, 250);
 
@@ -297,9 +305,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Frequência</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Professor</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Final Plano</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Última Aval. Funcional</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Serviços do Plano</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Serviços Contratados</th>
-              <th className="text-center text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">WhatsApp</th>
             </tr>
           </thead>
           <tbody>
@@ -312,9 +320,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-20" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-24" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-20" /></td>
+                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-24" /></td>
                   <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-32" /></td>
                   <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-32" /></td>
-                  <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-8" /></td>
                 </tr>
               ))
             ) : filtered.length === 0 ? (
@@ -326,7 +334,6 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
             ) : (
               filtered.map((student) => {
                 const c = student.credits;
-                const whatsappNumber = student.telefone?.replace(/\D/g, "") || null;
                 const professorName = student.responsavel_id ? profileMap[student.responsavel_id] : null;
 
                 const planEndStr = student.planEnd
@@ -334,6 +341,18 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                   : null;
 
                 const isPlanExpired = student.planEnd && isBefore(student.planEnd, new Date());
+
+                const lastFunc = lastFuncionalMap?.[student.id] ?? null;
+                const lastFuncSev = severityForLastFuncional(lastFunc);
+                const lastFuncStr = lastFunc ? format(lastFunc, "dd/MM/yyyy") : "—";
+                const lastFuncColor =
+                  !lastFunc
+                    ? "text-muted-foreground"
+                    : lastFuncSev.className === "status-urgent"
+                      ? "text-destructive font-medium"
+                      : lastFuncSev.className === "status-warning"
+                        ? "text-warning font-medium"
+                        : "text-foreground";
 
                 return (
                   <tr
@@ -379,26 +398,21 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
+                    <td className="p-4 hidden lg:table-cell">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={`text-sm ${lastFuncColor}`}>{lastFuncStr}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{lastFuncSev.label}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </td>
                     <td className="p-4 hidden xl:table-cell">
                       <CreditsCell map={c?.plano ?? {}} originLabel="Plano" />
                     </td>
                     <td className="p-4 hidden xl:table-cell">
                       <CreditsCell map={c?.servico ?? {}} originLabel="Contratado" />
-                    </td>
-                    <td className="p-4 hidden xl:table-cell text-center">
-                      {whatsappNumber ? (
-                        <a
-                          href={`https://wa.me/55${whatsappNumber}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center justify-center text-primary hover:text-primary/80 transition-colors"
-                        >
-                          <MessageCircle className="h-5 w-5" />
-                        </a>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
                     </td>
                   </tr>
                 );

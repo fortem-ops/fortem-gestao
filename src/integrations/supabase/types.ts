@@ -2921,6 +2921,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_agendar_reavaliacoes_pendentes: { Args: never; Returns: Json }
       fn_call_edge_function: {
         Args: { p_body: Json; p_name: string }
         Returns: undefined
@@ -2965,6 +2966,10 @@ export type Database = {
           _sexo?: string
         }
         Returns: undefined
+      }
+      fn_criar_tarefa_reavaliacao: {
+        Args: { _aluno_id: string; _criado_por: string; _data_ultima: string }
+        Returns: string
       }
       fn_current_aluno_id: { Args: never; Returns: string }
       fn_detect_evasao: { Args: never; Returns: Json }
@@ -3070,6 +3075,10 @@ export type Database = {
       }
       fn_resolver_prof_avaliacao: {
         Args: { _aluno_id: string; _avaliador: string; _data: string }
+        Returns: string
+      }
+      fn_resolver_responsavel_reavaliacao: {
+        Args: { _aluno_id: string; _fallback: string }
         Returns: string
       }
       fn_tentar_comissao_experimental: {
