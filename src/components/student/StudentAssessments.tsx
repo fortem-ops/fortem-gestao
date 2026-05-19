@@ -4,15 +4,22 @@ import { useNavigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, ClipboardCheck, Eye } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, ClipboardCheck, Eye, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AssessmentViewerDialog } from "./assessment/AssessmentViewerDialog";
+import { fetchLastFuncionalDate, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
 
 export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Tables<"avaliacoes"> | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
+
+  const { data: lastFuncional } = useQuery({
+    queryKey: ["last_funcional_aluno", student.id],
+    queryFn: () => fetchLastFuncionalDate(student.id),
+  });
 
   const { data: avaliacoes } = useQuery({
     queryKey: ["avaliacoes-aluno", student.id],
