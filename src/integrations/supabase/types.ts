@@ -283,6 +283,36 @@ export type Database = {
         }
         Relationships: []
       }
+      avaliacao_anexos: {
+        Row: {
+          avaliacao_id: string
+          created_at: string
+          id: string
+          nome_arquivo: string
+          storage_path: string
+          tipo: string
+          uploaded_by: string
+        }
+        Insert: {
+          avaliacao_id: string
+          created_at?: string
+          id?: string
+          nome_arquivo: string
+          storage_path: string
+          tipo?: string
+          uploaded_by: string
+        }
+        Update: {
+          avaliacao_id?: string
+          created_at?: string
+          id?: string
+          nome_arquivo?: string
+          storage_path?: string
+          tipo?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       avaliacao_funcional: {
         Row: {
           avaliacao_id: string
@@ -375,6 +405,7 @@ export type Database = {
           is_default: boolean
           nome: string
           ordem: number
+          permite_upload: boolean
           schema: Json
           tipo_id: string
           updated_at: string
@@ -388,6 +419,7 @@ export type Database = {
           is_default?: boolean
           nome: string
           ordem?: number
+          permite_upload?: boolean
           schema?: Json
           tipo_id: string
           updated_at?: string
@@ -401,6 +433,7 @@ export type Database = {
           is_default?: boolean
           nome?: string
           ordem?: number
+          permite_upload?: boolean
           schema?: Json
           tipo_id?: string
           updated_at?: string
