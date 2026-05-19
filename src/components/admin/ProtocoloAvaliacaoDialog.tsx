@@ -84,7 +84,7 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
               <Label>Nome</Label>
               <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Pollock 7 Dobras" />
             </div>
-            <div className="flex items-end gap-6">
+            <div className="flex items-end gap-6 flex-wrap">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={isDefault} onCheckedChange={setIsDefault} />
                 Padrão
