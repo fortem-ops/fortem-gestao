@@ -1069,18 +1069,23 @@ export default function BancoTreinos() {
 
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
+    const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
     const initialData =
       personalizadoOpen.mode === "edit"
         ? personalizadoOpen.conteudo
-        : isP2
-          ? emptyPersonalizado2()
-          : emptyPersonalizado();
+        : isCorrida
+          ? (personalizadoOpen as { seed: PersonalizadoConteudo }).seed
+          : isP2
+            ? emptyPersonalizado2()
+            : emptyPersonalizado();
     const initialName =
       personalizadoOpen.mode === "edit"
         ? personalizadoOpen.nome
-        : isP2
-          ? "Modelo Personalizado 2"
-          : "Modelo Personalizado";
+        : isCorrida
+          ? (personalizadoOpen as { templateFase: string }).templateFase
+          : isP2
+            ? "Modelo Personalizado 2"
+            : "Modelo Personalizado";
     return (
       <div className="container mx-auto p-6 max-w-6xl">
         <PersonalizadoEditor
