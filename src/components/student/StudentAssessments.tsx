@@ -100,7 +100,22 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
             </p>
           </div>
         </div>
-        <Badge variant="outline" className={`${sev.className} text-xs shrink-0`}>{sev.label}</Badge>
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge variant="outline" className={`${sev.className} text-xs`}>{sev.label}</Badge>
+          {canEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Editar data da última avaliação"
+              onClick={() => {
+                setEditDate(lastFuncional ?? undefined);
+                setEditOpen(true);
+              }}
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
