@@ -78,15 +78,30 @@ export function useCarteiraStats(profissionalId?: string | null) {
     queryFn: async () => {
       const { data: ativos, error } = await supabase
         .from("alunos")
-        .select("id, responsavel_id, status, planos!inner(tipo, ativo), aluno_licencas(data_inicio, data_fim)")
+        .select("id, responsavel_id, status")
         .eq("status", "ativo");
       if (error) throw error;
+      const ids = (ativos || []).map((a: any) => a.id);
+      if (!ids.length) return { total: 0, meus: 0 };
 
       const hoje = new Date().toISOString().slice(0, 10);
+      const [{ data: planos }, { data: licencas }] = await Promise.all([
+        supabase.from("planos").select("aluno_id, tipo, ativo").in("aluno_id", ids).eq("ativo", true),
+        supabase.from("aluno_licencas").select("aluno_id, data_inicio, data_fim").in("aluno_id", ids).lte("data_inicio", hoje).gte("data_fim", hoje),
+      ]);
+
+      const planosByAluno = new Map<string, any[]>();
+      (planos || []).forEach((p: any) => {
+        const arr = planosByAluno.get(p.aluno_id) || [];
+        arr.push(p);
+        planosByAluno.set(p.aluno_id, arr);
+      });
+      const licencaSet = new Set((licencas || []).map((l: any) => l.aluno_id));
+
       const valid = (ativos || []).filter((a: any) => {
-        const planoOk = (a.planos || []).some((p: any) => p.ativo && !["Gympass/Wellhub", "Total Pass"].includes(p.tipo));
-        const emLicenca = (a.aluno_licencas || []).some((l: any) => hoje >= l.data_inicio && hoje <= l.data_fim);
-        return planoOk && !emLicenca;
+        const ps = planosByAluno.get(a.id) || [];
+        const planoOk = ps.some((p: any) => !["Gympass/Wellhub", "Total Pass"].includes(p.tipo));
+        return planoOk && !licencaSet.has(a.id);
       });
 
       const total = valid.length;
