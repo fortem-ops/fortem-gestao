@@ -30,6 +30,7 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
   const [descricao, setDescricao] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [ativo, setAtivo] = useState(true);
+  const [permiteUpload, setPermiteUpload] = useState(false);
   const [schema, setSchema] = useState<ExperimentalSchema>(EMPTY_SCHEMA);
   const [saving, setSaving] = useState(false);
 
@@ -39,6 +40,7 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
     setDescricao(protocolo?.descricao ?? "");
     setIsDefault(protocolo?.is_default ?? false);
     setAtivo(protocolo?.ativo ?? true);
+    setPermiteUpload(protocolo?.permite_upload ?? false);
     const s = protocolo?.schema as ExperimentalSchema | undefined;
     setSchema(s?.sections ? JSON.parse(JSON.stringify(s)) : { sections: [] });
   }, [open, protocolo]);
