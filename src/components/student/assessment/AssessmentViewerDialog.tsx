@@ -69,9 +69,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     },
   });
 
-  if (!avaliacao) return null;
-
-  const dados = (avaliacao.dados as Record<string, unknown>) || {};
+  const dados = (avaliacao?.dados as Record<string, unknown>) || {};
   const metricasFromJson = (dados.metricas as FuncMetric[] | undefined) || [];
   const expDados: ExperimentalRecordDados | null = isExperimental ? migrateLegacyDados(dados) : null;
 
@@ -80,6 +78,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     queryFn: fetchExperimentalSchema,
     enabled: isExperimental,
   });
+
+  if (!avaliacao) return null;
 
   async function handleDelete() {
     if (!avaliacao) return;
