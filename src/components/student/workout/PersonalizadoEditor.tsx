@@ -100,6 +100,7 @@ export function PersonalizadoEditor({
   treinoId,
   onBack,
   onSaved,
+  readOnly = false,
 }: Props) {
   const { user } = useAuth();
   const { categories, grupoSubcategorias } = useExerciseCategories();
