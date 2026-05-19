@@ -41,6 +41,7 @@ interface Props {
   protocoloId: string;
   schema: ExperimentalSchema;
   avaliacaoId?: string;
+  permiteUpload?: boolean;
 }
 
 /**
