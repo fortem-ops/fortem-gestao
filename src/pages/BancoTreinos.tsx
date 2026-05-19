@@ -847,8 +847,12 @@ export default function BancoTreinos() {
   });
 
   const modelosPorAutor = useMemo(() => {
+    const corridaNomes = new Set(
+      WORKOUT_TEMPLATES.filter((t) => t.fase.startsWith("Corrida")).map((t) => t.fase),
+    );
+    const visiveis = modelosPersonalizados.filter((m) => !corridaNomes.has(m.nome));
     const groups = new Map<string, typeof modelosPersonalizados>();
-    modelosPersonalizados.forEach((m) => {
+    visiveis.forEach((m) => {
       const arr = groups.get(m.criado_por) || [];
       arr.push(m);
       groups.set(m.criado_por, arr);
