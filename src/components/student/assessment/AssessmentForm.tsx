@@ -18,6 +18,7 @@ import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { DynamicAssessment } from "./DynamicAssessment";
 import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
 import type { ExperimentalSchema } from "./experimentalTemplate";
+import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
