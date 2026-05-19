@@ -21,6 +21,7 @@ import { BodyDiagram } from "./BodyDiagram";
 import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAssessment";
 import { fetchExperimentalSchema, migrateLegacyDados, type ExperimentalRecordDados } from "./experimentalTemplate";
 import { useQuery as useTplQuery } from "@tanstack/react-query";
+import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 
 interface Props {
   open: boolean;
