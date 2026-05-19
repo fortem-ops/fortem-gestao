@@ -351,6 +351,14 @@ const App = () => (
                   </Suspense>
                 }
               />
+              <Route
+                path="/comissionamentos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Comissionamentos />
+                  </Suspense>
+                }
+              />
             </Route>
             <Route
               path="*"
