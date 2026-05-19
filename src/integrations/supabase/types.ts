@@ -3068,6 +3068,10 @@ export type Database = {
         Args: { _ref: string }
         Returns: number
       }
+      fn_resolver_prof_avaliacao: {
+        Args: { _aluno_id: string; _avaliador: string; _data: string }
+        Returns: string
+      }
       fn_tentar_comissao_experimental: {
         Args: { _agenda: string; _aluno: string; _profissional: string }
         Returns: undefined
