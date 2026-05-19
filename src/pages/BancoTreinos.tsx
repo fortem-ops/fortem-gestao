@@ -814,6 +814,7 @@ export default function BancoTreinos() {
   const [personalizadoOpen, setPersonalizadoOpen] = useState<
     | null
     | { mode: "new"; variante?: "personalizado" | "personalizado2" }
+    | { mode: "new"; variante: "corrida"; templateFase: string; seed: PersonalizadoConteudo }
     | { mode: "edit"; id: string; nome: string; conteudo: PersonalizadoConteudo }
   >(null);
 
