@@ -23,6 +23,7 @@ export interface AvaliacaoProtocolo {
   is_default: boolean;
   ativo: boolean;
   ordem: number;
+  permite_upload?: boolean;
 }
 
 export async function fetchTipos(): Promise<AvaliacaoTipo[]> {

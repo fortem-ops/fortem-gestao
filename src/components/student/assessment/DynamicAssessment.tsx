@@ -22,6 +22,7 @@ import {
   type ExperimentalSchema,
   type TemplateQuestion,
 } from "./experimentalTemplate";
+import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FASE_INICIAL_GROUPS, hasTreinoAtual, prescribeFaseInicial } from "@/lib/workoutImport";
 import {
   AlertDialog,
@@ -41,6 +42,7 @@ interface Props {
   protocoloId: string;
   schema: ExperimentalSchema;
   avaliacaoId?: string;
+  permiteUpload?: boolean;
 }
 
 /**
@@ -48,7 +50,7 @@ interface Props {
  * Usada por Pliometria, Força, Experimental e novos tipos dinâmicos.
  * Mantém autosave (debounce 800ms) e fluxo finalizar/reabrir.
  */
-export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawSchema, avaliacaoId }: Props) {
+export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawSchema, avaliacaoId, permiteUpload }: Props) {
   const schema = tipoSlug === "experimental" ? ensureFaseInicialQuestion(rawSchema) : rawSchema;
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -216,6 +218,8 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
           ))}
         </section>
       ))}
+
+      {permiteUpload && <AvaliacaoAnexos avaliacaoId={id} />}
 
       <div className="flex flex-wrap gap-2 justify-end">
         {dados.status === "rascunho" ? (

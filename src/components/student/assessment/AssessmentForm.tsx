@@ -18,6 +18,7 @@ import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { DynamicAssessment } from "./DynamicAssessment";
 import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
 import type { ExperimentalSchema } from "./experimentalTemplate";
+import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
@@ -44,12 +45,13 @@ const metricColumnMap: Record<string, string> = {
   'Mobilidade Tornozelo': 'tornozelo',
 };
 
-function FunctionalAssessment({ student, protocoloId }: { student: Tables<"alunos">; protocoloId: string | null }) {
+function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student: Tables<"alunos">; protocoloId: string | null; permiteUpload: boolean }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savedAvaliacaoId, setSavedAvaliacaoId] = useState<string | null>(null);
 
   const handleChange = (metric: string, side: 'left' | 'right', val: string) => {
     setValues(prev => ({ ...prev, [metric]: { ...prev[metric], [side]: val } }));
@@ -108,6 +110,7 @@ function FunctionalAssessment({ student, protocoloId }: { student: Tables<"aluno
         .select()
         .single();
       if (avalErr) throw avalErr;
+      setSavedAvaliacaoId(aval.id);
 
       const funcRow: Record<string, unknown> = { avaliacao_id: aval.id, observacoes: notes || null };
       rows.forEach(r => {
@@ -202,6 +205,8 @@ function FunctionalAssessment({ student, protocoloId }: { student: Tables<"aluno
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Assimetrias, restrições, prioridades de intervenção..." rows={4} />
       </div>
 
+      {permiteUpload && <AvaliacaoAnexos avaliacaoId={savedAvaliacaoId} />}
+
       <div className="flex flex-wrap gap-2">
         <Button onClick={handleSave} disabled={saving}>
           {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
@@ -232,7 +237,7 @@ function classifyBF(pct: number, sexo: 'M' | 'F'): { label: string; color: strin
   return { label: 'Elevado', color: 'text-destructive' };
 }
 
-function BodyComposition({ student, protocoloId }: { student: Tables<"alunos">; protocoloId: string | null }) {
+function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tables<"alunos">; protocoloId: string | null; permiteUpload: boolean }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [sexo, setSexo] = useState<'M' | 'F'>('M');
@@ -241,6 +246,7 @@ function BodyComposition({ student, protocoloId }: { student: Tables<"alunos">; 
   const [altura, setAltura] = useState('');
   const [dobras, setDobras] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [savedAvaliacaoId, setSavedAvaliacaoId] = useState<string | null>(null);
 
   const results = useMemo(() => {
     const idadeNum = parseFloat(idade);
@@ -265,7 +271,7 @@ function BodyComposition({ student, protocoloId }: { student: Tables<"alunos">; 
     if (!results) { toast.error("Preencha todos os dados antes de salvar"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("avaliacoes").insert({
+      const { data: inserted, error } = await supabase.from("avaliacoes").insert({
         aluno_id: student.id,
         avaliador_id: user.id,
         tipo: "composicao_corporal",
@@ -276,8 +282,9 @@ function BodyComposition({ student, protocoloId }: { student: Tables<"alunos">; 
           classificacao: results.classification.label, imc: results.imc,
           massa_magra: results.massaMagra, massa_gorda: results.massaGorda,
         },
-      } as never);
+      } as never).select().single();
       if (error) throw error;
+      setSavedAvaliacaoId(inserted.id);
       toast.success("Composição corporal salva com sucesso");
       queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
       queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
@@ -354,6 +361,8 @@ function BodyComposition({ student, protocoloId }: { student: Tables<"alunos">; 
           </div>
         </div>
       )}
+
+      {permiteUpload && <AvaliacaoAnexos avaliacaoId={savedAvaliacaoId} />}
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={handleSave} disabled={saving}>
@@ -443,11 +452,12 @@ export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
 }
 
 function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"alunos">; tipo: AvaliacaoTipo; protocolo: AvaliacaoProtocolo | null }) {
+  const permiteUpload = !!protocolo?.permite_upload;
   if (tipo.engine === "funcional_fixo") {
-    return <FunctionalAssessment student={student} protocoloId={protocolo?.id ?? null} />;
+    return <FunctionalAssessment student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
   }
   if (tipo.engine === "composicao_pollock") {
-    return <BodyComposition student={student} protocoloId={protocolo?.id ?? null} />;
+    return <BodyComposition student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
   }
   // dinamico
   if (!protocolo) {
@@ -461,6 +471,7 @@ function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"aluno
       tipoSlug={tipo.slug}
       protocoloId={protocolo.id}
       schema={schema}
+      permiteUpload={permiteUpload}
     />
   );
 }

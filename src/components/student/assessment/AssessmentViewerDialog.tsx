@@ -21,6 +21,7 @@ import { BodyDiagram } from "./BodyDiagram";
 import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAssessment";
 import { fetchExperimentalSchema, migrateLegacyDados, type ExperimentalRecordDados } from "./experimentalTemplate";
 import { useQuery as useTplQuery } from "@tanstack/react-query";
+import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 
 interface Props {
   open: boolean;
@@ -235,6 +236,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
             )}
           </div>
         )}
+
+        <AvaliacaoAnexos avaliacaoId={avaliacao.id} canEdit={!!canEdit} />
 
         <DialogFooter className="gap-2 flex-wrap">
           {isExperimental && canEdit && !editing && (

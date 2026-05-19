@@ -30,6 +30,7 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
   const [descricao, setDescricao] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [ativo, setAtivo] = useState(true);
+  const [permiteUpload, setPermiteUpload] = useState(false);
   const [schema, setSchema] = useState<ExperimentalSchema>(EMPTY_SCHEMA);
   const [saving, setSaving] = useState(false);
 
@@ -39,6 +40,7 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
     setDescricao(protocolo?.descricao ?? "");
     setIsDefault(protocolo?.is_default ?? false);
     setAtivo(protocolo?.ativo ?? true);
+    setPermiteUpload(protocolo?.permite_upload ?? false);
     const s = protocolo?.schema as ExperimentalSchema | undefined;
     setSchema(s?.sections ? JSON.parse(JSON.stringify(s)) : { sections: [] });
   }, [open, protocolo]);
@@ -54,6 +56,7 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
         descricao: descricao.trim() || null,
         is_default: isDefault,
         ativo,
+        permite_upload: permiteUpload,
         schema: tipo.engine === "dinamico" ? (schema as unknown as Record<string, unknown>) : (protocolo?.schema as Record<string, unknown> ?? {}),
         updated_by: user?.id,
       } as never);
@@ -81,7 +84,7 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
               <Label>Nome</Label>
               <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Pollock 7 Dobras" />
             </div>
-            <div className="flex items-end gap-6">
+            <div className="flex items-end gap-6 flex-wrap">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={isDefault} onCheckedChange={setIsDefault} />
                 Padrão
@@ -89,6 +92,10 @@ export function ProtocoloAvaliacaoDialog({ open, onOpenChange, tipo, protocolo }
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={ativo} onCheckedChange={setAtivo} />
                 Ativo
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={permiteUpload} onCheckedChange={setPermiteUpload} />
+                Permite upload de arquivos
               </label>
             </div>
           </div>
