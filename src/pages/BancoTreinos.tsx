@@ -1152,6 +1152,23 @@ export default function BancoTreinos() {
                         setPersonalizadoOpen({ mode: "new", variante: "personalizado" });
                       } else if (template.fase === "Personalizado 2") {
                         setPersonalizadoOpen({ mode: "new", variante: "personalizado2" });
+                      } else if (template.fase.startsWith("Corrida")) {
+                        const existing = modelosPersonalizados.find((m) => m.nome === template.fase);
+                        if (existing) {
+                          setPersonalizadoOpen({
+                            mode: "edit",
+                            id: existing.id,
+                            nome: existing.nome,
+                            conteudo: (existing.conteudo as unknown) as PersonalizadoConteudo,
+                          });
+                        } else {
+                          setPersonalizadoOpen({
+                            mode: "new",
+                            variante: "corrida",
+                            templateFase: template.fase,
+                            seed: seedFromWorkoutTemplate(template),
+                          });
+                        }
                       } else {
                         setSelected(template);
                       }
