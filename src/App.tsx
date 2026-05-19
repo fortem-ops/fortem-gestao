@@ -41,6 +41,7 @@ const PontoFechamento = lazy(() => import("./pages/PontoFechamento"));
 const RelatorioPonto = lazy(() => import("./pages/RelatorioPonto"));
 const AdminPonto = lazy(() => import("./pages/AdminPonto"));
 const AnexosJuridicos = lazy(() => import("./pages/AnexosJuridicos"));
+const Comissionamentos = lazy(() => import("./pages/Comissionamentos"));
 const LegalAnnexFlow = lazy(() => import("./pages/LegalAnnexFlow"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
