@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
-import { Activity, GitCompareArrows, ShieldAlert, Layers } from "lucide-react";
+import { Activity, GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, type Layer, type Mode, type MetricInput } from "./bodyMapLogic";
+import { analyze, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
+import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   metrics: MetricInput[];
