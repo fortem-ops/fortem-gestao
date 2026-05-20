@@ -7,9 +7,12 @@ export type Layer = "mobility" | "flexibility" | "pain" | "strength" | "asymmetr
 
 export type RegionId =
   | "shoulder-l" | "shoulder-r"
+  | "shoulder-re-l" | "shoulder-re-r"
   | "thoracic"
   | "lumbar"
   | "hip-l" | "hip-r"
+  | "hip-re-l" | "hip-re-r"
+  | "psoas-l" | "psoas-r"
   | "quad-l" | "quad-r"
   | "ham-l" | "ham-r"
   | "ankle-l" | "ankle-r";
@@ -48,12 +51,12 @@ interface MetricMeta {
 
 export const METRIC_META: Record<string, MetricMeta> = {
   "Mobilidade Ombro RI": { layer: "mobility", regions: [{ left: "shoulder-l", right: "shoulder-r" }], unit: "°" },
-  "Mobilidade Ombro RE": { layer: "mobility", regions: [{ left: "shoulder-l", right: "shoulder-r" }], unit: "°" },
+  "Mobilidade Ombro RE": { layer: "mobility", regions: [{ left: "shoulder-l", right: "shoulder-r" }, { left: "shoulder-re-l", right: "shoulder-re-r" }], unit: "°" },
   "Mobilidade Torácica": { layer: "mobility", regions: [{ both: "thoracic" }], unit: "°" },
   "Mobilidade Quadril RI": { layer: "mobility", regions: [{ left: "hip-l", right: "hip-r" }], unit: "°" },
-  "Mobilidade Quadril RE": { layer: "mobility", regions: [{ left: "hip-l", right: "hip-r" }], unit: "°" },
+  "Mobilidade Quadril RE": { layer: "mobility", regions: [{ left: "hip-l", right: "hip-r" }, { left: "hip-re-l", right: "hip-re-r" }], unit: "°" },
   "Mobilidade Tornozelo": { layer: "mobility", regions: [{ left: "ankle-l", right: "ankle-r" }], unit: "°" },
-  "Flexibilidade Psoas": { layer: "flexibility", regions: [{ left: "quad-l", right: "quad-r" }], unit: "°" },
+  "Flexibilidade Psoas": { layer: "flexibility", regions: [{ left: "quad-l", right: "quad-r" }, { left: "psoas-l", right: "psoas-r" }], unit: "°" },
   "Flexibilidade Quadríceps": { layer: "flexibility", regions: [{ left: "quad-l", right: "quad-r" }], unit: "°" },
   "Flexibilidade Posterior MMII": { layer: "flexibility", regions: [{ left: "ham-l", right: "ham-r" }], unit: "°" },
 };
@@ -127,8 +130,9 @@ export interface BodyMapAnalysis {
 }
 
 const ALL_REGIONS: RegionId[] = [
-  "shoulder-l","shoulder-r","thoracic","lumbar",
-  "hip-l","hip-r","quad-l","quad-r","ham-l","ham-r","ankle-l","ankle-r",
+  "shoulder-l","shoulder-r","shoulder-re-l","shoulder-re-r","thoracic","lumbar",
+  "hip-l","hip-r","hip-re-l","hip-re-r","psoas-l","psoas-r",
+  "quad-l","quad-r","ham-l","ham-r","ankle-l","ankle-r",
 ];
 
 function emptyRegion(id: RegionId): RegionState {
