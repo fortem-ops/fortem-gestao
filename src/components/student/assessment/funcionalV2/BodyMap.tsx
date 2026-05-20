@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Activity, GitCompareArrows, ShieldAlert, Layers } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { BodyMapSVG } from "./BodyMapSVG";
 import { analyze, type Layer, type Mode, type MetricInput } from "./bodyMapLogic";
 
