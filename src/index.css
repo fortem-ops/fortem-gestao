@@ -50,6 +50,12 @@
     --sev-weak: 0 80% 55%;
     --bodymap-bg: 220 28% 7%;
     --bodymap-silhouette: 220 15% 70%;
+    /* Premium biomechanical anatomy tones */
+    --bodymap-muscle-base: 220 10% 22%;
+    --bodymap-muscle-shade: 220 14% 12%;
+    --bodymap-muscle-hi: 220 6% 36%;
+    --bodymap-line: 220 12% 55%;
+    --bodymap-skin: 220 8% 28%;
 
     --border: 220 13% 82%;
     --input: 220 13% 84%;
