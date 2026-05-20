@@ -42,6 +42,7 @@ const tecnicoItems = [
   { title: "Banco de Treinos", url: "/banco-treinos", icon: Library },
   { title: "Banco de Exercícios", url: "/exercicios", icon: Dumbbell },
   { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
+  { title: "Avaliações Premium", url: "/avaliacoes-premium", icon: Activity },
   { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
 ];
 
