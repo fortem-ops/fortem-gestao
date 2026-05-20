@@ -14,24 +14,24 @@ interface RegionGeometry {
   label: string;
 }
 
-const VIEWBOX = { w: 360, h: 800 };
+const VIEWBOX = { w: 1024, h: 1024 };
 
-// Coordenadas calibradas para a imagem anatômica (360×800, com 30px de padding lateral).
-// Convenção: "-l" = lado esquerdo do aluno (à direita do espectador na vista anterior,
-// à esquerda do espectador na vista posterior).
+// Coordenadas calibradas para o asset anatômico 1024×1024 (mãos completas, corpo centralizado).
+// Convenção: "-l" = lado esquerdo do aluno
+// (à direita do espectador na vista anterior; à esquerda do espectador na vista posterior).
 export const REGION_GEOMETRY: Record<RegionId, RegionGeometry> = {
-  "shoulder-l":  { view: "front", cx: 240, cy: 205, r: 32, label: "Ombro esquerdo (deltoide)" },
-  "shoulder-r":  { view: "front", cx: 125, cy: 205, r: 32, label: "Ombro direito (deltoide)" },
-  "thoracic":    { view: "back",  cx: 180, cy: 260, r: 46, label: "Coluna torácica" },
-  "lumbar":      { view: "back",  cx: 180, cy: 390, r: 34, label: "Lombar" },
-  "hip-l":       { view: "front", cx: 220, cy: 410, r: 30, label: "Quadril esquerdo" },
-  "hip-r":       { view: "front", cx: 145, cy: 410, r: 30, label: "Quadril direito" },
-  "quad-l":      { view: "front", cx: 225, cy: 520, r: 36, label: "Quadríceps / Psoas esquerdo" },
-  "quad-r":      { view: "front", cx: 140, cy: 520, r: 36, label: "Quadríceps / Psoas direito" },
-  "ham-l":       { view: "back",  cx: 145, cy: 555, r: 36, label: "Posterior coxa esquerda" },
-  "ham-r":       { view: "back",  cx: 225, cy: 555, r: 36, label: "Posterior coxa direita" },
-  "ankle-l":     { view: "front", cx: 215, cy: 755, r: 20, label: "Tornozelo esquerdo" },
-  "ankle-r":     { view: "front", cx: 155, cy: 755, r: 20, label: "Tornozelo direito" },
+  "shoulder-l":  { view: "front", cx: 625, cy: 255, r: 65, label: "Ombro esquerdo (deltoide)" },
+  "shoulder-r":  { view: "front", cx: 400, cy: 255, r: 65, label: "Ombro direito (deltoide)" },
+  "thoracic":    { view: "back",  cx: 512, cy: 300, r: 90, label: "Coluna torácica" },
+  "lumbar":      { view: "back",  cx: 512, cy: 480, r: 70, label: "Lombar" },
+  "hip-l":       { view: "front", cx: 560, cy: 545, r: 55, label: "Quadril esquerdo" },
+  "hip-r":       { view: "front", cx: 465, cy: 545, r: 55, label: "Quadril direito" },
+  "quad-l":      { view: "front", cx: 570, cy: 700, r: 70, label: "Quadríceps / Psoas esquerdo" },
+  "quad-r":      { view: "front", cx: 455, cy: 700, r: 70, label: "Quadríceps / Psoas direito" },
+  "ham-l":       { view: "back",  cx: 450, cy: 720, r: 70, label: "Posterior coxa esquerda" },
+  "ham-r":       { view: "back",  cx: 570, cy: 720, r: 70, label: "Posterior coxa direita" },
+  "ankle-l":     { view: "front", cx: 560, cy: 985, r: 38, label: "Tornozelo esquerdo" },
+  "ankle-r":     { view: "front", cx: 465, cy: 985, r: 38, label: "Tornozelo direito" },
 };
 
 interface Props {
@@ -40,6 +40,10 @@ interface Props {
   overrides?: OverrideMap;
   calibrating?: boolean;
   onDragRegion?: (id: RegionId, cx: number, cy: number) => void;
+  /** Maps regionId → display number for the side panel sync */
+  numbering?: Partial<Record<RegionId, number>>;
+  /** Filter which view(s) to render */
+  viewFilter?: "front" | "back" | "both";
 }
 
 function mergeGeometry(overrides?: OverrideMap): Record<RegionId, RegionGeometry> {
@@ -90,31 +94,57 @@ function RegionGlow({
           <stop offset="100%" stopColor={`hsl(${color})`} stopOpacity={0} />
         </radialGradient>
       </defs>
-      {/* Halo externo amplo (irradiação) */}
       <circle
         cx={geom.cx} cy={geom.cy} r={radius * 2.1}
         fill={`url(#${gradId})`}
         opacity={0.85}
         className={isPulsing ? "bodymap-pulse" : ""}
       />
-      {/* Halo interno mais denso (luz central) */}
       <circle
         cx={geom.cx} cy={geom.cy} r={radius * 1.1}
         fill={`url(#${gradId})`}
         opacity={1}
         style={{ mixBlendMode: "screen" }}
       />
-      {/* Anel luminoso fino */}
       <circle
         cx={geom.cx} cy={geom.cy} r={radius}
         fill="none"
         stroke={`hsl(${color})`}
-        strokeWidth={1.4}
+        strokeWidth={2.6}
         strokeOpacity={Math.min(0.95, opacity + 0.1)}
         style={{ mixBlendMode: "screen" }}
       />
-      {/* Núcleo brilhante */}
-      <circle cx={geom.cx} cy={geom.cy} r={3} fill={`hsl(${color})`} opacity={0.95} />
+    </g>
+  );
+}
+
+function RegionNumber({
+  geom, state, number,
+}: {
+  geom: RegionGeometry;
+  state: BodyMapAnalysis["regions"][RegionId];
+  number: number;
+}) {
+  const color = SEVERITY_COLOR_VAR[state.severity];
+  return (
+    <g pointerEvents="none">
+      <circle
+        cx={geom.cx} cy={geom.cy} r={22}
+        fill="hsl(220 13% 9%)"
+        stroke={`hsl(${color})`}
+        strokeWidth={3}
+      />
+      <text
+        x={geom.cx} y={geom.cy}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={22}
+        fontWeight={700}
+        fill={`hsl(${color})`}
+        style={{ fontFamily: "var(--font-heading), system-ui, sans-serif" }}
+      >
+        {number}
+      </text>
     </g>
   );
 }
@@ -181,8 +211,8 @@ function Chains({
           <line key={i}
             x1={a.cx} y1={a.cy} x2={b.cx} y2={b.cy}
             stroke="hsl(var(--sev-attention))"
-            strokeWidth={1.6}
-            strokeDasharray="5 7"
+            strokeWidth={2.4}
+            strokeDasharray="8 10"
             strokeOpacity={0.7}
             className="bodymap-chain"
           />
@@ -232,26 +262,30 @@ function CalibrationHandle({
         try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch {}
       }}
     >
-      {/* hit area */}
-      <circle cx={geom.cx} cy={geom.cy} r={geom.r + 4} fill="hsl(0 0% 100% / 0.06)" stroke="hsl(0 0% 100% / 0.9)" strokeWidth={1.5} strokeDasharray="3 3" />
-      <circle cx={geom.cx} cy={geom.cy} r={4} fill="hsl(140 80% 55%)" stroke="white" strokeWidth={1.2} />
-      <text x={geom.cx} y={geom.cy - geom.r - 8} textAnchor="middle"
-        fontSize={9} fill="white" style={{ pointerEvents: "none", fontFamily: "monospace" }}>
+      <circle cx={geom.cx} cy={geom.cy} r={geom.r + 4} fill="hsl(0 0% 100% / 0.06)" stroke="hsl(0 0% 100% / 0.9)" strokeWidth={2} strokeDasharray="5 5" />
+      <circle cx={geom.cx} cy={geom.cy} r={6} fill="hsl(140 80% 55%)" stroke="white" strokeWidth={1.5} />
+      <text x={geom.cx} y={geom.cy - geom.r - 10} textAnchor="middle"
+        fontSize={14} fill="white" style={{ pointerEvents: "none", fontFamily: "monospace" }}>
         {id}
       </text>
     </g>
   );
 }
 
-export function BodyMapSVG({ analysis, mode, overrides, calibrating, onDragRegion }: Props) {
+export function BodyMapSVG({
+  analysis, mode, overrides, calibrating, onDragRegion, numbering, viewFilter = "both",
+}: Props) {
   const geometry = mergeGeometry(overrides);
   const frontSvgRef = useRef<SVGSVGElement>(null);
   const backSvgRef = useRef<SVGSVGElement>(null);
 
+  const views = viewFilter === "both" ? (["front", "back"] as const) : ([viewFilter] as const);
+  const gridCols = views.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-1";
+
   return (
     <TooltipProvider delayDuration={120}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-        {(["front", "back"] as const).map((view) => {
+      <div className={`grid grid-cols-1 ${gridCols} gap-3 w-full`}>
+        {views.map((view) => {
           const regions = (Object.entries(geometry) as Array<[RegionId, RegionGeometry]>)
             .filter(([, g]) => g.view === view);
           const svgRef = view === "front" ? frontSvgRef : backSvgRef;
@@ -263,7 +297,7 @@ export function BodyMapSVG({ analysis, mode, overrides, calibrating, onDragRegio
               <svg
                 ref={svgRef}
                 viewBox={`0 0 ${VIEWBOX.w} ${VIEWBOX.h}`}
-                className="w-full max-w-[360px] h-auto rounded-xl overflow-hidden"
+                className="w-full max-w-[420px] h-auto rounded-xl overflow-hidden"
                 role="img"
                 aria-label={`Corpo humano — ${view === "front" ? "vista anterior" : "vista posterior"}`}
                 style={{ touchAction: calibrating ? "none" : undefined }}
@@ -284,7 +318,7 @@ export function BodyMapSVG({ analysis, mode, overrides, calibrating, onDragRegio
                         <line key={i}
                           x1={g1.cx} y1={g1.cy} x2={g2.cx} y2={g2.cy}
                           stroke={a.severity === "severe" ? "hsl(var(--sev-weak))" : "hsl(var(--sev-attention))"}
-                          strokeWidth={1.5} strokeDasharray="4 5" strokeOpacity={0.75}
+                          strokeWidth={2.5} strokeDasharray="6 8" strokeOpacity={0.75}
                         />
                       );
                     })}
@@ -296,6 +330,14 @@ export function BodyMapSVG({ analysis, mode, overrides, calibrating, onDragRegio
                 {!calibrating && regions.map(([id, geom]) => (
                   <RegionGlow key={`glow-${id}`} id={id} geom={geom} state={analysis.regions[id]} mode={mode} />
                 ))}
+
+                {!calibrating && numbering && regions.map(([id, geom]) => {
+                  const n = numbering[id];
+                  if (!n) return null;
+                  return (
+                    <RegionNumber key={`num-${id}`} geom={geom} state={analysis.regions[id]} number={n} />
+                  );
+                })}
 
                 {!calibrating && regions.map(([id, geom]) => (
                   <RegionHit key={`hit-${id}`} id={id} geom={geom} state={analysis.regions[id]} />
