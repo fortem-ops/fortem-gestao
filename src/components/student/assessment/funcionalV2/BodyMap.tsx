@@ -2,13 +2,14 @@ import { useMemo, useState } from "react";
 import { Activity, GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
+import { analyze, applyForcaToRegions, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
 import { Button } from "@/components/ui/button";
 import { buildRegionList, RegionListPanel } from "./RegionListPanel";
 
 interface Props {
   metrics: MetricInput[];
+  forcaExercises?: ForcaInput[];
 }
 
 const MODES: Array<{ id: Mode; label: string; icon: typeof Activity; desc: string }> = [
@@ -20,6 +21,7 @@ const MODES: Array<{ id: Mode; label: string; icon: typeof Activity; desc: strin
 const LAYERS: Array<{ id: Layer; label: string }> = [
   { id: "mobility",    label: "Mobilidade" },
   { id: "flexibility", label: "Flexibilidade" },
+  { id: "strength",    label: "Força" },
   { id: "asymmetry",   label: "Tudo" },
 ];
 
@@ -78,7 +80,7 @@ const RISK_STYLE: Record<"low" | "attention" | "high", { label: string; color: s
   high:      { label: "Alto risco compensatório", color: "var(--sev-weak)" },
 };
 
-export function BodyMap({ metrics }: Props) {
+export function BodyMap({ metrics, forcaExercises }: Props) {
   const [mode, setMode] = useState<Mode>("quality");
   const [layer, setLayer] = useState<Layer>("mobility");
   const [viewFilter, setViewFilter] = useState<"both" | "front" | "back">("both");
@@ -87,7 +89,13 @@ export function BodyMap({ metrics }: Props) {
 
   const { overrides, isAdmin, saveAll, resetAll } = useBodyMapGeometry();
 
-  const analysis = useMemo(() => analyze(metrics, layer), [metrics, layer]);
+  const analysis = useMemo(() => {
+    const base = analyze(metrics, layer, forcaExercises);
+    if (layer === "strength" && forcaExercises && forcaExercises.length) {
+      return applyForcaToRegions(base, forcaExercises);
+    }
+    return base;
+  }, [metrics, layer, forcaExercises]);
   const risk = RISK_STYLE[analysis.riskLevel];
 
   const regionList = useMemo(() => buildRegionList(analysis, 6), [analysis]);
@@ -156,11 +164,12 @@ export function BodyMap({ metrics }: Props) {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <ScoreRing value={analysis.scoreGeral} label="Geral" size={96} />
           <ScoreRing value={analysis.scoreMobilidade} label="Mobilidade" />
           <ScoreRing value={analysis.scoreSimetria} label="Simetria" />
           <ScoreRing value={analysis.scoreEstabilidade} label="Estabilidade" />
+          <ScoreRing value={analysis.scoreForca} label="Força" />
         </div>
       </div>
 
