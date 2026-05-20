@@ -269,25 +269,35 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility"): Body
     const meta = METRIC_META[m.metric];
     if (!meta || !includeForLayer(meta.layer)) continue;
     if (!m.leftClass || !m.rightClass) continue;
-    // Métricas centrais (both) não geram assimetria L/R
     if (meta.regions.every((r) => "both" in r)) continue;
     asymDiffs.push(Math.abs(CLASS_SCORE[m.leftClass] - CLASS_SCORE[m.rightClass]));
   }
   const scoreSimetria = asymDiffs.length
     ? Math.max(0, Math.round(100 - (asymDiffs.reduce((a,b) => a+b, 0) / asymDiffs.length) * 1.6))
     : null;
-  // Without dedicated strength/pain inputs in classic functional, estabilidade reaproveita média geral
   const scoreEstabilidade = mean(allRegionScores);
+
+  // === Força (camada nova, alimentada por laudo Kinology) ===
+  const scoreForca = computeForcaScore(strengthExercises);
+
   const scoreGeral = (() => {
-    const parts = [
-      scoreMobilidade !== null ? scoreMobilidade * 0.4 : null,
-      scoreSimetria !== null ? scoreSimetria * 0.3 : null,
-      scoreEstabilidade !== null ? scoreEstabilidade * 0.3 : null,
+    const hasForca = scoreForca !== null;
+    const w = hasForca
+      ? { mob: 0.30, sim: 0.25, est: 0.25, forca: 0.20 }
+      : { mob: 0.40, sim: 0.30, est: 0.30, forca: 0 };
+    const pairs: Array<[number | null, number]> = [
+      [scoreMobilidade, w.mob],
+      [scoreSimetria, w.sim],
+      [scoreEstabilidade, w.est],
+      [scoreForca, w.forca],
     ];
-    const valid = parts.filter((x): x is number => x !== null);
-    const weights = [scoreMobilidade,scoreSimetria,scoreEstabilidade].map((s,i)=> s!==null ? [0.4,0.3,0.3][i] : 0);
-    const wsum = weights.reduce((a,b)=>a+b,0);
-    return valid.length && wsum > 0 ? Math.round(valid.reduce((a,b)=>a+b,0) / wsum) : null;
+    let sum = 0, wsum = 0;
+    for (const [v, weight] of pairs) {
+      if (v === null || weight === 0) continue;
+      sum += v * weight;
+      wsum += weight;
+    }
+    return wsum > 0 ? Math.round(sum / wsum) : null;
   })();
 
   // Risk
