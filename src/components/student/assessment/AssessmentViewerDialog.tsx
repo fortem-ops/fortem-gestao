@@ -22,6 +22,7 @@ import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAsses
 import { fetchExperimentalSchema, migrateLegacyDados, type ExperimentalRecordDados } from "./experimentalTemplate";
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
+import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
 
 interface Props {
   open: boolean;
