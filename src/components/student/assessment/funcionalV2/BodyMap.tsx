@@ -2,13 +2,14 @@ import { useMemo, useState } from "react";
 import { Activity, GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
+import { analyze, applyForcaToRegions, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
 import { Button } from "@/components/ui/button";
 import { buildRegionList, RegionListPanel } from "./RegionListPanel";
 
 interface Props {
   metrics: MetricInput[];
+  forcaExercises?: ForcaInput[];
 }
 
 const MODES: Array<{ id: Mode; label: string; icon: typeof Activity; desc: string }> = [
@@ -20,6 +21,7 @@ const MODES: Array<{ id: Mode; label: string; icon: typeof Activity; desc: strin
 const LAYERS: Array<{ id: Layer; label: string }> = [
   { id: "mobility",    label: "Mobilidade" },
   { id: "flexibility", label: "Flexibilidade" },
+  { id: "strength",    label: "Força" },
   { id: "asymmetry",   label: "Tudo" },
 ];
 
