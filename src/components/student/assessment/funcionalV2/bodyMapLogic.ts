@@ -313,8 +313,111 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility"): Body
     scoreMobilidade: scoreMobilidade !== null ? Math.round(scoreMobilidade) : null,
     scoreSimetria,
     scoreEstabilidade: scoreEstabilidade !== null ? Math.round(scoreEstabilidade) : null,
+    scoreForca: scoreForca !== null ? Math.round(scoreForca) : null,
     asymmetries,
     riskLevel,
     chains,
   };
+}
+
+// ===================== Camada Força (Dinamometria Kinology) =====================
+
+export type ForcaExercicio =
+  | "rotacao_interna" | "rotacao_externa"
+  | "dorsiflexao" | "flexao_plantar"
+  | "flexao_joelho" | "extensao_joelho"
+  | "flexao_quadril" | "extensao_quadril"
+  | "abducao_quadril" | "aducao_quadril";
+
+export interface ForcaInput {
+  nome: ForcaExercicio;
+  direito_kg: number | null;
+  esquerdo_kg: number | null;
+  data?: string;
+}
+
+export const FORCA_EXERCICIO_LABEL: Record<ForcaExercicio, string> = {
+  rotacao_interna: "Rotação interna (ombro)",
+  rotacao_externa: "Rotação externa (ombro)",
+  dorsiflexao: "Dorsiflexão",
+  flexao_plantar: "Flexão plantar",
+  flexao_joelho: "Flexão de joelho",
+  extensao_joelho: "Extensão de joelho",
+  flexao_quadril: "Flexão de quadril",
+  extensao_quadril: "Extensão de quadril",
+  abducao_quadril: "Abdução de quadril",
+  aducao_quadril: "Adução de quadril",
+};
+
+const FORCA_REGIONS: Record<ForcaExercicio, { left: RegionId; right: RegionId } | { both: RegionId }> = {
+  rotacao_interna: { left: "shoulder-l", right: "shoulder-r" },
+  rotacao_externa: { left: "shoulder-re-l", right: "shoulder-re-r" },
+  dorsiflexao: { left: "ankle-l", right: "ankle-r" },
+  flexao_plantar: { left: "ankle-l", right: "ankle-r" },
+  flexao_joelho: { left: "ham-l", right: "ham-r" },
+  extensao_joelho: { left: "quad-l", right: "quad-r" },
+  flexao_quadril: { left: "psoas-l", right: "psoas-r" },
+  extensao_quadril: { left: "ham-l", right: "ham-r" },
+  abducao_quadril: { left: "hip-re-l", right: "hip-re-r" },
+  aducao_quadril: { left: "hip-l", right: "hip-r" },
+};
+
+/** Classifica um exercício pela assimetria relativa (Kinology). */
+export function classifyForca(direito: number, esquerdo: number): {
+  assimetria: number;
+  classification: AssessmentClassification;
+  score: number;
+} {
+  const max = Math.max(direito, esquerdo);
+  if (max <= 0) return { assimetria: 0, classification: "Médio", score: 70 };
+  const diff = Math.abs(direito - esquerdo) / max * 100;
+  if (diff < 10) return { assimetria: diff, classification: "Bom", score: 85 };
+  if (diff < 20) return { assimetria: diff, classification: "Médio", score: 60 };
+  return { assimetria: diff, classification: "Fraco", score: 30 };
+}
+
+export function computeForcaScore(exercises: ForcaInput[] | undefined): number | null {
+  if (!exercises || exercises.length === 0) return null;
+  const scores: number[] = [];
+  let highAsym = 0;
+  for (const ex of exercises) {
+    if (ex.direito_kg == null || ex.esquerdo_kg == null) continue;
+    const r = classifyForca(ex.direito_kg, ex.esquerdo_kg);
+    scores.push(r.score);
+    if (r.assimetria >= 20) highAsym++;
+  }
+  if (!scores.length) return null;
+  const base = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const penalty = highAsym >= 1 ? 10 : 0;
+  return Math.max(0, base - penalty);
+}
+
+/** Aplica resultados de força como halos no analysis (camada strength). */
+export function applyForcaToRegions(
+  analysis: BodyMapAnalysis,
+  exercises: ForcaInput[],
+): BodyMapAnalysis {
+  const buckets: Partial<Record<RegionId, number[]>> = {};
+  for (const ex of exercises) {
+    if (ex.direito_kg == null || ex.esquerdo_kg == null) continue;
+    const region = FORCA_REGIONS[ex.nome];
+    const { score } = classifyForca(ex.direito_kg, ex.esquerdo_kg);
+    if ("both" in region) {
+      (buckets[region.both] ||= []).push(score);
+    } else {
+      (buckets[region.left] ||= []).push(score);
+      (buckets[region.right] ||= []).push(score);
+    }
+  }
+  const newRegions = { ...analysis.regions };
+  for (const id of Object.keys(buckets) as RegionId[]) {
+    const arr = buckets[id]!;
+    const score = arr.reduce((a, b) => a + b, 0) / arr.length;
+    newRegions[id] = {
+      ...newRegions[id],
+      score: Math.round(score),
+      severity: severityFromScore(score),
+    };
+  }
+  return { ...analysis, regions: newRegions };
 }
