@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ExperimentalSchema } from "@/components/student/assessment/experimentalTemplate";
 
-export type AvaliacaoEngine = "dinamico" | "funcional_fixo" | "composicao_pollock";
+export type AvaliacaoEngine = "dinamico" | "funcional_fixo" | "composicao_pollock" | "funcional_v2";
 
 export interface AvaliacaoTipo {
   id: string;
