@@ -37,6 +37,19 @@ export const REGION_GEOMETRY: Record<RegionId, RegionGeometry> = {
 interface Props {
   analysis: BodyMapAnalysis;
   mode: Mode;
+  overrides?: OverrideMap;
+  calibrating?: boolean;
+  onDragRegion?: (id: RegionId, cx: number, cy: number) => void;
+}
+
+function mergeGeometry(overrides?: OverrideMap): Record<RegionId, RegionGeometry> {
+  if (!overrides) return REGION_GEOMETRY;
+  const out = { ...REGION_GEOMETRY };
+  (Object.keys(overrides) as RegionId[]).forEach((id) => {
+    const o = overrides[id];
+    if (o && out[id]) out[id] = { ...out[id], cx: o.cx, cy: o.cy };
+  });
+  return out;
 }
 
 function severityIntensity(s: Severity): { opacity: number; radiusMul: number } {
