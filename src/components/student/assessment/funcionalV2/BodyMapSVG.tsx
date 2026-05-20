@@ -12,24 +12,24 @@ interface RegionGeometry {
   label: string;
 }
 
-const VIEWBOX = { w: 300, h: 800 };
+const VIEWBOX = { w: 360, h: 800 };
 
-// Coordenadas calibradas para a imagem anatômica (300×800).
+// Coordenadas calibradas para a imagem anatômica (360×800, com 30px de padding lateral).
 // Convenção: "-l" = lado esquerdo do aluno (à direita do espectador na vista anterior,
 // à esquerda do espectador na vista posterior).
 export const REGION_GEOMETRY: Record<RegionId, RegionGeometry> = {
-  "shoulder-l":  { view: "front", cx: 210, cy: 205, r: 32, label: "Ombro esquerdo (deltoide)" },
-  "shoulder-r":  { view: "front", cx: 95,  cy: 205, r: 32, label: "Ombro direito (deltoide)" },
-  "thoracic":    { view: "back",  cx: 150, cy: 260, r: 46, label: "Coluna torácica" },
-  "lumbar":      { view: "back",  cx: 150, cy: 390, r: 34, label: "Lombar" },
-  "hip-l":       { view: "front", cx: 190, cy: 410, r: 30, label: "Quadril esquerdo" },
-  "hip-r":       { view: "front", cx: 115, cy: 410, r: 30, label: "Quadril direito" },
-  "quad-l":      { view: "front", cx: 195, cy: 520, r: 36, label: "Quadríceps / Psoas esquerdo" },
-  "quad-r":      { view: "front", cx: 110, cy: 520, r: 36, label: "Quadríceps / Psoas direito" },
-  "ham-l":       { view: "back",  cx: 115, cy: 555, r: 36, label: "Posterior coxa esquerda" },
-  "ham-r":       { view: "back",  cx: 195, cy: 555, r: 36, label: "Posterior coxa direita" },
-  "ankle-l":     { view: "front", cx: 185, cy: 755, r: 20, label: "Tornozelo esquerdo" },
-  "ankle-r":     { view: "front", cx: 125, cy: 755, r: 20, label: "Tornozelo direito" },
+  "shoulder-l":  { view: "front", cx: 240, cy: 205, r: 32, label: "Ombro esquerdo (deltoide)" },
+  "shoulder-r":  { view: "front", cx: 125, cy: 205, r: 32, label: "Ombro direito (deltoide)" },
+  "thoracic":    { view: "back",  cx: 180, cy: 260, r: 46, label: "Coluna torácica" },
+  "lumbar":      { view: "back",  cx: 180, cy: 390, r: 34, label: "Lombar" },
+  "hip-l":       { view: "front", cx: 220, cy: 410, r: 30, label: "Quadril esquerdo" },
+  "hip-r":       { view: "front", cx: 145, cy: 410, r: 30, label: "Quadril direito" },
+  "quad-l":      { view: "front", cx: 225, cy: 520, r: 36, label: "Quadríceps / Psoas esquerdo" },
+  "quad-r":      { view: "front", cx: 140, cy: 520, r: 36, label: "Quadríceps / Psoas direito" },
+  "ham-l":       { view: "back",  cx: 145, cy: 555, r: 36, label: "Posterior coxa esquerda" },
+  "ham-r":       { view: "back",  cx: 225, cy: 555, r: 36, label: "Posterior coxa direita" },
+  "ankle-l":     { view: "front", cx: 215, cy: 755, r: 20, label: "Tornozelo esquerdo" },
+  "ankle-r":     { view: "front", cx: 155, cy: 755, r: 20, label: "Tornozelo direito" },
 };
 
 interface Props {
