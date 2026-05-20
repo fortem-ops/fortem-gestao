@@ -717,6 +717,30 @@ export type Database = {
           },
         ]
       }
+      bodymap_region_overrides: {
+        Row: {
+          cx: number
+          cy: number
+          region_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cx: number
+          cy: number
+          region_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cx?: number
+          cy?: number
+          region_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       clube_alertas: {
         Row: {
           aluno_id: string | null
