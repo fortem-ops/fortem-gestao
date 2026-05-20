@@ -80,7 +80,7 @@ const RISK_STYLE: Record<"low" | "attention" | "high", { label: string; color: s
   high:      { label: "Alto risco compensatório", color: "var(--sev-weak)" },
 };
 
-export function BodyMap({ metrics }: Props) {
+export function BodyMap({ metrics, forcaExercises }: Props) {
   const [mode, setMode] = useState<Mode>("quality");
   const [layer, setLayer] = useState<Layer>("mobility");
   const [viewFilter, setViewFilter] = useState<"both" | "front" | "back">("both");
@@ -89,7 +89,13 @@ export function BodyMap({ metrics }: Props) {
 
   const { overrides, isAdmin, saveAll, resetAll } = useBodyMapGeometry();
 
-  const analysis = useMemo(() => analyze(metrics, layer), [metrics, layer]);
+  const analysis = useMemo(() => {
+    const base = analyze(metrics, layer, forcaExercises);
+    if (layer === "strength" && forcaExercises && forcaExercises.length) {
+      return applyForcaToRegions(base, forcaExercises);
+    }
+    return base;
+  }, [metrics, layer, forcaExercises]);
   const risk = RISK_STYLE[analysis.riskLevel];
 
   const regionList = useMemo(() => buildRegionList(analysis, 6), [analysis]);
