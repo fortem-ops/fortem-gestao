@@ -42,6 +42,15 @@
     --license: 270 70% 55%;
     --license-foreground: 0 0% 100%;
 
+    /* Body Map (Avaliação Funcional v2) — severity scale */
+    --sev-excellent: 142 71% 50%;
+    --sev-good: 152 65% 45%;
+    --sev-medium: 213 94% 58%;
+    --sev-attention: 38 92% 52%;
+    --sev-weak: 0 80% 55%;
+    --bodymap-bg: 220 28% 7%;
+    --bodymap-silhouette: 220 15% 70%;
+
     --border: 220 13% 82%;
     --input: 220 13% 84%;
     --ring: 0 72% 51%;
