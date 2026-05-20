@@ -42,6 +42,15 @@
     --license: 270 70% 55%;
     --license-foreground: 0 0% 100%;
 
+    /* Body Map (Avaliação Funcional v2) — severity scale */
+    --sev-excellent: 142 71% 50%;
+    --sev-good: 152 65% 45%;
+    --sev-medium: 213 94% 58%;
+    --sev-attention: 38 92% 52%;
+    --sev-weak: 0 80% 55%;
+    --bodymap-bg: 220 28% 7%;
+    --bodymap-silhouette: 220 15% 70%;
+
     --border: 220 13% 82%;
     --input: 220 13% 84%;
     --ring: 0 72% 51%;
@@ -110,4 +119,30 @@
   .body-text { color: hsl(var(--muted-foreground)); line-height: 1.6; }
   .legal-text { font-size: 0.8125rem; color: hsl(var(--muted-foreground)); line-height: 1.7; }
   .legal-text p { margin: 0; }
+
+  /* Body Map (Avaliação Funcional v2) */
+  .bodymap-surface {
+    background:
+      radial-gradient(120% 80% at 50% 0%, hsl(var(--sev-medium) / 0.08) 0%, transparent 60%),
+      radial-gradient(80% 60% at 50% 100%, hsl(var(--sev-weak) / 0.06) 0%, transparent 60%),
+      hsl(var(--bodymap-bg));
+    color: hsl(0 0% 95%);
+    border: 1px solid hsl(0 0% 100% / 0.06);
+  }
+  .bodymap-silhouette-stroke { stroke: hsl(var(--bodymap-silhouette) / 0.35); }
+  .bodymap-silhouette-fill { fill: hsl(var(--bodymap-silhouette) / 0.04); }
+  .sev-excellent { color: hsl(var(--sev-excellent)); }
+  .sev-good { color: hsl(var(--sev-good)); }
+  .sev-medium { color: hsl(var(--sev-medium)); }
+  .sev-attention { color: hsl(var(--sev-attention)); }
+  .sev-weak { color: hsl(var(--sev-weak)); }
+  @keyframes bodymap-pulse {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+  .bodymap-pulse { animation: bodymap-pulse 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  @keyframes bodymap-dash {
+    to { stroke-dashoffset: -16; }
+  }
+  .bodymap-chain { animation: bodymap-dash 1.6s linear infinite; }
 }

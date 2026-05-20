@@ -19,6 +19,7 @@ import { DynamicAssessment } from "./DynamicAssessment";
 import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
 import type { ExperimentalSchema } from "./experimentalTemplate";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
+import { FuncionalV2Assessment } from "./funcionalV2/FuncionalV2Assessment";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
@@ -455,6 +456,9 @@ function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"aluno
   const permiteUpload = !!protocolo?.permite_upload;
   if (tipo.engine === "funcional_fixo") {
     return <FunctionalAssessment student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
+  }
+  if (tipo.engine === "funcional_v2") {
+    return <FuncionalV2Assessment student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
   }
   if (tipo.engine === "composicao_pollock") {
     return <BodyComposition student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;

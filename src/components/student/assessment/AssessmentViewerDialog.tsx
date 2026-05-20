@@ -22,6 +22,7 @@ import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAsses
 import { fetchExperimentalSchema, migrateLegacyDados, type ExperimentalRecordDados } from "./experimentalTemplate";
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
+import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
 
 interface Props {
   open: boolean;
@@ -154,7 +155,9 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           </DialogTitle>
         </DialogHeader>
 
-        {isExperimental ? (
+        {avaliacao.tipo === "funcional_v2" ? (
+          <FuncionalV2Viewer avaliacao={avaliacao} />
+        ) : isExperimental ? (
           editing ? (
             <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
           ) : (
