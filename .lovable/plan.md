@@ -1,44 +1,66 @@
-# Modo Calibração — arrastar halos (admin) + gravar no banco
 
-Visível apenas para admin. As coordenadas ficam salvas no banco e passam a valer para todos imediatamente.
+## Mapa Corporal — sem corte das mãos + layout estilo referência
 
-## UX
+### 1. Mãos cortadas
 
-1. Acima do Mapa Corporal, botão **"Calibrar mapa"** renderizado só se `is_admin = true` (RPC já existente).
-2. Ao ativar:
-   - Cada halo ganha um **handle arrastável** (anel branco + ponto central, cursor `move`).
-   - Arrastar atualiza `cx`/`cy` em tempo real (conversão pixel→viewBox via `getBoundingClientRect` + pointer events com `setPointerCapture`).
-   - Mudanças ficam em estado local "rascunho" — não salvam a cada drag.
-3. Painel lateral mostra:
-   - **Salvar alterações** → grava no banco (upsert por região). Toast de confirmação.
-   - **Descartar** → volta para os valores salvos.
-   - **Resetar para o padrão do código** → remove overrides do banco (volta a usar `REGION_GEOMETRY` do código).
-4. Ao desligar o modo, halos voltam ao visual normal.
+A causa é o asset PNG anatômico (`anatomy-front.png` / `anatomy-back.png`), gerado com pouco espaço lateral e renderizado em `width=360` para preencher o viewBox `360×800`. Quando o aluno está em postura natural, as pontas dos dedos ficam fora da tela.
 
-## Banco
+Solução em duas frentes (juntas):
 
-Nova tabela `bodymap_region_overrides`:
+- **Regenerar os PNGs** (anterior e posterior) com mais respiro lateral (corpo centralizado ocupando ~70% da largura) e proporção 9:16 — mesmo personagem/iluminação para manter consistência visual.
+- **Ajustar o `<image>` dentro do SVG** para deixar o corpo um pouco menor e centralizado: renderizar em `x=18, width=324` (em vez de `x=0, width=360`), mantendo o viewBox `360×800`. Isso garante margem mesmo se a regeneração trouxer alguma variação.
+- **Recalibrar coordenadas**: como o corpo fica ~10% menor e levemente deslocado, atualizar `REGION_GEOMETRY` (12 pontos) no `BodyMapSVG.tsx` para acompanhar. Admin pode refinar depois pelo modo Calibração já existente.
 
-- `region_id text primary key` — uma das 12 regiões (`shoulder-l`, `thoracic`, etc.).
-- `cx numeric not null`, `cy numeric not null` — coordenadas no viewBox 360×800.
-- `updated_at`, `updated_by uuid`.
+### 2. Novo layout (referência: card "MAPA CORPORAL" da imagem anexa)
 
-**RLS**:
-- `SELECT` liberado para qualquer usuário autenticado (todos precisam ler para renderizar).
-- `INSERT`/`UPDATE`/`DELETE` apenas para admin (`has_role(auth.uid(), 'admin')`).
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│ MAPA CORPORAL                              [ Anterior | Posterior ]  │
+│ ┌──────────┬────────────────┐  ┌────────────────────────────────┐    │
+│ │ QUALIDADE│ ASSIM. │ RISCO │  │ ● Excelente ● Bom ● Atenção ●…│    │
+│ └──────────┴────────────────┘  └────────────────────────────────┘    │
+│                                                                      │
+│ ┌──────────────┬──────────────┐  ┌──────────────────────────────┐    │
+│ │              │              │  │ ① Tornozelo (D)        22%   │    │
+│ │   ANTERIOR   │  POSTERIOR   │  │    Dorsiflexão  Déficit mob. │    │
+│ │   (com ①②③…)│ (com ④⑤⑥…)  │  │ ② Ombro (E)            17%   │    │
+│ │              │              │  │    Rotação interna  Assim.   │    │
+│ │              │              │  │ ③ Quadríceps (D)       36%   │    │
+│ │              │              │  │    Extensão joelho  Elevada  │    │
+│ │              │              │  │ … (até 6 itens)              │    │
+│ └──────────────┴──────────────┘  └──────────────────────────────┘    │
+│ Texto explicativo: "As porcentagens representam diferença…"          │
+└──────────────────────────────────────────────────────────────────────┘
+```
 
-## Código
+Mudanças visuais:
 
-- **`BodyMapSVG.tsx`** — aceita prop opcional `overrides?: Partial<Record<RegionId, {cx:number;cy:number}>>` e funde com `REGION_GEOMETRY` antes de renderizar halos, hits, cadeias e linhas de assimetria.
-- **`useBodyMapGeometry.ts`** (novo hook) — `useQuery` que lê `bodymap_region_overrides` e devolve o objeto de overrides + funções `save(region, cx, cy)`, `saveAll(draft)`, `reset()`.
-- **`BodyMapCalibrator.tsx`** (novo) — overlay com handles arrastáveis + painel de ações. Recebe `geometry` mesclada e callback de save.
-- Onde `BodyMapSVG` é usado hoje (`StudentAssessments` / `AssessmentViewerDialog` / `funcionalV2` painel), envolver com wrapper que:
-  - Carrega overrides via hook.
-  - Renderiza botão "Calibrar mapa" se admin.
-  - Alterna entre `BodyMapSVG` normal e `BodyMapSVG` + `BodyMapCalibrator` por cima.
+- **Numeração nos pontos**: cada região com severidade ≠ `none` ganha um marcador circular numerado (1, 2, 3…) sobreposto ao halo (fundo escuro com borda colorida pela severidade). Numeração ordenada por gravidade (weak → attention → medium → good → excellent).
+- **Painel lateral à direita do mapa** (em telas ≥ md): lista das mesmas regiões com:
+  - número + nome da região + sub-rótulo (métrica principal que ficou pior, ex.: "Dorsiflexão")
+  - badge de % à direita (assimetria quando houver, senão `100 − score`)
+  - linha inferior com classificação (`Déficit de mobilidade`, `Assimetria moderada`, `Equilibrado`)
+- **Toggle Anterior/Posterior no topo do card**: além do modo "ambos lado a lado" atual, adicionar dois botões `Anterior | Posterior` que destacam/ampliam uma vista. Default `ambos` em telas grandes; em mobile, padrão = `Anterior` com toggle.
+- **Legenda de severidade** movida para o topo direito (junto ao toggle), inline horizontal com pontinhos coloridos — mesmas 5 cores (`excellent…weak`).
+- **Texto-rodapé** discreto: "As porcentagens representam a diferença do lado avaliado em relação ao lado mais forte ou ao valor de referência."
 
-## Fora do escopo
+### Escopo técnico
 
-- Edição do raio (`r`) das regiões — só posição.
-- Calibração por aluno — overrides são globais.
-- Histórico de alterações.
+- **Assets** (`src/assets/bodymap/anatomy-front.png`, `anatomy-back.png`): regenerar via `imagegen` com prompt ajustado para incluir mãos completas, proporção 9:16, fundo neutro.
+- **`AnatomyFront.tsx` / `AnatomyBack.tsx`**: trocar `x=0 width=360` por `x=18 width=324` (centraliza e dá margem).
+- **`BodyMapSVG.tsx`**:
+  - Recalibrar `REGION_GEOMETRY` para a nova escala.
+  - Novo componente `RegionNumber` desenhado em cima do halo (círculo + texto).
+  - Aceitar prop `numbering: Record<RegionId, number>` para sincronizar com o painel.
+  - Adicionar suporte a `viewFilter?: "front" | "back" | "both"`.
+- **`BodyMap.tsx`**:
+  - Novo estado `viewFilter`.
+  - Calcular lista ordenada por gravidade e gerar mapa `regionId → número`.
+  - Renderizar grid: mapa SVG à esquerda, painel `RegionListPanel` (novo subcomponente) à direita.
+  - Mover legenda para o topo.
+
+### Fora de escopo
+
+- Não alterar lógica de análise (`bodyMapLogic.ts`), métricas, formulário, viewer, PDF.
+- Não mexer no modo Calibração (já funciona com novas coordenadas).
+- Não trocar paleta nem tipografia.

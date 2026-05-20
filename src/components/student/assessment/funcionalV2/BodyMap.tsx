@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { Activity, GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
+import { analyze, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
 import { Button } from "@/components/ui/button";
+import { buildRegionList, RegionListPanel } from "./RegionListPanel";
 
 interface Props {
   metrics: MetricInput[];
@@ -20,6 +21,20 @@ const LAYERS: Array<{ id: Layer; label: string }> = [
   { id: "mobility",    label: "Mobilidade" },
   { id: "flexibility", label: "Flexibilidade" },
   { id: "asymmetry",   label: "Tudo" },
+];
+
+const VIEW_OPTIONS: Array<{ id: "both" | "front" | "back"; label: string }> = [
+  { id: "both",  label: "Ambos" },
+  { id: "front", label: "Anterior" },
+  { id: "back",  label: "Posterior" },
+];
+
+const LEGEND: Array<{ s: Severity; label: string }> = [
+  { s: "excellent", label: "Excelente" },
+  { s: "good",      label: "Bom" },
+  { s: "medium",    label: "Médio" },
+  { s: "attention", label: "Atenção" },
+  { s: "weak",      label: "Alto risco" },
 ];
 
 function ScoreRing({ value, label, size = 88 }: { value: number | null; label: string; size?: number }) {
@@ -66,6 +81,7 @@ const RISK_STYLE: Record<"low" | "attention" | "high", { label: string; color: s
 export function BodyMap({ metrics }: Props) {
   const [mode, setMode] = useState<Mode>("quality");
   const [layer, setLayer] = useState<Layer>("mobility");
+  const [viewFilter, setViewFilter] = useState<"both" | "front" | "back">("both");
   const [calibrating, setCalibrating] = useState(false);
   const [draft, setDraft] = useState<OverrideMap>({});
 
@@ -73,6 +89,13 @@ export function BodyMap({ metrics }: Props) {
 
   const analysis = useMemo(() => analyze(metrics, layer), [metrics, layer]);
   const risk = RISK_STYLE[analysis.riskLevel];
+
+  const regionList = useMemo(() => buildRegionList(analysis, 6), [analysis]);
+  const numbering = useMemo(() => {
+    const m: Partial<Record<RegionId, number>> = {};
+    regionList.forEach((it) => { m[it.id] = it.number; });
+    return m;
+  }, [regionList]);
 
   const mergedOverrides: OverrideMap = { ...overrides, ...draft };
   const hasDraft = Object.keys(draft).length > 0;
@@ -141,7 +164,7 @@ export function BodyMap({ metrics }: Props) {
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Controls row 1: modes + view filter */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-white/5">
         <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">
           {MODES.map((m) => {
@@ -162,22 +185,60 @@ export function BodyMap({ metrics }: Props) {
             );
           })}
         </div>
-        <div className="inline-flex items-center gap-2 text-[11px] text-white/55">
-          <Layers className="w-3.5 h-3.5" />
-          <span className="uppercase tracking-wider">Camada</span>
-          <div className="inline-flex gap-1">
-            {LAYERS.map((l) => (
-              <button
-                key={l.id}
-                onClick={() => setLayer(l.id)}
-                className={`px-2.5 py-1 rounded-md text-xs ${
-                  layer === l.id ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
-                }`}
-              >
-                {l.label}
-              </button>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Severity legend */}
+          <div className="hidden md:flex items-center gap-2.5">
+            {LEGEND.map(({ s, label }) => (
+              <div key={s} className="flex items-center gap-1">
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{
+                    background: `hsl(var(--sev-${s}))`,
+                    boxShadow: `0 0 8px hsl(var(--sev-${s}) / 0.7)`,
+                  }}
+                />
+                <span className="text-[10px] text-white/60">{label}</span>
+              </div>
             ))}
           </div>
+
+          {/* View toggle */}
+          <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">
+            {VIEW_OPTIONS.map((v) => {
+              const active = viewFilter === v.id;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => setViewFilter(v.id)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    active ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
+                  }`}
+                >
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Controls row 2: layer */}
+      <div className="flex items-center gap-2 text-[11px] text-white/55">
+        <Layers className="w-3.5 h-3.5" />
+        <span className="uppercase tracking-wider">Camada</span>
+        <div className="inline-flex gap-1">
+          {LAYERS.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => setLayer(l.id)}
+              className={`px-2.5 py-1 rounded-md text-xs ${
+                layer === l.id ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
+              }`}
+            >
+              {l.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -222,35 +283,32 @@ export function BodyMap({ metrics }: Props) {
         </div>
       )}
 
-      {/* SVG */}
-      <BodyMapSVG
-        analysis={analysis}
-        mode={mode}
-        overrides={mergedOverrides}
-        calibrating={calibrating}
-        onDragRegion={handleDrag}
-      />
+      {/* Main: SVG + side panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
+        <BodyMapSVG
+          analysis={analysis}
+          mode={mode}
+          overrides={mergedOverrides}
+          calibrating={calibrating}
+          onDragRegion={handleDrag}
+          numbering={numbering}
+          viewFilter={viewFilter}
+        />
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-3 pt-2 border-t border-white/5">
-        {(["excellent","good","medium","attention","weak"] as const).map((s) => (
-          <div key={s} className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 rounded-full"
-              style={{
-                background: `hsl(var(--sev-${s}))`,
-                boxShadow: `0 0 10px hsl(var(--sev-${s}) / 0.7)`,
-              }}
-            />
-            <span className="text-[10px] uppercase tracking-wider text-white/60">
-              {s === "excellent" ? "Excelente" :
-               s === "good" ? "Bom" :
-               s === "medium" ? "Médio" :
-               s === "attention" ? "Atenção" : "Déficit"}
-            </span>
+        {!calibrating && (
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 px-1">
+              Pontos de atenção
+            </p>
+            <RegionListPanel items={regionList} />
           </div>
-        ))}
+        )}
       </div>
+
+      {/* Footer note */}
+      <p className="text-[11px] text-white/40 leading-relaxed">
+        As porcentagens representam a diferença do lado avaliado em relação ao lado mais forte ou ao valor de referência.
+      </p>
 
       {/* Chain explanations */}
       {analysis.chains.length > 0 && (
