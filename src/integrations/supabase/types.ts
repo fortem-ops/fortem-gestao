@@ -396,6 +396,56 @@ export type Database = {
           },
         ]
       }
+      avaliacao_pliometria: {
+        Row: {
+          assimetria: number | null
+          avaliacao_id: string
+          created_at: string
+          id: string
+          observacoes: string | null
+          potencia: number | null
+          rsi: number | null
+          salto_horizontal: number | null
+          salto_vertical: number | null
+          stiffness: number | null
+          tempo_contato: number | null
+        }
+        Insert: {
+          assimetria?: number | null
+          avaliacao_id: string
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          potencia?: number | null
+          rsi?: number | null
+          salto_horizontal?: number | null
+          salto_vertical?: number | null
+          stiffness?: number | null
+          tempo_contato?: number | null
+        }
+        Update: {
+          assimetria?: number | null
+          avaliacao_id?: string
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          potencia?: number | null
+          rsi?: number | null
+          salto_horizontal?: number | null
+          salto_vertical?: number | null
+          stiffness?: number | null
+          tempo_contato?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacao_pliometria_avaliacao_id_fkey"
+            columns: ["avaliacao_id"]
+            isOneToOne: true
+            referencedRelation: "avaliacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avaliacao_protocolos: {
         Row: {
           ativo: boolean
