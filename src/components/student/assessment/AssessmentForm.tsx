@@ -456,6 +456,9 @@ function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"aluno
   if (tipo.engine === "funcional_fixo") {
     return <FunctionalAssessment student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
   }
+  if (tipo.engine === "funcional_v2") {
+    return <FuncionalV2Assessment student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
+  }
   if (tipo.engine === "composicao_pollock") {
     return <BodyComposition student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
   }
