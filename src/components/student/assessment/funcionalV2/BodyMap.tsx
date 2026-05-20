@@ -66,9 +66,42 @@ const RISK_STYLE: Record<"low" | "attention" | "high", { label: string; color: s
 export function BodyMap({ metrics }: Props) {
   const [mode, setMode] = useState<Mode>("quality");
   const [layer, setLayer] = useState<Layer>("mobility");
+  const [calibrating, setCalibrating] = useState(false);
+  const [draft, setDraft] = useState<OverrideMap>({});
+
+  const { overrides, isAdmin, saveAll, resetAll } = useBodyMapGeometry();
 
   const analysis = useMemo(() => analyze(metrics, layer), [metrics, layer]);
   const risk = RISK_STYLE[analysis.riskLevel];
+
+  const mergedOverrides: OverrideMap = { ...overrides, ...draft };
+  const hasDraft = Object.keys(draft).length > 0;
+
+  function handleDrag(id: RegionId, cx: number, cy: number) {
+    setDraft((d) => ({ ...d, [id]: { cx, cy } }));
+  }
+
+  async function handleSave() {
+    try {
+      await saveAll.mutateAsync(draft);
+      setDraft({});
+      toast.success("Posições salvas para todos.");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar.");
+    }
+  }
+
+  async function handleReset() {
+    if (!confirm("Resetar todas as posições para o padrão do código? Esta ação remove os ajustes salvos.")) return;
+    try {
+      await resetAll.mutateAsync();
+      setDraft({});
+      toast.success("Posições resetadas.");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao resetar.");
+    }
+  }
+
 
   return (
     <div className="bodymap-surface rounded-xl p-5 md:p-6 space-y-5">
