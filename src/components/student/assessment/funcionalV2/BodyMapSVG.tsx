@@ -1,8 +1,10 @@
+import { useRef } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BodyMapAnalysis, Mode, RegionId, Severity } from "./bodyMapLogic";
 import { SEVERITY_COLOR_VAR, SEVERITY_LABEL } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
+import type { OverrideMap } from "./useBodyMapGeometry";
 
 interface RegionGeometry {
   cx: number;
@@ -35,6 +37,19 @@ export const REGION_GEOMETRY: Record<RegionId, RegionGeometry> = {
 interface Props {
   analysis: BodyMapAnalysis;
   mode: Mode;
+  overrides?: OverrideMap;
+  calibrating?: boolean;
+  onDragRegion?: (id: RegionId, cx: number, cy: number) => void;
+}
+
+function mergeGeometry(overrides?: OverrideMap): Record<RegionId, RegionGeometry> {
+  if (!overrides) return REGION_GEOMETRY;
+  const out = { ...REGION_GEOMETRY };
+  (Object.keys(overrides) as RegionId[]).forEach((id) => {
+    const o = overrides[id];
+    if (o && out[id]) out[id] = { ...out[id], cx: o.cx, cy: o.cy };
+  });
+  return out;
 }
 
 function severityIntensity(s: Severity): { opacity: number; radiusMul: number } {
@@ -152,13 +167,15 @@ function RegionHit({
   );
 }
 
-function Chains({ analysis, view }: { analysis: BodyMapAnalysis; view: "front" | "back" }) {
+function Chains({
+  analysis, view, geometry,
+}: { analysis: BodyMapAnalysis; view: "front" | "back"; geometry: Record<RegionId, RegionGeometry> }) {
   if (analysis.chains.length === 0) return null;
   return (
     <g pointerEvents="none">
       {analysis.chains.map((c, i) => {
-        const a = REGION_GEOMETRY[c.from];
-        const b = REGION_GEOMETRY[c.to];
+        const a = geometry[c.from];
+        const b = geometry[c.to];
         if (a.view !== view || b.view !== view) return null;
         return (
           <line key={i}
@@ -175,37 +192,93 @@ function Chains({ analysis, view }: { analysis: BodyMapAnalysis; view: "front" |
   );
 }
 
-export function BodyMapSVG({ analysis, mode }: Props) {
+function CalibrationHandle({
+  id, geom, svgRef, onDrag,
+}: {
+  id: RegionId;
+  geom: RegionGeometry;
+  svgRef: React.RefObject<SVGSVGElement>;
+  onDrag: (id: RegionId, cx: number, cy: number) => void;
+}) {
+  const draggingRef = useRef(false);
+
+  function toViewBox(clientX: number, clientY: number) {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * VIEWBOX.w;
+    const y = ((clientY - rect.top) / rect.height) * VIEWBOX.h;
+    return {
+      x: Math.max(0, Math.min(VIEWBOX.w, x)),
+      y: Math.max(0, Math.min(VIEWBOX.h, y)),
+    };
+  }
+
+  return (
+    <g
+      style={{ cursor: "move" }}
+      onPointerDown={(e) => {
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+        draggingRef.current = true;
+        e.stopPropagation();
+      }}
+      onPointerMove={(e) => {
+        if (!draggingRef.current) return;
+        const p = toViewBox(e.clientX, e.clientY);
+        if (p) onDrag(id, Math.round(p.x), Math.round(p.y));
+      }}
+      onPointerUp={(e) => {
+        draggingRef.current = false;
+        try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch {}
+      }}
+    >
+      {/* hit area */}
+      <circle cx={geom.cx} cy={geom.cy} r={geom.r + 4} fill="hsl(0 0% 100% / 0.06)" stroke="hsl(0 0% 100% / 0.9)" strokeWidth={1.5} strokeDasharray="3 3" />
+      <circle cx={geom.cx} cy={geom.cy} r={4} fill="hsl(140 80% 55%)" stroke="white" strokeWidth={1.2} />
+      <text x={geom.cx} y={geom.cy - geom.r - 8} textAnchor="middle"
+        fontSize={9} fill="white" style={{ pointerEvents: "none", fontFamily: "monospace" }}>
+        {id}
+      </text>
+    </g>
+  );
+}
+
+export function BodyMapSVG({ analysis, mode, overrides, calibrating, onDragRegion }: Props) {
+  const geometry = mergeGeometry(overrides);
+  const frontSvgRef = useRef<SVGSVGElement>(null);
+  const backSvgRef = useRef<SVGSVGElement>(null);
+
   return (
     <TooltipProvider delayDuration={120}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
         {(["front", "back"] as const).map((view) => {
-          const regions = (Object.entries(REGION_GEOMETRY) as Array<[RegionId, RegionGeometry]>)
+          const regions = (Object.entries(geometry) as Array<[RegionId, RegionGeometry]>)
             .filter(([, g]) => g.view === view);
+          const svgRef = view === "front" ? frontSvgRef : backSvgRef;
           return (
             <div key={view} className="flex flex-col items-center">
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">
                 {view === "front" ? "Vista anterior" : "Vista posterior"}
               </p>
               <svg
+                ref={svgRef}
                 viewBox={`0 0 ${VIEWBOX.w} ${VIEWBOX.h}`}
                 className="w-full max-w-[360px] h-auto rounded-xl overflow-hidden"
                 role="img"
                 aria-label={`Corpo humano — ${view === "front" ? "vista anterior" : "vista posterior"}`}
+                style={{ touchAction: calibrating ? "none" : undefined }}
               >
-                {/* Imagem anatômica base */}
                 {view === "front" ? <AnatomyFront /> : <AnatomyBack />}
 
-                {/* Linhas de assimetria bilateral */}
-                {mode === "asymmetry" && (
+                {mode === "asymmetry" && !calibrating && (
                   <g pointerEvents="none">
                     {analysis.asymmetries.map((a, i) => {
                       const id = a.region;
                       const opposite = id.endsWith("-l")
                         ? (id.replace("-l", "-r") as RegionId)
                         : (id.replace("-r", "-l") as RegionId);
-                      const g1 = REGION_GEOMETRY[id];
-                      const g2 = REGION_GEOMETRY[opposite];
+                      const g1 = geometry[id];
+                      const g2 = geometry[opposite];
                       if (!g1 || !g2 || g1.view !== view) return null;
                       return (
                         <line key={i}
@@ -218,14 +291,18 @@ export function BodyMapSVG({ analysis, mode }: Props) {
                   </g>
                 )}
 
-                <Chains analysis={analysis} view={view} />
+                {!calibrating && <Chains analysis={analysis} view={view} geometry={geometry} />}
 
-                {regions.map(([id, geom]) => (
+                {!calibrating && regions.map(([id, geom]) => (
                   <RegionGlow key={`glow-${id}`} id={id} geom={geom} state={analysis.regions[id]} mode={mode} />
                 ))}
 
-                {regions.map(([id, geom]) => (
+                {!calibrating && regions.map(([id, geom]) => (
                   <RegionHit key={`hit-${id}`} id={id} geom={geom} state={analysis.regions[id]} />
+                ))}
+
+                {calibrating && onDragRegion && regions.map(([id, geom]) => (
+                  <CalibrationHandle key={`cal-${id}`} id={id} geom={geom} svgRef={svgRef} onDrag={onDragRegion} />
                 ))}
               </svg>
             </div>

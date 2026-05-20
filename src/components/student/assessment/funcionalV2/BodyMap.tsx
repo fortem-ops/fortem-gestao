@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
-import { Activity, GitCompareArrows, ShieldAlert, Layers } from "lucide-react";
+import { Activity, GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, type Layer, type Mode, type MetricInput } from "./bodyMapLogic";
+import { analyze, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
+import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   metrics: MetricInput[];
@@ -63,9 +66,42 @@ const RISK_STYLE: Record<"low" | "attention" | "high", { label: string; color: s
 export function BodyMap({ metrics }: Props) {
   const [mode, setMode] = useState<Mode>("quality");
   const [layer, setLayer] = useState<Layer>("mobility");
+  const [calibrating, setCalibrating] = useState(false);
+  const [draft, setDraft] = useState<OverrideMap>({});
+
+  const { overrides, isAdmin, saveAll, resetAll } = useBodyMapGeometry();
 
   const analysis = useMemo(() => analyze(metrics, layer), [metrics, layer]);
   const risk = RISK_STYLE[analysis.riskLevel];
+
+  const mergedOverrides: OverrideMap = { ...overrides, ...draft };
+  const hasDraft = Object.keys(draft).length > 0;
+
+  function handleDrag(id: RegionId, cx: number, cy: number) {
+    setDraft((d) => ({ ...d, [id]: { cx, cy } }));
+  }
+
+  async function handleSave() {
+    try {
+      await saveAll.mutateAsync(draft);
+      setDraft({});
+      toast.success("Posições salvas para todos.");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar.");
+    }
+  }
+
+  async function handleReset() {
+    if (!confirm("Resetar todas as posições para o padrão do código? Esta ação remove os ajustes salvos.")) return;
+    try {
+      await resetAll.mutateAsync();
+      setDraft({});
+      toast.success("Posições resetadas.");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao resetar.");
+    }
+  }
+
 
   return (
     <div className="bodymap-surface rounded-xl p-5 md:p-6 space-y-5">
@@ -145,8 +181,55 @@ export function BodyMap({ metrics }: Props) {
         </div>
       </div>
 
+      {/* Calibration toolbar (admin) */}
+      {isAdmin && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2">
+          <div className="flex items-center gap-2 text-[11px] text-white/60">
+            <Move className="w-3.5 h-3.5" />
+            <span>
+              {calibrating
+                ? hasDraft
+                  ? `Calibrando — ${Object.keys(draft).length} ponto(s) alterado(s)`
+                  : "Calibrando — arraste os pontos sobre a imagem"
+                : "Modo calibração disponível (admin)"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {calibrating && hasDraft && (
+              <>
+                <Button size="sm" variant="ghost" onClick={() => setDraft({})}>
+                  <X className="w-3.5 h-3.5 mr-1" /> Descartar
+                </Button>
+                <Button size="sm" onClick={handleSave} disabled={saveAll.isPending}>
+                  <Save className="w-3.5 h-3.5 mr-1" />
+                  {saveAll.isPending ? "Salvando..." : "Salvar para todos"}
+                </Button>
+              </>
+            )}
+            {calibrating && !hasDraft && Object.keys(overrides).length > 0 && (
+              <Button size="sm" variant="ghost" onClick={handleReset} disabled={resetAll.isPending}>
+                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Resetar padrão
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant={calibrating ? "secondary" : "outline"}
+              onClick={() => { setCalibrating((v) => !v); setDraft({}); }}
+            >
+              {calibrating ? "Sair da calibração" : "Calibrar mapa"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* SVG */}
-      <BodyMapSVG analysis={analysis} mode={mode} />
+      <BodyMapSVG
+        analysis={analysis}
+        mode={mode}
+        overrides={mergedOverrides}
+        calibrating={calibrating}
+        onDragRegion={handleDrag}
+      />
 
       {/* Legend */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-2 border-t border-white/5">

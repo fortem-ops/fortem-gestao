@@ -1,34 +1,44 @@
-# Ajuste do Mapa Corporal — mãos cortadas + calibração anatômica
+# Modo Calibração — arrastar halos (admin) + gravar no banco
 
-## Diagnóstico
+Visível apenas para admin. As coordenadas ficam salvas no banco e passam a valer para todos imediatamente.
 
-A imagem anatômica atual (`anatomy-front.png` / `anatomy-back.png`) foi trimmed/centralizada em **300×800**, mas o corpo masculino com braços em posição neutra ocupa quase toda a largura — as **mãos ficam encostadas nas bordas laterais** e visualmente parecem cortadas. O `viewBox` do `<svg>` também é 300×800, então não há margem onde respirar.
+## UX
 
-O SVG de referência enviado (`fortem_masculino_paths_anatomicos_editaveis.svg`) usa proporção mais larga (~440×900 por vista) justamente para acomodar braços e mãos.
+1. Acima do Mapa Corporal, botão **"Calibrar mapa"** renderizado só se `is_admin = true` (RPC já existente).
+2. Ao ativar:
+   - Cada halo ganha um **handle arrastável** (anel branco + ponto central, cursor `move`).
+   - Arrastar atualiza `cx`/`cy` em tempo real (conversão pixel→viewBox via `getBoundingClientRect` + pointer events com `setPointerCapture`).
+   - Mudanças ficam em estado local "rascunho" — não salvam a cada drag.
+3. Painel lateral mostra:
+   - **Salvar alterações** → grava no banco (upsert por região). Toast de confirmação.
+   - **Descartar** → volta para os valores salvos.
+   - **Resetar para o padrão do código** → remove overrides do banco (volta a usar `REGION_GEOMETRY` do código).
+4. Ao desligar o modo, halos voltam ao visual normal.
 
-## O que muda
+## Banco
 
-### 1. Re-processar as imagens base com padding lateral
-- Recortar de novo `anatomy-front.png` e `anatomy-back.png` para **360×800** (mantendo o corpo centralizado), adicionando ~30px de margem em cada lado.
-- Garante que mãos, dedos e cotovelos fiquem inteiros e com folga visual.
+Nova tabela `bodymap_region_overrides`:
 
-### 2. Atualizar `AnatomyFront.tsx` / `AnatomyBack.tsx`
-- Trocar `width="300"` por `width="360"`.
+- `region_id text primary key` — uma das 12 regiões (`shoulder-l`, `thoracic`, etc.).
+- `cx numeric not null`, `cy numeric not null` — coordenadas no viewBox 360×800.
+- `updated_at`, `updated_by uuid`.
 
-### 3. Atualizar `BodyMapSVG.tsx`
-- `VIEWBOX = { w: 360, h: 800 }`.
-- Recalibrar `REGION_GEOMETRY` para o novo enquadramento, usando o SVG anatômico de referência como guia de posicionamento dos grupos musculares (ombros, trapézio, peitoral/torácica, lombar, glúteo, quadríceps, isquiotibiais, gastrocnêmio/tornozelo).
-- Os halos continuam sendo o `RegionGlow` atual (gradiente radial + anel luminoso + núcleo) — visual não muda, só posição.
+**RLS**:
+- `SELECT` liberado para qualquer usuário autenticado (todos precisam ler para renderizar).
+- `INSERT`/`UPDATE`/`DELETE` apenas para admin (`has_role(auth.uid(), 'admin')`).
 
-### 4. Container
-- Ajustar `max-w-[300px]` → `max-w-[360px]` no wrapper de cada vista.
+## Código
+
+- **`BodyMapSVG.tsx`** — aceita prop opcional `overrides?: Partial<Record<RegionId, {cx:number;cy:number}>>` e funde com `REGION_GEOMETRY` antes de renderizar halos, hits, cadeias e linhas de assimetria.
+- **`useBodyMapGeometry.ts`** (novo hook) — `useQuery` que lê `bodymap_region_overrides` e devolve o objeto de overrides + funções `save(region, cx, cy)`, `saveAll(draft)`, `reset()`.
+- **`BodyMapCalibrator.tsx`** (novo) — overlay com handles arrastáveis + painel de ações. Recebe `geometry` mesclada e callback de save.
+- Onde `BodyMapSVG` é usado hoje (`StudentAssessments` / `AssessmentViewerDialog` / `funcionalV2` painel), envolver com wrapper que:
+  - Carrega overrides via hook.
+  - Renderiza botão "Calibrar mapa" se admin.
+  - Alterna entre `BodyMapSVG` normal e `BodyMapSVG` + `BodyMapCalibrator` por cima.
 
 ## Fora do escopo
 
-- Não migrar para SVG vetorial com path por músculo (a referência é só guia visual de posição — a visualização final permanece a imagem raster já estabelecida).
-- Não mexer em `bodyMapLogic.ts`, formulário, viewer ou PDF.
-- Cores, severidades, tooltips, cadeias compensatórias e linhas de assimetria permanecem idênticos.
-
-## Resultado esperado
-
-Mãos e braços inteiros, com pequena margem lateral, e halos centralizados corretamente sobre cada grupo muscular real da imagem anatômica.
+- Edição do raio (`r`) das regiões — só posição.
+- Calibração por aluno — overrides são globais.
+- Histórico de alterações.
