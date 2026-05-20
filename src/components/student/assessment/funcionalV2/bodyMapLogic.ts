@@ -200,24 +200,48 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility"): Body
     }
   }
 
-  // Asymmetries
+  // Asymmetries — sempre correlacionar a MESMA métrica entre lado E e D,
+  // depois agregar por região (mantendo a maior assimetria observada).
   const asymmetries: BodyMapAnalysis["asymmetries"] = [];
   const pairs: Array<[RegionId, RegionId]> = [
     ["shoulder-l","shoulder-r"],
+    ["shoulder-re-l","shoulder-re-r"],
     ["hip-l","hip-r"],
+    ["hip-re-l","hip-re-r"],
+    ["psoas-l","psoas-r"],
     ["quad-l","quad-r"],
     ["ham-l","ham-r"],
     ["ankle-l","ankle-r"],
   ];
+  const regionDiffs: Partial<Record<RegionId, { diff: number; weakerSide: "left" | "right" }>> = {};
+
+  for (const m of metrics) {
+    const meta = METRIC_META[m.metric];
+    if (!meta || !includeForLayer(meta.layer)) continue;
+    if (!m.leftClass || !m.rightClass) continue;
+    const lScore = CLASS_SCORE[m.leftClass];
+    const rScore = CLASS_SCORE[m.rightClass];
+    const diff = Math.abs(lScore - rScore);
+    if (diff === 0) continue;
+    const weakerSide: "left" | "right" = lScore < rScore ? "left" : "right";
+
+    for (const r of meta.regions) {
+      if ("both" in r) continue;
+      for (const regionId of [r.left, r.right]) {
+        const prev = regionDiffs[regionId];
+        if (!prev || diff > prev.diff) regionDiffs[regionId] = { diff, weakerSide };
+      }
+    }
+  }
+
   for (const [a, b] of pairs) {
-    const sa = regions[a].score;
-    const sb = regions[b].score;
-    if (sa === null || sb === null) continue;
-    const diff = Math.abs(sa - sb);
-    regions[a].asymmetry = diff;
-    regions[b].asymmetry = diff;
-    if (diff >= 25) asymmetries.push({ region: sa < sb ? a : b, diff, severity: "severe" });
-    else if (diff >= 15) asymmetries.push({ region: sa < sb ? a : b, diff, severity: "moderate" });
+    const info = regionDiffs[a] ?? regionDiffs[b];
+    if (!info) continue;
+    regions[a].asymmetry = info.diff;
+    regions[b].asymmetry = info.diff;
+    const weakerRegion = info.weakerSide === "left" ? a : b;
+    if (info.diff >= 25) asymmetries.push({ region: weakerRegion, diff: info.diff, severity: "severe" });
+    else if (info.diff >= 15) asymmetries.push({ region: weakerRegion, diff: info.diff, severity: "moderate" });
   }
 
   // Compensation chains
@@ -239,12 +263,16 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility"): Body
   const mean = (xs: number[]) => xs.length ? xs.reduce((a,b) => a+b, 0) / xs.length : null;
 
   const scoreMobilidade = mean(mobScores);
-  const asymDiffs = pairs
-    .map(([a,b]) => {
-      const sa = regions[a].score; const sb = regions[b].score;
-      return sa !== null && sb !== null ? Math.abs(sa - sb) : null;
-    })
-    .filter((d): d is number => d !== null);
+  // Simetria baseada nas assimetrias por métrica (E vs D na mesma métrica)
+  const asymDiffs: number[] = [];
+  for (const m of metrics) {
+    const meta = METRIC_META[m.metric];
+    if (!meta || !includeForLayer(meta.layer)) continue;
+    if (!m.leftClass || !m.rightClass) continue;
+    // Métricas centrais (both) não geram assimetria L/R
+    if (meta.regions.every((r) => "both" in r)) continue;
+    asymDiffs.push(Math.abs(CLASS_SCORE[m.leftClass] - CLASS_SCORE[m.rightClass]));
+  }
   const scoreSimetria = asymDiffs.length
     ? Math.max(0, Math.round(100 - (asymDiffs.reduce((a,b) => a+b, 0) / asymDiffs.length) * 1.6))
     : null;
