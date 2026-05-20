@@ -1,76 +1,48 @@
-# Anatomia Biomecânica Premium — Mapa Corporal v2
-
 ## Objetivo
-Substituir a silhueta atual (formas geométricas simples em `BodyMapSVG.tsx`) por um corpo humano anatômico realista em SVG vetorial, estilo Instituto Biomech / Kinology / BioDigital — monocromático, técnico, premium — mantendo toda a lógica de regiões, halos, tooltips e modos já existente.
+Trocar as silhuetas vetoriais atuais (`AnatomyFront`/`AnatomyBack`) pela imagem `fortem_anatomia` enviada, mantendo halos, tooltips, assimetrias e cadeias compensatórias funcionando por cima.
 
-## Escopo
-Apenas frontend / presentação. Sem mudanças em:
-- `bodyMapLogic.ts` (lógica, scores, cadeias)
-- `BodyMap.tsx` (header, controles, legenda)
-- Banco de dados, formulário, viewer, PDF
+## Premissas
+- A imagem é um PNG embutido em SVG (~1536×1024) mostrando vista **anterior + posterior lado a lado**.
+- Sem paths por músculo → não é possível `clip-path` por contorno anatômico. Halos passam a ser **círculos com gradiente radial** posicionados sobre cada região (volta ao modelo Whoop/Oura, ainda premium).
+- Toda a lógica de `bodyMapLogic.ts`, scores, severidades, modos (Qualidade/Assimetria/Risco) e cadeias **fica intacta**.
 
-## Mudanças
+## Passos
 
-### 1. Novo asset anatômico — `src/components/student/assessment/funcionalV2/anatomy/`
-Criar dois arquivos SVG inline como componentes React (não PNG, não asset externo):
+1. **Extrair e otimizar a imagem**
+   - Decodificar o base64 do SVG enviado → PNG.
+   - Recortar em duas metades (anterior / posterior) e salvar:
+     - `src/assets/bodymap/anatomy-front.png`
+     - `src/assets/bodymap/anatomy-back.png`
+   - Redimensionar para ~600×800 cada, qualidade alta, fundo transparente se possível (senão fundo escuro casando com `--bodymap-surface`).
 
-- `AnatomyFront.tsx` — vista anterior
-- `AnatomyBack.tsx`  — vista posterior
+2. **Refatorar `AnatomyFront.tsx` / `AnatomyBack.tsx`**
+   - Substituir todos os `<path>` por um único `<image href={anatomyFront} ... />` ocupando o viewBox.
+   - Remover defs de gradientes corporais (sombreamento já vem da foto).
+   - Manter o mesmo viewBox `0 0 200 540` para não quebrar coordenadas existentes.
 
-Características:
-- Paths anatômicos realistas (não primitivas ellipse/rect): deltoides, peitoral, reto abdominal, oblíquos, quadríceps (vasto lateral/medial/reto femoral), adutores, tibial anterior, posterior de coxa (isquiotibiais), glúteo máx/médio, gastrocnêmio, trapézio, latíssimo, eretores espinhais, romboides.
-- Cada músculo/região é um `<path>` com `id` e `data-region` correspondente aos `RegionId` de `bodyMapLogic.ts` (`shoulder-l`, `quad-r`, `ham-l`, `glute-l/r`, `thoracic`, `lumbar`, `hip-l/r`, `ankle-l/r`, `knee-l/r`).
-- Acabamento monocromático: fill com `hsl(var(--bodymap-muscle))` em camadas (base escura + sombreamento via paths translúcidos sobrepostos para dar volume anatômico, sem usar imagem raster).
-- Linhas técnicas finas (`stroke` 0.4–0.6) em `hsl(var(--bodymap-line) / 0.4)` para insertion lines musculares.
-- ViewBox padronizado `0 0 220 580`.
+3. **Ajustar `BodyMapSVG.tsx`**
+   - Remover `<clipPath>` que referenciam `#region-*` (não existem mais).
+   - `RegionGlow` passa a renderizar apenas:
+     - halo externo (radialGradient suave)
+     - núcleo brilhante central
+     - anel luminoso fino (`<circle>` com stroke colorido)
+   - Recalibrar `REGION_GEOMETRY` (cx/cy/r) para casar com as posições reais dos músculos na nova imagem — uma rodada de ajuste visual após inserir o asset.
 
-### 2. Tokens visuais — `src/index.css`
-Adicionar/ajustar variáveis dentro de `.bodymap-surface`:
-```
---bodymap-bg-grad-1, --bodymap-bg-grad-2      /* fundo escuro com gradiente sutil */
---bodymap-muscle-base   : 220 8% 18%          /* cinza neutro do músculo */
---bodymap-muscle-shade  : 220 10% 12%         /* sombreamento */
---bodymap-muscle-hi     : 220 6% 30%          /* highlight anatômico */
---bodymap-line          : 220 10% 55%         /* contorno técnico */
---bodymap-silhouette    : 220 8% 22%          /* fallback */
-```
-Tons cinza-azulado frio, baixo contraste, leitura "clínica esportiva".
+4. **Tokens CSS (`src/index.css`)**
+   - Manter `--bodymap-surface` e cores de severidade.
+   - Remover/limpar tokens não usados (`--bodymap-muscle-base`, `--bodymap-line` etc.) ou deixar como fallback.
 
-### 3. Sobreposição de halos
-- `REGION_GEOMETRY` em `BodyMapSVG.tsx` é mantido (cx/cy/r por região) e usado como ponto de luz radial sobre o músculo correspondente.
-- Halos atuais (radialGradient + pulse) são preservados — apenas passam a brilhar **sobre** a anatomia realista, não sobre formas primitivas.
-- Adicionar máscara opcional: o glow do halo é clipado pelo `<path>` do músculo via `<clipPath id="region-{id}">`, garantindo que o brilho siga o contorno muscular (efeito Biomech).
-- Regiões não destacadas permanecem em `--bodymap-muscle-base` com opacidade reduzida (~0.55), reforçando o foco visual nas áreas avaliadas.
-
-### 4. Refatoração de `BodyMapSVG.tsx`
-- Remover `HumanSilhouette` (primitivas).
-- Importar `<AnatomyFront />` / `<AnatomyBack />`.
-- Para cada região, renderizar:
-  1. Path anatômico (vem do componente Anatomy)
-  2. `<use href="#region-{id}" />` com filtro de glow quando severity ≠ none
-  3. Halo radial sobre o centro (como hoje)
-  4. Hitbox transparente para Tooltip
-- Mapear regiões anatômicas extra à lógica existente (glúteo máx → `glute-l/r` se não existir no logic, adicionamos só o mapeamento visual — sem mudar scores).
-
-### 5. Detalhes técnicos premium
-- Gradiente linear sutil no fundo do card (`radial-gradient` central) para profundidade.
-- Linha vertebral central (vista posterior) com pontilhado fino já existente — mantida e refinada.
-- Marcações de eixo bilateral (linha horizontal de ombro e quadril) opcional, em opacidade 0.1.
-- Animação `bodymap-pulse` mantida.
-
-## Out of scope
-- Não alterar lógica de cálculo de scores nem regras de assimetria/cadeias.
-- Não trocar tooltips nem controles.
-- Não adicionar zoom/pan (pode entrar em iteração futura).
+5. **QA**
+   - Validar que halos ficam centrados nos músculos corretos em ambas as vistas.
+   - Tooltips, linhas de assimetria e cadeias compensatórias continuam funcionando.
+   - Conferir contraste no dark mode e que a imagem não estoura o card.
 
 ## Arquivos
-**Criados**
-- `src/components/student/assessment/funcionalV2/anatomy/AnatomyFront.tsx`
-- `src/components/student/assessment/funcionalV2/anatomy/AnatomyBack.tsx`
+**Criados:** `src/assets/bodymap/anatomy-front.png`, `anatomy-back.png`
+**Editados:** `src/components/student/assessment/funcionalV2/anatomy/AnatomyFront.tsx`, `AnatomyBack.tsx`, `src/components/student/assessment/funcionalV2/BodyMapSVG.tsx`, `src/index.css`
 
-**Editados**
-- `src/components/student/assessment/funcionalV2/BodyMapSVG.tsx`
-- `src/index.css` (tokens `--bodymap-*`)
+## Fora de escopo
+- `bodyMapLogic.ts`, formulário, viewer, PDF, banco de dados.
 
-## Riscos
-- SVG anatômico realista feito 100% à mão fica ~300–500 linhas por vista. Ainda assim é o caminho correto pedido (sem PNG, sem cartoon). Os PDFs anexados (Kinology / Biomech) são referência visual — não serão importados, mas a paleta e o nível de detalhe muscular do componente serão alinhados a eles.
+## Observação
+Se mais tarde você quiser voltar ao efeito de "preenchimento por contorno do músculo" (clip-path Biomech), precisaremos de um SVG vetorial verdadeiro com `<path>` por região — a imagem raster não permite isso.
