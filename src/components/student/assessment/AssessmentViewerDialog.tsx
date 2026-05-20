@@ -155,7 +155,9 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           </DialogTitle>
         </DialogHeader>
 
-        {isExperimental ? (
+        {avaliacao.tipo === "funcional_v2" ? (
+          <FuncionalV2Viewer avaliacao={avaliacao} />
+        ) : isExperimental ? (
           editing ? (
             <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
           ) : (
