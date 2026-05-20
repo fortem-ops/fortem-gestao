@@ -26,6 +26,7 @@ const Agenda = lazy(() => import("./pages/Agenda"));
 const CarteiraAlunos = lazy(() => import("./pages/CarteiraAlunos"));
 const ExerciseBank = lazy(() => import("./pages/ExerciseBank"));
 const Avaliacoes = lazy(() => import("./pages/Avaliacoes"));
+const AvaliacoesPremium = lazy(() => import("./pages/AvaliacoesPremium"));
 const BancoTreinos = lazy(() => import("./pages/BancoTreinos"));
 const PublicWorkout = lazy(() => import("./pages/PublicWorkout"));
 const Pipeline = lazy(() => import("./pages/Pipeline"));
@@ -202,6 +203,22 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <Avaliacoes />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/avaliacoes-premium"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <AvaliacoesPremium />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/avaliacoes-premium/:alunoId"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <AvaliacoesPremium />
                   </Suspense>
                 }
               />
