@@ -1,71 +1,76 @@
-# Mapa Corporal Biomecânico FORTEM — como Segunda Avaliação Funcional (paralela)
+# Anatomia Biomecânica Premium — Mapa Corporal v2
 
-Para não impactar a Avaliação Funcional atual em produção, o redesign será entregue como um **novo tipo de avaliação paralelo**, coexistindo com o existente. A unificação acontece em fase posterior, após validação.
+## Objetivo
+Substituir a silhueta atual (formas geométricas simples em `BodyMapSVG.tsx`) por um corpo humano anatômico realista em SVG vetorial, estilo Instituto Biomech / Kinology / BioDigital — monocromático, técnico, premium — mantendo toda a lógica de regiões, halos, tooltips e modos já existente.
 
-## Estratégia de coexistência
+## Escopo
+Apenas frontend / presentação. Sem mudanças em:
+- `bodyMapLogic.ts` (lógica, scores, cadeias)
+- `BodyMap.tsx` (header, controles, legenda)
+- Banco de dados, formulário, viewer, PDF
 
-- Tipo atual `funcional` permanece intacto (telas, dados, PDF, BodyDiagram antigo) — zero alteração.
-- Novo tipo `funcional_v2` (rótulo na UI: **"Avaliação Funcional (Nova)"** ou **"Avaliação Biomecânica"**) com seu próprio fluxo de criação, visualização e Mapa Corporal premium.
-- Ambos aparecem na lista de avaliações do aluno, diferenciados por badge.
-- Migração/unificação fica para etapa futura — sem conversão automática de dados.
+## Mudanças
 
-## Backend (mínimo, não destrutivo)
+### 1. Novo asset anatômico — `src/components/student/assessment/funcionalV2/anatomy/`
+Criar dois arquivos SVG inline como componentes React (não PNG, não asset externo):
 
-- Registrar o novo tipo em `avaliacao_tipos` (`slug='funcional_v2'`, `nome='Avaliação Funcional (Nova)'`, `engine='funcional_v2'`, `ativo=true`).
-- **Sem nova tabela**: reaproveitar `avaliacoes.dados` (jsonb) com a mesma estrutura de `metricas[]` já usada hoje, mais campos opcionais (`score`, `scoreMobilidade`, `scoreSimetria`, `scoreEstabilidade`, `assimetrias[]`, `riscos[]`, `cadeias[]`) calculados no cliente e persistidos para o PDF/portal.
-- Sem tocar em `avaliacao_funcional` (tabela tipada antiga).
-- Migração apenas insere a linha em `avaliacao_tipos`. RLS já cobre.
+- `AnatomyFront.tsx` — vista anterior
+- `AnatomyBack.tsx`  — vista posterior
 
-## Frontend — novos arquivos
+Características:
+- Paths anatômicos realistas (não primitivas ellipse/rect): deltoides, peitoral, reto abdominal, oblíquos, quadríceps (vasto lateral/medial/reto femoral), adutores, tibial anterior, posterior de coxa (isquiotibiais), glúteo máx/médio, gastrocnêmio, trapézio, latíssimo, eretores espinhais, romboides.
+- Cada músculo/região é um `<path>` com `id` e `data-region` correspondente aos `RegionId` de `bodyMapLogic.ts` (`shoulder-l`, `quad-r`, `ham-l`, `glute-l/r`, `thoracic`, `lumbar`, `hip-l/r`, `ankle-l/r`, `knee-l/r`).
+- Acabamento monocromático: fill com `hsl(var(--bodymap-muscle))` em camadas (base escura + sombreamento via paths translúcidos sobrepostos para dar volume anatômico, sem usar imagem raster).
+- Linhas técnicas finas (`stroke` 0.4–0.6) em `hsl(var(--bodymap-line) / 0.4)` para insertion lines musculares.
+- ViewBox padronizado `0 0 220 580`.
 
-Diretório novo: `src/components/student/assessment/funcionalV2/`
+### 2. Tokens visuais — `src/index.css`
+Adicionar/ajustar variáveis dentro de `.bodymap-surface`:
+```
+--bodymap-bg-grad-1, --bodymap-bg-grad-2      /* fundo escuro com gradiente sutil */
+--bodymap-muscle-base   : 220 8% 18%          /* cinza neutro do músculo */
+--bodymap-muscle-shade  : 220 10% 12%         /* sombreamento */
+--bodymap-muscle-hi     : 220 6% 30%          /* highlight anatômico */
+--bodymap-line          : 220 10% 55%         /* contorno técnico */
+--bodymap-silhouette    : 220 8% 22%          /* fallback */
+```
+Tons cinza-azulado frio, baixo contraste, leitura "clínica esportiva".
 
-- `FuncionalV2Form.tsx` — formulário de coleta (mesmas métricas atuais + campos opcionais novos: dor 0-10 por região, força bilateral). Salva em `avaliacoes` com `tipo='funcional_v2'`.
-- `FuncionalV2Viewer.tsx` — visualização completa (substitui o conteúdo do dialog para este tipo).
-- `bodymap/BodyMapSVG.tsx` — silhueta anatômica inline (anterior + posterior), regiões como `<g>` independentes.
-- `bodymap/BodyMapRegion.tsx` — região com halo/glow + tooltip.
-- `bodymap/BodyMapHeader.tsx` — Índice Funcional FORTEM (score geral + sub-scores).
-- `bodymap/BodyMapControls.tsx` — alternância de Modo (Qualidade / Assimetria / Risco) e Camada (Mobilidade / Flexibilidade / Dor / Força / Assimetria).
-- `bodymap/BodyMapLegend.tsx` — legenda dinâmica por modo.
-- `bodymap/bodyMapLogic.ts` — mapeamento métrica→região, cálculo de score, assimetria, risco, cadeias compensatórias.
+### 3. Sobreposição de halos
+- `REGION_GEOMETRY` em `BodyMapSVG.tsx` é mantido (cx/cy/r por região) e usado como ponto de luz radial sobre o músculo correspondente.
+- Halos atuais (radialGradient + pulse) são preservados — apenas passam a brilhar **sobre** a anatomia realista, não sobre formas primitivas.
+- Adicionar máscara opcional: o glow do halo é clipado pelo `<path>` do músculo via `<clipPath id="region-{id}">`, garantindo que o brilho siga o contorno muscular (efeito Biomech).
+- Regiões não destacadas permanecem em `--bodymap-muscle-base` com opacidade reduzida (~0.55), reforçando o foco visual nas áreas avaliadas.
 
-Tokens novos em `src/index.css`:
-- `--severity-excellent | good | medium | attention | weak` (HSL) + variantes `--glow-*`.
-- `--bodymap-bg`, `--bodymap-silhouette`, `--bodymap-grid`.
+### 4. Refatoração de `BodyMapSVG.tsx`
+- Remover `HumanSilhouette` (primitivas).
+- Importar `<AnatomyFront />` / `<AnatomyBack />`.
+- Para cada região, renderizar:
+  1. Path anatômico (vem do componente Anatomy)
+  2. `<use href="#region-{id}" />` com filtro de glow quando severity ≠ none
+  3. Halo radial sobre o centro (como hoje)
+  4. Hitbox transparente para Tooltip
+- Mapear regiões anatômicas extra à lógica existente (glúteo máx → `glute-l/r` se não existir no logic, adicionamos só o mapeamento visual — sem mudar scores).
 
-## Integração com telas existentes (alterações cirúrgicas)
+### 5. Detalhes técnicos premium
+- Gradiente linear sutil no fundo do card (`radial-gradient` central) para profundidade.
+- Linha vertebral central (vista posterior) com pontilhado fino já existente — mantida e refinada.
+- Marcações de eixo bilateral (linha horizontal de ombro e quadril) opcional, em opacidade 0.1.
+- Animação `bodymap-pulse` mantida.
 
-- `AssessmentViewerDialog.tsx`: adicionar branch `if (avaliacao.tipo === 'funcional_v2') return <FuncionalV2Viewer .../>` antes dos branches atuais. Nada mais muda.
-- `src/pages/Avaliacoes.tsx` (ou diálogo de criação equivalente): no seletor de tipo, listar `funcional_v2` como opção adicional, mostrando badge "Nova" — o tipo antigo `funcional` continua disponível.
-- `StudentAssessments.tsx`: aceitar `funcional_v2` no listing (já é genérico via `a.tipo`).
-- Portal do aluno (`PortalAssessments.tsx`): adicionar rótulo no `tipoLabel` para `funcional_v2`.
-- PDF: por ora, exportar como snapshot textual simples (placeholder), redesign do PDF fica para a unificação.
+## Out of scope
+- Não alterar lógica de cálculo de scores nem regras de assimetria/cadeias.
+- Não trocar tooltips nem controles.
+- Não adicionar zoom/pan (pode entrar em iteração futura).
 
-## Especificação visual (resumida — detalhe completo no plano anterior)
+## Arquivos
+**Criados**
+- `src/components/student/assessment/funcionalV2/anatomy/AnatomyFront.tsx`
+- `src/components/student/assessment/funcionalV2/anatomy/AnatomyBack.tsx`
 
-- SVG vetorial inline em dark mode, halos/glow proporcionais à severidade, pontos articulares pulsantes, linhas biomecânicas tracejadas para cadeias compensatórias.
-- 3 modos: Qualidade Geral, Assimetria Corporal, Risco Funcional.
-- 5 camadas: Mobilidade, Flexibilidade, Dor, Força, Assimetria.
-- Índice Funcional FORTEM no topo (score 0–100 + sub-scores).
-- Tooltips com métrica/lado/valor/classificação/interpretação.
-- Sem novas dependências; transições via Tailwind + key remount.
-- Responsivo desktop/tablet/mobile (vistas empilham, tap-target ≥ 32px, pinch-zoom).
+**Editados**
+- `src/components/student/assessment/funcionalV2/BodyMapSVG.tsx`
+- `src/index.css` (tokens `--bodymap-*`)
 
-## Plano de unificação (fase futura, fora deste escopo)
-
-1. Validar `funcional_v2` em produção com casos reais.
-2. Script de migração de `avaliacao_funcional` (tabela tipada) → `avaliacoes.dados` no formato v2.
-3. Marcar tipo `funcional` como `ativo=false` no seletor.
-4. Renomear `funcional_v2` → `funcional`.
-5. Remover `BodyDiagram` antigo, asset `corpo-humano.svg` e tabela `avaliacao_funcional`.
-
-## Plano de entrega desta fase
-
-1. Migração: inserir tipo `funcional_v2` em `avaliacao_tipos`.
-2. Tokens semânticos + utilitários em `index.css`.
-3. `bodyMapLogic.ts` (mapeamentos, score, assimetria, risco, cadeias).
-4. `BodyMapSVG.tsx` + componentes do bodymap.
-5. `FuncionalV2Viewer.tsx` + `FuncionalV2Form.tsx`.
-6. Branch em `AssessmentViewerDialog` e opção no diálogo de criação.
-7. Ajustes mínimos em listings e portal.
-8. QA visual desktop/mobile e validação dos cálculos com dados reais.
+## Riscos
+- SVG anatômico realista feito 100% à mão fica ~300–500 linhas por vista. Ainda assim é o caminho correto pedido (sem PNG, sem cartoon). Os PDFs anexados (Kinology / Biomech) são referência visual — não serão importados, mas a paleta e o nível de detalhe muscular do componente serão alinhados a eles.
