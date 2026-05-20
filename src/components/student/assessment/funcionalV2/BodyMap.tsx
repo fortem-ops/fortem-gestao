@@ -164,11 +164,12 @@ export function BodyMap({ metrics, forcaExercises }: Props) {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <ScoreRing value={analysis.scoreGeral} label="Geral" size={96} />
           <ScoreRing value={analysis.scoreMobilidade} label="Mobilidade" />
           <ScoreRing value={analysis.scoreSimetria} label="Simetria" />
           <ScoreRing value={analysis.scoreEstabilidade} label="Estabilidade" />
+          <ScoreRing value={analysis.scoreForca} label="Força" />
         </div>
       </div>
 
