@@ -1,105 +1,142 @@
 
-# Plano — Camada "Força" via Laudo Kinology
+# Avaliações Premium — Central Biomecânica FORTEM
 
-Adicionar uma terceira camada (**Força**) à Avaliação Funcional v2, alimentada pelo upload do PDF da Kinology. A IA lê o laudo e pré-preenche os campos; o avaliador valida/edita antes de salvar.
+Novo módulo de **leitura, consolidação e inteligência visual** sobre as avaliações já existentes. Não altera os formulários atuais (FuncionalV2, Pollock, Kinology PDF). Única coleta nova: **Pliometria**. PDF premium fica para depois.
 
-## 1. Escopo dos testes do laudo Kinology
+## Rota e navegação
 
-Do PDF analisado, capturamos da seção **"Assimetria e Indicativos de Risco"** (páginas 2 e 3 — dados primários, em kg, sempre D/E):
+- Nova rota: `/avaliacoes-premium/:alunoId?` (lista de alunos quando sem id; dashboard biomecânico quando com id).
+- Menu lateral → grupo **Técnico** → novo item **"Avaliações Premium"** (ícone `Activity` ou `Gauge`). O atual "Avaliações" permanece intacto.
+- Botão **"Abrir Dashboard Premium"** no topo de `/avaliacoes/:alunoId` para navegação cruzada.
 
-**MMSS (2 testes):**
-- Rotação interna (ombro) — `shoulder-l` / `shoulder-r`
-- Rotação externa (ombro) — `shoulder-re-l` / `shoulder-re-r`
-
-**MMII (8 testes):**
-- Dorsiflexão → `ankle-l/r`
-- Flexão plantar → `ankle-l/r`
-- Flexão de joelho → `ham-l/r`
-- Extensão de joelho → `quad-l/r`
-- Flexão de quadril → `psoas-l/r`
-- Extensão de quadril → `ham-l/r` + `lumbar`
-- Abdução de quadril → `hip-re-l/r`
-- Adução de quadril → `hip-l/r`
-
-Demais seções do PDF (Desequilíbrio Muscular, Dinâmica, Histórico) ficam **fora desta entrega** — extraímos só o essencial para alimentar o BodyMap.
-
-## 2. Fluxo do usuário
-
-1. Em `FuncionalV2Assessment`, nova seção **"Força (Dinamometria)"** com botão **"Importar Laudo Kinology (PDF)"**.
-2. Upload do PDF → armazenado em bucket privado `laudos-dinamometria`.
-3. Edge function `parse-kinology-pdf` envia o PDF ao Lovable AI (`google/gemini-2.5-pro`, multimodal) com schema estruturado (`Output.object` via AI SDK).
-4. Resposta volta como JSON tipado: `{ data, exercicios: [{ nome, D, E, unidade }] }`.
-5. Campos da seção Força são pré-preenchidos com badge "importado do laudo" (azul) — todos editáveis.
-6. Avaliador confirma e salva. PDF original fica anexado à avaliação.
-
-## 3. Cálculo da camada Força
-
-Novo `layer: "strength"` em `bodyMapLogic.ts`:
-
-- **Classificação por valor**: como o ACSM/normativas variam muito por equipamento, usamos **classificação relativa por assimetria** (espelha a lógica já validada da Kinology):
-  - `|D−E| / max(D,E) × 100`
-  - `< 10%` = Baixo risco (Bom); `10–20%` = Médio (Atenção); `> 20%` = Alto (Déficit).
-- `scoreForca` por região = média ponderada dos exercícios que afetam aquela região (mesmo padrão de `METRIC_META`).
-- **Penalidade adicional**: se houver ≥ 1 teste com assimetria ≥ 20%, subtrai 10 pts do score final de Força (mínimo 0).
-- Halo no BodyMap (verde/amarelo/vermelho) reaproveita `SEVERITY_COLOR_VAR`.
-
-## 4. `scoreGeral` redistribuído
-
-Quando a camada Força tem dados:
-- Mobilidade **30** / Simetria **25** / Estabilidade **25** / **Força 20**
-
-Quando NÃO tem dados de Força, mantém o atual (40/30/30) via renormalização — sem regredir avaliações antigas.
-
-## 5. Mudanças no banco
+## Estrutura da tela do aluno
 
 ```text
-storage.buckets: 'laudos-dinamometria' (privado, RLS por aluno_id)
-avaliacoes.dados (jsonb):
-  + forca: { 
-      laudoPath, laudoData, importadoEm,
-      exercicios: [{ chave, D, E, unidade, assimetria, classificacao }],
-      scoreForca
-    }
++-------------------+--------------------------------------------------+
+| SIDEBAR ALUNO     | HEADER: Resumo Geral + Exportar (desabilitado)  |
+| foto, nome, idade +--------------------------------------------------+
+| sexo, alt/peso    | DASHBOARD CARDS (7 índices)                      |
+| profissão, obj.   |  Índice Funcional · Mobilidade · Força           |
+| mem. dominante    |  Flexibilidade · Composição · Assimetria · Risco |
+| modalidade        +--------------------------------------------------+
+| freq./volume      | MAPA CORPORAL PREMIUM (anterior/posterior)       |
+| histórico lesões  |  Toggle camadas: Qualidade · Assimetria · Risco  |
+| dores relatadas   |                  Mobilidade · Flex · Força       |
+| última avaliação  |  Lista lateral de regiões com tooltip            |
+| avaliador         +--------------------------------------------------+
+|                   | TABS internas: Força · Composição · Pliometria   |
+|                   |               Evolução · Recomendações           |
++-------------------+--------------------------------------------------+
 ```
 
-Nenhuma nova tabela; tudo persiste em `avaliacoes.dados`.
+## Fontes de dados (sem migração na Fase 1/2)
 
-## 6. Arquivos a alterar/criar
+- `alunos` + `profiles` → sidebar
+- `avaliacoes` (tipos: `funcional`, `composicao_corporal`, `forca`, `kinology`) → todas as métricas
+- `avaliacao_funcional` → ADM (mobilidade/flexibilidade)
+- `dados` JSONB de `avaliacoes` tipo `forca`/`kinology` → dinamometria (já gravado pelo parser Kinology)
+- `dados` JSONB de `avaliacoes` tipo `composicao_corporal` → Pollock (% gordura, IMC, MM, MG, dobras)
+- Hook novo `useAlunoAvaliacoesConsolidadas(alunoId)` agrega tudo e expõe `latest`, `history`, `scores`, `assimetrias`.
 
-- **Novo** `supabase/functions/parse-kinology-pdf/index.ts` — edge function com AI SDK + Lovable AI Gateway.
-- **Novo** migration: bucket `laudos-dinamometria` + policies (avaliador insere; aluno e equipe lêem).
-- `bodyMapLogic.ts` — `Layer` ganha `"strength"`, `STRENGTH_EXERCISES` const com mapeamento exercício→regiões, `analyze()` agrega scores de Força, novo `scoreForca`, redistribuição de pesos no `scoreGeral`.
-- `FuncionalV2Assessment.tsx` — nova seção "Força (Dinamometria)" com botão de upload, tabela editável (Exercício | D kg | E kg | Assimetria % | Classificação).
-- `BodyMap.tsx` / `BodyMapSVG.tsx` — opção de toggle para camada `strength`.
-- `AssessmentViewerDialog.tsx` — exibe bloco Força + link para o PDF original.
+## Lógica de scores (cliente, reaproveitando `bodyMapLogic.ts`)
 
-## 7. Detalhes técnicos da extração (IA)
+- **Mobilidade / Flexibilidade**: já calculados em `scoreMobilidade` / `scoreFlexibilidade`.
+- **Força**: já existe `scoreForca` (Kinology).
+- **Assimetria geral**: média ponderada de assimetrias por região.
+- **Composição corporal**: novo `scoreComposicao` baseado em % gordura vs faixa Pollock (sexo/idade).
+- **Risco de lesão**: combina assimetrias >20% + déficits de mobilidade críticos.
+- **Índice Funcional FORTEM**: ponderação 25 mob + 20 flex + 25 força + 15 composição + 15 (1 - risco).
 
-Schema enviado ao Gemini:
-```ts
-z.object({
-  paciente: z.string().optional(),
-  dataEmissao: z.string().optional(),
-  exercicios: z.array(z.object({
-    nome: z.enum([
-      "rotacao_interna", "rotacao_externa",
-      "dorsiflexao", "flexao_plantar",
-      "flexao_joelho", "extensao_joelho",
-      "flexao_quadril", "extensao_quadril",
-      "abducao_quadril", "aducao_quadril"
-    ]),
-    data: z.string(),
-    direito_kg: z.number(),
-    esquerdo_kg: z.number(),
-  }))
-})
+## Fase 1 — Núcleo visual premium
+
+**Arquivos novos:**
 ```
+src/pages/AvaliacoesPremium.tsx                     (rota)
+src/components/avaliacoes-premium/
+  PremiumLayout.tsx                                 (shell sidebar+main)
+  AlunoSidebarCard.tsx                              (card aluno premium)
+  DashboardScoreCard.tsx                            (card métrica c/ glow + barra animada)
+  DashboardSummary.tsx                              (grid de 7 cards)
+  PremiumBodyMap.tsx                                (wrapper do BodyMapSVG atual)
+  bodyMapPremiumStyles.ts                           (filtros SVG: glow radial, halo, gradiente)
+  useAlunoAvaliacoesConsolidadas.ts                 (hook agregador)
+  scoringPremium.ts                                 (índice funcional, risco, composição)
+```
+**Reuso:** `funcionalV2/BodyMapSVG.tsx` + `bodyMapLogic.ts` + `useBodyMapGeometry.ts`.
 
-System prompt foca em "extrair apenas as tabelas das páginas de Assimetria e Indicativos de Risco; ignorar gráficos de Desequilíbrio e Dinâmica nesta versão". Robusto a variações de quantidade de testes (o avaliador pode ter feito só MMII, por exemplo).
+**Evolução visual do BodyMap (sem mexer na geometria):**
+- Camada `<defs>` com `feGaussianBlur` + `radialGradient` para halo por severidade.
+- Tokens semânticos: `--bio-halo-good`, `--bio-halo-warn`, `--bio-halo-risk` (HSL no `index.css`).
+- Animação de pulse suave em regiões "alto risco" via Framer Motion.
+- Toggle Anterior/Posterior + 6 camadas (Qualidade · Assimetria · Risco · Mobilidade · Flex · Força).
 
-## 8. Fora do escopo desta entrega
+## Fase 2 — Inteligência consolidada
 
-- Parsing das seções "Desequilíbrio Muscular" e "Dinâmica/RFD" (fica para v2 da Força).
-- Histórico evolutivo do laudo (a Kinology já faz; podemos espelhar depois).
-- Suporte a outras marcas de dinamômetro (usuário confirmou: sempre Kinology).
-- Mudança na v1 da avaliação funcional.
+**Arquivos novos:**
+```
+src/components/avaliacoes-premium/tabs/
+  ForcaTab.tsx              (tabela + gráfico linha por exercício, ref. Kinology)
+  ComposicaoTab.tsx         (radar + barras % gordura/MM/MG, mapa de dobras)
+  EvolucaoTab.tsx           (timeline + linhas de evolução por índice)
+  RecomendacoesTab.tsx      (cards automáticos por déficit)
+recomendacoesEngine.ts      (regras: assimetria>20% → fortalecimento unilateral, etc.)
+```
+- Gráficos: `recharts` (já no projeto).
+- Recomendações geradas client-side a partir dos scores; cada card mostra severidade, descrição, sugestão de protocolo.
+
+## Fase 3 — Pliometria
+
+**Migração** (única migração do projeto inteiro):
+```sql
+CREATE TABLE public.avaliacao_pliometria (
+  id uuid PK,
+  avaliacao_id uuid FK → avaliacoes(id) ON DELETE CASCADE UNIQUE,
+  salto_vertical numeric,        -- cm
+  salto_horizontal numeric,      -- cm
+  rsi numeric,                   -- Reactive Strength Index
+  tempo_contato numeric,         -- ms
+  potencia numeric,              -- W
+  stiffness numeric,             -- kN/m
+  assimetria numeric,            -- %
+  observacoes text,
+  created_at timestamptz
+);
+```
+- RLS: mesmo padrão de `avaliacao_funcional` (insert pelo avaliador ou coord/admin; select autenticado).
+- Tipo `pliometria` já existe no check constraint de `avaliacoes`.
+- **Form novo**: `src/components/avaliacoes-premium/PliometriaForm.tsx` (cria registro em `avaliacoes` tipo=pliometria + linha em `avaliacao_pliometria`).
+- **Tab**: `PliometriaTab.tsx` lê último registro + histórico, com placeholders premium (radar, indicadores de potência) prontos para dados futuros.
+
+## Design tokens (em `index.css`)
+
+```css
+--bio-halo-good:  142 76% 45%;
+--bio-halo-warn:  38 92% 50%;
+--bio-halo-risk:  0 84% 60%;
+--bio-glow-fortem: 0 84% 55%;     /* FORTEM red */
+--bio-surface:    222 18% 9%;     /* grafite */
+--bio-glass:      222 18% 14% / 0.6;
+```
+- Classe utilitária `.bio-card` (vidro fosco + borda sutil + sombra interna).
+- Classe `.bio-glow-{good|warn|risk}` para anéis dos cards.
+
+## Responsividade
+
+- Desktop: sidebar fixa 320px + main grid.
+- Tablet: sidebar colapsa para drawer; cards em 2 colunas.
+- Mobile: sidebar vira accordion no topo; BodyMap com pinch-zoom (via `react-zoom-pan-pinch`, ainda a adicionar) e toque nas regiões.
+
+## Fora de escopo agora (próximas iterações)
+
+- PDF Premium (Fase 4 — adiada por decisão).
+- Wizard único de coleta substituindo formulários atuais.
+- Edição/coleta dentro do módulo premium (exceto Pliometria).
+- Reconstrução do SVG anatômico (continua o atual com camada premium por cima).
+
+## Ordem de implementação
+
+1. Tokens + rota + sidebar do aluno + dashboard de 7 cards.
+2. PremiumBodyMap (halo/glow/animação) reaproveitando BodyMapSVG.
+3. Hook consolidador + scoringPremium.
+4. Tabs Força, Composição, Evolução, Recomendações.
+5. Migração `avaliacao_pliometria` + form + tab.
