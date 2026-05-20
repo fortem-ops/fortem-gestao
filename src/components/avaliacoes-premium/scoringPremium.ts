@@ -40,6 +40,16 @@ export function scoreComposicaoFromBF(bf: number, sexo: "M" | "F"): number {
   return 25;
 }
 
+export interface PremiumJustificativas {
+  indiceFortem: string;
+  mobilidade: string;
+  flexibilidade: string;
+  forca: string;
+  composicao: string;
+  assimetria: string;
+  risco: string;
+}
+
 export interface PremiumScores {
   indiceFortem: number | null;
   mobilidade: number | null;
@@ -51,6 +61,7 @@ export interface PremiumScores {
   analysisQuality: BodyMapAnalysis;
   analysisAsym: BodyMapAnalysis;
   funcForcaInputs: ForcaInput[];
+  justificativas: PremiumJustificativas;
 }
 
 export function computePremiumScores(
@@ -118,6 +129,40 @@ export function computePremiumScores(
   }
   const indiceFortem = w > 0 ? Math.round(s / w) : null;
 
+  const semDados = "Sem dados suficientes para cálculo. Realize uma avaliação funcional/composição.";
+  const mobMetricsN = metrics.filter((m) => /Mobilidade/i.test(m.metric)).length;
+  const componentesUsados = buckets.filter(([v]) => v !== null).length;
+  const justificativas: PremiumJustificativas = {
+    indiceFortem:
+      indiceFortem === null
+        ? semDados
+        : `Média ponderada de mobilidade (25%), força (25%), flexibilidade (20%), composição (15%) e risco (15%). Componentes considerados: ${componentesUsados} de 5.`,
+    mobilidade:
+      mobilidade === null
+        ? semDados
+        : `Calculado a partir de ${mobMetricsN} métrica(s) de mobilidade funcional. Score médio das regiões avaliadas.`,
+    flexibilidade:
+      flexibilidade === null
+        ? semDados
+        : `Média de ${flexMetrics.length} teste(s) de flexibilidade (Excelente=100, Bom=85, Médio=70, Regular=50, Fraco=25).`,
+    forca:
+      forca === null
+        ? semDados
+        : `Calculado sobre ${forcaInputs.length} exercício(s) bilateral(is). Penaliza assimetrias > 10% e déficits abaixo da referência por peso corporal.`,
+    composicao:
+      composicaoScore === null
+        ? semDados
+        : `% gordura = ${composicao!.bf.toFixed(1)}% (sexo ${composicao!.sexo}) → faixa Pollock: ${composicao!.classificacao || "—"}.`,
+    assimetria:
+      assimetria === null
+        ? semDados
+        : `${analysisAsym.asymmetries.length} assimetria(s) detectada(s) (${sev} severa(s), ${mod} moderada(s)). 100 = perfeitamente simétrico.`,
+    risco:
+      risco === null
+        ? semDados
+        : `Combina assimetrias severas (-25 cada), moderadas (-10 cada) e cadeias compensatórias (-8 cada). Detectadas: ${sev} severas, ${mod} moderadas, ${chains} cadeia(s).`,
+  };
+
   return {
     indiceFortem,
     mobilidade,
@@ -129,5 +174,6 @@ export function computePremiumScores(
     analysisQuality,
     analysisAsym,
     funcForcaInputs: forcaInputs,
+    justificativas,
   };
 }
