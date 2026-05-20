@@ -62,17 +62,6 @@ function mergeGeometry(overrides?: OverrideMap): Record<RegionId, RegionGeometry
   return out;
 }
 
-function severityIntensity(s: Severity): { opacity: number; radiusMul: number } {
-  switch (s) {
-    case "excellent": return { opacity: 0.55, radiusMul: 0.95 };
-    case "good":      return { opacity: 0.6,  radiusMul: 1.0 };
-    case "medium":    return { opacity: 0.75, radiusMul: 1.1 };
-    case "attention": return { opacity: 0.9,  radiusMul: 1.25 };
-    case "weak":      return { opacity: 1.0,  radiusMul: 1.4 };
-    case "none":      return { opacity: 0.0,  radiusMul: 0.0 };
-  }
-}
-
 function RegionGlow({
   id, geom, state, mode,
 }: {
@@ -81,44 +70,29 @@ function RegionGlow({
   state: BodyMapAnalysis["regions"][RegionId];
   mode: Mode;
 }) {
-  const { opacity, radiusMul } = severityIntensity(state.severity);
   const color = SEVERITY_COLOR_VAR[state.severity];
   const showHalo = state.severity !== "none" && (
     mode !== "asymmetry" || (state.asymmetry !== undefined && state.asymmetry >= 15)
   );
   const isPulsing = state.severity === "weak" || state.severity === "attention";
   const gradId = `glow-${id}`;
-  const radius = geom.r * radiusMul;
   if (!showHalo) return null;
 
+  // Halo minimalista: leve brilho difuso atrás do marcador numerado.
+  const r = 26;
   return (
     <g pointerEvents="none">
       <defs>
         <radialGradient id={gradId} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor={`hsl(${color})`} stopOpacity={opacity} />
-          <stop offset="55%" stopColor={`hsl(${color})`} stopOpacity={opacity * 0.45} />
+          <stop offset="0%" stopColor={`hsl(${color})`} stopOpacity={0.45} />
+          <stop offset="70%" stopColor={`hsl(${color})`} stopOpacity={0.12} />
           <stop offset="100%" stopColor={`hsl(${color})`} stopOpacity={0} />
         </radialGradient>
       </defs>
       <circle
-        cx={geom.cx} cy={geom.cy} r={radius * 2.1}
+        cx={geom.cx} cy={geom.cy} r={r * 1.8}
         fill={`url(#${gradId})`}
-        opacity={0.85}
         className={isPulsing ? "bodymap-pulse" : ""}
-      />
-      <circle
-        cx={geom.cx} cy={geom.cy} r={radius * 1.1}
-        fill={`url(#${gradId})`}
-        opacity={1}
-        style={{ mixBlendMode: "screen" }}
-      />
-      <circle
-        cx={geom.cx} cy={geom.cy} r={radius}
-        fill="none"
-        stroke={`hsl(${color})`}
-        strokeWidth={2.6}
-        strokeOpacity={Math.min(0.95, opacity + 0.1)}
-        style={{ mixBlendMode: "screen" }}
       />
     </g>
   );
@@ -135,18 +109,18 @@ function RegionNumber({
   return (
     <g pointerEvents="none">
       <circle
-        cx={geom.cx} cy={geom.cy} r={22}
-        fill="hsl(220 13% 9%)"
-        stroke={`hsl(${color})`}
-        strokeWidth={3}
+        cx={geom.cx} cy={geom.cy} r={16}
+        fill={`hsl(${color})`}
+        stroke="hsl(220 13% 9%)"
+        strokeWidth={2}
       />
       <text
         x={geom.cx} y={geom.cy}
         textAnchor="middle"
         dominantBaseline="central"
-        fontSize={22}
+        fontSize={16}
         fontWeight={700}
-        fill={`hsl(${color})`}
+        fill="hsl(220 13% 9%)"
         style={{ fontFamily: "var(--font-heading), system-ui, sans-serif" }}
       >
         {number}
