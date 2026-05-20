@@ -312,4 +312,3 @@ export function BodyMapSVG({ analysis, mode, overrides, calibrating, onDragRegio
     </TooltipProvider>
   );
 }
-}
