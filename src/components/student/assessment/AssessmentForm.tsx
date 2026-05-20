@@ -19,6 +19,7 @@ import { DynamicAssessment } from "./DynamicAssessment";
 import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
 import type { ExperimentalSchema } from "./experimentalTemplate";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
+import { FuncionalV2Assessment } from "./funcionalV2/FuncionalV2Assessment";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
