@@ -50,6 +50,12 @@
     --sev-weak: 0 80% 55%;
     --bodymap-bg: 220 28% 7%;
     --bodymap-silhouette: 220 15% 70%;
+    /* Premium biomechanical anatomy tones */
+    --bodymap-muscle-base: 220 10% 22%;
+    --bodymap-muscle-shade: 220 14% 12%;
+    --bodymap-muscle-hi: 220 6% 36%;
+    --bodymap-line: 220 12% 55%;
+    --bodymap-skin: 220 8% 28%;
 
     --border: 220 13% 82%;
     --input: 220 13% 84%;
@@ -129,8 +135,14 @@
     color: hsl(0 0% 95%);
     border: 1px solid hsl(0 0% 100% / 0.06);
   }
-  .bodymap-silhouette-stroke { stroke: hsl(var(--bodymap-silhouette) / 0.35); }
-  .bodymap-silhouette-fill { fill: hsl(var(--bodymap-silhouette) / 0.04); }
+  .bodymap-silhouette-stroke { stroke: hsl(var(--bodymap-line) / 0.45); }
+  .bodymap-silhouette-fill { fill: hsl(var(--bodymap-skin) / 0.10); }
+  /* Anatomical muscle tones */
+  .anatomy-skin { fill: hsl(var(--bodymap-skin) / 0.85); stroke: hsl(var(--bodymap-line) / 0.35); stroke-width: 0.5; }
+  .anatomy-muscle { fill: hsl(var(--bodymap-muscle-base)); stroke: hsl(var(--bodymap-line) / 0.4); stroke-width: 0.4; }
+  .anatomy-shade { fill: hsl(var(--bodymap-muscle-shade) / 0.55); }
+  .anatomy-hi { fill: hsl(var(--bodymap-muscle-hi) / 0.45); }
+  .anatomy-line { stroke: hsl(var(--bodymap-line) / 0.35); stroke-width: 0.4; fill: none; }
   .sev-excellent { color: hsl(var(--sev-excellent)); }
   .sev-good { color: hsl(var(--sev-good)); }
   .sev-medium { color: hsl(var(--sev-medium)); }
