@@ -53,7 +53,16 @@ Deno.serve(async (req) => {
     if (dlErr || !file) throw new Error(`Falha ao baixar laudo: ${dlErr?.message}`);
 
     const buf = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode.apply(
+        null,
+        Array.from(bytes.subarray(i, Math.min(i + CHUNK, bytes.length))),
+      );
+    }
+    const base64 = btoa(binary);
 
     const systemPrompt = `Você extrai dados de laudos de dinamometria isométrica do equipamento Kinology.
 Analise APENAS as tabelas das páginas tituladas "Assimetria e Indicativos de Risco | Membros Superiores" e "Assimetria e Indicativos de Risco | Membros Inferiores".
