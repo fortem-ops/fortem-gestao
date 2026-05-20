@@ -263,12 +263,16 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility"): Body
   const mean = (xs: number[]) => xs.length ? xs.reduce((a,b) => a+b, 0) / xs.length : null;
 
   const scoreMobilidade = mean(mobScores);
-  const asymDiffs = pairs
-    .map(([a,b]) => {
-      const sa = regions[a].score; const sb = regions[b].score;
-      return sa !== null && sb !== null ? Math.abs(sa - sb) : null;
-    })
-    .filter((d): d is number => d !== null);
+  // Simetria baseada nas assimetrias por métrica (E vs D na mesma métrica)
+  const asymDiffs: number[] = [];
+  for (const m of metrics) {
+    const meta = METRIC_META[m.metric];
+    if (!meta || !includeForLayer(meta.layer)) continue;
+    if (!m.leftClass || !m.rightClass) continue;
+    // Métricas centrais (both) não geram assimetria L/R
+    if (meta.regions.every((r) => "both" in r)) continue;
+    asymDiffs.push(Math.abs(CLASS_SCORE[m.leftClass] - CLASS_SCORE[m.rightClass]));
+  }
   const scoreSimetria = asymDiffs.length
     ? Math.max(0, Math.round(100 - (asymDiffs.reduce((a,b) => a+b, 0) / asymDiffs.length) * 1.6))
     : null;
