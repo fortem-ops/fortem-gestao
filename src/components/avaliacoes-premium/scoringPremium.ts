@@ -40,6 +40,16 @@ export function scoreComposicaoFromBF(bf: number, sexo: "M" | "F"): number {
   return 25;
 }
 
+export interface PremiumJustificativas {
+  indiceFortem: string;
+  mobilidade: string;
+  flexibilidade: string;
+  forca: string;
+  composicao: string;
+  assimetria: string;
+  risco: string;
+}
+
 export interface PremiumScores {
   indiceFortem: number | null;
   mobilidade: number | null;
@@ -51,6 +61,7 @@ export interface PremiumScores {
   analysisQuality: BodyMapAnalysis;
   analysisAsym: BodyMapAnalysis;
   funcForcaInputs: ForcaInput[];
+  justificativas: PremiumJustificativas;
 }
 
 export function computePremiumScores(
