@@ -147,7 +147,7 @@ function emptyRegion(id: RegionId): RegionState {
   };
 }
 
-export function analyze(metrics: MetricInput[], layer: Layer = "mobility"): BodyMapAnalysis {
+export function analyze(metrics: MetricInput[], layer: Layer = "mobility", strengthExercises?: ForcaInput[]): BodyMapAnalysis {
   const regions: Record<RegionId, RegionState> = Object.fromEntries(
     ALL_REGIONS.map((r) => [r, emptyRegion(r)]),
   ) as Record<RegionId, RegionState>;
