@@ -2,7 +2,7 @@ import anatomyBack from "@/assets/bodymap/anatomy-back.png";
 
 /**
  * Vista posterior — imagem anatômica premium (raster).
- * ViewBox 360×800. Halos/regiões são desenhados por cima em BodyMapSVG.
+ * ViewBox 1024×1024. Halos/regiões são desenhados por cima em BodyMapSVG.
  */
 export function AnatomyBack() {
   return (
@@ -10,8 +10,8 @@ export function AnatomyBack() {
       href={anatomyBack}
       x="0"
       y="0"
-      width="360"
-      height="800"
+      width="1024"
+      height="1024"
       preserveAspectRatio="xMidYMid meet"
     />
   );
