@@ -181,8 +181,55 @@ export function BodyMap({ metrics }: Props) {
         </div>
       </div>
 
+      {/* Calibration toolbar (admin) */}
+      {isAdmin && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2">
+          <div className="flex items-center gap-2 text-[11px] text-white/60">
+            <Move className="w-3.5 h-3.5" />
+            <span>
+              {calibrating
+                ? hasDraft
+                  ? `Calibrando — ${Object.keys(draft).length} ponto(s) alterado(s)`
+                  : "Calibrando — arraste os pontos sobre a imagem"
+                : "Modo calibração disponível (admin)"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {calibrating && hasDraft && (
+              <>
+                <Button size="sm" variant="ghost" onClick={() => setDraft({})}>
+                  <X className="w-3.5 h-3.5 mr-1" /> Descartar
+                </Button>
+                <Button size="sm" onClick={handleSave} disabled={saveAll.isPending}>
+                  <Save className="w-3.5 h-3.5 mr-1" />
+                  {saveAll.isPending ? "Salvando..." : "Salvar para todos"}
+                </Button>
+              </>
+            )}
+            {calibrating && !hasDraft && Object.keys(overrides).length > 0 && (
+              <Button size="sm" variant="ghost" onClick={handleReset} disabled={resetAll.isPending}>
+                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Resetar padrão
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant={calibrating ? "secondary" : "outline"}
+              onClick={() => { setCalibrating((v) => !v); setDraft({}); }}
+            >
+              {calibrating ? "Sair da calibração" : "Calibrar mapa"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* SVG */}
-      <BodyMapSVG analysis={analysis} mode={mode} />
+      <BodyMapSVG
+        analysis={analysis}
+        mode={mode}
+        overrides={mergedOverrides}
+        calibrating={calibrating}
+        onDragRegion={handleDrag}
+      />
 
       {/* Legend */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-2 border-t border-white/5">
