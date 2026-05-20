@@ -12,21 +12,24 @@ interface RegionGeometry {
   label: string;
 }
 
-const VIEWBOX = { w: 200, h: 540 };
+const VIEWBOX = { w: 300, h: 800 };
 
+// Coordenadas calibradas para a imagem anatômica (300×800).
+// Convenção: "-l" = lado esquerdo do aluno (à direita do espectador na vista anterior,
+// à esquerda do espectador na vista posterior).
 export const REGION_GEOMETRY: Record<RegionId, RegionGeometry> = {
-  "shoulder-l":  { view: "front", cx: 58,  cy: 116, r: 22, label: "Ombro esquerdo (deltoide)" },
-  "shoulder-r":  { view: "front", cx: 142, cy: 116, r: 22, label: "Ombro direito (deltoide)" },
-  "thoracic":    { view: "back",  cx: 100, cy: 150, r: 32, label: "Coluna torácica" },
-  "lumbar":      { view: "back",  cx: 100, cy: 232, r: 22, label: "Lombar" },
-  "hip-l":       { view: "front", cx: 78,  cy: 260, r: 22, label: "Quadril esquerdo" },
-  "hip-r":       { view: "front", cx: 122, cy: 260, r: 22, label: "Quadril direito" },
-  "quad-l":      { view: "front", cx: 78,  cy: 350, r: 28, label: "Quadríceps / Psoas esquerdo" },
-  "quad-r":      { view: "front", cx: 122, cy: 350, r: 28, label: "Quadríceps / Psoas direito" },
-  "ham-l":       { view: "back",  cx: 76,  cy: 364, r: 28, label: "Posterior coxa esquerda" },
-  "ham-r":       { view: "back",  cx: 124, cy: 364, r: 28, label: "Posterior coxa direita" },
-  "ankle-l":     { view: "front", cx: 78,  cy: 506, r: 14, label: "Tornozelo esquerdo" },
-  "ankle-r":     { view: "front", cx: 122, cy: 506, r: 14, label: "Tornozelo direito" },
+  "shoulder-l":  { view: "front", cx: 210, cy: 205, r: 32, label: "Ombro esquerdo (deltoide)" },
+  "shoulder-r":  { view: "front", cx: 95,  cy: 205, r: 32, label: "Ombro direito (deltoide)" },
+  "thoracic":    { view: "back",  cx: 150, cy: 260, r: 46, label: "Coluna torácica" },
+  "lumbar":      { view: "back",  cx: 150, cy: 390, r: 34, label: "Lombar" },
+  "hip-l":       { view: "front", cx: 190, cy: 410, r: 30, label: "Quadril esquerdo" },
+  "hip-r":       { view: "front", cx: 115, cy: 410, r: 30, label: "Quadril direito" },
+  "quad-l":      { view: "front", cx: 195, cy: 520, r: 36, label: "Quadríceps / Psoas esquerdo" },
+  "quad-r":      { view: "front", cx: 110, cy: 520, r: 36, label: "Quadríceps / Psoas direito" },
+  "ham-l":       { view: "back",  cx: 115, cy: 555, r: 36, label: "Posterior coxa esquerda" },
+  "ham-r":       { view: "back",  cx: 195, cy: 555, r: 36, label: "Posterior coxa direita" },
+  "ankle-l":     { view: "front", cx: 185, cy: 755, r: 20, label: "Tornozelo esquerdo" },
+  "ankle-r":     { view: "front", cx: 125, cy: 755, r: 20, label: "Tornozelo direito" },
 };
 
 interface Props {
@@ -36,11 +39,11 @@ interface Props {
 
 function severityIntensity(s: Severity): { opacity: number; radiusMul: number } {
   switch (s) {
-    case "excellent": return { opacity: 0.45, radiusMul: 0.9 };
-    case "good":      return { opacity: 0.5,  radiusMul: 0.95 };
-    case "medium":    return { opacity: 0.65, radiusMul: 1.05 };
-    case "attention": return { opacity: 0.85, radiusMul: 1.2 };
-    case "weak":      return { opacity: 1.0,  radiusMul: 1.35 };
+    case "excellent": return { opacity: 0.55, radiusMul: 0.95 };
+    case "good":      return { opacity: 0.6,  radiusMul: 1.0 };
+    case "medium":    return { opacity: 0.75, radiusMul: 1.1 };
+    case "attention": return { opacity: 0.9,  radiusMul: 1.25 };
+    case "weak":      return { opacity: 1.0,  radiusMul: 1.4 };
     case "none":      return { opacity: 0.0,  radiusMul: 0.0 };
   }
 }
@@ -59,48 +62,44 @@ function RegionGlow({
     mode !== "asymmetry" || (state.asymmetry !== undefined && state.asymmetry >= 15)
   );
   const isPulsing = state.severity === "weak" || state.severity === "attention";
-  const filterId = `glow-${id}`;
-  const clipId = `clip-${id}`;
+  const gradId = `glow-${id}`;
   const radius = geom.r * radiusMul;
   if (!showHalo) return null;
 
   return (
-    <g>
+    <g pointerEvents="none">
       <defs>
-        <clipPath id={clipId}>
-          <use href={`#region-${id}`} />
-        </clipPath>
-        <radialGradient id={filterId} cx="0.5" cy="0.5" r="0.6">
+        <radialGradient id={gradId} cx="0.5" cy="0.5" r="0.5">
           <stop offset="0%" stopColor={`hsl(${color})`} stopOpacity={opacity} />
-          <stop offset="55%" stopColor={`hsl(${color})`} stopOpacity={opacity * 0.55} />
+          <stop offset="55%" stopColor={`hsl(${color})`} stopOpacity={opacity * 0.45} />
           <stop offset="100%" stopColor={`hsl(${color})`} stopOpacity={0} />
         </radialGradient>
       </defs>
-
-      {/* Glow externo (não recortado) — irradia para fora do músculo */}
+      {/* Halo externo amplo (irradiação) */}
       <circle
-        cx={geom.cx} cy={geom.cy} r={radius * 1.9}
-        fill={`url(#${filterId})`}
+        cx={geom.cx} cy={geom.cy} r={radius * 2.1}
+        fill={`url(#${gradId})`}
         opacity={0.85}
         className={isPulsing ? "bodymap-pulse" : ""}
-        pointerEvents="none"
       />
-      {/* Preenchimento recortado pelo contorno do músculo (efeito Biomech) */}
-      <g clipPath={`url(#${clipId})`} pointerEvents="none">
-        <rect x={geom.cx - geom.r * 2} y={geom.cy - geom.r * 2}
-              width={geom.r * 4} height={geom.r * 4}
-              fill={`hsl(${color})`} opacity={opacity * 0.5} />
-        <circle cx={geom.cx} cy={geom.cy} r={radius}
-                fill={`url(#${filterId})`} opacity={1} />
-      </g>
-      {/* Contorno luminoso fino sobre o músculo */}
-      <use href={`#region-${id}`} fill="none"
-           stroke={`hsl(${color})`}
-           strokeWidth={1.1} strokeOpacity={Math.min(0.95, opacity + 0.1)}
-           pointerEvents="none" />
+      {/* Halo interno mais denso (luz central) */}
+      <circle
+        cx={geom.cx} cy={geom.cy} r={radius * 1.1}
+        fill={`url(#${gradId})`}
+        opacity={1}
+        style={{ mixBlendMode: "screen" }}
+      />
+      {/* Anel luminoso fino */}
+      <circle
+        cx={geom.cx} cy={geom.cy} r={radius}
+        fill="none"
+        stroke={`hsl(${color})`}
+        strokeWidth={1.4}
+        strokeOpacity={Math.min(0.95, opacity + 0.1)}
+        style={{ mixBlendMode: "screen" }}
+      />
       {/* Núcleo brilhante */}
-      <circle cx={geom.cx} cy={geom.cy} r={2.2}
-              fill={`hsl(${color})`} opacity={0.95} pointerEvents="none" />
+      <circle cx={geom.cx} cy={geom.cy} r={3} fill={`hsl(${color})`} opacity={0.95} />
     </g>
   );
 }
@@ -117,7 +116,7 @@ function RegionHit({
     <Tooltip>
       <TooltipTrigger asChild>
         <g style={{ cursor: state.severity !== "none" ? "pointer" : "default" }}>
-          <circle cx={geom.cx} cy={geom.cy} r={geom.r + 4} fill="transparent" />
+          <circle cx={geom.cx} cy={geom.cy} r={geom.r + 6} fill="transparent" />
         </g>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-[260px]">
@@ -156,7 +155,7 @@ function RegionHit({
 function Chains({ analysis, view }: { analysis: BodyMapAnalysis; view: "front" | "back" }) {
   if (analysis.chains.length === 0) return null;
   return (
-    <g>
+    <g pointerEvents="none">
       {analysis.chains.map((c, i) => {
         const a = REGION_GEOMETRY[c.from];
         const b = REGION_GEOMETRY[c.to];
@@ -165,9 +164,9 @@ function Chains({ analysis, view }: { analysis: BodyMapAnalysis; view: "front" |
           <line key={i}
             x1={a.cx} y1={a.cy} x2={b.cx} y2={b.cy}
             stroke="hsl(var(--sev-attention))"
-            strokeWidth={1.3}
-            strokeDasharray="4 6"
-            strokeOpacity={0.6}
+            strokeWidth={1.6}
+            strokeDasharray="5 7"
+            strokeOpacity={0.7}
             className="bodymap-chain"
           />
         );
@@ -190,16 +189,16 @@ export function BodyMapSVG({ analysis, mode }: Props) {
               </p>
               <svg
                 viewBox={`0 0 ${VIEWBOX.w} ${VIEWBOX.h}`}
-                className="w-full max-w-[260px] h-auto"
+                className="w-full max-w-[300px] h-auto rounded-xl overflow-hidden"
                 role="img"
                 aria-label={`Corpo humano — ${view === "front" ? "vista anterior" : "vista posterior"}`}
               >
-                {/* Anatomia base */}
+                {/* Imagem anatômica base */}
                 {view === "front" ? <AnatomyFront /> : <AnatomyBack />}
 
-                {/* Linhas de assimetria bilateral (modo assimetria) */}
+                {/* Linhas de assimetria bilateral */}
                 {mode === "asymmetry" && (
-                  <g>
+                  <g pointerEvents="none">
                     {analysis.asymmetries.map((a, i) => {
                       const id = a.region;
                       const opposite = id.endsWith("-l")
@@ -212,22 +211,19 @@ export function BodyMapSVG({ analysis, mode }: Props) {
                         <line key={i}
                           x1={g1.cx} y1={g1.cy} x2={g2.cx} y2={g2.cy}
                           stroke={a.severity === "severe" ? "hsl(var(--sev-weak))" : "hsl(var(--sev-attention))"}
-                          strokeWidth={1.2} strokeDasharray="3 4" strokeOpacity={0.7}
+                          strokeWidth={1.5} strokeDasharray="4 5" strokeOpacity={0.75}
                         />
                       );
                     })}
                   </g>
                 )}
 
-                {/* Cadeias compensatórias */}
                 <Chains analysis={analysis} view={view} />
 
-                {/* Halos + contornos luminosos por região */}
                 {regions.map(([id, geom]) => (
                   <RegionGlow key={`glow-${id}`} id={id} geom={geom} state={analysis.regions[id]} mode={mode} />
                 ))}
 
-                {/* Hitboxes p/ tooltip — sempre por cima */}
                 {regions.map(([id, geom]) => (
                   <RegionHit key={`hit-${id}`} id={id} geom={geom} state={analysis.regions[id]} />
                 ))}
