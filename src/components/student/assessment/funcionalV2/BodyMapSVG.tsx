@@ -189,7 +189,7 @@ export function BodyMapSVG({ analysis, mode }: Props) {
               </p>
               <svg
                 viewBox={`0 0 ${VIEWBOX.w} ${VIEWBOX.h}`}
-                className="w-full max-w-[300px] h-auto rounded-xl overflow-hidden"
+                className="w-full max-w-[360px] h-auto rounded-xl overflow-hidden"
                 role="img"
                 aria-label={`Corpo humano — ${view === "front" ? "vista anterior" : "vista posterior"}`}
               >
