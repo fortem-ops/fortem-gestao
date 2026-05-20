@@ -1,8 +1,10 @@
+import { useRef } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BodyMapAnalysis, Mode, RegionId, Severity } from "./bodyMapLogic";
 import { SEVERITY_COLOR_VAR, SEVERITY_LABEL } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
+import type { OverrideMap } from "./useBodyMapGeometry";
 
 interface RegionGeometry {
   cx: number;
