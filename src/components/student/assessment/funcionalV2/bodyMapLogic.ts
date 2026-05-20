@@ -124,6 +124,7 @@ export interface BodyMapAnalysis {
   scoreMobilidade: number | null;
   scoreSimetria: number | null;
   scoreEstabilidade: number | null;
+  scoreForca: number | null;
   asymmetries: Array<{ region: RegionId; diff: number; severity: "moderate" | "severe" }>;
   riskLevel: "low" | "attention" | "high";
   chains: CompensationChain[];
