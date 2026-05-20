@@ -2,18 +2,24 @@ import type { BodyMapAnalysis, RegionId, Severity } from "./bodyMapLogic";
 import { SEVERITY_COLOR_VAR, SEVERITY_LABEL } from "./bodyMapLogic";
 
 const REGION_SHORT_LABEL: Record<RegionId, string> = {
-  "shoulder-l": "Ombro (E)",
-  "shoulder-r": "Ombro (D)",
-  "thoracic":   "Coluna torácica",
-  "lumbar":     "Lombar",
-  "hip-l":      "Quadril (E)",
-  "hip-r":      "Quadril (D)",
-  "quad-l":     "Quadríceps (E)",
-  "quad-r":     "Quadríceps (D)",
-  "ham-l":      "Posterior coxa (E)",
-  "ham-r":      "Posterior coxa (D)",
-  "ankle-l":    "Tornozelo (E)",
-  "ankle-r":    "Tornozelo (D)",
+  "shoulder-l":     "Ombro (E)",
+  "shoulder-r":     "Ombro (D)",
+  "shoulder-re-l":  "Ombro RE (E)",
+  "shoulder-re-r":  "Ombro RE (D)",
+  "thoracic":       "Coluna torácica",
+  "lumbar":         "Lombar",
+  "hip-l":          "Quadril (E)",
+  "hip-r":          "Quadril (D)",
+  "hip-re-l":       "Quadril RE (E)",
+  "hip-re-r":       "Quadril RE (D)",
+  "psoas-l":        "Psoas (E)",
+  "psoas-r":        "Psoas (D)",
+  "quad-l":         "Quadríceps (E)",
+  "quad-r":         "Quadríceps (D)",
+  "ham-l":          "Posterior coxa (E)",
+  "ham-r":          "Posterior coxa (D)",
+  "ankle-l":        "Tornozelo (E)",
+  "ankle-r":        "Tornozelo (D)",
 };
 
 const SEVERITY_ORDER: Record<Severity, number> = {
