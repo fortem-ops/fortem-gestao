@@ -7,9 +7,12 @@ export type Layer = "mobility" | "flexibility" | "pain" | "strength" | "asymmetr
 
 export type RegionId =
   | "shoulder-l" | "shoulder-r"
+  | "shoulder-re-l" | "shoulder-re-r"
   | "thoracic"
   | "lumbar"
   | "hip-l" | "hip-r"
+  | "hip-re-l" | "hip-re-r"
+  | "psoas-l" | "psoas-r"
   | "quad-l" | "quad-r"
   | "ham-l" | "ham-r"
   | "ankle-l" | "ankle-r";
