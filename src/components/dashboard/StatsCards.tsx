@@ -10,6 +10,7 @@ interface Props {
 }
 
 export function StatsCards({ professorId }: Props) {
+  const navigate = useNavigate();
   // Consolidated query: alunos, tarefas, agenda, aniversariantes via single RPC (cached 60s)
   const { data: dashboardData } = useDashboardData(professorId);
   const alunosStats = dashboardData?.alunos;
