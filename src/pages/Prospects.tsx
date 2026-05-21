@@ -66,21 +66,26 @@ export default function Prospects() {
         .order("created_at", { ascending: false });
       if (!alunos?.length) return [];
       const ids = alunos.map((a) => a.id);
-      const [{ data: meta }, { data: agenda }] = await Promise.all([
+      const [{ data: meta }, { data: agenda }, { data: avals }] = await Promise.all([
         supabase.from("pipeline_metadata").select("aluno_id,origem_lead").in("aluno_id", ids),
         supabase.from("agenda_servicos").select("aluno_id").in("aluno_id", ids),
+        supabase.from("avaliacoes").select("id,aluno_id,created_at").eq("tipo", "experimental").in("aluno_id", ids).order("created_at", { ascending: false }),
       ]);
       const metaMap: Record<string, string> = {};
       (meta || []).forEach((m: any) => { if (m.origem_lead) metaMap[m.aluno_id] = m.origem_lead; });
       const agendaSet = new Set((agenda || []).map((a: any) => a.aluno_id));
+      const avalMap: Record<string, string> = {};
+      (avals || []).forEach((a: any) => { if (!avalMap[a.aluno_id]) avalMap[a.aluno_id] = a.id; });
       return alunos.map((a) => ({
         ...a,
         origem: metaMap[a.id] || "—",
         tem_agenda: agendaSet.has(a.id),
+        avaliacao_experimental_id: avalMap[a.id] || null,
       }));
     },
     enabled: stageIds.length > 0,
   });
+
 
   const { data: conversionRate = 0 } = useQuery({
     queryKey: ["prospects-conversion-rate"],
