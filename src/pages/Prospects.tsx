@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck } from "lucide-react";
+import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, FileText } from "lucide-react";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToAlunoDialog } from "@/components/pipeline/ConvertToAlunoDialog";
 import { VendaDialog } from "@/components/student/venda/VendaDialog";
+import { AssessmentViewerDialog } from "@/components/student/assessment/AssessmentViewerDialog";
+import { toast } from "sonner";
 import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
@@ -16,14 +19,17 @@ import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFilte
 
 const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
 
+
 export default function Prospects() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [editId, setEditId] = useState<string | null>(null);
   const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
   const [vendaTarget, setVendaTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [viewerTarget, setViewerTarget] = useState<{ avaliacao: Tables<"avaliacoes">; student: Tables<"alunos"> } | null>(null);
 
   const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
+
 
   useEffect(() => {
     const id = searchParams.get("edit");
@@ -60,21 +66,26 @@ export default function Prospects() {
         .order("created_at", { ascending: false });
       if (!alunos?.length) return [];
       const ids = alunos.map((a) => a.id);
-      const [{ data: meta }, { data: agenda }] = await Promise.all([
+      const [{ data: meta }, { data: agenda }, { data: avals }] = await Promise.all([
         supabase.from("pipeline_metadata").select("aluno_id,origem_lead").in("aluno_id", ids),
         supabase.from("agenda_servicos").select("aluno_id").in("aluno_id", ids),
+        supabase.from("avaliacoes").select("id,aluno_id,created_at").eq("tipo", "experimental").in("aluno_id", ids).order("created_at", { ascending: false }),
       ]);
       const metaMap: Record<string, string> = {};
       (meta || []).forEach((m: any) => { if (m.origem_lead) metaMap[m.aluno_id] = m.origem_lead; });
       const agendaSet = new Set((agenda || []).map((a: any) => a.aluno_id));
+      const avalMap: Record<string, string> = {};
+      (avals || []).forEach((a: any) => { if (!avalMap[a.aluno_id]) avalMap[a.aluno_id] = a.id; });
       return alunos.map((a) => ({
         ...a,
         origem: metaMap[a.id] || "—",
         tem_agenda: agendaSet.has(a.id),
+        avaliacao_experimental_id: avalMap[a.id] || null,
       }));
     },
     enabled: stageIds.length > 0,
   });
+
 
   const { data: conversionRate = 0 } = useQuery({
     queryKey: ["prospects-conversion-rate"],
@@ -152,6 +163,21 @@ export default function Prospects() {
       return true;
     });
   }, [prospectsPeriodo, filters.search, filters.primary, filters.agenda]);
+
+  async function openExperimentalViewer(alunoId: string) {
+    try {
+      const [{ data: avaliacao, error: e1 }, { data: student, error: e2 }] = await Promise.all([
+        supabase.from("avaliacoes").select("*").eq("aluno_id", alunoId).eq("tipo", "experimental").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("alunos").select("*").eq("id", alunoId).single(),
+      ]);
+      if (e1 || e2) throw e1 || e2;
+      if (!avaliacao || !student) { toast.error("Avaliação experimental não encontrada."); return; }
+      setViewerTarget({ avaliacao: avaliacao as Tables<"avaliacoes">, student: student as Tables<"alunos"> });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao carregar avaliação.");
+    }
+  }
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -258,6 +284,12 @@ export default function Prospects() {
                       <Button size="icon" variant="ghost" onClick={() => navigate(`/avaliacoes?aluno=${p.id}&new=1`)} title="Nova avaliação">
                         <ClipboardPlus className="w-4 h-4" />
                       </Button>
+                      {p.avaliacao_experimental_id && (
+                        <Button size="icon" variant="ghost" onClick={() => openExperimentalViewer(p.id)} title="Ver avaliação experimental">
+                          <FileText className="w-4 h-4" />
+                        </Button>
+                      )}
+
                       <Button size="icon" variant="ghost" onClick={() => setConvertTarget({ id: p.id, nome: p.nome })} title="Converter em aluno">
                         <UserCheck className="w-4 h-4" />
                       </Button>
@@ -293,6 +325,15 @@ export default function Prospects() {
           onOpenChange={(v) => !v && setVendaTarget(null)}
         />
       )}
+      {viewerTarget && (
+        <AssessmentViewerDialog
+          open={!!viewerTarget}
+          onOpenChange={(v) => !v && setViewerTarget(null)}
+          avaliacao={viewerTarget.avaliacao}
+          student={viewerTarget.student}
+        />
+      )}
     </div>
   );
 }
+
