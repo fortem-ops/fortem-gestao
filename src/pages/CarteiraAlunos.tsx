@@ -50,7 +50,7 @@ export default function CarteiraAlunos() {
     },
   });
 
-  // Fetch active students (those with active plans)
+  // Fetch active students (those with active plans) + last functional assessment
   const { data: studentsWithPlans = [], isLoading } = useQuery({
     queryKey: ["carteira-alunos"],
     queryFn: async () => {
@@ -67,7 +67,18 @@ export default function CarteiraAlunos() {
         .in("id", alunoIds)
         .eq("status", "ativo")
         .order("nome");
-      return alunos || [];
+      if (!alunos?.length) return [];
+
+      const { data: avs } = await supabase
+        .from("avaliacoes")
+        .select("aluno_id, data")
+        .eq("tipo", "funcional")
+        .in("aluno_id", alunos.map((a) => a.id))
+        .order("data", { ascending: false });
+      const lastByAluno: Record<string, string> = {};
+      (avs || []).forEach((a) => { if (!lastByAluno[a.aluno_id]) lastByAluno[a.aluno_id] = a.data; });
+
+      return alunos.map((a) => ({ ...a, ultima_aval_funcional: lastByAluno[a.id] || null }));
     },
   });
 
@@ -247,26 +258,39 @@ export default function CarteiraAlunos() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
-                {alunos.map((aluno) => (
-                  <div
-                    key={aluno.id}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/alunos/${aluno.id}`)}
-                  >
-                    {isCoordAdmin && (
-                      <Checkbox
-                        checked={selected.has(aluno.id)}
-                        onCheckedChange={(e) => { e && e !== true; toggleSelect(aluno.id); }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{aluno.nome}</p>
-                      <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal || 0}x/semana</p>
+                {alunos.map((aluno: any) => {
+                  const last = aluno.ultima_aval_funcional as string | null;
+                  const today = new Date(); today.setHours(0, 0, 0, 0);
+                  const limit = new Date(today); limit.setMonth(limit.getMonth() - 6);
+                  const isAtrasada = !last || new Date(last + "T00:00:00") < limit;
+                  const lastLabel = last
+                    ? new Date(last + "T00:00:00").toLocaleDateString("pt-BR")
+                    : "Nunca avaliado";
+                  return (
+                    <div
+                      key={aluno.id}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/alunos/${aluno.id}`)}
+                    >
+                      {isCoordAdmin && (
+                        <Checkbox
+                          checked={selected.has(aluno.id)}
+                          onCheckedChange={(e) => { e && e !== true; toggleSelect(aluno.id); }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{aluno.nome}</p>
+                        <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal || 0}x/semana</p>
+                        <p className={`text-xs mt-0.5 flex items-center gap-2 ${isAtrasada ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                          Última aval. funcional: {lastLabel}
+                          {isAtrasada && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">ATRASADA</Badge>}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="status-active text-xs">Ativo</Badge>
                     </div>
-                    <Badge variant="outline" className="status-active text-xs">Ativo</Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Pause, AlertCircle, ClipboardList, Dumbbell, ClipboardCheck, DollarSign, UserPlus } from "lucide-react";
+import { Users, Pause, AlertCircle, ClipboardList, Dumbbell, ClipboardCheck, DollarSign, UserPlus, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function StatsCards({ professorId }: Props) {
+  const navigate = useNavigate();
   // Consolidated query: alunos, tarefas, agenda, aniversariantes via single RPC (cached 60s)
   const { data: dashboardData } = useDashboardData(professorId);
   const alunosStats = dashboardData?.alunos;
@@ -67,6 +69,35 @@ export function StatsCards({ professorId }: Props) {
     staleTime: 60_000,
   });
 
+  const { data: avalAtrasadas = 0 } = useQuery({
+    queryKey: ["dashboard-aval-funcional-atrasada", professorId],
+    queryFn: async () => {
+      let alunosQ = supabase.from("alunos").select("id").eq("status", "ativo");
+      if (professorId) alunosQ = alunosQ.eq("responsavel_id", professorId);
+      const { data: alunos } = await alunosQ;
+      if (!alunos?.length) return 0;
+      const ids = alunos.map((a) => a.id);
+      const { data: avs } = await supabase
+        .from("avaliacoes")
+        .select("aluno_id, data")
+        .eq("tipo", "funcional")
+        .in("aluno_id", ids)
+        .order("data", { ascending: false });
+      const lastByAluno: Record<string, string> = {};
+      (avs || []).forEach((a) => { if (!lastByAluno[a.aluno_id]) lastByAluno[a.aluno_id] = a.data; });
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const limit = new Date(today); limit.setMonth(limit.getMonth() - 6);
+      let count = 0;
+      ids.forEach((id) => {
+        const last = lastByAluno[id];
+        if (!last) { count++; return; }
+        if (new Date(last + "T00:00:00") < limit) count++;
+      });
+      return count;
+    },
+    staleTime: 60_000,
+  });
+
   const row1 = [
     { label: "Alunos Ativos", value: alunosStats?.ativos ?? 0, icon: Users, color: "text-success" },
     { label: "Agregadores", value: alunosStats?.agregadores ?? 0, icon: UserPlus, color: "text-primary" },
@@ -76,6 +107,7 @@ export function StatsCards({ professorId }: Props) {
   const row2 = [
     { label: "Tarefas Pendentes", value: tarefasStats?.pendentes ?? 0, icon: ClipboardList, color: "text-info" },
     { label: "Tarefas Atrasadas", value: tarefasStats?.atrasadas ?? 0, icon: AlertCircle, color: "text-destructive" },
+    { label: "Aval. Funcional Atrasada", value: avalAtrasadas, icon: AlertTriangle, color: "text-destructive", onClick: () => navigate("/carteira") },
   ];
 
   const row3 = [
@@ -92,13 +124,14 @@ export function StatsCards({ professorId }: Props) {
     },
   ];
 
-  const renderCard = (stat: typeof row1[0] & { subtitle?: string }, i: number) => (
+  const renderCard = (stat: typeof row1[0] & { subtitle?: string; onClick?: () => void }, i: number) => (
     <motion.div
       key={stat.label}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: i * 0.08 }}
-      className="glass-card rounded-lg p-5"
+      onClick={stat.onClick}
+      className={`glass-card rounded-lg p-5 ${stat.onClick ? "cursor-pointer hover:bg-muted/30 transition-colors" : ""}`}
     >
       <div className="flex items-center justify-between mb-2">
         <stat.icon className={`w-5 h-5 ${stat.color}`} />
@@ -116,8 +149,8 @@ export function StatsCards({ professorId }: Props) {
       <div className="grid grid-cols-3 gap-4">
         {row1.map((s, i) => renderCard(s, i))}
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
-        {row2.map((s, i) => renderCard(s, i + row1.length))}
+      <div className="grid grid-cols-3 gap-4">
+        {row2.map((s, i) => renderCard(s as any, i + row1.length))}
       </div>
       <div className="grid grid-cols-3 gap-4">
         {row3.map((s, i) => renderCard(s as any, i + row1.length + row2.length))}
