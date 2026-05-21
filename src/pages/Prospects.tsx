@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck } from "lucide-react";
+import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, FileText } from "lucide-react";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToAlunoDialog } from "@/components/pipeline/ConvertToAlunoDialog";
 import { VendaDialog } from "@/components/student/venda/VendaDialog";
+import { AssessmentViewerDialog } from "@/components/student/assessment/AssessmentViewerDialog";
+import { toast } from "sonner";
 import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
@@ -15,6 +18,7 @@ import { ptBR } from "date-fns/locale";
 import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
 
 const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
+
 
 export default function Prospects() {
   const navigate = useNavigate();
