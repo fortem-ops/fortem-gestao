@@ -124,13 +124,14 @@ export function StatsCards({ professorId }: Props) {
     },
   ];
 
-  const renderCard = (stat: typeof row1[0] & { subtitle?: string }, i: number) => (
+  const renderCard = (stat: typeof row1[0] & { subtitle?: string; onClick?: () => void }, i: number) => (
     <motion.div
       key={stat.label}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: i * 0.08 }}
-      className="glass-card rounded-lg p-5"
+      onClick={stat.onClick}
+      className={`glass-card rounded-lg p-5 ${stat.onClick ? "cursor-pointer hover:bg-muted/30 transition-colors" : ""}`}
     >
       <div className="flex items-center justify-between mb-2">
         <stat.icon className={`w-5 h-5 ${stat.color}`} />
@@ -148,8 +149,8 @@ export function StatsCards({ professorId }: Props) {
       <div className="grid grid-cols-3 gap-4">
         {row1.map((s, i) => renderCard(s, i))}
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
-        {row2.map((s, i) => renderCard(s, i + row1.length))}
+      <div className="grid grid-cols-3 gap-4">
+        {row2.map((s, i) => renderCard(s as any, i + row1.length))}
       </div>
       <div className="grid grid-cols-3 gap-4">
         {row3.map((s, i) => renderCard(s as any, i + row1.length + row2.length))}
