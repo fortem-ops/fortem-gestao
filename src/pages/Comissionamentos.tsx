@@ -61,8 +61,40 @@ export default function Comissionamentos() {
 
   const { data: comissoesMes = [] } = useComissionamentos({ profissionalId: scope, mesInicio: mesIni, mesFim });
   const { data: todasComissoes = [] } = useComissionamentos({ profissionalId: scope });
-  const { data: pendencias = [] } = useComissaoPendencias(scope);
+  const { data: pendenciasAll = [] } = useComissaoPendencias(scope);
+  // Treino experimental é concluído automaticamente quando o relatório é salvo — não exibir na lista.
+  const pendencias = useMemo(
+    () => pendenciasAll.filter((p) => p.tipo_pendencia !== "avaliar_experimental"),
+    [pendenciasAll]
+  );
   const carteira = useCarteiraStats(profissionalId);
+
+  // Mapas de profissional/aluno para a aba Histórico
+  const { data: profMapData } = useQuery({
+    queryKey: ["comissao-prof-map-all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name");
+      const map: Record<string, string> = {};
+      (data || []).forEach((p: any) => (map[p.user_id] = p.full_name));
+      return map;
+    },
+    staleTime: 5 * 60_000,
+  });
+  const { data: alunoMapData } = useQuery({
+    queryKey: ["comissao-aluno-map-historico", todasComissoes.length],
+    queryFn: async () => {
+      const ids = Array.from(new Set(todasComissoes.map((r: any) => r.aluno_id).filter(Boolean)));
+      const map: Record<string, string> = {};
+      if (!ids.length) return map;
+      const { data } = await supabase.from("alunos").select("id, nome").in("id", ids);
+      (data || []).forEach((a: any) => (map[a.id] = a.nome));
+      return map;
+    },
+    enabled: todasComissoes.length > 0,
+    staleTime: 60_000,
+  });
+  const profMap = profMapData || {};
+  const alunoMap = alunoMapData || {};
 
   const stats = useMemo(() => {
     const sum = (arr: any[]) => arr.reduce((s, c) => s + Number(c.valor), 0);
@@ -196,7 +228,7 @@ export default function Comissionamentos() {
           <Card>
             <CardHeader><CardTitle className="text-base">Histórico de comissões</CardTitle></CardHeader>
             <CardContent>
-              <ComissoesTable rows={todasComissoes} canManage={!!isCoordAdmin} onUpdate={(id, status) => updateStatus.mutate({ id, status })} />
+              <ComissoesTable rows={todasComissoes} canManage={!!isCoordAdmin} profMap={profMap} alunoMap={alunoMap} onUpdate={(id, status) => updateStatus.mutate({ id, status })} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -279,17 +311,19 @@ function StatCard({ icon: Icon, label, value, tone }: { icon: any; label: string
   );
 }
 
-function ComissoesTable({ rows, canManage, onUpdate }: { rows: any[]; canManage: boolean; onUpdate: (id: string, s: ComissaoStatus) => void }) {
+function ComissoesTable({ rows, canManage, profMap = {}, alunoMap = {}, onUpdate }: { rows: any[]; canManage: boolean; profMap?: Record<string, string>; alunoMap?: Record<string, string>; onUpdate: (id: string, s: ComissaoStatus) => void }) {
   if (!rows.length) return <p className="text-sm text-muted-foreground">Sem registros.</p>;
   return (
     <Table>
       <TableHeader><TableRow>
-        <TableHead>Data</TableHead><TableHead>Tipo</TableHead><TableHead>Descrição</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead>{canManage && <TableHead></TableHead>}
+        <TableHead>Data</TableHead><TableHead>Professor</TableHead><TableHead>Prospect/Aluno</TableHead><TableHead>Tipo</TableHead><TableHead>Descrição</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead>{canManage && <TableHead></TableHead>}
       </TableRow></TableHeader>
       <TableBody>
         {rows.map((c) => (
           <TableRow key={c.id}>
             <TableCell className="text-sm">{new Date(c.data_referencia).toLocaleDateString("pt-BR")}</TableCell>
+            <TableCell className="text-sm">{profMap[c.profissional_id] || "—"}</TableCell>
+            <TableCell className="text-sm">{c.aluno_id ? (alunoMap[c.aluno_id] || "—") : <em className="text-muted-foreground">Carteira</em>}</TableCell>
             <TableCell><Badge variant="outline">{TIPO_LABEL[c.tipo as keyof typeof TIPO_LABEL]}</Badge></TableCell>
             <TableCell className="text-sm">{c.descricao}</TableCell>
             <TableCell className="font-semibold">{formatBRL(c.valor)}</TableCell>
