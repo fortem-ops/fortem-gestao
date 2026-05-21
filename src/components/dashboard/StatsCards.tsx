@@ -69,6 +69,35 @@ export function StatsCards({ professorId }: Props) {
     staleTime: 60_000,
   });
 
+  const { data: avalAtrasadas = 0 } = useQuery({
+    queryKey: ["dashboard-aval-funcional-atrasada", professorId],
+    queryFn: async () => {
+      let alunosQ = supabase.from("alunos").select("id").eq("status", "ativo");
+      if (professorId) alunosQ = alunosQ.eq("responsavel_id", professorId);
+      const { data: alunos } = await alunosQ;
+      if (!alunos?.length) return 0;
+      const ids = alunos.map((a) => a.id);
+      const { data: avs } = await supabase
+        .from("avaliacoes")
+        .select("aluno_id, data")
+        .eq("tipo", "funcional")
+        .in("aluno_id", ids)
+        .order("data", { ascending: false });
+      const lastByAluno: Record<string, string> = {};
+      (avs || []).forEach((a) => { if (!lastByAluno[a.aluno_id]) lastByAluno[a.aluno_id] = a.data; });
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const limit = new Date(today); limit.setMonth(limit.getMonth() - 6);
+      let count = 0;
+      ids.forEach((id) => {
+        const last = lastByAluno[id];
+        if (!last) { count++; return; }
+        if (new Date(last + "T00:00:00") < limit) count++;
+      });
+      return count;
+    },
+    staleTime: 60_000,
+  });
+
   const row1 = [
     { label: "Alunos Ativos", value: alunosStats?.ativos ?? 0, icon: Users, color: "text-success" },
     { label: "Agregadores", value: alunosStats?.agregadores ?? 0, icon: UserPlus, color: "text-primary" },
@@ -78,6 +107,7 @@ export function StatsCards({ professorId }: Props) {
   const row2 = [
     { label: "Tarefas Pendentes", value: tarefasStats?.pendentes ?? 0, icon: ClipboardList, color: "text-info" },
     { label: "Tarefas Atrasadas", value: tarefasStats?.atrasadas ?? 0, icon: AlertCircle, color: "text-destructive" },
+    { label: "Aval. Funcional Atrasada", value: avalAtrasadas, icon: AlertTriangle, color: "text-destructive", onClick: () => navigate("/carteira") },
   ];
 
   const row3 = [
