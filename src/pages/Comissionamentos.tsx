@@ -228,7 +228,7 @@ export default function Comissionamentos() {
           <Card>
             <CardHeader><CardTitle className="text-base">Histórico de comissões</CardTitle></CardHeader>
             <CardContent>
-              <ComissoesTable rows={todasComissoes} canManage={!!isCoordAdmin} onUpdate={(id, status) => updateStatus.mutate({ id, status })} />
+              <ComissoesTable rows={todasComissoes} canManage={!!isCoordAdmin} profMap={profMap} alunoMap={alunoMap} onUpdate={(id, status) => updateStatus.mutate({ id, status })} />
             </CardContent>
           </Card>
         </TabsContent>
