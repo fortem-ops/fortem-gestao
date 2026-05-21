@@ -284,6 +284,12 @@ export default function Prospects() {
                       <Button size="icon" variant="ghost" onClick={() => navigate(`/avaliacoes?aluno=${p.id}&new=1`)} title="Nova avaliação">
                         <ClipboardPlus className="w-4 h-4" />
                       </Button>
+                      {p.avaliacao_experimental_id && (
+                        <Button size="icon" variant="ghost" onClick={() => openExperimentalViewer(p.id)} title="Ver avaliação experimental">
+                          <FileText className="w-4 h-4" />
+                        </Button>
+                      )}
+
                       <Button size="icon" variant="ghost" onClick={() => setConvertTarget({ id: p.id, nome: p.nome })} title="Converter em aluno">
                         <UserCheck className="w-4 h-4" />
                       </Button>
