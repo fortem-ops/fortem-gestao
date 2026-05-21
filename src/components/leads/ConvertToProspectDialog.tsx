@@ -83,10 +83,12 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
         email: data.aluno?.email || "",
         sexo: data.aluno?.sexo || "",
         origem: (data.meta?.origem_lead as OrigemLead) || "",
+        responsavel_id: (data.aluno as any)?.responsavel_id || "",
         limitacoes: an.limitacoes || "",
         atividade_fisica: an.atividade_fisica || "",
         objetivo_treinamento: an.objetivo_treinamento || "",
       });
+
     }
   }, [data]);
 
