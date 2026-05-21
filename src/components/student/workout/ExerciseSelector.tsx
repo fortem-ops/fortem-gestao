@@ -164,7 +164,10 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly, subcate
             width: coords.width,
             maxHeight: coords.maxHeight,
             zIndex: 60,
+            pointerEvents: "auto",
           }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           className="overflow-y-auto bg-popover border border-border rounded-md shadow-xl"
         >
           <div className="sticky top-0 z-10 bg-popover/95 backdrop-blur px-2 py-1.5 border-b border-border flex items-center justify-between text-[10px] text-muted-foreground">
