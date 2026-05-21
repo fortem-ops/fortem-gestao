@@ -26,10 +26,29 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
     email: "",
     sexo: "",
     origem: "" as OrigemLead | "",
+    responsavel_id: "",
     limitacoes: "",
     atividade_fisica: "",
     objetivo_treinamento: "",
   });
+  const [professores, setProfessores] = useState<{ user_id: string; full_name: string }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["professor", "coordenador", "admin"]);
+      if (!roles?.length) return;
+      const ids = roles.map((r) => r.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids);
+      if (profiles) setProfessores(profiles);
+    })();
+  }, []);
+
 
   const { data } = useQuery({
     queryKey: ["convert-lead", alunoId],
@@ -37,9 +56,10 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
       if (!alunoId) return null;
       const { data: a } = await supabase
         .from("alunos")
-        .select("nome,telefone,email,data_nascimento,sexo")
+        .select("nome,telefone,email,data_nascimento,sexo,responsavel_id")
         .eq("id", alunoId)
         .maybeSingle();
+
       const { data: m } = await supabase
         .from("pipeline_metadata")
         .select("origem_lead")
@@ -63,10 +83,12 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
         email: data.aluno?.email || "",
         sexo: data.aluno?.sexo || "",
         origem: (data.meta?.origem_lead as OrigemLead) || "",
+        responsavel_id: (data.aluno as any)?.responsavel_id || "",
         limitacoes: an.limitacoes || "",
         atividade_fisica: an.atividade_fisica || "",
         objetivo_treinamento: an.objetivo_treinamento || "",
       });
+
     }
   }, [data]);
 
@@ -89,8 +111,14 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
         atividade_fisica: form.atividade_fisica.trim(),
         objetivo_treinamento: form.objetivo_treinamento.trim(),
       });
+      const { error: respErr } = await supabase
+        .from("alunos")
+        .update({ responsavel_id: form.responsavel_id || null } as any)
+        .eq("id", alunoId);
+      if (respErr) throw respErr;
       toast.success("Convertido em Prospect");
       qc.invalidateQueries({ queryKey: ["leads-list"] });
+
       qc.invalidateQueries({ queryKey: ["prospects-list"] });
       qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
       qc.invalidateQueries({ queryKey: ["pipeline-last-moves"] });
@@ -141,6 +169,24 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-1.5">
+            <Label>Professor responsável (opcional)</Label>
+            <Select
+              value={form.responsavel_id || "__none__"}
+              onValueChange={(v) => setForm({ ...form, responsavel_id: v === "__none__" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Nenhum —</SelectItem>
+                {professores.map((p) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+
 
           <div className="space-y-3 pt-2 border-t border-border">
             <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Anamnese inicial</p>

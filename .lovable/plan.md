@@ -1,23 +1,28 @@
 ## Objetivo
-Permitir, na página **Prospects**, visualizar o relatório da avaliação do treino experimental já preenchido para o prospect — sem precisar abrir o perfil do aluno.
+No fluxo Lead → Prospect (`ConvertToProspectDialog`), permitir selecionar um **Professor responsável**, que será gravado em `alunos.responsavel_id` e persistirá automaticamente nas próximas etapas (incluindo a conversão em Aluno, já que `ConvertToAlunoDialog` não sobrescreve esse campo).
 
 ## Mudanças
 
-**Arquivo:** `src/pages/Prospects.tsx`
+**Arquivo único:** `src/components/leads/ConvertToProspectDialog.tsx`
 
-1. Na query `prospects-list`, buscar também a última `avaliacoes` de cada prospect com `tipo = 'experimental'`:
-   - `supabase.from("avaliacoes").select("id, aluno_id, data, dados, tipo, protocolo_id, observacoes, avaliador_id, arquivo_url, created_at, updated_at").in("aluno_id", ids).eq("tipo","experimental").order("created_at", { ascending:false })`
-   - Reduzir para a mais recente por `aluno_id` e expor como `ultimaAvaliacaoExperimental` em cada linha.
+1. Adicionar estado `professores: { user_id, full_name }[]` e carregar no `useEffect`, replicando o padrão de `StudentFormFields.tsx`:
+   - `select user_id, role from user_roles where role in ('professor','coordenador','admin')`
+   - `select user_id, full_name from profiles where user_id in (...)`
 
-2. Adicionar novo botão de ação por linha (ícone `FileText` do lucide), exibido apenas se existir avaliação experimental:
-   - Título: "Ver avaliação experimental".
-   - Ao clicar, abre `AssessmentViewerDialog` com a avaliação e o aluno carregados.
+2. Pré-carregar o responsável atual: no `useQuery` existente, incluir `responsavel_id` em `alunos.select`, e no `useEffect` que popula o form, definir `responsavel_id` inicial (string vazia se nulo).
 
-3. Adicionar estado `viewerTarget: { avaliacao, student } | null` e renderizar `<AssessmentViewerDialog open={!!viewerTarget} avaliacao={viewerTarget?.avaliacao ?? null} student={viewerTarget?.student} onOpenChange={...} />` no final do componente.
-   - O componente já existe em `src/components/student/assessment/AssessmentViewerDialog.tsx` e aceita `Tables<"alunos">` + `Tables<"avaliacoes">`. Para evitar refetch do aluno completo, fazer um `supabase.from("alunos").select("*").eq("id", id).single()` on-demand ao abrir o viewer.
+3. Adicionar campo no form `responsavel_id: ""` e renderizar um `<Select>` "Professor responsável (opcional)" logo abaixo do campo "Como conheceu?", com placeholder "Selecione (opcional)" e a opção "— Nenhum —" para limpar.
 
-4. Não alterar layout/colunas existentes; o botão entra no grupo de ações já presente, à esquerda do botão "Nova avaliação".
+4. No `save()`, depois do `convertLeadToProspect(...)` (que não toca em `responsavel_id`), fazer:
+   - `supabase.from("alunos").update({ responsavel_id: form.responsavel_id || null }).eq("id", alunoId)` — sempre, para refletir mudança/limpeza.
+   - Tratar erro via toast.
 
-## Não escopado
-- Nenhuma mudança em RLS, banco ou no fluxo de preenchimento da avaliação.
-- Não mexer no perfil do aluno nem em Leads.
+5. Não tornar obrigatório; manter os demais campos obrigatórios como estão.
+
+## Por que persiste nas próximas etapas
+- `alunos.responsavel_id` já existe e é lido por queries de carteira, comissionamento, perfil etc.
+- `ConvertToAlunoDialog` faz `update` apenas em campos cadastrais (cpf, endereço, status) — não mexe em `responsavel_id`, portanto o vínculo definido na conversão para Prospect permanece quando o prospect vira Aluno.
+
+## Fora de escopo
+- Nenhuma mudança de banco/RLS (a policy "Coord/admin can update alunos" já permite que coord/admin atribuam o responsável; professores que estiverem convertendo o próprio lead já tinham `responsavel_id = auth.uid()` pela policy de insert).
+- Sem alterações no Pipeline kanban ou em outras telas.
