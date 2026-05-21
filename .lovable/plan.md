@@ -1,28 +1,35 @@
 ## Objetivo
-No fluxo Lead → Prospect (`ConvertToProspectDialog`), permitir selecionar um **Professor responsável**, que será gravado em `alunos.responsavel_id` e persistirá automaticamente nas próximas etapas (incluindo a conversão em Aluno, já que `ConvertToAlunoDialog` não sobrescreve esse campo).
 
-## Mudanças
+Automatizar o fluxo de comissionamento do Treino Experimental: a tarefa do professor é gerada no agendamento, é concluída automaticamente quando ele salva o relatório/avaliação, e o pagamento de R$30 é aprovado automaticamente quando ocorre conversão + relatório concluído. Adicionar colunas Professor e Aluno no Histórico.
 
-**Arquivo único:** `src/components/leads/ConvertToProspectDialog.tsx`
+## O que já existe (não muda)
 
-1. Adicionar estado `professores: { user_id, full_name }[]` e carregar no `useEffect`, replicando o padrão de `StudentFormFields.tsx`:
-   - `select user_id, role from user_roles where role in ('professor','coordenador','admin')`
-   - `select user_id, full_name from profiles where user_id in (...)`
+- `trg_comissao_agenda_insert`: ao agendar `Treino Experimental` em `agenda_servicos`, já cria a pendência `avaliar_experimental` para o `profissional_id` da agenda. ✅
+- `fn_tentar_comissao_experimental`: só gera a comissão quando existe uma venda paga (conversão). ✅
 
-2. Pré-carregar o responsável atual: no `useQuery` existente, incluir `responsavel_id` em `alunos.select`, e no `useEffect` que popula o form, definir `responsavel_id` inicial (string vazia se nulo).
+## Mudanças no banco (migração)
 
-3. Adicionar campo no form `responsavel_id: ""` e renderizar um `<Select>` "Professor responsável (opcional)" logo abaixo do campo "Como conheceu?", com placeholder "Selecione (opcional)" e a opção "— Nenhum —" para limpar.
+1. **Novo trigger em `avaliacoes`** (AFTER INSERT, quando `tipo = 'experimental'`):
+   - Localiza a pendência `avaliar_experimental` em aberto do mesmo `aluno_id` (mais recente).
+   - Marca `concluido = true`, `concluido_em = now()`, `responsavel_id = NEW.avaliador_id`.
+   - Isso reaproveita o `trg_comissao_pendencia_concluida` existente, que dispara `fn_tentar_comissao_experimental` (gera comissão se já houve conversão).
 
-4. No `save()`, depois do `convertLeadToProspect(...)` (que não toca em `responsavel_id`), fazer:
-   - `supabase.from("alunos").update({ responsavel_id: form.responsavel_id || null }).eq("id", alunoId)` — sempre, para refletir mudança/limpeza.
-   - Tratar erro via toast.
+2. **Ajustar `fn_tentar_comissao_experimental`**: após gerar a comissão via `fn_gerar_comissao`, atualizar imediatamente seu status para `'aprovado'` (aprovação automática — não precisa passar por "pendente").
 
-5. Não tornar obrigatório; manter os demais campos obrigatórios como estão.
+3. **Idempotência**: se o relatório for salvo antes da conversão, a pendência fica concluída e a comissão não é criada (não existe venda paga). Quando a venda paga acontecer, `trg_comissao_venda_paga` precisa também tentar gerar a comissão do experimental — verificar se já faz; se não, complementar para que a conversão posterior dispare `fn_tentar_comissao_experimental` quando já houver avaliação experimental concluída do aluno.
 
-## Por que persiste nas próximas etapas
-- `alunos.responsavel_id` já existe e é lido por queries de carteira, comissionamento, perfil etc.
-- `ConvertToAlunoDialog` faz `update` apenas em campos cadastrais (cpf, endereço, status) — não mexe em `responsavel_id`, portanto o vínculo definido na conversão para Prospect permanece quando o prospect vira Aluno.
+## Mudanças no frontend
+
+**`src/pages/Comissionamentos.tsx`**
+
+1. **Aba Pendências**: filtrar `avaliar_experimental` da lista (a conclusão agora é automática, então não deve aparecer mais).
+
+2. **Histórico — `ComissoesTable`**: adicionar colunas **Professor** e **Aluno**.
+   - Carregar mapas `profMap` e `alunoMap` (já existem no `AdminListagem`) para reuso na aba Histórico.
+   - Renderizar `profMap[c.profissional_id]` e `alunoMap[c.aluno_id]` como novas colunas após Data.
 
 ## Fora de escopo
-- Nenhuma mudança de banco/RLS (a policy "Coord/admin can update alunos" já permite que coord/admin atribuam o responsável; professores que estiverem convertendo o próprio lead já tinham `responsavel_id = auth.uid()` pela policy de insert).
-- Sem alterações no Pipeline kanban ou em outras telas.
+
+- Não mexe na UI de criação de agenda (já dispara o trigger).
+- Não muda a UI da Avaliação Experimental (já insere em `avaliacoes` com `tipo='experimental'`).
+- Sem mudanças em RLS — políticas atuais cobrem os fluxos.
