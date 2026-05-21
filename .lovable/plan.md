@@ -1,36 +1,28 @@
 ## Problema
 
-1. Após a "Indicação da Aula Experimental" vincular um treino (fase / personalizado / etc.), ao reabrir o treino na ficha do aluno, ele aparece em modo **somente leitura** — o `ExerciseSelector` mostra apenas texto e não permite trocar exercícios.
-2. Mesmo destravando a UI, a política RLS de `treinos` só permite UPDATE para o **autor** do treino ou coord/admin. Como a prescrição automática usa o `autor_id` de quem disparou, qualquer outro professor recebe erro ao tentar salvar.
+Ao visualizar uma avaliação experimental no perfil do aluno, o dialog mostra apenas as seções **Anamnese** e **Avaliação de Mobilidade** — exatamente o conteúdo do `avaliacao_templates` (schema antigo/inicial gravado para `tipo='experimental'`).
 
-## Causa
+As novas seções (Estabilidade, Padrões de Força, Treino, Observações Gerais etc.) existem porque o formulário de preenchimento usa o schema do **protocolo** vinculado (`avaliacao_protocolos.schema`, via `AssessmentForm → EngineDispatcher → DynamicAssessment`), e não o template legado. A coluna `avaliacoes.protocolo_id` já guarda qual protocolo foi usado em cada avaliação, mas o viewer ignora isso.
 
-- `src/components/student/StudentWorkouts.tsx` (linha 162) abre o `WorkoutDetail` com `readOnly` **fixo**, sem opção de edição.
-- `WorkoutDetail` não repassa `readOnly` para o `PersonalizadoEditor` (já é editável), mas o caminho de templates (fases) fica travado.
-- Política RLS `Author or coord/admin can update treinos` impede edição por outros profissionais.
+## Causa raiz
 
-## Mudanças
+`AssessmentViewerDialog.tsx` (linhas 77–81) carrega o schema com `fetchExperimentalSchema()`, que sempre lê `avaliacao_templates` (Anamnese + Mobilidade). O resultado: respostas das demais seções caem em "Outras respostas registradas" (chaves cruas) ou ficam ocultas, e mesmo a Mobilidade renderiza com base no schema antigo, sem refletir alterações do protocolo.
 
-### 1. UI — habilitar edição direta na ficha do aluno
-`src/components/student/StudentWorkouts.tsx`
-- Remover o atributo fixo `readOnly` do `<WorkoutDetail />`.
-- Manter o diálogo atual; o usuário entra direto em modo edição (com botão **Salvar** visível).
+## Correção
 
-### 2. RLS — liberar edição para todos os autenticados
-Migration em `treinos`:
-- Substituir a policy de UPDATE por uma que permita qualquer usuário autenticado (`USING true`), preservando DELETE restrito a admin e INSERT exigindo `autor_id = auth.uid()`.
-- A nova versão salvará atualizando `updated_at`; o `autor_id` original é preservado (já é o comportamento atual do `handleSave`).
+1. **Buscar o schema a partir do protocolo da avaliação** no viewer:
+   - Em `AssessmentViewerDialog.tsx`, adicionar uma query `["avaliacao-protocolo-schema", avaliacao.protocolo_id]` que faz `select schema, nome from avaliacao_protocolos where id = avaliacao.protocolo_id` quando `protocolo_id` existir.
+   - Usar esse schema no `<ExperimentalView />` em vez de `fetchExperimentalSchema()`.
+   - Fallback: se `protocolo_id` for nulo (avaliações antigas), manter o comportamento atual (template legado) — assim o histórico antigo continua legível.
 
-```sql
-DROP POLICY "Author or coord/admin can update treinos" ON public.treinos;
-CREATE POLICY "Authenticated can update treinos"
-ON public.treinos FOR UPDATE TO authenticated
-USING (true) WITH CHECK (true);
-```
+2. **Generalizar para qualquer engine dinâmico** (opcional mas recomendado): hoje o viewer só renderiza schema dinâmico quando `tipo === "experimental"`. Aplicar o mesmo `ExperimentalView` para outras avaliações cuja `protocolo_id` aponte para protocolos dinâmicos (ex.: futuros tipos), mantendo o ramo `funcional`/`composicao`/`funcional_v2` intacto. Pode ficar para uma segunda etapa se preferir minimizar mudança.
 
-## Fora de escopo
+3. **Mostrar nome do protocolo** no cabeçalho do dialog (`Protocolo: X`) para deixar claro qual versão foi aplicada — ajuda em auditoria, já que protocolos podem ser editados ao longo do tempo.
 
-- Não alterar o módulo Avaliações Premium.
-- Não mexer no `ExerciseSelector` em si — ele já funciona corretamente quando `readOnly=false`.
-- Não alterar políticas de INSERT/DELETE de `treinos`.
-- Não tocar no portal do aluno (`PortalWorkouts` permanece somente leitura).
+4. Manter a seção "Outras respostas registradas" como rede de segurança para chaves fora do schema atual (já existe).
+
+## Arquivos a editar
+
+- `src/components/student/assessment/AssessmentViewerDialog.tsx` — trocar a fonte do schema do bloco experimental para o protocolo da avaliação, com fallback para o template; exibir nome do protocolo no header.
+
+Nenhuma mudança de banco, RLS ou de fluxo de preenchimento é necessária — apenas a leitura no viewer.
