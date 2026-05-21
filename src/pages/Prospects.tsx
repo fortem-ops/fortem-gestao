@@ -325,6 +325,15 @@ export default function Prospects() {
           onOpenChange={(v) => !v && setVendaTarget(null)}
         />
       )}
+      {viewerTarget && (
+        <AssessmentViewerDialog
+          open={!!viewerTarget}
+          onOpenChange={(v) => !v && setViewerTarget(null)}
+          avaliacao={viewerTarget.avaliacao}
+          student={viewerTarget.student}
+        />
+      )}
     </div>
   );
 }
+
