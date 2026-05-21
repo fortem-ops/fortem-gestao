@@ -26,8 +26,10 @@ export default function Prospects() {
   const [editId, setEditId] = useState<string | null>(null);
   const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
   const [vendaTarget, setVendaTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [viewerTarget, setViewerTarget] = useState<{ avaliacao: Tables<"avaliacoes">; student: Tables<"alunos"> } | null>(null);
 
   const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
+
 
   useEffect(() => {
     const id = searchParams.get("edit");
