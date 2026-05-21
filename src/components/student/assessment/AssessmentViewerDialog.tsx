@@ -19,7 +19,7 @@ import type { AssessmentClassification } from "@/lib/mock-data";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { BodyDiagram } from "./BodyDiagram";
 import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAssessment";
-import { fetchExperimentalSchema, migrateLegacyDados, type ExperimentalRecordDados } from "./experimentalTemplate";
+import { fetchExperimentalSchema, migrateLegacyDados, ensureFaseInicialQuestion, type ExperimentalRecordDados } from "./experimentalTemplate";
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
