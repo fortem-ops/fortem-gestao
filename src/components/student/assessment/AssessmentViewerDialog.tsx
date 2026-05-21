@@ -19,7 +19,7 @@ import type { AssessmentClassification } from "@/lib/mock-data";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { BodyDiagram } from "./BodyDiagram";
 import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAssessment";
-import { fetchExperimentalSchema, migrateLegacyDados, type ExperimentalRecordDados } from "./experimentalTemplate";
+import { fetchExperimentalSchema, migrateLegacyDados, ensureFaseInicialQuestion, type ExperimentalRecordDados } from "./experimentalTemplate";
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
@@ -295,9 +295,15 @@ function ExperimentalView({ dados, schema }: { dados: ExperimentalRecordDados; s
   if (!schema) {
     return <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
   }
+  const fullSchema = ensureFaseInicialQuestion(schema as never) as typeof schema;
+  const knownIds = new Set<string>();
+  fullSchema.sections.forEach((s) => s.questions.forEach((q) => knownIds.add(q.id)));
+  const extras = Object.entries(dados.answers || {}).filter(
+    ([k, v]) => !knownIds.has(k) && v !== undefined && v !== null && v !== "",
+  );
   return (
     <div className="space-y-4">
-      {schema.sections.map((sec) => (
+      {fullSchema.sections.map((sec) => (
         <section key={sec.id} className="glass-card rounded-lg p-4 space-y-3">
           <h4 className="text-sm font-semibold text-foreground">{sec.title}</h4>
           {sec.questions.map((q) => {
@@ -306,6 +312,14 @@ function ExperimentalView({ dados, schema }: { dados: ExperimentalRecordDados; s
           })}
         </section>
       ))}
+      {extras.length > 0 && (
+        <section className="glass-card rounded-lg p-4 space-y-3">
+          <h4 className="text-sm font-semibold text-foreground">Outras respostas registradas</h4>
+          {extras.map(([k, v]) => (
+            <Row key={k} label={k} value={typeof v === "string" || typeof v === "number" ? String(v) : JSON.stringify(v)} />
+          ))}
+        </section>
+      )}
     </div>
   );
 }
