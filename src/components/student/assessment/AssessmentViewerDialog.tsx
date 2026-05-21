@@ -74,11 +74,27 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
   const metricasFromJson = (dados.metricas as FuncMetric[] | undefined) || [];
   const expDados: ExperimentalRecordDados | null = isExperimental ? migrateLegacyDados(dados) : null;
 
-  const { data: expSchema } = useTplQuery({
+  const { data: protocoloInfo } = useTplQuery({
+    queryKey: ["avaliacao-protocolo-schema", avaliacao?.protocolo_id],
+    enabled: isExperimental && !!avaliacao?.protocolo_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("avaliacao_protocolos" as never)
+        .select("nome, schema")
+        .eq("id", avaliacao!.protocolo_id!)
+        .maybeSingle();
+      return data as { nome: string; schema: { sections: { id: string; title: string; questions: { id: string; label: string; type: string; detalheLabel?: string; labelSim?: string; labelNao?: string; options?: { value: string; label: string }[] }[] }[] } } | null;
+    },
+  });
+
+  const { data: legacySchema } = useTplQuery({
     queryKey: ["avaliacao-template", "experimental"],
     queryFn: fetchExperimentalSchema,
-    enabled: isExperimental,
+    enabled: isExperimental && !avaliacao?.protocolo_id,
   });
+
+  const expSchema = protocoloInfo?.schema ?? legacySchema;
+
 
   if (!avaliacao) return null;
 
@@ -152,8 +168,12 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
                 {expDados.status === "finalizado" ? "Finalizada" : "Rascunho"}
               </Badge>
             )}
+            {isExperimental && protocoloInfo?.nome && (
+              <Badge variant="outline" className="text-muted-foreground">Protocolo: {protocoloInfo.nome}</Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
+
 
         {avaliacao.tipo === "funcional_v2" ? (
           <FuncionalV2Viewer avaliacao={avaliacao} />
