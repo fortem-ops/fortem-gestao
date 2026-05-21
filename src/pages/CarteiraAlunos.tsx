@@ -50,7 +50,7 @@ export default function CarteiraAlunos() {
     },
   });
 
-  // Fetch active students (those with active plans)
+  // Fetch active students (those with active plans) + last functional assessment
   const { data: studentsWithPlans = [], isLoading } = useQuery({
     queryKey: ["carteira-alunos"],
     queryFn: async () => {
@@ -67,7 +67,18 @@ export default function CarteiraAlunos() {
         .in("id", alunoIds)
         .eq("status", "ativo")
         .order("nome");
-      return alunos || [];
+      if (!alunos?.length) return [];
+
+      const { data: avs } = await supabase
+        .from("avaliacoes")
+        .select("aluno_id, data")
+        .eq("tipo", "funcional")
+        .in("aluno_id", alunos.map((a) => a.id))
+        .order("data", { ascending: false });
+      const lastByAluno: Record<string, string> = {};
+      (avs || []).forEach((a) => { if (!lastByAluno[a.aluno_id]) lastByAluno[a.aluno_id] = a.data; });
+
+      return alunos.map((a) => ({ ...a, ultima_aval_funcional: lastByAluno[a.id] || null }));
     },
   });
 
