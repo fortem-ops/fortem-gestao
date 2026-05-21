@@ -26,10 +26,29 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
     email: "",
     sexo: "",
     origem: "" as OrigemLead | "",
+    responsavel_id: "",
     limitacoes: "",
     atividade_fisica: "",
     objetivo_treinamento: "",
   });
+  const [professores, setProfessores] = useState<{ user_id: string; full_name: string }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["professor", "coordenador", "admin"]);
+      if (!roles?.length) return;
+      const ids = roles.map((r) => r.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids);
+      if (profiles) setProfessores(profiles);
+    })();
+  }, []);
+
 
   const { data } = useQuery({
     queryKey: ["convert-lead", alunoId],
