@@ -111,8 +111,14 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
         atividade_fisica: form.atividade_fisica.trim(),
         objetivo_treinamento: form.objetivo_treinamento.trim(),
       });
+      const { error: respErr } = await supabase
+        .from("alunos")
+        .update({ responsavel_id: form.responsavel_id || null } as any)
+        .eq("id", alunoId);
+      if (respErr) throw respErr;
       toast.success("Convertido em Prospect");
       qc.invalidateQueries({ queryKey: ["leads-list"] });
+
       qc.invalidateQueries({ queryKey: ["prospects-list"] });
       qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
       qc.invalidateQueries({ queryKey: ["pipeline-last-moves"] });
