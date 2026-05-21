@@ -168,8 +168,12 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
                 {expDados.status === "finalizado" ? "Finalizada" : "Rascunho"}
               </Badge>
             )}
+            {isExperimental && protocoloInfo?.nome && (
+              <Badge variant="outline" className="text-muted-foreground">Protocolo: {protocoloInfo.nome}</Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
+
 
         {avaliacao.tipo === "funcional_v2" ? (
           <FuncionalV2Viewer avaliacao={avaliacao} />
