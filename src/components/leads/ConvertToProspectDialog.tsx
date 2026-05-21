@@ -170,6 +170,24 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
             </Select>
           </div>
 
+          <div className="space-y-1.5">
+            <Label>Professor responsável (opcional)</Label>
+            <Select
+              value={form.responsavel_id || "__none__"}
+              onValueChange={(v) => setForm({ ...form, responsavel_id: v === "__none__" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Nenhum —</SelectItem>
+                {professores.map((p) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+
+
           <div className="space-y-3 pt-2 border-t border-border">
             <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Anamnese inicial</p>
             <div className="space-y-1.5">
