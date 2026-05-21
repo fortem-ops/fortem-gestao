@@ -164,6 +164,21 @@ export default function Prospects() {
     });
   }, [prospectsPeriodo, filters.search, filters.primary, filters.agenda]);
 
+  async function openExperimentalViewer(alunoId: string) {
+    try {
+      const [{ data: avaliacao, error: e1 }, { data: student, error: e2 }] = await Promise.all([
+        supabase.from("avaliacoes").select("*").eq("aluno_id", alunoId).eq("tipo", "experimental").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("alunos").select("*").eq("id", alunoId).single(),
+      ]);
+      if (e1 || e2) throw e1 || e2;
+      if (!avaliacao || !student) { toast.error("Avaliação experimental não encontrada."); return; }
+      setViewerTarget({ avaliacao: avaliacao as Tables<"avaliacoes">, student: student as Tables<"alunos"> });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao carregar avaliação.");
+    }
+  }
+
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3">
