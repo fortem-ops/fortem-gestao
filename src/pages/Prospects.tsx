@@ -16,6 +16,7 @@ import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
 const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
 
