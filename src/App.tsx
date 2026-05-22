@@ -45,6 +45,11 @@ const AnexosJuridicos = lazy(() => import("./pages/AnexosJuridicos"));
 const Comissionamentos = lazy(() => import("./pages/Comissionamentos"));
 const LegalAnnexFlow = lazy(() => import("./pages/LegalAnnexFlow"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const RelatoriosLayout = lazy(() => import("./components/relatorios/RelatoriosLayout").then(m => ({ default: m.RelatoriosLayout })));
+const RelatoriosHome = lazy(() => import("./pages/relatorios/Index"));
+const RelatoriosVendas = lazy(() => import("./pages/relatorios/Vendas"));
+const RelatoriosFinanceiro = lazy(() => import("./pages/relatorios/Financeiro"));
+const RelatoriosEmBreve = lazy(() => import("./pages/relatorios/EmBreve"));
 
 // Portal do Aluno
 const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
