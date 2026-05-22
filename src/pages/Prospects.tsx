@@ -71,23 +71,53 @@ export default function Prospects() {
       const ids = alunos.map((a) => a.id);
       const [{ data: meta }, { data: agenda }, { data: avals }] = await Promise.all([
         supabase.from("pipeline_metadata").select("aluno_id,origem_lead").in("aluno_id", ids),
-        supabase.from("agenda_servicos").select("aluno_id").in("aluno_id", ids),
+        supabase.from("agenda_servicos").select("id,aluno_id,data_especifica,dia_semana,tipo,atividade,horario_inicio").in("aluno_id", ids).ilike("atividade", "Treino Experimental%"),
         supabase.from("avaliacoes").select("id,aluno_id,created_at").eq("tipo", "experimental").in("aluno_id", ids).order("created_at", { ascending: false }),
       ]);
+      const agendaIds = (agenda || []).map((a: any) => a.id);
+      const { data: presencas } = agendaIds.length
+        ? await supabase.from("agenda_presencas").select("agenda_id,data,comparecimento").in("agenda_id", agendaIds)
+        : { data: [] as any[] };
+      const presMap: Record<string, boolean> = {};
+      (presencas || []).forEach((p: any) => { presMap[`${p.agenda_id}|${p.data}`] = p.comparecimento; });
+
       const metaMap: Record<string, string> = {};
       (meta || []).forEach((m: any) => { if (m.origem_lead) metaMap[m.aluno_id] = m.origem_lead; });
-      const agendaSet = new Set((agenda || []).map((a: any) => a.aluno_id));
+
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const agendaByAluno: Record<string, any[]> = {};
+      (agenda || []).forEach((a: any) => {
+        (agendaByAluno[a.aluno_id] = agendaByAluno[a.aluno_id] || []).push(a);
+      });
+
       const avalMap: Record<string, string> = {};
       (avals || []).forEach((a: any) => { if (!avalMap[a.aluno_id]) avalMap[a.aluno_id] = a.id; });
-      return alunos.map((a) => ({
-        ...a,
-        origem: metaMap[a.id] || "—",
-        tem_agenda: agendaSet.has(a.id),
-        avaliacao_experimental_id: avalMap[a.id] || null,
-      }));
+
+      return alunos.map((a) => {
+        const list = agendaByAluno[a.id] || [];
+        let agendaStatus: "realizado" | "agendado" | null = null;
+        for (const ag of list) {
+          if (ag.tipo === "avulso" && ag.data_especifica) {
+            const key = `${ag.id}|${ag.data_especifica}`;
+            if (presMap[key] === true) { agendaStatus = "realizado"; break; }
+            const d = new Date(ag.data_especifica + "T12:00:00");
+            if (d >= today) agendaStatus = agendaStatus || "agendado";
+          } else if (ag.tipo === "fixo") {
+            agendaStatus = agendaStatus || "agendado";
+          }
+        }
+        return {
+          ...a,
+          origem: metaMap[a.id] || "—",
+          agenda_status: agendaStatus,
+          tem_agenda: list.length > 0,
+          avaliacao_experimental_id: avalMap[a.id] || null,
+        };
+      });
     },
     enabled: stageIds.length > 0,
   });
+
 
 
   // % Conversão Prospect → Aluno no mês atual
@@ -409,7 +439,15 @@ export default function Prospects() {
                   <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{p.origem}</Badge></td>
                   <td className="p-4 hidden lg:table-cell">
                     <div className="flex flex-col gap-1">
-                      <Badge className="text-xs w-fit">{stageNameMap[p.current_pipeline_stage_id] || "—"}</Badge>
+                      {(() => {
+                        const stageName = stageNameMap[p.current_pipeline_stage_id] || "—";
+                        const cls = stageName === "Prospect"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/20"
+                          : stageName === "Treino experimental agendado"
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/20"
+                          : "";
+                        return <Badge variant="outline" className={`text-xs w-fit ${cls}`}>{stageName}</Badge>;
+                      })()}
                       {p.motivo_perda && (
                         <Badge variant="destructive" className="text-xs w-fit" title={p.motivo_perda}>
                           Não convertido · {p.motivo_perda}
@@ -418,8 +456,15 @@ export default function Prospects() {
                     </div>
                   </td>
                   <td className="p-4 hidden lg:table-cell">
-                    {p.tem_agenda ? <Badge variant="secondary" className="text-xs">Agendado</Badge> : <span className="text-muted-foreground text-xs">—</span>}
+                    {p.agenda_status === "realizado" ? (
+                      <Badge variant="outline" className="text-xs bg-emerald-500/20 text-emerald-300 border-emerald-500/40">Realizado</Badge>
+                    ) : p.agenda_status === "agendado" ? (
+                      <Badge variant="outline" className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/40">Agendado</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
                   </td>
+
                   <td className="p-4 hidden xl:table-cell text-xs text-muted-foreground">
                     {format(new Date(p.created_at), "dd/MM/yyyy")} · {formatDaysAgo(p.created_at)}
                   </td>
