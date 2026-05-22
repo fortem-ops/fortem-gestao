@@ -3,13 +3,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, ChevronRight, Trash2, User } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, User, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { AddAgendaDialog } from "@/components/agenda/AddAgendaDialog";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -167,6 +174,31 @@ export default function Agenda() {
         <Button variant="outline" size="icon" onClick={nextWeek}>
           <ChevronRight className="h-4 w-4" />
         </Button>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("gap-2", !weekStart && "text-muted-foreground")}
+            >
+              <CalendarIcon className="h-4 w-4" />
+              Ir para data
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={weekStart}
+              onSelect={(date) => {
+                if (date) setWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
+              }}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+
         <span className="text-sm text-muted-foreground ml-2">
           {format(weekDates[0], "dd MMM", { locale: ptBR })} — {format(weekDates[6], "dd MMM yyyy", { locale: ptBR })}
         </span>
