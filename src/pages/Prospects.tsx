@@ -5,15 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, FileText } from "lucide-react";
+import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, UserX, FileText } from "lucide-react";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToAlunoDialog } from "@/components/pipeline/ConvertToAlunoDialog";
+import { NaoConversaoDialog } from "@/components/prospects/NaoConversaoDialog";
 import { VendaDialog } from "@/components/student/venda/VendaDialog";
 import { AssessmentViewerDialog } from "@/components/student/assessment/AssessmentViewerDialog";
 import { toast } from "sonner";
 import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
-import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
@@ -26,6 +27,7 @@ export default function Prospects() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [editId, setEditId] = useState<string | null>(null);
   const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [naoConvTarget, setNaoConvTarget] = useState<{ id: string; nome: string } | null>(null);
   const [vendaTarget, setVendaTarget] = useState<{ id: string; nome: string } | null>(null);
   const [viewerTarget, setViewerTarget] = useState<{ avaliacao: Tables<"avaliacoes">; student: Tables<"alunos"> } | null>(null);
 
@@ -88,21 +90,28 @@ export default function Prospects() {
   });
 
 
+  // % Conversão Prospect → Aluno no mês atual
   const { data: conversionRate = 0 } = useQuery({
-    queryKey: ["prospects-conversion-rate"],
+    queryKey: ["prospect-aluno-conversion-rate-month"],
     queryFn: async () => {
-      const since = subDays(new Date(), 30).toISOString();
-      const { data: stagesAll } = await supabase.from("pipeline_stages").select("id,name").in("name", ["Novo lead", "Prospect"]);
-      const novoLeadId = stagesAll?.find((s) => s.name === "Novo lead")?.id;
-      const prospectId = stagesAll?.find((s) => s.name === "Prospect")?.id;
-      if (!novoLeadId || !prospectId) return 0;
-      const { data: leadsCreated } = await supabase
-        .from("pipeline_movements").select("id").eq("to_stage_id", novoLeadId).gte("moved_at", since);
-      const { data: converted } = await supabase
-        .from("pipeline_movements").select("id").eq("from_stage_id", novoLeadId).eq("to_stage_id", prospectId).gte("moved_at", since);
-      const total = leadsCreated?.length || 0;
-      const conv = converted?.length || 0;
-      return total > 0 ? Math.round((conv / total) * 100) : 0;
+      const inicioMes = startOfMonth(new Date()).toISOString();
+      const fimMes = endOfMonth(new Date()).toISOString();
+      const { data: stagesAll } = await supabase
+        .from("pipeline_stages")
+        .select("id,name,funnel");
+      const alunoAtivoId = stagesAll?.find((s: any) => s.name === "Aluno ativo")?.id;
+      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.funnel === "prospects").map((s: any) => s.id);
+      if (!alunoAtivoId || !prospectFunnelIds.length) return 0;
+      const { data: movs } = await supabase
+        .from("pipeline_movements")
+        .select("from_stage_id,to_stage_id,moved_at")
+        .gte("moved_at", inicioMes)
+        .lte("moved_at", fimMes);
+      const convertidos = (movs || []).filter((m: any) => m.to_stage_id === alunoAtivoId && prospectFunnelIds.includes(m.from_stage_id)).length;
+      // Base: prospects que existiam ou entraram no funil no mês (entradas em qualquer stage de prospects no mês + convertidos)
+      const entradasProspects = (movs || []).filter((m: any) => prospectFunnelIds.includes(m.to_stage_id)).length;
+      const base = entradasProspects + convertidos;
+      return base > 0 ? Math.round((convertidos / base) * 100) : 0;
     },
   });
 
@@ -145,33 +154,40 @@ export default function Prospects() {
     return conversoesMensais[conversoesMensais.length - 1]?.total || 0;
   }, [conversoesMensais]);
 
-  // Histórico de Origem dos Prospects (últimos 6 meses)
+  // Histórico de origem dos prospects CONVERTIDOS em aluno (últimos 6 meses)
   const { data: origemHistorico = [] } = useQuery({
-    queryKey: ["prospects-origem-historico-6m"],
+    queryKey: ["prospects-origem-conversao-6m"],
     queryFn: async () => {
       const since = startOfMonth(subMonths(new Date(), 5));
-      const { data: alunosRecentes } = await supabase
-        .from("alunos")
-        .select("id,created_at")
-        .gte("created_at", since.toISOString());
-      if (!alunosRecentes?.length) return [];
-      const ids = alunosRecentes.map((a) => a.id);
+      const { data: stagesAll } = await supabase
+        .from("pipeline_stages")
+        .select("id,name,funnel");
+      const alunoAtivoId = stagesAll?.find((s: any) => s.name === "Aluno ativo")?.id;
+      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.funnel === "prospects").map((s: any) => s.id);
+      if (!alunoAtivoId || !prospectFunnelIds.length) return [];
+      const { data: movs } = await supabase
+        .from("pipeline_movements")
+        .select("aluno_id,from_stage_id,to_stage_id,moved_at")
+        .eq("to_stage_id", alunoAtivoId)
+        .gte("moved_at", since.toISOString());
+      const convertidos = (movs || []).filter((m: any) => prospectFunnelIds.includes(m.from_stage_id));
+      if (!convertidos.length) return [];
+      const alunoIds = Array.from(new Set(convertidos.map((m: any) => m.aluno_id)));
       const { data: metas } = await supabase
         .from("pipeline_metadata")
         .select("aluno_id,origem_lead")
-        .in("aluno_id", ids)
-        .not("origem_lead", "is", null);
+        .in("aluno_id", alunoIds);
       const metaMap: Record<string, string> = {};
-      (metas || []).forEach((m: any) => { metaMap[m.aluno_id] = m.origem_lead; });
+      (metas || []).forEach((m: any) => { if (m.origem_lead) metaMap[m.aluno_id] = m.origem_lead; });
       const rows: Record<string, Record<string, number>> = {};
       for (let i = 5; i >= 0; i--) {
         const d = subMonths(new Date(), i);
         rows[format(d, "yyyy-MM")] = {};
       }
-      alunosRecentes.forEach((a: any) => {
-        const origem = metaMap[a.id];
+      convertidos.forEach((m: any) => {
+        const origem = metaMap[m.aluno_id];
         if (!origem) return;
-        const key = format(new Date(a.created_at), "yyyy-MM");
+        const key = format(new Date(m.moved_at), "yyyy-MM");
         if (!rows[key]) return;
         rows[key][origem] = (rows[key][origem] || 0) + 1;
       });
@@ -180,7 +196,6 @@ export default function Prospects() {
         const [y, mo] = key.split("-").map(Number);
         const row: any = { key, mes: format(new Date(y, mo - 1, 1), "MMM/yy", { locale: ptBR }) };
         origens.forEach((o) => { row[o] = vals[o] || 0; });
-        row.__origens = origens;
         return row;
       });
     },
@@ -289,7 +304,7 @@ export default function Prospects() {
           <p className="text-3xl font-bold mt-1 text-foreground">{prospectsPeriodo.length}</p>
         </div>
         <div className="glass-card rounded-lg p-4">
-          <p className="text-xs uppercase text-muted-foreground">Conversão Lead → Prospect (30d)</p>
+          <p className="text-xs uppercase text-muted-foreground">Conversão Prospect → Aluno (mês)</p>
           <p className="text-3xl font-bold mt-1 text-primary">{conversionRate}%</p>
         </div>
         <div className="glass-card rounded-lg p-4">
@@ -328,7 +343,7 @@ export default function Prospects() {
         </div>
 
         <div className="glass-card rounded-lg p-4">
-          <p className="text-xs uppercase text-muted-foreground mb-3">Histórico da origem dos prospects (6m)</p>
+          <p className="text-xs uppercase text-muted-foreground mb-3">Histórico da origem de conversão dos prospects (6m)</p>
           {origensHistorico.length === 0 ? (
             <p className="text-sm text-muted-foreground py-12 text-center">Sem dados de origem no período.</p>
           ) : (
@@ -427,6 +442,9 @@ export default function Prospects() {
                       <Button size="icon" variant="ghost" onClick={() => setConvertTarget({ id: p.id, nome: p.nome })} title="Converter em aluno">
                         <UserCheck className="w-4 h-4" />
                       </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setNaoConvTarget({ id: p.id, nome: p.nome })} title="Não conversão">
+                        <UserX className="w-4 h-4 text-destructive" />
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => navigate("/pipeline")} title="Pipeline">
                         <KanbanSquare className="w-4 h-4" />
                       </Button>
@@ -448,6 +466,15 @@ export default function Prospects() {
           alunoId={convertTarget.id}
           alunoNome={convertTarget.nome}
           onConverted={() => setVendaTarget(convertTarget)}
+        />
+      )}
+
+      {naoConvTarget && (
+        <NaoConversaoDialog
+          open={!!naoConvTarget}
+          onOpenChange={(v) => !v && setNaoConvTarget(null)}
+          alunoId={naoConvTarget.id}
+          alunoNome={naoConvTarget.nome}
         />
       )}
 
