@@ -162,9 +162,14 @@ export default function Agenda() {
           <h1 className="text-2xl font-heading font-bold text-foreground">Agenda de Serviços</h1>
           <p className="text-muted-foreground text-sm">Gerencie os horários das atividades</p>
         </div>
-        <Button onClick={() => { setPrefill(null); setEditEvent(null); setDialogOpen(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Horário
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="gap-2">
+            <Link to="/presencas"><CheckSquare className="h-4 w-4" /> Lista de Presença</Link>
+          </Button>
+          <Button onClick={() => { setPrefill(null); setEditEvent(null); setDialogOpen(true); }} className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Horário
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
