@@ -59,7 +59,7 @@ export default function Presencas() {
   const queryClient = useQueryClient();
   const [date, setDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("dia");
-  const [profFilter, setProfFilter] = useState<string>("me");
+  const [profFilter, setProfFilter] = useState<string>("all");
   const [expandedWeekDays, setExpandedWeekDays] = useState<Set<string>>(new Set());
 
   const isCoordAdminQuery = useQuery({
@@ -335,7 +335,7 @@ export default function Presencas() {
         <div>
           <h1 className="text-2xl font-heading font-bold text-foreground">Lista de Presença</h1>
           <p className="text-muted-foreground text-sm">
-            {viewMode === "dia" && "Marque presença ou falta das aulas do dia"}
+            {viewMode === "dia" && "Marque presença ou falta dos serviços do dia"}
             {viewMode === "semana" && "Visualize e marque presenças da semana"}
             {viewMode === "mes" && "Resumo mensal de presenças — clique em um dia para detalhar"}
           </p>
@@ -347,7 +347,7 @@ export default function Presencas() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="me">Minhas aulas</SelectItem>
+                <SelectItem value="me">Meus serviços</SelectItem>
                 <SelectItem value="all">Todos os profissionais</SelectItem>
               </SelectContent>
             </Select>
@@ -419,7 +419,7 @@ export default function Presencas() {
           {aulasDoDia.length === 0 && (
             <Card className="glass-card">
               <CardContent className="p-8 text-center text-muted-foreground">
-                Nenhuma aula encontrada nesta data.
+                Nenhum serviço encontrado nesta data.
               </CardContent>
             </Card>
           )}
@@ -514,7 +514,7 @@ export default function Presencas() {
                     {hasData && (
                       <div className="mt-1 space-y-0.5">
                         <div className="text-[10px] text-muted-foreground">
-                          {stats.total} aula{stats.total > 1 ? "s" : ""}
+                          {stats.total} serviço{stats.total > 1 ? "s" : ""}
                         </div>
                         {stats.marcadas > 0 && (
                           <div className="flex items-center gap-1">
@@ -794,14 +794,14 @@ function WeekDayCard({
               </Badge>
             ))}
             {dayStat.aulas.length > 5 && (
-              <span className="text-[10px] text-muted-foreground">+{dayStat.aulas.length - 5} aulas</span>
+              <span className="text-[10px] text-muted-foreground">+{dayStat.aulas.length - 5} serviços</span>
             )}
           </div>
         </CardContent>
       )}
       {dayStat.total === 0 && (
         <CardContent className="pt-0 pb-4">
-          <span className="text-sm text-muted-foreground">Nenhuma aula neste dia.</span>
+          <span className="text-sm text-muted-foreground">Nenhum serviço neste dia.</span>
         </CardContent>
       )}
     </Card>
