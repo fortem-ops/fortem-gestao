@@ -304,7 +304,7 @@ export default function Prospects() {
           <p className="text-3xl font-bold mt-1 text-foreground">{prospectsPeriodo.length}</p>
         </div>
         <div className="glass-card rounded-lg p-4">
-          <p className="text-xs uppercase text-muted-foreground">Conversão Lead → Prospect (30d)</p>
+          <p className="text-xs uppercase text-muted-foreground">Conversão Prospect → Aluno (mês)</p>
           <p className="text-3xl font-bold mt-1 text-primary">{conversionRate}%</p>
         </div>
         <div className="glass-card rounded-lg p-4">
