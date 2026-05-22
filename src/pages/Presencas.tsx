@@ -186,6 +186,28 @@ export default function Presencas() {
     return m;
   }, [presencas]);
 
+  // ---- recorrência: exceções (dias removidos pontualmente) ----
+  const { data: excecoes = [] } = useQuery({
+    queryKey: ["agenda_excecoes", agendaIds],
+    enabled: agendaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agenda_servicos_excecoes")
+        .select("agenda_id, data_excecao")
+        .in("agenda_id", agendaIds);
+      if (error) throw error;
+      return (data ?? []) as { agenda_id: string; data_excecao: string }[];
+    },
+  });
+
+  const excecoesSet = useMemo(
+    () => new Set(excecoes.map((e) => `${e.agenda_id}|${e.data_excecao}`)),
+    [excecoes],
+  );
+
+  const isFixoAtivoNoDia = (a: AgendaRow, dStr: string, ds: number) =>
+    a.dia_semana === ds && !excecoesSet.has(`${a.id}|${dStr}`);
+
   const markMutation = useSupabaseMutation<unknown, { agendaId: string; value: boolean | null; dataStr: string }>({
     mutationFn: async ({ agendaId, value, dataStr }) => {
       if (value === null) {
