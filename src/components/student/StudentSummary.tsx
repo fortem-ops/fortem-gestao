@@ -177,6 +177,94 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
+  const TRAJ_STAGES = [
+    { key: "lead", label: "Data de Lead", stageName: "Novo lead" },
+    { key: "prospect", label: "Conversão para Prospect", stageName: "Prospect" },
+    { key: "experimental", label: "Agendamento Treino Experimental", stageName: "Treino experimental agendado" },
+    { key: "aluno", label: "Conversão para Aluno", stageName: "Aluno ativo" },
+  ] as const;
+
+  const { data: trajetoria } = useQuery({
+    queryKey: ["trajetoria_aluno", student.id],
+    queryFn: async () => {
+      const names = TRAJ_STAGES.map((t) => t.stageName);
+      const { data: stages } = await supabase
+        .from("pipeline_stages")
+        .select("id, name")
+        .in("name", names as any);
+      const stageByName = new Map<string, string>((stages || []).map((s: any) => [s.name, s.id]));
+      const stageIds = Array.from(stageByName.values());
+      let movs: any[] = [];
+      if (stageIds.length) {
+        const { data } = await supabase
+          .from("pipeline_movements")
+          .select("id, to_stage_id, moved_at")
+          .eq("aluno_id", student.id)
+          .in("to_stage_id", stageIds)
+          .order("moved_at", { ascending: true });
+        movs = data || [];
+      }
+      const firstByStage = new Map<string, { id: string; moved_at: string }>();
+      movs.forEach((m: any) => {
+        if (!firstByStage.has(m.to_stage_id)) firstByStage.set(m.to_stage_id, { id: m.id, moved_at: m.moved_at });
+      });
+      return TRAJ_STAGES.map((t) => {
+        const stageId = stageByName.get(t.stageName) ?? null;
+        const mov = stageId ? firstByStage.get(stageId) ?? null : null;
+        return {
+          key: t.key,
+          label: t.label,
+          stageId,
+          movementId: mov?.id ?? null,
+          date: mov?.moved_at ?? (t.key === "lead" ? student.created_at : null),
+          isFallback: !mov && t.key === "lead",
+        };
+      });
+    },
+  });
+
+  const [editingTraj, setEditingTraj] = useState<string | null>(null);
+
+  async function saveTrajDate(item: { key: string; stageId: string | null; movementId: string | null }, date: Date) {
+    if (!item.stageId) {
+      toast.error("Estágio não encontrado");
+      return;
+    }
+    const isoDate = date.toISOString();
+    try {
+      if (item.movementId) {
+        const { error } = await supabase
+          .from("pipeline_movements")
+          .update({ moved_at: isoDate } as any)
+          .eq("id", item.movementId);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { error } = await supabase
+          .from("pipeline_movements")
+          .insert({
+            aluno_id: student.id,
+            to_stage_id: item.stageId,
+            from_stage_id: null,
+            moved_at: isoDate,
+            moved_by_user_id: user?.id ?? null,
+            source: "manual",
+            notes: "Ajuste manual de data (trajetória)",
+          } as any);
+        if (error) throw error;
+      }
+      toast.success("Data atualizada");
+      setEditingTraj(null);
+      queryClient.invalidateQueries({ queryKey: ["trajetoria_aluno", student.id] });
+      queryClient.invalidateQueries({ predicate: (q) => {
+        const k = q.queryKey?.[0];
+        return typeof k === "string" && (k.startsWith("leads") || k.startsWith("prospects") || k.startsWith("dashboard") || k === "pipeline_movements");
+      }});
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao salvar data");
+    }
+  }
+
   const cpfDigits = ((student as any).cpf || "").replace(/\D/g, "");
   const { data: legalAnnex } = useQuery({
     queryKey: ["legal_annex_by_cpf", cpfDigits],
