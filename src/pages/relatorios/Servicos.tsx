@@ -149,7 +149,8 @@ export default function RelatoriosServicos() {
           label="Taxa comparecimento"
           value={`${stats.taxa}%`}
           icon={CheckCircle2}
-          tone={stats.taxa >= 70 ? "success" : stats.taxa >= 40 ? "warning" : "danger"}
+          hint={`${stats.compareceram} de ${stats.marcadas} marcadas`}
+          tone={stats.marcadas === 0 ? "default" : stats.taxa >= 70 ? "success" : stats.taxa >= 40 ? "warning" : "danger"}
         />
       </div>
 
