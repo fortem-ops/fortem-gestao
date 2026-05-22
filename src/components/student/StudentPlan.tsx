@@ -351,30 +351,37 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               </Button>
             )}
             {isCoordAdmin && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" disabled={saving}>
-                    <Ban className="h-3.5 w-3.5 mr-1.5" /> Cancelar Contrato
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancelar contrato?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      O plano <strong>{data.tipo}</strong> será encerrado hoje e o aluno deixará de ter renovação automática. Esta ação pode ser revertida criando um novo plano.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCancelContract} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Confirmar cancelamento
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                disabled={saving}
+                onClick={() => {
+                  const today = new Date().toISOString().split("T")[0];
+                  setCancelDate((data as any).data_fim && (data as any).data_fim >= today ? (data as any).data_fim : today);
+                  setCancelMotivo("");
+                  setCancelOpen(true);
+                }}
+              >
+                <Ban className="h-3.5 w-3.5 mr-1.5" /> Cancelar Contrato
+              </Button>
             )}
           </div>
         </div>
+
+        {(() => {
+          const today = new Date().toISOString().split("T")[0];
+          const df = (data as any).data_fim;
+          if (df && df > today && (data as any).renovacao_automatica === false) {
+            return (
+              <Badge variant="outline" className="status-warning gap-1.5 w-fit">
+                <Ban className="h-3 w-3" />
+                Cancelamento agendado para {new Date(df + "T00:00:00").toLocaleDateString("pt-BR")}
+              </Badge>
+            );
+          }
+          return null;
+        })()}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="flex items-center gap-2 text-sm">
