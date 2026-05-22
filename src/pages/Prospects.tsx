@@ -407,7 +407,16 @@ export default function Prospects() {
                   </td>
                   <td className="p-4 hidden md:table-cell text-sm text-muted-foreground">{p.telefone || "—"}</td>
                   <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{p.origem}</Badge></td>
-                  <td className="p-4 hidden lg:table-cell"><Badge className="text-xs">{stageNameMap[p.current_pipeline_stage_id] || "—"}</Badge></td>
+                  <td className="p-4 hidden lg:table-cell">
+                    <div className="flex flex-col gap-1">
+                      <Badge className="text-xs w-fit">{stageNameMap[p.current_pipeline_stage_id] || "—"}</Badge>
+                      {p.motivo_perda && (
+                        <Badge variant="destructive" className="text-xs w-fit" title={p.motivo_perda}>
+                          Não convertido · {p.motivo_perda}
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-4 hidden lg:table-cell">
                     {p.tem_agenda ? <Badge variant="secondary" className="text-xs">Agendado</Badge> : <span className="text-muted-foreground text-xs">—</span>}
                   </td>
