@@ -94,6 +94,7 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
         limitacoes: an.limitacoes || "",
         atividade_fisica: an.atividade_fisica || "",
         objetivo_treinamento: an.objetivo_treinamento || "",
+        created_at: data.aluno?.created_at ? new Date(data.aluno.created_at) : undefined,
       });
 
     }
