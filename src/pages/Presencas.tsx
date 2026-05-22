@@ -59,7 +59,7 @@ export default function Presencas() {
   const queryClient = useQueryClient();
   const [date, setDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("dia");
-  const [profFilter, setProfFilter] = useState<string>("me");
+  const [profFilter, setProfFilter] = useState<string>("all");
   const [expandedWeekDays, setExpandedWeekDays] = useState<Set<string>>(new Set());
 
   const isCoordAdminQuery = useQuery({
