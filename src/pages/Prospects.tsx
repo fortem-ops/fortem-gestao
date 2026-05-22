@@ -439,7 +439,11 @@ export default function Prospects() {
                   <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{p.origem}</Badge></td>
                   <td className="p-4 hidden lg:table-cell">
                     <div className="flex flex-col gap-1">
-                      {(() => {
+                      {p.motivo_perda ? (
+                        <Badge variant="destructive" className="text-xs w-fit" title={p.motivo_perda}>
+                          Não convertido · {p.motivo_perda}
+                        </Badge>
+                      ) : (() => {
                         const stageName = stageNameMap[p.current_pipeline_stage_id] || "—";
                         const cls = stageName === "Prospect"
                           ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/20"
@@ -448,11 +452,6 @@ export default function Prospects() {
                           : "";
                         return <Badge variant="outline" className={`text-xs w-fit ${cls}`}>{stageName}</Badge>;
                       })()}
-                      {p.motivo_perda && (
-                        <Badge variant="destructive" className="text-xs w-fit" title={p.motivo_perda}>
-                          Não convertido · {p.motivo_perda}
-                        </Badge>
-                      )}
                     </div>
                   </td>
                   <td className="p-4 hidden lg:table-cell">
