@@ -442,6 +442,9 @@ export default function Prospects() {
                       <Button size="icon" variant="ghost" onClick={() => setConvertTarget({ id: p.id, nome: p.nome })} title="Converter em aluno">
                         <UserCheck className="w-4 h-4" />
                       </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setNaoConvTarget({ id: p.id, nome: p.nome })} title="Não conversão">
+                        <UserX className="w-4 h-4 text-destructive" />
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => navigate("/pipeline")} title="Pipeline">
                         <KanbanSquare className="w-4 h-4" />
                       </Button>
