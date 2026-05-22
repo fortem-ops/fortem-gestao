@@ -7,6 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 
 interface Props {
@@ -18,14 +24,16 @@ interface Props {
 export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
   const qc = useQueryClient();
   const { data: origens = [] } = useLeadOrigens();
-  const [form, setForm] = useState({ nome: "", telefone: "", email: "", origem: "" });
+  const [form, setForm] = useState<{ nome: string; telefone: string; email: string; origem: string; created_at: Date | undefined }>({
+    nome: "", telefone: "", email: "", origem: "", created_at: undefined,
+  });
   const [saving, setSaving] = useState(false);
 
   const { data } = useQuery({
     queryKey: ["lead-edit", alunoId],
     queryFn: async () => {
       if (!alunoId) return null;
-      const { data: a } = await supabase.from("alunos").select("nome,telefone,email").eq("id", alunoId).maybeSingle();
+      const { data: a } = await supabase.from("alunos").select("nome,telefone,email,created_at").eq("id", alunoId).maybeSingle();
       const { data: m } = await supabase.from("pipeline_metadata").select("origem_lead").eq("aluno_id", alunoId).maybeSingle();
       return { ...a, origem: m?.origem_lead || "" };
     },
@@ -39,6 +47,7 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
         telefone: data.telefone || "",
         email: data.email || "",
         origem: data.origem || "",
+        created_at: data.created_at ? new Date(data.created_at) : undefined,
       });
     }
   }, [data]);
@@ -47,11 +56,13 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
     if (!alunoId) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from("alunos").update({
+      const update: any = {
         nome: form.nome.trim(),
         telefone: form.telefone.trim() || null,
         email: form.email.trim() || null,
-      }).eq("id", alunoId);
+      };
+      if (form.created_at) update.created_at = form.created_at.toISOString();
+      const { error } = await supabase.from("alunos").update(update).eq("id", alunoId);
       if (error) throw error;
       if (form.origem) {
         await supabase.from("pipeline_metadata").upsert(
@@ -87,6 +98,30 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
           <div className="space-y-1.5">
             <Label>Email</Label>
             <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Data de cadastro</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn("w-full justify-start text-left font-normal", !form.created_at && "text-muted-foreground")}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {form.created_at ? format(form.created_at, "dd/MM/yyyy") : "Selecionar..."}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={form.created_at}
+                  onSelect={(d) => setForm({ ...form, created_at: d })}
+                  locale={ptBR}
+                  disabled={(d) => d > new Date()}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-1.5">
             <Label>Como conheceu?</Label>
