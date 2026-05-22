@@ -1,59 +1,32 @@
-## Objetivo
 
-Em **Perfil do Aluno → Resumo**, adicionar um bloco **"Trajetória do aluno"** com 4 marcos cronológicos, todos editáveis (para corrigir datas passadas). A edição atualiza a fonte usada pelos dashboards de Leads e Prospects, fazendo as mudanças refletirem automaticamente.
+## 1. Anamnese inicial visível no agendamento e enviada no email
 
-## Marcos exibidos
+**`src/components/agenda/AddAgendaDialog.tsx`**
+- Buscar `alunos.responsavel_id` na query `alunos_agenda_picker` (já lista prospects/ativos).
+- Nova query `prospect_anamnese` habilitada quando há `alunoId` selecionado e a atividade for "Treino Experimental" (também exibir para "Avaliação Funcional"). Lê `limitacoes`, `atividade_fisica`, `objetivo_treinamento`.
+- Renderizar um bloco "Anamnese inicial" (read-only) abaixo do seletor de aluno, com os 3 questionamentos e respostas; mostra "—" quando vazio, ou um aviso "Anamnese não preenchida" quando a linha não existe.
 
-| Marco | Origem da data |
-|---|---|
-| Data de Lead | `pipeline_movements.moved_at` para o estágio **"Novo lead"** (fallback: `alunos.created_at`) |
-| Data de Conversão para Prospect | `pipeline_movements.moved_at` para **"Prospect"** |
-| Data de Agendamento do Treino Experimental | `pipeline_movements.moved_at` para **"Treino experimental agendado"** |
-| Data de Conversão para Aluno | `pipeline_movements.moved_at` para **"Aluno ativo"** |
+**`supabase/functions/notify-agenda-evento/index.ts`**
+- Quando `agenda.aluno_id` existe e `evento === "agendado"`, buscar `prospect_anamnese` do aluno.
+- Estender `buildHtml()` para receber `anamnese?: { limitacoes; atividade_fisica; objetivo_treinamento }` e renderizar uma seção "Anamnese inicial" no email com as 3 perguntas/respostas (somente se houver dados). Aplicado tanto a Treino Experimental quanto Avaliação Funcional (já são as atividades monitoradas).
 
-Cada marco mostra a data formatada (dd/MM/yyyy) ou "—" se não houver. Coordenador/admin vê um ícone de lápis ao lado para editar (calendário popover, igual ao já usado para "Data Final" do plano).
+## 2. Edição do Professor Responsável em Prospects
 
-## Por que isso já reflete nos dashboards
+**`src/components/leads/EditLeadDialog.tsx`**
+- Carregar também `responsavel_id` no `select` de `alunos`.
+- Adicionar lista de profissionais (mesma query usada em `ConvertToProspectDialog`: roles professor/coordenador/admin + profiles).
+- Novo campo `Select` "Professor responsável (opcional)" com opção "— Nenhum —".
+- `save()` inclui `responsavel_id` (ou `null`) no `update` de `alunos`. Invalidar `prospects-list` e `leads-list` (já feito).
+- Como o diálogo é compartilhado, o campo aparece também na edição de leads — comportamento aceitável (já existe na conversão).
 
-- **Leads page** (`src/pages/Leads.tsx`) calcula leads/conversões agregando `pipeline_movements` por `moved_at`.
-- **Prospects page** (`src/pages/Prospects.tsx`) usa `pipeline_movements.moved_at` para `conversoesMensais` e `origemHistorico`.
+## 3. Auto-preencher profissional ao selecionar prospect no Treino Experimental
 
-Como editamos a fonte (`moved_at`), os widgets recalculam ao revisitar/invalidar. Vamos invalidar as queries dessas páginas após salvar.
+**`src/components/agenda/AddAgendaDialog.tsx`**
+- `useEffect` que dispara quando `alunoId` muda E `atividade === "Treino Experimental"` E `!isEditing`: se o aluno selecionado tem `responsavel_id` e o usuário ainda não escolheu manualmente um profissional diferente, setar `setProfissionalId(aluno.responsavel_id)`.
+- Não sobrescrever se o usuário já alterou manualmente após a auto-seleção (rastreado por um flag simples ou comparando contra o último auto-set).
 
-## Implementação
+## Notas técnicas
 
-### 1. Migração — permitir edição de `pipeline_movements`
-
-Hoje só existem políticas de SELECT/INSERT. Adicionar:
-
-```sql
-CREATE POLICY "Coord/admin can update movements"
-  ON public.pipeline_movements FOR UPDATE TO authenticated
-  USING (is_coordinator_or_admin(auth.uid()))
-  WITH CHECK (is_coordinator_or_admin(auth.uid()));
-
-CREATE POLICY "Coord/admin can insert movements (manual edit)"
-  -- (a política existente de INSERT já cobre, manter)
-```
-
-(Sem alterar tabelas ou colunas.)
-
-### 2. `src/components/student/StudentSummary.tsx`
-
-- Nova query `trajectory` que busca:
-  - IDs dos 4 estágios em `pipeline_stages` (cacheado).
-  - `pipeline_movements` desse aluno filtrado por esses `to_stage_id`, pega o **primeiro** `moved_at` por estágio (`order moved_at asc`).
-- Renderizar nova seção `Trajetória` (4 cards em grid 2/4 cols) entre "Plano" e "Serviços" — ícone `Footprints`/`Route`.
-- Para coord/admin: cada card tem `Popover` + `Calendar` para editar a data.
-  - Se já existe `pipeline_movements`: `UPDATE moved_at`.
-  - Se não existe: `INSERT` em `pipeline_movements` com `aluno_id`, `to_stage_id`, `moved_at`, `moved_by_user_id=auth.uid()`, `source='manual'`, `notes='Ajuste manual de data'`.
-  - Para o marco "Data de Lead" sem movimento, fallback ao `alunos.created_at` (e edição cria o movimento "Novo lead" com a data escolhida).
-- Após salvar: `toast.success` + `queryClient.invalidateQueries` para:
-  - `["trajectory", student.id]`
-  - `["dashboard-leads-mensais"]`, `["leads-stats"]`, `["prospects-conversoes"]`, `["origem-historico"]` (chaves usadas pelas páginas — confirmaremos os nomes ao codar).
-
-## Fora de escopo
-
-- Não criar tabela nova; reutilizamos `pipeline_movements`.
-- Não alterar lógica de comissionamento ou agenda.
-- Edição de marcos restrita a coordenador/admin (consistente com edição de plano).
+- Sem mudanças de schema; `prospect_anamnese` e `alunos.responsavel_id` já existem com RLS adequada.
+- A consulta de anamnese no edge function usa `service_role`, sem problemas de RLS.
+- Notificação por email continua disparada via fluxo existente (`notify-agenda-evento`); nada muda no gatilho.

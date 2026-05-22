@@ -55,10 +55,24 @@ async function sendGmailEmail(opts: { from: string; to: string; cc?: string[]; s
 function buildHtml(opts: {
   evento: string; atividade: string; aluno: string; profissional: string;
   quando: string; horario: string; local: string; observacoes: string | null;
+  anamnese?: { limitacoes?: string | null; atividade_fisica?: string | null; objetivo_treinamento?: string | null } | null;
 }) {
   const cancelado = opts.evento === "cancelado";
   const cor = cancelado ? "#dc2626" : "#16a34a";
   const titulo = cancelado ? "Agendamento cancelado" : "Novo agendamento";
+  const a = opts.anamnese;
+  const hasAnamnese = !cancelado && a && (a.limitacoes || a.atividade_fisica || a.objetivo_treinamento);
+  const anamneseHtml = hasAnamnese ? `
+    <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
+    <h2 style="font-size:14px;color:#1a1a2e;margin:0 0 12px;text-transform:uppercase;letter-spacing:1px;">Anamnese inicial</h2>
+    <div style="font-size:13px;color:#333;line-height:1.5;">
+      <p style="margin:0 0 4px;color:#888;">Limitações / patologias / dores / lesões</p>
+      <p style="margin:0 0 12px;white-space:pre-wrap;">${(a!.limitacoes || "—").replace(/</g, "&lt;")}</p>
+      <p style="margin:0 0 4px;color:#888;">Atividade física atual / tempo parado</p>
+      <p style="margin:0 0 12px;white-space:pre-wrap;">${(a!.atividade_fisica || "—").replace(/</g, "&lt;")}</p>
+      <p style="margin:0 0 4px;color:#888;">Objetivo com o treinamento funcional</p>
+      <p style="margin:0;white-space:pre-wrap;">${(a!.objetivo_treinamento || "—").replace(/</g, "&lt;")}</p>
+    </div>` : "";
   return `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#f8f9fa;">
   <div style="background:white;border-radius:16px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
     <div style="text-align:center;margin-bottom:20px;">
@@ -75,6 +89,7 @@ function buildHtml(opts: {
       <tr><td style="padding:8px 0;color:#888;">Local</td><td style="padding:8px 0;">${opts.local}</td></tr>
       ${opts.observacoes ? `<tr><td style="padding:8px 0;color:#888;vertical-align:top;">Observações</td><td style="padding:8px 0;">${opts.observacoes}</td></tr>` : ""}
     </table>
+    ${anamneseHtml}
     <p style="color:#aaa;font-size:11px;text-align:center;margin-top:28px;">FORTEM Gestão Técnica — notificação automática</p>
   </div></body></html>`;
 }
@@ -208,10 +223,21 @@ Deno.serve(async (req) => {
 
     const horario = `${(agenda.horario_inicio||"").slice(0,5)} - ${(agenda.horario_fim||"").slice(0,5)}`;
 
+    let anamnese: any = null;
+    if (evento === "agendado" && agenda.aluno_id) {
+      const { data: an } = await admin
+        .from("prospect_anamnese")
+        .select("limitacoes, atividade_fisica, objetivo_treinamento")
+        .eq("aluno_id", agenda.aluno_id)
+        .maybeSingle();
+      anamnese = an || null;
+    }
+
     const subject = `FORTEM — ${agenda.atividade} ${evento === "agendado" ? "agendado" : "cancelado"}: ${alunoNome}`;
     const html = buildHtml({
       evento, atividade: agenda.atividade, aluno: alunoNome, profissional: profNome,
       quando, horario, local: agenda.local || "—", observacoes: agenda.observacoes,
+      anamnese,
     });
 
     // Destinatários extra conforme regra + emails fixos

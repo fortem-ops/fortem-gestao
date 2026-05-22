@@ -24,16 +24,33 @@ interface Props {
 export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
   const qc = useQueryClient();
   const { data: origens = [] } = useLeadOrigens();
-  const [form, setForm] = useState<{ nome: string; telefone: string; email: string; origem: string; created_at: Date | undefined }>({
-    nome: "", telefone: "", email: "", origem: "", created_at: undefined,
+  const [form, setForm] = useState<{ nome: string; telefone: string; email: string; origem: string; responsavel_id: string; created_at: Date | undefined }>({
+    nome: "", telefone: "", email: "", origem: "", responsavel_id: "", created_at: undefined,
   });
   const [saving, setSaving] = useState(false);
+  const [professores, setProfessores] = useState<{ user_id: string; full_name: string }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["professor", "coordenador", "admin"]);
+      if (!roles?.length) return;
+      const ids = roles.map((r) => r.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids);
+      if (profiles) setProfessores(profiles);
+    })();
+  }, []);
 
   const { data } = useQuery({
     queryKey: ["lead-edit", alunoId],
     queryFn: async () => {
       if (!alunoId) return null;
-      const { data: a } = await supabase.from("alunos").select("nome,telefone,email,created_at").eq("id", alunoId).maybeSingle();
+      const { data: a } = await supabase.from("alunos").select("nome,telefone,email,created_at,responsavel_id").eq("id", alunoId).maybeSingle();
       const { data: m } = await supabase.from("pipeline_metadata").select("origem_lead").eq("aluno_id", alunoId).maybeSingle();
       return { ...a, origem: m?.origem_lead || "" };
     },
@@ -47,6 +64,7 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
         telefone: data.telefone || "",
         email: data.email || "",
         origem: data.origem || "",
+        responsavel_id: (data as any).responsavel_id || "",
         created_at: data.created_at ? new Date(data.created_at) : undefined,
       });
     }
@@ -60,6 +78,7 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
         nome: form.nome.trim(),
         telefone: form.telefone.trim() || null,
         email: form.email.trim() || null,
+        responsavel_id: form.responsavel_id || null,
       };
       if (form.created_at) update.created_at = form.created_at.toISOString();
       const { error } = await supabase.from("alunos").update(update).eq("id", alunoId);
@@ -70,7 +89,7 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
           { onConflict: "aluno_id" }
         );
       }
-      toast.success("Lead atualizado");
+      toast.success("Dados atualizados");
       qc.invalidateQueries({ queryKey: ["leads-list"] });
       qc.invalidateQueries({ queryKey: ["prospects-list"] });
       qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
@@ -84,7 +103,7 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent className="sm:max-w-[440px] max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Editar dados</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -130,6 +149,21 @@ export function EditLeadDialog({ alunoId, open, onOpenChange }: Props) {
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
                 {origens.map((o) => <SelectItem key={o.id} value={o.nome}>{o.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Professor responsável</Label>
+            <Select
+              value={form.responsavel_id || "__none__"}
+              onValueChange={(v) => setForm({ ...form, responsavel_id: v === "__none__" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Nenhum —</SelectItem>
+                {professores.map((p) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
