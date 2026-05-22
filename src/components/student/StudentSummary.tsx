@@ -446,6 +446,50 @@ export function StudentSummary({ student }: { student: Aluno }) {
         </div>
       </div>
 
+      {/* Seção: Trajetória do aluno */}
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Footprints className="w-4 h-4 text-muted-foreground" />
+          Trajetória do aluno
+        </h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {(trajetoria || TRAJ_STAGES.map(t => ({ key: t.key, label: t.label, stageId: null, movementId: null, date: null as string | null, isFallback: false }))).map((item) => {
+            const dateObj = item.date ? new Date(item.date) : null;
+            return (
+              <div key={item.key} className="glass-card rounded-lg p-4">
+                <span className="text-xs text-muted-foreground">{item.label}</span>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <p className="text-sm font-semibold text-foreground">
+                    {dateObj ? dateObj.toLocaleDateString("pt-BR") : "—"}
+                  </p>
+                  {item.isFallback && dateObj && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">cadastro</Badge>
+                  )}
+                  {isCoordAdmin && (
+                    <Popover open={editingTraj === item.key} onOpenChange={(o) => setEditingTraj(o ? item.key : null)}>
+                      <PopoverTrigger asChild>
+                        <button className="text-muted-foreground hover:text-primary transition-colors" title="Editar data">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={dateObj || undefined}
+                          defaultMonth={dateObj || undefined}
+                          onSelect={(date) => { if (date) saveTrajDate(item as any, date); }}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Seção 1.5: Serviços (Plano + Contratados) */}
       {(() => {
         const servico = creditos.filter((c) => c.origem_tipo === "servico");
