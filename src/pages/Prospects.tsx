@@ -343,7 +343,7 @@ export default function Prospects() {
         </div>
 
         <div className="glass-card rounded-lg p-4">
-          <p className="text-xs uppercase text-muted-foreground mb-3">Histórico da origem dos prospects (6m)</p>
+          <p className="text-xs uppercase text-muted-foreground mb-3">Histórico da origem de conversão dos prospects (6m)</p>
           {origensHistorico.length === 0 ? (
             <p className="text-sm text-muted-foreground py-12 text-center">Sem dados de origem no período.</p>
           ) : (
