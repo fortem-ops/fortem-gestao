@@ -90,21 +90,28 @@ export default function Prospects() {
   });
 
 
+  // % Conversão Prospect → Aluno no mês atual
   const { data: conversionRate = 0 } = useQuery({
-    queryKey: ["prospects-conversion-rate"],
+    queryKey: ["prospect-aluno-conversion-rate-month"],
     queryFn: async () => {
-      const since = subDays(new Date(), 30).toISOString();
-      const { data: stagesAll } = await supabase.from("pipeline_stages").select("id,name").in("name", ["Novo lead", "Prospect"]);
-      const novoLeadId = stagesAll?.find((s) => s.name === "Novo lead")?.id;
-      const prospectId = stagesAll?.find((s) => s.name === "Prospect")?.id;
-      if (!novoLeadId || !prospectId) return 0;
-      const { data: leadsCreated } = await supabase
-        .from("pipeline_movements").select("id").eq("to_stage_id", novoLeadId).gte("moved_at", since);
-      const { data: converted } = await supabase
-        .from("pipeline_movements").select("id").eq("from_stage_id", novoLeadId).eq("to_stage_id", prospectId).gte("moved_at", since);
-      const total = leadsCreated?.length || 0;
-      const conv = converted?.length || 0;
-      return total > 0 ? Math.round((conv / total) * 100) : 0;
+      const inicioMes = startOfMonth(new Date()).toISOString();
+      const fimMes = endOfMonth(new Date()).toISOString();
+      const { data: stagesAll } = await supabase
+        .from("pipeline_stages")
+        .select("id,name,funnel");
+      const alunoAtivoId = stagesAll?.find((s: any) => s.name === "Aluno ativo")?.id;
+      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.funnel === "prospects").map((s: any) => s.id);
+      if (!alunoAtivoId || !prospectFunnelIds.length) return 0;
+      const { data: movs } = await supabase
+        .from("pipeline_movements")
+        .select("from_stage_id,to_stage_id,moved_at")
+        .gte("moved_at", inicioMes)
+        .lte("moved_at", fimMes);
+      const convertidos = (movs || []).filter((m: any) => m.to_stage_id === alunoAtivoId && prospectFunnelIds.includes(m.from_stage_id)).length;
+      // Base: prospects que existiam ou entraram no funil no mês (entradas em qualquer stage de prospects no mês + convertidos)
+      const entradasProspects = (movs || []).filter((m: any) => prospectFunnelIds.includes(m.to_stage_id)).length;
+      const base = entradasProspects + convertidos;
+      return base > 0 ? Math.round((convertidos / base) * 100) : 0;
     },
   });
 
