@@ -469,6 +469,15 @@ export default function Prospects() {
         />
       )}
 
+      {naoConvTarget && (
+        <NaoConversaoDialog
+          open={!!naoConvTarget}
+          onOpenChange={(v) => !v && setNaoConvTarget(null)}
+          alunoId={naoConvTarget.id}
+          alunoNome={naoConvTarget.nome}
+        />
+      )}
+
       {vendaTarget && (
         <VendaDialog
           alunoId={vendaTarget.id}
