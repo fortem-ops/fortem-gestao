@@ -439,7 +439,15 @@ export default function Prospects() {
                   <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{p.origem}</Badge></td>
                   <td className="p-4 hidden lg:table-cell">
                     <div className="flex flex-col gap-1">
-                      <Badge className="text-xs w-fit">{stageNameMap[p.current_pipeline_stage_id] || "—"}</Badge>
+                      {(() => {
+                        const stageName = stageNameMap[p.current_pipeline_stage_id] || "—";
+                        const cls = stageName === "Prospect"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/20"
+                          : stageName === "Treino experimental agendado"
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/20"
+                          : "";
+                        return <Badge variant="outline" className={`text-xs w-fit ${cls}`}>{stageName}</Badge>;
+                      })()}
                       {p.motivo_perda && (
                         <Badge variant="destructive" className="text-xs w-fit" title={p.motivo_perda}>
                           Não convertido · {p.motivo_perda}
@@ -448,8 +456,15 @@ export default function Prospects() {
                     </div>
                   </td>
                   <td className="p-4 hidden lg:table-cell">
-                    {p.tem_agenda ? <Badge variant="secondary" className="text-xs">Agendado</Badge> : <span className="text-muted-foreground text-xs">—</span>}
+                    {p.agenda_status === "realizado" ? (
+                      <Badge variant="outline" className="text-xs bg-emerald-500/20 text-emerald-300 border-emerald-500/40">Realizado</Badge>
+                    ) : p.agenda_status === "agendado" ? (
+                      <Badge variant="outline" className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/40">Agendado</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
                   </td>
+
                   <td className="p-4 hidden xl:table-cell text-xs text-muted-foreground">
                     {format(new Date(p.created_at), "dd/MM/yyyy")} · {formatDaysAgo(p.created_at)}
                   </td>
