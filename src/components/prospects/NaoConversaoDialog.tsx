@@ -74,16 +74,8 @@ export function NaoConversaoDialog({ open, onOpenChange, alunoId, alunoNome }: P
       .from("alunos")
       .update({ motivo_perda: motivo.nome } as any)
       .eq("id", alunoId);
-    if (e1) { setBusy(false); return toast.error(e1.message); }
-    const { error: e2 } = await supabase.rpc("fn_move_pipeline" as any, {
-      _aluno_id: alunoId,
-      _to_stage_name: "Aluno perdido",
-      _source: "manual",
-      _notes: `Não conversão: ${motivo.nome}`,
-      _moved_by: user?.id ?? null,
-    });
     setBusy(false);
-    if (e2) return toast.error(e2.message);
+    if (e1) return toast.error(e1.message);
     toast.success("Marcado como não conversão");
     qc.invalidateQueries({ queryKey: ["prospects-list"] });
     qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
