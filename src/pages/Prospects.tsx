@@ -27,6 +27,7 @@ export default function Prospects() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [editId, setEditId] = useState<string | null>(null);
   const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [naoConvTarget, setNaoConvTarget] = useState<{ id: string; nome: string } | null>(null);
   const [vendaTarget, setVendaTarget] = useState<{ id: string; nome: string } | null>(null);
   const [viewerTarget, setViewerTarget] = useState<{ avaliacao: Tables<"avaliacoes">; student: Tables<"alunos"> } | null>(null);
 
