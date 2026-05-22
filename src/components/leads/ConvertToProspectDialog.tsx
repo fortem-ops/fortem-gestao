@@ -30,6 +30,7 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
     limitacoes: "",
     atividade_fisica: "",
     objetivo_treinamento: "",
+    created_at: undefined as Date | undefined,
   });
   const [professores, setProfessores] = useState<{ user_id: string; full_name: string }[]>([]);
 
