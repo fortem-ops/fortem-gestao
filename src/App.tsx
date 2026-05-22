@@ -49,6 +49,7 @@ const RelatoriosLayout = lazy(() => import("./components/relatorios/RelatoriosLa
 const RelatoriosHome = lazy(() => import("./pages/relatorios/Index"));
 const RelatoriosVendas = lazy(() => import("./pages/relatorios/Vendas"));
 const RelatoriosFinanceiro = lazy(() => import("./pages/relatorios/Financeiro"));
+const RelatoriosPlanos = lazy(() => import("./pages/relatorios/Planos"));
 const RelatoriosEmBreve = lazy(() => import("./pages/relatorios/EmBreve"));
 
 // Portal do Aluno
@@ -392,7 +393,7 @@ const App = () => (
                 <Route index element={<Suspense fallback={<RouteFallback />}><RelatoriosHome /></Suspense>} />
                 <Route path="vendas" element={<Suspense fallback={<RouteFallback />}><RelatoriosVendas /></Suspense>} />
                 <Route path="financeiro" element={<Suspense fallback={<RouteFallback />}><RelatoriosFinanceiro /></Suspense>} />
-                <Route path="planos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Planos" /></Suspense>} />
+                <Route path="planos" element={<Suspense fallback={<RouteFallback />}><RelatoriosPlanos /></Suspense>} />
                 <Route path="cancelamentos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Cancelamentos" /></Suspense>} />
                 <Route path="servicos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Serviços" /></Suspense>} />
                 <Route path="crm" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="CRM" /></Suspense>} />
