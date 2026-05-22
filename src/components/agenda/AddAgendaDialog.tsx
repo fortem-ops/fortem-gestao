@@ -515,6 +515,31 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             )}
           </div>
 
+          {/* Anamnese inicial (prospect) */}
+          {showAnamnese && alunoId && (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Anamnese inicial</p>
+              {!anamnese ? (
+                <p className="text-xs text-muted-foreground">Anamnese não preenchida.</p>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Limitações / patologias / dores / lesões</p>
+                    <p className="text-foreground whitespace-pre-wrap">{anamnese.limitacoes || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Atividade física atual / tempo parado</p>
+                    <p className="text-foreground whitespace-pre-wrap">{anamnese.atividade_fisica || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Objetivo com o treinamento funcional</p>
+                    <p className="text-foreground whitespace-pre-wrap">{anamnese.objetivo_treinamento || "—"}</p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Credit info */}
           {alunoId && atividade && ATIVIDADES_COM_CREDITO.has(atividade) && studentCredits && (
             <div className={`rounded-lg border p-3 text-sm ${studentCredits.ilimitado || studentCredits.restante > 0 ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
