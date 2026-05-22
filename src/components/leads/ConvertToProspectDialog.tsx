@@ -63,7 +63,7 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
       if (!alunoId) return null;
       const { data: a } = await supabase
         .from("alunos")
-        .select("nome,telefone,email,data_nascimento,sexo,responsavel_id")
+        .select("nome,telefone,email,data_nascimento,sexo,responsavel_id,created_at")
         .eq("id", alunoId)
         .maybeSingle();
 
