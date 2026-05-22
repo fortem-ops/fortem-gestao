@@ -188,11 +188,25 @@ export function StudentSummary({ student }: { student: Aluno }) {
     queryKey: ["trajetoria_aluno", student.id],
     queryFn: async () => {
       const names = TRAJ_STAGES.map((t) => t.stageName);
-      const { data: stages } = await supabase
-        .from("pipeline_stages")
-        .select("id, name")
-        .in("name", names as any);
-      const stageByName = new Map<string, string>((stages || []).map((s: any) => [s.name, s.id]));
+      const [stagesRes, agendaRes, planoRes] = await Promise.all([
+        supabase.from("pipeline_stages").select("id, name").in("name", names as any),
+        supabase
+          .from("agenda_servicos")
+          .select("id, data_especifica, created_at, atividade")
+          .eq("aluno_id", student.id)
+          .ilike("atividade", "%experimental%")
+          .not("data_especifica", "is", null)
+          .order("data_especifica", { ascending: true })
+          .limit(1),
+        supabase
+          .from("planos")
+          .select("id, data_inicio, created_at")
+          .eq("aluno_id", student.id)
+          .order("data_inicio", { ascending: true })
+          .limit(1),
+      ]);
+      const stages = stagesRes.data || [];
+      const stageByName = new Map<string, string>(stages.map((s: any) => [s.name, s.id]));
       const stageIds = Array.from(stageByName.values());
       let movs: any[] = [];
       if (stageIds.length) {
@@ -208,16 +222,41 @@ export function StudentSummary({ student }: { student: Aluno }) {
       movs.forEach((m: any) => {
         if (!firstByStage.has(m.to_stage_id)) firstByStage.set(m.to_stage_id, { id: m.id, moved_at: m.moved_at });
       });
+
+      const agendaExp = agendaRes.data?.[0] || null;
+      const primeiroPlano = planoRes.data?.[0] || null;
+
       return TRAJ_STAGES.map((t) => {
         const stageId = stageByName.get(t.stageName) ?? null;
         const mov = stageId ? firstByStage.get(stageId) ?? null : null;
+
+        // Fonte original prioritária: assim, edições em Agendamento/Plano refletem aqui
+        // e edições aqui retroalimentam essas fontes.
+        let sourceDate: string | null = null;
+        let sourceLabel: string | null = null;
+        let sourceRef: { table: string; id: string; field: string } | null = null;
+
+        if (t.key === "experimental" && agendaExp?.data_especifica) {
+          sourceDate = agendaExp.data_especifica as string;
+          sourceLabel = "agendamento";
+          sourceRef = { table: "agenda_servicos", id: agendaExp.id, field: "data_especifica" };
+        } else if (t.key === "aluno" && primeiroPlano?.data_inicio) {
+          sourceDate = primeiroPlano.data_inicio as string;
+          sourceLabel = "plano";
+          sourceRef = { table: "planos", id: primeiroPlano.id, field: "data_inicio" };
+        }
+
+        const finalDate = sourceDate ?? mov?.moved_at ?? (t.key === "lead" ? student.created_at : null);
+
         return {
           key: t.key,
           label: t.label,
           stageId,
           movementId: mov?.id ?? null,
-          date: mov?.moved_at ?? (t.key === "lead" ? student.created_at : null),
-          isFallback: !mov && t.key === "lead",
+          date: finalDate,
+          isFallback: !sourceDate && !mov && t.key === "lead",
+          sourceLabel,
+          sourceRef,
         };
       });
     },
@@ -225,13 +264,28 @@ export function StudentSummary({ student }: { student: Aluno }) {
 
   const [editingTraj, setEditingTraj] = useState<string | null>(null);
 
-  async function saveTrajDate(item: { key: string; stageId: string | null; movementId: string | null }, date: Date) {
+  async function saveTrajDate(
+    item: { key: string; stageId: string | null; movementId: string | null; sourceRef?: { table: string; id: string; field: string } | null },
+    date: Date
+  ) {
     if (!item.stageId) {
       toast.error("Estágio não encontrado");
       return;
     }
     const isoDate = date.toISOString();
+    const dateOnly = date.toISOString().slice(0, 10);
     try {
+      // 1) Sincroniza a fonte original (agenda_servicos, planos) quando aplicável
+      if (item.sourceRef) {
+        const { table, id, field } = item.sourceRef;
+        const { error: srcErr } = await supabase
+          .from(table as any)
+          .update({ [field]: dateOnly } as any)
+          .eq("id", id);
+        if (srcErr) throw srcErr;
+      }
+
+      // 2) Sincroniza o movimento de pipeline (cria se não existir)
       if (item.movementId) {
         const { error } = await supabase
           .from("pipeline_movements")
@@ -258,7 +312,11 @@ export function StudentSummary({ student }: { student: Aluno }) {
       queryClient.invalidateQueries({ queryKey: ["trajetoria_aluno", student.id] });
       queryClient.invalidateQueries({ predicate: (q) => {
         const k = q.queryKey?.[0];
-        return typeof k === "string" && (k.startsWith("leads") || k.startsWith("prospects") || k.startsWith("dashboard") || k === "pipeline_movements");
+        return typeof k === "string" && (
+          k.startsWith("leads") || k.startsWith("prospects") ||
+          k.startsWith("dashboard") || k === "pipeline_movements" ||
+          k.startsWith("plano") || k.startsWith("agenda")
+        );
       }});
     } catch (e: any) {
       toast.error(e?.message || "Erro ao salvar data");
