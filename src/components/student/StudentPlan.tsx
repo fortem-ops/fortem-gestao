@@ -64,7 +64,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [addUsageDate, setAddUsageDate] = useState(new Date().toISOString().split("T")[0]);
   const [vendaOpen, setVendaOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelDate, setCancelDate] = useState(new Date().toISOString().split("T")[1]);
+  const [cancelDate, setCancelDate] = useState(new Date().toISOString().split("T")[0]);
   const [cancelMotivo, setCancelMotivo] = useState("");
   const [cancelMotivoId, setCancelMotivoId] = useState<string>("");
   const [cancelAddOpen, setCancelAddOpen] = useState(false);
