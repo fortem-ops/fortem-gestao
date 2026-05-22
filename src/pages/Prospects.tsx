@@ -154,33 +154,40 @@ export default function Prospects() {
     return conversoesMensais[conversoesMensais.length - 1]?.total || 0;
   }, [conversoesMensais]);
 
-  // Histórico de Origem dos Prospects (últimos 6 meses)
+  // Histórico de origem dos prospects CONVERTIDOS em aluno (últimos 6 meses)
   const { data: origemHistorico = [] } = useQuery({
-    queryKey: ["prospects-origem-historico-6m"],
+    queryKey: ["prospects-origem-conversao-6m"],
     queryFn: async () => {
       const since = startOfMonth(subMonths(new Date(), 5));
-      const { data: alunosRecentes } = await supabase
-        .from("alunos")
-        .select("id,created_at")
-        .gte("created_at", since.toISOString());
-      if (!alunosRecentes?.length) return [];
-      const ids = alunosRecentes.map((a) => a.id);
+      const { data: stagesAll } = await supabase
+        .from("pipeline_stages")
+        .select("id,name,funnel");
+      const alunoAtivoId = stagesAll?.find((s: any) => s.name === "Aluno ativo")?.id;
+      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.funnel === "prospects").map((s: any) => s.id);
+      if (!alunoAtivoId || !prospectFunnelIds.length) return [];
+      const { data: movs } = await supabase
+        .from("pipeline_movements")
+        .select("aluno_id,from_stage_id,to_stage_id,moved_at")
+        .eq("to_stage_id", alunoAtivoId)
+        .gte("moved_at", since.toISOString());
+      const convertidos = (movs || []).filter((m: any) => prospectFunnelIds.includes(m.from_stage_id));
+      if (!convertidos.length) return [];
+      const alunoIds = Array.from(new Set(convertidos.map((m: any) => m.aluno_id)));
       const { data: metas } = await supabase
         .from("pipeline_metadata")
         .select("aluno_id,origem_lead")
-        .in("aluno_id", ids)
-        .not("origem_lead", "is", null);
+        .in("aluno_id", alunoIds);
       const metaMap: Record<string, string> = {};
-      (metas || []).forEach((m: any) => { metaMap[m.aluno_id] = m.origem_lead; });
+      (metas || []).forEach((m: any) => { if (m.origem_lead) metaMap[m.aluno_id] = m.origem_lead; });
       const rows: Record<string, Record<string, number>> = {};
       for (let i = 5; i >= 0; i--) {
         const d = subMonths(new Date(), i);
         rows[format(d, "yyyy-MM")] = {};
       }
-      alunosRecentes.forEach((a: any) => {
-        const origem = metaMap[a.id];
+      convertidos.forEach((m: any) => {
+        const origem = metaMap[m.aluno_id];
         if (!origem) return;
-        const key = format(new Date(a.created_at), "yyyy-MM");
+        const key = format(new Date(m.moved_at), "yyyy-MM");
         if (!rows[key]) return;
         rows[key][origem] = (rows[key][origem] || 0) + 1;
       });
@@ -189,7 +196,6 @@ export default function Prospects() {
         const [y, mo] = key.split("-").map(Number);
         const row: any = { key, mes: format(new Date(y, mo - 1, 1), "MMM/yy", { locale: ptBR }) };
         origens.forEach((o) => { row[o] = vals[o] || 0; });
-        row.__origens = origens;
         return row;
       });
     },
