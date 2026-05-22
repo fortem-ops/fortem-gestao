@@ -283,7 +283,7 @@ export default function Prospects() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div className="glass-card rounded-lg p-4">
           <p className="text-xs uppercase text-muted-foreground">Total de prospects</p>
           <p className="text-3xl font-bold mt-1 text-foreground">{prospectsPeriodo.length}</p>
@@ -291,6 +291,11 @@ export default function Prospects() {
         <div className="glass-card rounded-lg p-4">
           <p className="text-xs uppercase text-muted-foreground">Conversão Lead → Prospect (30d)</p>
           <p className="text-3xl font-bold mt-1 text-primary">{conversionRate}%</p>
+        </div>
+        <div className="glass-card rounded-lg p-4">
+          <p className="text-xs uppercase text-muted-foreground">Conversão Prospect → Aluno (mês)</p>
+          <p className="text-3xl font-bold mt-1 text-primary">{conversoesMesAtual}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">novos alunos no mês atual</p>
         </div>
         <div className="glass-card rounded-lg p-4">
           <p className="text-xs uppercase text-muted-foreground mb-2">Origem dos prospects</p>
@@ -307,6 +312,42 @@ export default function Prospects() {
           </div>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="glass-card rounded-lg p-4">
+          <p className="text-xs uppercase text-muted-foreground mb-3">Conversão Prospect → Aluno por mês (12m)</p>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={conversoesMensais} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} />
+              <YAxis type="category" dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={11} width={56} />
+              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+              <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="glass-card rounded-lg p-4">
+          <p className="text-xs uppercase text-muted-foreground mb-3">Histórico da origem dos prospects (6m)</p>
+          {origensHistorico.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-12 text-center">Sem dados de origem no período.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={origemHistorico} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <XAxis type="number" allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis type="category" dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={11} width={56} />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                {origensHistorico.map((o, i) => (
+                  <Bar key={o} dataKey={o} stackId="origem" fill={ORIGEM_COLORS[i % ORIGEM_COLORS.length]} radius={i === origensHistorico.length - 1 ? [0, 4, 4, 0] : 0} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
 
       <LeadProspectFilters
         mode="prospects"
