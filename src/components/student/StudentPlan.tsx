@@ -577,45 +577,23 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       <HistoricoVendas alunoId={student.id} />
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
 
-      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancelar contrato</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              O plano <strong>{data.tipo}</strong> deixará de ter renovação automática. Escolha a data efetiva do cancelamento — se for uma data futura, o cancelamento ficará agendado e o plano permanecerá ativo até lá.
-            </p>
-            <div className="space-y-2">
-              <Label>Data de cancelamento</Label>
-              <Input
-                type="date"
-                min={new Date().toISOString().split("T")[0]}
-                value={cancelDate}
-                onChange={(e) => setCancelDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Motivo (opcional)</Label>
-              <Input
-                placeholder="Ex.: aluno solicitou pausa"
-                value={cancelMotivo}
-                onChange={(e) => setCancelMotivo(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelOpen(false)}>Voltar</Button>
-            <Button
-              disabled={saving || !cancelDate}
-              onClick={handleCancelContract}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {cancelDate > new Date().toISOString().split("T")[0] ? "Agendar cancelamento" : "Confirmar cancelamento"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CancelContractDialog
+        open={cancelOpen}
+        onOpenChange={(v) => {
+          setCancelOpen(v);
+          if (!v) {
+            setCancelMotivo("");
+            setCancelMotivoId("");
+            setCancelAddOpen(false);
+            setCancelNovoNome("");
+          }
+        }}
+        planoTipo={data?.tipo ?? ""}
+        cancelDate={cancelDate}
+        setCancelDate={setCancelDate}
+        saving={saving}
+        onConfirm={handleCancelContract}
+      />
 
       <Dialog open={editPlanOpen} onOpenChange={setEditPlanOpen}>
         <DialogContent>
