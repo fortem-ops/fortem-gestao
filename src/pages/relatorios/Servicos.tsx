@@ -84,9 +84,11 @@ export default function RelatoriosServicos() {
     const total = filtered.length;
     const fixos = filtered.filter((r) => r.tipo === "fixo").length;
     const avulsos = filtered.filter((r) => r.tipo === "avulso").length;
-    const compareceram = filtered.filter((r) => r.comparecimento).length;
-    const taxa = total ? Math.round((compareceram / total) * 100) : 0;
-    return { total, fixos, avulsos, taxa };
+    // Denominador: apenas aulas que já tiveram presença marcada (real)
+    const marcadas = filtered.filter((r) => r.presenca_marcada).length;
+    const compareceram = filtered.filter((r) => r.presenca_marcada && r.comparecimento).length;
+    const taxa = marcadas ? Math.round((compareceram / marcadas) * 100) : 0;
+    return { total, fixos, avulsos, taxa, marcadas, compareceram };
   }, [filtered]);
 
   const porAtividade = useMemo(() => {
