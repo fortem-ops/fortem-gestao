@@ -2,12 +2,18 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { SEXO_OPTIONS, convertLeadToProspect, type OrigemLead } from "@/lib/leads";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
 
@@ -30,6 +36,7 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
     limitacoes: "",
     atividade_fisica: "",
     objetivo_treinamento: "",
+    created_at: undefined as Date | undefined,
   });
   const [professores, setProfessores] = useState<{ user_id: string; full_name: string }[]>([]);
 
@@ -56,7 +63,7 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
       if (!alunoId) return null;
       const { data: a } = await supabase
         .from("alunos")
-        .select("nome,telefone,email,data_nascimento,sexo,responsavel_id")
+        .select("nome,telefone,email,data_nascimento,sexo,responsavel_id,created_at")
         .eq("id", alunoId)
         .maybeSingle();
 
@@ -87,6 +94,7 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
         limitacoes: an.limitacoes || "",
         atividade_fisica: an.atividade_fisica || "",
         objetivo_treinamento: an.objetivo_treinamento || "",
+        created_at: data.aluno?.created_at ? new Date(data.aluno.created_at) : undefined,
       });
 
     }
@@ -111,9 +119,15 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
         atividade_fisica: form.atividade_fisica.trim(),
         objetivo_treinamento: form.objetivo_treinamento.trim(),
       });
+      const updatePayload: any = {
+        responsavel_id: form.responsavel_id || null,
+      };
+      if (form.created_at) {
+        updatePayload.created_at = form.created_at.toISOString();
+      }
       const { error: respErr } = await supabase
         .from("alunos")
-        .update({ responsavel_id: form.responsavel_id || null } as any)
+        .update(updatePayload)
         .eq("id", alunoId);
       if (respErr) throw respErr;
       toast.success("Convertido em Prospect");
@@ -158,6 +172,34 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
           <div className="space-y-1.5">
             <Label>Email *</Label>
             <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Data de cadastro</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !form.created_at && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {form.created_at ? format(form.created_at, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione a data</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-1" align="start">
+                <Calendar
+                  mode="single"
+                  selected={form.created_at}
+                  onSelect={(d) => setForm((prev) => ({ ...prev, created_at: d }))}
+                  disabled={(date) => date > new Date()}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-1.5">
