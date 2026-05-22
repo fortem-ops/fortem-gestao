@@ -523,6 +523,9 @@ export function StudentSummary({ student }: { student: Aluno }) {
                   {item.isFallback && dateObj && (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">cadastro</Badge>
                   )}
+                  {(item as any).sourceLabel && dateObj && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{(item as any).sourceLabel}</Badge>
+                  )}
                   {isCoordAdmin && (
                     <Popover open={editingTraj === item.key} onOpenChange={(o) => setEditingTraj(o ? item.key : null)}>
                       <PopoverTrigger asChild>
