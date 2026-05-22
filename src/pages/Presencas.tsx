@@ -186,6 +186,28 @@ export default function Presencas() {
     return m;
   }, [presencas]);
 
+  // ---- recorrência: exceções (dias removidos pontualmente) ----
+  const { data: excecoes = [] } = useQuery({
+    queryKey: ["agenda_excecoes", agendaIds],
+    enabled: agendaIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agenda_servicos_excecoes")
+        .select("agenda_id, data_excecao")
+        .in("agenda_id", agendaIds);
+      if (error) throw error;
+      return (data ?? []) as { agenda_id: string; data_excecao: string }[];
+    },
+  });
+
+  const excecoesSet = useMemo(
+    () => new Set(excecoes.map((e) => `${e.agenda_id}|${e.data_excecao}`)),
+    [excecoes],
+  );
+
+  const isFixoAtivoNoDia = (a: AgendaRow, dStr: string, ds: number) =>
+    a.dia_semana === ds && !excecoesSet.has(`${a.id}|${dStr}`);
+
   const markMutation = useSupabaseMutation<unknown, { agendaId: string; value: boolean | null; dataStr: string }>({
     mutationFn: async ({ agendaId, value, dataStr }) => {
       if (value === null) {
@@ -223,9 +245,9 @@ export default function Presencas() {
     if (viewMode !== "dia") return [];
     return aulas.filter((a) => {
       if (a.tipo === "avulso") return a.data_especifica === dateStr;
-      return a.dia_semana === diaSemana;
+      return isFixoAtivoNoDia(a, dateStr, diaSemana);
     });
-  }, [aulas, viewMode, dateStr, diaSemana]);
+  }, [aulas, viewMode, dateStr, diaSemana, excecoesSet]);
 
   const gruposDia = useMemo(() => {
     const map = new Map<string, AgendaRow[]>();
@@ -259,7 +281,7 @@ export default function Presencas() {
       const dStr = format(d, "yyyy-MM-dd");
       const dayAulas = aulas.filter((a) => {
         if (a.tipo === "avulso") return a.data_especifica === dStr;
-        return a.dia_semana === ds;
+        return isFixoAtivoNoDia(a, dStr, ds);
       });
       const marcadas = dayAulas.filter((a) => `${a.id}|${dStr}` in presencaMap).length;
       const presentes = dayAulas.filter((a) => presencaMap[`${a.id}|${dStr}`] === true).length;
@@ -274,7 +296,7 @@ export default function Presencas() {
         faltas,
       };
     });
-  }, [viewMode, weekDays, aulas, presencaMap]);
+  }, [viewMode, weekDays, aulas, presencaMap, excecoesSet]);
 
   const toggleExpandWeekDay = (dStr: string) => {
     setExpandedWeekDays((prev) => {
@@ -301,7 +323,7 @@ export default function Presencas() {
       const dStr = format(d, "yyyy-MM-dd");
       const dayAulas = aulas.filter((a) => {
         if (a.tipo === "avulso") return a.data_especifica === dStr;
-        return a.dia_semana === ds;
+        return isFixoAtivoNoDia(a, dStr, ds);
       });
       const marcadas = dayAulas.filter((a) => `${a.id}|${dStr}` in presencaMap).length;
       const presentes = dayAulas.filter((a) => presencaMap[`${a.id}|${dStr}`] === true).length;
@@ -568,7 +590,7 @@ export default function Presencas() {
               const dStr = format(d, "yyyy-MM-dd");
               const dayAulas = aulas.filter((a) => {
                 if (a.tipo === "avulso") return a.data_especifica === dStr;
-                return a.dia_semana === ds;
+                return isFixoAtivoNoDia(a, dStr, ds);
               });
               if (dayAulas.length === 0) return null;
               const marcadas = dayAulas.filter((a) => `${a.id}|${dStr}` in presencaMap).length;

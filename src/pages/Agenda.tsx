@@ -45,12 +45,28 @@ export default function Agenda() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date; tipo: string } | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
 
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+
+  const { data: excecoes = [] } = useQuery({
+    queryKey: ["agenda_servicos_excecoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agenda_servicos_excecoes")
+        .select("agenda_id, data_excecao");
+      if (error) throw error;
+      return data as { agenda_id: string; data_excecao: string }[];
+    },
+  });
+
+  const excecoesSet = useMemo(
+    () => new Set(excecoes.map((e) => `${e.agenda_id}|${e.data_excecao}`)),
+    [excecoes]
+  );
 
   const { data: agendas = [], isLoading } = useQuery({
     queryKey: ["agenda_servicos"],
@@ -103,6 +119,7 @@ export default function Agenda() {
     },
     onSuccess: (ev: any) => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
+      queryClient.invalidateQueries({ queryKey: ["agenda_servicos_excecoes"] });
       toast.success("Horário removido");
 
       // Fallback de notificação de cancelamento (idempotente no servidor)
@@ -113,9 +130,25 @@ export default function Agenda() {
         }).catch((e) => console.error("notify-agenda-evento (delete):", e));
       }
 
-      setDeleteId(null);
+      setDeleteTarget(null);
     },
     onError: () => toast.error("Erro ao remover horário"),
+  });
+
+  const excecaoMutation = useMutation({
+    mutationFn: async ({ agenda_id, data }: { agenda_id: string; data: Date }) => {
+      const dataStr = format(data, "yyyy-MM-dd");
+      const { error } = await supabase
+        .from("agenda_servicos_excecoes")
+        .insert({ agenda_id, data_excecao: dataStr });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agenda_servicos_excecoes"] });
+      toast.success("Dia removido da recorrência");
+      setDeleteTarget(null);
+    },
+    onError: () => toast.error("Erro ao remover este dia"),
   });
 
   const getEventsForCell = (dayIndex: number, hour: number) => {
@@ -127,7 +160,9 @@ export default function Agenda() {
       if (startHour !== hour) return false;
 
       if (a.tipo === "fixo") {
-        return a.dia_semana === diaSemana;
+        if (a.dia_semana !== diaSemana) return false;
+        const key = `${a.id}|${format(date, "yyyy-MM-dd")}`;
+        return !excecoesSet.has(key);
       } else {
         return a.data_especifica && isSameDay(new Date(a.data_especifica + "T12:00:00"), date);
       }
@@ -266,7 +301,7 @@ export default function Agenda() {
                             <Badge variant="outline" className="mt-0.5 text-[10px] px-1 py-0">Avulso</Badge>
                           )}
                           <button
-                            onClick={(e) => { e.stopPropagation(); setDeleteId(ev.id); }}
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: ev.id, date: weekDates[dayIdx], tipo: ev.tipo }); }}
                             className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -284,16 +319,29 @@ export default function Agenda() {
 
       <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover horário?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+            <AlertDialogDescription>
+              {deleteTarget?.tipo === "fixo"
+                ? `Este é um horário fixo recorrente. Você pode remover apenas o dia ${deleteTarget ? format(deleteTarget.date, "dd/MM/yyyy", { locale: ptBR }) : ""} ou toda a recorrência.`
+                : "Esta ação não pode ser desfeita."}
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && deleteMutation.mutate(deleteId)}>
-              Remover
+            {deleteTarget?.tipo === "fixo" && (
+              <Button
+                variant="outline"
+                onClick={() => deleteTarget && excecaoMutation.mutate({ agenda_id: deleteTarget.id, data: deleteTarget.date })}
+                disabled={excecaoMutation.isPending}
+              >
+                Somente este dia
+              </Button>
+            )}
+            <AlertDialogAction onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
+              {deleteTarget?.tipo === "fixo" ? "Toda a recorrência" : "Remover"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
