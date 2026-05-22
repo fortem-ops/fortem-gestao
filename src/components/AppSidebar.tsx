@@ -221,6 +221,20 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Relatórios */}
+        {isCoordAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Análise</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {relatoriosItems.map((item) => (
+                  <SidebarItem key={item.title} item={item} isActive={isActive} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {/* Sistema */}
         <SidebarGroup>
           <SidebarGroupLabel>Sistema</SidebarGroupLabel>
