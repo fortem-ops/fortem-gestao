@@ -207,7 +207,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     }
   }
 
-  async function handleCancelContract(motivo: string) {
+  async function handleCancelContract(motivo: string, financeiro?: { multa?: number; estorno?: number }) {
     if (!data) return;
     if (!cancelDate) { toast.error("Selecione a data de cancelamento"); return; }
     const today = new Date().toISOString().split("T")[0];
@@ -215,8 +215,12 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     const isScheduled = cancelDate > today;
     setSaving(true);
     try {
-      const motivoTxt = motivo.trim()
-        ? `\n\n[Cancelamento ${isScheduled ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR") : "imediato"}]: ${motivo.trim()}`
+      const partes: string[] = [];
+      if (motivo.trim()) partes.push(motivo.trim());
+      if (financeiro?.multa && financeiro.multa > 0) partes.push(`Multa aplicada: R$ ${financeiro.multa.toFixed(2)}`);
+      if (financeiro?.estorno && financeiro.estorno > 0) partes.push(`Estorno: R$ ${financeiro.estorno.toFixed(2)}`);
+      const motivoTxt = partes.length
+        ? `\n\n[Cancelamento ${isScheduled ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR") : "imediato"}]: ${partes.join(" · ")}`
         : "";
       const novaObs = ((data as any).observacoes || "") + motivoTxt;
       const payload: any = {
