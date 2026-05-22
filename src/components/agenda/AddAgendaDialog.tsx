@@ -445,18 +445,6 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Profissional</Label>
-            <Select value={profissionalId} onValueChange={setProfissionalId}>
-              <SelectTrigger><SelectValue placeholder="Selecione o profissional" /></SelectTrigger>
-              <SelectContent>
-                {profissionais.map((p: any) => (
-                  <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Student search */}
           <div className="space-y-2">
             <Label>Aluno (opcional)</Label>
@@ -513,6 +501,18 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             {!alunoId && alunoSearch.trim() && filteredAlunos.length === 0 && (
               <p className="text-xs text-muted-foreground">Nenhum aluno encontrado</p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Profissional</Label>
+            <Select value={profissionalId} onValueChange={setProfissionalId}>
+              <SelectTrigger><SelectValue placeholder="Selecione o profissional" /></SelectTrigger>
+              <SelectContent>
+                {profissionais.map((p: any) => (
+                  <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Anamnese inicial (prospect) */}
