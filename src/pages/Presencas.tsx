@@ -312,13 +312,13 @@ export default function Presencas() {
 
   // ---- navigation ----
   const goPrev = () => {
-    if (viewMode === "dia") setDate((d) => subWeeks(d, 0));
+    if (viewMode === "dia") setDate((d) => subDays(d, 1));
     else if (viewMode === "semana") setDate((d) => subWeeks(d, 1));
     else setDate((d) => subMonths(d, 1));
   };
 
   const goNext = () => {
-    if (viewMode === "dia") setDate((d) => addWeeks(d, 0));
+    if (viewMode === "dia") setDate((d) => addDays(d, 1));
     else if (viewMode === "semana") setDate((d) => addWeeks(d, 1));
     else setDate((d) => addMonths(d, 1));
   };
