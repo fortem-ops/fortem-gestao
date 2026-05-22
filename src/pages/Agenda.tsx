@@ -3,13 +3,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, ChevronRight, Trash2, User } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, User, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { AddAgendaDialog } from "@/components/agenda/AddAgendaDialog";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
