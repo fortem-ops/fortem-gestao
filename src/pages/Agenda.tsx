@@ -160,7 +160,9 @@ export default function Agenda() {
       if (startHour !== hour) return false;
 
       if (a.tipo === "fixo") {
-        return a.dia_semana === diaSemana;
+        if (a.dia_semana !== diaSemana) return false;
+        const key = `${a.id}|${format(date, "yyyy-MM-dd")}`;
+        return !excecoesSet.has(key);
       } else {
         return a.data_especifica && isSameDay(new Date(a.data_especifica + "T12:00:00"), date);
       }
