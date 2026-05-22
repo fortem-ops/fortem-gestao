@@ -204,15 +204,28 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
   async function handleCancelContract() {
     if (!data) return;
+    if (!cancelDate) { toast.error("Selecione a data de cancelamento"); return; }
+    const today = new Date().toISOString().split("T")[0];
+    if (cancelDate < today) { toast.error("Data não pode ser no passado"); return; }
+    const isScheduled = cancelDate > today;
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("planos")
-        .update({ ativo: false, renovacao_automatica: false, data_fim: new Date().toISOString().split("T")[0] })
-        .eq("id", data.id);
+      const motivoTxt = cancelMotivo.trim()
+        ? `\n\n[Cancelamento ${isScheduled ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR") : "imediato"}]: ${cancelMotivo.trim()}`
+        : "";
+      const novaObs = ((data as any).observacoes || "") + motivoTxt;
+      const payload: any = {
+        renovacao_automatica: false,
+        data_fim: cancelDate,
+        observacoes: novaObs || null,
+      };
+      if (!isScheduled) payload.ativo = false;
+      const { error } = await supabase.from("planos").update(payload).eq("id", data.id);
       if (error) throw error;
-      toast.success("Contrato cancelado");
+      toast.success(isScheduled ? `Cancelamento agendado para ${new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")}` : "Contrato cancelado");
       invalidatePlanoCaches(queryClient, student.id);
+      setCancelOpen(false);
+      setCancelMotivo("");
     } catch (err: any) {
       toast.error(err.message || "Erro ao cancelar contrato");
     } finally {
