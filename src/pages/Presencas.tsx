@@ -455,105 +455,18 @@ export default function Presencas() {
       {/* ===== SEMANA ===== */}
       {viewMode === "semana" && (
         <div className="space-y-3">
-          {weekDayStats.map((dayStat) => {
-            const isExpanded = expandedWeekDays.has(dayStat.dateStr);
-            const dayAulasGrupos = useMemo(() => {
-              const map = new Map<string, AgendaRow[]>();
-              dayStat.aulas.forEach((a) => {
-                const key = a.horario_inicio.slice(0, 5);
-                const arr = map.get(key) ?? [];
-                arr.push(a);
-                map.set(key, arr);
-              });
-              return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-            }, [dayStat.aulas]);
-
-            return (
-              <Card key={dayStat.dateStr} className={cn("glass-card", !isSameDay(dayStat.date, new Date()) && "opacity-90")}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="text-sm font-medium">
-                        {format(dayStat.date, "EEEE", { locale: ptBR })}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(dayStat.date, "dd/MM")}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {dayStat.total > 0 && (
-                        <div className="flex items-center gap-2 text-xs">
-                          {dayStat.presentes > 0 && (
-                            <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 text-[10px]">
-                              {dayStat.presentes} presente{dayStat.presentes > 1 ? "s" : ""}
-                            </Badge>
-                          )}
-                          {dayStat.faltas > 0 && (
-                            <Badge variant="outline" className="text-destructive border-destructive/30 text-[10px]">
-                              {dayStat.faltas} falta{dayStat.faltas > 1 ? "s" : ""}
-                            </Badge>
-                          )}
-                          <span className="text-muted-foreground">
-                            {dayStat.marcadas}/{dayStat.total} marcada{dayStat.total > 1 ? "s" : ""}
-                          </span>
-                        </div>
-                      )}
-                      {dayStat.total > 0 && (
-                        <Button variant="ghost" size="sm" onClick={() => toggleExpandWeekDay(dayStat.dateStr)}>
-                          {isExpanded ? "Recolher" : "Expandir"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                {isExpanded && dayStat.total > 0 && (
-                  <CardContent className="space-y-2 pt-0">
-                    {dayAulasGrupos.map(([hora, items]) => (
-                      <div key={hora}>
-                        <div className="text-xs font-semibold text-muted-foreground mb-1">{hora}</div>
-                        {items.map((aula) => {
-                          const status = presencaMap[`${aula.id}|${dayStat.dateStr}`];
-                          const isPresent = status === true;
-                          const isAbsent = status === false;
-                          return (
-                            <AulaRow
-                              key={aula.id}
-                              aula={aula}
-                              isPresent={isPresent}
-                              isAbsent={isAbsent}
-                              dateStr={dayStat.dateStr}
-                              profFilter={profFilter}
-                              onMark={(value) => markMutation.mutate({ agendaId: aula.id, value, dataStr: dayStat.dateStr })}
-                              isPending={markMutation.isPending}
-                            />
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </CardContent>
-                )}
-                {!isExpanded && dayStat.total > 0 && (
-                  <CardContent className="pt-1 pb-3">
-                    <div className="flex flex-wrap gap-2">
-                      {dayStat.aulas.slice(0, 5).map((aula) => (
-                        <Badge key={aula.id} variant="outline" className="text-[10px]">
-                          {aula.atividade} · {aula.horario_inicio.slice(0, 5)}
-                        </Badge>
-                      ))}
-                      {dayStat.aulas.length > 5 && (
-                        <span className="text-[10px] text-muted-foreground">+{dayStat.aulas.length - 5} aulas</span>
-                      )}
-                    </div>
-                  </CardContent>
-                )}
-                {dayStat.total === 0 && (
-                  <CardContent className="pt-0 pb-4">
-                    <span className="text-sm text-muted-foreground">Nenhuma aula neste dia.</span>
-                  </CardContent>
-                )}
-              </Card>
-            );
-          })}
+          {weekDayStats.map((dayStat) => (
+            <WeekDayCard
+              key={dayStat.dateStr}
+              dayStat={dayStat}
+              isExpanded={expandedWeekDays.has(dayStat.dateStr)}
+              onToggleExpand={() => toggleExpandWeekDay(dayStat.dateStr)}
+              presencaMap={presencaMap}
+              profFilter={profFilter}
+              onMark={(agendaId, value, dataStr) => markMutation.mutate({ agendaId, value, dataStr })}
+              isPending={markMutation.isPending}
+            />
+          ))}
         </div>
       )}
 
