@@ -152,7 +152,7 @@ export default function Presencas() {
 
   const { data: presencas = [] } = useQuery({
     queryKey: ["presencas", viewMode, date.toISOString(), agendaIds],
-    enabled: agendaIds.length >  1,
+    enabled: agendaIds.length > 0,
     queryFn: async () => {
       let query = supabase
         .from("agenda_presencas")
