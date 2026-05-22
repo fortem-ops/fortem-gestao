@@ -319,16 +319,29 @@ export default function Agenda() {
 
       <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover horário?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+            <AlertDialogDescription>
+              {deleteTarget?.tipo === "fixo"
+                ? `Este é um horário fixo recorrente. Você pode remover apenas o dia ${deleteTarget ? format(deleteTarget.date, "dd/MM/yyyy", { locale: ptBR }) : ""} ou toda a recorrência.`
+                : "Esta ação não pode ser desfeita."}
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && deleteMutation.mutate(deleteId)}>
-              Remover
+            {deleteTarget?.tipo === "fixo" && (
+              <Button
+                variant="outline"
+                onClick={() => deleteTarget && excecaoMutation.mutate({ agenda_id: deleteTarget.id, data: deleteTarget.date })}
+                disabled={excecaoMutation.isPending}
+              >
+                Somente este dia
+              </Button>
+            )}
+            <AlertDialogAction onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
+              {deleteTarget?.tipo === "fixo" ? "Toda a recorrência" : "Remover"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
