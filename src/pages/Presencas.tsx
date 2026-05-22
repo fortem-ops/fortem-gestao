@@ -245,9 +245,9 @@ export default function Presencas() {
     if (viewMode !== "dia") return [];
     return aulas.filter((a) => {
       if (a.tipo === "avulso") return a.data_especifica === dateStr;
-      return a.dia_semana === diaSemana;
+      return isFixoAtivoNoDia(a, dateStr, diaSemana);
     });
-  }, [aulas, viewMode, dateStr, diaSemana]);
+  }, [aulas, viewMode, dateStr, diaSemana, excecoesSet]);
 
   const gruposDia = useMemo(() => {
     const map = new Map<string, AgendaRow[]>();
