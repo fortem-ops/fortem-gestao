@@ -80,7 +80,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
 
   const [atividade, setAtividade] = useState("");
   const [local, setLocal] = useState("");
-  const [tipo, setTipo] = useState("fixo");
+  const [tipo, setTipo] = useState("avulso");
   const [diaSemana, setDiaSemana] = useState("");
   const [dataEspecifica, setDataEspecifica] = useState("");
   const [horarioInicio, setHorarioInicio] = useState("08:00");
@@ -99,7 +99,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     if (editEvent) {
       setAtividade(editEvent.atividade || "");
       setLocal(editEvent.local || "");
-      setTipo(editEvent.tipo || "fixo");
+      setTipo(editEvent.tipo || "avulso");
       setDiaSemana(String(editEvent.dia_semana ?? ""));
       setDataEspecifica(editEvent.data_especifica || "");
       setHorarioInicio(editEvent.horario_inicio?.slice(0, 5) || "08:00");
@@ -347,7 +347,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const resetForm = () => {
     setAtividade("");
     setLocal("");
-    setTipo("fixo");
+    setTipo("avulso");
     setDiaSemana("");
     setDataEspecifica("");
     setHorarioInicio("08:00");
@@ -409,8 +409,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             <Select value={tipo} onValueChange={setTipo}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="fixo">Fixo (semanal)</SelectItem>
                 <SelectItem value="avulso">Avulso (data específica)</SelectItem>
+                <SelectItem value="fixo">Fixo (semanal)</SelectItem>
               </SelectContent>
             </Select>
           </div>
