@@ -634,6 +634,131 @@ function AulaRow({
   );
 }
 
+function groupAulasByHora(aulas: AgendaRow[]): [string, AgendaRow[]][] {
+  const map = new Map<string, AgendaRow[]>();
+  aulas.forEach((a) => {
+    const key = a.horario_inicio.slice(0, 5);
+    const arr = map.get(key) ?? [];
+    arr.push(a);
+    map.set(key, arr);
+  });
+  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+}
+
+function WeekDayCard({
+  dayStat,
+  isExpanded,
+  onToggleExpand,
+  presencaMap,
+  profFilter,
+  onMark,
+  isPending,
+}: {
+  dayStat: {
+    date: Date;
+    dateStr: string;
+    aulas: AgendaRow[];
+    total: number;
+    marcadas: number;
+    presentes: number;
+    faltas: number;
+  };
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  presencaMap: Record<string, boolean>;
+  profFilter: string;
+  onMark: (agendaId: string, value: boolean | null, dataStr: string) => void;
+  isPending: boolean;
+}) {
+  const dayAulasGrupos = groupAulasByHora(dayStat.aulas);
+
+  return (
+    <Card className={cn("glass-card", !isSameDay(dayStat.date, new Date()) && "opacity-90")}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-sm font-medium">
+              {format(dayStat.date, "EEEE", { locale: ptBR })}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {format(dayStat.date, "dd/MM")}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {dayStat.total > 0 && (
+              <div className="flex items-center gap-2 text-xs">
+                {dayStat.presentes > 0 && (
+                  <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 text-[10px]">
+                    {dayStat.presentes} presente{dayStat.presentes > 1 ? "s" : ""}
+                  </Badge>
+                )}
+                {dayStat.faltas > 0 && (
+                  <Badge variant="outline" className="text-destructive border-destructive/30 text-[10px]">
+                    {dayStat.faltas} falta{dayStat.faltas > 1 ? "s" : ""}
+                  </Badge>
+                )}
+                <span className="text-muted-foreground">
+                  {dayStat.marcadas}/{dayStat.total} marcada{dayStat.total > 1 ? "s" : ""}
+                </span>
+              </div>
+            )}
+            {dayStat.total > 0 && (
+              <Button variant="ghost" size="sm" onClick={onToggleExpand}>
+                {isExpanded ? "Recolher" : "Expandir"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      {isExpanded && dayStat.total > 0 && (
+        <CardContent className="space-y-2 pt-0">
+          {dayAulasGrupos.map(([hora, items]) => (
+            <div key={hora}>
+              <div className="text-xs font-semibold text-muted-foreground mb-1">{hora}</div>
+              {items.map((aula) => {
+                const status = presencaMap[`${aula.id}|${dayStat.dateStr}`];
+                const isPresent = status === true;
+                const isAbsent = status === false;
+                return (
+                  <AulaRow
+                    key={aula.id}
+                    aula={aula}
+                    isPresent={isPresent}
+                    isAbsent={isAbsent}
+                    dateStr={dayStat.dateStr}
+                    profFilter={profFilter}
+                    onMark={(value) => onMark(aula.id, value, dayStat.dateStr)}
+                    isPending={isPending}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </CardContent>
+      )}
+      {!isExpanded && dayStat.total > 0 && (
+        <CardContent className="pt-1 pb-3">
+          <div className="flex flex-wrap gap-2">
+            {dayStat.aulas.slice(0, 5).map((aula) => (
+              <Badge key={aula.id} variant="outline" className="text-[10px]">
+                {aula.atividade} · {aula.horario_inicio.slice(0, 5)}
+              </Badge>
+            ))}
+            {dayStat.aulas.length > 5 && (
+              <span className="text-[10px] text-muted-foreground">+{dayStat.aulas.length - 5} aulas</span>
+            )}
+          </div>
+        </CardContent>
+      )}
+      {dayStat.total === 0 && (
+        <CardContent className="pt-0 pb-4">
+          <span className="text-sm text-muted-foreground">Nenhuma aula neste dia.</span>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 function StatCard({
   label,
   value,
