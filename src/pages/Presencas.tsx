@@ -296,7 +296,7 @@ export default function Presencas() {
         faltas,
       };
     });
-  }, [viewMode, weekDays, aulas, presencaMap]);
+  }, [viewMode, weekDays, aulas, presencaMap, excecoesSet]);
 
   const toggleExpandWeekDay = (dStr: string) => {
     setExpandedWeekDays((prev) => {
