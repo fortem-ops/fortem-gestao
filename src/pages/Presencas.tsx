@@ -415,7 +415,7 @@ export default function Presencas() {
             <StatCard label="Faltas" value={totaisDia.faltas} tone="danger" />
           </div>
 
-          {aulasDoDia.length ===  1 && (
+          {aulasDoDia.length === 0 && (
             <Card className="glass-card">
               <CardContent className="p-8 text-center text-muted-foreground">
                 Nenhuma aula encontrada nesta data.
