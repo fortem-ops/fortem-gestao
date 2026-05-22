@@ -301,7 +301,7 @@ export default function Agenda() {
                             <Badge variant="outline" className="mt-0.5 text-[10px] px-1 py-0">Avulso</Badge>
                           )}
                           <button
-                            onClick={(e) => { e.stopPropagation(); setDeleteId(ev.id); }}
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: ev.id, date: weekDates[dayIdx], tipo: ev.tipo }); }}
                             className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
                           >
                             <Trash2 className="h-3 w-3" />
