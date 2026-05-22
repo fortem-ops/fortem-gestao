@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban, ShoppingCart, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -19,6 +20,7 @@ import { HistoricoVendas } from "./venda/HistoricoVendas";
 import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
+import { useCancelamentoMotivos, useCancelamentoMotivoMutations } from "@/hooks/useCancelamentoMotivos";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
