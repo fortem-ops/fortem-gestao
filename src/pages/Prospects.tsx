@@ -430,6 +430,9 @@ export default function Prospects() {
                           <a href={wa} target="_blank" rel="noreferrer"><MessageCircle className="w-4 h-4" /></a>
                         </Button>
                       )}
+                      <Button size="icon" variant="ghost" onClick={() => navigate(`/alunos/${p.id}`)} title="Visualizar perfil">
+                        <Eye className="w-4 h-4" />
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => setEditId(p.id)} title="Editar">
                         <Pencil className="w-4 h-4" />
                       </Button>
