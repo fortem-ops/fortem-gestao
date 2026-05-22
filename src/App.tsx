@@ -49,6 +49,7 @@ const RelatoriosLayout = lazy(() => import("./components/relatorios/RelatoriosLa
 const RelatoriosHome = lazy(() => import("./pages/relatorios/Index"));
 const RelatoriosVendas = lazy(() => import("./pages/relatorios/Vendas"));
 const RelatoriosFinanceiro = lazy(() => import("./pages/relatorios/Financeiro"));
+const RelatoriosPlanos = lazy(() => import("./pages/relatorios/Planos"));
 const RelatoriosEmBreve = lazy(() => import("./pages/relatorios/EmBreve"));
 
 // Portal do Aluno
