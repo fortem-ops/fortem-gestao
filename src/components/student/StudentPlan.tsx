@@ -61,6 +61,9 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [addUsageService, setAddUsageService] = useState("");
   const [addUsageDate, setAddUsageDate] = useState(new Date().toISOString().split("T")[0]);
   const [vendaOpen, setVendaOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelDate, setCancelDate] = useState(new Date().toISOString().split("T")[0]);
+  const [cancelMotivo, setCancelMotivo] = useState("");
   const [editPlanOpen, setEditPlanOpen] = useState(false);
   const [editTipo, setEditTipo] = useState("");
   const [editValor, setEditValor] = useState<string>("");
@@ -201,15 +204,28 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
   async function handleCancelContract() {
     if (!data) return;
+    if (!cancelDate) { toast.error("Selecione a data de cancelamento"); return; }
+    const today = new Date().toISOString().split("T")[0];
+    if (cancelDate < today) { toast.error("Data não pode ser no passado"); return; }
+    const isScheduled = cancelDate > today;
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("planos")
-        .update({ ativo: false, renovacao_automatica: false, data_fim: new Date().toISOString().split("T")[0] })
-        .eq("id", data.id);
+      const motivoTxt = cancelMotivo.trim()
+        ? `\n\n[Cancelamento ${isScheduled ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR") : "imediato"}]: ${cancelMotivo.trim()}`
+        : "";
+      const novaObs = ((data as any).observacoes || "") + motivoTxt;
+      const payload: any = {
+        renovacao_automatica: false,
+        data_fim: cancelDate,
+        observacoes: novaObs || null,
+      };
+      if (!isScheduled) payload.ativo = false;
+      const { error } = await supabase.from("planos").update(payload).eq("id", data.id);
       if (error) throw error;
-      toast.success("Contrato cancelado");
+      toast.success(isScheduled ? `Cancelamento agendado para ${new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")}` : "Contrato cancelado");
       invalidatePlanoCaches(queryClient, student.id);
+      setCancelOpen(false);
+      setCancelMotivo("");
     } catch (err: any) {
       toast.error(err.message || "Erro ao cancelar contrato");
     } finally {
@@ -335,30 +351,37 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
               </Button>
             )}
             {isCoordAdmin && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" disabled={saving}>
-                    <Ban className="h-3.5 w-3.5 mr-1.5" /> Cancelar Contrato
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancelar contrato?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      O plano <strong>{data.tipo}</strong> será encerrado hoje e o aluno deixará de ter renovação automática. Esta ação pode ser revertida criando um novo plano.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCancelContract} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Confirmar cancelamento
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                disabled={saving}
+                onClick={() => {
+                  const today = new Date().toISOString().split("T")[0];
+                  setCancelDate((data as any).data_fim && (data as any).data_fim >= today ? (data as any).data_fim : today);
+                  setCancelMotivo("");
+                  setCancelOpen(true);
+                }}
+              >
+                <Ban className="h-3.5 w-3.5 mr-1.5" /> Cancelar Contrato
+              </Button>
             )}
           </div>
         </div>
+
+        {(() => {
+          const today = new Date().toISOString().split("T")[0];
+          const df = (data as any).data_fim;
+          if (df && df > today && (data as any).renovacao_automatica === false) {
+            return (
+              <Badge variant="outline" className="status-warning gap-1.5 w-fit">
+                <Ban className="h-3 w-3" />
+                Cancelamento agendado para {new Date(df + "T00:00:00").toLocaleDateString("pt-BR")}
+              </Badge>
+            );
+          }
+          return null;
+        })()}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="flex items-center gap-2 text-sm">
@@ -548,6 +571,46 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       <HistoricoVendas alunoId={student.id} />
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar contrato</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              O plano <strong>{data.tipo}</strong> deixará de ter renovação automática. Escolha a data efetiva do cancelamento — se for uma data futura, o cancelamento ficará agendado e o plano permanecerá ativo até lá.
+            </p>
+            <div className="space-y-2">
+              <Label>Data de cancelamento</Label>
+              <Input
+                type="date"
+                min={new Date().toISOString().split("T")[0]}
+                value={cancelDate}
+                onChange={(e) => setCancelDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Motivo (opcional)</Label>
+              <Input
+                placeholder="Ex.: aluno solicitou pausa"
+                value={cancelMotivo}
+                onChange={(e) => setCancelMotivo(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOpen(false)}>Voltar</Button>
+            <Button
+              disabled={saving || !cancelDate}
+              onClick={handleCancelContract}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelDate > new Date().toISOString().split("T")[0] ? "Agendar cancelamento" : "Confirmar cancelamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={editPlanOpen} onOpenChange={setEditPlanOpen}>
         <DialogContent>
