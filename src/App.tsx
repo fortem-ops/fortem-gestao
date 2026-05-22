@@ -381,6 +381,24 @@ const App = () => (
                   </Suspense>
                 }
               />
+              <Route
+                path="/relatorios"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <RelatoriosLayout />
+                  </Suspense>
+                }
+              >
+                <Route index element={<Suspense fallback={<RouteFallback />}><RelatoriosHome /></Suspense>} />
+                <Route path="vendas" element={<Suspense fallback={<RouteFallback />}><RelatoriosVendas /></Suspense>} />
+                <Route path="financeiro" element={<Suspense fallback={<RouteFallback />}><RelatoriosFinanceiro /></Suspense>} />
+                <Route path="planos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Planos" /></Suspense>} />
+                <Route path="cancelamentos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Cancelamentos" /></Suspense>} />
+                <Route path="servicos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Serviços" /></Suspense>} />
+                <Route path="crm" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="CRM" /></Suspense>} />
+                <Route path="tecnicos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Técnicos" /></Suspense>} />
+                <Route path="equipe" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Equipe" /></Suspense>} />
+              </Route>
             </Route>
             <Route
               path="*"

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity } from "lucide-react";
+import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3 } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
@@ -66,6 +66,11 @@ const comercialItems = [
 
 const comercialAdminItems = [
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
+];
+
+/* ─── Relatórios ─── */
+const relatoriosItems = [
+  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
 /* ─── Sistema ─── */
@@ -215,6 +220,20 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Relatórios */}
+        {isCoordAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Análise</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {relatoriosItems.map((item) => (
+                  <SidebarItem key={item.title} item={item} isActive={isActive} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Sistema */}
         <SidebarGroup>
