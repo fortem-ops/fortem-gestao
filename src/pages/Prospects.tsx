@@ -14,7 +14,7 @@ import { AssessmentViewerDialog } from "@/components/student/assessment/Assessme
 import { toast } from "sonner";
 import { ORIGEM_LEAD_OPTIONS } from "@/lib/leads";
 import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
-import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
