@@ -62,6 +62,54 @@ export type Database = {
         }
         Relationships: []
       }
+      agenda_presencas: {
+        Row: {
+          agenda_id: string
+          comparecimento: boolean
+          created_at: string
+          data: string
+          id: string
+          marcado_por: string
+          observacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          agenda_id: string
+          comparecimento: boolean
+          created_at?: string
+          data: string
+          id?: string
+          marcado_por: string
+          observacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agenda_id?: string
+          comparecimento?: boolean
+          created_at?: string
+          data?: string
+          id?: string
+          marcado_por?: string
+          observacao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_presencas_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_presencas_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "v_servicos_agenda"
+            referencedColumns: ["agenda_id"]
+          },
+        ]
+      }
       agenda_servicos: {
         Row: {
           aluno_id: string | null
@@ -3715,6 +3763,7 @@ export type Database = {
           horario_fim: string | null
           horario_inicio: string | null
           local: string | null
+          presenca_marcada: boolean | null
           profissional_id: string | null
           profissional_nome: string | null
           tipo: string | null

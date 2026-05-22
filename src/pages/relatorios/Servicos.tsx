@@ -25,6 +25,7 @@ type Row = {
   aluno_id: string | null;
   aluno_nome: string | null;
   comparecimento: boolean;
+  presenca_marcada: boolean;
 };
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -83,9 +84,11 @@ export default function RelatoriosServicos() {
     const total = filtered.length;
     const fixos = filtered.filter((r) => r.tipo === "fixo").length;
     const avulsos = filtered.filter((r) => r.tipo === "avulso").length;
-    const compareceram = filtered.filter((r) => r.comparecimento).length;
-    const taxa = total ? Math.round((compareceram / total) * 100) : 0;
-    return { total, fixos, avulsos, taxa };
+    // Denominador: apenas aulas que já tiveram presença marcada (real)
+    const marcadas = filtered.filter((r) => r.presenca_marcada).length;
+    const compareceram = filtered.filter((r) => r.presenca_marcada && r.comparecimento).length;
+    const taxa = marcadas ? Math.round((compareceram / marcadas) * 100) : 0;
+    return { total, fixos, avulsos, taxa, marcadas, compareceram };
   }, [filtered]);
 
   const porAtividade = useMemo(() => {
@@ -146,7 +149,8 @@ export default function RelatoriosServicos() {
           label="Taxa comparecimento"
           value={`${stats.taxa}%`}
           icon={CheckCircle2}
-          tone={stats.taxa >= 70 ? "success" : stats.taxa >= 40 ? "warning" : "danger"}
+          hint={`${stats.compareceram} de ${stats.marcadas} marcadas`}
+          tone={stats.marcadas === 0 ? "default" : stats.taxa >= 70 ? "success" : stats.taxa >= 40 ? "warning" : "danger"}
         />
       </div>
 

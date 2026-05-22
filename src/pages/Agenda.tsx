@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, ChevronRight, Trash2, User, CalendarIcon } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, User, CalendarIcon, CheckSquare } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { AddAgendaDialog } from "@/components/agenda/AddAgendaDialog";
@@ -161,9 +162,14 @@ export default function Agenda() {
           <h1 className="text-2xl font-heading font-bold text-foreground">Agenda de Serviços</h1>
           <p className="text-muted-foreground text-sm">Gerencie os horários das atividades</p>
         </div>
-        <Button onClick={() => { setPrefill(null); setEditEvent(null); setDialogOpen(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Horário
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="gap-2">
+            <Link to="/presencas"><CheckSquare className="h-4 w-4" /> Lista de Presença</Link>
+          </Button>
+          <Button onClick={() => { setPrefill(null); setEditEvent(null); setDialogOpen(true); }} className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Horário
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
