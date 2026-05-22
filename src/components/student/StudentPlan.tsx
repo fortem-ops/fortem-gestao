@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban, ShoppingCart, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -19,6 +20,7 @@ import { HistoricoVendas } from "./venda/HistoricoVendas";
 import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
+import { useCancelamentoMotivos, useCancelamentoMotivoMutations } from "@/hooks/useCancelamentoMotivos";
 
 function parseServiceCount(servicos: string[], tipoServico: string): number {
   for (const s of servicos) {
@@ -64,6 +66,9 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelDate, setCancelDate] = useState(new Date().toISOString().split("T")[0]);
   const [cancelMotivo, setCancelMotivo] = useState("");
+  const [cancelMotivoId, setCancelMotivoId] = useState<string>("");
+  const [cancelAddOpen, setCancelAddOpen] = useState(false);
+  const [cancelNovoNome, setCancelNovoNome] = useState("");
   const [editPlanOpen, setEditPlanOpen] = useState(false);
   const [editTipo, setEditTipo] = useState("");
   const [editValor, setEditValor] = useState<string>("");
@@ -202,7 +207,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     }
   }
 
-  async function handleCancelContract() {
+  async function handleCancelContract(motivo: string) {
     if (!data) return;
     if (!cancelDate) { toast.error("Selecione a data de cancelamento"); return; }
     const today = new Date().toISOString().split("T")[0];
@@ -210,8 +215,8 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     const isScheduled = cancelDate > today;
     setSaving(true);
     try {
-      const motivoTxt = cancelMotivo.trim()
-        ? `\n\n[Cancelamento ${isScheduled ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR") : "imediato"}]: ${cancelMotivo.trim()}`
+      const motivoTxt = motivo.trim()
+        ? `\n\n[Cancelamento ${isScheduled ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR") : "imediato"}]: ${motivo.trim()}`
         : "";
       const novaObs = ((data as any).observacoes || "") + motivoTxt;
       const payload: any = {
@@ -226,6 +231,9 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       invalidatePlanoCaches(queryClient, student.id);
       setCancelOpen(false);
       setCancelMotivo("");
+      setCancelMotivoId("");
+      setCancelAddOpen(false);
+      setCancelNovoNome("");
     } catch (err: any) {
       toast.error(err.message || "Erro ao cancelar contrato");
     } finally {
@@ -572,45 +580,23 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       <HistoricoVendas alunoId={student.id} />
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
 
-      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancelar contrato</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              O plano <strong>{data.tipo}</strong> deixará de ter renovação automática. Escolha a data efetiva do cancelamento — se for uma data futura, o cancelamento ficará agendado e o plano permanecerá ativo até lá.
-            </p>
-            <div className="space-y-2">
-              <Label>Data de cancelamento</Label>
-              <Input
-                type="date"
-                min={new Date().toISOString().split("T")[0]}
-                value={cancelDate}
-                onChange={(e) => setCancelDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Motivo (opcional)</Label>
-              <Input
-                placeholder="Ex.: aluno solicitou pausa"
-                value={cancelMotivo}
-                onChange={(e) => setCancelMotivo(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelOpen(false)}>Voltar</Button>
-            <Button
-              disabled={saving || !cancelDate}
-              onClick={handleCancelContract}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {cancelDate > new Date().toISOString().split("T")[0] ? "Agendar cancelamento" : "Confirmar cancelamento"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CancelContractDialog
+        open={cancelOpen}
+        onOpenChange={(v) => {
+          setCancelOpen(v);
+          if (!v) {
+            setCancelMotivo("");
+            setCancelMotivoId("");
+            setCancelAddOpen(false);
+            setCancelNovoNome("");
+          }
+        }}
+        planoTipo={data?.tipo ?? ""}
+        cancelDate={cancelDate}
+        setCancelDate={setCancelDate}
+        saving={saving}
+        onConfirm={handleCancelContract}
+      />
 
       <Dialog open={editPlanOpen} onOpenChange={setEditPlanOpen}>
         <DialogContent>
@@ -709,5 +695,115 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function slugify(str: string) {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/(^_|_$)/g, "");
+}
+
+interface CancelContractDialogProps {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  planoTipo: string;
+  cancelDate: string;
+  setCancelDate: (v: string) => void;
+  saving: boolean;
+  onConfirm: (motivo: string) => void;
+}
+
+function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCancelDate, saving, onConfirm }: CancelContractDialogProps) {
+  const { data: motivos = [] } = useCancelamentoMotivos();
+  const { create } = useCancelamentoMotivoMutations();
+  const [motivoId, setMotivoId] = useState<string>("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+
+  async function adicionarMotivo() {
+    const nome = novoNome.trim();
+    if (!nome) return;
+    const slug = slugify(nome);
+    await create.mutateAsync({ nome, slug, ordem: 99 });
+    setNovoNome("");
+    setAddOpen(false);
+  }
+
+  const motivoSelecionado = motivos.find((m) => m.id === motivoId);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => {
+      if (!v) {
+        setMotivoId("");
+        setAddOpen(false);
+        setNovoNome("");
+      }
+      onOpenChange(v);
+    }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cancelar contrato</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            O plano <strong>{planoTipo}</strong> deixará de ter renovação automática. Escolha a data efetiva do cancelamento — se for uma data futura, o cancelamento ficará agendado e o plano permanecerá ativo até lá.
+          </p>
+          <div className="space-y-2">
+            <Label>Data de cancelamento</Label>
+            <Input
+              type="date"
+              min={new Date().toISOString().split("T")[0]}
+              value={cancelDate}
+              onChange={(e) => setCancelDate(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Motivo do cancelamento</Label>
+            <RadioGroup value={motivoId} onValueChange={setMotivoId} className="space-y-1.5 mt-1">
+              {motivos.map((m) => (
+                <div key={m.id} className="flex items-center gap-2">
+                  <RadioGroupItem value={m.id} id={`cm-${m.id}`} />
+                  <Label htmlFor={`cm-${m.id}`} className="font-normal cursor-pointer text-sm">{m.nome}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+
+            {addOpen ? (
+              <div className="flex items-end gap-2 mt-2">
+                <div className="flex-1">
+                  <Label className="text-xs">Novo motivo</Label>
+                  <Input
+                    value={novoNome}
+                    onChange={(e) => setNovoNome(e.target.value)}
+                    placeholder="Ex.: Insatisfação"
+                    autoFocus
+                  />
+                </div>
+                <Button onClick={adicionarMotivo} disabled={create.isPending} size="sm">Salvar</Button>
+                <Button onClick={() => { setAddOpen(false); setNovoNome(""); }} size="sm" variant="ghost">Cancelar</Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setAddOpen(true)} className="mt-2">
+                <Plus className="w-3 h-3 mr-1" /> Adicionar
+              </Button>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button>
+          <Button
+            disabled={saving || !cancelDate || !motivoId}
+            onClick={() => onConfirm(motivoSelecionado?.nome ?? "")}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {cancelDate > new Date().toISOString().split("T")[0] ? "Agendar cancelamento" : "Confirmar cancelamento"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
