@@ -134,7 +134,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     queryKey: ["alunos_agenda_picker"],
     queryFn: async () => {
       const [{ data: alunosData, error }, { data: stagesData }] = await Promise.all([
-        supabase.from("alunos").select("id, nome, status, current_pipeline_stage_id").order("nome"),
+        supabase.from("alunos").select("id, nome, status, current_pipeline_stage_id, responsavel_id").order("nome"),
         supabase.from("pipeline_stages").select("id, name"),
       ]);
       if (error) throw error;
@@ -153,6 +153,35 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         .filter((a: any) => a.tipo !== "lead");
     },
   });
+
+  // Anamnese inicial do prospect (somente quando relevante)
+  const showAnamnese = !!alunoId && ["Treino Experimental", "Avaliação Funcional"].includes(atividade);
+  const { data: anamnese } = useQuery({
+    queryKey: ["prospect_anamnese_agenda", alunoId],
+    enabled: showAnamnese,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("prospect_anamnese" as any)
+        .select("limitacoes, atividade_fisica, objetivo_treinamento")
+        .eq("aluno_id", alunoId)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  // Auto-preenche profissional ao selecionar prospect em Treino Experimental
+  const [autoFilledProfFor, setAutoFilledProfFor] = useState<string>("");
+  useEffect(() => {
+    if (isEditing) return;
+    if (atividade !== "Treino Experimental") return;
+    if (!alunoId) return;
+    const aluno = alunos.find((a: any) => a.id === alunoId);
+    if (aluno?.responsavel_id && autoFilledProfFor !== alunoId) {
+      setProfissionalId(aluno.responsavel_id);
+      setAutoFilledProfFor(alunoId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alunoId, atividade, alunos, isEditing]);
 
   const { data: studentCredits } = useQuery({
     queryKey: ["student_credits", alunoId, atividade],
