@@ -64,7 +64,7 @@ export default function Prospects() {
       if (!stageIds.length) return [];
       const { data: alunos } = await supabase
         .from("alunos")
-        .select("id,nome,telefone,created_at,current_pipeline_stage_id")
+        .select("id,nome,telefone,created_at,current_pipeline_stage_id,motivo_perda")
         .in("current_pipeline_stage_id", stageIds)
         .order("created_at", { ascending: false });
       if (!alunos?.length) return [];
