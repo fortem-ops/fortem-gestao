@@ -161,6 +161,45 @@ export type Database = {
         }
         Relationships: []
       }
+      agenda_servicos_excecoes: {
+        Row: {
+          agenda_id: string
+          created_at: string
+          created_by: string | null
+          data_excecao: string
+          id: string
+        }
+        Insert: {
+          agenda_id: string
+          created_at?: string
+          created_by?: string | null
+          data_excecao: string
+          id?: string
+        }
+        Update: {
+          agenda_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_excecao?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_servicos_excecoes_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_servicos_excecoes_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "v_servicos_agenda"
+            referencedColumns: ["agenda_id"]
+          },
+        ]
+      }
       aluno_licencas: {
         Row: {
           aluno_id: string
