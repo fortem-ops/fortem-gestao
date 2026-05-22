@@ -175,6 +175,34 @@ export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) 
           </div>
 
           <div className="space-y-1.5">
+            <Label>Data de cadastro</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !form.created_at && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {form.created_at ? format(form.created_at, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione a data</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-1" align="start">
+                <Calendar
+                  mode="single"
+                  selected={form.created_at}
+                  onSelect={(d) => setForm((prev) => ({ ...prev, created_at: d }))}
+                  disabled={(date) => date > new Date()}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-1.5">
             <Label>Como conheceu? *</Label>
             <Select value={form.origem || ""} onValueChange={(v) => setForm({ ...form, origem: v as OrigemLead })}>
               <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
