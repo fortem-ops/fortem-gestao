@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, UserX, FileText } from "lucide-react";
+import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, UserX, FileText, Eye } from "lucide-react";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToAlunoDialog } from "@/components/pipeline/ConvertToAlunoDialog";
 import { NaoConversaoDialog } from "@/components/prospects/NaoConversaoDialog";
@@ -64,7 +64,7 @@ export default function Prospects() {
       if (!stageIds.length) return [];
       const { data: alunos } = await supabase
         .from("alunos")
-        .select("id,nome,telefone,created_at,current_pipeline_stage_id")
+        .select("id,nome,telefone,created_at,current_pipeline_stage_id,motivo_perda")
         .in("current_pipeline_stage_id", stageIds)
         .order("created_at", { ascending: false });
       if (!alunos?.length) return [];
@@ -407,7 +407,16 @@ export default function Prospects() {
                   </td>
                   <td className="p-4 hidden md:table-cell text-sm text-muted-foreground">{p.telefone || "—"}</td>
                   <td className="p-4 hidden md:table-cell"><Badge variant="outline" className="text-xs">{p.origem}</Badge></td>
-                  <td className="p-4 hidden lg:table-cell"><Badge className="text-xs">{stageNameMap[p.current_pipeline_stage_id] || "—"}</Badge></td>
+                  <td className="p-4 hidden lg:table-cell">
+                    <div className="flex flex-col gap-1">
+                      <Badge className="text-xs w-fit">{stageNameMap[p.current_pipeline_stage_id] || "—"}</Badge>
+                      {p.motivo_perda && (
+                        <Badge variant="destructive" className="text-xs w-fit" title={p.motivo_perda}>
+                          Não convertido · {p.motivo_perda}
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-4 hidden lg:table-cell">
                     {p.tem_agenda ? <Badge variant="secondary" className="text-xs">Agendado</Badge> : <span className="text-muted-foreground text-xs">—</span>}
                   </td>
@@ -421,6 +430,9 @@ export default function Prospects() {
                           <a href={wa} target="_blank" rel="noreferrer"><MessageCircle className="w-4 h-4" /></a>
                         </Button>
                       )}
+                      <Button size="icon" variant="ghost" onClick={() => navigate(`/alunos/${p.id}`)} title="Visualizar perfil">
+                        <Eye className="w-4 h-4" />
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => setEditId(p.id)} title="Editar">
                         <Pencil className="w-4 h-4" />
                       </Button>
