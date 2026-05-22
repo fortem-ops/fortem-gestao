@@ -800,7 +800,7 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
             onClick={() => onConfirm(motivoSelecionado?.nome ?? "")}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {cancelDate > new Date().toISOString().split("T")[1] ? "Agendar cancelamento" : "Confirmar cancelamento"}
+            {cancelDate > new Date().toISOString().split("T")[0] ? "Agendar cancelamento" : "Confirmar cancelamento"}
           </Button>
         </DialogFooter>
       </DialogContent>
