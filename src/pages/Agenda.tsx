@@ -45,7 +45,7 @@ export default function Agenda() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date; tipo: string } | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
