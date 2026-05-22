@@ -223,10 +223,21 @@ Deno.serve(async (req) => {
 
     const horario = `${(agenda.horario_inicio||"").slice(0,5)} - ${(agenda.horario_fim||"").slice(0,5)}`;
 
+    let anamnese: any = null;
+    if (evento === "agendado" && agenda.aluno_id) {
+      const { data: an } = await admin
+        .from("prospect_anamnese")
+        .select("limitacoes, atividade_fisica, objetivo_treinamento")
+        .eq("aluno_id", agenda.aluno_id)
+        .maybeSingle();
+      anamnese = an || null;
+    }
+
     const subject = `FORTEM — ${agenda.atividade} ${evento === "agendado" ? "agendado" : "cancelado"}: ${alunoNome}`;
     const html = buildHtml({
       evento, atividade: agenda.atividade, aluno: alunoNome, profissional: profNome,
       quando, horario, local: agenda.local || "—", observacoes: agenda.observacoes,
+      anamnese,
     });
 
     // Destinatários extra conforme regra + emails fixos
