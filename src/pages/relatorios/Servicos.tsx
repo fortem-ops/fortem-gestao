@@ -25,6 +25,7 @@ type Row = {
   aluno_id: string | null;
   aluno_nome: string | null;
   comparecimento: boolean;
+  presenca_marcada: boolean;
 };
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
