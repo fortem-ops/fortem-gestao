@@ -549,6 +549,54 @@ export default function Presencas() {
           </CardContent>
         </Card>
       )}
+
+      {/* ===== MÊS — lista de atividades ===== */}
+      {viewMode === "mes" && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-heading font-semibold text-foreground">
+              Atividades do mês
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              Clique em "Expandir" para marcar presença
+            </span>
+          </div>
+          {monthGridDays
+            .filter((d) => isSameMonth(d, date))
+            .map((d) => {
+              const ds = d.getDay();
+              const dStr = format(d, "yyyy-MM-dd");
+              const dayAulas = aulas.filter((a) => {
+                if (a.tipo === "avulso") return a.data_especifica === dStr;
+                return a.dia_semana === ds;
+              });
+              if (dayAulas.length === 0) return null;
+              const marcadas = dayAulas.filter((a) => `${a.id}|${dStr}` in presencaMap).length;
+              const presentes = dayAulas.filter((a) => presencaMap[`${a.id}|${dStr}`] === true).length;
+              const faltas = dayAulas.filter((a) => presencaMap[`${a.id}|${dStr}`] === false).length;
+              return (
+                <WeekDayCard
+                  key={dStr}
+                  dayStat={{
+                    date: d,
+                    dateStr: dStr,
+                    aulas: dayAulas,
+                    total: dayAulas.length,
+                    marcadas,
+                    presentes,
+                    faltas,
+                  }}
+                  isExpanded={expandedWeekDays.has(dStr)}
+                  onToggleExpand={() => toggleExpandWeekDay(dStr)}
+                  presencaMap={presencaMap}
+                  profFilter={profFilter}
+                  onMark={(agendaId, value, dataStr) => markMutation.mutate({ agendaId, value, dataStr })}
+                  isPending={markMutation.isPending}
+                />
+              );
+            })}
+        </div>
+      )}
     </div>
   );
 }
