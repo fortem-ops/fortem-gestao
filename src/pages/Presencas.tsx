@@ -323,7 +323,7 @@ export default function Presencas() {
       const dStr = format(d, "yyyy-MM-dd");
       const dayAulas = aulas.filter((a) => {
         if (a.tipo === "avulso") return a.data_especifica === dStr;
-        return a.dia_semana === ds;
+        return isFixoAtivoNoDia(a, dStr, ds);
       });
       const marcadas = dayAulas.filter((a) => `${a.id}|${dStr}` in presencaMap).length;
       const presentes = dayAulas.filter((a) => presencaMap[`${a.id}|${dStr}`] === true).length;
