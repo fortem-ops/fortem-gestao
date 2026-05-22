@@ -52,6 +52,22 @@ export default function Agenda() {
 
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
+  const { data: excecoes = [] } = useQuery({
+    queryKey: ["agenda_servicos_excecoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agenda_servicos_excecoes")
+        .select("agenda_id, data_excecao");
+      if (error) throw error;
+      return data as { agenda_id: string; data_excecao: string }[];
+    },
+  });
+
+  const excecoesSet = useMemo(
+    () => new Set(excecoes.map((e) => `${e.agenda_id}|${e.data_excecao}`)),
+    [excecoes]
+  );
+
   const { data: agendas = [], isLoading } = useQuery({
     queryKey: ["agenda_servicos"],
     queryFn: async () => {
@@ -103,6 +119,7 @@ export default function Agenda() {
     },
     onSuccess: (ev: any) => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
+      queryClient.invalidateQueries({ queryKey: ["agenda_servicos_excecoes"] });
       toast.success("Horário removido");
 
       // Fallback de notificação de cancelamento (idempotente no servidor)
@@ -113,9 +130,25 @@ export default function Agenda() {
         }).catch((e) => console.error("notify-agenda-evento (delete):", e));
       }
 
-      setDeleteId(null);
+      setDeleteTarget(null);
     },
     onError: () => toast.error("Erro ao remover horário"),
+  });
+
+  const excecaoMutation = useMutation({
+    mutationFn: async ({ agenda_id, data }: { agenda_id: string; data: Date }) => {
+      const dataStr = format(data, "yyyy-MM-dd");
+      const { error } = await supabase
+        .from("agenda_servicos_excecoes")
+        .insert({ agenda_id, data_excecao: dataStr });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agenda_servicos_excecoes"] });
+      toast.success("Dia removido da recorrência");
+      setDeleteTarget(null);
+    },
+    onError: () => toast.error("Erro ao remover este dia"),
   });
 
   const getEventsForCell = (dayIndex: number, hour: number) => {
