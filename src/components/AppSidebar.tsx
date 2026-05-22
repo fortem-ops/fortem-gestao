@@ -68,6 +68,11 @@ const comercialAdminItems = [
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
 ];
 
+/* ─── Relatórios ─── */
+const relatoriosItems = [
+  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+];
+
 /* ─── Sistema ─── */
 const sistemaCoordAdminItems = [
   { title: "Administração", url: "/admin", icon: Settings },
