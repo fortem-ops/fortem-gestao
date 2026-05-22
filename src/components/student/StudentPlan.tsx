@@ -718,7 +718,7 @@ interface CancelContractDialogProps {
   cancelDate: string;
   setCancelDate: (v: string) => void;
   saving: boolean;
-  onConfirm: (motivo: string) => void;
+  onConfirm: (motivo: string, financeiro?: { multa?: number; estorno?: number }) => void;
 }
 
 function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCancelDate, saving, onConfirm }: CancelContractDialogProps) {
@@ -727,6 +727,10 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
   const [motivoId, setMotivoId] = useState<string>("");
   const [addOpen, setAddOpen] = useState(false);
   const [novoNome, setNovoNome] = useState("");
+  const [aplicarMulta, setAplicarMulta] = useState(false);
+  const [valorMulta, setValorMulta] = useState<string>("");
+  const [estornarValor, setEstornarValor] = useState(false);
+  const [valorEstorno, setValorEstorno] = useState<string>("");
 
   async function adicionarMotivo() {
     const nome = novoNome.trim();
@@ -745,6 +749,10 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
         setMotivoId("");
         setAddOpen(false);
         setNovoNome("");
+        setAplicarMulta(false);
+        setValorMulta("");
+        setEstornarValor(false);
+        setValorEstorno("");
       }
       onOpenChange(v);
     }}>
@@ -796,12 +804,65 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
               </Button>
             )}
           </div>
+
+          <div className="space-y-3 rounded-md border border-border/60 p-3">
+            <Label className="text-sm">Ajustes financeiros</Label>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  id="cancel-multa"
+                  type="checkbox"
+                  checked={aplicarMulta}
+                  onChange={(e) => setAplicarMulta(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-primary"
+                />
+                <Label htmlFor="cancel-multa" className="font-normal cursor-pointer text-sm">Aplicar multa</Label>
+              </div>
+              {aplicarMulta && (
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Valor da multa (R$)"
+                  value={valorMulta}
+                  onChange={(e) => setValorMulta(e.target.value)}
+                />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  id="cancel-estorno"
+                  type="checkbox"
+                  checked={estornarValor}
+                  onChange={(e) => setEstornarValor(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-primary"
+                />
+                <Label htmlFor="cancel-estorno" className="font-normal cursor-pointer text-sm">Estornar valor</Label>
+              </div>
+              {estornarValor && (
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Valor do estorno (R$)"
+                  value={valorEstorno}
+                  onChange={(e) => setValorEstorno(e.target.value)}
+                />
+              )}
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button>
           <Button
-            disabled={saving || !cancelDate || !motivoId}
-            onClick={() => onConfirm(motivoSelecionado?.nome ?? "")}
+            disabled={saving || !cancelDate || !motivoId || (aplicarMulta && !(parseFloat(valorMulta) > 0)) || (estornarValor && !(parseFloat(valorEstorno) > 0))}
+            onClick={() => onConfirm(motivoSelecionado?.nome ?? "", {
+              multa: aplicarMulta ? parseFloat(valorMulta) || 0 : undefined,
+              estorno: estornarValor ? parseFloat(valorEstorno) || 0 : undefined,
+            })}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {cancelDate > new Date().toISOString().split("T")[0] ? "Agendar cancelamento" : "Confirmar cancelamento"}
