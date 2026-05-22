@@ -614,6 +614,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "avaliacoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
             foreignKeyName: "avaliacoes_protocolo_id_fkey"
             columns: ["protocolo_id"]
             isOneToOne: false
@@ -791,6 +798,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cancelamento_motivos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
+      }
       clube_alertas: {
         Row: {
           aluno_id: string | null
@@ -886,6 +920,65 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "alunos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_fortem_membros_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      cobranca_tentativas: {
+        Row: {
+          canal: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          observacao: string | null
+          parcela_id: string
+          resultado: string | null
+        }
+        Insert: {
+          canal: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          observacao?: string | null
+          parcela_id: string
+          resultado?: string | null
+        }
+        Update: {
+          canal?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          observacao?: string | null
+          parcela_id?: string
+          resultado?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranca_tentativas_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "pagamento_parcelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranca_tentativas_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "v_financeiro_aberto"
+            referencedColumns: ["parcela_id"]
+          },
+          {
+            foreignKeyName: "cobranca_tentativas_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "v_financeiro_recebimentos"
+            referencedColumns: ["parcela_id"]
           },
         ]
       }
@@ -1090,6 +1183,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "consumo_servicos_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "v_servicos_agenda"
+            referencedColumns: ["agenda_id"]
+          },
+          {
             foreignKeyName: "consumo_servicos_aluno_id_fkey"
             columns: ["aluno_id"]
             isOneToOne: false
@@ -1097,11 +1197,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "consumo_servicos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
             foreignKeyName: "consumo_servicos_plano_id_fkey"
             columns: ["plano_id"]
             isOneToOne: false
             referencedRelation: "planos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumo_servicos_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
           },
         ]
       }
@@ -1155,6 +1269,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "alunos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creditos_aluno_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
           },
         ]
       }
@@ -1331,6 +1452,13 @@ export type Database = {
             referencedRelation: "alunos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "historico_profissional_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
         ]
       }
       lead_origens: {
@@ -1434,6 +1562,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "alunos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_annexes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
           },
         ]
       }
@@ -1728,6 +1863,151 @@ export type Database = {
         }
         Relationships: []
       }
+      pagamento_parcelas: {
+        Row: {
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string | null
+          forma_pagamento: string | null
+          id: string
+          numero: number
+          observacoes: string | null
+          pagamento_id: string
+          status: string
+          updated_at: string
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          numero: number
+          observacoes?: string | null
+          pagamento_id: string
+          status?: string
+          updated_at?: string
+          valor?: number
+          vencimento: string
+        }
+        Update: {
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          numero?: number
+          observacoes?: string | null
+          pagamento_id?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamento_parcelas_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          observacoes: string | null
+          parcelas_qtd: number
+          plano_id: string | null
+          status: string
+          updated_at: string
+          valor_total: number
+          venda_id: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          parcelas_qtd?: number
+          plano_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_total?: number
+          venda_id: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          parcelas_qtd?: number
+          plano_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_total?: number
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parceiros: {
         Row: {
           ativo: boolean
@@ -1842,6 +2122,13 @@ export type Database = {
             referencedRelation: "alunos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pipeline_metadata_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
         ]
       }
       pipeline_movements: {
@@ -1888,6 +2175,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "alunos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_movements_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
           },
           {
             foreignKeyName: "pipeline_movements_from_stage_id_fkey"
@@ -1997,6 +2291,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "alunos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
           },
         ]
       }
@@ -2572,6 +2873,69 @@ export type Database = {
           },
         ]
       }
+      relatorios_alertas_config: {
+        Row: {
+          ativo: boolean
+          descricao: string | null
+          id: string
+          nome: string
+          slug: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          descricao?: string | null
+          id?: string
+          nome: string
+          slug: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          descricao?: string | null
+          id?: string
+          nome?: string
+          slug?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      relatorios_insights: {
+        Row: {
+          descricao: string | null
+          gerado_em: string
+          id: string
+          payload: Json
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          severidade: string
+          titulo: string
+        }
+        Insert: {
+          descricao?: string | null
+          gerado_em?: string
+          id?: string
+          payload?: Json
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          severidade?: string
+          titulo: string
+        }
+        Update: {
+          descricao?: string | null
+          gerado_em?: string
+          id?: string
+          payload?: Json
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          severidade?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       servicos_catalogo: {
         Row: {
           atividade: string
@@ -2737,6 +3101,13 @@ export type Database = {
             referencedRelation: "alunos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
         ]
       }
       treinos: {
@@ -2781,6 +3152,13 @@ export type Database = {
             referencedRelation: "alunos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "treinos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
         ]
       }
       uploads: {
@@ -2821,6 +3199,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "alunos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uploads_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
           },
         ]
       }
@@ -2900,6 +3285,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "uso_beneficios_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
             foreignKeyName: "uso_beneficios_beneficio_id_fkey"
             columns: ["beneficio_id"]
             isOneToOne: false
@@ -2920,11 +3312,14 @@ export type Database = {
           aluno_id: string
           catalogo_id: string
           created_at: string
+          data_cancelamento: string | null
           data_venda: string
           desconto: number
           forma_pagamento: string | null
           id: string
+          motivo_cancelamento_id: string | null
           nome_snapshot: string
+          observacao_cancelamento: string | null
           observacoes: string | null
           origem: string
           parcelas: number
@@ -2940,11 +3335,14 @@ export type Database = {
           aluno_id: string
           catalogo_id: string
           created_at?: string
+          data_cancelamento?: string | null
           data_venda?: string
           desconto?: number
           forma_pagamento?: string | null
           id?: string
+          motivo_cancelamento_id?: string | null
           nome_snapshot: string
+          observacao_cancelamento?: string | null
           observacoes?: string | null
           origem?: string
           parcelas?: number
@@ -2960,11 +3358,14 @@ export type Database = {
           aluno_id?: string
           catalogo_id?: string
           created_at?: string
+          data_cancelamento?: string | null
           data_venda?: string
           desconto?: number
           forma_pagamento?: string | null
           id?: string
+          motivo_cancelamento_id?: string | null
           nome_snapshot?: string
+          observacao_cancelamento?: string | null
           observacoes?: string | null
           origem?: string
           parcelas?: number
@@ -2985,17 +3386,407 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vendas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "vendas_motivo_cancelamento_id_fkey"
+            columns: ["motivo_cancelamento_id"]
+            isOneToOne: false
+            referencedRelation: "cancelamento_motivos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vendas_plano_id_fkey"
             columns: ["plano_id"]
             isOneToOne: false
             referencedRelation: "planos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vendas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      v_cancelamentos: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          data_cancelamento: string | null
+          data_venda: string | null
+          dias_ate_cancelar: number | null
+          motivo_cancelamento_id: string | null
+          motivo_nome: string | null
+          motivo_slug: string | null
+          observacao_cancelamento: string | null
+          plano_tipo: string | null
+          responsavel_id: string | null
+          valor_final: number | null
+          venda_id: string | null
+          vendedor_id: string | null
+          vendedor_nome: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "vendas_motivo_cancelamento_id_fkey"
+            columns: ["motivo_cancelamento_id"]
+            isOneToOne: false
+            referencedRelation: "cancelamento_motivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_crm_pipeline: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          aluno_status: string | null
+          from_stage: string | null
+          from_stage_id: string | null
+          funnel: Database["public"]["Enums"]["pipeline_funnel"] | null
+          moved_at: string | null
+          moved_by_user_id: string | null
+          movement_id: string | null
+          responsavel_id: string | null
+          time_in_previous_stage: string | null
+          to_stage: string | null
+          to_stage_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_movements_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_movements_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pipeline_movements_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_movements_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_equipe_produtividade: {
+        Row: {
+          agendamentos: number | null
+          alunos_ativos: number | null
+          avaliacoes_30d: number | null
+          nome: string | null
+          profissional_id: string | null
+          tarefas_concluidas_30d: number | null
+          vendas_pagas_30d: number | null
+        }
+        Insert: {
+          agendamentos?: never
+          alunos_ativos?: never
+          avaliacoes_30d?: never
+          nome?: string | null
+          profissional_id?: string | null
+          tarefas_concluidas_30d?: never
+          vendas_pagas_30d?: never
+        }
+        Update: {
+          agendamentos?: never
+          alunos_ativos?: never
+          avaliacoes_30d?: never
+          nome?: string | null
+          profissional_id?: string | null
+          tarefas_concluidas_30d?: never
+          vendas_pagas_30d?: never
+        }
+        Relationships: []
+      }
+      v_financeiro_aberto: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          dias_atraso: number | null
+          numero: number | null
+          pagamento_id: string | null
+          parcela_id: string | null
+          responsavel_id: string | null
+          status: string | null
+          telefone: string | null
+          valor: number | null
+          vencimento: string | null
+          venda_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamento_parcelas_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_financeiro_recebimentos: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          data_pagamento: string | null
+          forma_pagamento: string | null
+          mes_pagamento: string | null
+          numero: number | null
+          pagamento_id: string | null
+          parcela_id: string | null
+          status: string | null
+          valor: number | null
+          vencimento: string | null
+          venda_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamento_parcelas_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_funil_conversao: {
+        Row: {
+          alunos: number | null
+          alunos_ativos: number | null
+          inativos: number | null
+          mes: string | null
+          perdidos: number | null
+          prospects: number | null
+          responsavel_id: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      v_planos_base: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          ativo: boolean | null
+          data_fim: string | null
+          data_inicio: string | null
+          dias_no_plano: number | null
+          duracao_meses: number | null
+          plano_id: string | null
+          proxima_renovacao: string | null
+          renovacao_automatica: boolean | null
+          responsavel_id: string | null
+          situacao: string | null
+          tipo: string | null
+          valor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      v_servicos_agenda: {
+        Row: {
+          agenda_id: string | null
+          aluno_id: string | null
+          aluno_nome: string | null
+          atividade: string | null
+          comparecimento: boolean | null
+          data_especifica: string | null
+          dia_semana: number | null
+          horario_fim: string | null
+          horario_inicio: string | null
+          local: string | null
+          profissional_id: string | null
+          profissional_nome: string | null
+          tipo: string | null
+        }
+        Relationships: []
+      }
+      v_tecnico_alertas: {
+        Row: {
+          aluno_id: string | null
+          avaliacao_atrasada: boolean | null
+          frequencia_semanal: number | null
+          nome: string | null
+          responsavel_id: string | null
+          treino_desatualizado: boolean | null
+          ultima_avaliacao: string | null
+          ultimo_treino_atualizado: string | null
+        }
+        Relationships: []
+      }
+      v_vendas_resumo: {
+        Row: {
+          aluno_id: string | null
+          aluno_nome: string | null
+          data_venda: string | null
+          desconto: number | null
+          duracao_meses: number | null
+          forma_pagamento: string | null
+          item: string | null
+          mes: string | null
+          parcelas: number | null
+          plano_id: string | null
+          plano_tipo: string | null
+          responsavel_id: string | null
+          status_pagamento: Database["public"]["Enums"]["venda_status"] | null
+          tipo: Database["public"]["Enums"]["venda_tipo"] | null
+          valor: number | null
+          valor_final: number | null
+          venda_id: string | null
+          vendedor_id: string | null
+          vendedor_nome: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "vendas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
+          },
+        ]
+      }
     }
     Functions: {
       fn_agendar_reavaliacoes_pendentes: { Args: never; Returns: Json }
@@ -3062,6 +3853,7 @@ export type Database = {
         Returns: string
       }
       fn_is_auto_renew_plan: { Args: { _tipo: string }; Returns: boolean }
+      fn_marcar_parcelas_vencidas: { Args: never; Returns: number }
       fn_move_pipeline: {
         Args: {
           _aluno_id: string
