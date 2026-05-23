@@ -16,6 +16,7 @@ import { ResumoDoDia, type EventoPonto } from "@/components/ponto/ResumoDoDia";
 import { HistoricoJornadas } from "@/components/ponto/HistoricoJornadas";
 import { MeuRelatorioPonto } from "@/components/ponto/MeuRelatorioPonto";
 import { MeuBancoHoras } from "@/components/ponto/MeuBancoHoras";
+import { JanelasDoDia } from "@/components/ponto/JanelasDoDia";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
 
 interface EstadoAtual {
