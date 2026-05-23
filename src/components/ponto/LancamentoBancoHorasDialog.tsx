@@ -26,12 +26,16 @@ export function LancamentoBancoHorasDialog({ open, onOpenChange, usuarioId, usua
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [motivo, setMotivo] = useState("");
   const [tipo, setTipo] = useState("credito_manual");
+  const [competencia, setCompetencia] = useState(() => new Date().toISOString().slice(0, 7) + "-01");
+  const [vencimento, setVencimento] = useState<string>("");
 
   useEffect(() => {
     if (open) {
       setSinal("credito"); setHoras("0"); setMinutos("0");
       setData(new Date().toISOString().slice(0, 10));
       setMotivo(""); setTipo("credito_manual");
+      setCompetencia(new Date().toISOString().slice(0, 7) + "-01");
+      setVencimento("");
     }
   }, [open]);
 
