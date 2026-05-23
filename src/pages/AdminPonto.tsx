@@ -40,12 +40,14 @@ export default function AdminPonto() {
         </p>
       </header>
 
-      <Tabs defaultValue="horarios" className="space-y-4">
+      <Tabs defaultValue="vinculos" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="vinculos">Vínculos</TabsTrigger>
           <TabsTrigger value="horarios">Horários</TabsTrigger>
           <TabsTrigger value="feriados">Feriados</TabsTrigger>
           <TabsTrigger value="ferias">Férias / Folgas</TabsTrigger>
         </TabsList>
+        <TabsContent value="vinculos"><AdminPontoVinculos /></TabsContent>
         <TabsContent value="horarios"><AdminPontoHorarios /></TabsContent>
         <TabsContent value="feriados"><AdminPontoFeriados /></TabsContent>
         <TabsContent value="ferias"><AdminPontoFerias /></TabsContent>
