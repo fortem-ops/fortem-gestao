@@ -885,6 +885,51 @@ export type Database = {
         }
         Relationships: []
       }
+      cadastro_trabalhista: {
+        Row: {
+          art_62_clt: boolean
+          banco_horas_ativo: boolean
+          carga_horaria_semanal_min: number | null
+          created_at: string
+          elegivel_ponto: boolean
+          id: string
+          limite_diario_min: number | null
+          observacoes: string | null
+          tipo_vinculo: Database["public"]["Enums"]["tipo_vinculo_trabalhista"]
+          updated_at: string
+          usuario_id: string
+          valor_hora_aula: number | null
+        }
+        Insert: {
+          art_62_clt?: boolean
+          banco_horas_ativo?: boolean
+          carga_horaria_semanal_min?: number | null
+          created_at?: string
+          elegivel_ponto?: boolean
+          id?: string
+          limite_diario_min?: number | null
+          observacoes?: string | null
+          tipo_vinculo?: Database["public"]["Enums"]["tipo_vinculo_trabalhista"]
+          updated_at?: string
+          usuario_id: string
+          valor_hora_aula?: number | null
+        }
+        Update: {
+          art_62_clt?: boolean
+          banco_horas_ativo?: boolean
+          carga_horaria_semanal_min?: number | null
+          created_at?: string
+          elegivel_ponto?: boolean
+          id?: string
+          limite_diario_min?: number | null
+          observacoes?: string | null
+          tipo_vinculo?: Database["public"]["Enums"]["tipo_vinculo_trabalhista"]
+          updated_at?: string
+          usuario_id?: string
+          valor_hora_aula?: number | null
+        }
+        Relationships: []
+      }
       cancelamento_motivos: {
         Row: {
           ativo: boolean
@@ -4234,6 +4279,13 @@ export type Database = {
         | "frequencia_minima"
         | "status_financeiro"
         | "tempo_matricula"
+      tipo_vinculo_trabalhista:
+        | "horista"
+        | "mensalista"
+        | "pj"
+        | "estagiario"
+        | "autonomo"
+        | "coordenador_gestao"
       uso_origem_validacao: "scanner" | "cpf_manual" | "admin"
       uso_status_validacao: "valido" | "recusado" | "expirado" | "bloqueado"
       venda_status: "pendente" | "pago" | "cancelado"
@@ -4515,6 +4567,14 @@ export const Constants = {
         "frequencia_minima",
         "status_financeiro",
         "tempo_matricula",
+      ],
+      tipo_vinculo_trabalhista: [
+        "horista",
+        "mensalista",
+        "pj",
+        "estagiario",
+        "autonomo",
+        "coordenador_gestao",
       ],
       uso_origem_validacao: ["scanner", "cpf_manual", "admin"],
       uso_status_validacao: ["valido", "recusado", "expirado", "bloqueado"],
