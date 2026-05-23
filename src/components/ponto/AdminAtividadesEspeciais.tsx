@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, CalendarStar, Trash2, Users } from "lucide-react";
+import { Plus, Sparkles, Trash2, Users } from "lucide-react";
 
 type Forma = "pagamento" | "banco_horas";
 
@@ -89,7 +89,7 @@ export function AdminAtividadesEspeciais() {
   return (
     <Card className="p-4 space-y-4">
       <div className="flex items-center gap-2">
-        <CalendarStar className="w-4 h-4 text-primary" />
+        <Sparkles className="w-4 h-4 text-primary" />
         <h3 className="font-semibold">Atividades especiais</h3>
         <p className="text-xs text-muted-foreground ml-2">
           Eventos com horas-aula vinculadas. Limite: 8h por participante.
