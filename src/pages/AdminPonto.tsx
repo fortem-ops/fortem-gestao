@@ -9,6 +9,7 @@ import { Navigate } from "react-router-dom";
 import { AdminPontoHorarios } from "@/components/ponto/AdminPontoHorarios";
 import { AdminPontoFeriados } from "@/components/ponto/AdminPontoFeriados";
 import { AdminPontoFerias } from "@/components/ponto/AdminPontoFerias";
+import { AdminPontoVinculos } from "@/components/ponto/AdminPontoVinculos";
 
 export default function AdminPonto() {
   const { user, loading } = useAuth();
