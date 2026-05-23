@@ -264,6 +264,8 @@ export default function Ponto() {
                 usuarioAlvoId={targetId!}
                 tolerancia={jornadaHoje as any}
               />
+
+              <JanelasDoDia userId={targetId!} />
             </>
           )}
 
