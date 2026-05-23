@@ -10,6 +10,8 @@ import { AdminPontoHorarios } from "@/components/ponto/AdminPontoHorarios";
 import { AdminPontoFeriados } from "@/components/ponto/AdminPontoFeriados";
 import { AdminPontoFerias } from "@/components/ponto/AdminPontoFerias";
 import { AdminPontoVinculos } from "@/components/ponto/AdminPontoVinculos";
+import { AdminSubstituicoes } from "@/components/ponto/AdminSubstituicoes";
+import { AdminAtividadesEspeciais } from "@/components/ponto/AdminAtividadesEspeciais";
 
 export default function AdminPonto() {
   const { user, loading } = useAuth();
@@ -46,11 +48,15 @@ export default function AdminPonto() {
           <TabsTrigger value="horarios">Horários</TabsTrigger>
           <TabsTrigger value="feriados">Feriados</TabsTrigger>
           <TabsTrigger value="ferias">Férias / Folgas</TabsTrigger>
+          <TabsTrigger value="substituicoes">Substituições</TabsTrigger>
+          <TabsTrigger value="atividades">Atividades especiais</TabsTrigger>
         </TabsList>
         <TabsContent value="vinculos"><AdminPontoVinculos /></TabsContent>
         <TabsContent value="horarios"><AdminPontoHorarios /></TabsContent>
         <TabsContent value="feriados"><AdminPontoFeriados /></TabsContent>
         <TabsContent value="ferias"><AdminPontoFerias /></TabsContent>
+        <TabsContent value="substituicoes"><AdminSubstituicoes /></TabsContent>
+        <TabsContent value="atividades"><AdminAtividadesEspeciais /></TabsContent>
       </Tabs>
     </div>
   );

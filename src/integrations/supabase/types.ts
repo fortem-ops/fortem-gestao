@@ -2519,8 +2519,90 @@ export type Database = {
           },
         ]
       }
+      ponto_atividades_especiais: {
+        Row: {
+          created_at: string
+          created_by: string
+          data: string
+          descricao: string | null
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          local: string | null
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data: string
+          descricao?: string | null
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          local?: string | null
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data?: string
+          descricao?: string | null
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          local?: string | null
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ponto_atividades_participantes: {
+        Row: {
+          atividade_id: string
+          created_at: string
+          forma_pagamento: Database["public"]["Enums"]["ponto_atv_forma_pgto"]
+          id: string
+          observacoes: string | null
+          qtd_horas: number
+          usuario_id: string
+          valor_hora: number
+        }
+        Insert: {
+          atividade_id: string
+          created_at?: string
+          forma_pagamento?: Database["public"]["Enums"]["ponto_atv_forma_pgto"]
+          id?: string
+          observacoes?: string | null
+          qtd_horas: number
+          usuario_id: string
+          valor_hora?: number
+        }
+        Update: {
+          atividade_id?: string
+          created_at?: string
+          forma_pagamento?: Database["public"]["Enums"]["ponto_atv_forma_pgto"]
+          id?: string
+          observacoes?: string | null
+          qtd_horas?: number
+          usuario_id?: string
+          valor_hora?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_atividades_participantes_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "ponto_atividades_especiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ponto_banco_horas: {
         Row: {
+          auditoria: Json
+          competencia: string | null
           created_at: string
           data: string
           id: string
@@ -2531,8 +2613,11 @@ export type Database = {
           tipo: Database["public"]["Enums"]["ponto_banco_tipo"]
           updated_at: string
           usuario_id: string
+          vencimento: string | null
         }
         Insert: {
+          auditoria?: Json
+          competencia?: string | null
           created_at?: string
           data?: string
           id?: string
@@ -2543,8 +2628,11 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["ponto_banco_tipo"]
           updated_at?: string
           usuario_id: string
+          vencimento?: string | null
         }
         Update: {
+          auditoria?: Json
+          competencia?: string | null
           created_at?: string
           data?: string
           id?: string
@@ -2555,6 +2643,7 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["ponto_banco_tipo"]
           updated_at?: string
           usuario_id?: string
+          vencimento?: string | null
         }
         Relationships: []
       }
@@ -2903,6 +2992,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ponto_substituicoes: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          created_by: string
+          data: string
+          forma_pagamento: Database["public"]["Enums"]["ponto_subs_forma_pgto"]
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          motivo: string
+          observacoes: string | null
+          qtd_horas: number
+          status: Database["public"]["Enums"]["ponto_subs_status"]
+          substituido_id: string
+          substituto_id: string
+          updated_at: string
+          valor_hora_aplicado: number
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          created_by: string
+          data: string
+          forma_pagamento?: Database["public"]["Enums"]["ponto_subs_forma_pgto"]
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          motivo: string
+          observacoes?: string | null
+          qtd_horas: number
+          status?: Database["public"]["Enums"]["ponto_subs_status"]
+          substituido_id: string
+          substituto_id: string
+          updated_at?: string
+          valor_hora_aplicado?: number
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          created_by?: string
+          data?: string
+          forma_pagamento?: Database["public"]["Enums"]["ponto_subs_forma_pgto"]
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          motivo?: string
+          observacoes?: string | null
+          qtd_horas?: number
+          status?: Database["public"]["Enums"]["ponto_subs_status"]
+          substituido_id?: string
+          substituto_id?: string
+          updated_at?: string
+          valor_hora_aplicado?: number
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -4090,6 +4239,14 @@ export type Database = {
       }
       fn_ponto_estado_atual: { Args: { _user_id?: string }; Returns: Json }
       fn_ponto_gerar_fechamentos_mes: { Args: { _mes: string }; Returns: Json }
+      fn_ponto_janelas_dia: {
+        Args: { _data: string; _usuario: string }
+        Returns: {
+          tempo_estabelecimento_min: number
+          tempo_ocioso_min: number
+          tempo_trabalhado_min: number
+        }[]
+      }
       fn_ponto_registrar: {
         Args: {
           _dispositivo?: string
@@ -4239,6 +4396,7 @@ export type Database = {
         | "auto_evasao"
         | "auto_recuperacao"
       plano_frequencia: "1x" | "2x" | "3x" | "livre"
+      ponto_atv_forma_pgto: "pagamento" | "banco_horas"
       ponto_banco_tipo:
         | "credito_manual"
         | "debito_manual"
@@ -4246,6 +4404,10 @@ export type Database = {
         | "ajuste_saldo"
         | "tolerancia_excedida"
         | "hora_extra"
+        | "vencimento"
+        | "rescisao"
+        | "substituicao"
+        | "atividade_especial"
       ponto_evento_tipo:
         | "entrada"
         | "intervalo_inicio"
@@ -4274,6 +4436,8 @@ export type Database = {
         | "jornada_incompleta"
         | "falta_marcacao"
         | "em_analise"
+      ponto_subs_forma_pgto: "pagamento" | "banco_horas"
+      ponto_subs_status: "pendente" | "aprovada" | "rejeitada"
       regra_elegibilidade_tipo:
         | "plano"
         | "frequencia_minima"
@@ -4522,6 +4686,7 @@ export const Constants = {
         "auto_recuperacao",
       ],
       plano_frequencia: ["1x", "2x", "3x", "livre"],
+      ponto_atv_forma_pgto: ["pagamento", "banco_horas"],
       ponto_banco_tipo: [
         "credito_manual",
         "debito_manual",
@@ -4529,6 +4694,10 @@ export const Constants = {
         "ajuste_saldo",
         "tolerancia_excedida",
         "hora_extra",
+        "vencimento",
+        "rescisao",
+        "substituicao",
+        "atividade_especial",
       ],
       ponto_evento_tipo: [
         "entrada",
@@ -4562,6 +4731,8 @@ export const Constants = {
         "falta_marcacao",
         "em_analise",
       ],
+      ponto_subs_forma_pgto: ["pagamento", "banco_horas"],
+      ponto_subs_status: ["pendente", "aprovada", "rejeitada"],
       regra_elegibilidade_tipo: [
         "plano",
         "frequencia_minima",
