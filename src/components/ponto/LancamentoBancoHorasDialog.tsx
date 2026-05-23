@@ -48,6 +48,10 @@ export function LancamentoBancoHorasDialog({ open, onOpenChange, usuarioId, usua
       const totalMin = (parseInt(horas || "0", 10) * 60) + parseInt(minutos || "0", 10);
       if (totalMin === 0) throw new Error("Informe horas e/ou minutos");
       if (motivo.trim().length < 3) throw new Error("Motivo obrigatório (mín. 3 caracteres)");
+      // Validação CLT: 2h extras/dia
+      if (sinal === "credito" && tipo === "hora_extra" && totalMin > 120) {
+        throw new Error("Limite legal de 2h extras por dia ultrapassado");
+      }
       const minSigned = sinal === "credito" ? totalMin : -totalMin;
       const { error } = await supabase.from("ponto_banco_horas" as any).insert({
         usuario_id: usuarioId,
@@ -55,6 +59,8 @@ export function LancamentoBancoHorasDialog({ open, onOpenChange, usuarioId, usua
         minutos: minSigned,
         motivo: motivo.trim(),
         tipo,
+        competencia,
+        vencimento: vencimento || null,
         registrado_por: user!.id,
       });
       if (error) throw error;
