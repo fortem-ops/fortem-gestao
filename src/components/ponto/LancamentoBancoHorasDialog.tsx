@@ -115,10 +115,23 @@ export function LancamentoBancoHorasDialog({ open, onOpenChange, usuarioId, usua
               <SelectContent>
                 <SelectItem value="credito_manual">Crédito manual</SelectItem>
                 <SelectItem value="debito_manual">Débito manual</SelectItem>
+                <SelectItem value="hora_extra">Hora extra</SelectItem>
                 <SelectItem value="compensacao">Compensação</SelectItem>
                 <SelectItem value="ajuste_saldo">Ajuste de saldo</SelectItem>
+                <SelectItem value="substituicao">Substituição</SelectItem>
+                <SelectItem value="atividade_especial">Atividade especial</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Competência</Label>
+              <Input type="month" value={competencia.slice(0, 7)} onChange={(e) => setCompetencia(e.target.value + "-01")} />
+            </div>
+            <div>
+              <Label>Vencimento (opcional)</Label>
+              <Input type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+            </div>
           </div>
           <div>
             <Label>Motivo</Label>
