@@ -1,28 +1,119 @@
-## Alterações em `src/pages/Prospects.tsx`
 
-### 1. KPI: substituir "Conversão Lead → Prospect" por "Conversão Prospect → Aluno (mês)" com percentual
+# Expansão do módulo Ponto
 
-- O card atual (linha 292) que mostra `conversionRate%` (Lead→Prospect, 30d) será trocado por **"Conversão Prospect → Aluno (mês)"** mostrando um **percentual**.
-- Cálculo: `(prospects convertidos em aluno no mês atual) / (prospects ativos no início do mês + novos prospects do mês) × 100`. Fonte: `pipeline_movements` filtrando `to_stage_id = "Aluno ativo"` e `from_stage_id ∈ funil prospects` no mês corrente.
-- O card existente "Conversão Prospect → Aluno (mês)" (linha 296, que mostra a contagem absoluta) é mantido como está — sem duplicação, pois um vira % e o outro continua contagem absoluta.
+Este é um escopo grande (6 grandes blocos funcionais). Proponho dividir em **6 fases** para entregar incrementalmente, cada uma testável de forma isolada. Confirme se quer ir nessa ordem ou priorizar algo.
 
-### 2. Histórico da origem de **conversão** dos prospects (6m)
+---
 
-- O gráfico atual "Histórico da origem dos prospects (6m)" (linha 331) considera origem de **todos os prospects criados**. Será **substituído** por gráfico que considera apenas prospects que **converteram em Aluno ativo** nos últimos 6 meses, agrupado por mês de conversão e empilhado por origem (`pipeline_metadata.origem_lead`).
-- Mesmo formato visual (BarChart vertical empilhado).
+## Fase 1 — Cadastro Trabalhista do Funcionário
 
-### 3. Botão "Não conversão" com motivos configuráveis
+**Banco de dados**
+- Nova tabela `public.cadastro_trabalhista` (1:1 com `profiles`/usuário):
+  - `tipo_vinculo` (enum: horista, mensalista, pj, estagiario, autonomo, coordenador_gestao)
+  - `valor_hora_aula` (numeric)
+  - `carga_horaria_semanal` (int, minutos)
+  - `limite_diario_min` (int)
+  - `banco_horas_ativo` (bool)
+  - `elegivel_ponto` (bool, default true)
+  - `art_62_clt` (bool, default false) — cargo de confiança, dispensa controle
+- RLS: admin gerencia, dono lê o próprio.
 
-- Novo botão de ação na linha de cada prospect (ícone `UserX`), ao lado do botão "Converter em aluno".
-- Abre dialog com seleção de motivo: **Financeiro**, **Localização**, **Outros**, e opção **+ adicionar** (input livre para novo motivo).
-- Os motivos personalizados ficam salvos em nova tabela `prospect_nao_conversao_motivos` (campos: `nome`, `ordem`, `ativo`, `created_by`). Os 3 motivos padrão são pré-cadastrados via seed na migration.
-- Ao confirmar: grava `motivo_perda` em `alunos`, registra novo motivo (se foi "+adicionar"), e move o prospect para a stage **"Aluno perdido"** via `fn_move_pipeline` (reaproveita lógica do `MarkLostDialog`).
+**UI**
+- Nova aba em `Admin → Ponto → Vínculos` (ao lado de Horários/Feriados/Férias).
+- Tabela listando colaboradores + dialog de edição.
+- No widget/perfil pessoal: exibir tipo de vínculo e flags.
 
-### Detalhes técnicos
+**Regras**
+- Se `elegivel_ponto=false` ou `art_62_clt=true`, esconder marcações de ponto e excluir de fechamentos.
 
-- **Migração**: criar tabela `prospect_nao_conversao_motivos` com RLS (SELECT autenticados; INSERT/UPDATE/DELETE coord/admin) e seed dos 3 motivos padrão (`Financeiro`, `Localização`, `Outros`).
-- **Novo componente**: `src/components/prospects/NaoConversaoDialog.tsx` (RadioGroup com motivos + botão "+ adicionar" que revela Input + Salvar).
-- **Hook**: `src/hooks/useProspectMotivos.ts` para listar/criar motivos (similar a `useLeadOrigens`).
-- **Prospects.tsx**: novas queries para conversões mensais por origem (6m) e taxa percentual do mês; novo estado `naoConvTarget`; novo `<Button>` na coluna de ações.
+---
 
-Nenhuma outra página é afetada.
+## Fase 2 — Tratamento de Janelas (jornada efetiva × tempo ocioso)
+
+**Lógica**
+- Função SQL `fn_ponto_calcular_janelas(_usuario, _data)` retornando:
+  - `tempo_trabalhado_min` (soma das aulas/blocos com aluno)
+  - `tempo_ocioso_min` (gaps entre aulas dentro do período no estabelecimento)
+  - `tempo_total_estabelecimento_min` (entrada → saída − intervalos formais)
+- Cruzar `agenda` (aulas confirmadas) com `ponto_jornadas` para detectar janelas.
+
+**UI**
+- Em `ResumoDoDia` e `MeuRelatorioPonto`: 3 cards (Trabalhado / Ocioso / No local).
+- Dashboard coordenador: KPI adicional de tempo ocioso médio.
+
+---
+
+## Fase 3 — Sistema de Substituições
+
+**Banco**
+- `public.ponto_substituicoes`:
+  - `substituto_id`, `substituido_id`, `data`, `hora_inicio`, `hora_fim`, `motivo`, `qtd_horas`, `valor_hora_aplicado`, `forma_pagamento` (pagamento | banco_horas), `status` (pendente/aprovado).
+- Trigger: ao aprovar, lança no fechamento mensal do substituto (extras pagas ou banco+).
+
+**UI**
+- Nova aba em `Ponto → Substituições`: criar/listar substituições.
+- Validação: bloquear se ultrapassar 10h/dia ou 2h extras/dia do substituto.
+
+**Cálculo**
+- `valor_hora_aplicado` puxa de `cadastro_trabalhista.valor_hora_aula` do substituto por padrão (editável).
+
+---
+
+## Fase 4 — Motor Completo de Banco de Horas
+
+**Banco**
+- Já existe `banco_horas`. Estender com:
+  - `competencia` (date — primeiro dia do mês/ano da regra)
+  - `vencimento` (date)
+  - `tipo_lancamento` (credito/debito/compensacao/vencimento/rescisao)
+  - `auditoria_jsonb` (quem, quando, ação)
+- Job `pg_cron` mensal: expira saldos vencidos → lança `vencimento`.
+- Função `fn_ponto_calcular_rescisao(_usuario, _data_saida)`: paga saldo positivo, zera negativo conforme regra.
+
+**Regras de validação (triggers)**
+- Bloquear lançamento que ultrapasse 2h extras/dia.
+- Bloquear jornada >10h/dia.
+
+**UI**
+- `MeuBancoHoras` + `AdminBancoHorasTable`: adicionar colunas de competência, vencimento, tipo.
+- Tela de "Fechamento anual" no Admin Ponto.
+
+---
+
+## Fase 5 — Atividades Especiais (eventos)
+
+**Banco**
+- `ponto_atividades_especiais`: `nome`, `data`, `hora_inicio`, `hora_fim`, `descricao`.
+- `ponto_atividades_participantes`: `atividade_id`, `usuario_id`, `horas`, `forma_pagamento` (pagamento|banco), `valor_hora`.
+- Validação: máx 8h por participante por evento.
+
+**UI**
+- Aba `Admin → Ponto → Atividades Especiais`: CRUD eventos + vincular profissionais.
+- Integração com fechamento mensal (igual substituições).
+
+---
+
+## Fase 6 — Controle de Intervalos (acordos individuais)
+
+**Banco**
+- `ponto_acordos_intervalo`: `usuario_id`, `tipo` (estendido_2h | reduzido_30min), `vigencia_inicio`, `vigencia_fim`, `documento_url`, `aceite_digital_em`, `aceite_ip`.
+- Storage bucket `acordos-intervalo` (privado, RLS por dono+admin).
+
+**UI**
+- Em `Admin → Ponto → Vínculos`: ação "Registrar acordo" → upload PDF + aceite digital.
+- Validador de jornada consulta acordo vigente antes de marcar divergência de intervalo.
+
+---
+
+## Detalhes técnicos
+
+- Todas as migrations usam triggers (não CHECK) para validações temporais.
+- Funções de cálculo com `security definer` + `set search_path = public`.
+- Reusar tokens semânticos (`bg-success/15`, `text-warning`, etc.) — sem cores hardcoded.
+- Edge function `ponto-fechamento-mensal` atualizada para consolidar: jornadas + substituições + atividades + banco de horas.
+
+---
+
+## Pergunta
+
+Posso começar pela **Fase 1 (Cadastro Trabalhista)** já que ela é pré-requisito de quase tudo (valor hora, elegibilidade, art. 62)? Ou prefere outra ordem / quer fatiar mais?
