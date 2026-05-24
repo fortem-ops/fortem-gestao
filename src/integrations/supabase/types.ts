@@ -2475,6 +2475,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ponto_acordos_intervalo: {
+        Row: {
+          aceite_digital_em: string | null
+          aceite_ip: string | null
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          documento_path: string | null
+          documento_url: string | null
+          id: string
+          observacoes: string | null
+          tipo: Database["public"]["Enums"]["tipo_acordo_intervalo"]
+          updated_at: string
+          usuario_id: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          aceite_digital_em?: string | null
+          aceite_ip?: string | null
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          documento_path?: string | null
+          documento_url?: string | null
+          id?: string
+          observacoes?: string | null
+          tipo: Database["public"]["Enums"]["tipo_acordo_intervalo"]
+          updated_at?: string
+          usuario_id: string
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          aceite_digital_em?: string | null
+          aceite_ip?: string | null
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          documento_path?: string | null
+          documento_url?: string | null
+          id?: string
+          observacoes?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_acordo_intervalo"]
+          updated_at?: string
+          usuario_id?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: []
+      }
       ponto_ajustes_log: {
         Row: {
           campo: string
@@ -4101,6 +4152,10 @@ export type Database = {
       }
     }
     Functions: {
+      fn_acordo_intervalo_vigente: {
+        Args: { _data: string; _usuario: string }
+        Returns: Database["public"]["Enums"]["tipo_acordo_intervalo"]
+      }
       fn_agendar_reavaliacoes_pendentes: { Args: never; Returns: Json }
       fn_call_edge_function: {
         Args: { p_body: Json; p_name: string }
@@ -4443,6 +4498,7 @@ export type Database = {
         | "frequencia_minima"
         | "status_financeiro"
         | "tempo_matricula"
+      tipo_acordo_intervalo: "estendido_2h" | "reduzido_30min"
       tipo_vinculo_trabalhista:
         | "horista"
         | "mensalista"
@@ -4739,6 +4795,7 @@ export const Constants = {
         "status_financeiro",
         "tempo_matricula",
       ],
+      tipo_acordo_intervalo: ["estendido_2h", "reduzido_30min"],
       tipo_vinculo_trabalhista: [
         "horista",
         "mensalista",
