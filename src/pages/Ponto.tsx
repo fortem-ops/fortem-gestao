@@ -270,6 +270,8 @@ export default function Ponto() {
             </>
           )}
 
+          {!isViewingOther && <MeusAcordosIntervalo />}
+
           <HistoricoJornadas userId={targetId!} />
         </TabsContent>
 
