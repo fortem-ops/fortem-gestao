@@ -51,6 +51,7 @@ export default function AdminPonto() {
           <TabsTrigger value="ferias">Férias / Folgas</TabsTrigger>
           <TabsTrigger value="substituicoes">Substituições</TabsTrigger>
           <TabsTrigger value="atividades">Atividades especiais</TabsTrigger>
+          <TabsTrigger value="acordos">Acordos de intervalo</TabsTrigger>
         </TabsList>
         <TabsContent value="vinculos"><AdminPontoVinculos /></TabsContent>
         <TabsContent value="horarios"><AdminPontoHorarios /></TabsContent>
@@ -58,6 +59,7 @@ export default function AdminPonto() {
         <TabsContent value="ferias"><AdminPontoFerias /></TabsContent>
         <TabsContent value="substituicoes"><AdminSubstituicoes /></TabsContent>
         <TabsContent value="atividades"><AdminAtividadesEspeciais /></TabsContent>
+        <TabsContent value="acordos"><AdminAcordosIntervalo /></TabsContent>
       </Tabs>
     </div>
   );
