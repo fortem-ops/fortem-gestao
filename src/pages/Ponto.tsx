@@ -17,6 +17,7 @@ import { HistoricoJornadas } from "@/components/ponto/HistoricoJornadas";
 import { MeuRelatorioPonto } from "@/components/ponto/MeuRelatorioPonto";
 import { MeuBancoHoras } from "@/components/ponto/MeuBancoHoras";
 import { JanelasDoDia } from "@/components/ponto/JanelasDoDia";
+import { MeusAcordosIntervalo } from "@/components/ponto/MeusAcordosIntervalo";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
 
 interface EstadoAtual {
@@ -268,6 +269,8 @@ export default function Ponto() {
               <JanelasDoDia userId={targetId!} />
             </>
           )}
+
+          {!isViewingOther && <MeusAcordosIntervalo />}
 
           <HistoricoJornadas userId={targetId!} />
         </TabsContent>
