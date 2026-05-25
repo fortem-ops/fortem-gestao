@@ -99,7 +99,7 @@ export default function Ponto() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ponto_eventos")
-        .select("tipo, data_hora, latitude, longitude, dispositivo")
+        .select("tipo, data_hora, latitude, longitude, dispositivo, fora_do_raio, distancia_m, local_mais_proximo_id")
         .eq("usuario_id", targetId!)
         .eq("jornada_id", estado!.jornada_id!)
         .order("data_hora", { ascending: true });
