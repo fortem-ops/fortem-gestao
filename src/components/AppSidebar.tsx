@@ -27,9 +27,13 @@ const principalItems = [
   { title: "Ponto", url: "/ponto", icon: Clock },
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
   { title: "Notificar", url: "/notificar", icon: Bell, badge: "unread" as const },
-  { title: "Agenda", url: "/agenda", icon: CalendarDays },
-  { title: "Presenças", url: "/presencas", icon: CheckSquare },
   { title: "Comissionamentos", url: "/comissionamentos", icon: DollarSign },
+];
+
+/* ─── Agendas ─── */
+const agendasItems = [
+  { title: "Agenda de Serviços", url: "/agenda", icon: CalendarDays },
+  { title: "Presenças", url: "/presencas", icon: CheckSquare },
 ];
 
 const principalCoordItems = [
@@ -176,6 +180,19 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Agendas */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Agendas</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {agendasItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
 
         {/* Técnico */}
         <SidebarGroup>
