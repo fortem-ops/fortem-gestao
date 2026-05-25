@@ -23,6 +23,9 @@ export interface EventoPonto {
   latitude: number | null;
   longitude: number | null;
   dispositivo: string | null;
+  fora_do_raio?: boolean | null;
+  distancia_m?: number | null;
+  local_mais_proximo_id?: string | null;
 }
 
 interface Props {
