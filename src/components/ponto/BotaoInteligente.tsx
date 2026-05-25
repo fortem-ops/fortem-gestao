@@ -78,10 +78,6 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
       toast({ title: "Não foi possível registrar", description: err.message, variant: "destructive" });
     },
   });
-    onError: (err: any) => {
-      toast({ title: "Não foi possível registrar", description: err.message, variant: "destructive" });
-    },
-  });
 
   if (!acaoEfetiva) {
     return (
