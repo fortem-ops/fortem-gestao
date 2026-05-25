@@ -49,15 +49,35 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
         _dispositivo: shortDevice(),
       });
       if (error) throw error;
-      return data;
+      return { data, semGps: lat == null || lng == null };
     },
-    onSuccess: () => {
-      toast({ title: "Registrado!", description: ACAO_LABEL[acaoEfetiva!] });
+    onSuccess: ({ data, semGps }) => {
+      const res = data as any;
+      if (semGps) {
+        toast({
+          title: "Registrado sem localização",
+          description: "Sua batida foi aceita, mas sem GPS — o coordenador será notificado.",
+          variant: "destructive",
+        });
+      } else if (res?.fora_do_raio) {
+        const dist = res?.distancia_m != null ? `${Math.round(Number(res.distancia_m))}m` : "fora";
+        const nome = res?.local_nome ? ` de ${res.local_nome}` : "";
+        toast({
+          title: "Registrado fora do local",
+          description: `Você está a ${dist}${nome}. O coordenador será notificado.`,
+        });
+      } else {
+        toast({ title: "Registrado!", description: ACAO_LABEL[acaoEfetiva!] });
+      }
       qc.invalidateQueries({ queryKey: ["ponto-estado"] });
       qc.invalidateQueries({ queryKey: ["ponto-historico"] });
       qc.invalidateQueries({ queryKey: ["ponto-widget"] });
       qc.invalidateQueries({ queryKey: ["ponto-eventos-dia"] });
     },
+    onError: (err: any) => {
+      toast({ title: "Não foi possível registrar", description: err.message, variant: "destructive" });
+    },
+  });
     onError: (err: any) => {
       toast({ title: "Não foi possível registrar", description: err.message, variant: "destructive" });
     },
