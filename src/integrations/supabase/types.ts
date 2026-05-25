@@ -2742,9 +2742,12 @@ export type Database = {
           created_at: string
           data_hora: string
           dispositivo: string | null
+          distancia_m: number | null
+          fora_do_raio: boolean
           id: string
           jornada_id: string | null
           latitude: number | null
+          local_mais_proximo_id: string | null
           longitude: number | null
           observacao: string | null
           origem: Database["public"]["Enums"]["ponto_origem"]
@@ -2755,9 +2758,12 @@ export type Database = {
           created_at?: string
           data_hora?: string
           dispositivo?: string | null
+          distancia_m?: number | null
+          fora_do_raio?: boolean
           id?: string
           jornada_id?: string | null
           latitude?: number | null
+          local_mais_proximo_id?: string | null
           longitude?: number | null
           observacao?: string | null
           origem?: Database["public"]["Enums"]["ponto_origem"]
@@ -2768,9 +2774,12 @@ export type Database = {
           created_at?: string
           data_hora?: string
           dispositivo?: string | null
+          distancia_m?: number | null
+          fora_do_raio?: boolean
           id?: string
           jornada_id?: string | null
           latitude?: number | null
+          local_mais_proximo_id?: string | null
           longitude?: number | null
           observacao?: string | null
           origem?: Database["public"]["Enums"]["ponto_origem"]
@@ -2783,6 +2792,13 @@ export type Database = {
             columns: ["jornada_id"]
             isOneToOne: false
             referencedRelation: "ponto_jornadas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ponto_eventos_local_mais_proximo_id_fkey"
+            columns: ["local_mais_proximo_id"]
+            isOneToOne: false
+            referencedRelation: "ponto_locais_trabalho"
             referencedColumns: ["id"]
           },
         ]
@@ -3043,6 +3059,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ponto_locais_trabalho: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          nome: string
+          raio_m: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          nome: string
+          raio_m?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          nome?: string
+          raio_m?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       ponto_substituicoes: {
         Row: {
@@ -4208,6 +4257,10 @@ export type Database = {
       }
       fn_current_aluno_id: { Args: never; Returns: string }
       fn_detect_evasao: { Args: never; Returns: Json }
+      fn_distancia_metros: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       fn_gerar_comissao: {
         Args: {
           _aluno: string
@@ -4220,6 +4273,15 @@ export type Database = {
         Returns: string
       }
       fn_is_auto_renew_plan: { Args: { _tipo: string }; Returns: boolean }
+      fn_local_mais_proximo: {
+        Args: { _lat: number; _lng: number }
+        Returns: {
+          dentro_raio: boolean
+          distancia_m: number
+          local_id: string
+          nome: string
+        }[]
+      }
       fn_marcar_parcelas_vencidas: { Args: never; Returns: number }
       fn_move_pipeline: {
         Args: {

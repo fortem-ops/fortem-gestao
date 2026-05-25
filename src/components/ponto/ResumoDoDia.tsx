@@ -23,6 +23,9 @@ export interface EventoPonto {
   latitude: number | null;
   longitude: number | null;
   dispositivo: string | null;
+  fora_do_raio?: boolean | null;
+  distancia_m?: number | null;
+  local_mais_proximo_id?: string | null;
 }
 
 interface Props {
@@ -168,6 +171,11 @@ export function ResumoDoDia({
                 {it.label}
               </div>
               <p className="text-base font-semibold tabular-nums">{it.value}</p>
+              {registered && ev?.fora_do_raio && (
+                <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 h-4 border-warning/40 bg-warning/10 text-warning">
+                  Fora do local{ev.distancia_m != null ? ` · ${Math.round(Number(ev.distancia_m))}m` : ""}
+                </Badge>
+              )}
               {registered && <LocBadge ev={ev} />}
             </div>
           );
