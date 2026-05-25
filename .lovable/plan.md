@@ -1,119 +1,66 @@
+## Fase 7 — Geofencing (raio de localização)
 
-# Expansão do módulo Ponto
+Implementar validação de raio para o ponto, com 3 locais cadastrados, raio padrão 200m e modo **flexível** (permite registrar mas marca como "fora do local" e gera alerta).
 
-Este é um escopo grande (6 grandes blocos funcionais). Proponho dividir em **6 fases** para entregar incrementalmente, cada uma testável de forma isolada. Confirme se quer ir nessa ordem ou priorizar algo.
+### Banco de dados
 
----
+**Tabela `ponto_locais_trabalho`** (admin gerencia)
+- `id`, `nome` (text), `latitude` (numeric), `longitude` (numeric), `raio_m` (int, default 200), `ativo` (bool), `created_at`, `updated_at`
+- RLS: leitura para autenticados; insert/update/delete só admin
+- Seed com os 3 locais fornecidos:
+  1. Local 1 — `-30.029346, -51.217840`
+  2. Local 2 — `-30.044967, -51.232644`
+  3. Local 3 — `-30.035945, -51.213151`
 
-## Fase 1 — Cadastro Trabalhista do Funcionário
+**Tabela `ponto_eventos`** — adicionar colunas:
+- `fora_do_raio` (bool, default false)
+- `local_mais_proximo_id` (uuid, nullable)
+- `distancia_m` (numeric, nullable)
 
-**Banco de dados**
-- Nova tabela `public.cadastro_trabalhista` (1:1 com `profiles`/usuário):
-  - `tipo_vinculo` (enum: horista, mensalista, pj, estagiario, autonomo, coordenador_gestao)
-  - `valor_hora_aula` (numeric)
-  - `carga_horaria_semanal` (int, minutos)
-  - `limite_diario_min` (int)
-  - `banco_horas_ativo` (bool)
-  - `elegivel_ponto` (bool, default true)
-  - `art_62_clt` (bool, default false) — cargo de confiança, dispensa controle
-- RLS: admin gerencia, dono lê o próprio.
+**Função SQL `fn_distancia_metros(lat1, lng1, lat2, lng2)`** — fórmula de Haversine, IMMUTABLE.
 
-**UI**
-- Nova aba em `Admin → Ponto → Vínculos` (ao lado de Horários/Feriados/Férias).
-- Tabela listando colaboradores + dialog de edição.
-- No widget/perfil pessoal: exibir tipo de vínculo e flags.
+**Função SQL `fn_local_mais_proximo(lat, lng)`** — retorna `{local_id, distancia_m, dentro_raio}` percorrendo locais ativos.
 
-**Regras**
-- Se `elegivel_ponto=false` ou `art_62_clt=true`, esconder marcações de ponto e excluir de fechamentos.
+**Atualizar `fn_ponto_registrar`** — após receber lat/lng:
+- Se lat/lng presentes → calcular local mais próximo e preencher `fora_do_raio`, `local_mais_proximo_id`, `distancia_m`.
+- Se fora do raio ou sem GPS → registra mesmo assim (modo flexível), mas com flag.
+- Se fora do raio → inserir em `ponto_alertas` (tipo novo `fora_do_local`) para o coordenador.
 
----
+**Enum `tipo_alerta_ponto`** — adicionar valor `fora_do_local`.
 
-## Fase 2 — Tratamento de Janelas (jornada efetiva × tempo ocioso)
+### UI
 
-**Lógica**
-- Função SQL `fn_ponto_calcular_janelas(_usuario, _data)` retornando:
-  - `tempo_trabalhado_min` (soma das aulas/blocos com aluno)
-  - `tempo_ocioso_min` (gaps entre aulas dentro do período no estabelecimento)
-  - `tempo_total_estabelecimento_min` (entrada → saída − intervalos formais)
-- Cruzar `agenda` (aulas confirmadas) com `ponto_jornadas` para detectar janelas.
+**Admin → nova aba "Locais"** em `AdminPonto.tsx`:
+- Componente `AdminPontoLocais.tsx` com CRUD: nome, lat, lng, raio (slider 100–500m), ativo.
+- Mapa OpenStreetMap embed mostrando o ponto e círculo do raio (mesma técnica do `LocBadge`).
+- Botão "Usar minha localização atual" para preencher lat/lng.
 
-**UI**
-- Em `ResumoDoDia` e `MeuRelatorioPonto`: 3 cards (Trabalhado / Ocioso / No local).
-- Dashboard coordenador: KPI adicional de tempo ocioso médio.
+**Colaborador (`BotaoInteligente.tsx`)**:
+- Antes de registrar, exibir aviso suave quando GPS retornar fora do raio mais próximo: toast amarelo "Você está a XXXm do local mais próximo — registro será marcado como fora do local". Registro segue normal (modo flexível).
+- Sem GPS: registra com aviso "Sem localização — registro permitido com alerta".
 
----
+**`ResumoDoDia.tsx`**:
+- Em cada evento, se `fora_do_raio = true`, exibir badge âmbar "Fora do local" ao lado da hora, com tooltip da distância e nome do local mais próximo.
 
-## Fase 3 — Sistema de Substituições
+**Equipe ao vivo / Alertas**:
+- `AlertasPontoPanel.tsx` já lista alertas; novo tipo `fora_do_local` aparece automaticamente com ícone/cor distintos (laranja).
 
-**Banco**
-- `public.ponto_substituicoes`:
-  - `substituto_id`, `substituido_id`, `data`, `hora_inicio`, `hora_fim`, `motivo`, `qtd_horas`, `valor_hora_aplicado`, `forma_pagamento` (pagamento | banco_horas), `status` (pendente/aprovado).
-- Trigger: ao aprovar, lança no fechamento mensal do substituto (extras pagas ou banco+).
+### Arquivos
 
-**UI**
-- Nova aba em `Ponto → Substituições`: criar/listar substituições.
-- Validação: bloquear se ultrapassar 10h/dia ou 2h extras/dia do substituto.
+**Novos**
+- `supabase/migrations/...phase7-geofencing.sql`
+- `src/components/ponto/AdminPontoLocais.tsx`
 
-**Cálculo**
-- `valor_hora_aplicado` puxa de `cadastro_trabalhista.valor_hora_aula` do substituto por padrão (editável).
+**Editados**
+- `src/pages/AdminPonto.tsx` — nova aba "Locais"
+- `src/components/ponto/BotaoInteligente.tsx` — toast preditivo de distância
+- `src/components/ponto/ResumoDoDia.tsx` — badge "Fora do local"
+- `src/lib/ponto.ts` — helper `formatDistancia(m)`
+- `src/components/ponto/AlertasPontoPanel.tsx` — label do novo tipo
+- `src/integrations/supabase/types.ts` — auto
 
----
-
-## Fase 4 — Motor Completo de Banco de Horas
-
-**Banco**
-- Já existe `banco_horas`. Estender com:
-  - `competencia` (date — primeiro dia do mês/ano da regra)
-  - `vencimento` (date)
-  - `tipo_lancamento` (credito/debito/compensacao/vencimento/rescisao)
-  - `auditoria_jsonb` (quem, quando, ação)
-- Job `pg_cron` mensal: expira saldos vencidos → lança `vencimento`.
-- Função `fn_ponto_calcular_rescisao(_usuario, _data_saida)`: paga saldo positivo, zera negativo conforme regra.
-
-**Regras de validação (triggers)**
-- Bloquear lançamento que ultrapasse 2h extras/dia.
-- Bloquear jornada >10h/dia.
-
-**UI**
-- `MeuBancoHoras` + `AdminBancoHorasTable`: adicionar colunas de competência, vencimento, tipo.
-- Tela de "Fechamento anual" no Admin Ponto.
-
----
-
-## Fase 5 — Atividades Especiais (eventos)
-
-**Banco**
-- `ponto_atividades_especiais`: `nome`, `data`, `hora_inicio`, `hora_fim`, `descricao`.
-- `ponto_atividades_participantes`: `atividade_id`, `usuario_id`, `horas`, `forma_pagamento` (pagamento|banco), `valor_hora`.
-- Validação: máx 8h por participante por evento.
-
-**UI**
-- Aba `Admin → Ponto → Atividades Especiais`: CRUD eventos + vincular profissionais.
-- Integração com fechamento mensal (igual substituições).
-
----
-
-## Fase 6 — Controle de Intervalos (acordos individuais)
-
-**Banco**
-- `ponto_acordos_intervalo`: `usuario_id`, `tipo` (estendido_2h | reduzido_30min), `vigencia_inicio`, `vigencia_fim`, `documento_url`, `aceite_digital_em`, `aceite_ip`.
-- Storage bucket `acordos-intervalo` (privado, RLS por dono+admin).
-
-**UI**
-- Em `Admin → Ponto → Vínculos`: ação "Registrar acordo" → upload PDF + aceite digital.
-- Validador de jornada consulta acordo vigente antes de marcar divergência de intervalo.
-
----
-
-## Detalhes técnicos
-
-- Todas as migrations usam triggers (não CHECK) para validações temporais.
-- Funções de cálculo com `security definer` + `set search_path = public`.
-- Reusar tokens semânticos (`bg-success/15`, `text-warning`, etc.) — sem cores hardcoded.
-- Edge function `ponto-fechamento-mensal` atualizada para consolidar: jornadas + substituições + atividades + banco de horas.
-
----
-
-## Pergunta
-
-Posso começar pela **Fase 1 (Cadastro Trabalhista)** já que ela é pré-requisito de quase tudo (valor hora, elegibilidade, art. 62)? Ou prefere outra ordem / quer fatiar mais?
+### Comportamento resumido
+- GPS dentro do raio → registro normal, sem alerta.
+- GPS fora do raio (qualquer um dos 3 locais > 200m) → registro aceito, `fora_do_raio=true`, alerta para coordenador.
+- Sem GPS → registro aceito, `fora_do_raio=true` (sem local_id), alerta para coordenador.
+- Sem exceções por tipo de vínculo.
