@@ -181,6 +181,19 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Agendas */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Agendas</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {agendasItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+
         {/* Técnico */}
         <SidebarGroup>
           <SidebarGroupLabel>Técnico</SidebarGroupLabel>
