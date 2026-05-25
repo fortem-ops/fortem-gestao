@@ -13,6 +13,7 @@ import { AdminPontoVinculos } from "@/components/ponto/AdminPontoVinculos";
 import { AdminSubstituicoes } from "@/components/ponto/AdminSubstituicoes";
 import { AdminAtividadesEspeciais } from "@/components/ponto/AdminAtividadesEspeciais";
 import { AdminAcordosIntervalo } from "@/components/ponto/AdminAcordosIntervalo";
+import { AdminPontoLocais } from "@/components/ponto/AdminPontoLocais";
 
 export default function AdminPonto() {
   const { user, loading } = useAuth();
