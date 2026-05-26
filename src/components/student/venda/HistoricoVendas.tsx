@@ -184,7 +184,23 @@ export function HistoricoVendas({ alunoId }: Props) {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{v.nome_snapshot}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col leading-tight">
+                        <span>{v.nome_snapshot}</span>
+                        {v.tipo === "plano" && v.plano_id && planosMap[v.plano_id]?.data_fim && (() => {
+                          const p = planosMap[v.plano_id];
+                          const dataFim = p.data_fim as string;
+                          const today = new Date().toISOString().split("T")[0];
+                          const isFuture = dataFim > today;
+                          return (
+                            <span className={`text-[11px] ${isFuture ? "text-muted-foreground" : "text-destructive"}`}>
+                              {isFuture ? "Cancelamento agendado: " : "Cancelado em: "}
+                              {new Date(dataFim + "T12:00:00").toLocaleDateString("pt-BR")}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {desc > 0 ? (
                         <div className="flex flex-col leading-tight">
