@@ -236,7 +236,11 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       if (!isScheduled) payload.ativo = false;
       const { error } = await supabase.from("planos").update(payload).eq("id", data.id);
       if (error) throw error;
-      toast.success(isScheduled ? `Cancelamento agendado para ${new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")}` : "Contrato cancelado");
+      toast.success(isScheduled
+        ? `Cancelamento agendado para ${new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")}`
+        : isRetroactive
+          ? `Contrato cancelado retroativamente em ${new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")}`
+          : "Contrato cancelado");
       invalidatePlanoCaches(queryClient, student.id);
       setCancelOpen(false);
       setCancelMotivo("");
