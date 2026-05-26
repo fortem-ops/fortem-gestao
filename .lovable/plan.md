@@ -1,14 +1,28 @@
-## Ajuste na Sidebar
+## Causa
 
-### Objetivo
-1. Renomear o item "Agenda" para "Agenda de Serviços" na sidebar principal.
-2. Criar uma nova categoria "Agendas" na sidebar.
-3. Mover "Agenda de Serviços" e "Presenças" para essa nova categoria.
+Na função `public.fn_ponto_registrar`, quando o ponto é registrado fora do raio, é criado um destinatário em `notificacao_destinatarios` com `status = 'nao_visualizada'::notif_status`. A coluna real é do tipo `notif_dest_status`, daí o erro `42804`.
 
-### Mudanças
-- **Arquivo:** `src/components/AppSidebar.tsx`
-  - Remover "Agenda" e "Presenças" do array `principalItems`.
-  - Criar novo array `agendasItems` com os dois itens ("Agenda de Serviços" e "Presenças").
-  - Inserir novo `<SidebarGroup label="Agendas">` logo após o grupo "Principal", renderizando `agendasItems`.
+## Correção
 
-Nenhuma outra alteração no sistema é necessária (URLs, permissões e funcionalidades permanecem as mesmas).
+1. Em `public.fn_ponto_registrar`, trocar o cast do `INSERT` em `notificacao_destinatarios`:
+   - de `'nao_visualizada'::notif_status`
+   - para `'nao_visualizada'::notif_dest_status`
+2. Antes de aplicar, conferir com `enum_range(NULL::notif_dest_status)` se `'nao_visualizada'` existe nesse enum. Se não existir, usar o valor equivalente correto (ex.: `'pendente'`/`'nao_lida'`) detectado na inspeção.
+
+Nenhum outro trecho da função precisa mudar.
+
+## Validação ponta a ponta
+
+Executar via SQL como o usuário logado (admin) cada transição, conferindo `fn_ponto_estado_atual` entre elas:
+
+```text
+entrada → intervalo_inicio → intervalo_fim → saida
+```
+
+Em cada passo verificar:
+- Retorno JSON `ok: true`, sem erro 42804.
+- `ponto_jornadas` atualizada com o timestamp correto.
+- `ponto_eventos` recebe o registro com `fora_do_raio`, `distancia_m` e `local_mais_proximo_id` quando houver GPS.
+- Quando `fora_do_raio = true`: `notificacoes` recebe registro `categoria='ponto'` e `notificacao_destinatarios` é populada para todos os `admin`/`coordenador` sem erro de tipo.
+
+Ao final, limpar a jornada de teste (ou deixar registrada, conforme preferência do usuário) e confirmar que o botão "Bater Ponto" no `/ponto` funciona para entrada e saída.
