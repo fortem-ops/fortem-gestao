@@ -1,28 +1,14 @@
-## Causa
+## Causa raiz
 
-Na função `public.fn_ponto_registrar`, quando o ponto é registrado fora do raio, é criado um destinatário em `notificacao_destinatarios` com `status = 'nao_visualizada'::notif_status`. A coluna real é do tipo `notif_dest_status`, daí o erro `42804`.
+Ao marcar presença em `/presencas`, o trigger `trg_presenca_experimental_to_prospect` é disparado e tenta inserir em `pipeline_movements` com `source = 'system'`. Porém o enum `pipeline_movement_source` só aceita: `manual`, `auto_avaliacao`, `auto_plano`, `auto_agenda`, `auto_evasao`, `auto_recuperacao`.
+
+Isso lança o erro Postgres `22P02` (invalid_text_representation), que o `classifyError` mapeia para "Dados inválidos / Verifique os campos preenchidos…". Por isso a marcação falha mesmo com payload correto no frontend.
 
 ## Correção
 
-1. Em `public.fn_ponto_registrar`, trocar o cast do `INSERT` em `notificacao_destinatarios`:
-   - de `'nao_visualizada'::notif_status`
-   - para `'nao_visualizada'::notif_dest_status`
-2. Antes de aplicar, conferir com `enum_range(NULL::notif_dest_status)` se `'nao_visualizada'` existe nesse enum. Se não existir, usar o valor equivalente correto (ex.: `'pendente'`/`'nao_lida'`) detectado na inspeção.
+Migration única recriando a função `trigger_presenca_experimental_to_prospect` trocando `source = 'system'` por `source = 'auto_agenda'` (valor de enum válido e semanticamente correto — movimentação automática originada pela agenda/presença). Nenhuma mudança de schema, nenhuma mudança no frontend.
 
-Nenhum outro trecho da função precisa mudar.
+## Validação
 
-## Validação ponta a ponta
-
-Executar via SQL como o usuário logado (admin) cada transição, conferindo `fn_ponto_estado_atual` entre elas:
-
-```text
-entrada → intervalo_inicio → intervalo_fim → saida
-```
-
-Em cada passo verificar:
-- Retorno JSON `ok: true`, sem erro 42804.
-- `ponto_jornadas` atualizada com o timestamp correto.
-- `ponto_eventos` recebe o registro com `fora_do_raio`, `distancia_m` e `local_mais_proximo_id` quando houver GPS.
-- Quando `fora_do_raio = true`: `notificacoes` recebe registro `categoria='ponto'` e `notificacao_destinatarios` é populada para todos os `admin`/`coordenador` sem erro de tipo.
-
-Ao final, limpar a jornada de teste (ou deixar registrada, conforme preferência do usuário) e confirmar que o botão "Bater Ponto" no `/ponto` funciona para entrada e saída.
+- Ler a função após a migration para confirmar o novo valor.
+- Marcar presença em uma aula experimental e em uma aula comum no preview para garantir que ambas funcionem.
