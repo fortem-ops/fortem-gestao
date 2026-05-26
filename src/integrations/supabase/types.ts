@@ -2372,6 +2372,7 @@ export type Database = {
           duracao_meses: number
           forma_pagamento_padrao: string | null
           id: string
+          observacoes: string | null
           parcelas_padrao: number
           proxima_renovacao: string | null
           renovacao_automatica: boolean
@@ -2390,6 +2391,7 @@ export type Database = {
           duracao_meses?: number
           forma_pagamento_padrao?: string | null
           id?: string
+          observacoes?: string | null
           parcelas_padrao?: number
           proxima_renovacao?: string | null
           renovacao_automatica?: boolean
@@ -2408,6 +2410,7 @@ export type Database = {
           duracao_meses?: number
           forma_pagamento_padrao?: string | null
           id?: string
+          observacoes?: string | null
           parcelas_padrao?: number
           proxima_renovacao?: string | null
           renovacao_automatica?: boolean
