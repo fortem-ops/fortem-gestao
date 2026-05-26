@@ -6,6 +6,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function jsonResp(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 function isValidCPF(cpf: string): boolean {
   const digits = cpf.replace(/\D/g, "");
   if (digits.length !== 11) return false;
@@ -26,19 +33,31 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Require authenticated staff user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) return jsonResp(401, { error: "Unauthorized" });
+
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) return jsonResp(401, { error: "Unauthorized" });
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: isStaff } = await admin.rpc("is_staff", { _user_id: userData.user.id });
+    if (!isStaff) return jsonResp(403, { error: "Forbidden" });
+
     const { cpf } = await req.json();
     if (typeof cpf !== "string" || !isValidCPF(cpf)) {
-      return new Response(JSON.stringify({ error: "CPF inválido" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResp(400, { error: "CPF inválido" });
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await admin
       .from("legal_annexes")
       .select("nome, data_nascimento, telefone, email, emergency_contact_name, emergency_contact_phone")
       .eq("cpf", cpf)
@@ -47,13 +66,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (error) throw error;
-
-    return new Response(JSON.stringify({ found: !!data, data: data ?? null }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResp(200, { found: !!data, data: data ?? null });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("lookup-by-cpf error:", err);
+    return jsonResp(500, { error: "Internal server error" });
   }
 });
