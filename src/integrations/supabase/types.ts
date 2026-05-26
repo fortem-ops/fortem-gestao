@@ -4409,6 +4409,7 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_coordinator_or_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
       rename_exercicio_categoria: {
         Args: {
           p_new_grupo: string
