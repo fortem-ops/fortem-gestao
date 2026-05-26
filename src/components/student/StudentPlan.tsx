@@ -211,16 +211,21 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     if (!data) return;
     if (!cancelDate) { toast.error("Selecione a data de cancelamento"); return; }
     const today = new Date().toISOString().split("T")[0];
-    if (cancelDate < today) { toast.error("Data não pode ser no passado"); return; }
     const isScheduled = cancelDate > today;
+    const isRetroactive = cancelDate < today;
     setSaving(true);
     try {
       const partes: string[] = [];
       if (motivo.trim()) partes.push(motivo.trim());
       if (financeiro?.multa && financeiro.multa > 0) partes.push(`Multa aplicada: R$ ${financeiro.multa.toFixed(2)}`);
       if (financeiro?.estorno && financeiro.estorno > 0) partes.push(`Estorno: R$ ${financeiro.estorno.toFixed(2)}`);
+      const tipoCancel = isScheduled
+        ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")
+        : isRetroactive
+          ? "retroativo a " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")
+          : "imediato";
       const motivoTxt = partes.length
-        ? `\n\n[Cancelamento ${isScheduled ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR") : "imediato"}]: ${partes.join(" · ")}`
+        ? `\n\n[Cancelamento ${tipoCancel}]: ${partes.join(" · ")}`
         : "";
       const novaObs = ((data as any).observacoes || "") + motivoTxt;
       const payload: any = {
