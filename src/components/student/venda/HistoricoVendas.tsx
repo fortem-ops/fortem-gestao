@@ -57,6 +57,19 @@ export function HistoricoVendas({ alunoId }: Props) {
     },
   });
 
+  const planoIds = Array.from(new Set(vendas.map((v: any) => v.plano_id).filter(Boolean))) as string[];
+  const { data: planosMap = {} } = useQuery<Record<string, { data_fim: string | null; ativo: boolean }>>({
+    queryKey: ["vendas-planos", alunoId, planoIds.join(",")],
+    queryFn: async () => {
+      if (planoIds.length === 0) return {};
+      const { data } = await (supabase as any).from("planos").select("id, data_fim, ativo").in("id", planoIds);
+      const map: Record<string, { data_fim: string | null; ativo: boolean }> = {};
+      (data || []).forEach((p: any) => { map[p.id] = { data_fim: p.data_fim, ativo: p.ativo }; });
+      return map;
+    },
+    enabled: planoIds.length > 0,
+  });
+
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin"],
     queryFn: async () => {
@@ -171,7 +184,23 @@ export function HistoricoVendas({ alunoId }: Props) {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{v.nome_snapshot}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col leading-tight">
+                        <span>{v.nome_snapshot}</span>
+                        {v.tipo === "plano" && v.plano_id && planosMap[v.plano_id]?.data_fim && (() => {
+                          const p = planosMap[v.plano_id];
+                          const dataFim = p.data_fim as string;
+                          const today = new Date().toISOString().split("T")[0];
+                          const isFuture = dataFim > today;
+                          return (
+                            <span className={`text-[11px] ${isFuture ? "text-muted-foreground" : "text-destructive"}`}>
+                              {isFuture ? "Cancelamento agendado: " : "Cancelado em: "}
+                              {new Date(dataFim + "T12:00:00").toLocaleDateString("pt-BR")}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {desc > 0 ? (
                         <div className="flex flex-col leading-tight">
