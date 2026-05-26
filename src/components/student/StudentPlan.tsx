@@ -211,16 +211,21 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     if (!data) return;
     if (!cancelDate) { toast.error("Selecione a data de cancelamento"); return; }
     const today = new Date().toISOString().split("T")[0];
-    if (cancelDate < today) { toast.error("Data não pode ser no passado"); return; }
     const isScheduled = cancelDate > today;
+    const isRetroactive = cancelDate < today;
     setSaving(true);
     try {
       const partes: string[] = [];
       if (motivo.trim()) partes.push(motivo.trim());
       if (financeiro?.multa && financeiro.multa > 0) partes.push(`Multa aplicada: R$ ${financeiro.multa.toFixed(2)}`);
       if (financeiro?.estorno && financeiro.estorno > 0) partes.push(`Estorno: R$ ${financeiro.estorno.toFixed(2)}`);
+      const tipoCancel = isScheduled
+        ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")
+        : isRetroactive
+          ? "retroativo a " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")
+          : "imediato";
       const motivoTxt = partes.length
-        ? `\n\n[Cancelamento ${isScheduled ? "agendado para " + new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR") : "imediato"}]: ${partes.join(" · ")}`
+        ? `\n\n[Cancelamento ${tipoCancel}]: ${partes.join(" · ")}`
         : "";
       const novaObs = ((data as any).observacoes || "") + motivoTxt;
       const payload: any = {
@@ -231,7 +236,11 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       if (!isScheduled) payload.ativo = false;
       const { error } = await supabase.from("planos").update(payload).eq("id", data.id);
       if (error) throw error;
-      toast.success(isScheduled ? `Cancelamento agendado para ${new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")}` : "Contrato cancelado");
+      toast.success(isScheduled
+        ? `Cancelamento agendado para ${new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")}`
+        : isRetroactive
+          ? `Contrato cancelado retroativamente em ${new Date(cancelDate + "T00:00:00").toLocaleDateString("pt-BR")}`
+          : "Contrato cancelado");
       invalidatePlanoCaches(queryClient, student.id);
       setCancelOpen(false);
       setCancelMotivo("");
@@ -762,13 +771,12 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            O plano <strong>{planoTipo}</strong> deixará de ter renovação automática. Escolha a data efetiva do cancelamento — se for uma data futura, o cancelamento ficará agendado e o plano permanecerá ativo até lá.
+            O plano <strong>{planoTipo}</strong> deixará de ter renovação automática. Escolha a data efetiva do cancelamento — datas futuras ficam agendadas, datas passadas registram o encerramento retroativo para manter o histórico do aluno.
           </p>
           <div className="space-y-2">
             <Label>Data de cancelamento</Label>
             <Input
               type="date"
-              min={new Date().toISOString().split("T")[0]}
               value={cancelDate}
               onChange={(e) => setCancelDate(e.target.value)}
             />
@@ -865,7 +873,12 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
             })}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {cancelDate > new Date().toISOString().split("T")[0] ? "Agendar cancelamento" : "Confirmar cancelamento"}
+            {(() => {
+              const today = new Date().toISOString().split("T")[0];
+              if (cancelDate > today) return "Agendar cancelamento";
+              if (cancelDate < today) return "Registrar cancelamento retroativo";
+              return "Confirmar cancelamento";
+            })()}
           </Button>
         </DialogFooter>
       </DialogContent>
