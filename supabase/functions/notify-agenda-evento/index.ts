@@ -118,6 +118,35 @@ async function resolveExtraRecipients(admin: any, regra: string, profissionalId:
   return emails;
 }
 
+let _cachedSecret: string | null = null;
+async function authorize(req: Request, admin: any, opts: { requireStaff?: boolean; requireAdmin?: boolean } = {}): Promise<{ ok: true; webhook: boolean; userId?: string } | { ok: false; status: number }> {
+  const provided = req.headers.get("x-webhook-secret");
+  if (provided) {
+    if (!_cachedSecret) {
+      const { data } = await admin.rpc("get_webhook_secret");
+      _cachedSecret = typeof data === "string" ? data : null;
+    }
+    if (_cachedSecret && provided === _cachedSecret) return { ok: true, webhook: true };
+  }
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } });
+    const { data: u, error } = await userClient.auth.getUser();
+    if (!error && u?.user) {
+      if (opts.requireAdmin) {
+        const { data: isA } = await admin.rpc("is_admin", { _user_id: u.user.id });
+        if (!isA) return { ok: false, status: 403 };
+      } else if (opts.requireStaff) {
+        const { data: isS } = await admin.rpc("is_staff", { _user_id: u.user.id });
+        if (!isS) return { ok: false, status: 403 };
+      }
+      return { ok: true, webhook: false, userId: u.user.id };
+    }
+  }
+  return { ok: false, status: 401 };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -126,9 +155,13 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  const auth = await authorize(req, admin, { requireStaff: true });
+  if (!auth.ok) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   try {
     const body = await req.json();
-    const { evento, agenda_id, agenda: agendaFromBody, origem, teste } = body;
+    const { evento, agenda_id, origem, teste } = body;
+
 
     // Carrega config dinâmica
     const { data: cfgRow } = await admin
@@ -136,8 +169,15 @@ Deno.serve(async (req) => {
     const cfg = { ...DEFAULT_CONFIG, ...(cfgRow || {}) };
     const fromHeader = `${cfg.remetente_nome} <${cfg.remetente_email}>`;
 
-    // === MODO TESTE ===
+    // === MODO TESTE === (only admins can trigger to arbitrary addresses)
     if (teste) {
+      if (auth.webhook || !auth.userId) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const { data: isAdmin } = await admin.rpc("is_admin", { _user_id: auth.userId });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const to = typeof teste === "string" ? teste : cfg.remetente_email;
       const html = buildHtml({
         evento: "agendado", atividade: "Teste de configuração", aluno: "Aluno de Teste",
@@ -154,7 +194,7 @@ Deno.serve(async (req) => {
     if (!evento || !["agendado","cancelado"].includes(evento)) {
       return new Response(JSON.stringify({ error: "evento inválido" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (!agenda_id && !agendaFromBody?.id) {
+    if (!agenda_id) {
       return new Response(JSON.stringify({ error: "agenda_id ausente" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -165,7 +205,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ skipped: true, reason: "cancelamento desativado" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const aId = agenda_id || agendaFromBody.id;
+    const aId = agenda_id;
 
     // Idempotência (UNIQUE em (agenda_id, evento))
     const { error: lockErr } = await admin
@@ -177,14 +217,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    let agenda: any = null;
-    const { data: ag } = await admin
+    // Always load agenda from DB — never trust client-supplied content
+    const { data: agenda } = await admin
       .from("agenda_servicos")
       .select("id, atividade, local, observacoes, profissional_id, aluno_id, dia_semana, data_especifica, horario_inicio, horario_fim, tipo")
       .eq("id", aId)
       .maybeSingle();
-    agenda = ag || agendaFromBody;
-    if (!agenda) throw new Error("agenda não encontrada");
+    if (!agenda) {
+      return new Response(JSON.stringify({ skipped: true, reason: "agenda não encontrada" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!cfg.atividades_monitoradas.includes(agenda.atividade)) {
       return new Response(JSON.stringify({ skipped: true, reason: "atividade fora do escopo" }), {
@@ -254,7 +297,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("notify-agenda-evento error:", err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
