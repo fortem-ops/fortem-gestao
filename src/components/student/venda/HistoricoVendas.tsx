@@ -57,6 +57,19 @@ export function HistoricoVendas({ alunoId }: Props) {
     },
   });
 
+  const planoIds = Array.from(new Set(vendas.map((v: any) => v.plano_id).filter(Boolean))) as string[];
+  const { data: planosMap = {} } = useQuery<Record<string, { data_fim: string | null; ativo: boolean }>>({
+    queryKey: ["vendas-planos", alunoId, planoIds.join(",")],
+    queryFn: async () => {
+      if (planoIds.length === 0) return {};
+      const { data } = await (supabase as any).from("planos").select("id, data_fim, ativo").in("id", planoIds);
+      const map: Record<string, { data_fim: string | null; ativo: boolean }> = {};
+      (data || []).forEach((p: any) => { map[p.id] = { data_fim: p.data_fim, ativo: p.ativo }; });
+      return map;
+    },
+    enabled: planoIds.length > 0,
+  });
+
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin"],
     queryFn: async () => {
