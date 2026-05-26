@@ -49,9 +49,38 @@ function buildHtml(t: any, alunoNome: string | null, criadoPor: string | null) {
   </div></body></html>`;
 }
 
+let _cachedSecret: string | null = null;
+async function authorize(req: Request, admin: any, opts: { requireStaff?: boolean } = {}): Promise<{ ok: true } | { ok: false; status: number }> {
+  const provided = req.headers.get("x-webhook-secret");
+  if (provided) {
+    if (!_cachedSecret) {
+      const { data } = await admin.rpc("get_webhook_secret");
+      _cachedSecret = typeof data === "string" ? data : null;
+    }
+    if (_cachedSecret && provided === _cachedSecret) return { ok: true };
+  }
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } });
+    const { data: u, error } = await userClient.auth.getUser();
+    if (!error && u?.user) {
+      if (opts.requireStaff) {
+        const { data: isS } = await admin.rpc("is_staff", { _user_id: u.user.id });
+        if (!isS) return { ok: false, status: 403 };
+      }
+      return { ok: true };
+    }
+  }
+  return { ok: false, status: 401 };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  const auth = await authorize(req, admin, { requireStaff: true });
+  if (!auth.ok) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const { tarefa_id, evento } = await req.json();
