@@ -873,7 +873,12 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
             })}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {cancelDate > new Date().toISOString().split("T")[0] ? "Agendar cancelamento" : "Confirmar cancelamento"}
+            {(() => {
+              const today = new Date().toISOString().split("T")[0];
+              if (cancelDate > today) return "Agendar cancelamento";
+              if (cancelDate < today) return "Registrar cancelamento retroativo";
+              return "Confirmar cancelamento";
+            })()}
           </Button>
         </DialogFooter>
       </DialogContent>
