@@ -169,8 +169,15 @@ Deno.serve(async (req) => {
     const cfg = { ...DEFAULT_CONFIG, ...(cfgRow || {}) };
     const fromHeader = `${cfg.remetente_nome} <${cfg.remetente_email}>`;
 
-    // === MODO TESTE ===
+    // === MODO TESTE === (only admins can trigger to arbitrary addresses)
     if (teste) {
+      if (auth.webhook || !auth.userId) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const { data: isAdmin } = await admin.rpc("is_admin", { _user_id: auth.userId });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const to = typeof teste === "string" ? teste : cfg.remetente_email;
       const html = buildHtml({
         evento: "agendado", atividade: "Teste de configuração", aluno: "Aluno de Teste",
@@ -187,7 +194,7 @@ Deno.serve(async (req) => {
     if (!evento || !["agendado","cancelado"].includes(evento)) {
       return new Response(JSON.stringify({ error: "evento inválido" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (!agenda_id && !agendaFromBody?.id) {
+    if (!agenda_id) {
       return new Response(JSON.stringify({ error: "agenda_id ausente" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -198,7 +205,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ skipped: true, reason: "cancelamento desativado" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const aId = agenda_id || agendaFromBody.id;
+    const aId = agenda_id;
 
     // Idempotência (UNIQUE em (agenda_id, evento))
     const { error: lockErr } = await admin
@@ -210,14 +217,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    let agenda: any = null;
-    const { data: ag } = await admin
+    // Always load agenda from DB — never trust client-supplied content
+    const { data: agenda } = await admin
       .from("agenda_servicos")
       .select("id, atividade, local, observacoes, profissional_id, aluno_id, dia_semana, data_especifica, horario_inicio, horario_fim, tipo")
       .eq("id", aId)
       .maybeSingle();
-    agenda = ag || agendaFromBody;
-    if (!agenda) throw new Error("agenda não encontrada");
+    if (!agenda) {
+      return new Response(JSON.stringify({ skipped: true, reason: "agenda não encontrada" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!cfg.atividades_monitoradas.includes(agenda.atividade)) {
       return new Response(JSON.stringify({ skipped: true, reason: "atividade fora do escopo" }), {
