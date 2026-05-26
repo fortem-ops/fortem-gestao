@@ -771,13 +771,12 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            O plano <strong>{planoTipo}</strong> deixará de ter renovação automática. Escolha a data efetiva do cancelamento — se for uma data futura, o cancelamento ficará agendado e o plano permanecerá ativo até lá.
+            O plano <strong>{planoTipo}</strong> deixará de ter renovação automática. Escolha a data efetiva do cancelamento — datas futuras ficam agendadas, datas passadas registram o encerramento retroativo para manter o histórico do aluno.
           </p>
           <div className="space-y-2">
             <Label>Data de cancelamento</Label>
             <Input
               type="date"
-              min={new Date().toISOString().split("T")[0]}
               value={cancelDate}
               onChange={(e) => setCancelDate(e.target.value)}
             />
