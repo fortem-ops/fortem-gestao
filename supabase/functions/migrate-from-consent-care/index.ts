@@ -192,6 +192,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("migrate-from-consent-care error:", err);
-    return jsonResponse({ error: (err as Error).message }, 500);
+    console.error("migrate-from-consent-care error:", err);
+    return jsonResponse({ error: "Internal server error" }, 500);
   }
 });
