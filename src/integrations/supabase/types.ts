@@ -4400,6 +4400,7 @@ export type Database = {
         Returns: boolean
       }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
+      get_webhook_secret: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
