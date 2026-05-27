@@ -26,6 +26,7 @@ const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
 export default function Prospects() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const [editId, setEditId] = useState<string | null>(null);
   const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
   const [naoConvTarget, setNaoConvTarget] = useState<{ id: string; nome: string } | null>(null);
