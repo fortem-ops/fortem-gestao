@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import AddStudentDialog from "@/components/student/AddStudentDialog";
+import ImportStudentsCSVDialog from "@/components/student/ImportStudentsCSVDialog";
 import { StudentListFilters, defaultFilters, type StudentFilters } from "@/components/student/StudentListFilters";
 import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
 import { getDisplayStatus } from "@/lib/studentStatus";
