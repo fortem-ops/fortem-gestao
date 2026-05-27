@@ -11,7 +11,7 @@ export const CSV_HEADERS = [
   "sexo",
   "frequencia_semanal",
   "observacoes",
-  "professor_email",
+  "professor_nome",
   "plano_tipo",
   "plano_valor",
   "plano_data_inicio",
