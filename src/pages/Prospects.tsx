@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -18,6 +18,7 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } fro
 import { ptBR } from "date-fns/locale";
 import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import ImportStudentsCSVDialog from "@/components/student/ImportStudentsCSVDialog";
 
 const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
 
@@ -25,6 +26,7 @@ const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
 export default function Prospects() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const [editId, setEditId] = useState<string | null>(null);
   const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
   const [naoConvTarget, setNaoConvTarget] = useState<{ id: string; nome: string } | null>(null);
@@ -326,6 +328,10 @@ export default function Prospects() {
             {filtered.length} prospect{filtered.length !== 1 ? "s" : ""} · meio do funil
           </p>
         </div>
+        <ImportStudentsCSVDialog
+          status="lead"
+          onImported={() => queryClient.invalidateQueries({ queryKey: ["prospects-list"] })}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
