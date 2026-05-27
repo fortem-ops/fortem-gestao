@@ -290,6 +290,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
             <RefreshCw className={`w-4 h-4 ${recalculando ? "animate-spin" : ""}`} />
             {recalculando ? "Recalculando..." : "Recalcular status"}
           </Button>
+          <ImportStudentsCSVDialog
+            status={isInativos ? "encerrado" : "ativo"}
+            onImported={() => refetch()}
+          />
           <AddStudentDialog onStudentAdded={() => refetch()} />
         </div>
       </div>
