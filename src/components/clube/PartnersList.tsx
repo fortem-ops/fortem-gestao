@@ -52,7 +52,7 @@ export function PartnersList({ nivelAluno }: PartnersListProps) {
         supabase.from("beneficios").select("*").eq("ativo", true),
       ]);
       return {
-        parceiros: (parceiros || []) as Parceiro[],
+        parceiros: ((parceiros as any) || []) as Parceiro[],
         beneficios: (beneficios || []) as Beneficio[],
       };
     },
