@@ -162,8 +162,8 @@ export function validateRows(rows: Record<string, string>[], ctx: ImportContext)
       result.error.issues.forEach((iss) => errors.push(`${iss.path.join(".") || "linha"}: ${iss.message}`));
     } else {
       parsed = result.data;
-      if (parsed.professor_email && !ctx.professorMap[parsed.professor_email.toLowerCase()]) {
-        warnings.push(`Professor "${parsed.professor_email}" não encontrado — será atribuído o usuário atual.`);
+      if (parsed.professor_nome && !ctx.professorMap[parsed.professor_nome.toLowerCase()]) {
+        warnings.push(`Professor "${parsed.professor_nome}" não encontrado — será atribuído o usuário atual.`);
       }
       const emailKey = (parsed.email || "").trim().toLowerCase();
       const phoneKey = normalizePhone(parsed.telefone);
@@ -201,7 +201,7 @@ export async function importStudents(
     }
     const p = row.parsed;
     const responsavelId =
-      (p.professor_email && ctx.professorMap[p.professor_email.toLowerCase()]) ||
+      (p.professor_nome && ctx.professorMap[p.professor_nome.toLowerCase()]) ||
       ctx.currentUserId;
 
     try {
