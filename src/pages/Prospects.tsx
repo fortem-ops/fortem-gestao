@@ -328,6 +328,10 @@ export default function Prospects() {
             {filtered.length} prospect{filtered.length !== 1 ? "s" : ""} · meio do funil
           </p>
         </div>
+        <ImportStudentsCSVDialog
+          status="lead"
+          onImported={() => queryClient.invalidateQueries({ queryKey: ["prospects-list"] })}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
