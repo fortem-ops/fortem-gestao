@@ -141,7 +141,7 @@ export interface ImportContext {
   currentUserId: string;
   /** existing alunos for duplicate detection (email + normalized phone) */
   existing: { email: string | null; telefone: string | null }[];
-  /** map professor email → user_id */
+  /** map professor full_name (lowercase) → user_id */
   professorMap: Record<string, string>;
 }
 
