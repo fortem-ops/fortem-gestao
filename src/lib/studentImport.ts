@@ -114,7 +114,7 @@ export function buildTemplateCSV(): string {
     "masculino",
     "3",
     "Aluno indicado por amigo",
-    "professor@academia.com",
+    "Maria Professora",
     "Pro",
     "299.90",
     "2026-01-01",
