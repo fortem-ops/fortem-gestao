@@ -276,10 +276,10 @@ export async function loadImportContext(status: ImportStatus): Promise<ImportCon
     const ids = roles.map((r) => r.user_id);
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("user_id, email")
+      .select("user_id, full_name")
       .in("user_id", ids);
     (profiles || []).forEach((p: any) => {
-      if (p.email) professorMap[String(p.email).toLowerCase()] = p.user_id;
+      if (p.full_name) professorMap[String(p.full_name).toLowerCase()] = p.user_id;
     });
   }
 
