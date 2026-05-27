@@ -18,6 +18,7 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } fro
 import { ptBR } from "date-fns/locale";
 import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import ImportStudentsCSVDialog from "@/components/student/ImportStudentsCSVDialog";
 
 const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
 
