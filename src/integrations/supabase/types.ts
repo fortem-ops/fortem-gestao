@@ -859,6 +859,13 @@ export type Database = {
             referencedRelation: "parceiros"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "beneficios_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_publico"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bodymap_region_overrides: {
@@ -3719,6 +3726,13 @@ export type Database = {
             referencedRelation: "parceiros"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "uso_beneficios_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_publico"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vendas: {
@@ -3831,6 +3845,54 @@ export type Database = {
       }
     }
     Views: {
+      parceiros_publico: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          descricao: string | null
+          endereco: string | null
+          id: string | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          modo_validacao:
+            | Database["public"]["Enums"]["parceiro_modo_validacao"]
+            | null
+          nome: string | null
+          pontuacao_engajamento: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          descricao?: string | null
+          endereco?: string | null
+          id?: string | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          modo_validacao?:
+            | Database["public"]["Enums"]["parceiro_modo_validacao"]
+            | null
+          nome?: string | null
+          pontuacao_engajamento?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          descricao?: string | null
+          endereco?: string | null
+          id?: string | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          modo_validacao?:
+            | Database["public"]["Enums"]["parceiro_modo_validacao"]
+            | null
+          nome?: string | null
+          pontuacao_engajamento?: number | null
+        }
+        Relationships: []
+      }
       v_cancelamentos: {
         Row: {
           aluno_id: string | null
