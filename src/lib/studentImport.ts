@@ -43,7 +43,7 @@ export const rowSchema = z
       .union([z.literal(""), z.coerce.number().int().min(0).max(3)])
       .optional(),
     observacoes: z.string().trim().max(1000).optional().or(z.literal("")),
-    professor_email: z.string().trim().email().optional().or(z.literal("")),
+    professor_nome: z.string().trim().max(100).optional().or(z.literal("")),
     plano_tipo: z.enum(PLAN_TYPES as unknown as [string, ...string[]]).optional().or(z.literal("")),
     plano_valor: z.union([z.literal(""), z.coerce.number().min(0)]).optional(),
     plano_data_inicio: z
