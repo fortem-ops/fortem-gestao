@@ -48,7 +48,7 @@ export function PartnersList({ nivelAluno }: PartnersListProps) {
     queryKey: ["clube-parceiros-beneficios"],
     queryFn: async () => {
       const [{ data: parceiros }, { data: beneficios }] = await Promise.all([
-        supabase.from("parceiros").select("*").eq("ativo", true).order("nome"),
+        supabase.from("parceiros_publico" as any).select("*").order("nome"),
         supabase.from("beneficios").select("*").eq("ativo", true),
       ]);
       return {
