@@ -658,8 +658,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const isLastAttempt = attempt === MAX_ATTEMPTS - 1;
   if (totalPages > 1) {
     if (bestFitMul !== null && triedGrow) {
-      // We grew past what fits — revert to the best known mul and re-render once more.
-      attemptMul = bestFitMul;
+      // We grew past what fits — revert to the best known mul (with a slight extra shrink) and re-render.
+      revertCount++;
+      attemptMul = bestFitMul * (revertCount > 1 ? 0.92 : 1.0);
       bestFitMul = null;
       triedGrow = false;
       continue;
@@ -678,12 +679,12 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Fits on a single page — check if there's significant empty space
   // between the last exercise (y) and the bottom of the Frequência column.
   const gap = freqBottomY - y;
-  const FILL_TOLERANCE = 4; // mm
-  if (gap > FILL_TOLERANCE && !isLastAttempt) {
+  const FILL_TOLERANCE = 6; // mm
+  if (gap > FILL_TOLERANCE && !isLastAttempt && revertCount === 0) {
     bestFitMul = attemptMul;
     triedGrow = true;
     // Grow proportionally to close the gap, capped to avoid overshoot.
-    const growthFactor = Math.min(1.18, 1 + gap / Math.max(y - bodyTop, 1) * 0.6);
+    const growthFactor = Math.min(1.10, 1 + gap / Math.max(y - bodyTop, 1) * 0.4);
     attemptMul *= growthFactor;
     continue;
   }
