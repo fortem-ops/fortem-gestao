@@ -126,6 +126,7 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
             </p>
             <ol className="text-xs text-muted-foreground list-decimal ml-5 space-y-0.5">
               <li><b>Dados cadastrais:</b> <code>nome</code> (obrigatório), <code>email</code>, <code>telefone</code>, <code>data_nascimento</code> (AAAA-MM-DD), <code>sexo</code> (masculino/feminino/outro/nao_informar), <code>frequencia_semanal</code> (0=livre, 1, 2 ou 3), <code>observacoes</code></li>
+              <li><b>Documento e endereço:</b> <code>cpf</code> (11 dígitos, com ou sem pontuação), <code>cep</code> (8 dígitos, com ou sem traço), <code>logradouro</code>, <code>numero</code>, <code>complemento</code>, <code>bairro</code></li>
               <li><b>Professor:</b> <code>professor_nome</code> (nome completo cadastrado; se vazio ou não encontrado, usa o usuário atual)</li>
               <li><b>Plano (opcional):</b> <code>plano_tipo</code> (Start, Start+, Power, Pro, Max, Gympass/Wellhub, Total Pass), <code>plano_valor</code>, <code>plano_data_inicio</code> (AAAA-MM-DD), <code>plano_consultas</code> (nutricao, reabilitacao, misto — exigido em Power/Pro; misto só em Pro)</li>
               <li><b>Origem (opcional):</b> <code>origem_lead</code> (Indicação, Fachada, Instagram, Ex-aluno, Gympass/Wellhub, Total Pass, Parceiros)</li>
