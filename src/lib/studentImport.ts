@@ -248,6 +248,12 @@ export async function importStudents(
           frequencia_semanal:
             typeof p.frequencia_semanal === "number" ? p.frequencia_semanal : null,
           observacoes: p.observacoes || null,
+          cpf: p.cpf ? p.cpf.replace(/\D/g, "") : null,
+          cep: p.cep ? p.cep.replace(/\D/g, "") : null,
+          logradouro: p.logradouro || null,
+          numero: p.numero || null,
+          complemento: p.complemento || null,
+          bairro: p.bairro || null,
           status: ctx.status,
           responsavel_id: responsavelId,
         })
