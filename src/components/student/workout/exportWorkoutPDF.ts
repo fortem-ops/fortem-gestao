@@ -157,7 +157,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Use a conservative estimate plus a safety reserve so autoTable
   // does not push any block to a second page.
   // ============================================================
-  const footerReserve = 1;
+  const footerReserve = 2;
   const sectionGap = 0.6;
   const treinoGap = 0.4;
 
