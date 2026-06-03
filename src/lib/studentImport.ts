@@ -49,6 +49,26 @@ export const rowSchema = z
       .union([z.literal(""), z.coerce.number().int().min(0).max(3)])
       .optional(),
     observacoes: z.string().trim().max(1000).optional().or(z.literal("")),
+    cpf: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(""))
+      .refine((v) => !v || v.replace(/\D/g, "").length === 11, {
+        message: "CPF deve ter 11 dígitos",
+      }),
+    cep: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(""))
+      .refine((v) => !v || v.replace(/\D/g, "").length === 8, {
+        message: "CEP deve ter 8 dígitos",
+      }),
+    logradouro: z.string().trim().max(200).optional().or(z.literal("")),
+    numero: z.string().trim().max(20).optional().or(z.literal("")),
+    complemento: z.string().trim().max(100).optional().or(z.literal("")),
+    bairro: z.string().trim().max(100).optional().or(z.literal("")),
     professor_nome: z.string().trim().max(100).optional().or(z.literal("")),
     plano_tipo: z.enum(PLAN_TYPES as unknown as [string, ...string[]]).optional().or(z.literal("")),
     plano_valor: z.union([z.literal(""), z.coerce.number().min(0)]).optional(),
