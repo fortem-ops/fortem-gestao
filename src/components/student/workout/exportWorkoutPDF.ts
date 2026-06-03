@@ -280,7 +280,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
     blocos.filter(b => b.items.length > 0).forEach(bloco => {
       const colors = WARMUP_COLORS[bloco.key];
-      const badgeW = 12;
+      const badgeW = 15;
       doc.setFillColor(...colors.fill);
       doc.rect(mainX, y, badgeW, BADGE_H, "F");
       doc.setFont("helvetica", "bold");
@@ -289,9 +289,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       doc.text(bloco.key, mainX + badgeW / 2, y + BADGE_H / 2 + 0.9, { align: "center" });
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(Math.max(5.1, 6.2 * scale));
+      doc.setFontSize(Math.max(6.5, 8.2 * scale));
       doc.setTextColor(...colors.fill);
-      doc.text(bloco.label, mainX + badgeW + 1.6, y + BADGE_H / 2 + 0.9);
+      doc.text(bloco.label, mainX + badgeW + 1.8, y + BADGE_H / 2 + 0.9);
 
       y += BADGE_H + 0.4;
 
