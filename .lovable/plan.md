@@ -1,79 +1,32 @@
+# Ajustes no PDF de treino prescrito
 
-## Objetivo
-Adicionar botão **"Importar CSV"** nas três listagens (Alunos Ativos, Inativos e Prospects), permitindo cadastro em massa a partir de uma planilha. O status inicial é determinado pela tela de origem.
+Apenas alterações em `src/components/student/workout/exportWorkoutPDF.ts`.
 
-## Fluxo de uso
-1. Botão **"Importar CSV"** ao lado de "Novo Aluno" em cada listagem.
-2. Dialog com:
-   - Link **"Baixar modelo CSV"** (template com cabeçalhos + linha de exemplo).
-   - Upload do arquivo `.csv`.
-   - Preview das primeiras 5 linhas + lista de avisos/erros por linha.
-   - Botão **"Importar X alunos"**.
-3. Processamento linha a linha:
-   - Cria aluno em `alunos`.
-   - Se houver dados de plano → cria registro em `planos`.
-   - Se houver origem → grava em `pipeline_metadata`.
-4. Relatório final: X importados com sucesso, Y com erro (com motivo da linha).
+## 1. Garantir 1 página (sem quebra)
 
-## Ordem e formato das colunas do CSV
+O loop iterativo de fit já existe, mas em casos densos (como o Marcelo) a estimativa otimista é alta demais e o "grow" empurra o conteúdo para uma 2ª página. Vou:
 
-Separador: **vírgula** (`,`). Encoding **UTF-8**. Primeira linha = cabeçalho (nomes exatos).
+- Aumentar o `footerReserve` e o `slack` global no `floorEst` (margem de segurança maior).
+- Reduzir o `FILL_TOLERANCE` e o teto de `growthFactor` para que o passo de crescimento seja mais conservador e raramente provoque overflow.
+- Reduzir levemente o `attemptMul` inicial (0.97) para que a primeira tentativa já caiba com folga, e aumentar `MAX_ATTEMPTS` para 18.
+- Garantir que o caminho de "revert para bestFitMul" sempre re-renderize antes de cair no "drop spillover" — atualmente um overflow após o grow só reverte uma vez; vou permitir múltiplas reversões com decaimento adicional (×0.92) caso ainda estoure.
 
-### Dados Cadastrais (obrigatório `nome`)
-| # | Coluna | Obrig. | Formato |
-|---|--------|--------|---------|
-| 1 | `nome` | ✅ | Texto, 2–100 chars |
-| 2 | `email` | — | Email válido |
-| 3 | `telefone` | — | Dígitos ou formatado |
-| 4 | `data_nascimento` | — | `AAAA-MM-DD` |
-| 5 | `sexo` | — | `masculino` / `feminino` / `outro` / `nao_informar` |
-| 6 | `frequencia_semanal` | — | `0` (livre), `1`, `2`, `3` |
-| 7 | `observacoes` | — | Até 1000 chars |
+Resultado: o PDF do Marcelo (e qualquer outro plano denso) sempre cabe em uma única folha A4.
 
-### Professor Responsável
-| # | Coluna | Obrig. | Formato |
-|---|--------|--------|---------|
-| 8 | `professor_email` | — | Email do professor cadastrado (resolvido para `responsavel_id`) |
+## 2. Aumentar fonte de rótulos
 
-### Plano (opcional)
-| # | Coluna | Valores |
-|---|--------|---------|
-| 9 | `plano_tipo` | `Start`, `Start+`, `Power`, `Pro`, `Max`, `Gympass/Wellhub`, `Total Pass` |
-| 10 | `plano_valor` | Número (ex.: `299.90`) |
-| 11 | `plano_data_inicio` | `AAAA-MM-DD` (default hoje se `plano_tipo` preenchido) |
-| 12 | `plano_consultas` | `nutricao`, `reabilitacao`, `misto` (misto só Pro) — exigido em Power/Pro |
+Alvos (todos no mesmo arquivo):
 
-### Origem do Lead
-| # | Coluna | Valores |
-|---|--------|---------|
-| 13 | `origem_lead` | `Indicação`, `Instagram`, `Google`, `WhatsApp`, `Passou em frente`, `Outro`, `Gympass/Wellhub`, `Total Pass`, `Parceiros`, `Ex-aluno`, `Fachada` |
+- **AQUECIMENTO** (barra vermelha de seção) → `SECTION_FONT` base de `9.0 * scale` → `11.5 * scale`, piso `7.0`.
+- **TREINO 1/2/3/4** (barras vermelhas dos treinos) → `TREINO_LABEL_FONT` base `7.4 * scale` → `10.5 * scale`, piso `6.5`. `BAR_H` sobe de `5.1 * scale` para `6.2 * scale` (piso 3.4) para acomodar.
+- **LIB / MOB / ATI / PREV** (badges pretos) → `BADGE_FONT` base `5.9 * scale` → `8.0 * scale`, piso `5.0`. Largura do badge (`badgeW`) sobe de 12 → 15mm; `BADGE_H` base `3.8 * scale` → `4.8 * scale` (piso 2.4).
+- **LIBERAÇÃO / MOBILIDADE / ATIVAÇÃO / PREVENTIVOS** (texto ao lado do badge) → fonte sobe de `Math.max(5.1, 6.2 * scale)` para `Math.max(6.5, 8.2 * scale)`.
+- **Números 1,2,3,4,5** (coluna `#` da tabela de aquecimento) → `SMALL_FONT` aplicado nessa coluna sobe para `Math.max(6.0, 8.5 * scale)` e cor muda de `INK_MUTED` para `INK_SOFT` para melhor leitura.
 
-### Status (definido pela tela de origem)
-- **Alunos Ativos** → `status = ativo`
-- **Inativos** → `status = encerrado`
-- **Prospects** → `status = lead` (sem plano, **não** entra no pipeline automaticamente — o usuário move manualmente quando quiser)
+Os pisos garantem que mesmo no menor `scale` (quando o conteúdo é muito denso) os rótulos continuam legíveis e claramente maiores que hoje. A etapa 1 (margens maiores no fit) compensa o ganho de altura desses elementos para manter a página única.
 
-> Coluna `status` no CSV é ignorada.
+## Validação
 
-## Validações
-- `nome` obrigatório.
-- Formato de datas validado.
-- Valores enumerados validados (plano, sexo, origem, consultas).
-- **Duplicidade permitida**: e-mails/telefones repetidos NÃO são bloqueados. O sistema apenas exibe um **aviso** ("Já existe aluno com este e-mail/telefone") na linha do preview, mas a importação prossegue. Limpeza/mesclagem é feita manualmente depois pelo usuário.
-- Linhas com erro de formato (não duplicidade) são puladas e listadas no relatório final.
-
-## Detalhes técnicos
-- Novo componente: `src/components/student/ImportStudentsCSVDialog.tsx` (parser próprio simples, sem dependência extra — trata aspas e vírgulas escapadas).
-- Helper: `src/lib/studentImport.ts` (parse, schema zod, função `importStudents(rows, contextStatus, userId)`).
-- Botão adicionado em:
-  - `src/pages/StudentList.tsx` (Ativos e Inativos)
-  - `src/pages/Prospects.tsx`
-- Reaproveita lógica de `AddStudentDialog` (inserção em `alunos`, `planos`, `pipeline_metadata`).
-- Para Prospects: **não** chama `fn_move_pipeline` — apenas cria o aluno com `status = lead`.
-- Template CSV gerado client-side (Blob + download).
-
-## Entregáveis
-1. `ImportStudentsCSVDialog` (UI + parsing + preview + execução + avisos de duplicidade).
-2. `studentImport.ts` com schema zod e função de importação em lote.
-3. Integração nas 3 listagens com o status correspondente.
-4. Download do modelo CSV direto pelo dialog.
+- Testar com o aluno Marcelo Luiz Nunes Melim (caso reportado) e conferir: 1 página + rótulos visivelmente maiores.
+- Conferir com planos menores que os rótulos não fiquem grandes demais (os pisos são módicos, o teto vem do `scale`).
+- `src/components/student/workout/exportWorkoutPDF.test.ts` já existe — rodar para garantir que segue passando.
