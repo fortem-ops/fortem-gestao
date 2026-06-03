@@ -226,13 +226,13 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const ROW_PAD = Math.max(0.22, 1.2 * scale);
   const HEAD_PAD = Math.max(0.2, 1.0 * scale);
   const SIDE_PAD = Math.max(0.4, 1.1 * scale);
-  const BADGE_H = Math.max(1.9, 3.8 * scale);
-  const BAR_H = Math.max(2.9, 5.1 * scale);
-  const TREINO_LABEL_FONT = Math.max(4.6, 7.4 * scale);
-  const SECTION_FONT = Math.max(5.6, 9.0 * scale);
+  const BADGE_H = Math.max(2.4, 4.8 * scale);
+  const BAR_H = Math.max(3.4, 6.2 * scale);
+  const TREINO_LABEL_FONT = Math.max(6.5, 10.5 * scale);
+  const SECTION_FONT = Math.max(7.0, 11.5 * scale);
   const META_FONT = Math.max(4.2, 6.5 * scale);
-  const BADGE_FONT = Math.max(3.8, 5.9 * scale);
-  const SMALL_FONT = Math.max(3.6, 5.4 * scale);
+  const BADGE_FONT = Math.max(5.0, 8.0 * scale);
+  const SMALL_FONT = Math.max(6.0, 8.5 * scale);
   const bodyTextStyles = {
     textColor: INK,
     lineColor: RULE,
