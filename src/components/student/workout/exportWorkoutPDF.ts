@@ -61,8 +61,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Iterative fit: render the whole layout, and if it overflowed to a 2nd page,
   // retry with a progressively smaller scale multiplier so every treino (incl. T4)
   // and every aquecimento exercise fit on a single A4 sheet.
-  const MAX_ATTEMPTS = 14;
-  let attemptMul = 1.0;
+  const MAX_ATTEMPTS = 18;
+  let attemptMul = 0.97;
   let doc!: jsPDF;
   // Track the largest attemptMul that still fits on a single page.
   // When a render fits but leaves too much space below the last row,
@@ -70,6 +70,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // bottom of the Frequência column.
   let bestFitMul: number | null = null;
   let triedGrow = false;
+  let revertCount = 0;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
   doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();   // 210
@@ -156,7 +157,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Use a conservative estimate plus a safety reserve so autoTable
   // does not push any block to a second page.
   // ============================================================
-  const footerReserve = 1;
+  const footerReserve = 2;
   const sectionGap = 0.6;
   const treinoGap = 0.4;
 
@@ -212,7 +213,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + forcaBlocosTotal * FLOOR_HEAD
     + forcaRowsTotal * FLOOR_ROW
     + data.treinos.length * treinoGap
-    + 28; // global slack
+    + 34; // global slack
 
   const optimisticScale = availH / Math.max(totalEst, 1);
   const floorScale = availH / Math.max(floorEst, 1);
@@ -225,13 +226,13 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const ROW_PAD = Math.max(0.22, 1.2 * scale);
   const HEAD_PAD = Math.max(0.2, 1.0 * scale);
   const SIDE_PAD = Math.max(0.4, 1.1 * scale);
-  const BADGE_H = Math.max(1.9, 3.8 * scale);
-  const BAR_H = Math.max(2.9, 5.1 * scale);
-  const TREINO_LABEL_FONT = Math.max(4.6, 7.4 * scale);
-  const SECTION_FONT = Math.max(5.6, 9.0 * scale);
+  const BADGE_H = Math.max(2.4, 4.8 * scale);
+  const BAR_H = Math.max(3.4, 6.2 * scale);
+  const TREINO_LABEL_FONT = Math.max(6.5, 10.5 * scale);
+  const SECTION_FONT = Math.max(7.0, 11.5 * scale);
   const META_FONT = Math.max(4.2, 6.5 * scale);
-  const BADGE_FONT = Math.max(3.8, 5.9 * scale);
-  const SMALL_FONT = Math.max(3.6, 5.4 * scale);
+  const BADGE_FONT = Math.max(5.0, 8.0 * scale);
+  const SMALL_FONT = Math.max(6.0, 8.5 * scale);
   const bodyTextStyles = {
     textColor: INK,
     lineColor: RULE,
@@ -279,7 +280,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
 
     blocos.filter(b => b.items.length > 0).forEach(bloco => {
       const colors = WARMUP_COLORS[bloco.key];
-      const badgeW = 12;
+      const badgeW = 15;
       doc.setFillColor(...colors.fill);
       doc.rect(mainX, y, badgeW, BADGE_H, "F");
       doc.setFont("helvetica", "bold");
@@ -288,9 +289,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
       doc.text(bloco.key, mainX + badgeW / 2, y + BADGE_H / 2 + 0.9, { align: "center" });
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(Math.max(5.1, 6.2 * scale));
+      doc.setFontSize(Math.max(6.5, 8.2 * scale));
       doc.setTextColor(...colors.fill);
-      doc.text(bloco.label, mainX + badgeW + 1.6, y + BADGE_H / 2 + 0.9);
+      doc.text(bloco.label, mainX + badgeW + 1.8, y + BADGE_H / 2 + 0.9);
 
       y += BADGE_H + 0.4;
 
@@ -340,7 +341,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
           const wNum = 6, wCat = 22, wT = 7, wRep = 14;
           const wEx = mainW - (wNum + wCat + wT * 4 + wRep);
           return {
-            0: { cellWidth: wNum, halign: "center", textColor: INK_MUTED, fontSize: SMALL_FONT },
+            0: { cellWidth: wNum, halign: "center", textColor: INK_SOFT, fontStyle: "bold", fontSize: SMALL_FONT },
             1: { cellWidth: wCat, overflow: "ellipsize", textColor: INK_SOFT, fontStyle: "bold", fontSize: ROW_FONT },
             2: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold", fontSize: EX_NAME_FONT },
             3: { cellWidth: wT, halign: "center", fontStyle: "bold", textColor: RED_SOFT },
@@ -657,8 +658,9 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   const isLastAttempt = attempt === MAX_ATTEMPTS - 1;
   if (totalPages > 1) {
     if (bestFitMul !== null && triedGrow) {
-      // We grew past what fits — revert to the best known mul and re-render once more.
-      attemptMul = bestFitMul;
+      // We grew past what fits — revert to the best known mul (with a slight extra shrink) and re-render.
+      revertCount++;
+      attemptMul = bestFitMul * (revertCount > 1 ? 0.92 : 1.0);
       bestFitMul = null;
       triedGrow = false;
       continue;
@@ -677,12 +679,12 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   // Fits on a single page — check if there's significant empty space
   // between the last exercise (y) and the bottom of the Frequência column.
   const gap = freqBottomY - y;
-  const FILL_TOLERANCE = 4; // mm
-  if (gap > FILL_TOLERANCE && !isLastAttempt) {
+  const FILL_TOLERANCE = 6; // mm
+  if (gap > FILL_TOLERANCE && !isLastAttempt && revertCount === 0) {
     bestFitMul = attemptMul;
     triedGrow = true;
     // Grow proportionally to close the gap, capped to avoid overshoot.
-    const growthFactor = Math.min(1.18, 1 + gap / Math.max(y - bodyTop, 1) * 0.6);
+    const growthFactor = Math.min(1.10, 1 + gap / Math.max(y - bodyTop, 1) * 0.4);
     attemptMul *= growthFactor;
     continue;
   }
