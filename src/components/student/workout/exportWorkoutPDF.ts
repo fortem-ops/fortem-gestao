@@ -213,7 +213,7 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
     + forcaBlocosTotal * FLOOR_HEAD
     + forcaRowsTotal * FLOOR_ROW
     + data.treinos.length * treinoGap
-    + 28; // global slack
+    + 34; // global slack
 
   const optimisticScale = availH / Math.max(totalEst, 1);
   const floorScale = availH / Math.max(floorEst, 1);
