@@ -37,14 +37,63 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
 
   function downloadTemplate() {
     const blob = new Blob([buildTemplateCSV()], { type: "text/csv;charset=utf-8;" });
+    triggerDownload(blob, "modelo-importacao-alunos.csv");
+  }
+
+  function downloadTemplateXLSX() {
+    triggerDownload(buildTemplateXLSX(), "modelo-importacao-alunos.xlsx");
+  }
+
+  function triggerDownload(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "modelo-importacao-alunos.csv";
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    setResult(null);
+    try {
+      const isXlsx = /\.xlsx$/i.test(file.name);
+      let rows: Record<string, string>[];
+      let ignored: string[] = [];
+      if (isXlsx) {
+        const parsed = await parseXLSX(file);
+        rows = parsed.rows;
+        ignored = parsed.ignoredHeaders;
+      } else {
+        const text = await file.text();
+        rows = parseCSV(text);
+      }
+      if (!rows.length) {
+        toast.error("Planilha vazia ou sem linhas de dados.");
+        setValidated([]);
+        return;
+      }
+      if (!isXlsx) {
+        const unknownHeaders = Object.keys(rows[0]).filter(
+          (h) => !CSV_HEADERS.includes(h as any)
+        );
+        if (unknownHeaders.length) {
+          toast.warning(`Colunas desconhecidas ignoradas: ${unknownHeaders.join(", ")}`);
+        }
+      } else if (ignored.length) {
+        toast.warning(`Colunas ignoradas: ${ignored.join(", ")}`);
+      }
+      const ctx = await loadImportContext(status);
+      setValidated(validateRows(rows, ctx));
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao ler arquivo.");
+    } finally {
+      e.target.value = "";
+    }
   }
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
