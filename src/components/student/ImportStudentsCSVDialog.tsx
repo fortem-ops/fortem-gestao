@@ -5,7 +5,9 @@ import { Upload, Download, FileUp, AlertCircle, CheckCircle2 } from "lucide-reac
 import { toast } from "sonner";
 import {
   buildTemplateCSV,
+  buildTemplateXLSX,
   parseCSV,
+  parseXLSX,
   validateRows,
   importStudents,
   loadImportContext,
@@ -35,10 +37,18 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
 
   function downloadTemplate() {
     const blob = new Blob([buildTemplateCSV()], { type: "text/csv;charset=utf-8;" });
+    triggerDownload(blob, "modelo-importacao-alunos.csv");
+  }
+
+  function downloadTemplateXLSX() {
+    triggerDownload(buildTemplateXLSX(), "modelo-importacao-alunos.xlsx");
+  }
+
+  function triggerDownload(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "modelo-importacao-alunos.csv";
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -51,23 +61,36 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
     setFileName(file.name);
     setResult(null);
     try {
-      const text = await file.text();
-      const rows = parseCSV(text);
+      const isXlsx = /\.xlsx$/i.test(file.name);
+      let rows: Record<string, string>[];
+      let ignored: string[] = [];
+      if (isXlsx) {
+        const parsed = await parseXLSX(file);
+        rows = parsed.rows;
+        ignored = parsed.ignoredHeaders;
+      } else {
+        const text = await file.text();
+        rows = parseCSV(text);
+      }
       if (!rows.length) {
-        toast.error("CSV vazio ou sem linhas de dados.");
+        toast.error("Planilha vazia ou sem linhas de dados.");
         setValidated([]);
         return;
       }
-      const unknownHeaders = Object.keys(rows[0]).filter(
-        (h) => !CSV_HEADERS.includes(h as any)
-      );
-      if (unknownHeaders.length) {
-        toast.warning(`Colunas desconhecidas ignoradas: ${unknownHeaders.join(", ")}`);
+      if (!isXlsx) {
+        const unknownHeaders = Object.keys(rows[0]).filter(
+          (h) => !CSV_HEADERS.includes(h as any)
+        );
+        if (unknownHeaders.length) {
+          toast.warning(`Colunas desconhecidas ignoradas: ${unknownHeaders.join(", ")}`);
+        }
+      } else if (ignored.length) {
+        toast.warning(`Colunas ignoradas: ${ignored.join(", ")}`);
       }
       const ctx = await loadImportContext(status);
       setValidated(validateRows(rows, ctx));
     } catch (err: any) {
-      toast.error(err.message || "Erro ao ler arquivo CSV.");
+      toast.error(err.message || "Erro ao ler arquivo.");
     } finally {
       e.target.value = "";
     }
@@ -109,42 +132,55 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Upload className="w-4 h-4" />
-          Importar CSV
+          Importar CSV / Excel
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Importar alunos via planilha CSV</DialogTitle>
+          <DialogTitle>Importar alunos via CSV ou Excel</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
           <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-2 text-sm">
             <p className="font-medium text-foreground">Como preencher a planilha</p>
             <p className="text-muted-foreground">
-              Arquivo <code>.csv</code> separado por vírgula, UTF-8. A primeira linha deve conter os cabeçalhos
-              exatos abaixo, na seguinte ordem:
+              Aceitamos <code>.csv</code> (separado por vírgula, UTF-8) ou <code>.xlsx</code>. A primeira linha deve conter os cabeçalhos.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              <b>Cabeçalhos CSV (na ordem):</b>
             </p>
             <ol className="text-xs text-muted-foreground list-decimal ml-5 space-y-0.5">
-              <li><b>Dados cadastrais:</b> <code>nome</code> (obrigatório), <code>email</code>, <code>telefone</code>, <code>data_nascimento</code> (AAAA-MM-DD), <code>sexo</code> (masculino/feminino/outro/nao_informar), <code>frequencia_semanal</code> (0=livre, 1, 2 ou 3), <code>observacoes</code></li>
-              <li><b>Documento e endereço:</b> <code>cpf</code> (11 dígitos, com ou sem pontuação), <code>cep</code> (8 dígitos, com ou sem traço), <code>logradouro</code>, <code>numero</code>, <code>complemento</code>, <code>bairro</code></li>
-              <li><b>Professor:</b> <code>professor_nome</code> (nome completo cadastrado; se vazio ou não encontrado, usa o usuário atual)</li>
-              <li><b>Plano (opcional):</b> <code>plano_tipo</code> (Start, Start+, Power, Pro, Max, Gympass/Wellhub, Total Pass), <code>plano_valor</code>, <code>plano_data_inicio</code> (AAAA-MM-DD), <code>plano_consultas</code> (nutricao, reabilitacao, misto — exigido em Power/Pro; misto só em Pro)</li>
-              <li><b>Origem (opcional):</b> <code>origem_lead</code> (Indicação, Fachada, Instagram, Ex-aluno, Gympass/Wellhub, Total Pass, Parceiros)</li>
+              <li><b>Dados cadastrais:</b> <code>nome</code> (obrigatório), <code>email</code>, <code>telefone</code>, <code>data_nascimento</code> (AAAA-MM-DD), <code>sexo</code>, <code>frequencia_semanal</code> (0–3), <code>observacoes</code></li>
+              <li><b>Documento e endereço:</b> <code>cpf</code>, <code>rg</code>, <code>cep</code>, <code>logradouro</code>, <code>numero</code>, <code>complemento</code>, <code>bairro</code>, <code>cidade</code>, <code>uf</code></li>
+              <li><b>Professor:</b> <code>professor_nome</code></li>
+              <li><b>Plano (opcional):</b> <code>plano_tipo</code>, <code>plano_valor</code>, <code>plano_data_inicio</code>, <code>plano_consultas</code></li>
+              <li><b>Origem (opcional):</b> <code>origem_lead</code></li>
+              <li><b>Status (opcional):</b> <code>status_cliente</code> (ativo/encerrado/lead) — quando preenchido, sobrepõe o status da tela</li>
             </ol>
             <p className="text-xs text-muted-foreground">
-              <b>Status</b> é definido pela tela: Ativos → <code>ativo</code>, Inativos → <code>encerrado</code>, Prospects → <code>lead</code> (não entra no pipeline automaticamente).
+              <b>Planilha Excel (.xlsx):</b> aceitamos o layout da Fortem com cabeçalhos em português — Cliente, E-mail, Telefone, Data de Nascimento, Sexo, Frequencia Semanal, Professor, Plano, Plano Valor, Plano data de início, Plano Consultas, Origem, Status Cliente, CPF, RG, CEP, Logradouro, Número, Complemento, Bairro, Cidade, UF. Datas podem estar em <code>DD/MM/AAAA</code>. Colunas fora dessa lista (Objetivo, Modalidade, Estado Civil, Responsável, contatos de emergência etc.) são ignoradas com aviso.
             </p>
             <p className="text-xs text-muted-foreground">
-              <b>Duplicidade permitida:</b> e-mails/telefones repetidos geram apenas aviso — a importação prossegue para você ajustar manualmente depois.
+              <b>Duplicidade permitida:</b> e-mails/telefones repetidos geram apenas aviso.
             </p>
-            <Button variant="link" size="sm" className="px-0 h-auto gap-1" onClick={downloadTemplate}>
-              <Download className="w-3.5 h-3.5" /> Baixar modelo CSV
-            </Button>
+            <div className="flex gap-3 flex-wrap">
+              <Button variant="link" size="sm" className="px-0 h-auto gap-1" onClick={downloadTemplate}>
+                <Download className="w-3.5 h-3.5" /> Baixar modelo CSV
+              </Button>
+              <Button variant="link" size="sm" className="px-0 h-auto gap-1" onClick={downloadTemplateXLSX}>
+                <Download className="w-3.5 h-3.5" /> Baixar modelo XLSX
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
             <label className="cursor-pointer">
-              <input type="file" accept=".csv,text/csv" className="hidden" onChange={onFileChange} />
+              <input
+                type="file"
+                accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                className="hidden"
+                onChange={onFileChange}
+              />
               <span className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-border bg-background hover:bg-muted">
                 <FileUp className="w-4 h-4" />
                 Escolher arquivo
@@ -152,6 +188,7 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
             </label>
             {fileName && <span className="text-sm text-muted-foreground truncate">{fileName}</span>}
           </div>
+
 
           {validated.length > 0 && !result && (
             <div className="space-y-3">
