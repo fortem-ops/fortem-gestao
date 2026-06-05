@@ -38,6 +38,9 @@ const CONSULTAS = ["nutricao", "reabilitacao", "misto"] as const;
 const STATUS_VALUES = ["ativo", "encerrado", "lead"] as const;
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+const dateRegexIsoAlt = /^\d{2}-\d{2}-\d{4}$/;
+const dateRegexBrSlash = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+const dateRegexBrDash = /^(\d{1,2})-(\d{1,2})-(\d{4})$/;
 
 export const rowSchema = z
   .object({
@@ -47,7 +50,7 @@ export const rowSchema = z
     data_nascimento: z
       .string()
       .trim()
-      .regex(dateRegex, "Data de nascimento deve estar em AAAA-MM-DD")
+      .regex(/^(\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4})$/, "Data de nascimento deve estar em AAAA-MM-DD ou DD-MM-AAAA")
       .optional()
       .or(z.literal("")),
     sexo: z.enum(SEXO_VALUES as [string, ...string[]]).optional().or(z.literal("")),
@@ -84,7 +87,7 @@ export const rowSchema = z
     plano_data_inicio: z
       .string()
       .trim()
-      .regex(dateRegex, "plano_data_inicio deve estar em AAAA-MM-DD")
+      .regex(/^(\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4})$/, "plano_data_inicio deve estar em AAAA-MM-DD ou DD-MM-AAAA")
       .optional()
       .or(z.literal("")),
     plano_consultas: z.enum(CONSULTAS as unknown as [string, ...string[]]).optional().or(z.literal("")),
@@ -259,11 +262,16 @@ function normalizeDate(v: any): string {
     return `${y}-${m}-${d}`;
   }
   const s = String(v).trim();
-  if (!s || s === "-") return "";
+  if (!s || s === "-" || s === ".") return "";
   if (dateRegex.test(s)) return s;
-  const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (br) {
-    const [, d, m, y] = br;
+  const brSlash = s.match(dateRegexBrSlash);
+  if (brSlash) {
+    const [, d, m, y] = brSlash;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  const brDash = s.match(dateRegexBrDash);
+  if (brDash) {
+    const [, d, m, y] = brDash;
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   // Excel serial number
@@ -377,9 +385,9 @@ const XLSX_TEMPLATE_HEADERS = [
 
 export function buildTemplateXLSX(): Blob {
   const sample = [
-    "João da Silva", "joao@example.com", "(11) 99999-0000", "12/05/1990", "Masculino",
+    "João da Silva", "joao@example.com", "(11) 99999-0000", "12-05-1990", "Masculino",
     "3", "Maria Professora", "PRO", "299.90",
-    "01/01/2026", "Nutrição", "Indicação", "Ativo",
+    "01-01-2026", "Nutrição", "Indicação", "Ativo",
     "001.176.710-37", "12.345.678-9", "01310-100", "Av. Paulista", "1000", "Apto 101", "Bela Vista",
     "São Paulo", "SP",
   ];
