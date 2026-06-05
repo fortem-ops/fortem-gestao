@@ -262,11 +262,16 @@ function normalizeDate(v: any): string {
     return `${y}-${m}-${d}`;
   }
   const s = String(v).trim();
-  if (!s || s === "-") return "";
+  if (!s || s === "-" || s === ".") return "";
   if (dateRegex.test(s)) return s;
-  const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (br) {
-    const [, d, m, y] = br;
+  const brSlash = s.match(dateRegexBrSlash);
+  if (brSlash) {
+    const [, d, m, y] = brSlash;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  const brDash = s.match(dateRegexBrDash);
+  if (brDash) {
+    const [, d, m, y] = brDash;
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   // Excel serial number
