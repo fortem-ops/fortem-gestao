@@ -5,7 +5,9 @@ import { Upload, Download, FileUp, AlertCircle, CheckCircle2 } from "lucide-reac
 import { toast } from "sonner";
 import {
   buildTemplateCSV,
+  buildTemplateXLSX,
   parseCSV,
+  parseXLSX,
   validateRows,
   importStudents,
   loadImportContext,
