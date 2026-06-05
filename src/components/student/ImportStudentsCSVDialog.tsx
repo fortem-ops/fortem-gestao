@@ -132,7 +132,7 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Upload className="w-4 h-4" />
-          Importar CSV
+          Importar CSV / Excel
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto">
