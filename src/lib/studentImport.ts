@@ -338,7 +338,7 @@ export async function parseXLSX(file: File): Promise<ParsedFile> {
   const wb = XLSX.read(buf, { type: "array", cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) return { rows: [], ignoredHeaders: [] };
-  const json = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: "", raw: false, dateNF: "yyyy-mm-dd" });
+  const json = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: "", raw: true });
   const rows = json.map(mapRawRow).filter((r) => Object.values(r).some((v) => v && v.trim() !== ""));
   return { rows, ignoredHeaders: [...IGNORED_HEADERS_LOG] };
 }
