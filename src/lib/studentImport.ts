@@ -87,7 +87,7 @@ export const rowSchema = z
     plano_data_inicio: z
       .string()
       .trim()
-      .regex(dateRegex, "plano_data_inicio deve estar em AAAA-MM-DD")
+      .regex(/^(\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4})$/, "plano_data_inicio deve estar em AAAA-MM-DD ou DD-MM-AAAA")
       .optional()
       .or(z.literal("")),
     plano_consultas: z.enum(CONSULTAS as unknown as [string, ...string[]]).optional().or(z.literal("")),
