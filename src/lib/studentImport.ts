@@ -38,6 +38,9 @@ const CONSULTAS = ["nutricao", "reabilitacao", "misto"] as const;
 const STATUS_VALUES = ["ativo", "encerrado", "lead"] as const;
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+const dateRegexIsoAlt = /^\d{2}-\d{2}-\d{4}$/;
+const dateRegexBrSlash = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+const dateRegexBrDash = /^(\d{1,2})-(\d{1,2})-(\d{4})$/;
 
 export const rowSchema = z
   .object({
