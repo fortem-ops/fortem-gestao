@@ -96,34 +96,6 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
     }
   }
 
-  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFileName(file.name);
-    setResult(null);
-    try {
-      const text = await file.text();
-      const rows = parseCSV(text);
-      if (!rows.length) {
-        toast.error("CSV vazio ou sem linhas de dados.");
-        setValidated([]);
-        return;
-      }
-      const unknownHeaders = Object.keys(rows[0]).filter(
-        (h) => !CSV_HEADERS.includes(h as any)
-      );
-      if (unknownHeaders.length) {
-        toast.warning(`Colunas desconhecidas ignoradas: ${unknownHeaders.join(", ")}`);
-      }
-      const ctx = await loadImportContext(status);
-      setValidated(validateRows(rows, ctx));
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao ler arquivo CSV.");
-    } finally {
-      e.target.value = "";
-    }
-  }
-
   async function runImport() {
     if (!validated.length) return;
     setImporting(true);
