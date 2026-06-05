@@ -50,7 +50,7 @@ export const rowSchema = z
     data_nascimento: z
       .string()
       .trim()
-      .regex(dateRegex, "Data de nascimento deve estar em AAAA-MM-DD")
+      .regex(/^(\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4})$/, "Data de nascimento deve estar em AAAA-MM-DD ou DD-MM-AAAA")
       .optional()
       .or(z.literal("")),
     sexo: z.enum(SEXO_VALUES as [string, ...string[]]).optional().or(z.literal("")),
