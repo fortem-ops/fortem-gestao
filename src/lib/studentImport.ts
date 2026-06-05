@@ -385,9 +385,9 @@ const XLSX_TEMPLATE_HEADERS = [
 
 export function buildTemplateXLSX(): Blob {
   const sample = [
-    "João da Silva", "joao@example.com", "(11) 99999-0000", "12/05/1990", "Masculino",
+    "João da Silva", "joao@example.com", "(11) 99999-0000", "12-05-1990", "Masculino",
     "3", "Maria Professora", "PRO", "299.90",
-    "01/01/2026", "Nutrição", "Indicação", "Ativo",
+    "01-01-2026", "Nutrição", "Indicação", "Ativo",
     "001.176.710-37", "12.345.678-9", "01310-100", "Av. Paulista", "1000", "Apto 101", "Bela Vista",
     "São Paulo", "SP",
   ];
