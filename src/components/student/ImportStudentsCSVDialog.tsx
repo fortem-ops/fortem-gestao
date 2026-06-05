@@ -150,15 +150,15 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
               <b>Cabeçalhos CSV (na ordem):</b>
             </p>
             <ol className="text-xs text-muted-foreground list-decimal ml-5 space-y-0.5">
-              <li><b>Dados cadastrais:</b> <code>nome</code> (obrigatório), <code>email</code>, <code>telefone</code>, <code>data_nascimento</code> (AAAA-MM-DD), <code>sexo</code>, <code>frequencia_semanal</code> (0–3), <code>observacoes</code></li>
+              <li><b>Dados cadastrais:</b> <code>nome</code> (obrigatório), <code>email</code>, <code>telefone</code>, <code>data_nascimento</code> (AAAA-MM-DD ou DD-MM-AAAA), <code>sexo</code>, <code>frequencia_semanal</code> (0–3), <code>observacoes</code></li>
               <li><b>Documento e endereço:</b> <code>cpf</code>, <code>rg</code>, <code>cep</code>, <code>logradouro</code>, <code>numero</code>, <code>complemento</code>, <code>bairro</code>, <code>cidade</code>, <code>uf</code></li>
               <li><b>Professor:</b> <code>professor_nome</code></li>
-              <li><b>Plano (opcional):</b> <code>plano_tipo</code>, <code>plano_valor</code>, <code>plano_data_inicio</code>, <code>plano_consultas</code></li>
+              <li><b>Plano (opcional):</b> <code>plano_tipo</code>, <code>plano_valor</code>, <code>plano_data_inicio</code> (AAAA-MM-DD ou DD-MM-AAAA), <code>plano_consultas</code></li>
               <li><b>Origem (opcional):</b> <code>origem_lead</code></li>
               <li><b>Status (opcional):</b> <code>status_cliente</code> (ativo/encerrado/lead) — quando preenchido, sobrepõe o status da tela</li>
             </ol>
             <p className="text-xs text-muted-foreground">
-              <b>Planilha Excel (.xlsx):</b> aceitamos o layout da Fortem com cabeçalhos em português — Cliente, E-mail, Telefone, Data de Nascimento, Sexo, Frequencia Semanal, Professor, Plano, Plano Valor, Plano data de início, Plano Consultas, Origem, Status Cliente, CPF, RG, CEP, Logradouro, Número, Complemento, Bairro, Cidade, UF. Datas podem estar em <code>DD/MM/AAAA</code>. Colunas fora dessa lista (Objetivo, Modalidade, Estado Civil, Responsável, contatos de emergência etc.) são ignoradas com aviso.
+              <b>Planilha Excel (.xlsx):</b> aceitamos o layout da Fortem com cabeçalhos em português — Cliente, E-mail, Telefone, Data de Nascimento, Sexo, Frequencia Semanal, Professor, Plano, Plano Valor, Plano data de início, Plano Consultas, Origem, Status Cliente, CPF, RG, CEP, Logradouro, Número, Complemento, Bairro, Cidade, UF. Datas podem estar em <code>DD-MM-AAAA</code> ou <code>DD/MM/AAAA</code>. Colunas fora dessa lista (Objetivo, Modalidade, Estado Civil, Responsável, contatos de emergência etc.) são ignoradas com aviso.
             </p>
             <p className="text-xs text-muted-foreground">
               <b>Duplicidade permitida:</b> e-mails/telefones repetidos geram apenas aviso.
