@@ -1,23 +1,63 @@
-## Problema
+## Objetivo
 
-Na planilha do usuário, a coluna **"Plano data de início"** contém células do tipo *date* do Excel com formato visual `mm-dd-yy`. O parser atual usa:
+Em **Cadastros > Alunos Ativos** (e também Inativos, já que compartilham o mesmo componente):
+1. Permitir **seleção em massa** de cadastros e **ações em massa** (começando por excluir).
+2. Adicionar em **Filtros Avançados** uma seção **"Dados Cadastrais"** para filtrar por presença/ausência de campos (email, CPF, telefone, etc).
 
+---
+
+## 1. Seleção em massa + ações em massa
+
+**UI na tabela (`src/pages/StudentList.tsx`):**
+- Nova coluna inicial com `Checkbox` em cada linha (clique não navega para o perfil — `stopPropagation`).
+- Checkbox no `<thead>` para selecionar/desmarcar todos os filtrados.
+- Estado `selectedIds: Set<string>` no componente.
+
+**Barra de ações em massa (aparece quando há seleção):**
+Faixa fixa acima da tabela mostrando `N selecionado(s)` + botões:
+- **Excluir selecionados** (destrutivo, com `AlertDialog` de confirmação que mostra a quantidade e os nomes).
+- **Limpar seleção**.
+- Espaço preparado para futuras ações em massa (ex.: alterar professor, exportar) — implementaremos só "Excluir" agora.
+
+**Exclusão:**
+- `supabase.from("alunos").delete().in("id", [...selectedIds])`.
+- Apenas Admin/Coordenador podem ver os botões de ação destrutiva (usa `useAuthAccess`/role já existente no projeto).
+- Após sucesso: toast com contagem, limpar seleção, `refetch()` + invalidar queries relacionadas (`alunos_with_plans`, `pipeline-alunos`).
+- Tratar erros de FK (ex.: aluno com planos/pagamentos) mostrando mensagem clara — se necessário, sugerir encerrar o cadastro em vez de excluir.
+
+---
+
+## 2. Filtros "Dados Cadastrais"
+
+**`src/components/student/StudentListFilters.tsx`:**
+
+Adicionar à interface `StudentFilters` um campo:
 ```ts
-XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, dateNF: "yyyy-mm-dd" });
+dadosCadastrais: {
+  email: "todos" | "com" | "sem";
+  cpf: "todos" | "com" | "sem";
+  telefone: "todos" | "com" | "sem";
+  rg: "todos" | "com" | "sem";
+  dataNascimento: "todos" | "com" | "sem";
+  endereco: "todos" | "com" | "sem";   // considera CEP+logradouro+cidade
+  foto: "todos" | "com" | "sem";
+}
 ```
 
-Com `raw: false`, o SheetJS formata cada célula de data usando **o formato da própria célula** (`mm-dd-yy`), produzindo strings como `"11/18/25"`. O `dateNF` só é aplicado a células sem formato. Em seguida, `normalizeDate` interpreta `"11/18/25"` como DD/MM/AA → mês 18 inválido → retorna a string original, que falha no schema (ou grava data inválida).
+No painel de Filtros Avançados, nova subseção **"Dados Cadastrais"** (separador + grid) com um `Select` (Todos / Com / Sem) para cada campo acima. Contador de filtros ativos passa a incluir esses novos.
 
-A coluna "Data de Nascimento", por ser texto puro (`19/05/1985`), continua funcionando.
+**`StudentList.tsx` (lógica de filtro):**
+- Buscar também `cpf, rg, data_nascimento, cep, logradouro, cidade, foto_url` no `ALUNOS_COLUMNS`.
+- Aplicar os checks `com/sem` em `filtered` (`!!s.email`, `!!s.cpf`, etc; "endereço" considera ter `cep` OU `logradouro`).
 
-## Correção
+---
 
-Em `src/lib/studentImport.ts`, na função `parseXLSX`:
+## Arquivos afetados
 
-1. Trocar `raw: false` por `raw: true` mantendo `cellDates: true`. Assim, células de data vêm como objetos `Date` do JavaScript, que `normalizeDate` já trata corretamente no ramo `v instanceof Date` (retornando `AAAA-MM-DD`). Remover `dateNF` (deixa de ser necessário).
-2. Como `raw:true` devolve números/booleans crus para outras colunas, garantir que `cleanCell` e os normalizadores continuem aceitando qualquer tipo via `String(v)` (já é o caso atual).
+- `src/pages/StudentList.tsx` — colunas, seleção, barra de ações, exclusão, filtros novos.
+- `src/components/student/StudentListFilters.tsx` — bloco "Dados Cadastrais", tipo `StudentFilters`, `defaultFilters`, contador.
 
-Nenhuma outra mudança é necessária — `normalizeDate` já cobre `Date`, `AAAA-MM-DD`, `DD/MM/AAAA`, `DD-MM-AAAA` e seriais Excel.
+## Fora do escopo (confirmar se quiser incluir depois)
 
-## Arquivo alterado
-- `src/lib/studentImport.ts` (uma linha em `parseXLSX`)
+- Outras ações em massa além de excluir (alterar professor, alterar status, exportar CSV).
+- Ações em massa nas telas de Leads/Prospects.
