@@ -67,9 +67,23 @@ function sumByAtividade(map: Record<string, CreditAgg>) {
 
 export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "inativos" } = {}) {
   const [filters, setFilters] = useState<StudentFilters>(defaultFilters);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isInativos = mode === "inativos";
   const pageTitle = isInativos ? "Alunos Inativos" : "Alunos Ativos";
+
+  const { data: isCoordAdmin } = useQuery({
+    queryKey: ["is-coord-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["all_profiles"],
