@@ -433,6 +433,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-border/50">
+                  <td className="p-4 w-10"><Skeleton className="h-4 w-4" /></td>
                   <td className="p-4"><Skeleton className="h-5 w-40" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
@@ -446,7 +447,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                <td colSpan={10} className="p-8 text-center text-muted-foreground">
                   Nenhum aluno encontrado.
                 </td>
               </tr>
