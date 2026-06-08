@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import StudentFormFields, { type StudentFormValues, getPlanDetails } from "./StudentFormFields";
+import { isAutoRenewPlan } from "@/lib/planTipo";
 
 interface AddStudentDialogProps {
   onStudentAdded: () => void;
