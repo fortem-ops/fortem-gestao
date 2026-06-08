@@ -240,9 +240,67 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         matchDate = false;
       }
 
-      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
+      const d = filters.dadosCadastrais;
+      const checkPresenca = (mode: "todos" | "com" | "sem", has: boolean) =>
+        mode === "todos" ? true : mode === "com" ? has : !has;
+      const matchDados =
+        checkPresenca(d.email, !!(s as any).email) &&
+        checkPresenca(d.cpf, !!(s as any).cpf) &&
+        checkPresenca(d.telefone, !!(s as any).telefone) &&
+        checkPresenca(d.rg, !!(s as any).rg) &&
+        checkPresenca(d.dataNascimento, !!(s as any).data_nascimento) &&
+        checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
+        checkPresenca(d.foto, !!(s as any).foto_url);
+
+      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate && matchDados;
     });
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte, isInativos]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
+
+  const filteredIds = useMemo(() => filtered.map((s: any) => s.id), [filtered]);
+  const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+  const someSelected = filteredIds.some((id) => selectedIds.has(id));
+
+  const toggleOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+  const toggleAll = (checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) filteredIds.forEach((id) => next.add(id));
+      else filteredIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  async function handleBulkDelete() {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("alunos").delete().in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} cadastro${ids.length !== 1 ? "s" : ""} excluído${ids.length !== 1 ? "s" : ""}.`);
+      clearSelection();
+      setConfirmDeleteOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["alunos_with_plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+      refetch();
+    } catch (e: any) {
+      const msg = e?.message || "Erro ao excluir cadastros";
+      if (/foreign key|violates/i.test(msg)) {
+        toast.error("Não foi possível excluir: há registros vinculados (planos, pagamentos, agenda). Considere encerrar o cadastro.");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
 
 
   const iconForAtividade = (atividade: string) => {
