@@ -515,6 +515,7 @@ export async function importStudents(
             servicos: plan.servicos,
             valor: typeof p.plano_valor === "number" ? p.plano_valor : 0,
             ativo: true,
+            renovacao_automatica: isAutoRenewPlan(plan.tipo) || undefined,
           });
           if (planErr) console.error("Erro ao criar plano:", planErr);
         }
