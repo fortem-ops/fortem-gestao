@@ -229,6 +229,8 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       const matchProf = filters.professor === "todos" || s.responsavel_id === filters.professor;
 
+      const matchTipoPlano = filters.tipoPlano === "todos" || s.planTipo === filters.tipoPlano;
+
       let matchDate = true;
       if (filters.dataFinalDe && s.planEnd) {
         matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
@@ -252,9 +254,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
         checkPresenca(d.foto, !!(s as any).foto_url);
 
-      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate && matchDados;
+      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchDate && matchDados;
     });
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
 
   const filteredIds = useMemo(() => filtered.map((s: any) => s.id), [filtered]);
   const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
