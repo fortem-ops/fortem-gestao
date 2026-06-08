@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import StudentFormFields, { type StudentFormValues, getPlanDetails } from "./StudentFormFields";
+import { isAutoRenewPlan } from "@/lib/planTipo";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface EditStudentDialogProps {
