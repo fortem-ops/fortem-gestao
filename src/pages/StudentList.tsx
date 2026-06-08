@@ -548,6 +548,29 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           </tbody>
         </table>
       </div>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cadastros selecionados?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá permanentemente {selectedIds.size} cadastro{selectedIds.size !== 1 ? "s" : ""}.
+              Cadastros com planos, pagamentos ou agenda vinculados não poderão ser excluídos —
+              nesses casos, considere encerrar o cadastro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleBulkDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
