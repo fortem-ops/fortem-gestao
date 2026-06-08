@@ -100,6 +100,7 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
           servicos: plan.servicos,
           valor: values.plano_valor || 0,
           ativo: true,
+          renovacao_automatica: isAutoRenewPlan(plan.tipo) || undefined,
         });
       }
 
