@@ -2,10 +2,21 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Utensils, Footprints, RefreshCw } from "lucide-react";
+import { Activity, Utensils, Footprints, RefreshCw, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import AddStudentDialog from "@/components/student/AddStudentDialog";
@@ -15,10 +26,11 @@ import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAuth } from "@/contexts/AuthContext";
 import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
 
 const ALUNOS_COLUMNS =
-  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id";
+  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id, cpf, rg, data_nascimento, cep, logradouro, cidade";
 
 function parseServiceCount(servicos: string[] | null, tipoServico: string): number {
   if (!servicos) return 0;
@@ -55,9 +67,23 @@ function sumByAtividade(map: Record<string, CreditAgg>) {
 
 export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "inativos" } = {}) {
   const [filters, setFilters] = useState<StudentFilters>(defaultFilters);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isInativos = mode === "inativos";
   const pageTitle = isInativos ? "Alunos Inativos" : "Alunos Ativos";
+
+  const { data: isCoordAdmin } = useQuery({
+    queryKey: ["is-coord-admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["all_profiles"],
@@ -214,9 +240,67 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         matchDate = false;
       }
 
-      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate;
+      const d = filters.dadosCadastrais;
+      const checkPresenca = (mode: "todos" | "com" | "sem", has: boolean) =>
+        mode === "todos" ? true : mode === "com" ? has : !has;
+      const matchDados =
+        checkPresenca(d.email, !!(s as any).email) &&
+        checkPresenca(d.cpf, !!(s as any).cpf) &&
+        checkPresenca(d.telefone, !!(s as any).telefone) &&
+        checkPresenca(d.rg, !!(s as any).rg) &&
+        checkPresenca(d.dataNascimento, !!(s as any).data_nascimento) &&
+        checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
+        checkPresenca(d.foto, !!(s as any).foto_url);
+
+      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchDate && matchDados;
     });
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte, isInativos]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
+
+  const filteredIds = useMemo(() => filtered.map((s: any) => s.id), [filtered]);
+  const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+  const someSelected = filteredIds.some((id) => selectedIds.has(id));
+
+  const toggleOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+  const toggleAll = (checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) filteredIds.forEach((id) => next.add(id));
+      else filteredIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  async function handleBulkDelete() {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("alunos").delete().in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} cadastro${ids.length !== 1 ? "s" : ""} excluído${ids.length !== 1 ? "s" : ""}.`);
+      clearSelection();
+      setConfirmDeleteOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["alunos_with_plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+      refetch();
+    } catch (e: any) {
+      const msg = e?.message || "Erro ao excluir cadastros";
+      if (/foreign key|violates/i.test(msg)) {
+        toast.error("Não foi possível excluir: há registros vinculados (planos, pagamentos, agenda). Considere encerrar o cadastro.");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
 
 
   const iconForAtividade = (atividade: string) => {
@@ -300,10 +384,40 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       <StudentListFilters filters={filters} onChange={setFilters} professors={professors} />
 
+      {selectedIds.size > 0 && (
+        <div className="glass-card rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-3 animate-fade-in border border-primary/40">
+          <div className="flex items-center gap-3">
+            <Badge variant="default" className="text-xs">{selectedIds.size} selecionado{selectedIds.size !== 1 ? "s" : ""}</Badge>
+            <Button variant="ghost" size="sm" onClick={clearSelection} className="gap-1 text-xs">
+              <X className="w-3 h-3" /> Limpar seleção
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            {isCoordAdmin && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setConfirmDeleteOpen(true)}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Excluir selecionados
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="glass-card rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
+              <th className="p-4 w-10">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={(v) => toggleAll(!!v)}
+                  aria-label="Selecionar todos"
+                />
+              </th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Status</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Plano</th>
@@ -319,6 +433,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-border/50">
+                  <td className="p-4 w-10"><Skeleton className="h-4 w-4" /></td>
                   <td className="p-4"><Skeleton className="h-5 w-40" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
@@ -332,7 +447,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                <td colSpan={10} className="p-8 text-center text-muted-foreground">
                   Nenhum aluno encontrado.
                 </td>
               </tr>
@@ -365,6 +480,13 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                     onClick={() => navigate(`/alunos/${student.id}`)}
                     className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors"
                   >
+                    <td className="p-4 w-10" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(student.id)}
+                        onCheckedChange={(v) => toggleOne(student.id, !!v)}
+                        aria-label={`Selecionar ${student.nome}`}
+                      />
+                    </td>
                     <td className="p-4">
                       <div>
                         <p className="text-sm font-medium text-foreground">{student.nome}</p>
@@ -426,6 +548,29 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           </tbody>
         </table>
       </div>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cadastros selecionados?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá permanentemente {selectedIds.size} cadastro{selectedIds.size !== 1 ? "s" : ""}.
+              Cadastros com planos, pagamentos ou agenda vinculados não poderão ser excluídos —
+              nesses casos, considere encerrar o cadastro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleBulkDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
