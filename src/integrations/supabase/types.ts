@@ -4444,6 +4444,10 @@ export type Database = {
         Args: { _ref: string }
         Returns: number
       }
+      fn_proxima_renovacao_from: {
+        Args: { _data_inicio: string }
+        Returns: string
+      }
       fn_resolver_prof_avaliacao: {
         Args: { _aluno_id: string; _avaliador: string; _data: string }
         Returns: string

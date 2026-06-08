@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import StudentFormFields, { type StudentFormValues, getPlanDetails } from "./StudentFormFields";
+import { isAutoRenewPlan } from "@/lib/planTipo";
 
 interface AddStudentDialogProps {
   onStudentAdded: () => void;
@@ -56,6 +57,7 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
           servicos: plan.servicos,
           valor: values.plano_valor || 0,
           ativo: true,
+          renovacao_automatica: isAutoRenewPlan(plan.tipo) || undefined,
         });
         if (planError) console.error("Erro ao criar plano:", planError);
       }

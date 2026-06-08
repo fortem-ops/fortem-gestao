@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-webhook-secret",
 };
 
 let _cachedSecret: string | null = null;
@@ -54,49 +54,75 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
+    // Cache de catálogo (por nome em minúsculas)
+    const { data: catalogo, error: catErr } = await supabase
+      .from("planos_catalogo")
+      .select("id, nome, valor, periodo_meses")
+      .eq("ativo", true);
+    if (catErr) throw catErr;
+
+    const byName = new Map<string, typeof catalogo>();
+    for (const c of catalogo || []) {
+      const k = (c.nome || "").toLowerCase().trim();
+      if (!byName.has(k)) byName.set(k, [] as any);
+      (byName.get(k) as any).push(c);
+    }
+
     let geradas = 0;
+    const erros: any[] = [];
+
     for (const p of planos || []) {
-      let proxima = new Date((p.proxima_renovacao as string) + "T00:00:00");
-      const todayDt = new Date(today + "T00:00:00");
-
-      while (proxima <= todayDt) {
-        const dataVenda = proxima.toISOString().split("T")[0];
-        const valor = Number(p.valor ?? 0);
-        const desconto = Number((p as any).desconto_recorrente ?? 0);
-        const valorFinal = Math.max(0, valor - desconto);
-
-        const { error: vErr } = await supabase.from("vendas").insert({
-          aluno_id: p.aluno_id,
-          tipo: "plano",
-          catalogo_id: p.id,
-          plano_id: p.id,
-          nome_snapshot: `${p.tipo} (renovação automática)`,
-          valor,
-          desconto,
-          valor_final: valorFinal,
-          forma_pagamento: (p as any).forma_pagamento_padrao ?? null,
-          parcelas: (p as any).parcelas_padrao ?? 1,
-          status_pagamento: "pendente",
-          data_venda: dataVenda,
-          origem: "renovacao_automatica",
-        });
-        if (vErr) {
-          console.error(`Erro ao gerar venda do plano ${p.id}:`, vErr);
-          break;
-        }
-        geradas++;
-        proxima = new Date(proxima);
-        proxima.setMonth(proxima.getMonth() + 1);
+      const tipoKey = (p.tipo || "").toLowerCase().trim();
+      const variantes = byName.get(tipoKey) || [];
+      if (variantes.length === 0) {
+        erros.push({ plano_id: p.id, motivo: `Catálogo não encontrado para "${p.tipo}"` });
+        continue;
       }
 
-      await supabase
-        .from("planos")
-        .update({ proxima_renovacao: proxima.toISOString().split("T")[0] })
-        .eq("id", p.id);
+      // Escolhe a variante: prioriza valor igual; senão pega a primeira mensal (periodo_meses=1).
+      const valorAtual = Number(p.valor ?? 0);
+      const exato = variantes.find((v: any) => Number(v.valor) === valorAtual);
+      const mensal = variantes.find((v: any) => Number(v.periodo_meses) === 1);
+      const escolhido = exato || mensal || variantes[0];
+
+      const dataVenda = p.proxima_renovacao as string; // data em que a renovação venceu
+      const valor = Number(p.valor ?? 0);
+      const desconto = Number((p as any).desconto_recorrente ?? 0);
+      const valorFinal = Math.max(0, valor - desconto);
+
+      const { error: vErr } = await supabase.from("vendas").insert({
+        aluno_id: p.aluno_id,
+        tipo: "plano",
+        catalogo_id: escolhido.id,
+        nome_snapshot: `${p.tipo} (renovação automática)`,
+        valor,
+        desconto,
+        valor_final: valorFinal,
+        forma_pagamento: (p as any).forma_pagamento_padrao ?? null,
+        parcelas: (p as any).parcelas_padrao ?? 1,
+        status_pagamento: "pendente",
+        data_venda: dataVenda,
+        origem: "renovacao_automatica",
+      });
+
+      if (vErr) {
+        console.error(`Erro ao gerar venda do plano ${p.id}:`, vErr);
+        erros.push({ plano_id: p.id, motivo: vErr.message });
+        continue;
+      }
+      geradas++;
+      // Não atualizamos proxima_renovacao do plano antigo: a trigger fn_processar_venda
+      // já desativou-o e criou um novo plano. O trigger fn_planos_autorenew_defaults
+      // calculou a nova proxima_renovacao no INSERT do novo plano.
     }
 
     return new Response(
-      JSON.stringify({ ok: true, planos_processados: planos?.length ?? 0, vendas_geradas: geradas }),
+      JSON.stringify({
+        ok: true,
+        planos_processados: planos?.length ?? 0,
+        vendas_geradas: geradas,
+        erros,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
