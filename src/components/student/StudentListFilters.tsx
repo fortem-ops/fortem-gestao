@@ -6,9 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+
+export type PresencaFiltro = "todos" | "com" | "sem";
+
+export interface DadosCadastraisFiltro {
+  email: PresencaFiltro;
+  cpf: PresencaFiltro;
+  telefone: PresencaFiltro;
+  rg: PresencaFiltro;
+  dataNascimento: PresencaFiltro;
+  endereco: PresencaFiltro;
+  foto: PresencaFiltro;
+}
 
 export interface StudentFilters {
   search: string;
@@ -19,7 +32,18 @@ export interface StudentFilters {
   professor: string;
   dataFinalDe: Date | undefined;
   dataFinalAte: Date | undefined;
+  dadosCadastrais: DadosCadastraisFiltro;
 }
+
+const defaultDados: DadosCadastraisFiltro = {
+  email: "todos",
+  cpf: "todos",
+  telefone: "todos",
+  rg: "todos",
+  dataNascimento: "todos",
+  endereco: "todos",
+  foto: "todos",
+};
 
 const defaultFilters: StudentFilters = {
   search: "",
@@ -30,6 +54,7 @@ const defaultFilters: StudentFilters = {
   professor: "todos",
   dataFinalDe: undefined,
   dataFinalAte: undefined,
+  dadosCadastrais: { ...defaultDados },
 };
 
 interface Props {
@@ -38,10 +63,24 @@ interface Props {
   professors: { id: string; name: string }[];
 }
 
+const DADOS_LABELS: { key: keyof DadosCadastraisFiltro; label: string }[] = [
+  { key: "email", label: "E-mail" },
+  { key: "cpf", label: "CPF" },
+  { key: "telefone", label: "Telefone" },
+  { key: "rg", label: "RG" },
+  { key: "dataNascimento", label: "Data de nascimento" },
+  { key: "endereco", label: "Endereço" },
+  { key: "foto", label: "Foto" },
+];
+
 export function StudentListFilters({ filters, onChange, professors }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const update = (partial: Partial<StudentFilters>) => onChange({ ...filters, ...partial });
+  const updateDados = (partial: Partial<DadosCadastraisFiltro>) =>
+    onChange({ ...filters, dadosCadastrais: { ...filters.dadosCadastrais, ...partial } });
+
+  const dadosActiveCount = DADOS_LABELS.filter(({ key }) => filters.dadosCadastrais[key] !== "todos").length;
 
   const activeCount = [
     filters.status !== "todos",
@@ -51,7 +90,7 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
     filters.professor !== "todos",
     !!filters.dataFinalDe,
     !!filters.dataFinalAte,
-  ].filter(Boolean).length;
+  ].filter(Boolean).length + dadosActiveCount;
 
   const clearAll = () => onChange({ ...defaultFilters, search: filters.search });
 
@@ -193,6 +232,35 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
                   <Calendar mode="single" selected={filters.dataFinalAte} onSelect={(d) => update({ dataFinalAte: d })} locale={ptBR} className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-foreground">Dados Cadastrais</h4>
+              {dadosActiveCount > 0 && (
+                <Badge variant="outline" className="text-[10px]">{dadosActiveCount} ativo{dadosActiveCount !== 1 ? "s" : ""}</Badge>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {DADOS_LABELS.map(({ key, label }) => (
+                <div key={key} className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">{label}</label>
+                  <Select
+                    value={filters.dadosCadastrais[key]}
+                    onValueChange={(v) => updateDados({ [key]: v as PresencaFiltro } as Partial<DadosCadastraisFiltro>)}
+                  >
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="com">Com {label.toLowerCase()}</SelectItem>
+                      <SelectItem value="sem">Sem {label.toLowerCase()}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
             </div>
           </div>
         </div>
