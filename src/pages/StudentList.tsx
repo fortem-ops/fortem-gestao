@@ -384,10 +384,40 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       <StudentListFilters filters={filters} onChange={setFilters} professors={professors} />
 
+      {selectedIds.size > 0 && (
+        <div className="glass-card rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-3 animate-fade-in border border-primary/40">
+          <div className="flex items-center gap-3">
+            <Badge variant="default" className="text-xs">{selectedIds.size} selecionado{selectedIds.size !== 1 ? "s" : ""}</Badge>
+            <Button variant="ghost" size="sm" onClick={clearSelection} className="gap-1 text-xs">
+              <X className="w-3 h-3" /> Limpar seleção
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            {isCoordAdmin && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setConfirmDeleteOpen(true)}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Excluir selecionados
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="glass-card rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
+              <th className="p-4 w-10">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={(v) => toggleAll(!!v)}
+                  aria-label="Selecionar todos"
+                />
+              </th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Status</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Plano</th>
