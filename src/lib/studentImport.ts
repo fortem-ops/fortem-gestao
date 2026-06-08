@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { ORIGEM_LEAD_OPTIONS, SEXO_OPTIONS, normalizePhone } from "@/lib/leads";
 import { getPlanDetails } from "@/components/student/StudentFormFields";
+import { isAutoRenewPlan } from "@/lib/planTipo";
 
 export const CSV_HEADERS = [
   "nome",
