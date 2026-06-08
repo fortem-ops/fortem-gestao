@@ -56,6 +56,7 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
           servicos: plan.servicos,
           valor: values.plano_valor || 0,
           ativo: true,
+          renovacao_automatica: isAutoRenewPlan(plan.tipo) || undefined,
         });
         if (planError) console.error("Erro ao criar plano:", planError);
       }
