@@ -2,10 +2,21 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Utensils, Footprints, RefreshCw } from "lucide-react";
+import { Activity, Utensils, Footprints, RefreshCw, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import AddStudentDialog from "@/components/student/AddStudentDialog";
@@ -15,10 +26,11 @@ import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAuth } from "@/contexts/AuthContext";
 import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
 
 const ALUNOS_COLUMNS =
-  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id";
+  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id, cpf, rg, data_nascimento, cep, logradouro, cidade";
 
 function parseServiceCount(servicos: string[] | null, tipoServico: string): number {
   if (!servicos) return 0;
