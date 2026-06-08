@@ -480,6 +480,13 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                     onClick={() => navigate(`/alunos/${student.id}`)}
                     className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors"
                   >
+                    <td className="p-4 w-10" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(student.id)}
+                        onCheckedChange={(v) => toggleOne(student.id, !!v)}
+                        aria-label={`Selecionar ${student.nome}`}
+                      />
+                    </td>
                     <td className="p-4">
                       <div>
                         <p className="text-sm font-medium text-foreground">{student.nome}</p>
