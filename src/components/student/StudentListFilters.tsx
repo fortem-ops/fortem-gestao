@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Search, Filter, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export type PresencaFiltro = "todos" | "com" | "sem";
 
@@ -30,6 +32,7 @@ export interface StudentFilters {
   servicosPlano: string;
   servicosContratados: string;
   professor: string;
+  tipoPlano: string;
   dataFinalDe: Date | undefined;
   dataFinalAte: Date | undefined;
   dadosCadastrais: DadosCadastraisFiltro;
@@ -52,6 +55,7 @@ const defaultFilters: StudentFilters = {
   servicosPlano: "todos",
   servicosContratados: "todos",
   professor: "todos",
+  tipoPlano: "todos",
   dataFinalDe: undefined,
   dataFinalAte: undefined,
   dadosCadastrais: { ...defaultDados },
@@ -76,6 +80,17 @@ const DADOS_LABELS: { key: keyof DadosCadastraisFiltro; label: string }[] = [
 export function StudentListFilters({ filters, onChange, professors }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  const { data: tiposPlano = [] } = useQuery({
+    queryKey: ["planos-tipos-distinct"],
+    queryFn: async () => {
+      const { data } = await supabase.from("planos").select("tipo").not("tipo", "is", null);
+      const set = new Set<string>();
+      (data || []).forEach((d: any) => d.tipo && set.add(d.tipo));
+      return Array.from(set).sort();
+    },
+    staleTime: 5 * 60_000,
+  });
+
   const update = (partial: Partial<StudentFilters>) => onChange({ ...filters, ...partial });
   const updateDados = (partial: Partial<DadosCadastraisFiltro>) =>
     onChange({ ...filters, dadosCadastrais: { ...filters.dadosCadastrais, ...partial } });
@@ -88,6 +103,7 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
     filters.servicosPlano !== "todos",
     filters.servicosContratados !== "todos",
     filters.professor !== "todos",
+    filters.tipoPlano !== "todos",
     !!filters.dataFinalDe,
     !!filters.dataFinalAte,
   ].filter(Boolean).length + dadosActiveCount;
@@ -201,6 +217,21 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
                   <SelectItem value="todos">Todos</SelectItem>
                   {professors.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Tipo de Plano</label>
+              <Select value={filters.tipoPlano} onValueChange={(v) => update({ tipoPlano: v })}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {tiposPlano.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
