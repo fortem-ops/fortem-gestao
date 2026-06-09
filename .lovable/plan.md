@@ -1,80 +1,36 @@
-# Diagnóstico: renovação automática NÃO está acontecendo
+## Plano VIP — colaboradores, familiares, parceiros
 
-## O que está funcionando
-- Cron job `renovar-planos-mensais-daily` rodando **todo dia às 03:00 UTC**, chamando o edge function `renovar-planos-mensais`.
-- Edge function tem a lógica correta: gera uma `vendas` (origem `renovacao_automatica`, status `pendente`) para cada mês vencido e atualiza `proxima_renovacao` do plano.
-- Helper `isAutoRenewPlan()` em `src/lib/planTipo.ts` reconhece corretamente Start, Gympass, Wellhub e Total Pass.
+Adicionar o tipo de plano **VIP** ao catálogo, com 4 variantes mensais, cortesia (R$ 0,00), cor dourada e renovação automática mensal (igual Start/Gympass).
 
-## O que está quebrado (causa raiz)
-O edge function filtra por:
-```
-.eq("renovacao_automatica", true)
-.lte("proxima_renovacao", today)
-```
+### 1. Catálogo (`planos_catalogo`)
+Inserir 4 linhas via INSERT (sem schema change):
 
-Mas no banco, **todos** os planos Start+/Gympass/Wellhub/TotalPass ativos estão com:
-- `renovacao_automatica = false`
-- `proxima_renovacao = NULL`
+| Nome | Período | Frequência | Créditos | Valor | Cor | Ativo |
+|---|---|---|---|---|---|---|
+| VIP | 1 mês | 1x | 4 | 0,00 | #D4AF37 | true |
+| VIP | 1 mês | 2x | 8 | 0,00 | #D4AF37 | true |
+| VIP | 1 mês | 3x | 12 | 0,00 | #D4AF37 | true |
+| VIP | 1 mês | livre | ilimitado | 0,00 | #D4AF37 | true |
 
-Resultado: o cron roda, mas processa **zero planos**. Nenhuma mensalidade nova, nenhum histórico em `vendas`, nada.
+### 2. Renovação automática
+- `src/lib/planTipo.ts` → `isAutoRenewPlan` passa a reconhecer `vip` (qualquer variante mensal). Assim os formulários (`AddStudentDialog`, `EditStudentDialog`) e o importador setam `renovacao_automatica = true` ao criar planos VIP.
+- Migration leve atualizando o trigger `trg_planos_autorenew_defaults` para incluir `tipo ILIKE 'vip%'` no match, e backfill dos planos VIP existentes (se houver) com `renovacao_automatica = true` + `proxima_renovacao` calculada.
 
-Motivo: os formulários (`AddStudentDialog`, `EditStudentDialog`) e o importador (`studentImport.ts`) inserem planos sem nunca setar essas duas colunas, mesmo quando o tipo é Start/Gympass/Wellhub/TotalPass. O helper `isAutoRenewPlan` existe mas não é chamado em nenhum lugar de escrita.
+### 3. UI — sugestões e filtros
+- `src/lib/vendas.ts` → adicionar `"VIP"` em `PLANOS_SUGERIDOS` (aparece como sugestão em `AdminPlanos` e no autocomplete de cadastro).
+- `src/components/student/StudentListFilters.tsx` → o filtro "Tipo de Plano" já é dinâmico (lê do catálogo), então as variantes VIP aparecem automaticamente após o INSERT. Sem mudança necessária.
 
----
+### 4. Validação
+- Conferir em **Admin → Planos** que aparecem as 4 linhas VIP douradas.
+- Criar um aluno de teste com plano VIP 1x → confirmar que o plano nasce com `renovacao_automatica = true` e `proxima_renovacao` no próximo mês.
+- Filtro de "Tipo de Plano" na listagem de alunos passa a mostrar "VIP" como opção.
 
-# Plano de correção
+### Fora de escopo
+- Regras de elegibilidade (quem pode ganhar VIP — colaborador, familiar, parceiro): hoje é controle administrativo manual. Se quiser uma tag/categoria formal, é um próximo ciclo.
+- Cobrança no gateway: VIP é R$ 0,00, então não passa pelo fluxo de pagamento mesmo gerando venda mensal de histórico.
 
-## 1. Migration — backfill + trigger automática
-Uma migration única que:
-
-**a) Função utilitária** `public.fn_proxima_renovacao_from(data_inicio date)` — retorna o próximo aniversário mensal de `data_inicio` que seja ≥ hoje (lógica idêntica à do edge function).
-
-**b) Trigger `BEFORE INSERT OR UPDATE` em `public.planos`:**
-- Se `tipo` casa com Start / Gympass / Wellhub / Total Pass (case-insensitive), força `renovacao_automatica = true` e, quando `proxima_renovacao` estiver nula, calcula a partir de `data_inicio`.
-- Para os demais tipos, mantém o comportamento atual.
-
-**c) Backfill (UPDATE em massa):**
-```
-UPDATE planos
-SET renovacao_automatica = true,
-    proxima_renovacao = public.fn_proxima_renovacao_from(data_inicio)
-WHERE ativo = true
-  AND (tipo ILIKE 'start%' OR tipo ILIKE '%gympass%' 
-       OR tipo ILIKE '%wellhub%' OR tipo ILIKE '%total%pass%')
-  AND (renovacao_automatica = false OR proxima_renovacao IS NULL);
-```
-
-Com isso, na próxima execução do cron (ou em uma execução manual), todos os planos vencidos geram suas vendas retroativas em cadeia (o `while` do edge function já cobre múltiplos meses atrasados).
-
-## 2. Frontend — manter consistência ao criar/editar planos
-Mesmo com a trigger garantindo no banco, atualizar para enviar os campos explicitamente (clareza + previne edição manual indevida):
-
-- `src/components/student/AddStudentDialog.tsx`: no `insert` de `planos`, se `isAutoRenewPlan(plan.tipo)` → enviar `renovacao_automatica: true`.
-- `src/components/student/EditStudentDialog.tsx`: idem.
-- `src/lib/studentImport.ts`: idem ao criar planos durante importação.
-
-(A trigger é a defesa real; o front fica só alinhado.)
-
-## 3. Validação pós-migration
-- Rodar `SELECT count(*) FROM planos WHERE ativo AND renovacao_automatica AND proxima_renovacao <= current_date;` — deve retornar > 0.
-- Disparar manualmente o edge function `renovar-planos-mensais` (ou aguardar 03:00 UTC) e conferir:
-  - Novas linhas em `vendas` com `origem = 'renovacao_automatica'` e `status_pagamento = 'pendente'`.
-  - Coluna `proxima_renovacao` do plano avançou para o próximo mês futuro.
-- Conferir no perfil do aluno (`StudentProfile` → Histórico de Vendas) que a mensalidade aparece.
-
-## Fora de escopo (não será feito agora)
-- Cobrança automática no cartão (já tem plano salvo em `.lovable/plano-gateway.md`, depende de integração Rede).
-- Notificações ao aluno/coordenador sobre a venda gerada (pode entrar depois).
-- Alterar o status_pagamento inicial (continua `pendente` — quem confirma é o operador ou o gateway futuro).
-
----
-
-# Detalhes técnicos
-
-**Arquivos tocados:**
-- Nova migration SQL (função + trigger + backfill).
-- `src/components/student/AddStudentDialog.tsx`
-- `src/components/student/EditStudentDialog.tsx`
-- `src/lib/studentImport.ts`
-
-**Sem mudanças em:** edge function `renovar-planos-mensais` (já está correta), cron job (já agendado), tabela `vendas`, RLS.
+### Arquivos tocados
+- INSERT em `planos_catalogo` (4 linhas)
+- Nova migration (trigger + backfill VIP)
+- `src/lib/planTipo.ts`
+- `src/lib/vendas.ts`
