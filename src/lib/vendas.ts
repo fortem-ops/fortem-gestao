@@ -14,7 +14,7 @@ export const PRESET_CORES = [
   { nome: "Verde", cor: "#22C55E" },
 ];
 
-export const PLANOS_SUGERIDOS = ["Start", "Start+", "Power", "Pro", "Max", "Gympass/Wellhub", "Total Pass"];
+export const PLANOS_SUGERIDOS = ["Start", "Start+", "Power", "Pro", "Max", "VIP", "Gympass/Wellhub", "Total Pass"];
 export const ATIVIDADES_SUGERIDAS = ["Nutrição", "Reabilitação", "Avaliação Funcional"];
 
 /**
