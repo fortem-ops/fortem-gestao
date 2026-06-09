@@ -47,6 +47,12 @@ Deno.serve(async (req) => {
 
     // Download PDF with service role
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+    // Authorize: only staff (admin/coord/professor/nutri/fisio) may invoke this parser,
+    // otherwise any authenticated student could read other students' files via service role.
+    const { data: isStaff, error: staffErr } = await admin.rpc("is_staff", { _user_id: userRes.user.id });
+    if (staffErr || !isStaff) throw new Error("Acesso negado");
+
     const { data: file, error: dlErr } = await admin.storage
       .from("aluno-files")
       .download(storage_path);

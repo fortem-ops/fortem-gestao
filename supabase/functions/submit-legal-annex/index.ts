@@ -43,10 +43,31 @@ Deno.serve(async (req) => {
       req.headers.get("x-real-ip") ||
       "unknown";
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
+      supabaseUrl,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Validate attachment_url: must be HTTPS inside our own storage bucket.
+    // Prevents stored javascript:/data: URIs that would XSS the admin UI.
+    let safeAttachmentUrl: string | null = null;
+    if (body.attachment_url) {
+      try {
+        const u = new URL(String(body.attachment_url));
+        const expectedHost = new URL(supabaseUrl).host;
+        if (
+          u.protocol === "https:" &&
+          u.host === expectedHost &&
+          u.pathname.includes("/storage/v1/object/") &&
+          u.pathname.includes("/legal_annex_attachments/")
+        ) {
+          safeAttachmentUrl = u.toString();
+        }
+      } catch {
+        /* invalid URL discarded */
+      }
+    }
 
     // Upload signature image
     let signaturePublicUrl: string | null = null;
@@ -95,7 +116,7 @@ Deno.serve(async (req) => {
       medical_status: body.medical_status,
       image_usage: body.image_usage,
       signature_data: body.signature_data || null,
-      attachment_url: body.attachment_url || null,
+      attachment_url: safeAttachmentUrl,
       ip_address: ip,
       signed_at: new Date().toISOString(),
     };
