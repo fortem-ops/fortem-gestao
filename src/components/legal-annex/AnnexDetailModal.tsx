@@ -29,18 +29,34 @@ interface Props {
   onClose: () => void;
 }
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+const isSafeHttpUrl = (url?: string | null): boolean => {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
+
 const AnnexDetailModal = ({ annex, open, onClose }: Props) => {
   const printRef = useRef<HTMLDivElement>(null);
   if (!annex) return null;
 
   const isExperimental = annex.document_type === "experimental";
+  const attachmentSafe = isSafeHttpUrl(annex.attachment_url);
 
   const handlePrint = () => {
     const content = printRef.current;
     if (!content) return;
     const w = window.open("", "_blank");
     if (!w) return;
-    w.document.write(`<!DOCTYPE html><html><head><title>Documento - ${annex.nome}</title>
+    const safeName = escapeHtml(annex.nome ?? "");
+    const safeTitle = isExperimental ? "Declaração de Aptidão Física (Treino Experimental)" : "Declaração de Aptidão Física e Uso de Imagem";
+    w.document.write(`<!DOCTYPE html><html><head><title>Documento - ${safeName}</title>
       <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:700px;margin:40px auto;padding:0 24px;color:#1a1a2e}
       .header{text-align:center;margin-bottom:32px}.header h1{font-size:14px;letter-spacing:3px;text-transform:uppercase;color:#555}
       .title{font-size:20px;font-weight:600;margin-bottom:24px;text-align:center}
@@ -49,7 +65,7 @@ const AnnexDetailModal = ({ annex, open, onClose }: Props) => {
       img{max-width:300px;max-height:120px}.footer{margin-top:32px;text-align:center;font-size:11px;color:#aaa}
       @media print{body{margin:20px}}</style></head><body>
       <div class="header"><h1>FORTEM</h1></div>
-      <div class="title">${isExperimental ? "Declaração de Aptidão Física (Treino Experimental)" : "Declaração de Aptidão Física e Uso de Imagem"}</div>
+      <div class="title">${safeTitle}</div>
       ${content.innerHTML}
       <div class="footer">Documento gerado automaticamente • Validade jurídica</div></body></html>`);
     w.document.close();
