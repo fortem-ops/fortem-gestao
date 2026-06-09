@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       medical_status: body.medical_status,
       image_usage: body.image_usage,
       signature_data: body.signature_data || null,
-      attachment_url: body.attachment_url || null,
+      attachment_url: safeAttachmentUrl,
       ip_address: ip,
       signed_at: new Date().toISOString(),
     };
