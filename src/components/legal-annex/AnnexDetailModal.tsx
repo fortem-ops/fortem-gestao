@@ -112,9 +112,9 @@ const AnnexDetailModal = ({ annex, open, onClose }: Props) => {
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          {annex.attachment_url && (
+          {attachmentSafe && (
             <Button variant="outline" size="sm" asChild className="gap-2">
-              <a href={annex.attachment_url} target="_blank" rel="noopener noreferrer">
+              <a href={annex.attachment_url!} target="_blank" rel="noopener noreferrer">
                 <FileText className="w-4 h-4" /> Ver Atestado
               </a>
             </Button>
