@@ -194,11 +194,15 @@ const AnexosJuridicos = () => {
                         <button onClick={() => setSelected(doc)} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground" title="Ver detalhes">
                           <Eye className="w-4 h-4" />
                         </button>
-                        {doc.attachment_url && (
-                          <a href={doc.attachment_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground" title="Ver atestado">
-                            <FileText className="w-4 h-4" />
-                          </a>
-                        )}
+                        {doc.attachment_url && (() => {
+                          let safe = false;
+                          try { const u = new URL(doc.attachment_url); safe = u.protocol === "https:" || u.protocol === "http:"; } catch { safe = false; }
+                          return safe ? (
+                            <a href={doc.attachment_url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground" title="Ver atestado">
+                              <FileText className="w-4 h-4" />
+                            </a>
+                          ) : null;
+                        })()}
                         <button onClick={() => setDeleteTarget(doc)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive" title="Excluir">
                           <Trash2 className="w-4 h-4" />
                         </button>
