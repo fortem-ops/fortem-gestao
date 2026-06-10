@@ -64,7 +64,8 @@ export default function Leads() {
       setDeleting(false);
     }
   }
-  const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
+
+
 
   // Abrir edit via ?edit=id (busca global)
   useEffect(() => {
