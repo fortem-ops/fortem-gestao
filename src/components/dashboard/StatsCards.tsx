@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Pause, AlertCircle, ClipboardList, Dumbbell, ClipboardCheck, DollarSign, UserPlus, AlertTriangle } from "lucide-react";
+import { Users, Pause, AlertCircle, ClipboardList, Dumbbell, ClipboardCheck, DollarSign, UserPlus, AlertTriangle, Crown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useDashboardData } from "@/hooks/useDashboardData";
