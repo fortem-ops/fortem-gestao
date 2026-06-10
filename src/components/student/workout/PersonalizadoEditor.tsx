@@ -1082,14 +1082,32 @@ export function PersonalizadoEditor({
           <DialogFooter>
             <Button variant="outline" onClick={() => setApplyOpen(false)}>Cancelar</Button>
             <Button
-              onClick={() => pickedAluno && saveToAluno(pickedAluno)}
+              onClick={() => {
+                if (!pickedAluno) return;
+                setApplyOpen(false);
+                setPrescribeTargetAluno(pickedAluno);
+                setPrescribeOpen(true);
+              }}
               disabled={!pickedAluno || saving}
             >
-              Aplicar
+              Continuar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PrescribeOptionsDialog
+        open={prescribeOpen}
+        onOpenChange={(o) => {
+          setPrescribeOpen(o);
+          if (!o) setPrescribeTargetAluno(null);
+        }}
+        onConfirm={(choice) => {
+          if (prescribeTargetAluno) saveToAluno(prescribeTargetAluno, choice);
+        }}
+        saving={saving}
+        title="Prescrever treino"
+      />
     </div>
   );
 }
