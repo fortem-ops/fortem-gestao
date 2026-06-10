@@ -203,6 +203,7 @@ function normalizePlano(v: string): string {
   if (s === "POWER") return "Power";
   if (s === "PRO") return "Pro";
   if (s === "MAX") return "Max";
+  if (s === "VIP" || s.startsWith("VIP ") || s.startsWith("VIP-")) return "VIP";
   if (s.includes("GYMPASS") || s.includes("WELLHUB")) return "Gympass/Wellhub";
   if (s.includes("TOTAL") && s.includes("PASS")) return "Total Pass";
   return v.trim();
