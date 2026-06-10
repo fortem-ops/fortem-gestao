@@ -220,7 +220,11 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           <Printer className="w-3 h-3 mr-1" /> Imprimir
         </Button>
         {!readOnly && (
-          <Button size="sm" onClick={handleSave} disabled={saving}>
+          <Button
+            size="sm"
+            onClick={() => (treino ? handleSave() : setPrescribeOpen(true))}
+            disabled={saving}
+          >
             <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar"}
           </Button>
         )}
