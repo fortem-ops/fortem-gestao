@@ -43,6 +43,7 @@ import { useExerciseCategories, type ExerciseCategory } from "@/hooks/useExercis
 import { SUBCATEGORIA_TO_CODE, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
+import { PrescribeOptionsDialog } from "./PrescribeOptionsDialog";
 import {
   emptyPersonalizado,
   flattenPersonalizado,
@@ -145,6 +146,8 @@ export function PersonalizadoEditor({
   const [weeks, setWeeks] = useState(4);
   const [applyOpen, setApplyOpen] = useState(false);
   const [pickedAluno, setPickedAluno] = useState("");
+  const [prescribeOpen, setPrescribeOpen] = useState(false);
+  const [prescribeTargetAluno, setPrescribeTargetAluno] = useState<string | null>(null);
   // Aba ativa do card "FORÇA" (apenas UI, não persiste).
   const [activeTreino, setActiveTreino] = useState(0);
   // Modo de visualização do painel "PADRÕES DE MOVIMENTO".
@@ -540,7 +543,7 @@ export function PersonalizadoEditor({
     }
   };
 
-  const saveToAluno = async (targetAlunoId: string) => {
+  const saveToAluno = async (targetAlunoId: string, choice?: import("./PrescribeOptionsDialog").PrescribeChoice) => {
     if (!user) return;
     setSaving(true);
     try {
@@ -552,11 +555,14 @@ export function PersonalizadoEditor({
           .eq("id", treinoId);
         if (error) throw error;
       } else {
-        await supabase
-          .from("treinos")
-          .update({ status: "arquivado", updated_at: new Date().toISOString() })
-          .eq("aluno_id", targetAlunoId)
-          .eq("status", "atual");
+        const mode = choice?.mode ?? "now";
+        if (mode === "now") {
+          await supabase
+            .from("treinos")
+            .update({ status: "arquivado", updated_at: new Date().toISOString() })
+            .eq("aluno_id", targetAlunoId)
+            .eq("status", "atual");
+        }
         const { data: ultimo } = await supabase
           .from("treinos")
           .select("versao")
@@ -565,16 +571,22 @@ export function PersonalizadoEditor({
           .limit(1)
           .maybeSingle();
         const proximaVersao = (ultimo?.versao || 0) + 1;
-        const { error } = await supabase.from("treinos").insert({
+        const insertRow: Record<string, unknown> = {
           aluno_id: targetAlunoId,
           autor_id: user.id,
           descricao: name,
           conteudo,
-          status: "atual",
+          status: mode === "schedule" ? "aguardando" : "atual",
           versao: proximaVersao,
-        });
+        };
+        if (choice?.mode === "schedule") {
+          const d = choice.date;
+          insertRow.data_inicio = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        }
+        const { error } = await supabase.from("treinos").insert(insertRow as never);
         if (error) throw error;
       }
+
 
       // Criar tarefa automática "Atualizar treino" em 30 dias
       try {
@@ -608,7 +620,11 @@ export function PersonalizadoEditor({
         console.error("Erro ao criar tarefa automática:", e);
       }
 
-      toast.success("Treino aplicado ao aluno");
+      toast.success(
+        choice?.mode === "schedule"
+          ? `Treino programado para ${choice.date.toLocaleDateString("pt-BR")}.`
+          : "Treino aplicado ao aluno",
+      );
       clearDraft();
       onSaved?.();
     } catch (e) {
@@ -616,6 +632,8 @@ export function PersonalizadoEditor({
     } finally {
       setSaving(false);
       setApplyOpen(false);
+      setPrescribeOpen(false);
+      setPrescribeTargetAluno(null);
     }
   };
 
@@ -716,7 +734,18 @@ export function PersonalizadoEditor({
             </>
           )}
           {isAluno && !readOnly && (
-            <Button size="sm" onClick={() => saveToAluno(alunoId!)} disabled={saving}>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (treinoId) {
+                  saveToAluno(alunoId!);
+                } else {
+                  setPrescribeTargetAluno(alunoId!);
+                  setPrescribeOpen(true);
+                }
+              }}
+              disabled={saving}
+            >
               <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar no aluno"}
             </Button>
           )}
@@ -1054,14 +1083,32 @@ export function PersonalizadoEditor({
           <DialogFooter>
             <Button variant="outline" onClick={() => setApplyOpen(false)}>Cancelar</Button>
             <Button
-              onClick={() => pickedAluno && saveToAluno(pickedAluno)}
+              onClick={() => {
+                if (!pickedAluno) return;
+                setApplyOpen(false);
+                setPrescribeTargetAluno(pickedAluno);
+                setPrescribeOpen(true);
+              }}
               disabled={!pickedAluno || saving}
             >
-              Aplicar
+              Continuar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PrescribeOptionsDialog
+        open={prescribeOpen}
+        onOpenChange={(o) => {
+          setPrescribeOpen(o);
+          if (!o) setPrescribeTargetAluno(null);
+        }}
+        onConfirm={(choice) => {
+          if (prescribeTargetAluno) saveToAluno(prescribeTargetAluno, choice);
+        }}
+        saving={saving}
+        title="Prescrever treino"
+      />
     </div>
   );
 }

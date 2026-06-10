@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
 import { PersonalizadoEditor } from "./PersonalizadoEditor";
 import { isPersonalizadoContent } from "./personalizadoTypes";
+import { PrescribeOptionsDialog, toISODate, type PrescribeChoice } from "./PrescribeOptionsDialog";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +80,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
   const [saving, setSaving] = useState(false);
   const [exportOpen, setExportOpen] = useState<null | "download" | "print">(null);
   const [weeks, setWeeks] = useState<number>(4);
+  const [prescribeOpen, setPrescribeOpen] = useState(false);
 
   const updateExercise = (section: "aquecimento" | "treino", treinoIdx: number, exIdx: number, field: string, value: string) => {
     setData(prev => {
@@ -113,7 +115,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     });
   };
 
-  const handleSave = async () => {
+  const handleSave = async (choice?: PrescribeChoice) => {
     if (!user) return;
     setSaving(true);
     try {
@@ -124,15 +126,17 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           .eq("id", treino.id);
         if (error) throw error;
       } else {
-        // Arquiva treinos anteriores 'atual' do mesmo aluno
-        const { error: archiveError } = await supabase
-          .from("treinos")
-          .update({ status: "arquivado", updated_at: new Date().toISOString() })
-          .eq("aluno_id", alunoId)
-          .eq("status", "atual");
-        if (archiveError) throw archiveError;
+        const mode = choice?.mode ?? "now";
 
-        // Calcula próxima versão
+        if (mode === "now") {
+          const { error: archiveError } = await supabase
+            .from("treinos")
+            .update({ status: "arquivado", updated_at: new Date().toISOString() })
+            .eq("aluno_id", alunoId)
+            .eq("status", "atual");
+          if (archiveError) throw archiveError;
+        }
+
         const { data: ultimo } = await supabase
           .from("treinos")
           .select("versao")
@@ -142,17 +146,25 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           .maybeSingle();
         const proximaVersao = (ultimo?.versao || 0) + 1;
 
-        const { error } = await supabase.from("treinos").insert({
+        const insertRow: Record<string, unknown> = {
           aluno_id: alunoId,
           autor_id: user.id,
           descricao,
           conteudo: data as unknown as Json,
-          status: "atual",
+          status: mode === "schedule" ? "aguardando" : "atual",
           versao: proximaVersao,
-        });
+        };
+        if (choice?.mode === "schedule") insertRow.data_inicio = toISODate(choice.date);
+
+        const { error } = await supabase.from("treinos").insert(insertRow as never);
         if (error) throw error;
       }
-      toast.success("Treino salvo com sucesso!");
+      toast.success(
+        choice?.mode === "schedule"
+          ? `Treino programado para ${choice.date.toLocaleDateString("pt-BR")}.`
+          : "Treino salvo com sucesso!",
+      );
+      setPrescribeOpen(false);
       onSaved?.();
       onBack();
     } catch (e: unknown) {
@@ -161,6 +173,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
       setSaving(false);
     }
   };
+
 
   const handleExport = async (mode: "download" | "print", weeksCount: number) => {
     let aluno = student as { id: string; nome: string } | undefined;
@@ -207,7 +220,11 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           <Printer className="w-3 h-3 mr-1" /> Imprimir
         </Button>
         {!readOnly && (
-          <Button size="sm" onClick={handleSave} disabled={saving}>
+          <Button
+            size="sm"
+            onClick={() => (treino ? handleSave() : setPrescribeOpen(true))}
+            disabled={saving}
+          >
             <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar"}
           </Button>
         )}
@@ -424,6 +441,14 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PrescribeOptionsDialog
+        open={prescribeOpen}
+        onOpenChange={setPrescribeOpen}
+        onConfirm={(choice) => handleSave(choice)}
+        saving={saving}
+        title="Prescrever treino"
+      />
     </div>
   );
 }

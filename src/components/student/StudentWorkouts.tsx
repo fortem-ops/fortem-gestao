@@ -47,6 +47,8 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
   const { data: treinos, refetch } = useQuery({
     queryKey: ["treinos", student.id],
     queryFn: async () => {
+      // Promove agendados cuja data já chegou
+      await (supabase.rpc as unknown as (n: string) => Promise<unknown>)("ativar_treinos_agendados");
       const { data, error } = await supabase
         .from("treinos")
         .select("*")
@@ -105,6 +107,10 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
                   {t.status === "atual" ? (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary bg-primary/10">
                       Atual
+                    </Badge>
+                  ) : t.status === "aguardando" ? (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-info/40 text-info bg-info/10">
+                      Aguardando início{(t as { data_inicio?: string | null }).data_inicio ? ` — ${new Date((t as { data_inicio: string }).data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-muted-foreground/30 text-muted-foreground">

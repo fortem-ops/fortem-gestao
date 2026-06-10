@@ -38,6 +38,7 @@ export default function PortalWorkouts() {
     queryKey: ["portal-treinos", student?.id],
     enabled: !!student,
     queryFn: async () => {
+      await (supabase.rpc as unknown as (n: string) => Promise<unknown>)("ativar_treinos_agendados");
       const { data } = await supabase
         .from("treinos")
         .select("*")
@@ -47,7 +48,7 @@ export default function PortalWorkouts() {
     },
   });
 
-  const atual = treinos.find((t) => t.status === "atual") || treinos[0];
+  const atual = treinos.find((t) => t.status === "atual") || treinos.find((t) => t.status === "arquivado");
   const historico = treinos.filter((t) => t.id !== atual?.id);
 
   // Progresso desta semana
@@ -168,7 +169,13 @@ export default function PortalWorkouts() {
                         v{t.versao} · {formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: ptBR })}
                       </p>
                     </div>
-                    <Badge variant="outline" className="text-[10px]">Arquivado</Badge>
+                    {t.status === "aguardando" ? (
+                      <Badge variant="outline" className="text-[10px] border-info/40 text-info bg-info/10">
+                        Aguardando{(t as { data_inicio?: string | null }).data_inicio ? ` — ${new Date((t as { data_inicio: string }).data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">Arquivado</Badge>
+                    )}
                   </Card>
                 ))}
               </div>

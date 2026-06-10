@@ -3537,6 +3537,7 @@ export type Database = {
           autor_id: string
           conteudo: Json | null
           created_at: string
+          data_inicio: string | null
           descricao: string
           id: string
           status: string
@@ -3548,6 +3549,7 @@ export type Database = {
           autor_id: string
           conteudo?: Json | null
           created_at?: string
+          data_inicio?: string | null
           descricao: string
           id?: string
           status?: string
@@ -3559,6 +3561,7 @@ export type Database = {
           autor_id?: string
           conteudo?: Json | null
           created_at?: string
+          data_inicio?: string | null
           descricao?: string
           id?: string
           status?: string
@@ -4266,6 +4269,7 @@ export type Database = {
       }
     }
     Functions: {
+      ativar_treinos_agendados: { Args: never; Returns: undefined }
       fn_acordo_intervalo_vigente: {
         Args: { _data: string; _usuario: string }
         Returns: Database["public"]["Enums"]["tipo_acordo_intervalo"]
