@@ -339,6 +339,7 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
                   <SelectItem value="Power">Power</SelectItem>
                   <SelectItem value="Pro">Pro</SelectItem>
                   <SelectItem value="Max">Max</SelectItem>
+                  <SelectItem value="VIP">VIP (colaboradores, familiares, parceiros)</SelectItem>
                   <SelectItem value="Gympass/Wellhub">Gympass/Wellhub</SelectItem>
                   <SelectItem value="Total Pass">Total Pass</SelectItem>
                 </SelectContent>
