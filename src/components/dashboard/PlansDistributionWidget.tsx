@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PieChart as PieIcon } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
-const PLAN_ORDER = ["Start", "Start+", "Power", "Pro", "Max", "Gympass/Wellhub", "Total Pass"];
+const PLAN_ORDER = ["Start", "Start+", "Power", "Pro", "Max", "VIP", "Gympass/Wellhub", "Total Pass"];
 
 // Color palette using HSL design tokens (varied, on-brand)
 const PLAN_COLORS: Record<string, string> = {
@@ -12,6 +12,7 @@ const PLAN_COLORS: Record<string, string> = {
   "Power": "hsl(var(--warning))",
   "Pro": "hsl(var(--success))",
   "Max": "hsl(var(--destructive))",
+  "VIP": "#D4AF37",
   "Gympass/Wellhub": "hsl(217 91% 60%)",
   "Total Pass": "hsl(280 70% 60%)",
   "Outros": "hsl(var(--muted-foreground))",
