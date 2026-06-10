@@ -49,15 +49,21 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
       const plan = getPlanDetails(values.plano, values.plano_consultas);
       if (plan && aluno) {
         const dataInicio = values.plano_data_inicio || today;
+        let tipoFinal = plan.tipo;
+        if (plan.tipo === "VIP") {
+          const freq = values.frequencia_semanal;
+          const sufixo = freq === 0 ? "Livre" : `${freq}x/semana`;
+          tipoFinal = `VIP ${sufixo}`;
+        }
         const { error: planError } = await supabase.from("planos").insert({
           aluno_id: aluno.id,
-          tipo: plan.tipo,
+          tipo: tipoFinal,
           data_inicio: dataInicio,
           duracao_meses: plan.duracao_meses,
           servicos: plan.servicos,
           valor: values.plano_valor || 0,
           ativo: true,
-          renovacao_automatica: isAutoRenewPlan(plan.tipo) || undefined,
+          renovacao_automatica: isAutoRenewPlan(tipoFinal) || undefined,
         });
         if (planError) console.error("Erro ao criar plano:", planError);
       }
