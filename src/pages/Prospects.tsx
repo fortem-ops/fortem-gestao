@@ -39,6 +39,37 @@ export default function Prospects() {
   const [viewerTarget, setViewerTarget] = useState<{ avaliacao: Tables<"avaliacoes">; student: Tables<"alunos"> } | null>(null);
 
   const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const toggleOne = (id: string) => setSelected((s) => {
+    const n = new Set(s);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+  const toggleAll = (ids: string[], checked: boolean) => setSelected((s) => {
+    const n = new Set(s);
+    if (checked) ids.forEach((i) => n.add(i)); else ids.forEach((i) => n.delete(i));
+    return n;
+  });
+  async function handleBulkDelete() {
+    if (!selected.size) return;
+    setDeleting(true);
+    try {
+      const ids = Array.from(selected);
+      const { error } = await supabase.from("alunos").delete().in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} prospect${ids.length !== 1 ? "s" : ""} excluído${ids.length !== 1 ? "s" : ""}.`);
+      setSelected(new Set());
+      setConfirmDelete(false);
+      queryClient.invalidateQueries({ queryKey: ["prospects-list"] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
 
   useEffect(() => {
