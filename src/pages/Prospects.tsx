@@ -482,10 +482,10 @@ export default function Prospects() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
             )}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum prospect encontrado.</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum prospect encontrado.</td></tr>
             )}
             {filtered.map((p: any) => {
               const wa = waMeLink(p.telefone, `Olá ${p.nome.split(" ")[0]}! Vamos agendar sua aula experimental?`);
@@ -495,6 +495,13 @@ export default function Prospects() {
                   onClick={() => setEditId(p.id)}
                   className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors"
                 >
+                  <td className="p-4 w-10" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selected.has(p.id)}
+                      onCheckedChange={() => toggleOne(p.id)}
+                      aria-label={`Selecionar ${p.nome}`}
+                    />
+                  </td>
                   <td className="p-4">
                     <p className="text-sm font-medium text-foreground">{p.nome}</p>
                   </td>
