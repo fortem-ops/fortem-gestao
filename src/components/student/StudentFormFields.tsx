@@ -18,6 +18,7 @@ const PLAN_CONFIG: Record<string, { label: string; duracao: number; servicos: st
   Power:    { label: "Power",  duracao: 12, servicos: ["1 Avaliação Funcional"] },
   Pro:      { label: "Pro",    duracao: 12, servicos: ["2 Avaliação Funcional"] },
   Max:      { label: "Max",    duracao: 12, servicos: ["3 Avaliação Funcional", "5 Consultas Nutrição", "5 Consultas Reabilitação"] },
+  VIP:      { label: "VIP",    duracao: 1,  servicos: [] },
   "Gympass/Wellhub": { label: "Gympass/Wellhub", duracao: 1, servicos: [] },
   "Total Pass":      { label: "Total Pass",      duracao: 1, servicos: [] },
 };
