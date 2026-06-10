@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Comissionamento, ComissaoPendencia, ComissaoConfig, ComissaoStatus } from "@/lib/comissionamentos";
+import { isAutoRenewPlan } from "@/lib/planTipo";
+import { addMonths } from "date-fns";
 import { toast } from "sonner";
 
 export function useIsCoordAdmin(userId: string | undefined) {
@@ -85,8 +87,13 @@ export function useCarteiraStats(profissionalId?: string | null) {
       if (!ids.length) return { total: 0, meus: 0 };
 
       const hoje = new Date().toISOString().slice(0, 10);
+      const hojeDate = new Date(new Date().toDateString());
       const [{ data: planos }, { data: licencas }] = await Promise.all([
-        supabase.from("planos").select("aluno_id, tipo, ativo").in("aluno_id", ids).eq("ativo", true),
+        supabase
+          .from("planos")
+          .select("aluno_id, tipo, ativo, data_inicio, data_fim, duracao_meses")
+          .in("aluno_id", ids)
+          .eq("ativo", true),
         supabase.from("aluno_licencas").select("aluno_id, data_inicio, data_fim").in("aluno_id", ids).lte("data_inicio", hoje).gte("data_fim", hoje),
       ]);
 
@@ -99,9 +106,18 @@ export function useCarteiraStats(profissionalId?: string | null) {
       const licencaSet = new Set((licencas || []).map((l: any) => l.aluno_id));
 
       const PLANOS_QUALIFICADOS = ["Start", "Start+", "Power", "Pro"];
+      const isVigente = (p: any): boolean => {
+        if (isAutoRenewPlan(p.tipo)) return true;
+        const planEnd = p.data_fim
+          ? new Date(p.data_fim + "T00:00:00")
+          : p.data_inicio
+            ? addMonths(new Date(p.data_inicio + "T00:00:00"), p.duracao_meses ?? 0)
+            : null;
+        return !!planEnd && planEnd >= hojeDate;
+      };
       const valid = (ativos || []).filter((a: any) => {
         const ps = planosByAluno.get(a.id) || [];
-        const planoOk = ps.some((p: any) => PLANOS_QUALIFICADOS.includes(p.tipo));
+        const planoOk = ps.some((p: any) => PLANOS_QUALIFICADOS.includes(p.tipo) && isVigente(p));
         return planoOk && !licencaSet.has(a.id);
       });
 
