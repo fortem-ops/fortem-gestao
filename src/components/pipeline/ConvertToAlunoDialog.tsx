@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchCep, formatCep } from "@/lib/viacep";
+import {
+  normalizeCpf,
+  isValidCpfDigits,
+  findAlunoByCpf,
+  duplicateCpfMessage,
+  translateCpfDbError,
+} from "@/lib/cpfValidation";
 
 interface Props {
   open: boolean;
@@ -90,6 +97,9 @@ export function ConvertToAlunoDialog({
     if (fullConvert) {
       if (!cpf.trim()) return toast.error("CPF é obrigatório");
       if (!email.trim()) return toast.error("Email é obrigatório");
+      if (!isValidCpfDigits(cpf)) return toast.error("CPF inválido. Confira os dígitos.");
+      const dup = await findAlunoByCpf(cpf, alunoId);
+      if (dup) return toast.error(duplicateCpfMessage(dup));
     }
 
     let valorNum = 0;
@@ -107,7 +117,7 @@ export function ConvertToAlunoDialog({
       const { error: e1 } = await supabase
         .from("alunos")
         .update({
-          cpf: cpf.trim(),
+          cpf: normalizeCpf(cpf),
           email: email.trim(),
           cep: cep.trim() || null,
           logradouro: logradouro.trim() || null,
@@ -119,7 +129,7 @@ export function ConvertToAlunoDialog({
           status: "ativo",
         } as any)
         .eq("id", alunoId);
-      if (e1) { setBusy(false); return toast.error(e1.message); }
+      if (e1) { setBusy(false); return toast.error(translateCpfDbError(e1) ?? e1.message); }
     } else {
       // Renovação: cria plano
       const inicio = new Date(dataInicio);

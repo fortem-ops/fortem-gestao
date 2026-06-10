@@ -9,6 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchCep, formatCep } from "@/lib/viacep";
 import { SEXO_OPTIONS } from "@/lib/leads";
+import {
+  normalizeCpf,
+  isValidCpfDigits,
+  findAlunoByCpf,
+  duplicateCpfMessage,
+  translateCpfDbError,
+} from "@/lib/cpfValidation";
 
 interface Props {
   open: boolean;
@@ -93,6 +100,12 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
 
   async function save() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório");
+    const cpfTrim = form.cpf.trim();
+    if (cpfTrim) {
+      if (!isValidCpfDigits(cpfTrim)) return toast.error("CPF inválido. Confira os dígitos.");
+      const dup = await findAlunoByCpf(cpfTrim, alunoId);
+      if (dup) return toast.error(duplicateCpfMessage(dup));
+    }
     setBusy(true);
     const { error } = await supabase
       .from("alunos")
@@ -100,7 +113,7 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
         nome: form.nome.trim(),
         data_nascimento: form.data_nascimento || null,
         sexo: form.sexo || null,
-        cpf: form.cpf.trim() || null,
+        cpf: cpfTrim ? normalizeCpf(cpfTrim) : null,
         rg: form.rg.trim() || null,
         telefone: form.telefone.trim() || null,
         email: form.email.trim() || null,
@@ -114,7 +127,9 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
       } as any)
       .eq("id", alunoId);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      return toast.error(translateCpfDbError(error) ?? error.message);
+    }
     toast.success("Dados cadastrais atualizados");
     qc.invalidateQueries({ queryKey: ["aluno", alunoId] });
     qc.invalidateQueries({ queryKey: ["student", alunoId] });
