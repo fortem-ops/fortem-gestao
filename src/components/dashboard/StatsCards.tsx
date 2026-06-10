@@ -101,6 +101,7 @@ export function StatsCards({ professorId }: Props) {
   const row1 = [
     { label: "Alunos Ativos", value: alunosStats?.ativos ?? 0, icon: Users, color: "text-success" },
     { label: "Agregadores", value: alunosStats?.agregadores ?? 0, icon: UserPlus, color: "text-primary" },
+    { label: "VIP", value: alunosStats?.vip ?? 0, icon: Crown, color: "text-[#D4AF37]" },
     { label: "Em Licença", value: alunosStats?.licenca ?? 0, icon: Pause, color: "text-warning" },
   ];
 
