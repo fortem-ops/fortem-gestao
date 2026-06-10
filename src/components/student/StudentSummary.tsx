@@ -347,9 +347,11 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const today = new Date();
 
   const RECURRING_PLANS = ["Start", "Gympass/Wellhub", "Total Pass"];
+  const isRecurring = (tipo: string) =>
+    RECURRING_PLANS.includes(tipo) || (tipo || "").toLowerCase().startsWith("vip");
 
   // Plan expiring (skip recurring monthly plans)
-  if (plano && !RECURRING_PLANS.includes(plano.tipo)) {
+  if (plano && !isRecurring(plano.tipo)) {
     const endDate = plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : calcEndDate(plano.data_inicio, plano.duracao_meses);
     const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / 86400000);
     if (diffDays <= 30) {
