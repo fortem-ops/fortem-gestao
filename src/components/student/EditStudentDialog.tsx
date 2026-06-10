@@ -93,15 +93,21 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
       if (plan) {
         await supabase.from("planos").update({ ativo: false }).eq("aluno_id", student.id).eq("ativo", true);
         const dataInicio = values.plano_data_inicio || new Date().toISOString().split("T")[0];
+        let tipoFinal = plan.tipo;
+        if (plan.tipo === "VIP") {
+          const freq = values.frequencia_semanal;
+          const sufixo = freq === 0 ? "Livre" : `${freq}x/semana`;
+          tipoFinal = `VIP ${sufixo}`;
+        }
         await supabase.from("planos").insert({
           aluno_id: student.id,
-          tipo: plan.tipo,
+          tipo: tipoFinal,
           data_inicio: dataInicio,
           duracao_meses: plan.duracao_meses,
           servicos: plan.servicos,
           valor: values.plano_valor || 0,
           ativo: true,
-          renovacao_automatica: isAutoRenewPlan(plan.tipo) || undefined,
+          renovacao_automatica: isAutoRenewPlan(tipoFinal) || undefined,
         });
       }
 
