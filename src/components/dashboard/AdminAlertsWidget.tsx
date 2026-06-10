@@ -76,7 +76,7 @@ export function AdminAlertsWidget() {
         if (!grouped[profId]) grouped[profId] = { mesAnterior: [], esteMes: [], proximoMes: [] };
       };
 
-      planos.filter((p) => !RECURRING_PLANS.includes(p.tipo)).forEach((p) => {
+      planos.filter((p) => !RECURRING_PLANS.includes(p.tipo) && !(p.tipo || "").toLowerCase().startsWith("vip")).forEach((p) => {
         const aluno = alunoMap[p.aluno_id];
         if (!aluno) return;
 
