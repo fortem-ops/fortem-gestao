@@ -231,6 +231,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       const matchTipoPlano = filters.tipoPlano === "todos" || s.planTipo === filters.tipoPlano;
 
+      const matchVip = filters.vip === "todos" ||
+        (filters.vip === "sim" ? (s.planTipo || "").toLowerCase() === "vip" : (s.planTipo || "").toLowerCase() !== "vip");
+
       let matchDate = true;
       if (filters.dataFinalDe && s.planEnd) {
         matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
