@@ -98,9 +98,10 @@ export function useCarteiraStats(profissionalId?: string | null) {
       });
       const licencaSet = new Set((licencas || []).map((l: any) => l.aluno_id));
 
+      const PLANOS_QUALIFICADOS = ["Start", "Start+", "Power", "Pro"];
       const valid = (ativos || []).filter((a: any) => {
         const ps = planosByAluno.get(a.id) || [];
-        const planoOk = ps.some((p: any) => !["Gympass/Wellhub", "Total Pass"].includes(p.tipo));
+        const planoOk = ps.some((p: any) => PLANOS_QUALIFICADOS.includes(p.tipo));
         return planoOk && !licencaSet.has(a.id);
       });
 

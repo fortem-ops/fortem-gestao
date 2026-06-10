@@ -1,45 +1,33 @@
-# Prescrever treino: aplicar agora ou agendar início
+## Objetivo
 
-Ao salvar uma prescrição de treino (Banco de Treinos, treino Personalizado ou indicação na aula experimental), o professor poderá escolher:
+Em **Comissionamentos > Meta da carteira**, a contagem de alunos qualificados deve incluir somente alunos ativos com plano **Start, Start+, Power ou Pro**. Planos **VIP**, **Gympass/Wellhub** e **Total Pass** (agregadores) ficam de fora — tanto no total global quanto na contagem por profissional e na aba **Carteira**.
 
-- **Aplicar agora** — vira o treino atual imediatamente (comportamento atual).
-- **Agendar início** — escolhe uma data futura; o treino fica como *Aguardando início* e só vira atual quando a data chega (treino atual anterior continua valendo até lá).
+A função no banco (`fn_carteira_ativos_por_profissional`) já aplica essa regra corretamente (exclui Gympass/Wellhub, Total Pass e VIP). O problema está no frontend, que usa filtros próprios e mais permissivos (não exclui VIP), divergindo do backend.
 
-## Mudanças
+## Alterações
 
-### 1. Banco de dados (migration)
-- Adicionar coluna `data_inicio DATE` em `treinos`.
-- Atualizar o CHECK de `status` para aceitar também `'aguardando'` (mantém `'atual'`, `'arquivado'`).
-- Índice em `(aluno_id, status, data_inicio)` para a ativação diária.
-- Função `public.ativar_treinos_agendados()` (SECURITY DEFINER) que, para cada aluno com algum treino `aguardando` cuja `data_inicio <= CURRENT_DATE`, arquiva o `atual` vigente e promove o mais recente agendado a `atual`. Pode ser chamada via RPC.
-
-### 2. UI de prescrição
-Em `WorkoutDetail.tsx`, `PersonalizadoEditor.tsx` e `workoutImport.ts` (`prescribeFaseInicial`), trocar o botão único "Salvar" por um diálogo de confirmação com dois modos:
-
-- **Aplicar imediatamente** (padrão) → insere `status='atual'`, arquiva os anteriores como hoje.
-- **Programar início em [date picker, mínimo = amanhã]** → insere `status='aguardando'`, `data_inicio = <data>`, **sem** arquivar o treino atual vigente.
-
-### 3. Listagem do histórico
-Em `StudentWorkouts.tsx` e `PortalWorkouts.tsx`:
-- Antes de listar, chamar `supabase.rpc('ativar_treinos_agendados')` (idempotente, leve) para garantir promoção em D+0.
-- Novo badge `Aguardando início — dd/mm/aaaa` (azul) para `status='aguardando'`.
-- Permitir cancelar/excluir um agendado (botão lixeira já existente cobre, basta liberar para `aguardando` também).
-
-### 4. Resumo / caches
-- `invalidatePlanoCaches` não muda; apenas garantir que `["treinos", alunoId]` seja invalidado após salvar.
-
-## Fluxo após a mudança
-
-```text
-[Salvar treino]
-    │
-    ├── Aplicar agora  ──► arquiva atual + insere status=atual
-    │
-    └── Programar      ──► insere status=aguardando, data_inicio=X
-                              │
-                              └── (no carregamento, em ou após X)
-                                    RPC ativar_treinos_agendados
-                                      → arquiva atual + promove agendado a atual
+### 1. `src/hooks/useComissionamentos.ts` — `useCarteiraStats`
+Trocar o filtro atual:
+```ts
+const planoOk = ps.some((p) => !["Gympass/Wellhub", "Total Pass"].includes(p.tipo));
 ```
+por uma whitelist alinhada ao backend:
+```ts
+const PLANOS_QUALIFICADOS = ["Start", "Start+", "Power", "Pro"];
+const planoOk = ps.some((p) => PLANOS_QUALIFICADOS.includes(p.tipo));
+```
+Isso passa a excluir corretamente VIP, Gympass/Wellhub e Total Pass do `total` e `meus`.
 
-Nenhuma alteração em fluxos sem prescrição (edição de treino já salvo continua igual).
+### 2. `src/pages/Comissionamentos.tsx` — `CarteiraDetalhe`
+Mesma whitelist na aba **Carteira > Alunos qualificados**. Ajustar também o texto do motivo para refletir as três causas possíveis:
+- "Em licença"
+- "Plano VIP/Agregador (não qualifica)"
+- "Sem plano ativo qualificado"
+
+### 3. Texto do card "Meta da carteira"
+Pequeno ajuste no subtítulo para deixar explícito o critério: "alunos ativos qualificados (Start/Start+/Power/Pro)".
+
+## Fora de escopo
+
+- Função `fn_carteira_ativos_por_profissional` no banco — já está correta, não precisa migração.
+- Widget `CarteiraWidget` do Dashboard — conta apenas "alunos com plano ativo" (não é a meta de comissionamento); não tocar a menos que você queira o mesmo critério lá.

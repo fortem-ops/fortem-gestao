@@ -169,7 +169,7 @@ export default function Comissionamentos() {
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-3xl font-bold">{carteira.data?.meus ?? 0}</p>
-                      <p className="text-sm text-muted-foreground">alunos ativos qualificados {scope ? "(você)" : "(equipe)"}</p>
+                      <p className="text-sm text-muted-foreground">alunos ativos qualificados (Start/Start+/Power/Pro) {scope ? "(você)" : "(equipe)"}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm">Meta global: {carteira.data?.total ?? 0} / {meta}</p>
@@ -369,11 +369,17 @@ function CarteiraDetalhe({ profissionalId }: { profissionalId?: string | null })
         planosByAluno.set(p.aluno_id, arr);
       });
       const licencaSet = new Set((licencas || []).map((l: any) => l.aluno_id));
+      const PLANOS_QUALIFICADOS = ["Start", "Start+", "Power", "Pro"];
       return (alunos || []).map((a: any) => {
         const ps = planosByAluno.get(a.id) || [];
-        const planoExcluido = !ps.some((p: any) => !["Gympass/Wellhub", "Total Pass"].includes(p.tipo));
+        const temQualificado = ps.some((p: any) => PLANOS_QUALIFICADOS.includes(p.tipo));
+        const temVipOuAgregador = ps.some((p: any) => ["VIP", "Gympass/Wellhub", "Total Pass"].includes(p.tipo));
         const emLicenca = licencaSet.has(a.id);
-        const motivo = emLicenca ? "Em licença" : planoExcluido ? "Plano Gympass/TotalPass ou inativo" : null;
+        const motivo = emLicenca
+          ? "Em licença"
+          : !temQualificado
+            ? (temVipOuAgregador ? "Plano VIP/Agregador (não qualifica)" : "Sem plano ativo qualificado")
+            : null;
         return { ...a, qualificado: !motivo, motivo };
       });
     },
