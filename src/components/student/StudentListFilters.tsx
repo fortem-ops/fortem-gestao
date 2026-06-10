@@ -33,6 +33,7 @@ export interface StudentFilters {
   servicosContratados: string;
   professor: string;
   tipoPlano: string;
+  vip: string;
   dataFinalDe: Date | undefined;
   dataFinalAte: Date | undefined;
   dadosCadastrais: DadosCadastraisFiltro;
@@ -56,6 +57,7 @@ const defaultFilters: StudentFilters = {
   servicosContratados: "todos",
   professor: "todos",
   tipoPlano: "todos",
+  vip: "todos",
   dataFinalDe: undefined,
   dataFinalAte: undefined,
   dadosCadastrais: { ...defaultDados },
@@ -104,6 +106,7 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
     filters.servicosContratados !== "todos",
     filters.professor !== "todos",
     filters.tipoPlano !== "todos",
+    filters.vip !== "todos",
     !!filters.dataFinalDe,
     !!filters.dataFinalAte,
   ].filter(Boolean).length + dadosActiveCount;
@@ -233,6 +236,20 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
                   {tiposPlano.map((t) => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Plano VIP</label>
+              <Select value={filters.vip} onValueChange={(v) => update({ vip: v })}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="sim">VIP</SelectItem>
+                  <SelectItem value="nao">Não VIP</SelectItem>
                 </SelectContent>
               </Select>
             </div>

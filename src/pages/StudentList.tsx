@@ -231,6 +231,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       const matchTipoPlano = filters.tipoPlano === "todos" || s.planTipo === filters.tipoPlano;
 
+      const matchVip = filters.vip === "todos" ||
+        (filters.vip === "sim" ? (s.planTipo || "").toLowerCase() === "vip" : (s.planTipo || "").toLowerCase() !== "vip");
+
       let matchDate = true;
       if (filters.dataFinalDe && s.planEnd) {
         matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
@@ -254,9 +257,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
         checkPresenca(d.foto, !!(s as any).foto_url);
 
-      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchDate && matchDados;
+      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchDate && matchDados;
     });
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
 
   const filteredIds = useMemo(() => filtered.map((s: any) => s.id), [filtered]);
   const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
