@@ -241,6 +241,20 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
             </div>
 
             <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Plano VIP</label>
+              <Select value={filters.vip} onValueChange={(v) => update({ vip: v })}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="sim">VIP</SelectItem>
+                  <SelectItem value="nao">Não VIP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Data Final Plano (de)</label>
               <Popover>
                 <PopoverTrigger asChild>
