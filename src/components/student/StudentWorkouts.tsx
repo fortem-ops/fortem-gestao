@@ -48,7 +48,7 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
     queryKey: ["treinos", student.id],
     queryFn: async () => {
       // Promove agendados cuja data já chegou
-      await supabase.rpc("ativar_treinos_agendados");
+      await (supabase.rpc as unknown as (n: string) => Promise<unknown>)("ativar_treinos_agendados");
       const { data, error } = await supabase
         .from("treinos")
         .select("*")
