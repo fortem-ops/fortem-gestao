@@ -351,6 +351,8 @@ function CarteiraDetalhe({ profissionalId }: { profissionalId?: string | null })
   const { data = [], isLoading } = useQuery({
     queryKey: ["carteira-detalhe", profissionalId],
     queryFn: async () => {
+      const { isAutoRenewPlan } = await import("@/lib/planTipo");
+      const { addMonths } = await import("date-fns");
       let q = supabase.from("alunos").select("id, nome, status, responsavel_id").eq("status", "ativo");
       if (profissionalId) q = q.eq("responsavel_id", profissionalId);
       const { data: alunos, error } = await q;
@@ -358,8 +360,13 @@ function CarteiraDetalhe({ profissionalId }: { profissionalId?: string | null })
       const ids = (alunos || []).map((a: any) => a.id);
       if (!ids.length) return [];
       const hoje = new Date().toISOString().slice(0, 10);
+      const hojeDate = new Date(new Date().toDateString());
       const [{ data: planos }, { data: licencas }] = await Promise.all([
-        supabase.from("planos").select("aluno_id, tipo, ativo").in("aluno_id", ids).eq("ativo", true),
+        supabase
+          .from("planos")
+          .select("aluno_id, tipo, ativo, data_inicio, data_fim, duracao_meses")
+          .in("aluno_id", ids)
+          .eq("ativo", true),
         supabase.from("aluno_licencas").select("aluno_id, data_inicio, data_fim").in("aluno_id", ids).lte("data_inicio", hoje).gte("data_fim", hoje),
       ]);
       const planosByAluno = new Map<string, any[]>();
@@ -370,15 +377,30 @@ function CarteiraDetalhe({ profissionalId }: { profissionalId?: string | null })
       });
       const licencaSet = new Set((licencas || []).map((l: any) => l.aluno_id));
       const PLANOS_QUALIFICADOS = ["Start", "Start+", "Power", "Pro"];
+      const isVigente = (p: any): boolean => {
+        if (isAutoRenewPlan(p.tipo)) return true;
+        const planEnd = p.data_fim
+          ? new Date(p.data_fim + "T00:00:00")
+          : p.data_inicio
+            ? addMonths(new Date(p.data_inicio + "T00:00:00"), p.duracao_meses ?? 0)
+            : null;
+        return !!planEnd && planEnd >= hojeDate;
+      };
       return (alunos || []).map((a: any) => {
         const ps = planosByAluno.get(a.id) || [];
-        const temQualificado = ps.some((p: any) => PLANOS_QUALIFICADOS.includes(p.tipo));
+        const planosQualificados = ps.filter((p: any) => PLANOS_QUALIFICADOS.includes(p.tipo));
+        const temQualificadoVigente = planosQualificados.some(isVigente);
+        const temQualificadoVencido = planosQualificados.length > 0 && !temQualificadoVigente;
         const temVipOuAgregador = ps.some((p: any) => ["VIP", "Gympass/Wellhub", "Total Pass"].includes(p.tipo));
         const emLicenca = licencaSet.has(a.id);
         const motivo = emLicenca
           ? "Em licença"
-          : !temQualificado
-            ? (temVipOuAgregador ? "Plano VIP/Agregador (não qualifica)" : "Sem plano ativo qualificado")
+          : !temQualificadoVigente
+            ? (temQualificadoVencido
+                ? "Plano vencido"
+                : temVipOuAgregador
+                  ? "Plano VIP/Agregador (não qualifica)"
+                  : "Sem plano ativo qualificado")
             : null;
         return { ...a, qualificado: !motivo, motivo };
       });
