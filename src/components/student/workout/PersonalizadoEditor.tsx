@@ -542,7 +542,7 @@ export function PersonalizadoEditor({
     }
   };
 
-  const saveToAluno = async (targetAlunoId: string) => {
+  const saveToAluno = async (targetAlunoId: string, choice?: import("./PrescribeOptionsDialog").PrescribeChoice) => {
     if (!user) return;
     setSaving(true);
     try {
@@ -554,11 +554,14 @@ export function PersonalizadoEditor({
           .eq("id", treinoId);
         if (error) throw error;
       } else {
-        await supabase
-          .from("treinos")
-          .update({ status: "arquivado", updated_at: new Date().toISOString() })
-          .eq("aluno_id", targetAlunoId)
-          .eq("status", "atual");
+        const mode = choice?.mode ?? "now";
+        if (mode === "now") {
+          await supabase
+            .from("treinos")
+            .update({ status: "arquivado", updated_at: new Date().toISOString() })
+            .eq("aluno_id", targetAlunoId)
+            .eq("status", "atual");
+        }
         const { data: ultimo } = await supabase
           .from("treinos")
           .select("versao")
@@ -567,16 +570,22 @@ export function PersonalizadoEditor({
           .limit(1)
           .maybeSingle();
         const proximaVersao = (ultimo?.versao || 0) + 1;
-        const { error } = await supabase.from("treinos").insert({
+        const insertRow: Record<string, unknown> = {
           aluno_id: targetAlunoId,
           autor_id: user.id,
           descricao: name,
           conteudo,
-          status: "atual",
+          status: mode === "schedule" ? "aguardando" : "atual",
           versao: proximaVersao,
-        });
+        };
+        if (choice?.mode === "schedule") {
+          const d = choice.date;
+          insertRow.data_inicio = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        }
+        const { error } = await supabase.from("treinos").insert(insertRow as never);
         if (error) throw error;
       }
+
 
       // Criar tarefa automática "Atualizar treino" em 30 dias
       try {
