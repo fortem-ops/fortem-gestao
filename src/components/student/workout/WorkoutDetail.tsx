@@ -441,6 +441,14 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PrescribeOptionsDialog
+        open={prescribeOpen}
+        onOpenChange={setPrescribeOpen}
+        onConfirm={(choice) => handleSave(choice)}
+        saving={saving}
+        title="Prescrever treino"
+      />
     </div>
   );
 }
