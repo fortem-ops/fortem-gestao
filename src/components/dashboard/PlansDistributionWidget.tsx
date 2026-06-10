@@ -34,7 +34,10 @@ export function PlansDistributionWidget() {
       // Count by plan type
       const planCounts: Record<string, number> = {};
       planos.forEach((p) => {
-        const key = PLAN_ORDER.includes(p.tipo) ? p.tipo : "Outros";
+        const tipo = p.tipo || "";
+        const key = tipo.toLowerCase().startsWith("vip")
+          ? "VIP"
+          : PLAN_ORDER.includes(tipo) ? tipo : "Outros";
         planCounts[key] = (planCounts[key] || 0) + 1;
       });
 
