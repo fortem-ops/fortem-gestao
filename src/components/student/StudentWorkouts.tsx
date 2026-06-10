@@ -108,6 +108,10 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary bg-primary/10">
                       Atual
                     </Badge>
+                  ) : t.status === "aguardando" ? (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-info/40 text-info bg-info/10">
+                      Aguardando início{(t as { data_inicio?: string | null }).data_inicio ? ` — ${new Date((t as { data_inicio: string }).data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
+                    </Badge>
                   ) : (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-muted-foreground/30 text-muted-foreground">
                       Arquivado
