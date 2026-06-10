@@ -16,6 +16,7 @@ interface EditStudentDialogProps {
 }
 
 export default function EditStudentDialog({ student, onStudentUpdated }: EditStudentDialogProps) {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [planDefaults, setPlanDefaults] = useState<{
