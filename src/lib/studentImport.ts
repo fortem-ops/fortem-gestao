@@ -509,15 +509,21 @@ export async function importStudents(
       if (p.plano_tipo) {
         const plan = getPlanDetails(p.plano_tipo, p.plano_consultas || undefined);
         if (plan) {
+          let tipoFinal = plan.tipo;
+          if (plan.tipo === "VIP") {
+            const freq = p.frequencia_semanal ?? 3;
+            const sufixo = freq === 0 ? "Livre" : `${freq}x/semana`;
+            tipoFinal = `VIP ${sufixo}`;
+          }
           const { error: planErr } = await supabase.from("planos").insert({
             aluno_id: aluno.id,
-            tipo: plan.tipo,
+            tipo: tipoFinal,
             data_inicio: p.plano_data_inicio || today,
             duracao_meses: plan.duracao_meses,
             servicos: plan.servicos,
             valor: typeof p.plano_valor === "number" ? p.plano_valor : 0,
             ativo: true,
-            renovacao_automatica: isAutoRenewPlan(plan.tipo) || undefined,
+            renovacao_automatica: isAutoRenewPlan(tipoFinal) || undefined,
           });
           if (planErr) console.error("Erro ao criar plano:", planErr);
         }
