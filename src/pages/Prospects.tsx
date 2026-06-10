@@ -5,7 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, UserX, FileText, Eye } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, UserX, FileText, Eye, Trash2 } from "lucide-react";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToAlunoDialog } from "@/components/pipeline/ConvertToAlunoDialog";
 import { NaoConversaoDialog } from "@/components/prospects/NaoConversaoDialog";
