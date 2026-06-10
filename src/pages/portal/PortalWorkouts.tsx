@@ -48,7 +48,7 @@ export default function PortalWorkouts() {
     },
   });
 
-  const atual = treinos.find((t) => t.status === "atual") || treinos[0];
+  const atual = treinos.find((t) => t.status === "atual") || treinos.find((t) => t.status === "arquivado");
   const historico = treinos.filter((t) => t.id !== atual?.id);
 
   // Progresso desta semana
