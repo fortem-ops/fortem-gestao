@@ -145,6 +145,8 @@ export function PersonalizadoEditor({
   const [weeks, setWeeks] = useState(4);
   const [applyOpen, setApplyOpen] = useState(false);
   const [pickedAluno, setPickedAluno] = useState("");
+  const [prescribeOpen, setPrescribeOpen] = useState(false);
+  const [prescribeTargetAluno, setPrescribeTargetAluno] = useState<string | null>(null);
   // Aba ativa do card "FORÇA" (apenas UI, não persiste).
   const [activeTreino, setActiveTreino] = useState(0);
   // Modo de visualização do painel "PADRÕES DE MOVIMENTO".
