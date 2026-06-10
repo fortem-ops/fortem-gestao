@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import StudentFormFields, { type StudentFormValues, getPlanDetails } from "./StudentFormFields";
 import { isAutoRenewPlan } from "@/lib/planTipo";
+import { invalidatePlanoCaches } from "@/lib/planoCache";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface EditStudentDialogProps {
