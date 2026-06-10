@@ -106,6 +106,7 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
     filters.servicosContratados !== "todos",
     filters.professor !== "todos",
     filters.tipoPlano !== "todos",
+    filters.vip !== "todos",
     !!filters.dataFinalDe,
     !!filters.dataFinalAte,
   ].filter(Boolean).length + dadosActiveCount;
