@@ -57,6 +57,7 @@ const defaultFilters: StudentFilters = {
   servicosContratados: "todos",
   professor: "todos",
   tipoPlano: "todos",
+  vip: "todos",
   dataFinalDe: undefined,
   dataFinalAte: undefined,
   dadosCadastrais: { ...defaultDados },
