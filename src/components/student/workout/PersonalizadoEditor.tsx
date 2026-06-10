@@ -733,7 +733,18 @@ export function PersonalizadoEditor({
             </>
           )}
           {isAluno && !readOnly && (
-            <Button size="sm" onClick={() => saveToAluno(alunoId!)} disabled={saving}>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (treinoId) {
+                  saveToAluno(alunoId!);
+                } else {
+                  setPrescribeTargetAluno(alunoId!);
+                  setPrescribeOpen(true);
+                }
+              }}
+              disabled={saving}
+            >
               <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar no aluno"}
             </Button>
           )}
