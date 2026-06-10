@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Comissionamento, ComissaoPendencia, ComissaoConfig, ComissaoStatus } from "@/lib/comissionamentos";
+import { isAutoRenewPlan } from "@/lib/planTipo";
+import { addMonths } from "date-fns";
 import { toast } from "sonner";
 
 export function useIsCoordAdmin(userId: string | undefined) {
