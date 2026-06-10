@@ -169,7 +169,13 @@ export default function PortalWorkouts() {
                         v{t.versao} · {formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: ptBR })}
                       </p>
                     </div>
-                    <Badge variant="outline" className="text-[10px]">Arquivado</Badge>
+                    {t.status === "aguardando" ? (
+                      <Badge variant="outline" className="text-[10px] border-info/40 text-info bg-info/10">
+                        Aguardando{(t as { data_inicio?: string | null }).data_inicio ? ` — ${new Date((t as { data_inicio: string }).data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">Arquivado</Badge>
+                    )}
                   </Card>
                 ))}
               </div>
