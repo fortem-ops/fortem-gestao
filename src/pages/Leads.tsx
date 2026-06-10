@@ -23,13 +23,47 @@ import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFilte
 
 export default function Leads() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [openNew, setOpenNew] = useState(false);
   const [openManageOrigens, setOpenManageOrigens] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [convertId, setConvertId] = useState<string | null>(null);
   const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { data: origensList = [] } = useLeadOrigens(true);
+  const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
+
+  const toggleOne = (id: string) => setSelected((s) => {
+    const n = new Set(s);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+  const toggleAll = (ids: string[], checked: boolean) => setSelected((s) => {
+    const n = new Set(s);
+    if (checked) ids.forEach((i) => n.add(i)); else ids.forEach((i) => n.delete(i));
+    return n;
+  });
+
+  async function handleBulkDelete() {
+    if (!selected.size) return;
+    setDeleting(true);
+    try {
+      const ids = Array.from(selected);
+      const { error } = await supabase.from("alunos").delete().in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} lead${ids.length !== 1 ? "s" : ""} excluído${ids.length !== 1 ? "s" : ""}.`);
+      setSelected(new Set());
+      setConfirmDelete(false);
+      queryClient.invalidateQueries({ queryKey: ["leads-list"] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir.");
+    } finally {
+      setDeleting(false);
+    }
+  }
   const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
 
   // Abrir edit via ?edit=id (busca global)
