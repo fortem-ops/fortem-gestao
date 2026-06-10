@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ORIGEM_LEAD_OPTIONS, SEXO_OPTIONS, normalizePhone } from "@/lib/leads";
 import { getPlanDetails } from "@/components/student/StudentFormFields";
 import { isAutoRenewPlan } from "@/lib/planTipo";
+import { isValidCpfDigits, translateCpfDbError } from "@/lib/cpfValidation";
 
 export const CSV_HEADERS = [
   "nome",
@@ -66,6 +67,9 @@ export const rowSchema = z
       .or(z.literal(""))
       .refine((v) => !v || v.replace(/\D/g, "").length === 11, {
         message: "CPF deve ter 11 dígitos",
+      })
+      .refine((v) => !v || isValidCpfDigits(v), {
+        message: "CPF inválido (dígitos verificadores não conferem)",
       }),
     rg: z.string().trim().max(30).optional().or(z.literal("")),
     cep: z
@@ -413,7 +417,7 @@ export type ImportStatus = "ativo" | "encerrado" | "lead";
 export interface ImportContext {
   status: ImportStatus;
   currentUserId: string;
-  existing: { email: string | null; telefone: string | null }[];
+  existing: { email: string | null; telefone: string | null; cpf: string | null; nome: string | null }[];
   professorMap: Record<string, string>;
 }
 
@@ -424,6 +428,12 @@ export function validateRows(rows: Record<string, string>[], ctx: ImportContext)
   const existingPhones = new Set(
     ctx.existing.map((a) => normalizePhone(a.telefone)).filter((p) => p.length >= 8)
   );
+  const existingCpfMap = new Map<string, string>();
+  ctx.existing.forEach((a) => {
+    const d = (a.cpf || "").replace(/\D/g, "");
+    if (d.length === 11) existingCpfMap.set(d, a.nome || "(sem nome)");
+  });
+  const seenCpfsInBatch = new Map<string, number>();
 
   return rows.map((raw, i) => {
     const errors: string[] = [];
@@ -444,6 +454,17 @@ export function validateRows(rows: Record<string, string>[], ctx: ImportContext)
       }
       if (phoneKey && phoneKey.length >= 8 && existingPhones.has(phoneKey)) {
         warnings.push("Já existe aluno com este telefone (importação prossegue).");
+      }
+      const cpfDigits = (parsed.cpf || "").replace(/\D/g, "");
+      if (cpfDigits.length === 11) {
+        const existingNome = existingCpfMap.get(cpfDigits);
+        if (existingNome) {
+          errors.push(`CPF já cadastrado para ${existingNome}.`);
+        } else if (seenCpfsInBatch.has(cpfDigits)) {
+          errors.push(`CPF duplicado nesta planilha (linha ${seenCpfsInBatch.get(cpfDigits)}).`);
+        } else {
+          seenCpfsInBatch.set(cpfDigits, i + 1);
+        }
       }
     }
     return { index: i + 1, raw, parsed, errors, warnings };
@@ -543,7 +564,7 @@ export async function importStudents(
       result.failed.push({
         index: row.index,
         nome: p.nome,
-        reason: e.message || "Erro desconhecido",
+        reason: translateCpfDbError(e) ?? e.message ?? "Erro desconhecido",
       });
     }
   }
@@ -555,7 +576,7 @@ export async function loadImportContext(status: ImportStatus): Promise<ImportCon
   if (!user) throw new Error("Você precisa estar logado.");
 
   const [{ data: existing }, { data: roles }] = await Promise.all([
-    supabase.from("alunos").select("email, telefone"),
+    supabase.from("alunos").select("email, telefone, cpf, nome"),
     supabase.from("user_roles").select("user_id, role").in("role", ["professor", "coordenador", "admin"]),
   ]);
 
@@ -574,7 +595,7 @@ export async function loadImportContext(status: ImportStatus): Promise<ImportCon
   return {
     status,
     currentUserId: user.id,
-    existing: (existing || []) as { email: string | null; telefone: string | null }[],
+    existing: (existing || []) as ImportContext["existing"],
     professorMap,
   };
 }
