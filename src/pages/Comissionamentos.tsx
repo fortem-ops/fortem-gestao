@@ -169,7 +169,7 @@ export default function Comissionamentos() {
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-3xl font-bold">{carteira.data?.meus ?? 0}</p>
-                      <p className="text-sm text-muted-foreground">alunos ativos qualificados (Start/Start+/Power/Pro) {scope ? "(você)" : "(equipe)"}</p>
+                      <p className="text-sm text-muted-foreground">alunos ativos com plano vigente (Start/Start+/Power/Pro) {scope ? "(você)" : "(equipe)"}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm">Meta global: {carteira.data?.total ?? 0} / {meta}</p>
