@@ -38,7 +38,7 @@ export default function PortalWorkouts() {
     queryKey: ["portal-treinos", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      await supabase.rpc("ativar_treinos_agendados");
+      await (supabase.rpc as unknown as (n: string) => Promise<unknown>)("ativar_treinos_agendados");
       const { data } = await supabase
         .from("treinos")
         .select("*")
