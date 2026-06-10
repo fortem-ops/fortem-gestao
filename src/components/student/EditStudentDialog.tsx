@@ -115,6 +115,7 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
       }
 
       toast.success("Aluno atualizado com sucesso!");
+      invalidatePlanoCaches(queryClient, student.id);
       setOpen(false);
       onStudentUpdated();
     } catch (err: any) {
