@@ -1,49 +1,57 @@
+## Problema
+
+O CPF `659.592.300-97` digitado para **Carla Luciane Soares Furtat** já pertence a outro aluno cadastrado (**Carlos Augusto Piccinini**). Existe um índice único parcial no banco (`alunos_cpf_unique_idx` sobre os dígitos do CPF), então o `UPDATE` falha com o erro bruto do Postgres `duplicate key value violates unique constraint`. Como o erro não é tratado, o usuário vê a mensagem técnica e o CPF nunca é salvo — por isso "não aparece o CPF" no cadastro dela.
+
+A regra de unicidade do CPF está correta e deve continuar (CPF é identificador único de pessoa). O que precisa mudar é **a forma como o sistema trata e comunica esse conflito**, em todos os fluxos que gravam CPF.
+
 ## Objetivo
 
-Tornar o plano **VIP** selecionável em todos os fluxos de cadastro/edição de aluno e demais lugares onde se escolhe "Plano". A variante (1x/2x/3x/Livre) é derivada da **frequência semanal** já existente no formulário — não criamos 4 itens separados no select, mantendo a UI enxuta.
+Para todos os cadastros existentes e futuros:
+1. Validar CPF antes de gravar e impedir gravação silenciosamente quebrada.
+2. Mostrar mensagem clara identificando **qual aluno já possui aquele CPF**.
+3. Tratar o erro `23505` (duplicate key) caso ele ainda chegue ao banco, traduzindo para mensagem amigável.
+4. Validar formato do CPF (dígito verificador) antes de salvar.
 
-## Comportamento
+## Mudanças por fluxo
 
-- No select de **Plano** do formulário de aluno (usado em "Novo Aluno" e "Editar Aluno"), adicionar a opção **VIP** (estilo dourado/Crown opcional).
-- Ao salvar com plano = VIP, o `tipo` gravado na tabela `planos` será composto a partir da `frequencia_semanal`:
-  - 1 → `VIP 1x/semana`
-  - 2 → `VIP 2x/semana`
-  - 3 → `VIP 3x/semana`
-  - 0 (Livre) → `VIP Livre`
-- Vigência: 1 mês. Serviços inclusos: nenhum. Valor padrão sugerido: 0,00 (editável).
-- A renovação automática já é tratada pelo trigger `fn_planos_autorenew_defaults` (qualquer `tipo` começando com `vip`).
-- Dashboard (card VIP) e comissionamento já tratam `tipo ILIKE 'vip%'` — sem mudanças no backend.
+### 1. `src/lib/cpfValidation.ts` (novo helper)
+- `normalizeCpf(cpf)` — devolve apenas dígitos.
+- `isValidCpfDigits(cpf)` — valida dígito verificador (mesma lógica já usada em `clube.ts` e `legal-annex/StudentDataForm.tsx`, centralizada).
+- `findAlunoByCpf(cpf, excludeId?)` — consulta `alunos` por `regexp_replace(cpf,'[^0-9]','','g') = <digits>`, retorna `{ id, nome }` ou `null`. Usa `.neq("id", excludeId)` quando estiver editando.
+- `formatDuplicateCpfMessage(existing)` — texto: "CPF já cadastrado para **<nome>**. Verifique se digitou corretamente ou edite o cadastro existente."
+- `translateCpfDbError(error)` — se mensagem contém `alunos_cpf_unique_idx`, devolve a mesma mensagem amigável (sem nome, pois pode falhar na corrida).
 
-## Arquivos a alterar (somente front-end)
+### 2. `src/components/student/EditDadosCadastraisDialog.tsx`
+- Antes do `UPDATE`, se `form.cpf` mudou:
+  - validar formato; se inválido → toast e abortar.
+  - chamar `findAlunoByCpf(form.cpf, alunoId)`; se achar → toast com nome e abortar.
+- Envolver o `UPDATE` em try/catch usando `translateCpfDbError` como fallback.
 
-1. **`src/components/student/StudentFormFields.tsx`**
-   - Adicionar `VIP: { label: "VIP", duracao: 1, servicos: [] }` em `PLAN_CONFIG`.
-   - Incluir `"VIP"` no `z.enum` do schema.
-   - Adicionar `<SelectItem value="VIP">VIP</SelectItem>` no select de Plano.
-   - `getPlanDetails("VIP", ...)` retornará `{ tipo: "VIP", duracao_meses: 1, servicos: [] }`.
+### 3. `src/components/legal-annex/StudentDataForm.tsx` (e fluxo `LegalAnnexFlow.tsx` / edge `submit-legal-annex`)
+- O componente já valida formato via `validateCPF`. Acrescentar checagem de duplicidade ao sair do campo CPF (após `lookup-by-cpf`): se já existe outro aluno com o CPF e não é o mesmo registro sendo preenchido, mostrar aviso.
+- Na edge `submit-legal-annex`: ao gravar/atualizar `alunos`, capturar erro 23505 do índice CPF e responder `409` com mensagem clara, exibida pelo front.
 
-2. **`src/components/student/AddStudentDialog.tsx`** e **`src/components/student/EditStudentDialog.tsx`**
-   - Antes do `insert/update` em `planos`, se `plan.tipo === "VIP"`, substituir por:
-     ```ts
-     const freq = values.frequencia_semanal;
-     const sufixo = freq === 0 ? "Livre" : `${freq}x/semana`;
-     tipoFinal = `VIP ${sufixo}`;
-     ```
-   - Em `EditStudentDialog`, o mapeamento reverso (carregar plano atual) deve reconhecer `tipo` começando com `VIP` e popular `plano = "VIP"`.
+### 4. `src/components/pipeline/ConvertToAlunoDialog.tsx`
+- Mesma validação prévia + tratamento de erro 23505 no insert de `alunos`.
 
-3. **`src/lib/studentImport.ts`**
-   - Adicionar `"VIP"` em `PLAN_TYPES`.
-   - Normalizador: `if (s === "VIP" || s.startsWith("VIP ")) return s` (preservar variante já vinda).
+### 5. `src/components/student/ImportStudentsCSVDialog.tsx` / `src/lib/studentImport.ts`
+- Para cada linha com CPF:
+  - normalizar e validar dígito; linhas inválidas vão para relatório de erro.
+  - antes do upsert, fazer lookup por CPF; se existir outro aluno, marcar linha como conflito (relatório final mostra "CPF já cadastrado para X").
+- Tratar `23505` no `insert`/`update` como fallback.
 
-4. **`src/components/dashboard/PlansDistributionWidget.tsx`**
-   - Incluir `"VIP"` em `PLAN_ORDER` e cor dourada `#D4AF37` em `PLAN_COLORS`.
-   - Ajustar agrupamento: qualquer `tipo` começando com `VIP` é contabilizado como "VIP" (consolida 1x/2x/3x/Livre na fatia).
+### 6. Edge `lookup-by-cpf` (sem mudança de contrato)
+- Já existe e retorna `found:true` com dados — o front passa a usar isso para sugerir "este CPF pertence a Fulano" antes de tentar gravar.
 
-5. **`src/components/student/StudentSummary.tsx`** e **`src/components/dashboard/AdminAlertsWidget.tsx`**
-   - Incluir `"VIP"` em `RECURRING_PLANS` (ou trocar para checagem via `isAutoRenewPlan`) — VIP é mensal recorrente e não deve disparar alertas de "plano expirando".
+### 7. Sem migração de schema
+- O índice único `alunos_cpf_unique_idx` permanece como está. Nenhum dado existente é alterado. O CPF de Carlos Piccinini fica intocado; cabe ao usuário decidir se o CPF realmente é de Carla ou de Carlos e corrigir no cadastro certo.
+
+## Mensagens (PT-BR)
+- Conflito: **"CPF já cadastrado para <NOME>. Verifique se foi digitado corretamente."**
+- Inválido: **"CPF inválido. Confira os dígitos."**
+- Erro genérico do banco no índice de CPF: **"CPF já cadastrado no sistema."**
 
 ## Fora de escopo
-
-- Sem mudanças no banco: o trigger e as funções de dashboard/carteira já cobrem `vip%`.
-- Sem novo seletor de variante VIP separado — mantém a UX consistente com a frequência semanal já escolhida.
-- Sem alterações em `planos_catalogo` (Admin → Planos continua editável manualmente).
+- Tela para "mesclar" cadastros duplicados.
+- Remoção da regra de unicidade.
+- Alteração do CPF de Carlos Piccinini ou da Carla — o usuário decide qual está correto após ver a mensagem clara.
