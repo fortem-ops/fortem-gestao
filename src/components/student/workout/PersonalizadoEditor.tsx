@@ -43,6 +43,7 @@ import { useExerciseCategories, type ExerciseCategory } from "@/hooks/useExercis
 import { SUBCATEGORIA_TO_CODE, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
+import { PrescribeOptionsDialog } from "./PrescribeOptionsDialog";
 import {
   emptyPersonalizado,
   flattenPersonalizado,
