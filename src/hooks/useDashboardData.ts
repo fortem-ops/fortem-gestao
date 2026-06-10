@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface DashboardData {
-  alunos: { ativos: number; agregadores: number; licenca: number };
+  alunos: { ativos: number; agregadores: number; vip: number; licenca: number };
   tarefas: { pendentes: number; atrasadas: number };
   agenda: { avaliacoes_hoje: number; experimentais_hoje: number };
   aniversariantes: {

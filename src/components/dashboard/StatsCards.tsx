@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Pause, AlertCircle, ClipboardList, Dumbbell, ClipboardCheck, DollarSign, UserPlus, AlertTriangle } from "lucide-react";
+import { Users, Pause, AlertCircle, ClipboardList, Dumbbell, ClipboardCheck, DollarSign, UserPlus, AlertTriangle, Crown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -101,6 +101,7 @@ export function StatsCards({ professorId }: Props) {
   const row1 = [
     { label: "Alunos Ativos", value: alunosStats?.ativos ?? 0, icon: Users, color: "text-success" },
     { label: "Agregadores", value: alunosStats?.agregadores ?? 0, icon: UserPlus, color: "text-primary" },
+    { label: "VIP", value: alunosStats?.vip ?? 0, icon: Crown, color: "text-[#D4AF37]" },
     { label: "Em Licença", value: alunosStats?.licenca ?? 0, icon: Pause, color: "text-warning" },
   ];
 
@@ -146,7 +147,7 @@ export function StatsCards({ professorId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {row1.map((s, i) => renderCard(s, i))}
       </div>
       <div className="grid grid-cols-3 gap-4">
