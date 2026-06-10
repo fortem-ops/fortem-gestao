@@ -44,8 +44,9 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
               consultas = "reabilitacao";
             else consultas = "nutricao";
           }
+          const tipoSelecao = p.tipo?.startsWith("VIP") ? "VIP" : p.tipo;
           setPlanDefaults({
-            plano: p.tipo,
+            plano: tipoSelecao,
             plano_consultas: consultas,
             plano_valor: p.valor ?? undefined,
             plano_data_inicio: p.data_inicio,
