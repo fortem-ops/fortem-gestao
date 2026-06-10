@@ -34,6 +34,8 @@ export interface StudentFilters {
   professor: string;
   tipoPlano: string;
   vip: string;
+  dataInicioDe: Date | undefined;
+  dataInicioAte: Date | undefined;
   dataFinalDe: Date | undefined;
   dataFinalAte: Date | undefined;
   dadosCadastrais: DadosCadastraisFiltro;
@@ -58,10 +60,13 @@ const defaultFilters: StudentFilters = {
   professor: "todos",
   tipoPlano: "todos",
   vip: "todos",
+  dataInicioDe: undefined,
+  dataInicioAte: undefined,
   dataFinalDe: undefined,
   dataFinalAte: undefined,
   dadosCadastrais: { ...defaultDados },
 };
+
 
 interface Props {
   filters: StudentFilters;
@@ -107,9 +112,12 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
     filters.professor !== "todos",
     filters.tipoPlano !== "todos",
     filters.vip !== "todos",
+    !!filters.dataInicioDe,
+    !!filters.dataInicioAte,
     !!filters.dataFinalDe,
     !!filters.dataFinalAte,
   ].filter(Boolean).length + dadosActiveCount;
+
 
   const clearAll = () => onChange({ ...defaultFilters, search: filters.search });
 
@@ -255,6 +263,34 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
             </div>
 
             <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Início Plano (de)</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-sm", !filters.dataInicioDe && "text-muted-foreground")}>
+                    {filters.dataInicioDe ? format(filters.dataInicioDe, "dd/MM/yyyy") : "Selecionar..."}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={filters.dataInicioDe} onSelect={(d) => update({ dataInicioDe: d })} locale={ptBR} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Início Plano (até)</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-sm", !filters.dataInicioAte && "text-muted-foreground")}>
+                    {filters.dataInicioAte ? format(filters.dataInicioAte, "dd/MM/yyyy") : "Selecionar..."}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={filters.dataInicioAte} onSelect={(d) => update({ dataInicioAte: d })} locale={ptBR} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Data Final Plano (de)</label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -267,6 +303,7 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
                 </PopoverContent>
               </Popover>
             </div>
+
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Data Final Plano (até)</label>

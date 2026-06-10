@@ -141,6 +141,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       const creditsMap: Record<string, ServiceCredits> = {};
       const planEndMap: Record<string, Date | null> = {};
+      const planStartMap: Record<string, Date | null> = {};
       const planTipoMap: Record<string, string | null> = {};
 
       const PLAN_SERVICES = ["Avaliação Funcional", "Consultas Nutrição", "Consultas Reabilitação"];
@@ -151,11 +152,14 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           planEndMap[student.id] = plano.data_fim
             ? new Date(plano.data_fim + "T00:00:00")
             : addMonths(new Date(plano.data_inicio), plano.duracao_meses);
+          planStartMap[student.id] = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00") : null;
           planTipoMap[student.id] = plano.tipo || null;
         } else {
           planEndMap[student.id] = null;
+          planStartMap[student.id] = null;
           planTipoMap[student.id] = null;
         }
+
         creditsMap[student.id] = emptyCredits();
 
         // Serviços do Plano: derivados de planos.servicos + consumo_servicos do plano ativo
@@ -189,7 +193,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         bucket.servico[c.atividade] = cur;
       });
 
-      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
+      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
     },
   });
 
@@ -245,6 +249,17 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         matchDate = false;
       }
 
+      let matchDateStart = true;
+      if (filters.dataInicioDe && s.planStart) {
+        matchDateStart = matchDateStart && !isBefore(s.planStart, startOfDay(filters.dataInicioDe));
+      }
+      if (filters.dataInicioAte && s.planStart) {
+        matchDateStart = matchDateStart && !isAfter(s.planStart, startOfDay(filters.dataInicioAte));
+      }
+      if ((filters.dataInicioDe || filters.dataInicioAte) && !s.planStart) {
+        matchDateStart = false;
+      }
+
       const d = filters.dadosCadastrais;
       const checkPresenca = (mode: "todos" | "com" | "sem", has: boolean) =>
         mode === "todos" ? true : mode === "com" ? has : !has;
@@ -257,9 +272,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
         checkPresenca(d.foto, !!(s as any).foto_url);
 
-      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchDate && matchDados;
+      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchDate && matchDateStart && matchDados;
     });
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.dataInicioDe, filters.dataInicioAte, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
+
 
   const filteredIds = useMemo(() => filtered.map((s: any) => s.id), [filtered]);
   const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
@@ -428,10 +444,12 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Plano</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Frequência</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Professor</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Início Plano</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Final Plano</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Última Aval. Funcional</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Serviços do Plano</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Serviços Contratados</th>
+
             </tr>
           </thead>
           <tbody>
@@ -445,6 +463,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                   <td className="p-4 hidden md:table-cell"><Skeleton className="h-5 w-20" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-24" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-20" /></td>
+                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-20" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-24" /></td>
                   <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-32" /></td>
                   <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-32" /></td>
@@ -452,9 +471,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} className="p-8 text-center text-muted-foreground">
+                <td colSpan={11} className="p-8 text-center text-muted-foreground">
                   Nenhum aluno encontrado.
                 </td>
+
               </tr>
             ) : (
               filtered.map((student) => {
@@ -522,6 +542,13 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                       <span className="text-sm text-muted-foreground">{professorName || "—"}</span>
                     </td>
                     <td className="p-4 hidden lg:table-cell">
+                      {student.planStart ? (
+                        <span className="text-sm text-muted-foreground">{format(student.planStart, "dd/MM/yyyy")}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="p-4 hidden lg:table-cell">
                       {planEndStr ? (
                         <span className={`text-sm ${isPlanExpired ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                           {planEndStr}
@@ -530,6 +557,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
+
                     <td className="p-4 hidden lg:table-cell">
                       <Tooltip>
                         <TooltipTrigger asChild>
