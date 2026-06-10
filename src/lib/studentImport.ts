@@ -33,7 +33,7 @@ export const CSV_HEADERS = [
 
 export type CsvHeader = (typeof CSV_HEADERS)[number];
 
-const PLAN_TYPES = ["Start", "Start+", "Power", "Pro", "Max", "Gympass/Wellhub", "Total Pass"] as const;
+const PLAN_TYPES = ["Start", "Start+", "Power", "Pro", "Max", "VIP", "Gympass/Wellhub", "Total Pass"] as const;
 const SEXO_VALUES = SEXO_OPTIONS.map((s) => s.value);
 const CONSULTAS = ["nutricao", "reabilitacao", "misto"] as const;
 const STATUS_VALUES = ["ativo", "encerrado", "lead"] as const;
@@ -203,6 +203,7 @@ function normalizePlano(v: string): string {
   if (s === "POWER") return "Power";
   if (s === "PRO") return "Pro";
   if (s === "MAX") return "Max";
+  if (s === "VIP" || s.startsWith("VIP ") || s.startsWith("VIP-")) return "VIP";
   if (s.includes("GYMPASS") || s.includes("WELLHUB")) return "Gympass/Wellhub";
   if (s.includes("TOTAL") && s.includes("PASS")) return "Total Pass";
   return v.trim();
@@ -508,15 +509,21 @@ export async function importStudents(
       if (p.plano_tipo) {
         const plan = getPlanDetails(p.plano_tipo, p.plano_consultas || undefined);
         if (plan) {
+          let tipoFinal = plan.tipo;
+          if (plan.tipo === "VIP") {
+            const freq = p.frequencia_semanal ?? 3;
+            const sufixo = freq === 0 ? "Livre" : `${freq}x/semana`;
+            tipoFinal = `VIP ${sufixo}`;
+          }
           const { error: planErr } = await supabase.from("planos").insert({
             aluno_id: aluno.id,
-            tipo: plan.tipo,
+            tipo: tipoFinal,
             data_inicio: p.plano_data_inicio || today,
             duracao_meses: plan.duracao_meses,
             servicos: plan.servicos,
             valor: typeof p.plano_valor === "number" ? p.plano_valor : 0,
             ativo: true,
-            renovacao_automatica: isAutoRenewPlan(plan.tipo) || undefined,
+            renovacao_automatica: isAutoRenewPlan(tipoFinal) || undefined,
           });
           if (planErr) console.error("Erro ao criar plano:", planErr);
         }

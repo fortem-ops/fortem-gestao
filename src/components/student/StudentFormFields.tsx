@@ -18,6 +18,7 @@ const PLAN_CONFIG: Record<string, { label: string; duracao: number; servicos: st
   Power:    { label: "Power",  duracao: 12, servicos: ["1 Avaliação Funcional"] },
   Pro:      { label: "Pro",    duracao: 12, servicos: ["2 Avaliação Funcional"] },
   Max:      { label: "Max",    duracao: 12, servicos: ["3 Avaliação Funcional", "5 Consultas Nutrição", "5 Consultas Reabilitação"] },
+  VIP:      { label: "VIP",    duracao: 1,  servicos: [] },
   "Gympass/Wellhub": { label: "Gympass/Wellhub", duracao: 1, servicos: [] },
   "Total Pass":      { label: "Total Pass",      duracao: 1, servicos: [] },
 };
@@ -32,7 +33,7 @@ export const studentSchema = z.object({
   status: z.enum(["ativo", "licenca", "encerrado"]),
   frequencia_semanal: z.coerce.number().int().min(0).max(3),
   observacoes: z.string().trim().max(1000).or(z.literal("")),
-  plano: z.enum(["Start", "Start+", "Power", "Pro", "Max", "Gympass/Wellhub", "Total Pass"]).optional(),
+  plano: z.enum(["Start", "Start+", "Power", "Pro", "Max", "VIP", "Gympass/Wellhub", "Total Pass"]).optional(),
   plano_consultas: z.string().optional(),
   plano_valor: z.coerce.number().min(0, "Valor deve ser positivo").optional(),
   plano_data_inicio: z.string().optional(),
@@ -338,6 +339,7 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
                   <SelectItem value="Power">Power</SelectItem>
                   <SelectItem value="Pro">Pro</SelectItem>
                   <SelectItem value="Max">Max</SelectItem>
+                  <SelectItem value="VIP">VIP (colaboradores, familiares, parceiros)</SelectItem>
                   <SelectItem value="Gympass/Wellhub">Gympass/Wellhub</SelectItem>
                   <SelectItem value="Total Pass">Total Pass</SelectItem>
                 </SelectContent>

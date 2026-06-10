@@ -1,53 +1,49 @@
 ## Objetivo
 
-Alunos com plano **VIP** não devem entrar na contagem de **Alunos Ativos** no Dashboard nem no cálculo de **comissionamento de carteira** dos professores. Devem aparecer em um **card próprio "VIP"** no topo do Dashboard, e continuam visíveis na lista/widget de Carteira (apenas excluídos da matemática da comissão).
+Tornar o plano **VIP** selecionável em todos os fluxos de cadastro/edição de aluno e demais lugares onde se escolhe "Plano". A variante (1x/2x/3x/Livre) é derivada da **frequência semanal** já existente no formulário — não criamos 4 itens separados no select, mantendo a UI enxuta.
 
-## Mudanças
+## Comportamento
 
-### 1. Banco — `get_dashboard_data` (migration)
-Atualizar o CTE `alunos_stats` para:
-- `ativos` = planos ativos cujo `tipo` **não está** em `('Gympass/Wellhub','Total Pass')` **e não é VIP** (`tipo` não começa com `vip`, case-insensitive).
-- `agregadores` = inalterado (Gympass/Wellhub, Total Pass).
-- **Novo** campo `vip` = planos ativos cujo `tipo` começa com `vip`.
-- `licenca` = inalterado.
+- No select de **Plano** do formulário de aluno (usado em "Novo Aluno" e "Editar Aluno"), adicionar a opção **VIP** (estilo dourado/Crown opcional).
+- Ao salvar com plano = VIP, o `tipo` gravado na tabela `planos` será composto a partir da `frequencia_semanal`:
+  - 1 → `VIP 1x/semana`
+  - 2 → `VIP 2x/semana`
+  - 3 → `VIP 3x/semana`
+  - 0 (Livre) → `VIP Livre`
+- Vigência: 1 mês. Serviços inclusos: nenhum. Valor padrão sugerido: 0,00 (editável).
+- A renovação automática já é tratada pelo trigger `fn_planos_autorenew_defaults` (qualquer `tipo` começando com `vip`).
+- Dashboard (card VIP) e comissionamento já tratam `tipo ILIKE 'vip%'` — sem mudanças no backend.
 
-### 2. Banco — `fn_carteira_ativos_por_profissional` (migration)
-Adicionar à cláusula `NOT IN ('Gympass/Wellhub','Total Pass')` uma condição extra que exclua VIP (`tipo NOT ILIKE 'vip%'`). Assim o bônus de carteira ignora VIP, e como consequência `fn_carteira_total_ativos` (usado para a meta mínima) também ignora.
+## Arquivos a alterar (somente front-end)
 
-### 3. Frontend — Dashboard
-- `src/hooks/useDashboardData.ts`: adicionar `vip: number` ao tipo `alunos`.
-- `src/components/dashboard/StatsCards.tsx`: incluir novo cartão **"VIP"** na primeira linha (ao lado de Ativos / Agregadores / Licença), usando ícone `Crown` e cor dourada (texto `text-[#D4AF37]`, alinhado à identidade visual do plano VIP).
+1. **`src/components/student/StudentFormFields.tsx`**
+   - Adicionar `VIP: { label: "VIP", duracao: 1, servicos: [] }` em `PLAN_CONFIG`.
+   - Incluir `"VIP"` no `z.enum` do schema.
+   - Adicionar `<SelectItem value="VIP">VIP</SelectItem>` no select de Plano.
+   - `getPlanDetails("VIP", ...)` retornará `{ tipo: "VIP", duracao_meses: 1, servicos: [] }`.
 
-### 4. Frontend — Carteira (sem mudanças funcionais)
-`CarteiraWidget` e `CarteiraAlunos` continuam listando VIP (decisão do usuário). Nenhuma alteração necessária.
+2. **`src/components/student/AddStudentDialog.tsx`** e **`src/components/student/EditStudentDialog.tsx`**
+   - Antes do `insert/update` em `planos`, se `plan.tipo === "VIP"`, substituir por:
+     ```ts
+     const freq = values.frequencia_semanal;
+     const sufixo = freq === 0 ? "Livre" : `${freq}x/semana`;
+     tipoFinal = `VIP ${sufixo}`;
+     ```
+   - Em `EditStudentDialog`, o mapeamento reverso (carregar plano atual) deve reconhecer `tipo` começando com `VIP` e popular `plano = "VIP"`.
 
-## Detalhes técnicos
+3. **`src/lib/studentImport.ts`**
+   - Adicionar `"VIP"` em `PLAN_TYPES`.
+   - Normalizador: `if (s === "VIP" || s.startsWith("VIP ")) return s` (preservar variante já vinda).
 
-```sql
--- get_dashboard_data, no CTE alunos_stats:
-(SELECT COUNT(*) FROM planos_ativos
-  WHERE tipo NOT IN ('Gympass/Wellhub','Total Pass')
-    AND tipo NOT ILIKE 'vip%') AS ativos,
-(SELECT COUNT(*) FROM planos_ativos
-  WHERE tipo IN ('Gympass/Wellhub','Total Pass')) AS agregadores,
-(SELECT COUNT(*) FROM planos_ativos
-  WHERE tipo ILIKE 'vip%') AS vip,
-(SELECT COUNT(*) FROM alunos_filtered WHERE status = 'licenca') AS licenca
+4. **`src/components/dashboard/PlansDistributionWidget.tsx`**
+   - Incluir `"VIP"` em `PLAN_ORDER` e cor dourada `#D4AF37` em `PLAN_COLORS`.
+   - Ajustar agrupamento: qualquer `tipo` começando com `VIP` é contabilizado como "VIP" (consolida 1x/2x/3x/Livre na fatia).
 
--- fn_carteira_ativos_por_profissional, no EXISTS de planos:
-AND p.tipo NOT IN ('Gympass/Wellhub','Total Pass')
-AND p.tipo NOT ILIKE 'vip%'
-```
-
-Layout do Dashboard passa a ter 4 colunas na primeira linha (`grid-cols-2 md:grid-cols-4`) para acomodar o card VIP sem quebrar o layout responsivo.
-
-## Arquivos tocados
-
-- nova migration SQL (recria `get_dashboard_data` e `fn_carteira_ativos_por_profissional`)
-- `src/hooks/useDashboardData.ts`
-- `src/components/dashboard/StatsCards.tsx`
+5. **`src/components/student/StudentSummary.tsx`** e **`src/components/dashboard/AdminAlertsWidget.tsx`**
+   - Incluir `"VIP"` em `RECURRING_PLANS` (ou trocar para checagem via `isAutoRenewPlan`) — VIP é mensal recorrente e não deve disparar alertas de "plano expirando".
 
 ## Fora de escopo
 
-- Regras de elegibilidade do VIP (controle manual).
-- Outros indicadores/relatórios que somam alunos ativos (podem ser revisados depois, sob demanda).
+- Sem mudanças no banco: o trigger e as funções de dashboard/carteira já cobrem `vip%`.
+- Sem novo seletor de variante VIP separado — mantém a UX consistente com a frequência semanal já escolhida.
+- Sem alterações em `planos_catalogo` (Admin → Planos continua editável manualmente).
