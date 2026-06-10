@@ -47,6 +47,8 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
   const { data: treinos, refetch } = useQuery({
     queryKey: ["treinos", student.id],
     queryFn: async () => {
+      // Promove agendados cuja data já chegou
+      await supabase.rpc("ativar_treinos_agendados");
       const { data, error } = await supabase
         .from("treinos")
         .select("*")
