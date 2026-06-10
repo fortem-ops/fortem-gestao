@@ -147,7 +147,7 @@ export function StatsCards({ professorId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {row1.map((s, i) => renderCard(s, i))}
       </div>
       <div className="grid grid-cols-3 gap-4">
