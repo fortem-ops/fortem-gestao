@@ -33,6 +33,7 @@ export interface StudentFilters {
   servicosContratados: string;
   professor: string;
   tipoPlano: string;
+  vip: string;
   dataFinalDe: Date | undefined;
   dataFinalAte: Date | undefined;
   dadosCadastrais: DadosCadastraisFiltro;
