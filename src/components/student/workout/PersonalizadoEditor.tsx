@@ -619,7 +619,11 @@ export function PersonalizadoEditor({
         console.error("Erro ao criar tarefa automática:", e);
       }
 
-      toast.success("Treino aplicado ao aluno");
+      toast.success(
+        choice?.mode === "schedule"
+          ? `Treino programado para ${choice.date.toLocaleDateString("pt-BR")}.`
+          : "Treino aplicado ao aluno",
+      );
       clearDraft();
       onSaved?.();
     } catch (e) {
@@ -627,6 +631,8 @@ export function PersonalizadoEditor({
     } finally {
       setSaving(false);
       setApplyOpen(false);
+      setPrescribeOpen(false);
+      setPrescribeTargetAluno(null);
     }
   };
 
