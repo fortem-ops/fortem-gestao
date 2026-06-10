@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
 import { PersonalizadoEditor } from "./PersonalizadoEditor";
 import { isPersonalizadoContent } from "./personalizadoTypes";
+import { PrescribeOptionsDialog, toISODate, type PrescribeChoice } from "./PrescribeOptionsDialog";
 import {
   Dialog,
   DialogContent,
