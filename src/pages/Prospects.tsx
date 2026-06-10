@@ -5,7 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, UserX, FileText, Eye } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { MessageCircle, Pencil, KanbanSquare, CalendarPlus, ListTodo, ClipboardPlus, UserCheck, UserX, FileText, Eye, Trash2 } from "lucide-react";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToAlunoDialog } from "@/components/pipeline/ConvertToAlunoDialog";
 import { NaoConversaoDialog } from "@/components/prospects/NaoConversaoDialog";
@@ -34,6 +39,37 @@ export default function Prospects() {
   const [viewerTarget, setViewerTarget] = useState<{ avaliacao: Tables<"avaliacoes">; student: Tables<"alunos"> } | null>(null);
 
   const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const toggleOne = (id: string) => setSelected((s) => {
+    const n = new Set(s);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+  const toggleAll = (ids: string[], checked: boolean) => setSelected((s) => {
+    const n = new Set(s);
+    if (checked) ids.forEach((i) => n.add(i)); else ids.forEach((i) => n.delete(i));
+    return n;
+  });
+  async function handleBulkDelete() {
+    if (!selected.size) return;
+    setDeleting(true);
+    try {
+      const ids = Array.from(selected);
+      const { error } = await supabase.from("alunos").delete().in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} prospect${ids.length !== 1 ? "s" : ""} excluído${ids.length !== 1 ? "s" : ""}.`);
+      setSelected(new Set());
+      setConfirmDelete(false);
+      queryClient.invalidateQueries({ queryKey: ["prospects-list"] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
 
   useEffect(() => {
@@ -410,10 +446,31 @@ export default function Prospects() {
         searchPlaceholder="Buscar prospect por nome..."
       />
 
+      {selected.size > 0 && (
+        <div className="glass-card rounded-lg p-3 flex items-center justify-between animate-fade-in">
+          <p className="text-sm text-foreground">
+            {selected.size} prospect{selected.size !== 1 ? "s" : ""} selecionado{selected.size !== 1 ? "s" : ""}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Limpar</Button>
+            <Button size="sm" variant="destructive" onClick={() => setConfirmDelete(true)} className="gap-2">
+              <Trash2 className="w-4 h-4" /> Excluir selecionados
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="glass-card rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
+              <th className="p-4 w-10">
+                <Checkbox
+                  checked={filtered.length > 0 && filtered.every((p: any) => selected.has(p.id))}
+                  onCheckedChange={(v) => toggleAll(filtered.map((p: any) => p.id), !!v)}
+                  aria-label="Selecionar todos"
+                />
+              </th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Telefone</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Origem</th>
@@ -425,10 +482,10 @@ export default function Prospects() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
             )}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum prospect encontrado.</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum prospect encontrado.</td></tr>
             )}
             {filtered.map((p: any) => {
               const wa = waMeLink(p.telefone, `Olá ${p.nome.split(" ")[0]}! Vamos agendar sua aula experimental?`);
@@ -438,6 +495,13 @@ export default function Prospects() {
                   onClick={() => setEditId(p.id)}
                   className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors"
                 >
+                  <td className="p-4 w-10" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selected.has(p.id)}
+                      onCheckedChange={() => toggleOne(p.id)}
+                      aria-label={`Selecionar ${p.nome}`}
+                    />
+                  </td>
                   <td className="p-4">
                     <p className="text-sm font-medium text-foreground">{p.nome}</p>
                   </td>
@@ -556,6 +620,23 @@ export default function Prospects() {
           student={viewerTarget.student}
         />
       )}
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selected.size} prospect{selected.size !== 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente. Os registros e seus dados relacionados serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} disabled={deleting} className="bg-destructive hover:bg-destructive/90">
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

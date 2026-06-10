@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Settings2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { UserPlus, MessageCircle, ArrowRightCircle, Pencil, KanbanSquare, Settings2, Trash2 } from "lucide-react";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
@@ -17,14 +23,49 @@ import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFilte
 
 export default function Leads() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [openNew, setOpenNew] = useState(false);
   const [openManageOrigens, setOpenManageOrigens] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [convertId, setConvertId] = useState<string | null>(null);
   const [filters, setFilters] = useState<LeadProspectFiltersState>(defaultLeadProspectFilters);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { data: origensList = [] } = useLeadOrigens(true);
   const origensAtivas = useMemo(() => origensList.filter((o) => o.ativo), [origensList]);
+
+  const toggleOne = (id: string) => setSelected((s) => {
+    const n = new Set(s);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+  const toggleAll = (ids: string[], checked: boolean) => setSelected((s) => {
+    const n = new Set(s);
+    if (checked) ids.forEach((i) => n.add(i)); else ids.forEach((i) => n.delete(i));
+    return n;
+  });
+
+  async function handleBulkDelete() {
+    if (!selected.size) return;
+    setDeleting(true);
+    try {
+      const ids = Array.from(selected);
+      const { error } = await supabase.from("alunos").delete().in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} lead${ids.length !== 1 ? "s" : ""} excluído${ids.length !== 1 ? "s" : ""}.`);
+      setSelected(new Set());
+      setConfirmDelete(false);
+      queryClient.invalidateQueries({ queryKey: ["leads-list"] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+
 
   // Abrir edit via ?edit=id (busca global)
   useEffect(() => {
@@ -217,10 +258,31 @@ export default function Leads() {
         searchPlaceholder="Buscar lead por nome..."
       />
 
+      {selected.size > 0 && (
+        <div className="glass-card rounded-lg p-3 flex items-center justify-between animate-fade-in">
+          <p className="text-sm text-foreground">
+            {selected.size} lead{selected.size !== 1 ? "s" : ""} selecionado{selected.size !== 1 ? "s" : ""}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Limpar</Button>
+            <Button size="sm" variant="destructive" onClick={() => setConfirmDelete(true)} className="gap-2">
+              <Trash2 className="w-4 h-4" /> Excluir selecionados
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="glass-card rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
+              <th className="p-4 w-10">
+                <Checkbox
+                  checked={filtered.length > 0 && filtered.every((l: any) => selected.has(l.id))}
+                  onCheckedChange={(v) => toggleAll(filtered.map((l: any) => l.id), !!v)}
+                  aria-label="Selecionar todos"
+                />
+              </th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Telefone</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Origem</th>
@@ -231,10 +293,10 @@ export default function Leads() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
+              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
             )}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
+              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
             )}
             {filtered.map((l: any) => {
               const wa = waMeLink(l.telefone, `Olá ${l.nome.split(" ")[0]}! Sou da Fortem 💪`);
@@ -244,6 +306,13 @@ export default function Leads() {
                   onClick={() => setEditId(l.id)}
                   className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors"
                 >
+                  <td className="p-4 w-10" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selected.has(l.id)}
+                      onCheckedChange={() => toggleOne(l.id)}
+                      aria-label={`Selecionar ${l.nome}`}
+                    />
+                  </td>
                   <td className="p-4">
                     <p className="text-sm font-medium text-foreground">{l.nome}</p>
                   </td>
@@ -277,6 +346,24 @@ export default function Leads() {
           </tbody>
         </table>
       </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selected.size} lead{selected.size !== 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente. Os registros e seus dados relacionados serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} disabled={deleting} className="bg-destructive hover:bg-destructive/90">
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <NewLeadDialog open={openNew} onOpenChange={setOpenNew} />
       <EditLeadDialog alunoId={editId} open={!!editId} onOpenChange={(v) => !v && setEditId(null)} />
