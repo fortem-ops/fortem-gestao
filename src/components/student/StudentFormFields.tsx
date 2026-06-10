@@ -33,7 +33,7 @@ export const studentSchema = z.object({
   status: z.enum(["ativo", "licenca", "encerrado"]),
   frequencia_semanal: z.coerce.number().int().min(0).max(3),
   observacoes: z.string().trim().max(1000).or(z.literal("")),
-  plano: z.enum(["Start", "Start+", "Power", "Pro", "Max", "Gympass/Wellhub", "Total Pass"]).optional(),
+  plano: z.enum(["Start", "Start+", "Power", "Pro", "Max", "VIP", "Gympass/Wellhub", "Total Pass"]).optional(),
   plano_consultas: z.string().optional(),
   plano_valor: z.coerce.number().min(0, "Valor deve ser positivo").optional(),
   plano_data_inicio: z.string().optional(),
