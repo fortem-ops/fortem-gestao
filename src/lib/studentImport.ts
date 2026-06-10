@@ -33,7 +33,7 @@ export const CSV_HEADERS = [
 
 export type CsvHeader = (typeof CSV_HEADERS)[number];
 
-const PLAN_TYPES = ["Start", "Start+", "Power", "Pro", "Max", "Gympass/Wellhub", "Total Pass"] as const;
+const PLAN_TYPES = ["Start", "Start+", "Power", "Pro", "Max", "VIP", "Gympass/Wellhub", "Total Pass"] as const;
 const SEXO_VALUES = SEXO_OPTIONS.map((s) => s.value);
 const CONSULTAS = ["nutricao", "reabilitacao", "misto"] as const;
 const STATUS_VALUES = ["ativo", "encerrado", "lead"] as const;
