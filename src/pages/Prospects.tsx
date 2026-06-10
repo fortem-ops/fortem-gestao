@@ -446,10 +446,31 @@ export default function Prospects() {
         searchPlaceholder="Buscar prospect por nome..."
       />
 
+      {selected.size > 0 && (
+        <div className="glass-card rounded-lg p-3 flex items-center justify-between animate-fade-in">
+          <p className="text-sm text-foreground">
+            {selected.size} prospect{selected.size !== 1 ? "s" : ""} selecionado{selected.size !== 1 ? "s" : ""}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Limpar</Button>
+            <Button size="sm" variant="destructive" onClick={() => setConfirmDelete(true)} className="gap-2">
+              <Trash2 className="w-4 h-4" /> Excluir selecionados
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="glass-card rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
+              <th className="p-4 w-10">
+                <Checkbox
+                  checked={filtered.length > 0 && filtered.every((p: any) => selected.has(p.id))}
+                  onCheckedChange={(v) => toggleAll(filtered.map((p: any) => p.id), !!v)}
+                  aria-label="Selecionar todos"
+                />
+              </th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4">Nome</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Telefone</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden md:table-cell">Origem</th>
