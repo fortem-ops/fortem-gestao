@@ -457,8 +457,8 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                 const rowClass = s.credit.total === 0
                   ? "border-border/50 bg-muted/20"
                   : hasCredit
-                    ? "border-success/40 bg-success/10"
-                    : "border-destructive/40 bg-destructive/10";
+                    ? "border-success/60 bg-success/15"
+                    : "border-destructive/60 bg-destructive/15";
 
                 return (
                   <div key={s.label} className="space-y-0">
