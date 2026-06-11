@@ -154,8 +154,8 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                 const restante = c.ilimitado ? Infinity : (c.quantidade_inicial - c.quantidade_usada);
                 const esgotado = !c.ilimitado && restante <= 0;
                 const rowClass = esgotado
-                  ? "bg-destructive/10 hover:bg-destructive/15"
-                  : "bg-success/10 hover:bg-success/15";
+                  ? "bg-destructive/15 hover:bg-destructive/20 border-l-4 border-destructive"
+                  : "bg-success/15 hover:bg-success/20 border-l-4 border-success";
                 const origemLabel = c.origem_tipo === "plano" ? "Plano" : "Serviço";
                 const origemClass = c.origem_tipo === "plano"
                   ? "border-primary/40 text-primary"
