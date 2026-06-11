@@ -339,7 +339,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         {entries.map(([atividade, agg]) => {
           const Icon = iconForAtividade(atividade);
           const restante = agg.ilimitado ? Infinity : agg.total - agg.usado;
-          const color = restante > 0 ? "text-primary" : "text-destructive";
+          const color = agg.ilimitado || restante > 0 ? "text-success" : "text-destructive";
           const label = `${atividade} (${originLabel})`;
           const display = agg.ilimitado ? "∞" : `${agg.usado}/${agg.total}`;
           return (
