@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.ativar_treinos_agendados() FROM anon, PUBLIC;
