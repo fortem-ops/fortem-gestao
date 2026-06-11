@@ -502,7 +502,11 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                 return (
                   <tr
                     key={student.id}
-                    onClick={() => navigate(`/alunos/${student.id}`)}
+                    onClick={(e) => {
+                      if (e.defaultPrevented) return;
+                      if (e.ctrlKey || e.metaKey || e.shiftKey || (e as any).button === 1) return;
+                      navigate(`/alunos/${student.id}`);
+                    }}
                     className="border-b border-border/50 hover:bg-secondary/50 cursor-pointer transition-colors"
                   >
                     <td className="p-4 w-10" onClick={(e) => e.stopPropagation()}>
@@ -513,10 +517,19 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                       />
                     </td>
                     <td className="p-4">
-                      <div>
+                      <Link
+                        to={`/alunos/${student.id}`}
+                        onClick={(e) => {
+                          if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigate(`/alunos/${student.id}`);
+                        }}
+                        className="block hover:underline"
+                      >
                         <p className="text-sm font-medium text-foreground">{student.nome}</p>
                         <p className="text-xs text-muted-foreground">{student.email || "—"}</p>
-                      </div>
+                      </Link>
                     </td>
                     <td className="p-4 hidden md:table-cell">
                       {(() => {
