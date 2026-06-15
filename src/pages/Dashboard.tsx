@@ -34,6 +34,16 @@ export default function Dashboard() {
     staleTime: 5 * 60_000,
   });
 
+  const { data: isAdmin } = useQuery({
+    queryKey: ["dashboard-isAdmin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
   const { data: professors = [] } = useQuery({
     queryKey: ["dashboard-professors"],
     queryFn: async () => {
