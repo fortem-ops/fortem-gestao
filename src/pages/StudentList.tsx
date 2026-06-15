@@ -428,7 +428,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         </div>
       )}
 
-      <div className="glass-card rounded-lg overflow-hidden overflow-x-auto">
+      <div className="glass-card rounded-lg overflow-hidden overflow-x-auto hidden md:block">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
@@ -594,6 +594,122 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           </tbody>
         </table>
       </div>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-2">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="glass-card rounded-lg p-4 space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ))
+        ) : filtered.length === 0 ? (
+          <div className="glass-card rounded-lg p-8 text-center text-muted-foreground">
+            Nenhum aluno encontrado.
+          </div>
+        ) : (
+          filtered.map((student) => {
+            const c = student.credits;
+            const professorName = student.responsavel_id ? profileMap[student.responsavel_id] : null;
+            const planEndStr = student.planEnd ? format(student.planEnd, "dd/MM/yyyy") : null;
+            const isPlanExpired = student.planEnd && isBefore(student.planEnd, new Date());
+            const lastFunc = lastFuncionalMap?.[student.id] ?? null;
+            const lastFuncSev = severityForLastFuncional(lastFunc);
+            const lastFuncStr = lastFunc ? format(lastFunc, "dd/MM/yyyy") : "—";
+            const lastFuncColor =
+              !lastFunc
+                ? "text-muted-foreground"
+                : lastFuncSev.className === "status-urgent"
+                  ? "text-destructive font-medium"
+                  : lastFuncSev.className === "status-warning"
+                    ? "text-warning font-medium"
+                    : "text-foreground";
+            const statusDisplay = getDisplayStatus(student.status, student.planEnd, student.licencas, student.planTipo);
+            const hasPlanoServ = c && Object.keys(c.plano).length > 0;
+            const hasContrServ = c && Object.keys(c.servico).length > 0;
+
+            return (
+              <div
+                key={student.id}
+                onClick={() => navigate(`/alunos/${student.id}`)}
+                className="glass-card rounded-lg p-4 space-y-3 cursor-pointer hover:bg-secondary/30 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <div onClick={(e) => e.stopPropagation()} className="pt-0.5">
+                    <Checkbox
+                      checked={selectedIds.has(student.id)}
+                      onCheckedChange={(v) => toggleOne(student.id, !!v)}
+                      aria-label={`Selecionar ${student.nome}`}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground break-words">{student.nome}</p>
+                    {student.email && (
+                      <p className="text-xs text-muted-foreground break-all">{student.email}</p>
+                    )}
+                  </div>
+                  <Badge variant="outline" className={`text-xs shrink-0 ${statusDisplay.className}`}>
+                    {statusDisplay.label}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div>
+                    <p className="text-muted-foreground">Plano</p>
+                    <p className="text-foreground">{student.planTipo || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Frequência</p>
+                    <p className="text-foreground">
+                      {student.frequencia_semanal === 0 ? "Livre" : `${student.frequencia_semanal}x/sem`}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground">Professor</p>
+                    <p className="text-foreground break-words">{professorName || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Início Plano</p>
+                    <p className="text-foreground">
+                      {student.planStart ? format(student.planStart, "dd/MM/yyyy") : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Final Plano</p>
+                    <p className={isPlanExpired ? "text-destructive font-medium" : "text-foreground"}>
+                      {planEndStr || "—"}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground">Última Aval. Funcional</p>
+                    <p className={lastFuncColor}>{lastFuncStr}</p>
+                  </div>
+                </div>
+
+                {(hasPlanoServ || hasContrServ) && (
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    {hasPlanoServ && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Serviços do Plano</p>
+                        <CreditsCell map={c!.plano} originLabel="Plano" />
+                      </div>
+                    )}
+                    {hasContrServ && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Serviços Contratados</p>
+                        <CreditsCell map={c!.servico} originLabel="Contratado" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
 
       <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <AlertDialogContent>

@@ -1,16 +1,27 @@
 ## Problema
-O card de tarefa na Central de Tarefas usa `flex items-start gap-3` em todas as telas. No mobile, os elementos da direita (botão Reagendar, badges Automática/média, botão Realizar) comprimem a área de texto, fazendo o título quebrar em linhas estranhas ("Atualiz..." + "treino") e os metadados (nomes, data) empilharem verticalmente. A descrição fica ilegível.
+Em `/alunos` (Cadastros), no mobile (<768px) apenas as colunas Nome e checkbox aparecem — todas as outras (Status, Plano, Frequência, Professor, Início/Final Plano, Última Aval. Funcional, Serviços) ficam ocultas via `hidden md:table-cell`. O usuário perde informação essencial no celular.
 
 ## Solução
-Restruturar o card para empilhar verticalmente no mobile e manter o layout horizontal no desktop:
+Renderização condicional: **tabela tradicional no desktop**, **lista de cards no mobile**, com todas as informações empilhadas abaixo do nome de cada aluno.
 
-1. **Container do card**: mudar de `flex items-start gap-3` para `flex flex-col sm:flex-row sm:items-start gap-3`.
-2. **Agrupar ícone + texto**: envolver o `<button>` do ícone e a `<div>` de texto em uma `<div className="flex items-start gap-3 flex-1 min-w-0">`. Assim o conteúdo textual ocupa toda a largura disponível na primeira linha do mobile.
-3. **Agrupar ações/badges**: envolver todos os elementos à direita (`RecordVideoUpload`, botão Realizar, `RescheduleDialog`, badges) em uma `<div className="flex flex-wrap items-center gap-2 shrink-0">`. No mobile eles formam uma segunda linha abaixo do texto; no desktop (`sm:`) permanecem alinhados à direita.
+### Mudanças em `src/pages/StudentList.tsx`
+
+1. **Envolver a tabela atual em `<div className="hidden md:block">`** para que ela só apareça em telas ≥ md.
+
+2. **Adicionar abaixo um bloco `<div className="md:hidden space-y-2">`** que itera sobre `filtered` e renderiza, para cada aluno, um card com:
+   - Linha 1: checkbox de seleção + nome (link) + badge de status (lado direito).
+   - Email em texto pequeno (muted).
+   - Grid 2 colunas com pares **rótulo: valor** para: Plano, Frequência, Professor, Início Plano, Final Plano (cor destrutiva se vencido), Última Aval. Funcional (com cor de severidade).
+   - Linha "Serviços do Plano:" + `CreditsCell` (se houver entradas).
+   - Linha "Serviços Contratados:" + `CreditsCell` (se houver entradas).
+   - Card inteiro clicável navegando para `/alunos/${id}`, exceto checkbox (com `stopPropagation`).
+   - Mesmos estados de loading (skeletons) e empty state.
+
+3. **Reutilizar** as funções/lógica já existentes no `.map()` da tabela (`professorName`, `planEndStr`, `isPlanExpired`, `lastFunc*`, `getDisplayStatus`, `CreditsCell`) — extrair para uma função interna `renderStudentRowData(student)` que devolve um objeto com os valores formatados, usado tanto na tabela quanto nos cards, evitando duplicação.
 
 ## Resultado esperado
-- Mobile: texto com largura total (legível), ações/badges em linha abaixo.
-- Desktop: layout horizontal preservado, sem regressões.
+- Mobile: cards com todas as informações visíveis, sem scroll horizontal.
+- Desktop (≥md): tabela inalterada.
 
 ## Arquivo
-- `src/pages/TaskCenter.tsx` — ajuste no componente `TaskList`, dentro do `.map()` de tasks.
+- `src/pages/StudentList.tsx`
