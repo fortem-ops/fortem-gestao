@@ -5,7 +5,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ClipboardCheck, Eye, Activity, Pencil, CalendarIcon, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, ClipboardCheck, Eye, Activity, Pencil, Trash2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -17,10 +18,8 @@ import { fetchLastFuncionalDate, severityForLastFuncional } from "@/lib/avaliaca
 import { useAuth } from "@/contexts/AuthContext";
 import { userHasStaffAccess } from "@/lib/authAccess";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
+import { cn } from "@/lib/utils";
 
 export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
   const navigate = useNavigate();
