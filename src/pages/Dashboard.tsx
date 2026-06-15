@@ -101,13 +101,13 @@ export default function Dashboard() {
 
       {isCoordAdmin ? (
         // Coord/Admin layout (mantém Pipeline)
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid lg:grid-cols-3 gap-6 min-w-0">
+          <div className="lg:col-span-2 space-y-6 min-w-0">
             <AlertsWidget professorId={effectiveProfessorId} />
             <PlansDistributionWidget />
             <AdminAlertsWidget />
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             {isAdmin && <PipelineWidget />}
             <PontoWidget />
             <ClubeWidget />
@@ -117,13 +117,13 @@ export default function Dashboard() {
         </div>
       ) : (
         // Professor layout — ordem solicitada, sem Pipeline
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid lg:grid-cols-3 gap-6 min-w-0">
+          <div className="lg:col-span-2 space-y-6 min-w-0">
             <AlertsWidget professorId={effectiveProfessorId} />
             <AdminAlertsWidget />
             <PlansDistributionWidget />
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             <TasksWidget professorId={effectiveProfessorId} />
             <PontoWidget />
             <BirthdaysWidget professorId={effectiveProfessorId} />
