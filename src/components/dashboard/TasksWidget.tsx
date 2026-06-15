@@ -61,7 +61,7 @@ export function TasksWidget({ professorId }: Props) {
         <Clock className="w-4 h-4 text-info" />
         Tarefas Pendentes
       </h3>
-      <div className="space-y-3">
+      <div className="max-h-[320px] overflow-y-auto pr-1 space-y-3">
         {tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa pendente 🎉</p>
         ) : tasks.map((task) => {
