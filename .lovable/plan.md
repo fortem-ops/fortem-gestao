@@ -1,37 +1,23 @@
 ## Objetivo
+Ajustar dois widgets do Dashboard para melhorar a usabilidade.
 
-Na **Central de Tarefas**, cada tarefa pendente passa a oferecer um botão **"Realizar"** que leva o usuário diretamente para o local onde a ação descrita é executada (em vez de apenas abrir o perfil do aluno na aba Resumo).
+## 1. Alertas Técnicos — rolagem no card
+**Arquivo:** `src/components/dashboard/AlertsWidget.tsx`
 
-## Mapeamento de tipos de tarefa → destino
+Atualmente o card exibe todos os alertas em uma lista sem limite de altura, fazendo com que o card fique muito grande quando há muitos alertas.
 
-Identifiquei os `tipo_auto` existentes no banco e defini o destino de cada um:
+**Mudança:** envolver a lista de alertas (`<div className="space-y-3">`) em um container com altura máxima e rolagem vertical (`max-h-[320px] overflow-y-auto`).
 
-| `tipo_auto` | Ação descrita | Destino ao clicar em "Realizar" |
-|---|---|---|
-| `gravar_video` | Gravar vídeo de execução | Já existe upload inline — mantém o botão atual |
-| `atualizar_treino` | Atualizar treino do aluno | `/alunos/:id?tab=treinos` |
-| `reavaliacao_funcional` | Reavaliar aluno | `/alunos/:id?tab=avaliacoes` |
-| `pipeline_novo_lead` | Primeiro contato com lead | `/alunos/:id?tab=pipeline` |
-| `pipeline_avaliacao_agendada` | Confirmar presença | `/alunos/:id?tab=pipeline` |
-| `pipeline_proposta` | Follow-up da proposta | `/alunos/:id?tab=pipeline` |
-| `pipeline_risco_evasao` | Contato de retenção | `/alunos/:id?tab=pipeline` |
-| Tarefa manual com `aluno_id` | — | `/alunos/:id?tab=tarefas` |
-| Tarefa manual sem `aluno_id` | — | Sem botão (não há destino) |
+## 2. Tarefas Pendentes — mostrar nome do aluno
+**Arquivo:** `src/components/dashboard/TasksWidget.tsx`
 
-## Mudanças técnicas
+Atualmente cada tarefa exibe o nome do responsável e a data limite, mas não mostra a qual aluno a tarefa se refere.
 
-1. **`src/pages/StudentProfile.tsx`** — tornar as Tabs controladas pela query string `?tab=<valor>` (usando `useSearchParams`). Default permanece `resumo`. Trocar a aba via clique também atualiza a URL.
+**Mudanças:**
+- Na query de tarefas, após obter os dados, coletar os `aluno_id` únicos e fazer uma segunda consulta à tabela `alunos` para obter `nome`.
+- Montar um mapa `alunoNameMap` e incluir `aluno_nome` em cada tarefa retornada.
+- No JSX, exibir o nome do aluno abaixo do título da tarefa (ou substituindo/adicionando à linha que hoje mostra apenas o responsável + data).
 
-2. **`src/pages/TaskCenter.tsx`** (componente `TaskList`):
-   - Adicionar helper `getTaskActionTarget(task)` que devolve `{ to, label }` conforme tabela acima.
-   - Adicionar botão **"Realizar"** (ícone `ArrowRight`, `size="sm"`, variant `default`) ao lado dos demais controles, visível apenas quando a tarefa não está concluída e há destino definido.
-   - Tarefas do tipo `gravar_video` continuam exibindo o `RecordVideoUpload` (não recebem botão "Realizar").
-   - Clicar na área de texto da tarefa passa a usar o mesmo destino (mantendo o atual fallback para o perfil do aluno).
-
-3. **`src/components/dashboard/TasksWidget.tsx`** — aplicar o mesmo botão "Realizar" no widget do dashboard, para consistência.
-
-## Fora de escopo
-
-- Não altera a lógica do backend nem o engine de criação automática de tarefas.
-- Não altera permissões/RLS.
-- Não mexe em tarefas do portal do aluno.
+## Fora do escopo
+- Sem alterações de backend, RLS ou novas tabelas.
+- Sem mudanças de layout do Dashboard (grid, ordem dos widgets).

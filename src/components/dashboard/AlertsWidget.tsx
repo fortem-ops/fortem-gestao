@@ -136,7 +136,7 @@ export function AlertsWidget({ professorId }: Props) {
         <AlertTriangle className="w-4 h-4 text-warning" />
         Alertas Técnicos
       </h3>
-      <div className="space-y-3">
+      <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
         {alerts.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">Nenhum alerta pendente 🎉</p>
         ) : alerts.map((alert) => {
