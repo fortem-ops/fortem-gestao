@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, AlertCircle, CheckCircle, Plus } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle, Plus, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 import { RescheduleDialog } from "@/components/tasks/RescheduleDialog";
+import { getTaskActionTarget } from "@/lib/taskAction";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -65,6 +66,10 @@ function TaskList({
           task.data_limite < new Date().toISOString().split("T")[0];
         const isDone = task.status === "concluida";
 
+        const actionTarget = getTaskActionTarget(task);
+        const fallbackTarget = task.aluno_id ? `/alunos/${task.aluno_id}` : null;
+        const clickTarget = actionTarget || fallbackTarget;
+
         return (
           <div
             key={task.id}
@@ -84,10 +89,8 @@ function TaskList({
               )}
             </button>
             <div
-              className="flex-1 min-w-0 cursor-pointer"
-              onClick={() =>
-                task.aluno_id && navigate(`/alunos/${task.aluno_id}`)
-              }
+              className={`flex-1 min-w-0 ${clickTarget ? "cursor-pointer" : ""}`}
+              onClick={() => clickTarget && navigate(clickTarget)}
             >
               <p
                 className={`text-sm font-medium ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}
@@ -109,6 +112,16 @@ function TaskList({
             </div>
             {task.tipo_auto === "gravar_video" && !isDone && (
               <RecordVideoUpload taskId={task.id} descricao={task.descricao} />
+            )}
+            {!isDone && actionTarget && (
+              <Button
+                size="sm"
+                onClick={() => navigate(actionTarget)}
+                className="shrink-0"
+              >
+                Realizar
+                <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
             )}
             {!isDone && (
               <RescheduleDialog task={task} onDone={onRescheduled} />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +35,10 @@ export default function StudentProfile() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validTabs = ["resumo","pipeline","clube","plano","treinos","avaliacoes","tarefas","observacoes","uploads"];
+  const tabParam = searchParams.get("tab");
+  const tabValue = tabParam && validTabs.includes(tabParam) ? tabParam : "resumo";
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -152,7 +156,11 @@ export default function StudentProfile() {
         )}
       </div>
 
-      <Tabs defaultValue="resumo" className="w-full">
+      <Tabs
+        value={tabValue}
+        onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })}
+        className="w-full"
+      >
         <TabsList className="bg-secondary/50 border border-border w-full justify-start overflow-x-auto">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
