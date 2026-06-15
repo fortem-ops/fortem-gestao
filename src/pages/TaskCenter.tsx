@@ -73,71 +73,76 @@ function TaskList({
         return (
           <div
             key={task.id}
-            className="glass-card rounded-lg p-4 flex items-start gap-3"
+            className="glass-card rounded-lg p-4 flex flex-col sm:flex-row sm:items-start gap-3"
           >
-            <button
-              onClick={() => onToggle(task.id, task.status)}
-              className="mt-0.5 shrink-0"
-              title={isDone ? "Reabrir tarefa" : "Concluir tarefa"}
-            >
-              {isOverdue ? (
-                <AlertCircle className="w-4 h-4 text-destructive" />
-              ) : isDone ? (
-                <CheckCircle className="w-4 h-4 text-success" />
-              ) : (
-                <Clock className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
-            <div
-              className={`flex-1 min-w-0 ${clickTarget ? "cursor-pointer" : ""}`}
-              onClick={() => clickTarget && navigate(clickTarget)}
-            >
-              <p
-                className={`text-sm font-medium ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}
+            <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
+              <button
+                onClick={() => onToggle(task.id, task.status)}
+                className="mt-0.5 shrink-0"
+                title={isDone ? "Reabrir tarefa" : "Concluir tarefa"}
               >
-                {task.titulo}
-              </p>
-              {task.descricao && task.tipo_auto !== "gravar_video" && (
-                <p className="text-xs text-muted-foreground truncate max-w-full">
-                  {task.descricao}
+                {isOverdue ? (
+                  <AlertCircle className="w-4 h-4 text-destructive" />
+                ) : isDone ? (
+                  <CheckCircle className="w-4 h-4 text-success" />
+                ) : (
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                )}
+              </button>
+              <div
+                className={`flex-1 min-w-0 ${clickTarget ? "cursor-pointer" : ""}`}
+                onClick={() => clickTarget && navigate(clickTarget)}
+              >
+                <p
+                  className={`text-sm font-medium break-words ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}
+                >
+                  {task.titulo}
                 </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                {task.responsavel_nome || "—"}
-                {task.aluno_nome && ` · ${task.aluno_nome}`}
-                {task.data_limite &&
-                  ` · ${new Date(task.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`}
-                {task.automatica && " · Automática"}
-              </p>
+                {task.descricao && task.tipo_auto !== "gravar_video" && (
+                  <p className="text-xs text-muted-foreground break-words">
+                    {task.descricao}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1 break-words">
+                  {task.responsavel_nome || "—"}
+                  {task.aluno_nome && ` · ${task.aluno_nome}`}
+                  {task.data_limite &&
+                    ` · ${new Date(task.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`}
+                  {task.automatica && " · Automática"}
+                </p>
+              </div>
             </div>
-            {task.tipo_auto === "gravar_video" && !isDone && (
-              <RecordVideoUpload taskId={task.id} descricao={task.descricao} />
-            )}
-            {!isDone && actionTarget && (
-              <Button
-                size="sm"
-                onClick={() => navigate(actionTarget)}
-                className="shrink-0"
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+              {task.tipo_auto === "gravar_video" && !isDone && (
+                <RecordVideoUpload taskId={task.id} descricao={task.descricao} />
+              )}
+              {!isDone && actionTarget && (
+                <Button
+                  size="sm"
+                  onClick={() => navigate(actionTarget)}
+                  className="shrink-0"
+                >
+                  Realizar
+                  <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              )}
+              {!isDone && (
+                <RescheduleDialog task={task} onDone={onRescheduled} />
+              )}
+              {task.automatica && (
+                <Badge variant="outline" className="text-[10px] shrink-0 border-info/30 text-info bg-info/10">
+                  Automática
+                </Badge>
+              )}
+              <Badge
+                variant="outline"
+                className={`text-xs shrink-0 ${priorityClass[task.prioridade] || ""}`}
               >
-                Realizar
-                <ArrowRight className="w-3 h-3 ml-1" />
-              </Button>
-            )}
-            {!isDone && (
-              <RescheduleDialog task={task} onDone={onRescheduled} />
-            )}
-            {task.automatica && (
-              <Badge variant="outline" className="text-[10px] shrink-0 border-info/30 text-info bg-info/10">
-                Automática
+                {task.prioridade}
               </Badge>
-            )}
-            <Badge
-              variant="outline"
-              className={`text-xs shrink-0 ${priorityClass[task.prioridade] || ""}`}
-            >
-              {task.prioridade}
-            </Badge>
+            </div>
           </div>
+
         );
       })}
     </div>
