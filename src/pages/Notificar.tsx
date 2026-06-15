@@ -38,10 +38,10 @@ export default function Notificar() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Bell className="h-6 w-6 text-primary" />
-          <div>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Bell className="h-6 w-6 text-primary shrink-0" />
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold">Notificar</h1>
             <p className="text-sm text-muted-foreground">Comunicação interna entre profissionais</p>
           </div>
@@ -57,7 +57,7 @@ export default function Notificar() {
         </TabsList>
 
         <TabsContent value={tab}>
-          <div className="grid grid-cols-1 md:grid-cols-[360px_1fr] gap-4 h-[calc(100vh-260px)]">
+          <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 md:h-[calc(100vh-260px)]">
             <div className="border rounded-lg flex flex-col bg-card">
               <div className="p-3 space-y-2 border-b">
                 <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
