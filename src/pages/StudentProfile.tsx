@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +35,10 @@ export default function StudentProfile() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validTabs = ["resumo","pipeline","clube","plano","treinos","avaliacoes","tarefas","observacoes","uploads"];
+  const tabParam = searchParams.get("tab");
+  const tabValue = tabParam && validTabs.includes(tabParam) ? tabParam : "resumo";
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
