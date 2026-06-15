@@ -121,7 +121,7 @@ export function GlobalCadastroSearch() {
             value={term}
             onChange={(e) => { setTerm(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
-            placeholder="Buscar cadastro (lead, prospect, aluno)…    ⌘K"
+            placeholder="Buscar aluno…    ⌘K"
             className="pl-8 h-9"
           />
         </div>
