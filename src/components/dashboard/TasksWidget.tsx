@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, AlertCircle } from "lucide-react";
+import { Clock, AlertCircle, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
+import { getTaskActionTarget } from "@/lib/taskAction";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -23,7 +25,7 @@ export function TasksWidget({ professorId }: Props) {
     queryFn: async () => {
       let q = supabase
         .from("tarefas")
-        .select("id, titulo, prioridade, status, data_limite, responsavel_id, descricao, tipo_auto")
+        .select("id, titulo, prioridade, status, data_limite, responsavel_id, descricao, tipo_auto, aluno_id")
         .neq("status", "concluida")
         .order("data_limite", { ascending: true, nullsFirst: false })
         .limit(5);
@@ -54,7 +56,10 @@ export function TasksWidget({ professorId }: Props) {
       <div className="space-y-3">
         {tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa pendente 🎉</p>
-        ) : tasks.map((task) => (
+        ) : tasks.map((task) => {
+          const actionTarget = getTaskActionTarget(task);
+          const clickTarget = actionTarget || "/tarefas";
+          return (
           <div
             key={task.id}
             className="flex items-start gap-3 p-3 rounded-md bg-secondary/50"
@@ -65,7 +70,7 @@ export function TasksWidget({ professorId }: Props) {
             ) : (
               <Clock className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
             )}
-            <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate("/tarefas")}>
+            <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate(clickTarget)}>
               <p className="text-sm font-medium text-foreground">{task.titulo}</p>
               <p className="text-xs text-muted-foreground">
                 {task.responsavel_nome}
@@ -75,11 +80,18 @@ export function TasksWidget({ professorId }: Props) {
             {task.tipo_auto === "gravar_video" && (
               <RecordVideoUpload taskId={task.id} descricao={task.descricao} />
             )}
+            {actionTarget && task.tipo_auto !== "gravar_video" && (
+              <Button size="sm" variant="secondary" className="shrink-0 h-7 px-2 text-xs" onClick={() => navigate(actionTarget)}>
+                Realizar
+                <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            )}
             <Badge variant="outline" className={`shrink-0 text-xs ${priorityClass[task.prioridade] || ""}`}>
               {task.prioridade}
             </Badge>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
