@@ -108,7 +108,7 @@ export default function Dashboard() {
             <AdminAlertsWidget />
           </div>
           <div className="space-y-6">
-            <PipelineWidget />
+            {isAdmin && <PipelineWidget />}
             <PontoWidget />
             <ClubeWidget />
             <TasksWidget professorId={effectiveProfessorId} />
