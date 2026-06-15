@@ -383,17 +383,17 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-heading font-bold text-foreground">{pageTitle}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {filtered.length} aluno{filtered.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={recalcularStatus} disabled={recalculando} className="gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={recalcularStatus} disabled={recalculando} className="gap-2">
             <RefreshCw className={`w-4 h-4 ${recalculando ? "animate-spin" : ""}`} />
-            {recalculando ? "Recalculando..." : "Recalcular status"}
+            <span className="hidden sm:inline">{recalculando ? "Recalculando..." : "Recalcular status"}</span>
           </Button>
           <ImportStudentsCSVDialog
             status={isInativos ? "encerrado" : "ativo"}

@@ -60,15 +60,15 @@ export default function Pipeline() {
           <h1 className="text-2xl font-heading font-bold text-foreground">Pipeline Comercial</h1>
           <p className="text-sm text-muted-foreground mt-1">CRM Fortem — jornada do lead ao aluno ativo</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={runEvasaoScan} disabled={scanning} className="gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={runEvasaoScan} disabled={scanning} className="gap-2">
             <RefreshCw className={`w-4 h-4 ${scanning ? "animate-spin" : ""}`} />
-            {scanning ? "Recalculando..." : "Recalcular status"}
+            <span className="hidden sm:inline">{scanning ? "Recalculando..." : "Recalcular status"}</span>
           </Button>
           {isAdmin && (
-            <Button variant="outline" onClick={() => setManageOpen(true)} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setManageOpen(true)} className="gap-2">
               <Settings2 className="w-4 h-4" />
-              Gerenciar etapas
+              <span className="hidden sm:inline">Gerenciar etapas</span>
             </Button>
           )}
         </div>

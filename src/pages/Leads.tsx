@@ -212,12 +212,12 @@ export default function Leads() {
             {filtered.length} lead{filtered.length !== 1 ? "s" : ""} · captura inicial — topo do funil
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setOpenManageOrigens(true)} className="gap-2">
-            <Settings2 className="w-4 h-4" /> Gerenciar Origens
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setOpenManageOrigens(true)} className="gap-2">
+            <Settings2 className="w-4 h-4" /> <span className="hidden sm:inline">Gerenciar Origens</span>
           </Button>
-          <Button onClick={() => setOpenNew(true)} className="gap-2">
-            <UserPlus className="w-4 h-4" /> Novo Lead
+          <Button size="sm" onClick={() => setOpenNew(true)} className="gap-2">
+            <UserPlus className="w-4 h-4" /> <span className="hidden sm:inline">Novo Lead</span><span className="sm:hidden">Novo</span>
           </Button>
         </div>
       </div>

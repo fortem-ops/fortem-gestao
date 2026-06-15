@@ -31,14 +31,14 @@ export function AppLayout() {
         <div className="min-h-screen flex w-full">
           <AppSidebar />
           <div className="flex-1 flex flex-col min-w-0">
-            <header className="h-14 flex items-center gap-4 border-b border-border px-4 shrink-0">
+            <header className="h-14 flex items-center gap-2 sm:gap-4 border-b border-border px-2 sm:px-4 shrink-0">
               <SidebarToggleLabel />
-              <span className="text-sm text-muted-foreground font-medium hidden sm:inline">Fortem Gestão Técnica</span>
-              <div className="flex-1 flex justify-center">
+              <span className="text-sm text-muted-foreground font-medium hidden md:inline">Fortem Gestão Técnica</span>
+              <div className="flex-1 flex justify-center min-w-0">
                 <GlobalCadastroSearch />
               </div>
             </header>
-            <main className="flex-1 overflow-auto p-6">
+            <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 min-w-0">
               <Outlet />
             </main>
           </div>

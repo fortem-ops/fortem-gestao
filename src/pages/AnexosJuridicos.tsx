@@ -103,20 +103,20 @@ const AnexosJuridicos = () => {
             <p className="text-sm text-muted-foreground">Documentos de aptidão física e uso de imagem</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" asChild className="gap-2">
             <a href="/assinar" target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="w-4 h-4" /> Link de assinatura
+              <ExternalLink className="w-4 h-4" /> <span className="hidden sm:inline">Link de assinatura</span>
             </a>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="gap-2" disabled={importing}>
-            <Download className="w-4 h-4" /> {importing ? "Importando..." : "Importar Consent & Care"}
+            <Download className="w-4 h-4" /> <span className="hidden sm:inline">{importing ? "Importando..." : "Importar Consent & Care"}</span>
           </Button>
           <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-1.5">
-            <RefreshCw className="w-4 h-4" /> Atualizar
+            <RefreshCw className="w-4 h-4" /> <span className="hidden sm:inline">Atualizar</span>
           </Button>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="w-4 h-4" /> {annexes.length} documentos
+            <Users className="w-4 h-4" /> {annexes.length}
           </div>
         </div>
       </div>
@@ -150,7 +150,8 @@ const AnexosJuridicos = () => {
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">Carregando documentos...</div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">Nome</th>
@@ -216,6 +217,7 @@ const AnexosJuridicos = () => {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

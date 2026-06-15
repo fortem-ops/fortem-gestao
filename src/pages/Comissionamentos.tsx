@@ -125,7 +125,7 @@ export default function Comissionamentos() {
         </div>
         {isCoordAdmin && (
           <Select value={profSel} onValueChange={setProfSel}>
-            <SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[240px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="me">Eu (minhas comissões)</SelectItem>
               <SelectItem value="todos">Todos os profissionais</SelectItem>
@@ -149,7 +149,7 @@ export default function Comissionamentos() {
 
         {/* DASHBOARD */}
         <TabsContent value="dashboard" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             <StatCard icon={DollarSign} label="Comissão do mês" value={formatBRL(stats.mesTotal)} />
             <StatCard icon={Clock} label="Pendente" value={formatBRL(stats.pendente)} tone="warning" />
             <StatCard icon={CheckCircle2} label="Paga" value={formatBRL(stats.pago)} tone="success" />

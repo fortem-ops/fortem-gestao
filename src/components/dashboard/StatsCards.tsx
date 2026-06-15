@@ -147,13 +147,13 @@ export function StatsCards({ professorId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {row1.map((s, i) => renderCard(s, i))}
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {row2.map((s, i) => renderCard(s as any, i + row1.length))}
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {row3.map((s, i) => renderCard(s as any, i + row1.length + row2.length))}
       </div>
     </div>
