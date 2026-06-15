@@ -405,8 +405,8 @@ export default function TaskCenter() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-heading font-bold text-foreground">
             Central de Tarefas
           </h1>
@@ -414,10 +414,10 @@ export default function TaskCenter() {
             {tasks.length} tarefa(s) no total
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {isCoordAdmin && (
             <Select value={selectedProfessorId} onValueChange={setSelectedProfessorId}>
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-full sm:w-[220px]">
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>

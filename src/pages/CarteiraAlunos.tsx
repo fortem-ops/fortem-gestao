@@ -164,32 +164,32 @@ export default function CarteiraAlunos() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-heading font-bold text-foreground">Carteira de Alunos</h1>
           <p className="text-sm text-muted-foreground">Alunos com planos ativos e seus professores responsáveis</p>
         </div>
         {isCoordAdmin && selected.size > 0 && (
-          <Button onClick={() => setTransferOpen(true)} className="gap-2">
+          <Button size="sm" onClick={() => setTransferOpen(true)} className="gap-2">
             <ArrowRightLeft className="w-4 h-4" />
-            Transferir {selected.size} aluno(s)
+            <span className="hidden sm:inline">Transferir</span> {selected.size}
           </Button>
         )}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+        <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Buscar aluno..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 w-full"
           />
         </div>
         <Select value={filterProfessor} onValueChange={setFilterProfessor}>
-          <SelectTrigger className="w-[220px]">
+          <SelectTrigger className="w-full sm:w-[220px]">
             <Filter className="w-4 h-4 mr-2" />
             <SelectValue placeholder="Filtrar por professor" />
           </SelectTrigger>
@@ -207,6 +207,7 @@ export default function CarteiraAlunos() {
           </Button>
         )}
       </div>
+
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
