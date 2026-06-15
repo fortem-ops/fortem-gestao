@@ -234,27 +234,16 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn("w-full justify-start text-left font-normal", !editDate && "text-muted-foreground")}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {editDate ? format(editDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : "Selecione a data"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={editDate}
-                  onSelect={setEditDate}
-                  disabled={(d) => d > new Date() || d < new Date("1990-01-01")}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <Input
+              type="date"
+              value={editDate ? format(editDate, "yyyy-MM-dd") : ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setEditDate(v ? new Date(v + "T00:00:00") : undefined);
+              }}
+              max={format(new Date(), "yyyy-MM-dd")}
+              className={cn("w-full")}
+            />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
