@@ -152,7 +152,11 @@ export default function StudentProfile() {
         )}
       </div>
 
-      <Tabs defaultValue="resumo" className="w-full">
+      <Tabs
+        value={tabValue}
+        onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })}
+        className="w-full"
+      >
         <TabsList className="bg-secondary/50 border border-border w-full justify-start overflow-x-auto">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
