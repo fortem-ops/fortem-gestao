@@ -98,7 +98,7 @@ function TaskList({
                 {task.titulo}
               </p>
               {task.descricao && task.tipo_auto !== "gravar_video" && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate max-w-full">
                   {task.descricao}
                 </p>
               )}
