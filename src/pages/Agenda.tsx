@@ -192,22 +192,22 @@ export default function Agenda() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-foreground">Agenda de Serviços</h1>
-          <p className="text-muted-foreground text-sm">Gerencie os horários das atividades</p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-foreground">Agenda de Serviços</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">Gerencie os horários das atividades</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" className="gap-2">
-            <Link to="/presencas"><CheckSquare className="h-4 w-4" /> Lista de Presença</Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to="/presencas"><CheckSquare className="h-4 w-4" /> <span className="hidden sm:inline">Lista de Presença</span></Link>
           </Button>
-          <Button onClick={() => { setPrefill(null); setEditEvent(null); setDialogOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Horário
+          <Button size="sm" onClick={() => { setPrefill(null); setEditEvent(null); setDialogOpen(true); }} className="gap-2">
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Novo Horário</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Button variant="outline" size="icon" onClick={prevWeek}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -224,7 +224,7 @@ export default function Agenda() {
               className={cn("gap-2", !weekStart && "text-muted-foreground")}
             >
               <CalendarIcon className="h-4 w-4" />
-              Ir para data
+              <span className="hidden sm:inline">Ir para data</span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -240,7 +240,7 @@ export default function Agenda() {
           </PopoverContent>
         </Popover>
 
-        <span className="text-sm text-muted-foreground ml-2">
+        <span className="text-xs sm:text-sm text-muted-foreground ml-1 sm:ml-2 w-full sm:w-auto">
           {format(weekDates[0], "dd MMM", { locale: ptBR })} — {format(weekDates[6], "dd MMM yyyy", { locale: ptBR })}
         </span>
       </div>
