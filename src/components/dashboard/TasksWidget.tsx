@@ -38,9 +38,17 @@ export function TasksWidget({ professorId }: Props) {
       const nameMap: Record<string, string> = {};
       (profiles || []).forEach((p) => { nameMap[p.user_id] = p.full_name; });
 
+      const alunoIds = [...new Set(data.map((t) => t.aluno_id).filter(Boolean))] as string[];
+      const alunoNameMap: Record<string, string> = {};
+      if (alunoIds.length) {
+        const { data: alunos } = await supabase.from("alunos").select("id, nome").in("id", alunoIds);
+        (alunos || []).forEach((a) => { alunoNameMap[a.id] = a.nome; });
+      }
+
       return data.map((t) => ({
         ...t,
         responsavel_nome: nameMap[t.responsavel_id] || "—",
+        aluno_nome: t.aluno_id ? alunoNameMap[t.aluno_id] || null : null,
         atrasada: t.data_limite && t.data_limite < new Date().toISOString().split("T")[0],
       }));
     },
@@ -72,6 +80,9 @@ export function TasksWidget({ professorId }: Props) {
             )}
             <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate(clickTarget)}>
               <p className="text-sm font-medium text-foreground">{task.titulo}</p>
+              {task.aluno_nome && (
+                <p className="text-xs text-foreground/80 truncate">👤 {task.aluno_nome}</p>
+              )}
               <p className="text-xs text-muted-foreground">
                 {task.responsavel_nome}
                 {task.data_limite && ` · ${new Date(task.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`}
