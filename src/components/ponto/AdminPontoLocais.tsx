@@ -193,7 +193,7 @@ export function AdminPontoLocais() {
         <div>
           <h3 className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> Locais de trabalho</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Registros fora do raio definido são aceitos, mas marcados como "fora do local" e geram alerta para o coordenador.
+            Registros fora do raio definido não são aceitos.
           </p>
         </div>
         <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
