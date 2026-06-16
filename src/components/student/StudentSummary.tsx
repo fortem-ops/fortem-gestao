@@ -444,7 +444,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
           </div>
           <div className="glass-card rounded-lg p-4">
             <span className="text-xs text-muted-foreground">Frequência</span>
-            <p className="text-sm font-semibold text-foreground mt-1">{student.frequencia_semanal || 0}x/semana</p>
+            <p className="text-sm font-semibold text-foreground mt-1">{student.frequencia_semanal === 5 ? "Livre" : `${student.frequencia_semanal || 0}x/semana`}</p>
           </div>
           <div className="glass-card rounded-lg p-4">
             <span className="text-xs text-muted-foreground">Status</span>

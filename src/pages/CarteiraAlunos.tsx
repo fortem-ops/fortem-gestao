@@ -283,7 +283,7 @@ export default function CarteiraAlunos() {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{aluno.nome}</p>
-                        <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal || 0}x/semana</p>
+                        <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal === 5 ? "Livre" : `${aluno.frequencia_semanal || 0}x/semana`}</p>
                         <p className={`text-xs mt-0.5 flex items-center gap-2 ${isAtrasada ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                           Última aval. funcional: {lastLabel}
                           {isAtrasada && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">ATRASADA</Badge>}
