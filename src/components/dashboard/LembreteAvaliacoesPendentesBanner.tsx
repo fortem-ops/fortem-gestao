@@ -120,6 +120,8 @@ export function LembreteAvaliacoesPendentesBanner() {
 
       for (const o of occs) {
         const at = o.agenda.atividade as AtividadeTipo;
+        const nome = nameMap.get(o.agenda.aluno_id);
+        if (!nome) continue;
         const dedupKey = `${o.agenda.aluno_id}:${at}`;
         if (seen.has(dedupKey)) continue;
 
@@ -145,7 +147,7 @@ export function LembreteAvaliacoesPendentesBanner() {
           key: `${o.agenda.aluno_id}:${o.data}:${at}`,
           agendaId: o.agenda.id,
           alunoId: o.agenda.aluno_id,
-          alunoNome: nameMap.get(o.agenda.aluno_id) || "Aluno",
+          alunoNome: nome,
           atividade: at,
           dataAgendamento: o.data,
           faltam,
