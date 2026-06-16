@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil } from "lucide-react";
+import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil, Copy } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
 import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
@@ -881,6 +881,23 @@ export default function BancoTreinos() {
     refetchModelos();
   };
 
+  const handleDuplicateModelo = async (m: { nome: string; conteudo: unknown }) => {
+    if (!user) return;
+    const { error } = await supabase.from("banco_treinos_personalizados").insert({
+      nome: `${m.nome} (cópia)`,
+      conteudo: m.conteudo as any,
+      criado_por: user.id,
+    });
+    if (error) {
+      toast.error("Falha ao duplicar: " + error.message);
+      return;
+    }
+    toast.success("Modelo duplicado em Meus Modelos");
+    refetchModelos();
+  };
+
+
+
 
   const { data: bank = [] } = useQuery({
     queryKey: ["exercicios-bank-templates"],
@@ -1226,24 +1243,35 @@ export default function BancoTreinos() {
                           <Sparkles className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex items-center gap-1">
-                          {canManage && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 text-destructive"
-                            onClick={() => handleDeleteModelo(m.id)}
+                            className="h-7 w-7"
+                            title="Duplicar em Meus Modelos"
+                            onClick={() => handleDuplicateModelo({ nome: m.nome, conteudo: m.conteudo })}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Copy className="h-3.5 w-3.5" />
                           </Button>
+                          {canManage && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-destructive"
+                                onClick={() => handleDeleteModelo(m.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                       <CardTitle
