@@ -32,11 +32,62 @@ async function sendGmailEmail(to: string, subject: string, htmlBody: string) {
   await client.close();
 }
 
+function isValidCPF(cpf: string): boolean {
+  const d = String(cpf || "").replace(/\D/g, "");
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  let s = 0;
+  for (let i = 0; i < 9; i++) s += parseInt(d[i]) * (10 - i);
+  let c = 11 - (s % 11);
+  if (c >= 10) c = 0;
+  if (parseInt(d[9]) !== c) return false;
+  s = 0;
+  for (let i = 0; i < 10; i++) s += parseInt(d[i]) * (11 - i);
+  c = 11 - (s % 11);
+  if (c >= 10) c = 0;
+  return parseInt(d[10]) === c;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_SIGNATURE_BYTES = 1_000_000; // ~1 MB raw signature payload
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json();
+
+    // ---- Server-side input validation ----
+    const cpfRaw = typeof body.cpf === "string" ? body.cpf : "";
+    if (!isValidCPF(cpfRaw)) {
+      return new Response(JSON.stringify({ error: "CPF inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const cpfDigits = cpfRaw.replace(/\D/g, "");
+    const nome = typeof body.nome === "string" ? body.nome.trim() : "";
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    if (!nome || nome.length > 200) {
+      return new Response(JSON.stringify({ error: "Nome inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!EMAIL_RE.test(email) || email.length > 200) {
+      return new Response(JSON.stringify({ error: "E-mail inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const telefone = typeof body.telefone === "string" ? body.telefone.slice(0, 32) : null;
+    const emergName = typeof body.emergency_contact_name === "string" ? body.emergency_contact_name.slice(0, 200) : null;
+    const emergPhone = typeof body.emergency_contact_phone === "string" ? body.emergency_contact_phone.slice(0, 32) : null;
+    const medical_status = body.medical_status === "ok" || body.medical_status === "restricao" ? body.medical_status : "ok";
+    const image_usage = !!body.image_usage;
+
+    if (typeof body.signature_data === "string" && body.signature_data.length > MAX_SIGNATURE_BYTES) {
+      return new Response(JSON.stringify({ error: "Assinatura excede o tamanho permitido" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const ip =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       req.headers.get("cf-connecting-ip") ||
@@ -48,6 +99,7 @@ Deno.serve(async (req) => {
       supabaseUrl,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
 
     // Validate attachment_url: must be HTTPS inside our own storage bucket.
     // Prevents stored javascript:/data: URIs that would XSS the admin UI.

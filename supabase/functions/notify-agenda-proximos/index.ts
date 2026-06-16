@@ -55,6 +55,35 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const sb = createClient(SUPABASE_URL, SERVICE_KEY);
+
+  // Webhook authorization (mirrors other cron functions)
+  const provided = req.headers.get("x-webhook-secret");
+  let authorized = false;
+  if (provided) {
+    try {
+      const { data } = await sb.rpc("get_webhook_secret");
+      if (typeof data === "string" && data.length > 0 && data === provided) authorized = true;
+    } catch (_) { /* ignore */ }
+  }
+  if (!authorized) {
+    const jwt = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+    if (jwt) {
+      try {
+        const { data: userData } = await sb.auth.getUser(jwt);
+        if (userData?.user) {
+          const { data: staff } = await sb.rpc("is_staff", { _user_id: userData.user.id });
+          if (staff) authorized = true;
+        }
+      } catch (_) { /* ignore */ }
+    }
+  }
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const now = new Date();
   // Janela local em São Paulo
   const localNow = new Date(now.getTime() - TZ_OFFSET_MIN * 60000);
