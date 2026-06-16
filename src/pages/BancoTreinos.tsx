@@ -1243,24 +1243,35 @@ export default function BancoTreinos() {
                           <Sparkles className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex items-center gap-1">
-                          {canManage && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 text-destructive"
-                            onClick={() => handleDeleteModelo(m.id)}
+                            className="h-7 w-7"
+                            title="Duplicar em Meus Modelos"
+                            onClick={() => handleDuplicateModelo({ nome: m.nome, conteudo: m.conteudo })}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Copy className="h-3.5 w-3.5" />
                           </Button>
+                          {canManage && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-destructive"
+                                onClick={() => handleDeleteModelo(m.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                       <CardTitle
