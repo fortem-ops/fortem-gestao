@@ -1,29 +1,35 @@
-# Gerenciamento de Usuários (Admin)
+# Corrigir contagem de "Avaliações Hoje" e "Treino Exp. Hoje"
 
-Permitir que apenas Administradores criem, editem e excluam usuários em Administração → Usuários & Permissões, com atualização imediata da lista.
+## Causa
+A função `get_dashboard_data` filtra a `agenda_servicos` com:
+```
+WHERE dia_semana = dia_semana_hoje OR data_especifica = today_date
+```
+Todos os registros atuais são `tipo='avulso'` com `data_especifica` preenchida — mas também têm `dia_semana` preenchido (o DOW da data). Resultado: o `OR dia_semana = hoje` casa com **todo avulso de qualquer terça-feira passada**, inflando a contagem (hoje 16/06/2026, 1 avaliação real + 1 treino exp. real, mas o painel soma vários avulsos antigos de outras terças).
 
-## 1. Banco de dados (migration)
-- Adicionar policies na tabela `public.profiles`:
-  - UPDATE: `is_admin(auth.uid())` (mantém a policy existente de auto-edição)
-  - DELETE: `is_admin(auth.uid())`
+## Correção (migration)
+Atualizar a CTE `agenda_hoje` em `public.get_dashboard_data`:
 
-## 2. Edge function `admin-users` (nova)
-`supabase/functions/admin-users/index.ts` — somente Admin, usa `SUPABASE_SERVICE_ROLE_KEY` para operar em `auth.users`.
+```sql
+agenda_hoje AS (
+  SELECT atividade
+  FROM agenda_servicos
+  WHERE (_professor_id IS NULL OR profissional_id = _professor_id)
+    AND (
+      (tipo = 'fixo'   AND dia_semana = dia_semana_hoje)
+      OR
+      (tipo = 'avulso' AND data_especifica = today_date)
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM agenda_servicos_excecoes e
+      WHERE e.agenda_id = agenda_servicos.id
+        AND e.data_excecao = today_date
+    )
+)
+```
 
-- Valida JWT do chamador via `auth.getUser()` + RPC `is_admin`. Sem admin → 403.
-- Ações (Zod validado):
-  - `create`: cria usuário em `auth.users` (email confirmado), cria `profiles` (full_name, phone, specialty) e opcionalmente insere role inicial em `user_roles`.
-  - `update`: atualiza email/senha em `auth.users` (quando informados) e campos em `profiles`.
-  - `delete`: `auth.admin.deleteUser` (bloqueia auto-exclusão).
-- Retorna sempre com `corsHeaders`.
+Mudanças:
+- Separa fixos (recorrência semanal) de avulsos (data única).
+- Exclui ocorrências canceladas em `agenda_servicos_excecoes`.
 
-## 3. UI — `src/components/admin/AdminUsers.tsx`
-- Detecta Admin via RPC `is_admin`; oculta ações para não-Admin.
-- Botão **"Novo Usuário"** → dialog (Nome, Email, Senha inicial, Telefone, Especialidade, Permissão inicial opcional).
-- Botão **Editar** por linha → dialog pré-preenchido (Nome, Email, Telefone, Especialidade, "Alterar senha" opcional).
-- Botão **Excluir** por linha → AlertDialog de confirmação; desabilitado para o próprio usuário.
-- Lista de e-mails: nova query `admin-users-emails` chamando a edge function (action `list-emails`) já que `auth.users` não é acessível pelo client.
-- Após cada ação: `queryClient.invalidateQueries(["admin-profiles"])`, `["admin-user-roles"]` e `["admin-users-emails"]` — atualização imediata sem usar o chat.
-
-## Ordem
-1. Migration (policies) → 2. Edge function `admin-users` → 3. UI no `AdminUsers.tsx`.
+Nenhuma alteração de UI necessária.
