@@ -31,7 +31,7 @@ export const studentSchema = z.object({
   telefone: z.string().trim().max(20).or(z.literal("")),
   data_nascimento: z.string().or(z.literal("")),
   status: z.enum(["ativo", "licenca", "encerrado"]),
-  frequencia_semanal: z.coerce.number().int().min(0).max(3),
+  frequencia_semanal: z.coerce.number().int().min(1).max(7),
   observacoes: z.string().trim().max(1000).or(z.literal("")),
   plano: z.enum(["Start", "Start+", "Power", "Pro", "Max", "VIP", "Gympass/Wellhub", "Total Pass"]).optional(),
   plano_consultas: z.string().optional(),
@@ -298,7 +298,8 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
                     <SelectItem value="1">1x por semana</SelectItem>
                     <SelectItem value="2">2x por semana</SelectItem>
                     <SelectItem value="3">3x por semana</SelectItem>
-                    <SelectItem value="0">Livre</SelectItem>
+                    <SelectItem value="4">4x por semana</SelectItem>
+                    <SelectItem value="5">Livre</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
