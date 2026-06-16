@@ -31,8 +31,19 @@ const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
 
 export default function Prospects() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  const { data: isCoordAdmin = false } = useQuery({
+    queryKey: ["prospects-isCoordAdmin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
   const [editId, setEditId] = useState<string | null>(null);
   const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
   const [naoConvTarget, setNaoConvTarget] = useState<{ id: string; nome: string } | null>(null);
