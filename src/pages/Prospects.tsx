@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,8 +31,19 @@ const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
 
 export default function Prospects() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  const { data: isCoordAdmin = false } = useQuery({
+    queryKey: ["prospects-isCoordAdmin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      return !!data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
   const [editId, setEditId] = useState<string | null>(null);
   const [convertTarget, setConvertTarget] = useState<{ id: string; nome: string } | null>(null);
   const [naoConvTarget, setNaoConvTarget] = useState<{ id: string; nome: string } | null>(null);
@@ -547,12 +559,16 @@ export default function Prospects() {
                       <Button size="icon" variant="ghost" onClick={() => navigate(`/alunos/${p.id}`)} title="Visualizar perfil">
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setEditId(p.id)} title="Editar">
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => navigate("/agenda")} title="Agendar">
-                        <CalendarPlus className="w-4 h-4" />
-                      </Button>
+                      {isCoordAdmin && (
+                        <Button size="icon" variant="ghost" onClick={() => setEditId(p.id)} title="Editar">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {isCoordAdmin && (
+                        <Button size="icon" variant="ghost" onClick={() => navigate("/agenda")} title="Agendar">
+                          <CalendarPlus className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button size="icon" variant="ghost" onClick={() => navigate("/tarefas")} title="Nova tarefa">
                         <ListTodo className="w-4 h-4" />
                       </Button>
@@ -565,15 +581,21 @@ export default function Prospects() {
                         </Button>
                       )}
 
-                      <Button size="icon" variant="ghost" onClick={() => setConvertTarget({ id: p.id, nome: p.nome })} title="Converter em aluno">
-                        <UserCheck className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setNaoConvTarget({ id: p.id, nome: p.nome })} title="Não conversão">
-                        <UserX className="w-4 h-4 text-destructive" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => navigate("/pipeline")} title="Pipeline">
-                        <KanbanSquare className="w-4 h-4" />
-                      </Button>
+                      {isCoordAdmin && (
+                        <Button size="icon" variant="ghost" onClick={() => setConvertTarget({ id: p.id, nome: p.nome })} title="Converter em aluno">
+                          <UserCheck className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {isCoordAdmin && (
+                        <Button size="icon" variant="ghost" onClick={() => setNaoConvTarget({ id: p.id, nome: p.nome })} title="Não conversão">
+                          <UserX className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
+                      {isCoordAdmin && (
+                        <Button size="icon" variant="ghost" onClick={() => navigate("/pipeline")} title="Pipeline">
+                          <KanbanSquare className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
