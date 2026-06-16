@@ -1246,7 +1246,6 @@ export default function BancoTreinos() {
                           </Button>
                         </div>
                       </div>
-                      </div>
                       <CardTitle
                         className="text-lg mt-3 cursor-pointer"
                         onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
