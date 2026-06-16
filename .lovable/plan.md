@@ -1,27 +1,20 @@
 ## Problema
-Em `/alunos` (Cadastros), no mobile (<768px) apenas as colunas Nome e checkbox aparecem — todas as outras (Status, Plano, Frequência, Professor, Início/Final Plano, Última Aval. Funcional, Serviços) ficam ocultas via `hidden md:table-cell`. O usuário perde informação essencial no celular.
 
-## Solução
-Renderização condicional: **tabela tradicional no desktop**, **lista de cards no mobile**, com todas as informações empilhadas abaixo do nome de cada aluno.
+Em **Carteira de Alunos → filtro "Filtrar por professor"**, só aparecem: o professor logado, "Todos os professores" e "Sem professor". Os demais professores ficam ocultos.
 
-### Mudanças em `src/pages/StudentList.tsx`
+**Causa:** A consulta `professors-carteira` em `src/pages/CarteiraAlunos.tsx` busca a lista pela tabela `user_roles`, cuja política RLS é "Self or admin can view roles". Ou seja, um professor (não-admin) só enxerga a própria linha em `user_roles`, então o `.in("user_id", roles…)` que alimenta o select de profiles retorna apenas ele mesmo.
 
-1. **Envolver a tabela atual em `<div className="hidden md:block">`** para que ela só apareça em telas ≥ md.
+A tabela `alunos`, por outro lado, tem política que permite a qualquer staff (professor/nutri/fisio/coord/admin) ler todos os registros — então podemos derivar a lista de professores a partir dos `responsavel_id` distintos de `alunos`, sem depender de `user_roles`.
 
-2. **Adicionar abaixo um bloco `<div className="md:hidden space-y-2">`** que itera sobre `filtered` e renderiza, para cada aluno, um card com:
-   - Linha 1: checkbox de seleção + nome (link) + badge de status (lado direito).
-   - Email em texto pequeno (muted).
-   - Grid 2 colunas com pares **rótulo: valor** para: Plano, Frequência, Professor, Início Plano, Final Plano (cor destrutiva se vencido), Última Aval. Funcional (com cor de severidade).
-   - Linha "Serviços do Plano:" + `CreditsCell` (se houver entradas).
-   - Linha "Serviços Contratados:" + `CreditsCell` (se houver entradas).
-   - Card inteiro clicável navegando para `/alunos/${id}`, exceto checkbox (com `stopPropagation`).
-   - Mesmos estados de loading (skeletons) e empty state.
+## Mudança
 
-3. **Reutilizar** as funções/lógica já existentes no `.map()` da tabela (`professorName`, `planEndStr`, `isPlanExpired`, `lastFunc*`, `getDisplayStatus`, `CreditsCell`) — extrair para uma função interna `renderStudentRowData(student)` que devolve um objeto com os valores formatados, usado tanto na tabela quanto nos cards, evitando duplicação.
+Arquivo: `src/pages/CarteiraAlunos.tsx`
 
-## Resultado esperado
-- Mobile: cards com todas as informações visíveis, sem scroll horizontal.
-- Desktop (≥md): tabela inalterada.
+Substituir a query `professors-carteira` por uma que:
+1. Busca todos os `responsavel_id` distintos (não nulos) da tabela `alunos`.
+2. Busca em `profiles` os `full_name` desses ids.
+3. Retorna a lista ordenada por nome para alimentar o `<Select>` de filtro e o dialog de transferência.
 
-## Arquivo
-- `src/pages/StudentList.tsx`
+Resultado: o professor logado passa a ver todos os profissionais que possuem alunos sob responsabilidade, podendo filtrar a carteira de qualquer um deles. As opções "Todos os professores" e "Sem professor" permanecem.
+
+Nenhuma alteração de RLS, schema ou lógica de negócio — apenas a fonte da lista de professores no filtro.

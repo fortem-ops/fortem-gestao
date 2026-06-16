@@ -33,20 +33,21 @@ export default function CarteiraAlunos() {
     enabled: !!user,
   });
 
-  // Fetch professors
+  // Fetch professors (derived from distinct responsavel_id in alunos to bypass user_roles RLS)
   const { data: professors = [] } = useQuery({
     queryKey: ["professors-carteira"],
     queryFn: async () => {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .in("role", ["professor", "coordenador", "admin"]);
-      if (!roles?.length) return [];
+      const { data: alunos } = await supabase
+        .from("alunos")
+        .select("responsavel_id")
+        .not("responsavel_id", "is", null);
+      const ids = [...new Set((alunos || []).map((a) => a.responsavel_id).filter(Boolean) as string[])];
+      if (!ids.length) return [];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name")
-        .in("user_id", roles.map((r) => r.user_id));
-      return profiles || [];
+        .in("user_id", ids);
+      return (profiles || []).sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
     },
   });
 
