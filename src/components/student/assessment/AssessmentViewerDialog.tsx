@@ -106,6 +106,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
       toast.success("Avaliação excluída");
       queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
       queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
       onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao excluir");

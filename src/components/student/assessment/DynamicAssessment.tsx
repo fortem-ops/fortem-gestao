@@ -119,6 +119,7 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
         setLastSavedAt(new Date());
         queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
         queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
+        queryClient.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao salvar");
       } finally {

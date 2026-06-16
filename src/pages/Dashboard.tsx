@@ -12,6 +12,7 @@ import { PipelineWidget } from "@/components/dashboard/PipelineWidget";
 import { ClubeWidget } from "@/components/dashboard/ClubeWidget";
 import { PontoWidget } from "@/components/dashboard/PontoWidget";
 import { LembretePontoBanner } from "@/components/ponto/LembretePontoBanner";
+import { LembreteAvaliacoesPendentesBanner } from "@/components/dashboard/LembreteAvaliacoesPendentesBanner";
 import {
   Select,
   SelectContent,
@@ -95,6 +96,7 @@ export default function Dashboard() {
       </div>
 
       <LembretePontoBanner />
+      <LembreteAvaliacoesPendentesBanner />
 
       {/* Top stats: Minha Carteira / Tarefas / Agenda do dia */}
       <StatsCards professorId={effectiveProfessorId} />
