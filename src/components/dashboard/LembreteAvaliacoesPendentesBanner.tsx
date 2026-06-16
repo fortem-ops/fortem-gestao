@@ -147,7 +147,7 @@ export function LembreteAvaliacoesPendentesBanner() {
           key: `${o.agenda.aluno_id}:${o.data}:${at}`,
           agendaId: o.agenda.id,
           alunoId: o.agenda.aluno_id,
-          alunoNome: nameMap.get(o.agenda.aluno_id) || "Aluno",
+          alunoNome: nome,
           atividade: at,
           dataAgendamento: o.data,
           faltam,
