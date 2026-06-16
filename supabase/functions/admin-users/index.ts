@@ -140,13 +140,24 @@ Deno.serve(async (req) => {
 
     if (body.action === "delete") {
       if (body.user_id === callerId) return json({ error: "Não é permitido excluir o próprio usuário" }, 400);
+      // Remove dependents that may not cascade from auth.users
+      await admin.from("user_roles").delete().eq("user_id", body.user_id);
+      await admin.from("profiles").delete().eq("user_id", body.user_id);
       const { error: dErr } = await admin.auth.admin.deleteUser(body.user_id);
-      if (dErr) return json({ error: dErr.message }, 400);
+      if (dErr) {
+        const msg = dErr.message || (dErr as any).msg || JSON.stringify(dErr);
+        console.error("deleteUser failed", dErr);
+        return json({
+          error: msg || "Falha ao excluir usuário. Pode haver vínculos (alunos, agendas, tarefas, etc.) referenciando este usuário.",
+        }, 400);
+      }
       return json({ ok: true });
     }
 
     return json({ error: "Unknown action" }, 400);
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    const msg = (e as Error)?.message || JSON.stringify(e);
+    console.error("admin-users error", e);
+    return json({ error: msg }, 500);
   }
 });
