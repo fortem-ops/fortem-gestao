@@ -149,29 +149,39 @@ Deno.serve(async (req) => {
     // Upsert by CPF + document_type
     const { data: existing } = await supabaseAdmin
       .from("legal_annexes")
-      .select("id")
-      .eq("cpf", body.cpf)
+      .select("id, email")
+      .eq("cpf", cpfDigits)
       .eq("document_type", documentType)
       .order("signed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
+    // Anti-overwrite: a previous signature for the same CPF can only be
+    // replaced when the submitted e-mail matches the e-mail on file.
+    if (existing?.id && existing.email && existing.email.toLowerCase() !== email) {
+      return new Response(
+        JSON.stringify({ error: "Já existe um registro para este CPF; o e-mail informado não confere." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const payload = {
       document_type: documentType,
-      nome: body.nome,
+      nome,
       data_nascimento: body.data_nascimento || null,
-      cpf: body.cpf,
-      telefone: body.telefone || null,
-      email: body.email,
-      emergency_contact_name: body.emergency_contact_name || null,
-      emergency_contact_phone: body.emergency_contact_phone || null,
-      medical_status: body.medical_status,
-      image_usage: body.image_usage,
-      signature_data: body.signature_data || null,
+      cpf: cpfDigits,
+      telefone,
+      email,
+      emergency_contact_name: emergName,
+      emergency_contact_phone: emergPhone,
+      medical_status,
+      image_usage,
+      signature_data: typeof body.signature_data === "string" ? body.signature_data : null,
       attachment_url: safeAttachmentUrl,
       ip_address: ip,
       signed_at: new Date().toISOString(),
     };
+
 
     let data: any;
     let error: any;
