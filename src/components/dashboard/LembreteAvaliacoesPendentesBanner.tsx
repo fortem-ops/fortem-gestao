@@ -120,6 +120,8 @@ export function LembreteAvaliacoesPendentesBanner() {
 
       for (const o of occs) {
         const at = o.agenda.atividade as AtividadeTipo;
+        const nome = nameMap.get(o.agenda.aluno_id);
+        if (!nome) continue;
         const dedupKey = `${o.agenda.aluno_id}:${at}`;
         if (seen.has(dedupKey)) continue;
 
