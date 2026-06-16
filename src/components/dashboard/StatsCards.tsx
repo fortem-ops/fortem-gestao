@@ -99,15 +99,15 @@ export function StatsCards({ professorId }: Props) {
   });
 
   const row1 = [
-    { label: "Alunos Ativos", value: alunosStats?.ativos ?? 0, icon: Users, color: "text-success" },
-    { label: "Agregadores", value: alunosStats?.agregadores ?? 0, icon: UserPlus, color: "text-primary" },
-    { label: "VIP", value: alunosStats?.vip ?? 0, icon: Crown, color: "text-[#D4AF37]" },
-    { label: "Em Licença", value: alunosStats?.licenca ?? 0, icon: Pause, color: "text-warning" },
+    { label: "Alunos Ativos", value: alunosStats?.ativos ?? 0, icon: Users, color: "text-success", onClick: () => navigate("/carteira") },
+    { label: "Agregadores", value: alunosStats?.agregadores ?? 0, icon: UserPlus, color: "text-primary", onClick: () => navigate("/carteira") },
+    { label: "VIP", value: alunosStats?.vip ?? 0, icon: Crown, color: "text-[#D4AF37]", onClick: () => navigate("/carteira") },
+    { label: "Em Licença", value: alunosStats?.licenca ?? 0, icon: Pause, color: "text-warning", onClick: () => navigate("/carteira") },
   ];
 
   const row2 = [
-    { label: "Tarefas Pendentes", value: tarefasStats?.pendentes ?? 0, icon: ClipboardList, color: "text-info" },
-    { label: "Tarefas Atrasadas", value: tarefasStats?.atrasadas ?? 0, icon: AlertCircle, color: "text-destructive" },
+    { label: "Tarefas Pendentes", value: tarefasStats?.pendentes ?? 0, icon: ClipboardList, color: "text-info", onClick: () => navigate("/tarefas") },
+    { label: "Tarefas Atrasadas", value: tarefasStats?.atrasadas ?? 0, icon: AlertCircle, color: "text-destructive", onClick: () => navigate("/tarefas") },
     { label: "Aval. Funcional Atrasada", value: avalAtrasadas, icon: AlertTriangle, color: "text-destructive", onClick: () => navigate("/carteira") },
   ];
 
