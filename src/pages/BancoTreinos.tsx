@@ -881,6 +881,23 @@ export default function BancoTreinos() {
     refetchModelos();
   };
 
+  const handleDuplicateModelo = async (m: { nome: string; conteudo: unknown }) => {
+    if (!user) return;
+    const { error } = await supabase.from("banco_treinos_personalizados").insert({
+      nome: `${m.nome} (cópia)`,
+      conteudo: m.conteudo as any,
+      criado_por: user.id,
+    });
+    if (error) {
+      toast.error("Falha ao duplicar: " + error.message);
+      return;
+    }
+    toast.success("Modelo duplicado em Meus Modelos");
+    refetchModelos();
+  };
+
+
+
 
   const { data: bank = [] } = useQuery({
     queryKey: ["exercicios-bank-templates"],
