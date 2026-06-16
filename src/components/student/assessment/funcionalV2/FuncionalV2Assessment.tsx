@@ -171,6 +171,7 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
       toast.success("Avaliação biomecânica salva");
       queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
       queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {
