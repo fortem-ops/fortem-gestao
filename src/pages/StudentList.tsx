@@ -221,7 +221,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const matchStatus = filters.status === "todos" || display.key === filters.status;
 
       const matchFreq = filters.frequencia === "todos" ||
-        (filters.frequencia === "livre" ? s.frequencia_semanal === 0 : s.frequencia_semanal === parseInt(filters.frequencia));
+        (filters.frequencia === "livre" ? s.frequencia_semanal === 5 : s.frequencia_semanal === parseInt(filters.frequencia));
 
       const hasBase = c && Object.keys(c.plano).length > 0;
       const matchSP = filters.servicosPlano === "todos" ||
@@ -395,11 +395,15 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
             <RefreshCw className={`w-4 h-4 ${recalculando ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">{recalculando ? "Recalculando..." : "Recalcular status"}</span>
           </Button>
-          <ImportStudentsCSVDialog
-            status={isInativos ? "encerrado" : "ativo"}
-            onImported={() => refetch()}
-          />
-          <AddStudentDialog onStudentAdded={() => refetch()} />
+          {isCoordAdmin && (
+            <>
+              <ImportStudentsCSVDialog
+                status={isInativos ? "encerrado" : "ativo"}
+                onImported={() => refetch()}
+              />
+              <AddStudentDialog onStudentAdded={() => refetch()} />
+            </>
+          )}
         </div>
       </div>
 
@@ -548,7 +552,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                     </td>
                     <td className="p-4 hidden md:table-cell">
                       <span className="text-sm text-muted-foreground">
-                        {student.frequencia_semanal === 0 ? "Livre" : `${student.frequencia_semanal}x/semana`}
+                        {student.frequencia_semanal === 5 ? "Livre" : `${student.frequencia_semanal}x/semana`}
                       </span>
                     </td>
                     <td className="p-4 hidden lg:table-cell">
@@ -663,7 +667,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                   <div>
                     <p className="text-muted-foreground">Frequência</p>
                     <p className="text-foreground">
-                      {student.frequencia_semanal === 0 ? "Livre" : `${student.frequencia_semanal}x/sem`}
+                      {student.frequencia_semanal === 5 ? "Livre" : `${student.frequencia_semanal}x/sem`}
                     </p>
                   </div>
                   <div className="col-span-2">

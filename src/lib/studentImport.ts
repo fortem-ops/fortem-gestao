@@ -533,7 +533,7 @@ export async function importStudents(
           let tipoFinal = plan.tipo;
           if (plan.tipo === "VIP") {
             const freq = p.frequencia_semanal ?? 3;
-            const sufixo = freq === 0 ? "Livre" : `${freq}x/semana`;
+            const sufixo = freq === 5 ? "Livre" : `${freq}x/semana`;
             tipoFinal = `VIP ${sufixo}`;
           }
           const { error: planErr } = await supabase.from("planos").insert({

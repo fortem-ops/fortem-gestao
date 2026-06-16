@@ -150,7 +150,7 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
               <b>Cabeçalhos CSV (na ordem):</b>
             </p>
             <ol className="text-xs text-muted-foreground list-decimal ml-5 space-y-0.5">
-              <li><b>Dados cadastrais:</b> <code>nome</code> (obrigatório), <code>email</code>, <code>telefone</code>, <code>data_nascimento</code> (AAAA-MM-DD ou DD-MM-AAAA), <code>sexo</code>, <code>frequencia_semanal</code> (0–3), <code>observacoes</code></li>
+              <li><b>Dados cadastrais:</b> <code>nome</code> (obrigatório), <code>email</code>, <code>telefone</code>, <code>data_nascimento</code> (AAAA-MM-DD ou DD-MM-AAAA), <code>sexo</code>, <code>frequencia_semanal</code> (1–5, sendo 5 = Livre), <code>observacoes</code></li>
               <li><b>Documento e endereço:</b> <code>cpf</code>, <code>rg</code>, <code>cep</code>, <code>logradouro</code>, <code>numero</code>, <code>complemento</code>, <code>bairro</code>, <code>cidade</code>, <code>uf</code></li>
               <li><b>Professor:</b> <code>professor_nome</code></li>
               <li><b>Plano (opcional):</b> <code>plano_tipo</code>, <code>plano_valor</code>, <code>plano_data_inicio</code> (AAAA-MM-DD ou DD-MM-AAAA), <code>plano_consultas</code></li>

@@ -53,7 +53,7 @@ export function AlunoSidebarCard({ aluno, avaliadorNome, ultimaAvaliacaoData }: 
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <DataChip label="Freq. semanal" value={`${aluno.frequencia_semanal ?? 0}x`} />
+        <DataChip label="Freq. semanal" value={aluno.frequencia_semanal === 5 ? "Livre" : `${aluno.frequencia_semanal ?? 0}x`} />
         <DataChip label="ID" value={aluno.id.slice(0, 8)} />
       </div>
 
