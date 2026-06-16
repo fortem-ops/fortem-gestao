@@ -112,8 +112,8 @@ export function StatsCards({ professorId }: Props) {
   ];
 
   const row3 = [
-    { label: "Avaliações Hoje", value: agendaHojeStats?.avaliacoes ?? 0, icon: ClipboardCheck, color: "text-accent-foreground" },
-    { label: "Treino Exp. Hoje", value: agendaHojeStats?.experimentais ?? 0, icon: Dumbbell, color: "text-info" },
+    { label: "Avaliações Hoje", value: agendaHojeStats?.avaliacoes ?? 0, icon: ClipboardCheck, color: "text-accent-foreground", onClick: () => navigate("/agenda") },
+    { label: "Treino Exp. Hoje", value: agendaHojeStats?.experimentais ?? 0, icon: Dumbbell, color: "text-info", onClick: () => navigate("/agenda") },
     {
       label: "Comissionamentos",
       value: `R$ ${(comissaoStats?.total ?? 0).toFixed(0)}`,
