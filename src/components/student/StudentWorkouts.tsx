@@ -35,14 +35,19 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
   const [viewing, setViewing] = useState<Treino | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data: isAdmin } = useQuery({
-    queryKey: ["is-admin", user?.id],
+  const { data: canDelete } = useQuery({
+    queryKey: ["can-delete-treino", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.rpc("is_admin", { _user_id: user!.id });
-      return !!data;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id);
+      const roles = (data ?? []).map((r) => r.role);
+      return roles.some((r) => ["admin", "coordenador", "professor"].includes(r));
     },
     enabled: !!user,
   });
+
 
   const { data: treinos, refetch } = useQuery({
     queryKey: ["treinos", student.id],
