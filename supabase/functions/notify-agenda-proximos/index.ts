@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
   // Busca agenda do dia
   const { data: itens, error } = await sb
     .from("agenda_servicos")
-    .select("id, atividade, local, horario_inicio, profissional_id, aluno_id, tipo, data_especifica, dia_semana")
+    .select("id, atividade, local, horario_inicio, profissional_id, consultor_id, aluno_id, tipo, data_especifica, dia_semana")
     .or(`and(tipo.eq.unico,data_especifica.eq.${todayLocal}),and(tipo.eq.fixo,dia_semana.eq.${diaSemana})`);
   if (error) {
     console.error("agenda query error", error);
