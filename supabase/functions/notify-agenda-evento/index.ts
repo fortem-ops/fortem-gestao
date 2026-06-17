@@ -54,6 +54,7 @@ async function sendGmailEmail(opts: { from: string; to: string; cc?: string[]; s
 
 function buildHtml(opts: {
   evento: string; atividade: string; aluno: string; profissional: string;
+  consultor?: string | null;
   quando: string; horario: string; local: string; observacoes: string | null;
   anamnese?: { limitacoes?: string | null; atividade_fisica?: string | null; objetivo_treinamento?: string | null } | null;
 }) {
@@ -73,6 +74,9 @@ function buildHtml(opts: {
       <p style="margin:0 0 4px;color:#888;">Objetivo com o treinamento funcional</p>
       <p style="margin:0;white-space:pre-wrap;">${(a!.objetivo_treinamento || "—").replace(/</g, "&lt;")}</p>
     </div>` : "";
+  const consultorRow = opts.consultor
+    ? `<tr><td style="padding:8px 0;color:#888;">Consultor</td><td style="padding:8px 0;">${opts.consultor}</td></tr>`
+    : "";
   return `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#f8f9fa;">
   <div style="background:white;border-radius:16px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
     <div style="text-align:center;margin-bottom:20px;">
@@ -84,6 +88,7 @@ function buildHtml(opts: {
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
       <tr><td style="padding:8px 0;color:#888;width:140px;">Aluno</td><td style="padding:8px 0;font-weight:600;">${opts.aluno}</td></tr>
       <tr><td style="padding:8px 0;color:#888;">Profissional</td><td style="padding:8px 0;">${opts.profissional}</td></tr>
+      ${consultorRow}
       <tr><td style="padding:8px 0;color:#888;">Quando</td><td style="padding:8px 0;">${opts.quando}</td></tr>
       <tr><td style="padding:8px 0;color:#888;">Horário</td><td style="padding:8px 0;">${opts.horario}</td></tr>
       <tr><td style="padding:8px 0;color:#888;">Local</td><td style="padding:8px 0;">${opts.local}</td></tr>
