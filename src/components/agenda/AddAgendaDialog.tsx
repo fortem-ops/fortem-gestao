@@ -412,7 +412,14 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Atividade</Label>
-            <Select value={atividade} onValueChange={setAtividade}>
+            <Select
+              value={atividade}
+              onValueChange={(v) => {
+                setAtividade(v);
+                const padrao = ATIVIDADE_LOCAL_PADRAO[v];
+                if (padrao) setLocal(padrao);
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Selecione a atividade" /></SelectTrigger>
               <SelectContent>
                 {ATIVIDADES.map((a) => (
@@ -421,6 +428,10 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label>Local</Label>
+            <Select value={local} onValueChange={setLocal}>
 
           <div className="space-y-2">
             <Label>Local</Label>
