@@ -12,6 +12,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { MultiSelectFilter } from "./MultiSelectFilter";
+
 
 export type PresencaFiltro = "todos" | "com" | "sem";
 
