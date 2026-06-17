@@ -317,6 +317,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         horario_inicio: horarioInicio,
         horario_fim: horarioFim,
         profissional_id: profissionalId || user?.id,
+        consultor_id: atividade === "Treino Experimental" ? (consultorId || null) : null,
         observacoes: observacoes || null,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
         aluno_id: alunoId || null,
