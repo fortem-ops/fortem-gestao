@@ -118,7 +118,8 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(...INK_SOFT);
-  doc.text(`${(descricao || "PLANILHA DE TREINO").toUpperCase()}  ·  ${today}`, mainX + mainW, margin + 14, { align: "right" });
+  const subtitleText = (templateFase || descricao || "PLANILHA DE TREINO").toUpperCase();
+  doc.text(`${subtitleText}  ·  ${today}`, mainX + mainW, margin + 14, { align: "right" });
 
   // Red hairline rule under header
   doc.setDrawColor(...RED);
