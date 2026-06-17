@@ -258,6 +258,19 @@ Deno.serve(async (req) => {
       .from("profiles").select("full_name").eq("user_id", agenda.profissional_id).maybeSingle();
     const profNome = profile?.full_name || profEmail;
 
+    // Consultor (apenas Treino Experimental — campo opcional)
+    let consultorEmail: string | null = null;
+    let consultorNome: string | null = null;
+    if (agenda.consultor_id) {
+      try {
+        const { data: cu } = await admin.auth.admin.getUserById(agenda.consultor_id);
+        consultorEmail = cu?.user?.email || null;
+      } catch { /* ignore */ }
+      const { data: cp } = await admin
+        .from("profiles").select("full_name").eq("user_id", agenda.consultor_id).maybeSingle();
+      consultorNome = cp?.full_name || consultorEmail;
+    }
+
     let alunoNome = "—";
     if (agenda.aluno_id) {
       const { data: aluno } = await admin
