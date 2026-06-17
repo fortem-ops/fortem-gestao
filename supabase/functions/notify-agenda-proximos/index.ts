@@ -178,17 +178,26 @@ Deno.serve(async (req) => {
     }).select("id").single();
 
     if (!notifErr && notif) {
-      await sb.from("notificacao_destinatarios").insert({
-        notificacao_id: notif.id,
-        usuario_id: item.profissional_id,
-      });
+      const dests = [item.profissional_id];
+      if (item.consultor_id && item.consultor_id !== item.profissional_id) {
+        dests.push(item.consultor_id);
+      }
+      await sb.from("notificacao_destinatarios").insert(
+        dests.map((uid: string) => ({ notificacao_id: notif.id, usuario_id: uid })),
+      );
     } else if (notifErr) {
       console.error("notif insert error", notifErr);
     }
 
-    // 2) E-mail
-    const email = emailByUser[item.profissional_id] || profMap[item.profissional_id]?.email;
-    if (email) {
+    // 2) E-mail (profissional + consultor)
+    const destEmails: string[] = [];
+    const profEmail = emailByUser[item.profissional_id] || profMap[item.profissional_id]?.email;
+    if (profEmail) destEmails.push(profEmail);
+    if (item.consultor_id && item.consultor_id !== item.profissional_id) {
+      const consEmail = emailByUser[item.consultor_id] || profMap[item.consultor_id]?.email;
+      if (consEmail && !destEmails.includes(consEmail)) destEmails.push(consEmail);
+    }
+    for (const email of destEmails) {
       try {
         await sendGmail({
           to: email,
