@@ -107,6 +107,28 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
     }
   };
 
+  const [dragOver, setDragOver] = useState(false);
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes("Files")) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (e.currentTarget === e.target) setDragOver(false);
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) {
+      setFile(f);
+      toast.success(f.type.startsWith("image/") ? "Imagem anexada" : "Arquivo anexado");
+    }
+  };
+
+
+
   return (
     <div
       className="fixed bottom-4 right-2 sm:right-4 z-50 w-[calc(100vw-1rem)] max-w-[320px] h-[60vh] max-h-[420px] bg-card border border-border rounded-lg shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 sm:w-80"
