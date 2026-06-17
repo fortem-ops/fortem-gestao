@@ -119,6 +119,8 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
     filters.professor !== "todos",
     filters.tipoPlano !== "todos",
     filters.vip !== "todos",
+    filters.ultimaAvaliacaoFuncional !== "todos",
+    filters.servicoPlanoDisponivel !== "todos",
     !!filters.dataInicioDe,
     !!filters.dataInicioAte,
     !!filters.dataFinalDe,
