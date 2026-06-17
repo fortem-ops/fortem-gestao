@@ -432,10 +432,6 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           <div className="space-y-2">
             <Label>Local</Label>
             <Select value={local} onValueChange={setLocal}>
-
-          <div className="space-y-2">
-            <Label>Local</Label>
-            <Select value={local} onValueChange={setLocal}>
               <SelectTrigger><SelectValue placeholder="Selecione o local" /></SelectTrigger>
               <SelectContent>
                 {LOCAIS.map((l) => (
