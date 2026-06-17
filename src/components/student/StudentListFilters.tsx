@@ -65,6 +65,8 @@ const defaultFilters: StudentFilters = {
   professor: "todos",
   tipoPlano: "todos",
   vip: "todos",
+  ultimaAvaliacaoFuncional: "todos",
+  servicoPlanoDisponivel: "todos",
   dataInicioDe: undefined,
   dataInicioAte: undefined,
   dataFinalDe: undefined,
