@@ -1168,15 +1168,30 @@ export default function BancoTreinos() {
                 {group.label}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map(template => (
+                {items.map(template => {
+                  const isUnderConstruction = template.fase === "Personalizado 2";
+                  const isLockedForProfessors =
+                    ["Planilha 5RM", "5-3-1", "M102"].includes(template.fase) && !canEdit;
+                  const isBlocked = isUnderConstruction || isLockedForProfessors;
+                  return (
                   <Card
                     key={template.fase}
-                    className="cursor-pointer hover:border-primary transition-colors group"
+                    className={`transition-colors group ${
+                      isBlocked
+                        ? "cursor-not-allowed opacity-70"
+                        : "cursor-pointer hover:border-primary"
+                    }`}
                     onClick={() => {
+                      if (isUnderConstruction) {
+                        toast.info("Em Construção", { description: "Este modelo ainda não está disponível." });
+                        return;
+                      }
+                      if (isLockedForProfessors) {
+                        toast.warning("Acesso restrito", { description: "Esta planilha está disponível apenas para coordenadores e administradores." });
+                        return;
+                      }
                       if (template.fase === "Personalizado") {
                         setPersonalizadoOpen({ mode: "new", variante: "personalizado" });
-                      } else if (template.fase === "Personalizado 2") {
-                        setPersonalizadoOpen({ mode: "new", variante: "personalizado2" });
                       } else if (template.fase.startsWith("Corrida")) {
                         const existing = modelosPersonalizados.find((m) => m.nome === template.fase);
                         if (existing) {
@@ -1202,13 +1217,30 @@ export default function BancoTreinos() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                          {template.fase === "Personalizado" || template.fase === "Personalizado 2"
-                            ? <Sparkles className="h-5 w-5 text-primary" />
-                            : <Dumbbell className="h-5 w-5 text-primary" />}
+                          {isUnderConstruction
+                            ? <Construction className="h-5 w-5 text-warning" />
+                            : isLockedForProfessors
+                              ? <Lock className="h-5 w-5 text-muted-foreground" />
+                              : template.fase === "Personalizado" || template.fase === "Personalizado 2"
+                                ? <Sparkles className="h-5 w-5 text-primary" />
+                                : <Dumbbell className="h-5 w-5 text-primary" />}
                         </div>
-                        <Badge variant="outline">{template.frequencia}</Badge>
+                        {isUnderConstruction ? (
+                          <Badge variant="outline" className="border-warning/40 text-warning bg-warning/10">
+                            Em Construção
+                          </Badge>
+                        ) : isLockedForProfessors ? (
+                          <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
+                            <Lock className="w-3 h-3 mr-1" /> Restrito
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">{template.frequencia}</Badge>
+                        )}
                       </div>
-                      <CardTitle className="text-lg mt-3">{template.fase}</CardTitle>
+                      <CardTitle className="text-lg mt-3 flex items-center gap-2">
+                        {template.fase}
+                        {isLockedForProfessors && <Lock className="w-4 h-4 text-muted-foreground" />}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -1219,7 +1251,8 @@ export default function BancoTreinos() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             </section>
           );
