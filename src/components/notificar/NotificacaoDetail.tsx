@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +21,40 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
   const { data, isLoading } = useNotificacaoDetail(id);
   const [comentario, setComentario] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const filePreviewUrl = useMemo(() => {
+    if (file && file.type.startsWith("image/")) return URL.createObjectURL(file);
+    return null;
+  }, [file]);
+  useEffect(() => { return () => { if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl); }; }, [filePreviewUrl]);
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const it of Array.from(items)) {
+      if (it.kind === "file" && it.type.startsWith("image/")) {
+        const f = it.getAsFile();
+        if (f) {
+          const ext = it.type.split("/")[1] || "png";
+          setFile(new File([f], `pasted-${Date.now()}.${ext}`, { type: it.type }));
+          toast.success("Imagem colada");
+          e.preventDefault();
+          return;
+        }
+      }
+    }
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes("Files")) { e.preventDefault(); setDragOver(true); }
+  };
+  const handleDragLeave = (e: React.DragEvent) => { if (e.currentTarget === e.target) setDragOver(false); };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) { setFile(f); toast.success(f.type.startsWith("image/") ? "Imagem anexada" : "Arquivo anexado"); }
+  };
+
 
   // Mark as viewed
   useEffect(() => {
@@ -84,7 +118,18 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
   const isCriador = n.criado_por === user?.id;
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className={`flex flex-col h-full relative ${dragOver ? "ring-2 ring-primary ring-inset" : ""}`}
+      onPaste={handlePaste}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {dragOver && (
+        <div className="absolute inset-0 z-10 bg-primary/10 border-2 border-dashed border-primary rounded flex items-center justify-center pointer-events-none">
+          <span className="text-sm font-medium text-primary">Solte para anexar</span>
+        </div>
+      )}
       <div className="p-4 border-b space-y-2">
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-semibold">{n.titulo}</h2>
@@ -141,7 +186,12 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
       <div className="p-3 border-t space-y-2">
         {file && (
           <div className="flex items-center gap-2 text-xs bg-muted px-2 py-1 rounded">
-            <Paperclip className="w-3 h-3" />{file.name}
+            {filePreviewUrl ? (
+              <img src={filePreviewUrl} alt="preview" className="h-14 w-14 object-cover rounded" />
+            ) : (
+              <Paperclip className="w-3 h-3" />
+            )}
+            <span className="truncate flex-1">{file.name}</span>
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setFile(null)}><X className="w-3 h-3" /></Button>
           </div>
         )}
@@ -151,9 +201,10 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
             <Button variant="ghost" size="icon" asChild><span><Paperclip className="w-4 h-4" /></span></Button>
           </label>
           <Input
-            placeholder="Comentário..."
+            placeholder="Comentário... (Ctrl+V cola imagem)"
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
+            onPaste={handlePaste}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMut.mutate(); } }}
           />
           <Button size="icon" onClick={() => sendMut.mutate()} disabled={sendMut.isPending}>
@@ -171,12 +222,20 @@ function CommentBubble({ c, mine, authorName }: { c: any; mine: boolean; authorN
     if (c.anexo_url) getAnexoUrl(c.anexo_url).then((u) => setUrl(u ?? null));
   }, [c.anexo_url]);
 
+  const isImage = typeof c.anexo_tipo === "string" && c.anexo_tipo.startsWith("image/");
+  const hasText = c.comentario && c.comentario !== "(anexo)";
+
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
         {!mine && <div className="text-xs font-semibold opacity-80 mb-0.5">{authorName ?? "—"}</div>}
-        <div className="whitespace-pre-wrap">{c.comentario}</div>
-        {url && (
+        {hasText && <div className="whitespace-pre-wrap">{c.comentario}</div>}
+        {url && isImage && (
+          <a href={url} target="_blank" rel="noreferrer" className="block mt-1">
+            <img src={url} alt={c.anexo_nome ?? "imagem"} className="max-w-full max-h-64 rounded cursor-zoom-in" />
+          </a>
+        )}
+        {url && !isImage && (
           <a href={url} target="_blank" rel="noreferrer" className="text-xs underline block mt-1">
             📎 {c.anexo_nome ?? "Anexo"}
           </a>

@@ -107,12 +107,43 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
     }
   };
 
+  const [dragOver, setDragOver] = useState(false);
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes("Files")) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (e.currentTarget === e.target) setDragOver(false);
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) {
+      setFile(f);
+      toast.success(f.type.startsWith("image/") ? "Imagem anexada" : "Arquivo anexado");
+    }
+  };
+
+
+
   return (
     <div
-      className="fixed bottom-4 right-2 sm:right-4 z-50 w-[calc(100vw-1rem)] max-w-[320px] h-[60vh] max-h-[420px] bg-card border border-border rounded-lg shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 sm:w-80"
+      className={`fixed bottom-4 right-2 sm:right-4 z-50 w-[calc(100vw-1rem)] max-w-[320px] h-[60vh] max-h-[420px] bg-card border border-border rounded-lg shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 sm:w-80 ${dragOver ? "ring-2 ring-primary" : ""}`}
       style={{ right: `${8 + offsetIndex * 12}px`, ['--offset' as any]: offsetIndex }}
       onPaste={handlePaste}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
+      {dragOver && (
+        <div className="absolute inset-0 z-10 bg-primary/10 border-2 border-dashed border-primary rounded-lg flex items-center justify-center pointer-events-none">
+          <span className="text-sm font-medium text-primary">Solte para anexar</span>
+        </div>
+      )}
+
       <div className="px-3 py-2 border-b bg-muted/40 flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold truncate">{n?.titulo ?? "Carregando..."}</div>
