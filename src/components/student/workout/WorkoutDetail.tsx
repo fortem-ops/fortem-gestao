@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, Video, Printer, FileDown } from "lucide-react";
+import { ArrowLeft, Save, Video, Printer, FileDown, Plus, X } from "lucide-react";
 import { CATEGORY_LABELS, type WorkoutExercise } from "./workoutTemplates";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,13 +82,83 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
   const [weeks, setWeeks] = useState<number>(4);
   const [prescribeOpen, setPrescribeOpen] = useState(false);
 
-  const updateExercise = (section: "aquecimento" | "treino", treinoIdx: number, exIdx: number, field: string, value: string) => {
+  const updateExercise = (
+    section: "aquecimento" | "treino",
+    treinoIdx: number,
+    exIdx: number,
+    field: string,
+    value: string | number | string[],
+  ) => {
     setData(prev => {
       const next = structuredClone(prev);
       if (section === "aquecimento") {
         (next.aquecimento[exIdx] as unknown as Record<string, unknown>)[field] = value;
       } else {
         (next.treinos[treinoIdx].exercicios[exIdx] as unknown as Record<string, unknown>)[field] = value;
+      }
+      return next;
+    });
+  };
+
+  const toggleDia = (section: "aquecimento" | "treino", treinoIdx: number, exIdx: number, dia: string) => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const target = section === "aquecimento"
+        ? next.aquecimento[exIdx]
+        : next.treinos[treinoIdx].exercicios[exIdx];
+      const dias = new Set(target.dias || []);
+      if (dias.has(dia)) dias.delete(dia); else dias.add(dia);
+      target.dias = ["T1", "T2", "T3", "T4"].filter(d => dias.has(d));
+      return next;
+    });
+  };
+
+  const addAquecimento = (categoria: "LIB" | "MOB" | "ATI" | "PREV") => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const maxOrdem = next.aquecimento.reduce((m, e) => Math.max(m, e.ordem || 0), 0);
+      next.aquecimento.push({
+        ordem: maxOrdem + 1,
+        categoria,
+        subcategoria: "",
+        exercicio: "",
+        series: 1,
+        repeticoes: "",
+        dias: ["T1", "T2", "T3", "T4"],
+      });
+      return next;
+    });
+  };
+
+  const addForca = (treinoIdx: number, bloco: "A" | "B") => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const list = next.treinos[treinoIdx].exercicios;
+      const maxOrdem = list.reduce((m, e) => Math.max(m, e.ordem || 0), 0);
+      const novo = {
+        ordem: maxOrdem + 1,
+        categoria: "",
+        exercicio: "",
+        series: 3,
+        repeticoes: "",
+      };
+      if (bloco === "A") {
+        const pos = Math.min(2, list.length);
+        list.splice(pos, 0, novo);
+      } else {
+        list.push(novo);
+      }
+      return next;
+    });
+  };
+
+  const removeExercise = (section: "aquecimento" | "treino", treinoIdx: number, exIdx: number) => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      if (section === "aquecimento") {
+        next.aquecimento.splice(exIdx, 1);
+      } else {
+        next.treinos[treinoIdx].exercicios.splice(exIdx, 1);
       }
       return next;
     });
@@ -230,21 +300,23 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
         )}
       </div>
 
-      {/* Aquecimento — separado por blocos LIB / MOB / ATI */}
-      {data.aquecimento.length > 0 && (() => {
-        const blocos: { key: string; label: string; items: { ex: WorkoutExercise; idx: number }[] }[] = [
+      {/* Aquecimento — separado por blocos LIB / MOB / ATI / PREV */}
+      {(() => {
+        const blocos: { key: "LIB" | "MOB" | "ATI" | "PREV"; label: string; items: { ex: WorkoutExercise; idx: number }[] }[] = [
           { key: "LIB", label: "LIBERAÇÃO", items: [] },
           { key: "MOB", label: "MOBILIDADE", items: [] },
           { key: "ATI", label: "ATIVAÇÃO", items: [] },
+          { key: "PREV", label: "PREVENTIVO", items: [] },
         ];
         data.aquecimento.forEach((ex, idx) => {
           const bloco = blocos.find(b => b.key === ex.categoria);
           if (bloco) bloco.items.push({ ex, idx });
         });
+        const DIAS = ["T1", "T2", "T3", "T4"];
         return (
           <div className="glass-card rounded-lg p-4 space-y-4">
             <h4 className="text-sm font-heading font-semibold text-primary">AQUECIMENTO</h4>
-            {blocos.filter(b => b.items.length > 0).map(bloco => (
+            {blocos.map(bloco => (
               <div key={bloco.key} className="space-y-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/15 text-primary">
@@ -259,15 +331,27 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
                     <thead>
                       <tr className="border-b border-border text-muted-foreground">
                         <th className="text-left py-1 px-2 w-8">#</th>
+                        <th className="text-left py-1 px-2 w-28">Subcategoria</th>
                         <th className="text-left py-1 px-2">Exercício</th>
+                        <th className="text-center py-1 px-2 w-14">Séries</th>
                         <th className="text-center py-1 px-2 w-16">Rep.</th>
-                        <th className="text-center py-1 px-2 w-24">Dias</th>
+                        <th className="text-center py-1 px-2 w-36">Dias</th>
+                        {!readOnly && <th className="w-8"></th>}
                       </tr>
                     </thead>
                     <tbody>
                       {bloco.items.map(({ ex, idx }, localIdx) => (
                         <tr key={idx} className="border-b border-border/50">
                           <td className="py-1 px-2 text-muted-foreground">{localIdx + 1}</td>
+                          <td className="py-1 px-2">
+                            <Input
+                              value={ex.subcategoria || ""}
+                              onChange={e => updateExercise("aquecimento", 0, idx, "subcategoria", e.target.value)}
+                              className="h-7 text-xs bg-transparent border-none px-1"
+                              placeholder="—"
+                              readOnly={readOnly}
+                            />
+                          </td>
                           <td className="py-1 px-2">
                             <div className="flex items-center gap-1">
                               <div className="flex-1 min-w-0">
@@ -293,31 +377,81 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
                           </td>
                           <td className="py-1 px-2 text-center">
                             <Input
+                              value={String(ex.series ?? "")}
+                              onChange={e => updateExercise("aquecimento", 0, idx, "series", e.target.value)}
+                              className="h-7 text-xs text-center bg-transparent border-none px-1 w-12 mx-auto"
+                              readOnly={readOnly}
+                            />
+                          </td>
+                          <td className="py-1 px-2 text-center">
+                            <Input
                               value={ex.repeticoes}
                               onChange={e => updateExercise("aquecimento", 0, idx, "repeticoes", e.target.value)}
                               className="h-7 text-xs text-center bg-transparent border-none px-1 w-14 mx-auto"
                               readOnly={readOnly}
                             />
                           </td>
-                          <td className="py-1 px-2 text-center text-muted-foreground text-[10px]">
-                            {ex.dias?.join(", ") || "—"}
+                          <td className="py-1 px-2">
+                            <div className="flex items-center justify-center gap-0.5">
+                              {DIAS.map(dia => {
+                                const active = ex.dias?.includes(dia);
+                                return (
+                                  <button
+                                    key={dia}
+                                    type="button"
+                                    disabled={readOnly}
+                                    onClick={() => toggleDia("aquecimento", 0, idx, dia)}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                                      active
+                                        ? "bg-primary/20 text-primary"
+                                        : "bg-muted/40 text-muted-foreground hover:bg-muted"
+                                    } ${readOnly ? "cursor-default" : "cursor-pointer"}`}
+                                  >
+                                    {dia}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </td>
+                          {!readOnly && (
+                            <td className="py-1 px-1 text-center">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => removeExercise("aquecimento", 0, idx)}
+                                title="Remover exercício"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+                {!readOnly && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground hover:text-primary"
+                    onClick={() => addAquecimento(bloco.key)}
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Adicionar exercício
+                  </Button>
+                )}
               </div>
             ))}
           </div>
         );
       })()}
 
-      {/* Treinos — divididos em Bloco A (ex 1-2) e Bloco B (ex 3-5, renumerados 1-3) */}
+      {/* Treinos — divididos em Bloco A (ex 1-2) e Bloco B (do 3º em diante) */}
       {data.treinos.map((treino, tIdx) => {
         const blocoA = treino.exercicios.slice(0, 2).map((ex, i) => ({ ex, idx: i, num: i + 1 }));
-        const blocoB = treino.exercicios.slice(2, 5).map((ex, i) => ({ ex, idx: i + 2, num: i + 1 }));
-        const renderBloco = (label: string, items: { ex: WorkoutExercise; idx: number; num: number }[]) => (
+        const blocoB = treino.exercicios.slice(2).map((ex, i) => ({ ex, idx: i + 2, num: i + 1 }));
+        const renderBloco = (label: "A" | "B", items: { ex: WorkoutExercise; idx: number; num: number }[]) => (
           <div className="space-y-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accent text-accent-foreground">
@@ -329,11 +463,12 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
                     <th className="text-left py-1 px-2 w-8">#</th>
-                    <th className="text-left py-1 px-2 w-16">Cat.</th>
+                    <th className="text-left py-1 px-2 w-20">Cat.</th>
                     <th className="text-left py-1 px-2">Exercício</th>
                     <th className="text-center py-1 px-2 w-16">Séries</th>
                     <th className="text-center py-1 px-2 w-16">Rep.</th>
                     <th className="text-center py-1 px-2 w-16">KG</th>
+                    {!readOnly && <th className="w-8"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -341,9 +476,13 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
                     <tr key={idx} className="border-b border-border/50">
                       <td className="py-1 px-2 text-muted-foreground">{num}</td>
                       <td className="py-1 px-2">
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/50 text-accent-foreground">
-                          {ex.categoria}
-                        </span>
+                        <Input
+                          value={ex.categoria || ""}
+                          onChange={e => updateExercise("treino", tIdx, idx, "categoria", e.target.value.toUpperCase())}
+                          className="h-7 text-xs bg-transparent border-none px-1 w-16 font-semibold"
+                          placeholder="—"
+                          readOnly={readOnly}
+                        />
                       </td>
                       <td className="py-1 px-2">
                         <div className="flex items-center gap-1">
@@ -368,7 +507,14 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
                           )}
                         </div>
                       </td>
-                      <td className="py-1 px-2 text-center">{ex.series}</td>
+                      <td className="py-1 px-2 text-center">
+                        <Input
+                          value={String(ex.series ?? "")}
+                          onChange={e => updateExercise("treino", tIdx, idx, "series", e.target.value)}
+                          className="h-7 text-xs text-center bg-transparent border-none px-1 w-12 mx-auto"
+                          readOnly={readOnly}
+                        />
+                      </td>
                       <td className="py-1 px-2 text-center">
                         <Input
                           value={ex.repeticoes}
@@ -386,21 +532,45 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
                           readOnly={readOnly}
                         />
                       </td>
+                      {!readOnly && (
+                        <td className="py-1 px-1 text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeExercise("treino", tIdx, idx)}
+                            title="Remover exercício"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            {!readOnly && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground hover:text-primary"
+                onClick={() => addForca(tIdx, label)}
+              >
+                <Plus className="w-3 h-3 mr-1" /> Adicionar exercício
+              </Button>
+            )}
           </div>
         );
         return (
           <div key={tIdx} className="glass-card rounded-lg p-4 space-y-4">
             <h4 className="text-sm font-heading font-semibold text-foreground">{treino.nome} — FORÇA</h4>
-            {blocoA.length > 0 && renderBloco("A", blocoA)}
-            {blocoB.length > 0 && renderBloco("B", blocoB)}
+            {renderBloco("A", blocoA)}
+            {renderBloco("B", blocoB)}
           </div>
         );
       })}
+
 
       <Dialog open={exportOpen !== null} onOpenChange={(o) => !o && setExportOpen(null)}>
         <DialogContent className="max-w-sm">

@@ -1,22 +1,36 @@
-## Banco de Treinos — remover "Personalizado 2" e marcar 3 planilhas como "Em Construção"
+## Objetivo
 
-Alterações apenas em `src/pages/BancoTreinos.tsx` (seção "Métodos"). Sem mudanças de banco.
+Ao importar um treino a partir de uma Fase ou Corrida-Fase no perfil do aluno, o professor deve poder ajustar **todas as variáveis** dos exercícios — não apenas trocar o exercício e mexer em repetições, como hoje.
 
-### 1. Remover "Personalizado 2"
-- Tirar `"Personalizado 2"` do filtro de **Métodos** (`PHASE_GROUPS`), de modo que o card deixa de ser renderizado.
-- Remover a branch `else if (template.fase === "Personalizado 2")` do `onClick` (não mais alcançável).
-- Manter `emptyPersonalizado2()` e `seedFromWorkoutTemplate()` no arquivo por ora (não geram efeito sem o card); podem ser removidos depois sem risco.
+Mudanças concentradas em **`src/components/student/workout/WorkoutDetail.tsx`** (a tela que abre depois de "Importar do Banco de Treinos"). Nenhum impacto em banco, RLS ou em treinos Personalizados (que já usam o `PersonalizadoEditor`).
 
-### 2. "Planilha 5RM", "5-3-1" e "M102" → Em Construção
-- Os 3 cards continuam visíveis na seção Métodos.
-- Cabeçalho usa ícone `Construction` (lucide) em vez de `Dumbbell`.
-- Badge amarelo **"Em Construção"** no canto superior direito (substitui o badge de frequência).
-- Card com `cursor-not-allowed` e leve opacidade.
-- Clique exibe toast: `"Em Construção — Este modelo ainda não está disponível."` e não abre o template.
+## O que muda na UI
 
-### Detalhes técnicos
-- Adicionar `Construction` ao import do `lucide-react`.
-- Dentro do `.map(template => ...)` do grid de Métodos, definir:
-  - `isUnderConstruction = ["Planilha 5RM", "5-3-1", "M102"].includes(template.fase)`
-- Ramificar `className`, `onClick`, ícone e badge com base nessa flag.
-- Toast via `sonner` (já importado).
+### 1. Aquecimento (LIB / MOB / ATI / PREV)
+- Renderizar também o bloco **PREV** (Preventivo) — hoje só aparecem LIB/MOB/ATI; PREV existe no modelo de dados mas é ignorado na tela de edição.
+- Tornar **Séries** editável (nova coluna ao lado de Rep.).
+- Manter **Rep.** editável (já é).
+- **Subcategoria** (ex.: "Quadril", "Torácica") vira input editável — atualmente é fixa.
+- Botão **× remover** por linha.
+- Botão **+ Adicionar exercício** ao fim de cada bloco (cria linha já com `categoria` = chave do bloco, `dias` = `["T1","T2","T3","T4"]`, demais campos vazios).
+- Coluna **Dias** vira um seletor multi-toggle (T1, T2, T3, T4) em vez de texto somente-leitura.
+
+### 2. Treinos / Força (Bloco A e Bloco B)
+- Remover o limite rígido de 5 exercícios. Bloco A continua sendo os 2 primeiros; Bloco B passa a ser "do 3º em diante" (sem teto).
+- Tornar **Séries** editável (input numérico curto). Hoje é só leitura.
+- **Categoria** (DJS, PH, EV, AH, etc.) vira input curto editável em vez de badge fixa, para o professor poder ajustar.
+- Manter **Rep.** e **KG** editáveis (já são).
+- Botão **× remover** por linha.
+- Botão **+ Adicionar exercício** ao fim de cada bloco (A insere na posição 2, B no fim; novo item entra com `series: 3`, `repeticoes: ""`, `categoria: ""`, `exercicio: ""`).
+
+### 3. Mexer no estado
+Estender `updateExercise` para aceitar campos numéricos (`series`) e arrays (`dias`, `subcategoria`). Adicionar dois helpers:
+- `addExercise(section, treinoIdx, bloco)` — empurra um item novo no array correto.
+- `removeExercise(section, treinoIdx, exIdx)` — remove pelo índice (com confirmação leve via `toast`).
+
+Tudo continua salvando pelo fluxo atual de `handleSave` → `treinos.conteudo` (JSON). O `exportWorkoutPDF` e o `PublicWorkout` já leem o array dinamicamente, então passam a refletir as edições sem mudança extra.
+
+## Fora de escopo
+- Personalizado (já tem editor próprio com todas essas capacidades).
+- Mudanças em RLS, migrations ou nos templates base em `workoutTemplates.ts`.
+- Alteração da estrutura do PDF.
