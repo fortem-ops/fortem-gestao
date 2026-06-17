@@ -265,6 +265,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     await exportWorkoutPDF({
       student: aluno as Parameters<typeof exportWorkoutPDF>[0]["student"],
       descricao: descricao || "PLANILHA DE TREINO",
+      templateFase: treino?.template_fase ?? fase ?? null,
       data,
       print: mode === "print",
       weeks: weeksCount,
