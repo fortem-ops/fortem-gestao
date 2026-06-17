@@ -12,6 +12,8 @@ interface WorkoutData {
 interface ExportArgs {
   student: Tables<"alunos">;
   descricao: string;
+  /** Origem do treino (ex.: "Personalizado", "Fase 1"). Usado no subtítulo do PDF; cai para `descricao` quando ausente. */
+  templateFase?: string | null;
   data: WorkoutData;
   /** If true, opens the print dialog instead of saving the file. */
   print?: boolean;
