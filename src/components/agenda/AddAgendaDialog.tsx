@@ -132,6 +132,24 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     },
   });
 
+  const { data: consultores = [] } = useQuery({
+    queryKey: ["admin_consultores"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      const ids = (roles || []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids)
+        .order("full_name");
+      return profs || [];
+    },
+  });
+
   const { data: alunos = [] } = useQuery({
     queryKey: ["alunos_agenda_picker"],
     queryFn: async () => {
