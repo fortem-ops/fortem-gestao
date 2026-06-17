@@ -122,6 +122,7 @@ export function StatsCards({ professorId }: Props) {
       subtitle: comissaoStats
         ? `${comissaoStats.experimentais} exp · ${comissaoStats.avaliacoes} aval`
         : undefined,
+      onClick: () => navigate("/comissionamentos"),
     },
   ];
 
