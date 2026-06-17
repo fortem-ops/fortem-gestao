@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
     // Always load agenda from DB — never trust client-supplied content
     const { data: agenda } = await admin
       .from("agenda_servicos")
-      .select("id, atividade, local, observacoes, profissional_id, aluno_id, dia_semana, data_especifica, horario_inicio, horario_fim, tipo")
+      .select("id, atividade, local, observacoes, profissional_id, consultor_id, aluno_id, dia_semana, data_especifica, horario_inicio, horario_fim, tipo")
       .eq("id", aId)
       .maybeSingle();
     if (!agenda) {
