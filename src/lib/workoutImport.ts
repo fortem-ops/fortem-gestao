@@ -158,6 +158,7 @@ export async function prescribeFaseInicial(faseNome: string, alunoId: string, au
     conteudo: prepared as unknown as Json,
     status: "atual",
     versao: proximaVersao,
-  });
+    template_fase: faseNome,
+  } as never);
   if (error) throw error;
 }
