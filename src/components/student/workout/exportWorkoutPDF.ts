@@ -59,7 +59,7 @@ const cleanExerciseName = (name: string): string =>
  * strength sessions split into Bloco A (ex 1-2) and Bloco B (ex 3-5),
  * a Frequência column, and a manual Observações area.
  */
-export async function exportWorkoutPDF({ student, descricao, data, print, weeks = 4, qrUrl: _qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
+export async function exportWorkoutPDF({ student, descricao, templateFase, data, print, weeks = 4, qrUrl: _qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
   // Iterative fit: render the whole layout, and if it overflowed to a 2nd page,
   // retry with a progressively smaller scale multiplier so every treino (incl. T4)
   // and every aquecimento exercise fit on a single A4 sheet.
