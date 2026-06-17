@@ -34,7 +34,7 @@ export function AdminAlertsWidget() {
 
       const { data: planos } = await supabase
         .from("planos")
-        .select("id, aluno_id, tipo, data_inicio, duracao_meses")
+        .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses")
         .eq("ativo", true);
 
       if (!planos?.length) return [];
