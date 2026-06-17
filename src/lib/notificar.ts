@@ -50,31 +50,18 @@ export interface RecipientGroup {
 }
 
 export async function expandRecipients(groups: RecipientGroup[]): Promise<string[]> {
+  const { data, error } = await (supabase as any).rpc("fn_notificar_expandir_destinatarios", {
+    p_grupos: groups as any,
+  });
+  if (error) throw error;
   const ids = new Set<string>();
-  for (const g of groups) {
-    if (g.type === "user" && g.userId) {
-      ids.add(g.userId);
-    } else {
-      let role: string | null = null;
-      if (g.type === "all_admins") role = "admin";
-      else if (g.type === "all_coordenadores") role = "coordenador";
-      else if (g.type === "all_professores") role = "professor";
-      else if (g.type === "role" && g.role) role = g.role;
-
-      if (g.type === "all_profissionais") {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .in("role", ["admin", "coordenador", "professor", "nutricionista", "fisioterapeuta"] as any);
-        data?.forEach((r) => ids.add(r.user_id));
-      } else if (role) {
-        const { data } = await (supabase.from("user_roles") as any).select("user_id").eq("role", role);
-        data?.forEach((r) => ids.add(r.user_id));
-      }
-    }
-  }
+  (data ?? []).forEach((row: any) => {
+    const id = typeof row === "string" ? row : row?.fn_notificar_expandir_destinatarios ?? row?.user_id;
+    if (id) ids.add(id);
+  });
   return Array.from(ids);
 }
+
 
 export async function createNotificacao(input: {
   titulo: string;

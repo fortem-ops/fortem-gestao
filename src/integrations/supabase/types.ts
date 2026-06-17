@@ -4377,6 +4377,19 @@ export type Database = {
         }
         Returns: string
       }
+      fn_notificar_expandir_destinatarios: {
+        Args: { p_grupos: Json }
+        Returns: string[]
+      }
+      fn_notificar_listar_profissionais: {
+        Args: never
+        Returns: {
+          full_name: string
+          roles: string[]
+          specialty: string
+          user_id: string
+        }[]
+      }
       fn_ponto_ajustar_jornada: {
         Args: {
           _campo: string

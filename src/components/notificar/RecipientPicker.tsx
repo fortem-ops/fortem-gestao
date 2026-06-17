@@ -19,19 +19,12 @@ export function RecipientPicker({ value, onChange }: Props) {
   const { data: profiles = [] } = useQuery({
     queryKey: ["notif-recipients-profiles"],
     queryFn: async () => {
-      const { data: profs } = await supabase.from("profiles").select("user_id,full_name,specialty");
-      const { data: roles } = await (supabase.from("user_roles") as any).select("user_id,role");
-      const roleMap = new Map<string, string[]>();
-      (roles ?? []).forEach((r: any) => {
-        const arr = roleMap.get(r.user_id) ?? [];
-        arr.push(r.role);
-        roleMap.set(r.user_id, arr);
-      });
-      return (profs ?? [])
-        .map((p) => ({ ...p, roles: roleMap.get(p.user_id) ?? [] }))
-        .filter((p) => p.roles.length > 0); // só profissionais
+      const { data, error } = await (supabase as any).rpc("fn_notificar_listar_profissionais");
+      if (error) throw error;
+      return (data ?? []) as Array<{ user_id: string; full_name: string; specialty: string | null; roles: string[] }>;
     },
   });
+
 
   const groups = [
     { key: "all_profissionais", label: "Todos os profissionais" },

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,10 +82,36 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
 
   const n = data?.notif as any;
 
+  const filePreviewUrl = useMemo(() => {
+    if (file && file.type.startsWith("image/")) return URL.createObjectURL(file);
+    return null;
+  }, [file]);
+  useEffect(() => {
+    return () => { if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl); };
+  }, [filePreviewUrl]);
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const it of Array.from(items)) {
+      if (it.kind === "file" && it.type.startsWith("image/")) {
+        const f = it.getAsFile();
+        if (f) {
+          const ext = it.type.split("/")[1] || "png";
+          setFile(new File([f], `pasted-${Date.now()}.${ext}`, { type: it.type }));
+          toast.success("Imagem colada");
+          e.preventDefault();
+          return;
+        }
+      }
+    }
+  };
+
   return (
     <div
       className="fixed bottom-4 right-2 sm:right-4 z-50 w-[calc(100vw-1rem)] max-w-[320px] h-[60vh] max-h-[420px] bg-card border border-border rounded-lg shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 sm:w-80"
       style={{ right: `${8 + offsetIndex * 12}px`, ['--offset' as any]: offsetIndex }}
+      onPaste={handlePaste}
     >
       <div className="px-3 py-2 border-b bg-muted/40 flex items-center gap-2">
         <div className="flex-1 min-w-0">
@@ -117,8 +143,13 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
 
       <div className="p-2 border-t space-y-1">
         {file && (
-          <div className="flex items-center gap-1 text-[11px] bg-muted px-2 py-1 rounded">
-            <Paperclip className="w-3 h-3" /><span className="truncate flex-1">{file.name}</span>
+          <div className="flex items-center gap-2 text-[11px] bg-muted px-2 py-1 rounded">
+            {filePreviewUrl ? (
+              <img src={filePreviewUrl} alt="preview" className="h-12 w-12 object-cover rounded" />
+            ) : (
+              <Paperclip className="w-3 h-3" />
+            )}
+            <span className="truncate flex-1">{file.name}</span>
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setFile(null)}><X className="w-3 h-3" /></Button>
           </div>
         )}
@@ -129,9 +160,10 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
           </label>
           <Input
             className="h-8 text-sm"
-            placeholder="Mensagem..."
+            placeholder="Mensagem... (Ctrl+V cola imagem)"
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
+            onPaste={handlePaste}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMut.mutate(); } }}
           />
           <Button size="icon" className="h-8 w-8" onClick={() => sendMut.mutate()} disabled={sendMut.isPending}>
@@ -149,12 +181,20 @@ function ChatBubble({ c, mine, authorName }: { c: any; mine: boolean; authorName
     if (c.anexo_url) getAnexoUrl(c.anexo_url).then((u) => setUrl(u ?? null));
   }, [c.anexo_url]);
 
+  const isImage = typeof c.anexo_tipo === "string" && c.anexo_tipo.startsWith("image/");
+  const hasText = c.comentario && c.comentario !== "(anexo)";
+
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
         {!mine && <div className="text-[10px] font-semibold opacity-80 mb-0.5">{(authorName ?? "—").split(" ")[0]}</div>}
-        <div className="whitespace-pre-wrap">{c.comentario}</div>
-        {url && (
+        {hasText && <div className="whitespace-pre-wrap">{c.comentario}</div>}
+        {url && isImage && (
+          <a href={url} target="_blank" rel="noreferrer" className="block mt-1">
+            <img src={url} alt={c.anexo_nome ?? "imagem"} className="max-w-full max-h-48 rounded cursor-zoom-in" />
+          </a>
+        )}
+        {url && !isImage && (
           <a href={url} target="_blank" rel="noreferrer" className="text-[10px] underline block mt-0.5">📎 {c.anexo_nome ?? "Anexo"}</a>
         )}
         <div className="text-[9px] opacity-70 mt-0.5">{format(new Date(c.created_at), "dd/MM HH:mm", { locale: ptBR })}</div>
