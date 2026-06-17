@@ -1169,25 +1169,18 @@ export default function BancoTreinos() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(template => {
-                  const isUnderConstruction = template.fase === "Personalizado 2";
-                  const isLockedForProfessors =
-                    ["Planilha 5RM", "5-3-1", "M102"].includes(template.fase) && !canEdit;
-                  const isBlocked = isUnderConstruction || isLockedForProfessors;
+                  const isUnderConstruction = ["Planilha 5RM", "5-3-1", "M102"].includes(template.fase);
                   return (
                   <Card
                     key={template.fase}
                     className={`transition-colors group ${
-                      isBlocked
+                      isUnderConstruction
                         ? "cursor-not-allowed opacity-70"
                         : "cursor-pointer hover:border-primary"
                     }`}
                     onClick={() => {
                       if (isUnderConstruction) {
                         toast.info("Em Construção", { description: "Este modelo ainda não está disponível." });
-                        return;
-                      }
-                      if (isLockedForProfessors) {
-                        toast.warning("Acesso restrito", { description: "Esta planilha está disponível apenas para coordenadores e administradores." });
                         return;
                       }
                       if (template.fase === "Personalizado") {
@@ -1219,28 +1212,19 @@ export default function BancoTreinos() {
                         <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                           {isUnderConstruction
                             ? <Construction className="h-5 w-5 text-warning" />
-                            : isLockedForProfessors
-                              ? <Lock className="h-5 w-5 text-muted-foreground" />
-                              : template.fase === "Personalizado" || template.fase === "Personalizado 2"
-                                ? <Sparkles className="h-5 w-5 text-primary" />
-                                : <Dumbbell className="h-5 w-5 text-primary" />}
+                            : template.fase === "Personalizado"
+                              ? <Sparkles className="h-5 w-5 text-primary" />
+                              : <Dumbbell className="h-5 w-5 text-primary" />}
                         </div>
                         {isUnderConstruction ? (
                           <Badge variant="outline" className="border-warning/40 text-warning bg-warning/10">
                             Em Construção
                           </Badge>
-                        ) : isLockedForProfessors ? (
-                          <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
-                            <Lock className="w-3 h-3 mr-1" /> Restrito
-                          </Badge>
                         ) : (
                           <Badge variant="outline">{template.frequencia}</Badge>
                         )}
                       </div>
-                      <CardTitle className="text-lg mt-3 flex items-center gap-2">
-                        {template.fase}
-                        {isLockedForProfessors && <Lock className="w-4 h-4 text-muted-foreground" />}
-                      </CardTitle>
+                      <CardTitle className="text-lg mt-3">{template.fase}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
