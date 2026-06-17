@@ -1,36 +1,39 @@
-## Objetivo
+## Diagnóstico
 
-Sempre que um período de Licença (do plano ou médica) for adicionado a um aluno, a `data_fim` do plano correspondente deve ser estendida pelo mesmo número de dias bloqueados. Ao remover a licença, a extensão deve ser revertida.
+A licença de 8 dias da Larissa foi salva corretamente em `aluno_licencas`, mas o plano dela está com `data_fim = NULL` (apenas `data_inicio = 2026-03-02` e `duracao_meses = 12`). O trigger atual `trg_aluno_licencas_extende_plano` tem a cláusula `WHERE id = v_plano_id AND data_fim IS NOT NULL`, então pula qualquer plano cuja data final ainda não esteja materializada — que é o caso da maioria dos planos hoje (Start+, Pro, Power, etc. quase todos têm `data_fim NULL`).
 
-## Como funciona hoje
+Na UI, a data final exibida vem de `data_fim ?? calcEndDate(data_inicio, duracao_meses)`, ou seja, é calculada na hora. Como o trigger não escreve nada, a extensão "some" visualmente.
 
-- `aluno_licencas` guarda `plano_id`, `data_inicio`, `data_fim` e `dias`.
-- `planos.data_fim` (e `planos.proxima_renovacao`, quando renovação automática está ligada) hoje **não** são alterados quando uma licença é cadastrada — o aluno perde dias de plano.
+## Correção
 
-## Mudança proposta
+### 1. Atualizar o trigger `aluno_licencas_extende_plano`
 
-Implementar a extensão no banco via **trigger** em `aluno_licencas`, garantindo consistência mesmo se a licença for criada/excluída por qualquer caminho (UI, edge function, importação).
+Quando for adicionar dias (INSERT, ou UPDATE que aumenta `dias`, ou troca de `plano_id`):
 
-### Trigger `trg_aluno_licencas_extende_plano`
+- Se `planos.data_fim IS NOT NULL` → soma `v_delta` em `data_fim` (comportamento atual).
+- Se `planos.data_fim IS NULL` mas `data_inicio` e `duracao_meses` existem → **materializa** `data_fim = data_inicio + duracao_meses meses + v_delta` em uma única atualização. A partir daí o plano passa a ter `data_fim` explícita e os próximos ajustes seguem o caminho normal.
+- Se nem `data_inicio`/`duracao_meses` existem → ignora (caso de borda, mantém comportamento silencioso).
 
-- **AFTER INSERT**: soma `NEW.dias` a `planos.data_fim` do `plano_id`. Se `renovacao_automatica = true` e `proxima_renovacao` não é nula, também soma `NEW.dias` a `proxima_renovacao` (para manter o ciclo alinhado ao novo fim).
-- **AFTER DELETE**: subtrai `OLD.dias` de `data_fim` (e de `proxima_renovacao` quando aplicável).
-- **AFTER UPDATE de `dias`**: ajusta pela diferença (`NEW.dias - OLD.dias`). Cobre eventuais edições futuras dos campos de período.
-- Só aplica quando `planos.data_fim` já existe (plano por prazo); planos sem `data_fim` são ignorados silenciosamente.
+Quando for remover dias (DELETE, ou UPDATE que reduz `dias`, ou troca de plano):
 
-Não há mudança de schema — apenas a função e o trigger.
+- Só ajusta se `planos.data_fim IS NOT NULL`. Não vamos "materializar para reduzir" — se o plano nunca teve `data_fim` setada, não há o que reduzir (a licença anterior também não havia estendido).
 
-### Frontend
+`proxima_renovacao`: mantém a regra atual (só ajusta quando `renovacao_automatica = true` e `proxima_renovacao IS NOT NULL`). Não há mudança aqui — planos mensais com renovação automática já entram nesse caminho.
 
-- `StudentLicencas.tsx`: após salvar/excluir licença, invalidar também as queries do plano (`["plano", alunoId]` / `["alunos_with_plans"]` — esta última já é invalidada) para que a nova `data_fim` apareça imediatamente em `StudentPlan` e nos cards/listas.
-- Mostrar um toast informativo: "Licença adicionada · plano estendido em N dia(s)" / "Licença removida · plano reduzido em N dia(s)".
+### 2. Backfill da Larissa
 
-### Backfill
+Aplicar manualmente o efeito da licença existente no plano dela:
 
-Não retroativo. Licenças já cadastradas antes desta mudança **não** ajustam planos passados — evita alterar planos já encerrados ou faturados. Se você quiser aplicar o backfill nas licenças existentes, posso adicionar como passo opcional.
+- `planos.data_fim = (2026-03-02 + 12 meses) + 8 dias = 2027-03-10` no plano `a9f596d8-592e-4d91-a2d5-bc9532e625eb`.
+
+Não vou fazer backfill global das licenças antigas (mantém a decisão de "não retroativo" definida no plano original); só corrijo a Larissa porque o caso foi reportado.
+
+### 3. Sem mudanças no frontend
+
+A lógica de exibição `data_fim ?? calcEndDate(...)` continua válida — assim que o trigger materializar `data_fim`, a UI passa a mostrar o valor estendido automaticamente. As invalidações de query já estão no lugar.
 
 ## Fora de escopo
 
-- Mudanças em RLS, cobrança, comissionamento ou regras de renovação.
-- Mudança no cálculo de `dias` da licença (continua sendo inclusive nos dois extremos, como hoje).
-- Tratamento de sobreposição entre múltiplas licenças (somatório direto dos dias é mantido).
+- Recalcular `proxima_renovacao` para planos sem renovação automática.
+- Mudar a regra de cálculo de `dias` da licença.
+- Backfill de outros alunos com licenças antigas.
