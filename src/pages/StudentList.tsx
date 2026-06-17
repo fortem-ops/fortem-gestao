@@ -238,6 +238,26 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const matchVip = filters.vip === "todos" ||
         (filters.vip === "sim" ? (s.planTipo || "").toLowerCase() === "vip" : (s.planTipo || "").toLowerCase() !== "vip");
 
+      let matchAvalFunc = true;
+      if (filters.ultimaAvaliacaoFuncional !== "todos") {
+        const sev = severityForLastFuncional(lastFuncionalMap?.[s.id] ?? null);
+        const keyMap: Record<string, string> = { "status-active": "em_dia", "status-warning": "pendente", "status-urgent": "atrasada" };
+        matchAvalFunc = keyMap[sev.className] === filters.ultimaAvaliacaoFuncional;
+      }
+
+      let matchServDisp = true;
+      if (filters.servicoPlanoDisponivel !== "todos") {
+        const keyForFilter: Record<string, string> = {
+          avaliacao_funcional: "Avaliação Funcional",
+          nutricao: "Consultas Nutrição",
+          reabilitacao: "Consultas Reabilitação",
+        };
+        const key = keyForFilter[filters.servicoPlanoDisponivel];
+        const agg = c?.plano?.[key];
+        matchServDisp = !!agg && (agg.ilimitado || agg.total - agg.usado > 0);
+      }
+
+
       let matchDate = true;
       if (filters.dataFinalDe && s.planEnd) {
         matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
