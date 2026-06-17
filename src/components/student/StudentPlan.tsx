@@ -114,6 +114,13 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       if (!planos || planos.length === 0) return null;
       const plano = planos[0];
 
+      // Plano vencido sem renovação automática => tratar como inativo
+      const today = new Date().toISOString().split("T")[0];
+      const autoRenew = (plano as any).renovacao_automatica || isAutoRenewPlan(plano.tipo);
+      if (!autoRenew && (plano as any).data_fim && (plano as any).data_fim < today) {
+        return null;
+      }
+
       const { data: consumos } = await supabase
         .from("consumo_servicos")
         .select("*")

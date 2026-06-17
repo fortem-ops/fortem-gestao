@@ -1,18 +1,37 @@
-## Mudanças
+## Problema
 
-### 1. Card "Comissionamentos" clicável no Dashboard
-Arquivo: `src/components/dashboard/StatsCards.tsx`
+Em `StudentPlan.tsx` a query carrega o plano com `eq("ativo", true)` e exibe o badge "Ativo" sem checar se o `data_fim` já passou. Quando um contrato expira (ex.: ELIEZER BERNART), o plano permanece marcado como `ativo=true` no banco, então a aba "Plano Contratado" continua mostrando-o como Ativo, mesmo o perfil do aluno já estando Inativo (que usa lógica de `studentStatus` baseada em datas).
 
-- Adicionar `onClick: () => navigate("/comissionamentos")` ao item "Comissionamentos" em `row3` (hoje é o único card sem `onClick`), para que ao clicar navegue para a aba Comissionamentos.
+A "Histórico de Vendas" abaixo já lê da tabela `vendas` independentemente, então o registro da venda continua aparecendo lá — o ajuste é apenas tirar o plano expirado do bloco "Plano Contratado".
 
-### 2. Data final de plano correta em "Alerta Administrativo"
-Arquivo: `src/components/dashboard/AdminAlertsWidget.tsx`
+## Solução
 
-Problema: o widget calcula o vencimento como `data_inicio + duracao_meses`, ignorando `planos.data_fim`. Quando o aluno teve licença (plano/médica) ou ajuste manual, o campo `data_fim` no perfil é a fonte correta — como no caso da Zilmara Bonai (perfil: 09/07/2026; dashboard: 02/06/2026, valor calculado sem licenças).
+### 1. Tratar plano expirado como inativo na UI (frontend)
+Em `src/components/student/StudentPlan.tsx`, na query `["plano_ativo", student.id]`:
+- Após carregar o plano com `ativo=true`, verificar se `data_fim < hoje` E `renovacao_automatica = false` (ou tipo não auto-renovável via `isAutoRenewPlan`).
+- Se expirado, retornar `null` para que o componente renderize o estado "Nenhum plano ativo encontrado" — e o `HistoricoVendas` abaixo continua mostrando a venda como registro histórico.
 
-Correção:
-- Incluir `data_fim` no `select` da tabela `planos`.
-- Calcular `end` como `plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : data_inicio + duracao_meses` — mesma regra já usada em `StudentProfile.tsx`, `StudentList.tsx` e `StudentSummary.tsx`.
-- Manter o restante da lógica de agrupamento (mês anterior / atual / próximo) inalterado.
+Cancelamentos agendados futuros (`data_fim > hoje`) continuam exibidos normalmente, mantendo o comportamento atual do badge "Cancelamento agendado".
 
-Nenhuma alteração de schema/RLS é necessária; `data_fim` já existe e já é lido por outras telas.
+### 2. Normalizar dados existentes (banco)
+Rodar um UPDATE pontual para marcar como inativos os planos já vencidos e sem renovação automática:
+
+```sql
+UPDATE public.planos
+SET ativo = false
+WHERE ativo = true
+  AND data_fim IS NOT NULL
+  AND data_fim < current_date
+  AND renovacao_automatica = false
+  AND tipo NOT ILIKE '%mensal recorrente%'; -- preservar planos auto-renováveis
+```
+
+Isso alinha o estado do banco com a UI e garante que outras telas que filtram por `ativo=true` (Dashboard, comissionamento, etc.) também passem a tratar corretamente.
+
+### 3. Manter consistência futura
+A renovação mensal já é tratada por `renovar-planos-mensais`. Para evitar regressão, a checagem de expiração no frontend (item 1) age como fallback caso algum plano não-recorrente vença antes de qualquer rotina o limpar.
+
+## Fora do escopo
+- Não alterar o cálculo de `getDisplayStatus` do aluno (já correto).
+- Não alterar `HistoricoVendas` — venda permanece como registro histórico automaticamente.
+- Não criar cron job novo (o UPDATE pontual + checagem de leitura já resolvem; podemos adicionar depois se necessário).
