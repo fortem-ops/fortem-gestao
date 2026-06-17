@@ -578,6 +578,7 @@ export function PersonalizadoEditor({
           conteudo,
           status: mode === "schedule" ? "aguardando" : "atual",
           versao: proximaVersao,
+          template_fase: "Personalizado",
         };
         if (choice?.mode === "schedule") {
           const d = choice.date;
@@ -651,6 +652,7 @@ export function PersonalizadoEditor({
         nome: alunoNome || "—",
       }) as Parameters<typeof exportWorkoutPDF>[0]["student"],
       descricao: name || "TREINO PERSONALIZADO",
+      templateFase: "Personalizado",
       data: flat,
       print: mode === "print",
       weeks: weeksCount,

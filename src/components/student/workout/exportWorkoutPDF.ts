@@ -12,6 +12,8 @@ interface WorkoutData {
 interface ExportArgs {
   student: Tables<"alunos">;
   descricao: string;
+  /** Origem do treino (ex.: "Personalizado", "Fase 1"). Usado no subtítulo do PDF; cai para `descricao` quando ausente. */
+  templateFase?: string | null;
   data: WorkoutData;
   /** If true, opens the print dialog instead of saving the file. */
   print?: boolean;
@@ -57,7 +59,7 @@ const cleanExerciseName = (name: string): string =>
  * strength sessions split into Bloco A (ex 1-2) and Bloco B (ex 3-5),
  * a Frequência column, and a manual Observações area.
  */
-export async function exportWorkoutPDF({ student, descricao, data, print, weeks = 4, qrUrl: _qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
+export async function exportWorkoutPDF({ student, descricao, templateFase, data, print, weeks = 4, qrUrl: _qrUrl, returnDoc }: ExportArgs): Promise<jsPDF | void> {
   // Iterative fit: render the whole layout, and if it overflowed to a 2nd page,
   // retry with a progressively smaller scale multiplier so every treino (incl. T4)
   // and every aquecimento exercise fit on a single A4 sheet.
@@ -116,7 +118,8 @@ export async function exportWorkoutPDF({ student, descricao, data, print, weeks 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(...INK_SOFT);
-  doc.text(`${(descricao || "PLANILHA DE TREINO").toUpperCase()}  ·  ${today}`, mainX + mainW, margin + 14, { align: "right" });
+  const subtitleText = (templateFase || descricao || "PLANILHA DE TREINO").toUpperCase();
+  doc.text(`${subtitleText}  ·  ${today}`, mainX + mainW, margin + 14, { align: "right" });
 
   // Red hairline rule under header
   doc.setDrawColor(...RED);

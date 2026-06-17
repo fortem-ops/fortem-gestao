@@ -42,6 +42,7 @@ interface WorkoutDetailProps {
     status: string;
     conteudo: Json | null;
     created_at: string;
+    template_fase?: string | null;
   };
   templateData?: WorkoutData;
   fase?: string;
@@ -223,6 +224,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           conteudo: data as unknown as Json,
           status: mode === "schedule" ? "aguardando" : "atual",
           versao: proximaVersao,
+          template_fase: fase ?? descricao,
         };
         if (choice?.mode === "schedule") insertRow.data_inicio = toISODate(choice.date);
 
@@ -263,6 +265,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     await exportWorkoutPDF({
       student: aluno as Parameters<typeof exportWorkoutPDF>[0]["student"],
       descricao: descricao || "PLANILHA DE TREINO",
+      templateFase: treino?.template_fase ?? fase ?? null,
       data,
       print: mode === "print",
       weeks: weeksCount,
