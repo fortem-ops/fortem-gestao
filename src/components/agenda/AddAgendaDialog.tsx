@@ -86,6 +86,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [horarioInicio, setHorarioInicio] = useState("08:00");
   const [horarioFim, setHorarioFim] = useState("09:00");
   const [profissionalId, setProfissionalId] = useState("");
+  const [consultorId, setConsultorId] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [alunoId, setAlunoId] = useState("");
   const [alunoSearch, setAlunoSearch] = useState("");
@@ -105,6 +106,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
       setHorarioInicio(editEvent.horario_inicio?.slice(0, 5) || "08:00");
       setHorarioFim(editEvent.horario_fim?.slice(0, 5) || "09:00");
       setProfissionalId(editEvent.profissional_id || "");
+      setConsultorId(editEvent.consultor_id || "");
       setObservacoes(editEvent.observacoes || "");
       setAlunoId(editEvent.aluno_id || "");
       setAlunoSearch("");
@@ -127,6 +129,24 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         .order("full_name");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: consultores = [] } = useQuery({
+    queryKey: ["admin_consultores"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      const ids = (roles || []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids)
+        .order("full_name");
+      return profs || [];
     },
   });
 
@@ -297,6 +317,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         horario_inicio: horarioInicio,
         horario_fim: horarioFim,
         profissional_id: profissionalId || user?.id,
+        consultor_id: atividade === "Treino Experimental" ? (consultorId || null) : null,
         observacoes: observacoes || null,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
         aluno_id: alunoId || null,
@@ -353,6 +374,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setHorarioInicio("08:00");
     setHorarioFim("09:00");
     setProfissionalId("");
+    setConsultorId("");
     setObservacoes("");
     setAlunoId("");
     setAlunoSearch("");
@@ -514,6 +536,20 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
               </SelectContent>
             </Select>
           </div>
+
+          {atividade === "Treino Experimental" && (
+            <div className="space-y-2">
+              <Label>Consultor</Label>
+              <Select value={consultorId} onValueChange={setConsultorId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o consultor" /></SelectTrigger>
+                <SelectContent>
+                  {consultores.map((p: any) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Anamnese inicial (prospect) */}
           {showAnamnese && alunoId && (
