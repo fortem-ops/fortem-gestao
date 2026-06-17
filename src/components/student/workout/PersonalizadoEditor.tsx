@@ -578,6 +578,7 @@ export function PersonalizadoEditor({
           conteudo,
           status: mode === "schedule" ? "aguardando" : "atual",
           versao: proximaVersao,
+          template_fase: "Personalizado",
         };
         if (choice?.mode === "schedule") {
           const d = choice.date;
