@@ -218,7 +218,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         ? display.key === "encerrado"
         : display.key === "ativo" || display.key === "licenca";
       if (!matchMode) return false;
-      const matchStatus = filters.status === "todos" || display.key === filters.status;
+      const matchStatus = filters.status.length === 0 || filters.status.includes(display.key);
 
       const matchFreq = filters.frequencia === "todos" ||
         (filters.frequencia === "livre" ? s.frequencia_semanal === 5 : s.frequencia_semanal === parseInt(filters.frequencia));
@@ -231,36 +231,40 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const matchSC = filters.servicosContratados === "todos" ||
         (filters.servicosContratados === "com" ? hasPurch : !hasPurch);
 
-      const matchProf = filters.professor === "todos" || s.responsavel_id === filters.professor;
+      const matchProf = filters.professor.length === 0 || (s.responsavel_id && filters.professor.includes(s.responsavel_id));
 
-      const matchTipoPlano = filters.tipoPlano === "todos" || s.planTipo === filters.tipoPlano;
+      const matchTipoPlano = filters.tipoPlano.length === 0 || (s.planTipo && filters.tipoPlano.includes(s.planTipo));
 
       const matchVip = filters.vip === "todos" ||
         (filters.vip === "sim" ? (s.planTipo || "").toLowerCase() === "vip" : (s.planTipo || "").toLowerCase() !== "vip");
 
       let matchAvalFunc = true;
-      if (filters.ultimaAvaliacaoFuncional !== "todos") {
+      if (filters.ultimaAvaliacaoFuncional.length > 0) {
         const date = lastFuncionalMap?.[s.id] ?? null;
-        if (filters.ultimaAvaliacaoFuncional === "nunca_realizada") {
-          matchAvalFunc = date === null;
+        let key: string;
+        if (date === null) {
+          key = "nunca_realizada";
         } else {
           const sev = severityForLastFuncional(date);
           const keyMap: Record<string, string> = { "status-active": "em_dia", "status-warning": "pendente", "status-urgent": "atrasada" };
-          matchAvalFunc = keyMap[sev.className] === filters.ultimaAvaliacaoFuncional;
+          key = keyMap[sev.className] ?? "";
         }
+        matchAvalFunc = (filters.ultimaAvaliacaoFuncional as string[]).includes(key);
       }
 
       let matchServDisp = true;
-      if (filters.servicoPlanoDisponivel !== "todos") {
+      if (filters.servicoPlanoDisponivel.length > 0) {
         const keyForFilter: Record<string, string> = {
           avaliacao_funcional: "Avaliação Funcional",
           nutricao: "Consultas Nutrição",
           reabilitacao: "Consultas Reabilitação",
         };
-        const key = keyForFilter[filters.servicoPlanoDisponivel];
-        const agg = c?.plano?.[key];
-        matchServDisp = !!agg && (agg.ilimitado || agg.total - agg.usado > 0);
+        matchServDisp = filters.servicoPlanoDisponivel.some((sel) => {
+          const agg = c?.plano?.[keyForFilter[sel]];
+          return !!agg && (agg.ilimitado || agg.total - agg.usado > 0);
+        });
       }
+
 
 
       let matchDate = true;
