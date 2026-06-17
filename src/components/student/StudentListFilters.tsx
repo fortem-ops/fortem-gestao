@@ -146,18 +146,19 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
             className="pl-10"
           />
         </div>
-        <Select value={filters.status} onValueChange={(v) => update({ status: v })}>
-          <SelectTrigger className="w-[160px]">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            <SelectItem value="ativo">Ativos</SelectItem>
-            <SelectItem value="licenca">Licença</SelectItem>
-            <SelectItem value="encerrado">Encerrados</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="w-[200px]">
+          <MultiSelectFilter
+            options={[
+              { value: "ativo", label: "Ativos" },
+              { value: "licenca", label: "Licença" },
+              { value: "encerrado", label: "Encerrados" },
+            ]}
+            value={filters.status}
+            onChange={(v) => update({ status: v })}
+            placeholderAll="Todos os status"
+          />
+        </div>
+
         <Button
           variant={showAdvanced ? "secondary" : "outline"}
           size="default"
