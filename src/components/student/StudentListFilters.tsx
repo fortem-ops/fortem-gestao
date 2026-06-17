@@ -234,33 +234,24 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Professor Responsável</label>
-              <Select value={filters.professor} onValueChange={(v) => update({ professor: v })}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  {professors.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={professors.map((p) => ({ value: p.id, label: p.name }))}
+                value={filters.professor}
+                onChange={(v) => update({ professor: v })}
+                placeholderAll="Todos"
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Tipo de Plano</label>
-              <Select value={filters.tipoPlano} onValueChange={(v) => update({ tipoPlano: v })}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  {tiposPlano.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={tiposPlano.map((t) => ({ value: t, label: t }))}
+                value={filters.tipoPlano}
+                onChange={(v) => update({ tipoPlano: v })}
+                placeholderAll="Todos"
+              />
             </div>
+
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Plano VIP</label>
