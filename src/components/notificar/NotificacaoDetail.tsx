@@ -201,9 +201,10 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
             <Button variant="ghost" size="icon" asChild><span><Paperclip className="w-4 h-4" /></span></Button>
           </label>
           <Input
-            placeholder="Comentário..."
+            placeholder="Comentário... (Ctrl+V cola imagem)"
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
+            onPaste={handlePaste}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMut.mutate(); } }}
           />
           <Button size="icon" onClick={() => sendMut.mutate()} disabled={sendMut.isPending}>
