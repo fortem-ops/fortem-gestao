@@ -118,7 +118,18 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
   const isCriador = n.criado_por === user?.id;
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className={`flex flex-col h-full relative ${dragOver ? "ring-2 ring-primary ring-inset" : ""}`}
+      onPaste={handlePaste}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {dragOver && (
+        <div className="absolute inset-0 z-10 bg-primary/10 border-2 border-dashed border-primary rounded flex items-center justify-center pointer-events-none">
+          <span className="text-sm font-medium text-primary">Solte para anexar</span>
+        </div>
+      )}
       <div className="p-4 border-b space-y-2">
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-semibold">{n.titulo}</h2>
