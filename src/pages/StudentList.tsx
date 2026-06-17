@@ -292,9 +292,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
         checkPresenca(d.foto, !!(s as any).foto_url);
 
-      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchDate && matchDateStart && matchDados;
+      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchAvalFunc && matchServDisp && matchDate && matchDateStart && matchDados;
     });
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.dataInicioDe, filters.dataInicioAte, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.ultimaAvaliacaoFuncional, filters.servicoPlanoDisponivel, filters.dataInicioDe, filters.dataInicioAte, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos, lastFuncionalMap]);
 
 
   const filteredIds = useMemo(() => filtered.map((s: any) => s.id), [filtered]);
