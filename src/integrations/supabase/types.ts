@@ -3541,6 +3541,7 @@ export type Database = {
           descricao: string
           id: string
           status: string
+          template_fase: string | null
           updated_at: string
           versao: number
         }
@@ -3553,6 +3554,7 @@ export type Database = {
           descricao: string
           id?: string
           status?: string
+          template_fase?: string | null
           updated_at?: string
           versao?: number
         }
@@ -3565,6 +3567,7 @@ export type Database = {
           descricao?: string
           id?: string
           status?: string
+          template_fase?: string | null
           updated_at?: string
           versao?: number
         }
