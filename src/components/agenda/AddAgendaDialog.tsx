@@ -106,6 +106,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
       setHorarioInicio(editEvent.horario_inicio?.slice(0, 5) || "08:00");
       setHorarioFim(editEvent.horario_fim?.slice(0, 5) || "09:00");
       setProfissionalId(editEvent.profissional_id || "");
+      setConsultorId(editEvent.consultor_id || "");
       setObservacoes(editEvent.observacoes || "");
       setAlunoId(editEvent.aluno_id || "");
       setAlunoSearch("");
