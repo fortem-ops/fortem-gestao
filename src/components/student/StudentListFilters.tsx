@@ -272,6 +272,33 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
             </div>
 
             <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Última Avaliação Funcional</label>
+              <Select value={filters.ultimaAvaliacaoFuncional} onValueChange={(v) => update({ ultimaAvaliacaoFuncional: v as UltimaAvalFuncFiltro })}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas</SelectItem>
+                  <SelectItem value="em_dia">Em dia</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="atrasada">Atrasada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Serviços do Plano Disponíveis (com crédito)</label>
+              <Select value={filters.servicoPlanoDisponivel} onValueChange={(v) => update({ servicoPlanoDisponivel: v as ServicoPlanoDispFiltro })}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="avaliacao_funcional">Avaliação Funcional</SelectItem>
+                  <SelectItem value="nutricao">Nutrição</SelectItem>
+                  <SelectItem value="reabilitacao">Reabilitação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+
+            <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Início Plano (de)</label>
               <Popover>
                 <PopoverTrigger asChild>
