@@ -374,6 +374,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setHorarioInicio("08:00");
     setHorarioFim("09:00");
     setProfissionalId("");
+    setConsultorId("");
     setObservacoes("");
     setAlunoId("");
     setAlunoSearch("");
