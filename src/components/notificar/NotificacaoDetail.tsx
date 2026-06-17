@@ -222,12 +222,20 @@ function CommentBubble({ c, mine, authorName }: { c: any; mine: boolean; authorN
     if (c.anexo_url) getAnexoUrl(c.anexo_url).then((u) => setUrl(u ?? null));
   }, [c.anexo_url]);
 
+  const isImage = typeof c.anexo_tipo === "string" && c.anexo_tipo.startsWith("image/");
+  const hasText = c.comentario && c.comentario !== "(anexo)";
+
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
         {!mine && <div className="text-xs font-semibold opacity-80 mb-0.5">{authorName ?? "—"}</div>}
-        <div className="whitespace-pre-wrap">{c.comentario}</div>
-        {url && (
+        {hasText && <div className="whitespace-pre-wrap">{c.comentario}</div>}
+        {url && isImage && (
+          <a href={url} target="_blank" rel="noreferrer" className="block mt-1">
+            <img src={url} alt={c.anexo_nome ?? "imagem"} className="max-w-full max-h-64 rounded cursor-zoom-in" />
+          </a>
+        )}
+        {url && !isImage && (
           <a href={url} target="_blank" rel="noreferrer" className="text-xs underline block mt-1">
             📎 {c.anexo_nome ?? "Anexo"}
           </a>
