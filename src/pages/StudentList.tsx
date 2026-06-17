@@ -240,9 +240,14 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       let matchAvalFunc = true;
       if (filters.ultimaAvaliacaoFuncional !== "todos") {
-        const sev = severityForLastFuncional(lastFuncionalMap?.[s.id] ?? null);
-        const keyMap: Record<string, string> = { "status-active": "em_dia", "status-warning": "pendente", "status-urgent": "atrasada" };
-        matchAvalFunc = keyMap[sev.className] === filters.ultimaAvaliacaoFuncional;
+        const date = lastFuncionalMap?.[s.id] ?? null;
+        if (filters.ultimaAvaliacaoFuncional === "nunca_realizada") {
+          matchAvalFunc = date === null;
+        } else {
+          const sev = severityForLastFuncional(date);
+          const keyMap: Record<string, string> = { "status-active": "em_dia", "status-warning": "pendente", "status-urgent": "atrasada" };
+          matchAvalFunc = keyMap[sev.className] === filters.ultimaAvaliacaoFuncional;
+        }
       }
 
       let matchServDisp = true;
