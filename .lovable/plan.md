@@ -1,36 +1,29 @@
-## Objetivo
+## Problemas
 
-Quando a atividade agendada for **Treino Experimental**, exibir um campo **Consultor** (logo abaixo do Profissional) com a lista de usuários de papel `admin` (Nicolas, Bruno, etc.). O consultor escolhido deve receber as mesmas notificações já configuradas para o profissional vinculado:
-- Email no agendamento
-- Email no cancelamento
-- Email + sino 30 minutos antes do evento
+### 1. Consultor não salva (na edição)
+`src/pages/Agenda.tsx` faz `select(...)` sem `consultor_id`. Ao abrir o diálogo para **editar** um evento de Treino Experimental, `editEvent.consultor_id` é `undefined` → o estado `consultorId` vira `""` → ao salvar, o payload envia `consultor_id: null` e apaga o valor já gravado.
+
+Em criação novo o salvamento funciona (confirmado no banco), o problema acontece no fluxo de edição.
+
+### 2. Local não é preenchido automaticamente pela atividade
 
 ## Mudanças
 
-### 1. Banco — adicionar coluna `consultor_id` (migração)
-```sql
-ALTER TABLE public.agenda_servicos
-  ADD COLUMN consultor_id uuid NULL REFERENCES auth.users(id) ON DELETE SET NULL;
-CREATE INDEX idx_agenda_consultor ON public.agenda_servicos(consultor_id);
-```
-Sem mudanças em RLS/GRANTs (a tabela já é coberta).
+### `src/pages/Agenda.tsx`
+- Incluir `consultor_id` no `select` de `agenda_servicos` (linha do `useQuery` principal), para que o `editEvent` carregue o consultor atual e o diálogo prefille corretamente.
 
-### 2. Frontend — `src/components/agenda/AddAgendaDialog.tsx`
-- Adicionar estado `consultorId` e carregamento das edições/prefill.
-- Carregar lista de admins via `user_roles.role = 'admin'` + `profiles.full_name`.
-- Renderizar o `<Select>` **Consultor** logo após o de Profissional, **somente quando** `atividade === "Treino Experimental"`.
-- Incluir `consultor_id: consultorId || null` no payload de insert/update.
-- Limpar no `resetForm`.
+### `src/components/agenda/AddAgendaDialog.tsx`
+- Criar mapa `ATIVIDADE_LOCAL_PADRAO`:
+  - `Treino Experimental` → `Sala de Treinamento`
+  - `Reabilitação` → `Sala de Reabilitação`
+  - `Recovery (Bota de Compressão)` → `Sala de Reabilitação`
+  - `Nutrição` → `Sala de Nutrição`
+  - `Avaliação Física` → `Sala de Nutrição`
+  - (Demais atividades — ex.: `Avaliação Funcional` — continuam sem preenchimento automático.)
+- Em um `useEffect` que observa `atividade`: se existir local padrão para a atividade selecionada, setar `setLocal(local_padrao)`. O campo Local continua editável (o usuário pode trocar manualmente depois).
+  - Para evitar sobrescrever ao reabrir um evento em edição com local diferente, o efeito só dispara quando `atividade` muda por interação do usuário; durante o prefill/edit o `setLocal(editEvent.local)` já roda primeiro.
 
-### 3. Edge function `notify-agenda-evento` (agendado/cancelado)
-- Incluir `consultor_id` no `select` da agenda.
-- Se houver `consultor_id`, buscar o email do consultor via `auth.admin.getUserById` e adicioná-lo ao `cc` (mesma deduplicação que já existe).
-- Adicionar uma linha "Consultor" no `buildHtml`, exibida apenas para Treino Experimental quando preenchida.
-
-### 4. Edge function `notify-agenda-proximos` (30 min antes)
-- Incluir `consultor_id` no `select`.
-- Para cada item pendente: se houver consultor, criar destinatário interno adicional em `notificacao_destinatarios` (mesma notificação) e enviar o mesmo email para o consultor (com chave de idempotência já existente `proximo_30min_<data>` por agenda — então não duplica para a mesma agenda; o consultor recebe junto, no mesmo ciclo).
+Sem mudanças em banco, RLS ou edge functions.
 
 ## Fora de escopo
-- Não alterar a regra `destinatarios_regra` da tela de configurações de email — o consultor é uma adição específica e independente da regra global.
-- Não alterar comportamento para atividades diferentes de Treino Experimental.
+- Não alterar a lista `LOCAIS` nem regras de notificação.
