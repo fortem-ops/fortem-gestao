@@ -42,6 +42,7 @@ interface WorkoutDetailProps {
     status: string;
     conteudo: Json | null;
     created_at: string;
+    template_fase?: string | null;
   };
   templateData?: WorkoutData;
   fase?: string;
