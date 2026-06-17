@@ -25,6 +25,9 @@ export interface DadosCadastraisFiltro {
   foto: PresencaFiltro;
 }
 
+export type UltimaAvalFuncFiltro = "todos" | "em_dia" | "pendente" | "atrasada";
+export type ServicoPlanoDispFiltro = "todos" | "avaliacao_funcional" | "nutricao" | "reabilitacao";
+
 export interface StudentFilters {
   search: string;
   status: string;
@@ -34,6 +37,8 @@ export interface StudentFilters {
   professor: string;
   tipoPlano: string;
   vip: string;
+  ultimaAvaliacaoFuncional: UltimaAvalFuncFiltro;
+  servicoPlanoDisponivel: ServicoPlanoDispFiltro;
   dataInicioDe: Date | undefined;
   dataInicioAte: Date | undefined;
   dataFinalDe: Date | undefined;
