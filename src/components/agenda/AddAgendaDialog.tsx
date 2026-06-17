@@ -86,6 +86,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [horarioInicio, setHorarioInicio] = useState("08:00");
   const [horarioFim, setHorarioFim] = useState("09:00");
   const [profissionalId, setProfissionalId] = useState("");
+  const [consultorId, setConsultorId] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [alunoId, setAlunoId] = useState("");
   const [alunoSearch, setAlunoSearch] = useState("");
