@@ -537,6 +537,20 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             </Select>
           </div>
 
+          {atividade === "Treino Experimental" && (
+            <div className="space-y-2">
+              <Label>Consultor</Label>
+              <Select value={consultorId} onValueChange={setConsultorId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o consultor" /></SelectTrigger>
+                <SelectContent>
+                  {consultores.map((p: any) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Anamnese inicial (prospect) */}
           {showAnamnese && alunoId && (
             <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-2">
