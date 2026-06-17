@@ -21,6 +21,40 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
   const { data, isLoading } = useNotificacaoDetail(id);
   const [comentario, setComentario] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const filePreviewUrl = useMemo(() => {
+    if (file && file.type.startsWith("image/")) return URL.createObjectURL(file);
+    return null;
+  }, [file]);
+  useEffect(() => { return () => { if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl); }; }, [filePreviewUrl]);
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const it of Array.from(items)) {
+      if (it.kind === "file" && it.type.startsWith("image/")) {
+        const f = it.getAsFile();
+        if (f) {
+          const ext = it.type.split("/")[1] || "png";
+          setFile(new File([f], `pasted-${Date.now()}.${ext}`, { type: it.type }));
+          toast.success("Imagem colada");
+          e.preventDefault();
+          return;
+        }
+      }
+    }
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes("Files")) { e.preventDefault(); setDragOver(true); }
+  };
+  const handleDragLeave = (e: React.DragEvent) => { if (e.currentTarget === e.target) setDragOver(false); };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) { setFile(f); toast.success(f.type.startsWith("image/") ? "Imagem anexada" : "Arquivo anexado"); }
+  };
+
 
   // Mark as viewed
   useEffect(() => {
