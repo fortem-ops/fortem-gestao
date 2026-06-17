@@ -82,13 +82,83 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
   const [weeks, setWeeks] = useState<number>(4);
   const [prescribeOpen, setPrescribeOpen] = useState(false);
 
-  const updateExercise = (section: "aquecimento" | "treino", treinoIdx: number, exIdx: number, field: string, value: string) => {
+  const updateExercise = (
+    section: "aquecimento" | "treino",
+    treinoIdx: number,
+    exIdx: number,
+    field: string,
+    value: string | number | string[],
+  ) => {
     setData(prev => {
       const next = structuredClone(prev);
       if (section === "aquecimento") {
         (next.aquecimento[exIdx] as unknown as Record<string, unknown>)[field] = value;
       } else {
         (next.treinos[treinoIdx].exercicios[exIdx] as unknown as Record<string, unknown>)[field] = value;
+      }
+      return next;
+    });
+  };
+
+  const toggleDia = (section: "aquecimento" | "treino", treinoIdx: number, exIdx: number, dia: string) => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const target = section === "aquecimento"
+        ? next.aquecimento[exIdx]
+        : next.treinos[treinoIdx].exercicios[exIdx];
+      const dias = new Set(target.dias || []);
+      if (dias.has(dia)) dias.delete(dia); else dias.add(dia);
+      target.dias = ["T1", "T2", "T3", "T4"].filter(d => dias.has(d));
+      return next;
+    });
+  };
+
+  const addAquecimento = (categoria: "LIB" | "MOB" | "ATI" | "PREV") => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const maxOrdem = next.aquecimento.reduce((m, e) => Math.max(m, e.ordem || 0), 0);
+      next.aquecimento.push({
+        ordem: maxOrdem + 1,
+        categoria,
+        subcategoria: "",
+        exercicio: "",
+        series: 1,
+        repeticoes: "",
+        dias: ["T1", "T2", "T3", "T4"],
+      });
+      return next;
+    });
+  };
+
+  const addForca = (treinoIdx: number, bloco: "A" | "B") => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      const list = next.treinos[treinoIdx].exercicios;
+      const maxOrdem = list.reduce((m, e) => Math.max(m, e.ordem || 0), 0);
+      const novo = {
+        ordem: maxOrdem + 1,
+        categoria: "",
+        exercicio: "",
+        series: 3,
+        repeticoes: "",
+      };
+      if (bloco === "A") {
+        const pos = Math.min(2, list.length);
+        list.splice(pos, 0, novo);
+      } else {
+        list.push(novo);
+      }
+      return next;
+    });
+  };
+
+  const removeExercise = (section: "aquecimento" | "treino", treinoIdx: number, exIdx: number) => {
+    setData(prev => {
+      const next = structuredClone(prev);
+      if (section === "aquecimento") {
+        next.aquecimento.splice(exIdx, 1);
+      } else {
+        next.treinos[treinoIdx].exercicios.splice(exIdx, 1);
       }
       return next;
     });
