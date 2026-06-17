@@ -224,6 +224,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
           conteudo: data as unknown as Json,
           status: mode === "schedule" ? "aguardando" : "atual",
           versao: proximaVersao,
+          template_fase: fase ?? descricao,
         };
         if (choice?.mode === "schedule") insertRow.data_inicio = toISODate(choice.date);
 
