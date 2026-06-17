@@ -238,6 +238,26 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const matchVip = filters.vip === "todos" ||
         (filters.vip === "sim" ? (s.planTipo || "").toLowerCase() === "vip" : (s.planTipo || "").toLowerCase() !== "vip");
 
+      let matchAvalFunc = true;
+      if (filters.ultimaAvaliacaoFuncional !== "todos") {
+        const sev = severityForLastFuncional(lastFuncionalMap?.[s.id] ?? null);
+        const keyMap: Record<string, string> = { "status-active": "em_dia", "status-warning": "pendente", "status-urgent": "atrasada" };
+        matchAvalFunc = keyMap[sev.className] === filters.ultimaAvaliacaoFuncional;
+      }
+
+      let matchServDisp = true;
+      if (filters.servicoPlanoDisponivel !== "todos") {
+        const keyForFilter: Record<string, string> = {
+          avaliacao_funcional: "Avaliação Funcional",
+          nutricao: "Consultas Nutrição",
+          reabilitacao: "Consultas Reabilitação",
+        };
+        const key = keyForFilter[filters.servicoPlanoDisponivel];
+        const agg = c?.plano?.[key];
+        matchServDisp = !!agg && (agg.ilimitado || agg.total - agg.usado > 0);
+      }
+
+
       let matchDate = true;
       if (filters.dataFinalDe && s.planEnd) {
         matchDate = matchDate && !isBefore(s.planEnd, startOfDay(filters.dataFinalDe));
@@ -272,9 +292,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
         checkPresenca(d.foto, !!(s as any).foto_url);
 
-      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchDate && matchDateStart && matchDados;
+      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchAvalFunc && matchServDisp && matchDate && matchDateStart && matchDados;
     });
-  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.dataInicioDe, filters.dataInicioAte, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos]);
+  }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.ultimaAvaliacaoFuncional, filters.servicoPlanoDisponivel, filters.dataInicioDe, filters.dataInicioAte, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos, lastFuncionalMap]);
 
 
   const filteredIds = useMemo(() => filtered.map((s: any) => s.id), [filtered]);

@@ -25,6 +25,9 @@ export interface DadosCadastraisFiltro {
   foto: PresencaFiltro;
 }
 
+export type UltimaAvalFuncFiltro = "todos" | "em_dia" | "pendente" | "atrasada";
+export type ServicoPlanoDispFiltro = "todos" | "avaliacao_funcional" | "nutricao" | "reabilitacao";
+
 export interface StudentFilters {
   search: string;
   status: string;
@@ -34,6 +37,8 @@ export interface StudentFilters {
   professor: string;
   tipoPlano: string;
   vip: string;
+  ultimaAvaliacaoFuncional: UltimaAvalFuncFiltro;
+  servicoPlanoDisponivel: ServicoPlanoDispFiltro;
   dataInicioDe: Date | undefined;
   dataInicioAte: Date | undefined;
   dataFinalDe: Date | undefined;
@@ -60,6 +65,8 @@ const defaultFilters: StudentFilters = {
   professor: "todos",
   tipoPlano: "todos",
   vip: "todos",
+  ultimaAvaliacaoFuncional: "todos",
+  servicoPlanoDisponivel: "todos",
   dataInicioDe: undefined,
   dataInicioAte: undefined,
   dataFinalDe: undefined,
@@ -112,6 +119,8 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
     filters.professor !== "todos",
     filters.tipoPlano !== "todos",
     filters.vip !== "todos",
+    filters.ultimaAvaliacaoFuncional !== "todos",
+    filters.servicoPlanoDisponivel !== "todos",
     !!filters.dataInicioDe,
     !!filters.dataInicioAte,
     !!filters.dataFinalDe,
@@ -261,6 +270,33 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Última Avaliação Funcional</label>
+              <Select value={filters.ultimaAvaliacaoFuncional} onValueChange={(v) => update({ ultimaAvaliacaoFuncional: v as UltimaAvalFuncFiltro })}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas</SelectItem>
+                  <SelectItem value="em_dia">Em dia</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="atrasada">Atrasada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Serviços do Plano Disponíveis (com crédito)</label>
+              <Select value={filters.servicoPlanoDisponivel} onValueChange={(v) => update({ servicoPlanoDisponivel: v as ServicoPlanoDispFiltro })}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="avaliacao_funcional">Avaliação Funcional</SelectItem>
+                  <SelectItem value="nutricao">Nutrição</SelectItem>
+                  <SelectItem value="reabilitacao">Reabilitação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Início Plano (de)</label>
