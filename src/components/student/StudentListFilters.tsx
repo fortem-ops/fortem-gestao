@@ -25,7 +25,7 @@ export interface DadosCadastraisFiltro {
   foto: PresencaFiltro;
 }
 
-export type UltimaAvalFuncFiltro = "todos" | "em_dia" | "pendente" | "atrasada";
+export type UltimaAvalFuncFiltro = "todos" | "em_dia" | "pendente" | "atrasada" | "nunca_realizada";
 export type ServicoPlanoDispFiltro = "todos" | "avaliacao_funcional" | "nutricao" | "reabilitacao";
 
 export interface StudentFilters {
@@ -280,6 +280,7 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
                   <SelectItem value="em_dia">Em dia</SelectItem>
                   <SelectItem value="pendente">Pendente</SelectItem>
                   <SelectItem value="atrasada">Atrasada</SelectItem>
+                  <SelectItem value="nunca_realizada">Nunca realizada</SelectItem>
                 </SelectContent>
               </Select>
             </div>
