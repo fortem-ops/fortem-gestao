@@ -30,6 +30,14 @@ const ATIVIDADES = [
 
 const LOCAIS = ["Sala de Nutrição", "Sala de Reabilitação", "Sala de Treinamento"];
 
+const ATIVIDADE_LOCAL_PADRAO: Record<string, string> = {
+  "Treino Experimental": "Sala de Treinamento",
+  "Reabilitação": "Sala de Reabilitação",
+  "Recovery (Bota de Compressão)": "Sala de Reabilitação",
+  "Nutrição": "Sala de Nutrição",
+  "Avaliação Física": "Sala de Nutrição",
+};
+
 const PROSPECT_STAGES = ["Prospect", "Treino experimental agendado"];
 const LEAD_STAGE = "Novo lead";
 
