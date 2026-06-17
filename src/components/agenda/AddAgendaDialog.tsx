@@ -30,6 +30,14 @@ const ATIVIDADES = [
 
 const LOCAIS = ["Sala de Nutrição", "Sala de Reabilitação", "Sala de Treinamento"];
 
+const ATIVIDADE_LOCAL_PADRAO: Record<string, string> = {
+  "Treino Experimental": "Sala de Treinamento",
+  "Reabilitação": "Sala de Reabilitação",
+  "Recovery (Bota de Compressão)": "Sala de Reabilitação",
+  "Nutrição": "Sala de Nutrição",
+  "Avaliação Física": "Sala de Nutrição",
+};
+
 const PROSPECT_STAGES = ["Prospect", "Treino experimental agendado"];
 const LEAD_STAGE = "Novo lead";
 
@@ -404,7 +412,14 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Atividade</Label>
-            <Select value={atividade} onValueChange={setAtividade}>
+            <Select
+              value={atividade}
+              onValueChange={(v) => {
+                setAtividade(v);
+                const padrao = ATIVIDADE_LOCAL_PADRAO[v];
+                if (padrao) setLocal(padrao);
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Selecione a atividade" /></SelectTrigger>
               <SelectContent>
                 {ATIVIDADES.map((a) => (
