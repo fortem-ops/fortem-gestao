@@ -34,7 +34,7 @@ export function AdminAlertsWidget() {
 
       const { data: planos } = await supabase
         .from("planos")
-        .select("id, aluno_id, tipo, data_inicio, duracao_meses")
+        .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses")
         .eq("ativo", true);
 
       if (!planos?.length) return [];
@@ -87,8 +87,9 @@ export function AdminAlertsWidget() {
         ensureProf(profId);
 
         const start = new Date(p.data_inicio + "T00:00:00");
-        const end = new Date(start);
-        end.setMonth(end.getMonth() + p.duracao_meses);
+        const end = p.data_fim
+          ? new Date(p.data_fim + "T00:00:00")
+          : (() => { const e = new Date(start); e.setMonth(e.getMonth() + p.duracao_meses); return e; })();
 
         const endMonth = end.getMonth();
         const endYear = end.getFullYear();
