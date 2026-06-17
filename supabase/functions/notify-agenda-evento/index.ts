@@ -297,15 +297,18 @@ Deno.serve(async (req) => {
     const subject = `FORTEM — ${agenda.atividade} ${evento === "agendado" ? "agendado" : "cancelado"}: ${alunoNome}`;
     const html = buildHtml({
       evento, atividade: agenda.atividade, aluno: alunoNome, profissional: profNome,
+      consultor: consultorNome,
       quando, horario, local: agenda.local || "—", observacoes: agenda.observacoes,
       anamnese,
     });
 
-    // Destinatários extra conforme regra + emails fixos
+    // Destinatários extra conforme regra + emails fixos + consultor
     const extras = await resolveExtraRecipients(admin, cfg.destinatarios_regra, agenda.profissional_id);
-    const cc = Array.from(new Set([...extras, ...(cfg.emails_extras || [])])).filter(
-      (e) => e && e.toLowerCase() !== profEmail.toLowerCase()
-    );
+    const cc = Array.from(new Set([
+      ...extras,
+      ...(cfg.emails_extras || []),
+      ...(consultorEmail ? [consultorEmail] : []),
+    ])).filter((e) => e && e.toLowerCase() !== profEmail.toLowerCase());
 
     await sendGmailEmail({ from: fromHeader, to: profEmail, cc, subject, html });
     console.log(`Notificação ${evento} enviada para ${profEmail} (cc: ${cc.length}) — agenda ${aId}`);
