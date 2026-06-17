@@ -130,7 +130,7 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
               <Button size="sm" variant="outline" onClick={() => setViewing(t)}>
                 <Eye className="w-3 h-3 mr-1" /> Visualizar
               </Button>
-              {isAdmin && (
+              {canDelete && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button size="sm" variant="destructive" title="Excluir treino" disabled={deletingId === t.id}>
