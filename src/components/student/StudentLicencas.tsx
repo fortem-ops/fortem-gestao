@@ -80,9 +80,11 @@ export function StudentLicencas({ alunoId, planoId, planoTipo, isCoordAdmin }: P
         criado_por: user.id,
       });
       if (error) throw error;
-      toast.success("Licença adicionada");
+      toast.success(`Licença adicionada · plano estendido em ${dias} dia${dias !== 1 ? "s" : ""}`);
       qc.invalidateQueries({ queryKey: ["aluno_licencas", alunoId, planoId] });
       qc.invalidateQueries({ queryKey: ["alunos_with_plans"] });
+      qc.invalidateQueries({ queryKey: ["plano", alunoId] });
+      qc.invalidateQueries({ queryKey: ["student", alunoId] });
       close();
     } catch (err: any) {
       toast.error(err.message || "Erro ao adicionar licença");
@@ -93,11 +95,15 @@ export function StudentLicencas({ alunoId, planoId, planoTipo, isCoordAdmin }: P
 
   async function handleDelete(id: string) {
     try {
+      const removed = licencas.find((l) => l.id === id);
+      const d = removed?.dias ?? 0;
       const { error } = await supabase.from("aluno_licencas" as any).delete().eq("id", id);
       if (error) throw error;
-      toast.success("Licença removida");
+      toast.success(`Licença removida${d ? ` · plano reduzido em ${d} dia${d !== 1 ? "s" : ""}` : ""}`);
       qc.invalidateQueries({ queryKey: ["aluno_licencas", alunoId, planoId] });
       qc.invalidateQueries({ queryKey: ["alunos_with_plans"] });
+      qc.invalidateQueries({ queryKey: ["plano", alunoId] });
+      qc.invalidateQueries({ queryKey: ["student", alunoId] });
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover");
     }
