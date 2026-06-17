@@ -186,7 +186,12 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
       <div className="p-3 border-t space-y-2">
         {file && (
           <div className="flex items-center gap-2 text-xs bg-muted px-2 py-1 rounded">
-            <Paperclip className="w-3 h-3" />{file.name}
+            {filePreviewUrl ? (
+              <img src={filePreviewUrl} alt="preview" className="h-14 w-14 object-cover rounded" />
+            ) : (
+              <Paperclip className="w-3 h-3" />
+            )}
+            <span className="truncate flex-1">{file.name}</span>
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setFile(null)}><X className="w-3 h-3" /></Button>
           </div>
         )}
