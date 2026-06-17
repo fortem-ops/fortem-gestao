@@ -1,39 +1,41 @@
-## Diagnóstico
+# Plano: Multi-seleção nos Filtros de Alunos
 
-A licença de 8 dias da Larissa foi salva corretamente em `aluno_licencas`, mas o plano dela está com `data_fim = NULL` (apenas `data_inicio = 2026-03-02` e `duracao_meses = 12`). O trigger atual `trg_aluno_licencas_extende_plano` tem a cláusula `WHERE id = v_plano_id AND data_fim IS NOT NULL`, então pula qualquer plano cuja data final ainda não esteja materializada — que é o caso da maioria dos planos hoje (Start+, Pro, Power, etc. quase todos têm `data_fim NULL`).
+Permitir selecionar várias opções nos filtros de status/categoria de `Alunos Ativos > Filtros`, usando dropdown com checkboxes.
 
-Na UI, a data final exibida vem de `data_fim ?? calcEndDate(data_inicio, duracao_meses)`, ou seja, é calculada na hora. Como o trigger não escreve nada, a extensão "some" visualmente.
+## Filtros afetados (multi-seleção)
+- Status
+- Última Avaliação Funcional
+- Tipo de Plano
+- Professor Responsável
+- Serviços do Plano Disponíveis (com crédito)
 
-## Correção
+Mantém **seleção única** (sem mudança):
+- Frequência, Serviços do Plano (Com/Sem), Serviços Contratados (Com/Sem), Plano VIP, todos os Dados Cadastrais (Com/Sem), datas e busca.
 
-### 1. Atualizar o trigger `aluno_licencas_extende_plano`
+## UI
+Substituir o `Select` desses 5 filtros por um componente `MultiSelectDropdown` novo:
+- Trigger no mesmo estilo dos selects atuais (altura h-9, mesmo padding).
+- Mostra: "Todas" quando vazio; o rótulo da opção quando 1 selecionada; "N selecionados" + badge com contagem quando >1.
+- Conteúdo: `Popover` + lista de `Checkbox` + label por opção, com botão "Limpar" no rodapé.
+- Comportamento: lista vazia = "todos" (sem filtro aplicado).
 
-Quando for adicionar dias (INSERT, ou UPDATE que aumenta `dias`, ou troca de `plano_id`):
+## Mudanças de estado/tipo
+Em `src/components/student/StudentListFilters.tsx`:
+- Tipos viram arrays: `status: string[]`, `ultimaAvaliacaoFuncional: UltimaAvalFuncFiltro[]` (sem `"todos"`), `tipoPlano: string[]`, `professor: string[]`, `servicoPlanoDisponivel: ServicoPlanoDispFiltro[]`.
+- `defaultFilters` desses campos = `[]`.
+- `activeCount` conta cada array `length > 0` como 1 ativo (mantém consistência com badge atual).
+- `clearAll` zera todos os arrays.
 
-- Se `planos.data_fim IS NOT NULL` → soma `v_delta` em `data_fim` (comportamento atual).
-- Se `planos.data_fim IS NULL` mas `data_inicio` e `duracao_meses` existem → **materializa** `data_fim = data_inicio + duracao_meses meses + v_delta` em uma única atualização. A partir daí o plano passa a ter `data_fim` explícita e os próximos ajustes seguem o caminho normal.
-- Se nem `data_inicio`/`duracao_meses` existem → ignora (caso de borda, mantém comportamento silencioso).
+## Lógica de filtragem
+Em `src/pages/StudentList.tsx`, ajustar onde cada filtro é aplicado:
+- Array vazio → ignora filtro (passa todos).
+- Caso contrário → `arr.includes(valorDoAluno)` (OR entre opções do mesmo filtro; AND entre filtros diferentes, como hoje).
+- Para Última Avaliação Funcional, manter a lógica atual de derivar o status do aluno (em_dia/pendente/atrasada/nunca_realizada) e checar `includes`.
 
-Quando for remover dias (DELETE, ou UPDATE que reduz `dias`, ou troca de plano):
-
-- Só ajusta se `planos.data_fim IS NOT NULL`. Não vamos "materializar para reduzir" — se o plano nunca teve `data_fim` setada, não há o que reduzir (a licença anterior também não havia estendido).
-
-`proxima_renovacao`: mantém a regra atual (só ajusta quando `renovacao_automatica = true` e `proxima_renovacao IS NOT NULL`). Não há mudança aqui — planos mensais com renovação automática já entram nesse caminho.
-
-### 2. Backfill da Larissa
-
-Aplicar manualmente o efeito da licença existente no plano dela:
-
-- `planos.data_fim = (2026-03-02 + 12 meses) + 8 dias = 2027-03-10` no plano `a9f596d8-592e-4d91-a2d5-bc9532e625eb`.
-
-Não vou fazer backfill global das licenças antigas (mantém a decisão de "não retroativo" definida no plano original); só corrijo a Larissa porque o caso foi reportado.
-
-### 3. Sem mudanças no frontend
-
-A lógica de exibição `data_fim ?? calcEndDate(...)` continua válida — assim que o trigger materializar `data_fim`, a UI passa a mostrar o valor estendido automaticamente. As invalidações de query já estão no lugar.
+## Componente novo
+`src/components/student/MultiSelectFilter.tsx` — reutilizável, props: `label?`, `options: {value, label}[]`, `value: string[]`, `onChange: (v: string[]) => void`, `placeholderAll?: string`.
 
 ## Fora de escopo
-
-- Recalcular `proxima_renovacao` para planos sem renovação automática.
-- Mudar a regra de cálculo de `dias` da licença.
-- Backfill de outros alunos com licenças antigas.
+- Filtros Com/Sem (binários) e datas permanecem como estão.
+- Sem mudanças no backend/banco.
+- Sem alteração no campo de busca textual nem no Select compacto de Status do header (esse vira o mesmo MultiSelect ou permanece single? **Decisão:** o Select de Status no header da barra superior também vira MultiSelect para alinhar com o avançado).

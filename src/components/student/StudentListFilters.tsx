@@ -12,6 +12,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { MultiSelectFilter } from "./MultiSelectFilter";
+
 
 export type PresencaFiltro = "todos" | "com" | "sem";
 
@@ -25,20 +27,20 @@ export interface DadosCadastraisFiltro {
   foto: PresencaFiltro;
 }
 
-export type UltimaAvalFuncFiltro = "todos" | "em_dia" | "pendente" | "atrasada" | "nunca_realizada";
-export type ServicoPlanoDispFiltro = "todos" | "avaliacao_funcional" | "nutricao" | "reabilitacao";
+export type UltimaAvalFuncFiltro = "em_dia" | "pendente" | "atrasada" | "nunca_realizada";
+export type ServicoPlanoDispFiltro = "avaliacao_funcional" | "nutricao" | "reabilitacao";
 
 export interface StudentFilters {
   search: string;
-  status: string;
+  status: string[];
   frequencia: string;
   servicosPlano: string;
   servicosContratados: string;
-  professor: string;
-  tipoPlano: string;
+  professor: string[];
+  tipoPlano: string[];
   vip: string;
-  ultimaAvaliacaoFuncional: UltimaAvalFuncFiltro;
-  servicoPlanoDisponivel: ServicoPlanoDispFiltro;
+  ultimaAvaliacaoFuncional: UltimaAvalFuncFiltro[];
+  servicoPlanoDisponivel: ServicoPlanoDispFiltro[];
   dataInicioDe: Date | undefined;
   dataInicioAte: Date | undefined;
   dataFinalDe: Date | undefined;
@@ -58,21 +60,22 @@ const defaultDados: DadosCadastraisFiltro = {
 
 const defaultFilters: StudentFilters = {
   search: "",
-  status: "todos",
+  status: [],
   frequencia: "todos",
   servicosPlano: "todos",
   servicosContratados: "todos",
-  professor: "todos",
-  tipoPlano: "todos",
+  professor: [],
+  tipoPlano: [],
   vip: "todos",
-  ultimaAvaliacaoFuncional: "todos",
-  servicoPlanoDisponivel: "todos",
+  ultimaAvaliacaoFuncional: [],
+  servicoPlanoDisponivel: [],
   dataInicioDe: undefined,
   dataInicioAte: undefined,
   dataFinalDe: undefined,
   dataFinalAte: undefined,
   dadosCadastrais: { ...defaultDados },
 };
+
 
 
 interface Props {
@@ -112,20 +115,21 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
   const dadosActiveCount = DADOS_LABELS.filter(({ key }) => filters.dadosCadastrais[key] !== "todos").length;
 
   const activeCount = [
-    filters.status !== "todos",
+    filters.status.length > 0,
     filters.frequencia !== "todos",
     filters.servicosPlano !== "todos",
     filters.servicosContratados !== "todos",
-    filters.professor !== "todos",
-    filters.tipoPlano !== "todos",
+    filters.professor.length > 0,
+    filters.tipoPlano.length > 0,
     filters.vip !== "todos",
-    filters.ultimaAvaliacaoFuncional !== "todos",
-    filters.servicoPlanoDisponivel !== "todos",
+    filters.ultimaAvaliacaoFuncional.length > 0,
+    filters.servicoPlanoDisponivel.length > 0,
     !!filters.dataInicioDe,
     !!filters.dataInicioAte,
     !!filters.dataFinalDe,
     !!filters.dataFinalAte,
   ].filter(Boolean).length + dadosActiveCount;
+
 
 
   const clearAll = () => onChange({ ...defaultFilters, search: filters.search });
@@ -142,18 +146,19 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
             className="pl-10"
           />
         </div>
-        <Select value={filters.status} onValueChange={(v) => update({ status: v })}>
-          <SelectTrigger className="w-[160px]">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            <SelectItem value="ativo">Ativos</SelectItem>
-            <SelectItem value="licenca">Licença</SelectItem>
-            <SelectItem value="encerrado">Encerrados</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="w-[200px]">
+          <MultiSelectFilter
+            options={[
+              { value: "ativo", label: "Ativos" },
+              { value: "licenca", label: "Licença" },
+              { value: "encerrado", label: "Encerrados" },
+            ]}
+            value={filters.status}
+            onChange={(v) => update({ status: v })}
+            placeholderAll="Todos os status"
+          />
+        </div>
+
         <Button
           variant={showAdvanced ? "secondary" : "outline"}
           size="default"
@@ -229,33 +234,24 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Professor Responsável</label>
-              <Select value={filters.professor} onValueChange={(v) => update({ professor: v })}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  {professors.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={professors.map((p) => ({ value: p.id, label: p.name }))}
+                value={filters.professor}
+                onChange={(v) => update({ professor: v })}
+                placeholderAll="Todos"
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Tipo de Plano</label>
-              <Select value={filters.tipoPlano} onValueChange={(v) => update({ tipoPlano: v })}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  {tiposPlano.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={tiposPlano.map((t) => ({ value: t, label: t }))}
+                value={filters.tipoPlano}
+                onChange={(v) => update({ tipoPlano: v })}
+                placeholderAll="Todos"
+              />
             </div>
+
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Plano VIP</label>
@@ -273,30 +269,33 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Última Avaliação Funcional</label>
-              <Select value={filters.ultimaAvaliacaoFuncional} onValueChange={(v) => update({ ultimaAvaliacaoFuncional: v as UltimaAvalFuncFiltro })}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todas</SelectItem>
-                  <SelectItem value="em_dia">Em dia</SelectItem>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="atrasada">Atrasada</SelectItem>
-                  <SelectItem value="nunca_realizada">Nunca realizada</SelectItem>
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={[
+                  { value: "em_dia", label: "Em dia" },
+                  { value: "pendente", label: "Pendente" },
+                  { value: "atrasada", label: "Atrasada" },
+                  { value: "nunca_realizada", label: "Nunca realizada" },
+                ]}
+                value={filters.ultimaAvaliacaoFuncional}
+                onChange={(v) => update({ ultimaAvaliacaoFuncional: v as UltimaAvalFuncFiltro[] })}
+                placeholderAll="Todas"
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Serviços do Plano Disponíveis (com crédito)</label>
-              <Select value={filters.servicoPlanoDisponivel} onValueChange={(v) => update({ servicoPlanoDisponivel: v as ServicoPlanoDispFiltro })}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="avaliacao_funcional">Avaliação Funcional</SelectItem>
-                  <SelectItem value="nutricao">Nutrição</SelectItem>
-                  <SelectItem value="reabilitacao">Reabilitação</SelectItem>
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={[
+                  { value: "avaliacao_funcional", label: "Avaliação Funcional" },
+                  { value: "nutricao", label: "Nutrição" },
+                  { value: "reabilitacao", label: "Reabilitação" },
+                ]}
+                value={filters.servicoPlanoDisponivel}
+                onChange={(v) => update({ servicoPlanoDisponivel: v as ServicoPlanoDispFiltro[] })}
+                placeholderAll="Todos"
+              />
             </div>
+
 
 
             <div className="space-y-1.5">
