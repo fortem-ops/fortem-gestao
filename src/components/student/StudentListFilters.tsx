@@ -115,20 +115,21 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
   const dadosActiveCount = DADOS_LABELS.filter(({ key }) => filters.dadosCadastrais[key] !== "todos").length;
 
   const activeCount = [
-    filters.status !== "todos",
+    filters.status.length > 0,
     filters.frequencia !== "todos",
     filters.servicosPlano !== "todos",
     filters.servicosContratados !== "todos",
-    filters.professor !== "todos",
-    filters.tipoPlano !== "todos",
+    filters.professor.length > 0,
+    filters.tipoPlano.length > 0,
     filters.vip !== "todos",
-    filters.ultimaAvaliacaoFuncional !== "todos",
-    filters.servicoPlanoDisponivel !== "todos",
+    filters.ultimaAvaliacaoFuncional.length > 0,
+    filters.servicoPlanoDisponivel.length > 0,
     !!filters.dataInicioDe,
     !!filters.dataInicioAte,
     !!filters.dataFinalDe,
     !!filters.dataFinalAte,
   ].filter(Boolean).length + dadosActiveCount;
+
 
 
   const clearAll = () => onChange({ ...defaultFilters, search: filters.search });
