@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, Video, Printer, FileDown } from "lucide-react";
+import { ArrowLeft, Save, Video, Printer, FileDown, Plus, X } from "lucide-react";
 import { CATEGORY_LABELS, type WorkoutExercise } from "./workoutTemplates";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { supabase } from "@/integrations/supabase/client";
