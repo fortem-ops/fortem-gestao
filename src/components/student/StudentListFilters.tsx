@@ -269,30 +269,33 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Última Avaliação Funcional</label>
-              <Select value={filters.ultimaAvaliacaoFuncional} onValueChange={(v) => update({ ultimaAvaliacaoFuncional: v as UltimaAvalFuncFiltro })}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todas</SelectItem>
-                  <SelectItem value="em_dia">Em dia</SelectItem>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="atrasada">Atrasada</SelectItem>
-                  <SelectItem value="nunca_realizada">Nunca realizada</SelectItem>
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={[
+                  { value: "em_dia", label: "Em dia" },
+                  { value: "pendente", label: "Pendente" },
+                  { value: "atrasada", label: "Atrasada" },
+                  { value: "nunca_realizada", label: "Nunca realizada" },
+                ]}
+                value={filters.ultimaAvaliacaoFuncional}
+                onChange={(v) => update({ ultimaAvaliacaoFuncional: v as UltimaAvalFuncFiltro[] })}
+                placeholderAll="Todas"
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">Serviços do Plano Disponíveis (com crédito)</label>
-              <Select value={filters.servicoPlanoDisponivel} onValueChange={(v) => update({ servicoPlanoDisponivel: v as ServicoPlanoDispFiltro })}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="avaliacao_funcional">Avaliação Funcional</SelectItem>
-                  <SelectItem value="nutricao">Nutrição</SelectItem>
-                  <SelectItem value="reabilitacao">Reabilitação</SelectItem>
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                options={[
+                  { value: "avaliacao_funcional", label: "Avaliação Funcional" },
+                  { value: "nutricao", label: "Nutrição" },
+                  { value: "reabilitacao", label: "Reabilitação" },
+                ]}
+                value={filters.servicoPlanoDisponivel}
+                onChange={(v) => update({ servicoPlanoDisponivel: v as ServicoPlanoDispFiltro[] })}
+                placeholderAll="Todos"
+              />
             </div>
+
 
 
             <div className="space-y-1.5">
