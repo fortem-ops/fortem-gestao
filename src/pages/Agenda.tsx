@@ -121,6 +121,9 @@ export default function Agenda() {
     onSuccess: (ev: any) => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos_excecoes"] });
+      if (ev?.atividade === "Avaliação Funcional") {
+        invalidateAvaliacaoFuncional(queryClient, ev?.aluno_id ?? undefined);
+      }
       toast.success("Horário removido");
 
       // Fallback de notificação de cancelamento (idempotente no servidor)
