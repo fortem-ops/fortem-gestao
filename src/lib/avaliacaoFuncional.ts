@@ -15,32 +15,42 @@ export async function fetchLastFuncionalDateBatch(
 
   const todayISO = new Date().toISOString().slice(0, 10);
 
-  const [avalRes, agendaRes] = await Promise.all([
-    supabase
-      .from("avaliacoes")
-      .select("aluno_id, data, tipo")
-      .in("aluno_id", alunoIds)
-      .ilike("tipo", "%funcional%"),
-    supabase
-      .from("agenda_servicos")
-      .select("aluno_id, data_especifica, atividade")
-      .in("aluno_id", alunoIds)
-      .ilike("atividade", "%funcional%")
-      .not("data_especifica", "is", null)
-      .lte("data_especifica", todayISO),
-  ]);
+  const CHUNK = 300;
+  const chunk = <T,>(arr: T[], size: number): T[][] => {
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  };
 
   const latest: Record<string, string | null> = {};
   alunoIds.forEach((id) => (latest[id] = null));
 
-  (avalRes.data || []).forEach((r: any) => {
-    if (!r.aluno_id || !r.data) return;
-    latest[r.aluno_id] = maxDate(latest[r.aluno_id], r.data);
-  });
-  (agendaRes.data || []).forEach((r: any) => {
-    if (!r.aluno_id || !r.data_especifica) return;
-    latest[r.aluno_id] = maxDate(latest[r.aluno_id], r.data_especifica);
-  });
+  for (const part of chunk(alunoIds, CHUNK)) {
+    const [avalRes, agendaRes] = await Promise.all([
+      supabase
+        .from("avaliacoes")
+        .select("aluno_id, data, tipo")
+        .in("aluno_id", part)
+        .ilike("tipo", "%funcional%"),
+      supabase
+        .from("agenda_servicos")
+        .select("aluno_id, data_especifica, atividade")
+        .in("aluno_id", part)
+        .ilike("atividade", "%funcional%")
+        .not("data_especifica", "is", null)
+        .lte("data_especifica", todayISO),
+    ]);
+
+    (avalRes.data || []).forEach((r: any) => {
+      if (!r.aluno_id || !r.data) return;
+      latest[r.aluno_id] = maxDate(latest[r.aluno_id], r.data);
+    });
+    (agendaRes.data || []).forEach((r: any) => {
+      if (!r.aluno_id || !r.data_especifica) return;
+      latest[r.aluno_id] = maxDate(latest[r.aluno_id], r.data_especifica);
+    });
+  }
+
 
   for (const id of alunoIds) {
     const iso = latest[id];

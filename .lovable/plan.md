@@ -1,31 +1,36 @@
-## Reverter o sumiço dos Alunos Ativos
+## Problema
 
-### Causa raiz
+1. **"Última Aval. Funcional"** aparece "—" para todos os alunos.
+2. **"Serviços do Plano"** e **"Serviços Contratados"** não aparecem no seu monitor.
 
-Os alunos ativos não sumiram do banco — os 199 continuam lá. O que aconteceu:
+## Causa
 
-- A tela `/alunos` carrega **todos** os registros com `supabase.from('alunos').select(...).order('nome')`.
-- O PostgREST aplica um **limite padrão de 1.000 linhas** por requisição.
-- Total atual: 822 leads + 692 inativos + 199 ativos + 3 prospects = **1.716**.
-- Ordenado por nome, apenas os primeiros 1.000 voltam — só **120 dos 199 ativos** entram nessa janela. Os outros 79 ficam fora.
+**(1)** `fetchLastFuncionalDateBatch` (`src/lib/avaliacaoFuncional.ts`) executa `.in("aluno_id", alunoIds)` com **todos os IDs de uma vez**. Após a importação de 692 inativos, o array tem ~1.700 UUIDs → a URL do PostgREST estoura o limite (~8 KB) e a query falha silenciosamente. Resultado: o mapa volta vazio e a coluna mostra "—" para todos.
 
-A importação de 692 inativos empurrou ativos com nome mais "tarde" no alfabeto para fora do limite.
+**(2)** As colunas "Serviços do Plano" e "Serviços Contratados" usam a classe Tailwind `hidden xl:table-cell`. O breakpoint `xl` é **1280 px**, e seu viewport atual é **1203 px**, então o CSS responsivo as esconde. Não é um bug de dados — é um limite de largura.
 
-### Correção
+## Correções
 
-Trocar a busca única por **busca paginada** em `src/pages/StudentList.tsx`:
+### 1. Chunkar a busca da última avaliação funcional
 
-- Loop em páginas de 1.000 (`.range(from, to)`) até `data.length < 1000`.
-- Assim todos os 1.716 (e crescentes) são carregados; ativos voltam a aparecer integralmente.
+Em `src/lib/avaliacaoFuncional.ts`, dividir `alunoIds` em lotes de 300 antes dos `.in(...)`, agregando os resultados de `avaliacoes` e `agenda_servicos` no mesmo `latest` map (mesma lógica que já existe em `StudentList.tsx` para `planos`, `consumos`, `creditos`, `licencas`).
 
-Mesmo padrão aplicado a queries dependentes que usam `.in('aluno_id', ids)` — Supabase também tem limite no IN; vamos quebrar em chunks de 500 quando `ids.length > 500` para `planos`, `consumo_servicos`, `creditos_aluno`, `aluno_licencas`.
+```text
+chunk(ids, 300) → para cada chunk:
+   supabase.from("avaliacoes")...in("aluno_id", chunk)...
+   supabase.from("agenda_servicos")...in("aluno_id", chunk)...
+   fundir em latest[]
+```
 
-### Por que não apagar os importados
+Sem alterar a assinatura da função nem o consumo no `StudentList`.
 
-Apagar os 692 inativos esconderia o sintoma mas voltaria a quebrar assim que a base passar de 1.000 alunos por crescimento natural. A correção via paginação é definitiva e não perde dados.
+### 2. Mostrar Serviços do Plano / Contratados em telas menores
 
-### Arquivo afetado
+Em `src/pages/StudentList.tsx`, trocar `hidden xl:table-cell` por `hidden lg:table-cell` nas duas colunas (cabeçalho, células de skeleton e células de dados) — assim aparecem a partir de 1024 px, cobrindo monitores como o seu (1203 px). Nenhuma mudança na lógica de dados.
 
-- `src/pages/StudentList.tsx` — apenas a função `queryFn` do `useQuery(["alunos_with_plans"])`.
+## Arquivos a editar
 
-Nenhuma alteração de schema, RLS, ou de outras telas.
+- `src/lib/avaliacaoFuncional.ts` — adicionar chunking em `fetchLastFuncionalDateBatch`.
+- `src/pages/StudentList.tsx` — trocar `xl:table-cell` → `lg:table-cell` nas 6 ocorrências (header + skeleton + linha) das duas colunas de serviços.
+
+Sem mudanças em schema, RLS, ou outros componentes.
