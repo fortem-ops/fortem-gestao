@@ -1,29 +1,34 @@
-## Tornar os 820 leads importados visíveis em /leads
-
-### Contexto
-
-A tela `/leads` lista apenas alunos cujo `current_pipeline_stage_id` é a etapa "Novo lead". Os 820 leads importados na migração foram criados com `status='lead'` mas **sem etapa do pipeline** (conforme escolha anterior "Sem estágio"), por isso não aparecem na tela.
+## Importar 699 cadastros como Alunos Inativos
 
 ### O que será feito
 
-1. Identificar os 820 alunos com `origem_lead = 'Migração'` em `pipeline_metadata` que ainda estão sem `current_pipeline_stage_id`.
-2. Para cada um, mover para a etapa **"Novo lead"** usando a função `fn_move_pipeline` com:
-   - `_source = 'migration'`
-   - `_notes = 'Importação sistema antigo — tornado visível em Leads'`
-   - Preserva `created_at` original (a função só registra movimento; não altera data de cadastro).
-3. Isso vai:
-   - Setar `current_pipeline_stage_id` = id da etapa "Novo lead"
-   - Registrar entrada em `pipeline_movements` (histórico)
-   - Fazer com que apareçam imediatamente em `/leads` e no kanban do Pipeline (coluna "Novo lead")
+1. **Parse do TSV** (699 linhas + header) com todas as colunas: nome, nascimento, sexo, email, telefone, CPF, RG, CEP, logradouro, número, complemento, bairro, cidade, UF.
+2. **Normalizações**:
+   - `data_nascimento`: `dd/mm/yyyy` → `date`
+   - `sexo`: `Masculino` → `masculino`, `Feminino` → `feminino`
+   - `cpf`: apenas dígitos
+   - `telefone`: mantido como veio
+   - Campos com `-` ou vazios → `NULL`
+3. **Dedupe (pular duplicados)**:
+   - Se já existe `alunos` com mesmo CPF (apenas dígitos) → pular
+   - Se CPF vazio: dedup por nome exato + telefone normalizado → pular
+4. **Insert em `alunos`** para cada novo registro:
+   - `status='inativo'`
+   - `current_pipeline_stage_id` = id da etapa `Aluno inativo`
+   - todos os campos pessoais e endereço preenchidos
+   - `responsavel_id = NULL`
+5. **Insert em `pipeline_metadata`**: `origem_lead='Migração'` para cada aluno inserido.
+6. **Insert em `pipeline_movements`**: registrar entrada na etapa `Aluno inativo` (source `manual`, notes `Importação sistema antigo`).
+7. **Relatório final**: total no arquivo, inseridos, pulados (e motivo: CPF/nome+tel já existe).
 
 ### Execução
 
-- Um único bloco SQL com `DO $$ ... LOOP ... fn_move_pipeline(...) ... END LOOP $$` rodando no banco.
-- Filtro: `alunos.status='lead'` AND `pipeline_metadata.origem_lead='Migração'` AND `current_pipeline_stage_id IS NULL`.
-- Verificação final: contar quantos ficaram na etapa "Novo lead" com origem "Migração".
+- Python no sandbox lê o TSV, normaliza, gera SQL em lotes de 250.
+- Cada lote via tool de dados (`INSERT ... ON CONFLICT DO NOTHING` adicional como segurança).
+- Verificação final: `count(*)` de alunos na etapa `Aluno inativo` com `origem_lead='Migração'`.
 
 ### Observações
 
-- Nenhuma alteração de código frontend.
-- Nenhuma alteração de schema.
-- Os leads passarão a aparecer também no kanban do Pipeline na coluna "Novo lead" (consequência esperada de estarem no pipeline).
+- Nenhuma alteração de schema nem de frontend.
+- A etapa `Aluno inativo` já existe (funil `inativo`) — eles aparecerão tanto em listagens de alunos quanto no kanban do Pipeline na coluna correta.
+- A origem `Migração` já existe (criada na importação anterior dos 820 leads) — será reutilizada.
