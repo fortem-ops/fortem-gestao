@@ -93,12 +93,8 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
       if (error) throw error;
     },
     successMessage: "Data da última avaliação registrada.",
-    invalidates: [
-      ["last_funcional_aluno", student.id],
-      ["avaliacoes-aluno", student.id],
-      ["alunos_with_last_funcional"],
-    ],
     onSuccess: () => {
+      invalidateAvaliacaoFuncional(qc, student.id);
       setEditOpen(false);
       setEditDate(undefined);
     },
