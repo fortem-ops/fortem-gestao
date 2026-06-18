@@ -1,31 +1,29 @@
-## Importação de 853 leads do sistema antigo
+## Tornar os 820 leads importados visíveis em /leads
+
+### Contexto
+
+A tela `/leads` lista apenas alunos cujo `current_pipeline_stage_id` é a etapa "Novo lead". Os 820 leads importados na migração foram criados com `status='lead'` mas **sem etapa do pipeline** (conforme escolha anterior "Sem estágio"), por isso não aparecem na tela.
 
 ### O que será feito
 
-1. **Criar nova origem "Migração"** na tabela `lead_origens` (ativa, ordem = última).
+1. Identificar os 820 alunos com `origem_lead = 'Migração'` em `pipeline_metadata` que ainda estão sem `current_pipeline_stage_id`.
+2. Para cada um, mover para a etapa **"Novo lead"** usando a função `fn_move_pipeline` com:
+   - `_source = 'migration'`
+   - `_notes = 'Importação sistema antigo — tornado visível em Leads'`
+   - Preserva `created_at` original (a função só registra movimento; não altera data de cadastro).
+3. Isso vai:
+   - Setar `current_pipeline_stage_id` = id da etapa "Novo lead"
+   - Registrar entrada em `pipeline_movements` (histórico)
+   - Fazer com que apareçam imediatamente em `/leads` e no kanban do Pipeline (coluna "Novo lead")
 
-2. **Importar os 853 cadastros** do arquivo anexo para a tabela `alunos`:
-   - `nome` = Cliente (trim, uppercase preservado)
-   - `telefone` = Contato (mantido como veio; vazio quando ausente)
-   - `email` = Email (null quando vazio)
-   - `status` = `lead`
-   - `created_at` = data de cadastro do arquivo (formato `dd/mm/yyyy hh:mm` convertido para timestamp)
-   - `responsavel_id` = null
+### Execução
 
-3. **Registrar origem em `pipeline_metadata`** para cada lead importado: `origem_lead = 'Migração'`.
-
-4. **Pular duplicados**: antes de inserir, ignorar linha cujo telefone normalizado (apenas dígitos) já exista em `alunos`, OU cujo nome exato já exista. Linhas sem telefone são checadas apenas por nome.
-
-5. **Sem estágio no pipeline**: não chamar `fn_move_pipeline`. Os leads ficam apenas com `status='lead'` e aparecem na tela `/leads` sem entrar no kanban — exatamente como leads criados antes do pipeline.
-
-### Como será executado
-
-- Parse do TSV no sandbox (Python), normalização de telefones e datas.
-- Geração de um único `INSERT ... SELECT` via tool de dados, em lote, com `ON CONFLICT DO NOTHING` na deduplicação por telefone/nome.
-- Relatório final: total no arquivo, inseridos, pulados (com motivo).
+- Um único bloco SQL com `DO $$ ... LOOP ... fn_move_pipeline(...) ... END LOOP $$` rodando no banco.
+- Filtro: `alunos.status='lead'` AND `pipeline_metadata.origem_lead='Migração'` AND `current_pipeline_stage_id IS NULL`.
+- Verificação final: contar quantos ficaram na etapa "Novo lead" com origem "Migração".
 
 ### Observações
 
-- Os 2 nomes já vetados anteriormente (JESSICA LORENZZI ELKFURY, NILCE APARECIDA DA SILVA FREITAS FEDATTO) — não constam neste arquivo, mas serão filtrados por segurança.
-- Nenhuma alteração de schema fora da inserção da origem "Migração" (linha em tabela existente).
-- Nenhum código de frontend muda.
+- Nenhuma alteração de código frontend.
+- Nenhuma alteração de schema.
+- Os leads passarão a aparecer também no kanban do Pipeline na coluna "Novo lead" (consequência esperada de estarem no pipeline).
