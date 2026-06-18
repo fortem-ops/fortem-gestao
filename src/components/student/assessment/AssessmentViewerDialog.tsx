@@ -23,6 +23,7 @@ import { fetchExperimentalSchema, migrateLegacyDados, ensureFaseInicialQuestion,
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
+import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 
 interface Props {
   open: boolean;
