@@ -1,25 +1,31 @@
-## Problema
+## Importação de 853 leads do sistema antigo
 
-Ao bater ponto sem GPS (ou quando `fn_local_mais_proximo` não retorna linha), a função `fn_ponto_registrar` quebra com:
+### O que será feito
 
-> `O registro "_local" ainda não foi atribuído`
+1. **Criar nova origem "Migração"** na tabela `lead_origens` (ativa, ordem = última).
 
-Causa: o bloco final faz `RETURN jsonb_build_object(... 'local_nome', _local.nome)` e o bloco de notificação faz `COALESCE(_local.nome, ...)`. Como `_local` é um `record` que só é atribuído via `SELECT * INTO _local FROM fn_local_mais_proximo(...)` quando há lat/lng, ele permanece "não atribuído" e qualquer acesso a `_local.<campo>` lança erro em PL/pgSQL. Isso também dispara o erro de React `insertBefore` no ErrorBoundary, porque o toast é interrompido por uma re-render abrupta.
+2. **Importar os 853 cadastros** do arquivo anexo para a tabela `alunos`:
+   - `nome` = Cliente (trim, uppercase preservado)
+   - `telefone` = Contato (mantido como veio; vazio quando ausente)
+   - `email` = Email (null quando vazio)
+   - `status` = `lead`
+   - `created_at` = data de cadastro do arquivo (formato `dd/mm/yyyy hh:mm` convertido para timestamp)
+   - `responsavel_id` = null
 
-A professora Vanessa cai nesse caminho porque o navegador dela nega/timeouta GPS (ou ela está fora de qualquer local cadastrado), então `_lat`/`_lng` chegam nulos.
+3. **Registrar origem em `pipeline_metadata`** para cada lead importado: `origem_lead = 'Migração'`.
 
-## Correção
+4. **Pular duplicados**: antes de inserir, ignorar linha cujo telefone normalizado (apenas dígitos) já exista em `alunos`, OU cujo nome exato já exista. Linhas sem telefone são checadas apenas por nome.
 
-Migration única ajustando `public.fn_ponto_registrar`:
+5. **Sem estágio no pipeline**: não chamar `fn_move_pipeline`. Os leads ficam apenas com `status='lead'` e aparecem na tela `/leads` sem entrar no kanban — exatamente como leads criados antes do pipeline.
 
-1. Declarar `_local_nome text;` e, quando `FOUND`, fazer `_local_nome := _local.nome;`.
-2. Substituir os dois usos de `_local.nome` por `_local_nome` (com `COALESCE` onde já existia).
-3. Manter toda a demais lógica (regras de transição, insert do evento, notificação de fora do raio, retorno JSON) idêntica.
+### Como será executado
 
-Nenhuma mudança de frontend é necessária — o `BotaoInteligente` já trata `fora_do_raio` e ausência de GPS corretamente assim que a RPC parar de lançar exceção.
+- Parse do TSV no sandbox (Python), normalização de telefones e datas.
+- Geração de um único `INSERT ... SELECT` via tool de dados, em lote, com `ON CONFLICT DO NOTHING` na deduplicação por telefone/nome.
+- Relatório final: total no arquivo, inseridos, pulados (com motivo).
 
-## Verificação
+### Observações
 
-Após aplicar:
-- Chamar `fn_ponto_registrar('entrada', NULL, NULL, NULL, 'web')` em uma conta de teste deve retornar `ok:true` com `fora_do_raio:true` e `local_nome:null`, sem exceção.
-- Vanessa consegue registrar entrada mesmo sem permissão de localização; aparece o toast amarelo "Registrado sem localização" ao invés do erro vermelho.
+- Os 2 nomes já vetados anteriormente (JESSICA LORENZZI ELKFURY, NILCE APARECIDA DA SILVA FREITAS FEDATTO) — não constam neste arquivo, mas serão filtrados por segurança.
+- Nenhuma alteração de schema fora da inserção da origem "Migração" (linha em tabela existente).
+- Nenhum código de frontend muda.
