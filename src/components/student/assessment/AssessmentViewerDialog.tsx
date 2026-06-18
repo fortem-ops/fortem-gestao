@@ -105,9 +105,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
       const { error } = await supabase.from("avaliacoes").delete().eq("id", avaliacao.id);
       if (error) throw error;
       toast.success("Avaliação excluída");
-      queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
+      invalidateAvaliacaoFuncional(queryClient, student.id);
       onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao excluir");
