@@ -22,7 +22,22 @@ export const queryKeys = {
   planos: (alunoId?: string) =>
     alunoId ? (["planos", alunoId] as const) : (["planos"] as const),
   dashboard: ["dashboard-data"] as const,
+  lastFuncionalBatch: ["last_funcional_batch"] as const,
+  lastFuncionalAluno: (id: string) => ["last_funcional_aluno", id] as const,
 };
+
+export function invalidateAvaliacaoFuncional(qc: QueryClient, alunoId?: string) {
+  // Prefix match cobre ["last_funcional_batch", alunoIds] usado em StudentList.
+  qc.invalidateQueries({ queryKey: queryKeys.lastFuncionalBatch });
+  qc.invalidateQueries({ queryKey: ["alunos_with_last_funcional"] });
+  qc.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
+  if (alunoId) {
+    qc.invalidateQueries({ queryKey: queryKeys.lastFuncionalAluno(alunoId) });
+    qc.invalidateQueries({ queryKey: ["avaliacoes-aluno", alunoId] });
+    qc.invalidateQueries({ queryKey: ["avaliacoes-global", alunoId] });
+    qc.invalidateQueries({ queryKey: ["historico-timeline", alunoId] });
+  }
+}
 
 export function invalidateAluno(qc: QueryClient, alunoId?: string) {
   qc.invalidateQueries({ queryKey: queryKeys.alunos });
