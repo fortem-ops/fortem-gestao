@@ -511,8 +511,8 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Início Plano</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Final Plano</th>
               <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Última Aval. Funcional</th>
-              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Serviços do Plano</th>
-              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden xl:table-cell">Serviços Contratados</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Serviços do Plano</th>
+              <th className="text-left text-xs font-medium text-muted-foreground p-4 hidden lg:table-cell">Serviços Contratados</th>
 
             </tr>
           </thead>
@@ -529,8 +529,8 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-20" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-20" /></td>
                   <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-24" /></td>
-                  <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-32" /></td>
-                  <td className="p-4 hidden xl:table-cell"><Skeleton className="h-5 w-32" /></td>
+                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-32" /></td>
+                  <td className="p-4 hidden lg:table-cell"><Skeleton className="h-5 w-32" /></td>
                 </tr>
               ))
             ) : filtered.length === 0 ? (
@@ -645,10 +645,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                         </TooltipContent>
                       </Tooltip>
                     </td>
-                    <td className="p-4 hidden xl:table-cell">
+                    <td className="p-4 hidden lg:table-cell">
                       <CreditsCell map={c?.plano ?? {}} originLabel="Plano" />
                     </td>
-                    <td className="p-4 hidden xl:table-cell">
+                    <td className="p-4 hidden lg:table-cell">
                       <CreditsCell map={c?.servico ?? {}} originLabel="Contratado" />
                     </td>
                   </tr>
