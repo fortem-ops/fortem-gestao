@@ -286,10 +286,7 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
       if (error) throw error;
       setSavedAvaliacaoId(inserted.id);
       toast.success("Composição corporal salva com sucesso");
-      queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
-      queryClient.invalidateQueries({ queryKey: ["historico-timeline", student.id] });
+      invalidateAvaliacaoFuncional(queryClient, student.id);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {
