@@ -17,6 +17,7 @@ import { BodyDiagram } from "./BodyDiagram";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { DynamicAssessment } from "./DynamicAssessment";
 import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
+import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import type { ExperimentalSchema } from "./experimentalTemplate";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Assessment } from "./funcionalV2/FuncionalV2Assessment";
