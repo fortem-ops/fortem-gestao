@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { userHasStaffAccess } from "@/lib/authAccess";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
+import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import { cn } from "@/lib/utils";
 
 export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
