@@ -106,34 +106,65 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const { data: alunos = [], isLoading, refetch } = useQuery({
     queryKey: ["alunos_with_plans"],
     queryFn: async () => {
-      const { data: students, error } = await supabase
-        .from("alunos")
-        .select(ALUNOS_COLUMNS)
-        .order("nome");
-      if (error) throw error;
+      // Paginated fetch to bypass PostgREST 1000-row default limit
+      const PAGE = 1000;
+      const students: any[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("alunos")
+          .select(ALUNOS_COLUMNS)
+          .order("nome")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        students.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+      }
 
       const ids = students.map((s) => s.id);
-      const { data: planos } = await supabase
-        .from("planos")
-        .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
-        .in("aluno_id", ids)
-        .eq("ativo", true);
-      const planoIds = (planos || []).map((p: any) => p.id);
-      const { data: consumos } = planoIds.length
-        ? await supabase
-            .from("consumo_servicos")
-            .select("aluno_id, plano_id, tipo_servico, tipo_registro, quantidade, agenda_id")
-            .in("plano_id", planoIds)
-        : { data: [] as any[] };
-      const { data: creditos } = await supabase
-        .from("creditos_aluno" as any)
-        .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
-        .in("aluno_id", ids)
-        .eq("ativo", true);
-      const { data: licencas } = await supabase
-        .from("aluno_licencas" as any)
-        .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
-        .in("aluno_id", ids);
+      // Chunk .in() filters to stay below PostgREST URL/row caps
+      const chunk = <T,>(arr: T[], size: number): T[][] => {
+        const out: T[][] = [];
+        for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+        return out;
+      };
+      const CHUNK = 300;
+
+      const planos: any[] = [];
+      for (const part of chunk(ids, CHUNK)) {
+        const { data } = await supabase
+          .from("planos")
+          .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
+          .in("aluno_id", part)
+          .eq("ativo", true);
+        planos.push(...(data || []));
+      }
+      const planoIds = planos.map((p: any) => p.id);
+      const consumos: any[] = [];
+      for (const part of chunk(planoIds, CHUNK)) {
+        const { data } = await supabase
+          .from("consumo_servicos")
+          .select("aluno_id, plano_id, tipo_servico, tipo_registro, quantidade, agenda_id")
+          .in("plano_id", part);
+        consumos.push(...(data || []));
+      }
+      const creditos: any[] = [];
+      for (const part of chunk(ids, CHUNK)) {
+        const { data } = await supabase
+          .from("creditos_aluno" as any)
+          .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
+          .in("aluno_id", part)
+          .eq("ativo", true);
+        creditos.push(...((data as any[]) || []));
+      }
+      const licencas: any[] = [];
+      for (const part of chunk(ids, CHUNK)) {
+        const { data } = await supabase
+          .from("aluno_licencas" as any)
+          .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
+          .in("aluno_id", part);
+        licencas.push(...((data as any[]) || []));
+      }
+
       const licencasMap: Record<string, AlunoLicenca[]> = {};
       ((licencas as unknown as AlunoLicenca[]) || []).forEach((l) => {
         (licencasMap[l.aluno_id] ||= []).push(l);
