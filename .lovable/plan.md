@@ -1,41 +1,36 @@
-# Plano: Multi-seleção nos Filtros de Alunos
+## Problema
 
-Permitir selecionar várias opções nos filtros de status/categoria de `Alunos Ativos > Filtros`, usando dropdown com checkboxes.
+Ao excluir um agendamento que consumiu um crédito avulso (origem `servico` em `creditos_aluno`), o trigger `fn_agenda_estornar_credito` registra o movimento de `estorno` em `creditos_movimentos`, mas **não** decrementa `creditos_aluno.quantidade_usada`. Resultado: o saldo do aluno fica travado e ele não consegue reagendar o serviço.
 
-## Filtros afetados (multi-seleção)
-- Status
-- Última Avaliação Funcional
-- Tipo de Plano
-- Professor Responsável
-- Serviços do Plano Disponíveis (com crédito)
+Caso confirmado: aluno **VÍTOR LABRES DA SILVEIRA** — crédito de Avaliação Funcional permanece com `quantidade_usada=1` mesmo após o cancelamento ter sido feito hoje às 16:56.
 
-Mantém **seleção única** (sem mudança):
-- Frequência, Serviços do Plano (Com/Sem), Serviços Contratados (Com/Sem), Plano VIP, todos os Dados Cadastrais (Com/Sem), datas e busca.
+## Causa raiz
 
-## UI
-Substituir o `Select` desses 5 filtros por um componente `MultiSelectDropdown` novo:
-- Trigger no mesmo estilo dos selects atuais (altura h-9, mesmo padding).
-- Mostra: "Todas" quando vazio; o rótulo da opção quando 1 selecionada; "N selecionados" + badge com contagem quando >1.
-- Conteúdo: `Popover` + lista de `Checkbox` + label por opção, com botão "Limpar" no rodapé.
-- Comportamento: lista vazia = "todos" (sem filtro aplicado).
+Na função `fn_agenda_estornar_credito` (trigger AFTER DELETE em `agenda_servicos`), há este teste:
 
-## Mudanças de estado/tipo
-Em `src/components/student/StudentListFilters.tsx`:
-- Tipos viram arrays: `status: string[]`, `ultimaAvaliacaoFuncional: UltimaAvalFuncFiltro[]` (sem `"todos"`), `tipoPlano: string[]`, `professor: string[]`, `servicoPlanoDisponivel: ServicoPlanoDispFiltro[]`.
-- `defaultFilters` desses campos = `[]`.
-- `activeCount` conta cada array `length > 0` como 1 ativo (mantém consistência com badge atual).
-- `clearAll` zera todos os arrays.
+```sql
+IF _credito IS NOT NULL AND NOT _credito.ilimitado THEN
+   UPDATE public.creditos_aluno SET quantidade_usada = ...
+```
 
-## Lógica de filtragem
-Em `src/pages/StudentList.tsx`, ajustar onde cada filtro é aplicado:
-- Array vazio → ignora filtro (passa todos).
-- Caso contrário → `arr.includes(valorDoAluno)` (OR entre opções do mesmo filtro; AND entre filtros diferentes, como hoje).
-- Para Última Avaliação Funcional, manter a lógica atual de derivar o status do aluno (em_dia/pendente/atrasada/nunca_realizada) e checar `includes`.
+Em PL/pgSQL, `<record> IS NOT NULL` só é verdadeiro quando **todos** os campos do record são não-nulos. Como `creditos_aluno.data_validade` é NULL para este aluno (e para a maioria dos créditos), a expressão retorna FALSE e o UPDATE é pulado. O INSERT do movimento de estorno (que está fora do IF) acontece normalmente, o que mascarou o problema.
 
-## Componente novo
-`src/components/student/MultiSelectFilter.tsx` — reutilizável, props: `label?`, `options: {value, label}[]`, `value: string[]`, `onChange: (v: string[]) => void`, `placeholderAll?: string`.
+## O que será feito
 
-## Fora de escopo
-- Filtros Com/Sem (binários) e datas permanecem como estão.
-- Sem mudanças no backend/banco.
-- Sem alteração no campo de busca textual nem no Select compacto de Status do header (esse vira o mesmo MultiSelect ou permanece single? **Decisão:** o Select de Status no header da barra superior também vira MultiSelect para alinhar com o avançado).
+1. **Migration corrigindo a função** `fn_agenda_estornar_credito`:
+   - Trocar `_credito IS NOT NULL` por `_credito.id IS NOT NULL` (teste correto sobre PK).
+   - Manter o resto da lógica idêntica (estorno via `GREATEST(0, quantidade_usada - quantidade)`, registro do movimento).
+
+2. **Backfill (data fix)** via insert tool, em uma única transação:
+   - Para cada `creditos_aluno` afetado, recalcular `quantidade_usada` como `SUM(consumo) - SUM(estorno)` a partir de `creditos_movimentos`, com piso 0.
+   - Isso corrige o saldo do Vítor Labres e qualquer outro aluno que tenha tido cancelamento sem estorno efetivo desde que o trigger entrou em produção.
+
+3. **Sem alterações no frontend.** O fluxo de cancelamento já dispara DELETE em `agenda_servicos`, que aciona o trigger corrigido. Após a migration:
+   - Estorno de crédito de plano: já funciona (trigger BEFORE DELETE remove a linha em `consumo_servicos`).
+   - Estorno de crédito avulso: passará a decrementar `quantidade_usada` corretamente.
+
+## Verificação
+
+Após aplicar:
+- Consultar `creditos_aluno` do Vítor Labres → `quantidade_usada` deve ser 0.
+- Conferir que reagendar a Avaliação Funcional funciona normalmente pelo modal de Novo Horário.
