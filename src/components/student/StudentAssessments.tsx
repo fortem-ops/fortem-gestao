@@ -52,11 +52,7 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
       if (error) throw error;
     },
     successMessage: "Avaliação excluída.",
-    invalidates: [
-      ["avaliacoes-aluno", student.id],
-      ["last_funcional_aluno", student.id],
-      ["alunos_with_last_funcional"],
-    ],
+    onSuccess: () => invalidateAvaliacaoFuncional(qc, student.id),
   });
 
   const { data: lastFuncional } = useQuery({
