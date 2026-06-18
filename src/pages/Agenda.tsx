@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronLeft, ChevronRight, Trash2, User, CalendarIcon, CheckSquare } from "lucide-react";
@@ -120,6 +121,9 @@ export default function Agenda() {
     onSuccess: (ev: any) => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos_excecoes"] });
+      if (ev?.atividade === "Avaliação Funcional") {
+        invalidateAvaliacaoFuncional(queryClient, ev?.aluno_id ?? undefined);
+      }
       toast.success("Horário removido");
 
       // Fallback de notificação de cancelamento (idempotente no servidor)

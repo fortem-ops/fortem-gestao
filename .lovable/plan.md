@@ -1,36 +1,48 @@
-## Problema
+## Objetivo
 
-1. **"Última Aval. Funcional"** aparece "—" para todos os alunos.
-2. **"Serviços do Plano"** e **"Serviços Contratados"** não aparecem no seu monitor.
+Garantir que a coluna **Última Avaliação Funcional** em `/alunos` (e o card no perfil) seja atualizada imediatamente após qualquer mutação relevante, sem depender de hard refresh.
 
-## Causa
+## Problema atual
 
-**(1)** `fetchLastFuncionalDateBatch` (`src/lib/avaliacaoFuncional.ts`) executa `.in("aluno_id", alunoIds)` com **todos os IDs de uma vez**. Após a importação de 692 inativos, o array tem ~1.700 UUIDs → a URL do PostgREST estoura o limite (~8 KB) e a query falha silenciosamente. Resultado: o mapa volta vazio e a coluna mostra "—" para todos.
+Hoje a lista usa a query key `["last_funcional_batch", alunoIds]`, mas as mutações de avaliação invalidam apenas keys antigas (`["alunos_with_last_funcional"]`, `["last_funcional_aluno", id]`). Resultado: quando uma nova avaliação funcional é registrada, a célula continua mostrando `—` (ou data antiga) até hard refresh.
 
-**(2)** As colunas "Serviços do Plano" e "Serviços Contratados" usam a classe Tailwind `hidden xl:table-cell`. O breakpoint `xl` é **1280 px**, e seu viewport atual é **1203 px**, então o CSS responsivo as esconde. Não é um bug de dados — é um limite de largura.
+## Mudanças
 
-## Correções
+### 1. Novo helper centralizado em `src/lib/query-invalidation.ts`
 
-### 1. Chunkar a busca da última avaliação funcional
+Adicionar key e função dedicadas:
 
-Em `src/lib/avaliacaoFuncional.ts`, dividir `alunoIds` em lotes de 300 antes dos `.in(...)`, agregando os resultados de `avaliacoes` e `agenda_servicos` no mesmo `latest` map (mesma lógica que já existe em `StudentList.tsx` para `planos`, `consumos`, `creditos`, `licencas`).
+```ts
+queryKeys.lastFuncionalBatch = ["last_funcional_batch"] as const;
+queryKeys.lastFuncionalAluno = (id: string) => ["last_funcional_aluno", id] as const;
 
-```text
-chunk(ids, 300) → para cada chunk:
-   supabase.from("avaliacoes")...in("aluno_id", chunk)...
-   supabase.from("agenda_servicos")...in("aluno_id", chunk)...
-   fundir em latest[]
+export function invalidateAvaliacaoFuncional(qc, alunoId?) {
+  qc.invalidateQueries({ queryKey: queryKeys.lastFuncionalBatch }); // prefix match cobre [..., alunoIds]
+  qc.invalidateQueries({ queryKey: ["alunos_with_last_funcional"] }); // legado
+  if (alunoId) qc.invalidateQueries({ queryKey: queryKeys.lastFuncionalAluno(alunoId) });
+  qc.invalidateQueries({ queryKey: ["avaliacoes-aluno", alunoId] });
+  qc.invalidateQueries({ queryKey: ["historico-timeline", alunoId] });
+  qc.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
+}
 ```
 
-Sem alterar a assinatura da função nem o consumo no `StudentList`.
+Por padrão, `invalidateQueries` faz match por prefixo, então invalidar `["last_funcional_batch"]` atinge a key real `["last_funcional_batch", alunoIds]` usada em `StudentList.tsx`.
 
-### 2. Mostrar Serviços do Plano / Contratados em telas menores
+### 2. Chamar `invalidateAvaliacaoFuncional` em todas as mutações que afetam avaliações funcionais
 
-Em `src/pages/StudentList.tsx`, trocar `hidden xl:table-cell` por `hidden lg:table-cell` nas duas colunas (cabeçalho, células de skeleton e células de dados) — assim aparecem a partir de 1024 px, cobrindo monitores como o seu (1203 px). Nenhuma mudança na lógica de dados.
+- `src/components/student/assessment/AssessmentForm.tsx` — insert (linha ~275) e update (linha ~127).
+- `src/components/student/assessment/AssessmentViewerDialog.tsx` — delete (linha ~104).
+- `src/components/student/StudentAssessments.tsx` — delete avaliação e insert de histórico manual (substitui a lista atual em `invalidates`).
+- `src/pages/Agenda.tsx` — delete de `agenda_servicos` (a tabela também alimenta `fetchLastFuncionalDateBatch` quando o serviço é do tipo avaliação funcional). Mantém invalidações atuais e adiciona a nova.
 
-## Arquivos a editar
+Em cada chamada passamos `aluno_id` quando disponível para também invalidar a key por aluno usada no perfil.
 
-- `src/lib/avaliacaoFuncional.ts` — adicionar chunking em `fetchLastFuncionalDateBatch`.
-- `src/pages/StudentList.tsx` — trocar `xl:table-cell` → `lg:table-cell` nas 6 ocorrências (header + skeleton + linha) das duas colunas de serviços.
+### 3. Sem alterações em schema, RLS, UI ou na lógica de `fetchLastFuncionalDateBatch`
 
-Sem mudanças em schema, RLS, ou outros componentes.
+Apenas reuso das funções existentes e ajuste de invalidação.
+
+## Validação
+
+1. Build automático (sem erros TS).
+2. Playwright headless: login → criar nova avaliação funcional em um aluno → voltar para `/alunos` sem hard refresh → confirmar que a data nova aparece na coluna com a cor de severidade correta.
+3. Repetir o teste para exclusão (a data deve voltar para a avaliação anterior ou `—`).

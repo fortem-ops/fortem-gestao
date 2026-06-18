@@ -17,6 +17,7 @@ import { BodyDiagram } from "./BodyDiagram";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { DynamicAssessment } from "./DynamicAssessment";
 import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
+import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import type { ExperimentalSchema } from "./experimentalTemplate";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Assessment } from "./funcionalV2/FuncionalV2Assessment";
@@ -124,9 +125,7 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
       if (funcErr) throw funcErr;
 
       toast.success("Avaliação funcional salva com sucesso");
-      queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["historico-timeline", student.id] });
+      invalidateAvaliacaoFuncional(queryClient, student.id);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao salvar";
       toast.error(msg);
@@ -287,10 +286,7 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
       if (error) throw error;
       setSavedAvaliacaoId(inserted.id);
       toast.success("Composição corporal salva com sucesso");
-      queryClient.invalidateQueries({ queryKey: ["avaliacoes-aluno", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
-      queryClient.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
-      queryClient.invalidateQueries({ queryKey: ["historico-timeline", student.id] });
+      invalidateAvaliacaoFuncional(queryClient, student.id);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {

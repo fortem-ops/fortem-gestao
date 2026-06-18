@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { userHasStaffAccess } from "@/lib/authAccess";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
+import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import { cn } from "@/lib/utils";
 
 export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
@@ -51,11 +52,7 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
       if (error) throw error;
     },
     successMessage: "Avaliação excluída.",
-    invalidates: [
-      ["avaliacoes-aluno", student.id],
-      ["last_funcional_aluno", student.id],
-      ["alunos_with_last_funcional"],
-    ],
+    onSuccess: () => invalidateAvaliacaoFuncional(qc, student.id),
   });
 
   const { data: lastFuncional } = useQuery({
@@ -96,12 +93,8 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
       if (error) throw error;
     },
     successMessage: "Data da última avaliação registrada.",
-    invalidates: [
-      ["last_funcional_aluno", student.id],
-      ["avaliacoes-aluno", student.id],
-      ["alunos_with_last_funcional"],
-    ],
     onSuccess: () => {
+      invalidateAvaliacaoFuncional(qc, student.id);
       setEditOpen(false);
       setEditDate(undefined);
     },
