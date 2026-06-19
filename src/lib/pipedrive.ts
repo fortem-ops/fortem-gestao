@@ -42,6 +42,7 @@ export interface ListLeadsFilters {
   stageId?: number | null;
   ownerId?: number | null;
   since?: string | null;
+  status?: "open" | "won" | "lost" | "all_not_deleted";
   limit?: number;
 }
 
@@ -61,6 +62,7 @@ export interface ImportLeadItem {
   phone?: string;
   email?: string;
   responsavelId?: string | null;
+  pipedriveStageId?: number | null;
 }
 
 export async function importPipedriveLeads(
@@ -74,3 +76,4 @@ export async function importPipedriveLeads(
   if (error) throw error;
   return data!;
 }
+
