@@ -14,6 +14,7 @@ const BodySchema = z.object({
   stageId: z.number().int().optional().nullable(),
   ownerId: z.number().int().optional().nullable(),
   since: z.string().optional().nullable(), // ISO date
+  status: z.enum(["open", "won", "lost", "all_not_deleted"]).optional().default("open"),
   limit: z.number().int().min(1).max(500).optional().default(100),
 }).default({});
 
