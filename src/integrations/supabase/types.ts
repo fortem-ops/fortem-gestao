@@ -2216,6 +2216,38 @@ export type Database = {
         }
         Relationships: []
       }
+      pipedrive_stage_mapping: {
+        Row: {
+          created_at: string
+          fortem_stage_id: string
+          pipedrive_stage_id: number
+          pipedrive_stage_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fortem_stage_id: string
+          pipedrive_stage_id: number
+          pipedrive_stage_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fortem_stage_id?: string
+          pipedrive_stage_id?: number
+          pipedrive_stage_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipedrive_stage_mapping_fortem_stage_id_fkey"
+            columns: ["fortem_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_metadata: {
         Row: {
           aluno_id: string

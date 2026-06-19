@@ -1,81 +1,61 @@
-# Integração Pipedrive ↔ Fortem — Fase 1
+# Mover Pipedrive para /pipeline + mapeamento de etapas
 
-Importação one-way **Pipedrive → Fortem** de Persons + Deals como leads. Período de testes em paralelo; sync bidirecional fica para fase 2 quando o fluxo estiver validado.
+Sim, é totalmente possível mapear etapas. Hoje todo lead importado cai em "Novo lead"; vou adicionar mapeamento configurável entre **stages do Pipedrive** e **stages do Fortem** (qualquer um dos 14 já existentes — Novo lead, Prospect, Treino experimental agendado, Avaliação agendada, Aluno ativo, etc.).
 
-## O que será entregue
+## Mudanças
 
-### 1. Migration de banco
-Adicionar rastreio de origem Pipedrive em `pipeline_metadata`:
+### 1. Mover a UI para /pipeline
+- Remover a aba "Integração Pipedrive" de `/admin` (limpar import + entrada em `allTabs` em `src/pages/Admin.tsx`).
+- Em `src/pages/Pipeline.tsx`, adicionar botão **"Importar do Pipedrive"** no header (admin only, ao lado de "Recalcular status" e "Gerenciar etapas").
+- Renomear `AdminPipedrive.tsx` → `src/components/pipeline/PipedriveImportSheet.tsx`. Trocar layout de página para **Sheet/Dialog em tela cheia** (mais natural dentro do Pipeline). Mesmo conteúdo: status, filtros, tabela, importação.
+
+### 2. Tabela de mapeamento de etapas
+Migration nova:
 
 ```sql
-ALTER TABLE public.pipeline_metadata
-  ADD COLUMN pipedrive_person_id text,
-  ADD COLUMN pipedrive_deal_id text,
-  ADD COLUMN pipedrive_imported_at timestamptz;
-
-CREATE UNIQUE INDEX pipeline_metadata_pipedrive_person_uniq
-  ON public.pipeline_metadata (pipedrive_person_id)
-  WHERE pipedrive_person_id IS NOT NULL;
-
-CREATE UNIQUE INDEX pipeline_metadata_pipedrive_deal_uniq
-  ON public.pipeline_metadata (pipedrive_deal_id)
-  WHERE pipedrive_deal_id IS NOT NULL;
+CREATE TABLE public.pipedrive_stage_mapping (
+  pipedrive_stage_id int PRIMARY KEY,
+  pipedrive_stage_name text,
+  fortem_stage_id uuid NOT NULL REFERENCES public.pipeline_stages(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.pipedrive_stage_mapping TO authenticated;
+GRANT ALL ON public.pipedrive_stage_mapping TO service_role;
+ALTER TABLE public.pipedrive_stage_mapping ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admin/Coord manage stage mapping" ON public.pipedrive_stage_mapping
+  FOR ALL TO authenticated
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'coordenador'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'coordenador'));
 ```
 
-Garantir origem "Pipedrive" em `lead_origens` (insert idempotente).
+### 3. UI de mapeamento (dentro do Sheet)
+Seção "**Mapeamento de etapas**" acima da tabela de deals:
+- Aparece após o primeiro "Buscar leads" (que descobre os stages do Pipedrive presentes nos deals retornados).
+- Tabela: `Stage Pipedrive` → `Select com stages do Fortem` (agrupados por funnel: Prospects / Aluno / Inativo) → botão "Salvar mapeamento".
+- Stages não mapeados caem no fallback **"Novo lead"** com badge de aviso.
+- Mapeamento é persistido em `pipedrive_stage_mapping` (upsert por `pipedrive_stage_id`).
 
-### 2. Edge function `pipedrive-list-leads`
-- Valida JWT do usuário e checa `has_role(uid, 'admin')` ou `'coordenador')`.
-- Aceita filtros opcionais: `stageId`, `ownerId`, `since` (data), `limit`.
-- Chama gateway: `GET /pipedrive/deals` (status=open) com Persons embutidas via `GET /pipedrive/persons/:id` em lote ou usando `/deals?...&include_fields`.
-- Retorna lista normalizada: `{ dealId, personId, name, phone, email, ownerName, stageName, value, addedAt, alreadyImported: boolean }`.
-  - `alreadyImported` = true quando `pipedrive_deal_id` ou `pipedrive_person_id` já existe em `pipeline_metadata`.
+### 4. Importação respeita o mapeamento
+Atualizar `supabase/functions/pipedrive-import-leads/index.ts`:
+- Aceitar novo campo opcional `pipedriveStageId` por item.
+- Carregar `pipedrive_stage_mapping` em batch para os stage IDs recebidos.
+- Para cada item, resolver stage destino: mapeamento → nome da stage do Fortem → `fn_move_pipeline(_to_stage_name=...)`. Sem mapeamento → "Novo lead".
 
-### 3. Edge function `pipedrive-import-leads`
-- Mesma validação de role.
-- Recebe `{ items: [{ dealId, personId, name, phone, email, responsavelId? }] }`.
-- Para cada item, em transação lógica:
-  1. Skip se `pipedrive_deal_id` já existir.
-  2. Insere em `alunos` (nome, telefone, `current_pipeline_stage_id` = id de "Novo lead", `responsavel_id`).
-  3. Insere `pipeline_metadata` com `origem_lead='Pipedrive'`, `pipedrive_person_id`, `pipedrive_deal_id`, `pipedrive_imported_at=now()`.
-  4. Insere `pipeline_movements` registrando entrada no funil.
-- Retorna `{ imported: n, skipped: n, errors: [...] }`.
+Atualizar `src/lib/pipedrive.ts` para enviar `pipedriveStageId` em `importPipedriveLeads`.
 
-### 4. Edge function `pipedrive-status`
-- Chama `POST https://connector-gateway.lovable.dev/api/v1/verify_credentials` e retorna `{ outcome, latency_ms }` para a UI mostrar status verde/vermelho.
+### 5. Status do deal Pipedrive
+A função `pipedrive-list-leads` hoje só busca `status=open`. Vou adicionar filtro UI **"Status do deal"** (Aberto/Ganhos/Perdidos/Todos) — útil quando queremos importar histórico já fechado para reconstituir base no Fortem.
 
-### 5. UI: nova aba "Integração Pipedrive" em `/admin`
-Componente `src/components/admin/AdminPipedrive.tsx`:
-- **Card de status**: badge verde/vermelho com latência (verify_credentials).
-- **Filtros**: select de stage (carregado de `/pipedrive/stages`), select de owner (`/pipedrive/users`), date picker "desde", input limite.
-- **Botão "Buscar leads"** → chama `pipedrive-list-leads` → tabela com checkbox por linha.
-  - Colunas: nome, telefone, email, owner Pipedrive, stage Pipedrive, valor, data, status (já importado/novo).
-  - Linhas "já importadas" ficam desabilitadas com badge cinza.
-- **Mapeamento de responsável** (dropdown global acima da tabela): "Atribuir importados a → [select de profiles]". Opcional — se vazio, cai para o usuário logado.
-- **Botão "Importar selecionados"** → confirm dialog → chama `pipedrive-import-leads` → toast com `{imported, skipped}` → invalida `["leads-list"]` no React Query.
+## Fora de escopo (continua na fase 2)
 
-Registrar aba em `src/pages/Admin.tsx` (visível só para admin).
+- Espelhamento Fortem → Pipedrive (atualizar deal quando lead muda de stage no Fortem).
+- Sync automático/agendado.
+- Importação de Activities ↔ tarefas.
 
-### 6. Tipos e cliente compartilhado
-- `src/lib/pipedrive.ts` com tipos `PipedriveLeadPreview`, `PipedriveImportResult` e wrappers `listPipedriveLeads()`, `importPipedriveLeads()`, `getPipedriveStatus()` usando `supabase.functions.invoke()`.
+## Validação final
 
-## Detalhes técnicos
-
-- Todas as functions usam padrão CORS via `npm:@supabase/supabase-js@2/cors`, validam JWT lendo `Authorization` header, criam client com a anon key + token do user, e chamam `has_role` por RPC.
-- Gateway: base `https://connector-gateway.lovable.dev/pipedrive`, headers `Authorization: Bearer ${LOVABLE_API_KEY}` + `X-Connection-Api-Key: ${PIPEDRIVE_API_KEY}`. Ambas as variáveis já estão no projeto.
-- Erros de gateway são propagados ao frontend com status + mensagem; sem retry direto na API Pipedrive.
-- Paginação: a function usa `start` + `limit` do Pipedrive; UI pede no máximo 200 por busca (configurável).
-- Sem schedule/cron nesta fase — só importação manual sob demanda.
-
-## Fora de escopo (fase 2, quando validarmos)
-
-- Espelhamento Fortem → Pipedrive (criar Person/Deal ao criar lead local, atualizar stage ao mover, marcar won/lost).
-- Sync de Activities ↔ `tarefas`.
-- Widget no dashboard com KPIs do Pipedrive.
-- Webhook do Pipedrive para sync em tempo real.
-
-## Validação ao final
-
-- `verify_credentials` retorna `verified`.
-- `pipedrive-list-leads` devolve ≥1 item com flags de duplicado corretas.
-- Importar 1 lead cria registro em `alunos` + `pipeline_metadata` + `pipeline_movements`, aparece em `/leads`, e re-importar o mesmo é skipado.
+- Botão "Importar do Pipedrive" visível em `/pipeline` para admin; some de `/admin`.
+- Salvar mapeamento `Stage 8 → Prospect` e importar 1 deal desse stage → aluno aparece direto em "Prospect" no kanban (não em "Novo lead").
+- Deal sem mapeamento ainda cai em "Novo lead".
+- Re-importar continua idempotente.

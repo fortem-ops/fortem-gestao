@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Settings2, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
+import { Settings2, ChevronDown, ChevronRight, RefreshCw, Plug } from "lucide-react";
 import { PipelineKanban } from "@/components/pipeline/PipelineKanban";
 import { PipelineFilters, type PipelineFiltersValue } from "@/components/pipeline/PipelineFilters";
 import { ManageStagesDialog } from "@/components/pipeline/ManageStagesDialog";
+import { PipedriveImportSheet } from "@/components/pipeline/PipedriveImportSheet";
 import { FUNNELS, type Funnel } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ export default function Pipeline() {
   const [filters, setFilters] = useState<PipelineFiltersValue>({ search: "", professorId: null, origem: null });
   const [scanning, setScanning] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [pipedriveOpen, setPipedriveOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<Funnel, boolean>>({ prospects: false, aluno: false, inativo: false });
 
   const { data: isAdmin } = useQuery({
@@ -66,10 +68,16 @@ export default function Pipeline() {
             <span className="hidden sm:inline">{scanning ? "Recalculando..." : "Recalcular status"}</span>
           </Button>
           {isAdmin && (
-            <Button variant="outline" size="sm" onClick={() => setManageOpen(true)} className="gap-2">
-              <Settings2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Gerenciar etapas</span>
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={() => setPipedriveOpen(true)} className="gap-2">
+                <Plug className="w-4 h-4" />
+                <span className="hidden sm:inline">Importar do Pipedrive</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setManageOpen(true)} className="gap-2">
+                <Settings2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Gerenciar etapas</span>
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -99,6 +107,7 @@ export default function Pipeline() {
       </div>
 
       <ManageStagesDialog open={manageOpen} onOpenChange={setManageOpen} />
+      <PipedriveImportSheet open={pipedriveOpen} onOpenChange={setPipedriveOpen} />
     </div>
   );
 }
