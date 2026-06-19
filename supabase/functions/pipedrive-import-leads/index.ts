@@ -122,11 +122,13 @@ Deno.serve(async (req) => {
           );
         if (metaErr) throw new Error(metaErr.message);
 
+        const targetStageName = (it.pipedriveStageId != null && stageNameByPdId.get(it.pipedriveStageId)) || "Novo lead";
+
         const { error: moveErr } = await admin.rpc("fn_move_pipeline" as any, {
           _aluno_id: alunoId,
-          _to_stage_name: "Novo lead",
+          _to_stage_name: targetStageName,
           _source: "manual",
-          _notes: `Importado do Pipedrive (deal ${it.dealId})`,
+          _notes: `Importado do Pipedrive (deal ${it.dealId}${it.pipedriveStageId ? `, stage ${it.pipedriveStageId}` : ""})`,
         });
         if (moveErr) throw new Error(moveErr.message);
 
