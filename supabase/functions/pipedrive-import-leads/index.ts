@@ -13,6 +13,7 @@ const ItemSchema = z.object({
   phone: z.string().trim().max(60).optional().nullable(),
   email: z.string().trim().max(200).optional().nullable(),
   responsavelId: z.string().uuid().optional().nullable(),
+  pipedriveStageId: z.number().int().optional().nullable(),
 });
 const BodySchema = z.object({
   items: z.array(ItemSchema).min(1).max(500),
