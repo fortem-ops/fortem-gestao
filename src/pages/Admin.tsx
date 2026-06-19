@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Settings, Users, CreditCard, Briefcase, ClipboardList, Dumbbell } from "lucide-react";
+import { Settings, Users, CreditCard, Briefcase, ClipboardList, Dumbbell, Plug } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminPlanos } from "@/components/admin/AdminPlanos";
 import { AdminServicos } from "@/components/admin/AdminServicos";
 import { AdminComingSoon } from "@/components/admin/AdminComingSoon";
 import { AdminTiposAvaliacao } from "@/components/admin/AdminTiposAvaliacao";
+import { AdminPipedrive } from "@/components/admin/AdminPipedrive";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,6 +16,7 @@ const allTabs = [
   { value: "servicos", label: "Serviços", icon: Briefcase, adminOnly: true },
   { value: "avaliacoes", label: "Tipos de Avaliação", icon: ClipboardList, adminOnly: false },
   { value: "templates", label: "Templates de Treino", icon: Dumbbell, adminOnly: false },
+  { value: "pipedrive", label: "Integração Pipedrive", icon: Plug, adminOnly: true },
 ];
 
 export default function Admin() {
@@ -59,6 +61,7 @@ export default function Admin() {
             <TabsContent value="usuarios" className="mt-4"><AdminUsers /></TabsContent>
             <TabsContent value="planos" className="mt-4"><AdminPlanos /></TabsContent>
             <TabsContent value="servicos" className="mt-4"><AdminServicos /></TabsContent>
+            <TabsContent value="pipedrive" className="mt-4"><AdminPipedrive /></TabsContent>
           </>
         )}
         <TabsContent value="avaliacoes" className="mt-4"><AdminTiposAvaliacao /></TabsContent>
