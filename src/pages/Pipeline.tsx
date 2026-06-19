@@ -68,10 +68,16 @@ export default function Pipeline() {
             <span className="hidden sm:inline">{scanning ? "Recalculando..." : "Recalcular status"}</span>
           </Button>
           {isAdmin && (
-            <Button variant="outline" size="sm" onClick={() => setManageOpen(true)} className="gap-2">
-              <Settings2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Gerenciar etapas</span>
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={() => setPipedriveOpen(true)} className="gap-2">
+                <Plug className="w-4 h-4" />
+                <span className="hidden sm:inline">Importar do Pipedrive</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setManageOpen(true)} className="gap-2">
+                <Settings2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Gerenciar etapas</span>
+              </Button>
+            </>
           )}
         </div>
       </div>
