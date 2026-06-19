@@ -64,11 +64,11 @@ Deno.serve(async (req) => {
     const raw = await req.json().catch(() => ({}));
     const parsed = BodySchema.safeParse(raw);
     if (!parsed.success) return json({ error: parsed.error.flatten() }, 400);
-    const { stageId, ownerId, since, limit } = parsed.data;
+    const { stageId, ownerId, since, limit, status } = parsed.data;
 
-    // Fetch deals (open). Pipedrive supports start/limit and filter by stage_id, user_id, status.
+    // Fetch deals. Pipedrive supports start/limit and filter by stage_id, user_id, status.
     const qs = new URLSearchParams();
-    qs.set("status", "open");
+    qs.set("status", status);
     qs.set("limit", String(limit ?? 100));
     qs.set("start", "0");
     if (stageId) qs.set("stage_id", String(stageId));
