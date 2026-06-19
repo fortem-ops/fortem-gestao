@@ -107,6 +107,7 @@ export default function Pipeline() {
       </div>
 
       <ManageStagesDialog open={manageOpen} onOpenChange={setManageOpen} />
+      <PipedriveImportSheet open={pipedriveOpen} onOpenChange={setPipedriveOpen} />
     </div>
   );
 }
