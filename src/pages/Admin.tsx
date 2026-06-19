@@ -59,7 +59,7 @@ export default function Admin() {
             <TabsContent value="usuarios" className="mt-4"><AdminUsers /></TabsContent>
             <TabsContent value="planos" className="mt-4"><AdminPlanos /></TabsContent>
             <TabsContent value="servicos" className="mt-4"><AdminServicos /></TabsContent>
-            <TabsContent value="pipedrive" className="mt-4"><AdminPipedrive /></TabsContent>
+            
           </>
         )}
         <TabsContent value="avaliacoes" className="mt-4"><AdminTiposAvaliacao /></TabsContent>
