@@ -2224,6 +2224,9 @@ export type Database = {
           last_contact_at: string | null
           next_followup_at: string | null
           origem_lead: string | null
+          pipedrive_deal_id: string | null
+          pipedrive_imported_at: string | null
+          pipedrive_person_id: string | null
           probabilidade_fechamento: number | null
           responsavel_comercial_id: string | null
           temperatura_lead: string | null
@@ -2237,6 +2240,9 @@ export type Database = {
           last_contact_at?: string | null
           next_followup_at?: string | null
           origem_lead?: string | null
+          pipedrive_deal_id?: string | null
+          pipedrive_imported_at?: string | null
+          pipedrive_person_id?: string | null
           probabilidade_fechamento?: number | null
           responsavel_comercial_id?: string | null
           temperatura_lead?: string | null
@@ -2250,6 +2256,9 @@ export type Database = {
           last_contact_at?: string | null
           next_followup_at?: string | null
           origem_lead?: string | null
+          pipedrive_deal_id?: string | null
+          pipedrive_imported_at?: string | null
+          pipedrive_person_id?: string | null
           probabilidade_fechamento?: number | null
           responsavel_comercial_id?: string | null
           temperatura_lead?: string | null
