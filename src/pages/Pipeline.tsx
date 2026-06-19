@@ -18,6 +18,7 @@ export default function Pipeline() {
   const [filters, setFilters] = useState<PipelineFiltersValue>({ search: "", professorId: null, origem: null });
   const [scanning, setScanning] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [pipedriveOpen, setPipedriveOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<Funnel, boolean>>({ prospects: false, aluno: false, inativo: false });
 
   const { data: isAdmin } = useQuery({
