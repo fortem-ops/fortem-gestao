@@ -53,6 +53,20 @@ Deno.serve(async (req) => {
     if (!parsed.success) return json({ error: parsed.error.flatten() }, 400);
     const { items, defaultResponsavelId } = parsed.data;
 
+    // Resolve stage mapping (pipedrive_stage_id → fortem stage name)
+    const stageIds = Array.from(new Set(items.map((i) => i.pipedriveStageId).filter((x): x is number => typeof x === "number")));
+    const stageNameByPdId = new Map<number, string>();
+    if (stageIds.length) {
+      const { data: maps } = await admin
+        .from("pipedrive_stage_mapping")
+        .select("pipedrive_stage_id, fortem_stage_id, pipeline_stages:fortem_stage_id(name)")
+        .in("pipedrive_stage_id", stageIds);
+      (maps || []).forEach((m: any) => {
+        const name = m.pipeline_stages?.name;
+        if (name) stageNameByPdId.set(m.pipedrive_stage_id, name);
+      });
+    }
+
     let imported = 0;
     let skipped = 0;
     const errors: { dealId: string; message: string }[] = [];
