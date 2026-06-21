@@ -179,7 +179,7 @@ export default function RelatoriosVendas() {
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1}
+                    disabled={!hasPrevPage(currentPage)}
                   >
                     Anterior
                   </Button>
@@ -190,7 +190,7 @@ export default function RelatoriosVendas() {
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages}
+                    disabled={!hasNextPage(currentPage, totalPages)}
                   >
                     Próximo
                   </Button>
