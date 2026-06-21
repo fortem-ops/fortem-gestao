@@ -255,6 +255,7 @@ export type Database = {
           cidade: string | null
           complemento: string | null
           cpf: string | null
+          cpf_hash: string | null
           created_at: string
           current_pipeline_stage_id: string | null
           data_nascimento: string | null
@@ -282,6 +283,7 @@ export type Database = {
           cidade?: string | null
           complemento?: string | null
           cpf?: string | null
+          cpf_hash?: string | null
           created_at?: string
           current_pipeline_stage_id?: string | null
           data_nascimento?: string | null
@@ -309,6 +311,7 @@ export type Database = {
           cidade?: string | null
           complemento?: string | null
           cpf?: string | null
+          cpf_hash?: string | null
           created_at?: string
           current_pipeline_stage_id?: string | null
           data_nascimento?: string | null
@@ -1638,6 +1641,7 @@ export type Database = {
           aluno_id: string | null
           attachment_url: string | null
           cpf: string
+          cpf_hash: string | null
           created_at: string
           data_nascimento: string | null
           document_type: string
@@ -1659,6 +1663,7 @@ export type Database = {
           aluno_id?: string | null
           attachment_url?: string | null
           cpf: string
+          cpf_hash?: string | null
           created_at?: string
           data_nascimento?: string | null
           document_type?: string
@@ -1680,6 +1685,7 @@ export type Database = {
           aluno_id?: string | null
           attachment_url?: string | null
           cpf?: string
+          cpf_hash?: string | null
           created_at?: string
           data_nascimento?: string | null
           document_type?: string
@@ -4418,6 +4424,10 @@ export type Database = {
           local_id: string
           nome: string
         }[]
+      }
+      fn_lookup_aluno_por_cpf_hash: {
+        Args: { p_cpf_hash: string }
+        Returns: Json
       }
       fn_marcar_parcelas_vencidas: { Args: never; Returns: number }
       fn_move_pipeline: {
