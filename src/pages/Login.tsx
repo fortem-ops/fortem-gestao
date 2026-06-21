@@ -8,7 +8,7 @@ import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { userHasStaffAccess } from "@/lib/authAccess";
 import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
 import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
@@ -22,7 +22,6 @@ export default function Login() {
   const [testing, setTesting] = useState(false);
   const navigate = useNavigate();
   const { signIn, user, isReady, resetAuthState } = useAuth();
-  const { toast } = useToast();
 
   const runDiagnosis = async () => {
     setTesting(true);
@@ -63,7 +62,7 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      toast.error("Preencha todos os campos");
       return;
     }
     setLoading(true);
@@ -75,10 +74,10 @@ export default function Login() {
       if (isNetwork) {
         const d = await runDiagnosis();
         const { title, description } = describeDiagnosis(d);
-        toast({ title, description, variant: "destructive" });
+        toast.error(title, { description: description });
       } else {
         setDiagnosis(null);
-        toast({ title: "Erro ao entrar", description: "Email ou senha incorretos.", variant: "destructive" });
+        toast.error("Erro ao entrar", { description: "Email ou senha incorretos." });
       }
       return;
     }
@@ -91,10 +90,7 @@ export default function Login() {
     setLoading(true);
     await resetAuthState();
     setLoading(false);
-    toast({
-      title: "Sessão limpa",
-      description: "Tente entrar novamente com seu e-mail e senha.",
-    });
+    toast.success("Sessão limpa", { description: "Tente entrar novamente com seu e-mail e senha." });
   };
 
   return (

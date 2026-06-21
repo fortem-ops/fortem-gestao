@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatMinutes, mesLabel } from "@/lib/ponto";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { CheckCircle2, Lock, RefreshCw, ShieldAlert } from "lucide-react";
 import {
   AlertDialog,
@@ -74,10 +74,10 @@ export function FechamentoMensalTable() {
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Fechamentos gerados", description: "Recalculados para todos os professores do mês." });
+      toast.success("Fechamentos gerados", { description: "Recalculados para todos os professores do mês." });
       qc.invalidateQueries({ queryKey: ["ponto-fechamento-mes"] });
     },
-    onError: (e: any) => toast({ title: "Falha", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Falha", { description: e.message }),
   });
 
   const aprovar = useMutation({
@@ -86,10 +86,10 @@ export function FechamentoMensalTable() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Fechamento aprovado", description: "Registros do mês ficaram bloqueados para edição." });
+      toast.success("Fechamento aprovado", { description: "Registros do mês ficaram bloqueados para edição." });
       qc.invalidateQueries({ queryKey: ["ponto-fechamento-mes"] });
     },
-    onError: (e: any) => toast({ title: "Falha ao aprovar", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Falha ao aprovar", { description: e.message }),
   });
 
   return (

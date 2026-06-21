@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { FileSignature, FileCheck2, Download } from "lucide-react";
 
 type TipoAcordo = "estendido_2h" | "reduzido_30min";
@@ -47,16 +47,16 @@ export function MeusAcordosIntervalo() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Aceite registrado" });
+      toast("Aceite registrado");
       qc.invalidateQueries({ queryKey: ["meus-acordos-intervalo"] });
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   const baixar = async (path: string) => {
     const { data, error } = await supabase.storage.from("acordos-intervalo").createSignedUrl(path, 60);
     if (error || !data) {
-      toast({ title: "Erro", description: error?.message ?? "Falha", variant: "destructive" });
+      toast.error("Erro", { description: error?.message ?? "Falha" });
       return;
     }
     window.open(data.signedUrl, "_blank");

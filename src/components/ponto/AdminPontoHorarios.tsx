@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Save, Trash2, Calendar } from "lucide-react";
 
 const DIAS = [
@@ -89,10 +89,10 @@ export function AdminPontoHorarios() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Horário salvo" });
+      toast("Horário salvo");
       qc.invalidateQueries({ queryKey: ["ponto-horarios", profSelecionado] });
     },
-    onError: (e: any) => toast({ title: "Falha ao salvar", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Falha ao salvar", { description: e.message }),
   });
 
   const del = useMutation({
@@ -101,7 +101,7 @@ export function AdminPontoHorarios() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Horário removido" });
+      toast("Horário removido");
       qc.invalidateQueries({ queryKey: ["ponto-horarios", profSelecionado] });
     },
   });

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -66,14 +66,14 @@ export function LancamentoBancoHorasDialog({ open, onOpenChange, usuarioId, usua
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Lançamento registrado" });
+      toast("Lançamento registrado");
       qc.invalidateQueries({ queryKey: ["admin-banco"] });
       qc.invalidateQueries({ queryKey: ["meu-banco-saldo"] });
       qc.invalidateQueries({ queryKey: ["meu-banco-resumo"] });
       qc.invalidateQueries({ queryKey: ["meu-banco-lancamentos"] });
       onOpenChange(false);
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   return (

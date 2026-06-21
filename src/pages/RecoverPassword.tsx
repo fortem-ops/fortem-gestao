@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import fortemIcon from "@/assets/fortem-icon.png";
 
 export default function RecoverPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const { toast } = useToast();
 
   async function callRecover(targetEmail: string) {
     // Tenta 2x com pequeno backoff — extensões/proxy do navegador podem
@@ -45,13 +44,9 @@ export default function RecoverPassword() {
     if (!result.ok) {
       const msg = result.error?.message ?? "Erro desconhecido";
       const isNetwork = /fetch|network/i.test(msg);
-      toast({
-        title: isNetwork ? "Falha de conexão" : "Erro",
-        description: isNetwork
+      toast.error(isNetwork ? "Falha de conexão" : "Erro", { description: isNetwork
           ? "Não foi possível conectar. Desative extensões do navegador (ex: bloqueadores) ou tente em uma janela anônima."
-          : msg,
-        variant: "destructive",
-      });
+          : msg });
       return;
     }
     setSent(true);

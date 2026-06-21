@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
 
 interface Feriado {
@@ -49,11 +49,11 @@ export function AdminPontoFeriados() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Feriado cadastrado" });
+      toast("Feriado cadastrado");
       setData(""); setDescricao(""); setTipo("nacional");
       qc.invalidateQueries({ queryKey: ["ponto-feriados"] });
     },
-    onError: (e: any) => toast({ title: "Falha", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Falha", { description: e.message }),
   });
 
   const del = useMutation({
@@ -62,7 +62,7 @@ export function AdminPontoFeriados() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Feriado removido" });
+      toast("Feriado removido");
       qc.invalidateQueries({ queryKey: ["ponto-feriados"] });
     },
   });

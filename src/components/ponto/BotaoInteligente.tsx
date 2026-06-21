@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ACAO_LABEL, type ProximaAcao, shortDevice, tryGeo } from "@/lib/ponto";
 import { Play, Coffee, Utensils, Square, Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,20 +54,13 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
     onSuccess: ({ data, semGps }) => {
       const res = data as any;
       if (semGps) {
-        toast({
-          title: "Registrado sem localização",
-          description: "Sua batida foi aceita, mas sem GPS — o coordenador será notificado.",
-          variant: "destructive",
-        });
+        toast.error("Registrado sem localização", { description: "Sua batida foi aceita, mas sem GPS — o coordenador será notificado." });
       } else if (res?.fora_do_raio) {
         const dist = res?.distancia_m != null ? `${Math.round(Number(res.distancia_m))}m` : "fora";
         const nome = res?.local_nome ? ` de ${res.local_nome}` : "";
-        toast({
-          title: "Registrado fora do local",
-          description: `Você está a ${dist}${nome}. O coordenador será notificado.`,
-        });
+        toast.success("Registrado fora do local", { description: `Você está a ${dist}${nome}. O coordenador será notificado.` });
       } else {
-        toast({ title: "Registrado!", description: ACAO_LABEL[acaoEfetiva!] });
+        toast.success("Registrado!", { description: ACAO_LABEL[acaoEfetiva!] });
       }
       qc.invalidateQueries({ queryKey: ["ponto-estado"] });
       qc.invalidateQueries({ queryKey: ["ponto-historico"] });
@@ -75,7 +68,7 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
       qc.invalidateQueries({ queryKey: ["ponto-eventos-dia"] });
     },
     onError: (err: any) => {
-      toast({ title: "Não foi possível registrar", description: err.message, variant: "destructive" });
+      toast.error("Não foi possível registrar", { description: err.message });
     },
   });
 

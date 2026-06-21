@@ -12,7 +12,7 @@ import { AdminBeneficiosTable } from "@/components/clube/AdminBeneficiosTable";
 import { ClubeAlertasBell } from "@/components/clube/ClubeAlertasBell";
 import { Sparkles, RefreshCw } from "lucide-react";
 import { Navigate } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 /**
  * Painel administrativo do Clube FORTEM (coordenadores e admins).
@@ -38,21 +38,18 @@ export default function AdminClube() {
     },
     onSuccess: (data) => {
       if (!data.ok) {
-        toast({ title: "Falha registrada", description: data.erro ?? "Veja o sino de alertas.", variant: "destructive" });
+        toast.error("Falha registrada", { description: data.erro ?? "Veja o sino de alertas." });
       } else {
         const sinc = data.resync?.sincronizados ?? 0;
         const div = data.divergencias?.divergencias ?? 0;
-        toast({
-          title: "Re-sincronização concluída",
-          description: `${sinc} membros atualizados${div > 0 ? ` · ${div} divergência(s) registrada(s) nos alertas` : ""}.`,
-        });
+        toast.success("Re-sincronização concluída", { description: `${sinc} membros atualizados${div > 0 ? ` · ${div} divergência(s) registrada(s) nos alertas` : ""}.` });
       }
       queryClient.invalidateQueries({ queryKey: ["clube-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["admin-membros"] });
       queryClient.invalidateQueries({ queryKey: ["clube-alertas"] });
     },
     onError: (err: any) => {
-      toast({ title: "Falha ao re-sincronizar", description: err.message, variant: "destructive" });
+      toast.error("Falha ao re-sincronizar", { description: err.message });
     },
   });
 

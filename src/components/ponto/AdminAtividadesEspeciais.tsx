@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Plus, Sparkles, Trash2, Users } from "lucide-react";
 
 type Forma = "pagamento" | "banco_horas";
@@ -81,7 +81,7 @@ export function AdminAtividadesEspeciais() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Atividade removida" });
+      toast("Atividade removida");
       qc.invalidateQueries({ queryKey: ["ponto-atividades"] });
     },
   });
@@ -186,10 +186,10 @@ function NovaAtividadeDialog({ onClose, onCreated }: { onClose: () => void; onCr
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Atividade criada" });
+      toast("Atividade criada");
       onCreated();
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   return (
@@ -300,12 +300,12 @@ function ParticipantesDialog({
       }
     },
     onSuccess: () => {
-      toast({ title: "Participante adicionado" });
+      toast("Participante adicionado");
       qc.invalidateQueries({ queryKey: ["ponto-atv-participantes", atividadeId] });
       qc.invalidateQueries({ queryKey: ["admin-banco"] });
       setNovo({ usuario_id: "", qtd_horas: 1, valor_hora: 0, forma_pagamento: "pagamento", observacoes: "" });
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   const remover = useMutation({

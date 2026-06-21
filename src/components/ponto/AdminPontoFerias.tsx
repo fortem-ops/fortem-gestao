@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Plane, Plus, Trash2 } from "lucide-react";
 
 interface Ferias {
@@ -70,11 +70,11 @@ export function AdminPontoFerias() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Período cadastrado" });
+      toast("Período cadastrado");
       setInicio(""); setFim(""); setObs(""); setTipo("ferias");
       qc.invalidateQueries({ queryKey: ["ponto-ferias-list"] });
     },
-    onError: (e: any) => toast({ title: "Falha", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Falha", { description: e.message }),
   });
 
   const del = useMutation({
@@ -83,7 +83,7 @@ export function AdminPontoFerias() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Removido" });
+      toast("Removido");
       qc.invalidateQueries({ queryKey: ["ponto-ferias-list"] });
     },
   });

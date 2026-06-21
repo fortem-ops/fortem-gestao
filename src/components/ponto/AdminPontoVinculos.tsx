@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Pencil, Save, ShieldCheck, Briefcase } from "lucide-react";
 
 type TipoVinculo =
@@ -265,11 +265,11 @@ function EditarVinculoDialog({ userId, nome, atual, onClose, onSaved }: EditDial
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Cadastro salvo", description: `Vínculo de ${nome} atualizado.` });
+      toast.success("Cadastro salvo", { description: `Vínculo de ${nome} atualizado.` });
       onSaved();
     },
     onError: (e: any) =>
-      toast({ title: "Falha ao salvar", description: e.message, variant: "destructive" }),
+      toast.error("Falha ao salvar", { description: e.message }),
   });
 
   return (
