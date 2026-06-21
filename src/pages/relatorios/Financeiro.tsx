@@ -32,7 +32,7 @@ type AbertoRow = {
 export default function RelatoriosFinanceiro() {
   const [periodo, setPeriodo] = useState(defaultPeriodo());
 
-  const { data: recebidos = [] } = useQuery({
+  const { data: recebidos = [] } = useQuery<RecebimentoRow[]>({
     queryKey: ["rel-fin-rec", periodo],
     queryFn: async () => {
       const { data } = await supabase
@@ -41,26 +41,26 @@ export default function RelatoriosFinanceiro() {
         .gte("data_pagamento", periodo.inicio)
         .lte("data_pagamento", periodo.fim)
         .order("data_pagamento", { ascending: false });
-      return data ?? [];
+      return (data ?? []) as RecebimentoRow[];
     },
   });
 
-  const { data: abertos = [] } = useQuery({
+  const { data: abertos = [] } = useQuery<AbertoRow[]>({
     queryKey: ["rel-fin-abertos"],
     queryFn: async () => {
       const { data } = await supabase
         .from("v_financeiro_aberto")
         .select("*")
         .order("vencimento", { ascending: true });
-      return data ?? [];
+      return (data ?? []) as AbertoRow[];
     },
   });
 
   const stats = useMemo(() => {
-    const totalRec = recebidos.reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-    const vencidos = abertos.filter((a: any) => a.status === "vencido");
-    const totalVencido = vencidos.reduce((s: number, a: any) => s + Number(a.valor || 0), 0);
-    const totalAberto = abertos.reduce((s: number, a: any) => s + Number(a.valor || 0), 0);
+    const totalRec = recebidos.reduce((s, r) => s + Number(r.valor || 0), 0);
+    const vencidos = abertos.filter((a) => a.status === "vencido");
+    const totalVencido = vencidos.reduce((s, a) => s + Number(a.valor || 0), 0);
+    const totalAberto = abertos.reduce((s, a) => s + Number(a.valor || 0), 0);
     return { totalRec, totalVencido, totalAberto, qtdVencidos: vencidos.length };
   }, [recebidos, abertos]);
 
@@ -88,7 +88,7 @@ export default function RelatoriosFinanceiro() {
           <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Recebimentos</CardTitle>
-              <ExportMenu filename={`recebidos-${periodo.inicio}-${periodo.fim}`} rows={recebidos as any[]} />
+              <ExportMenu filename={`recebidos-${periodo.inicio}-${periodo.fim}`} rows={recebidos as unknown as Record<string, unknown>[]} />
             </CardHeader>
             <CardContent>
               <Table>
@@ -101,7 +101,7 @@ export default function RelatoriosFinanceiro() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recebidos.slice(0, 200).map((r: any) => (
+                  {recebidos.slice(0, 200).map((r) => (
                     <TableRow key={r.parcela_id}>
                       <TableCell>{new Date(r.data_pagamento).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>{r.aluno_nome}</TableCell>
@@ -122,10 +122,10 @@ export default function RelatoriosFinanceiro() {
           <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Em aberto</CardTitle>
-              <ExportMenu filename="parcelas-abertas" rows={abertos.filter((a: any) => a.status === "aberto") as any[]} />
+              <ExportMenu filename="parcelas-abertas" rows={abertos.filter((a) => a.status === "aberto") as unknown as Record<string, unknown>[]} />
             </CardHeader>
             <CardContent>
-              <ParcelasTable rows={abertos.filter((a: any) => a.status === "aberto")} />
+              <ParcelasTable rows={abertos.filter((a) => a.status === "aberto")} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -134,10 +134,10 @@ export default function RelatoriosFinanceiro() {
           <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Vencidos</CardTitle>
-              <ExportMenu filename="parcelas-vencidas" rows={abertos.filter((a: any) => a.status === "vencido") as any[]} />
+              <ExportMenu filename="parcelas-vencidas" rows={abertos.filter((a) => a.status === "vencido") as unknown as Record<string, unknown>[]} />
             </CardHeader>
             <CardContent>
-              <ParcelasTable rows={abertos.filter((a: any) => a.status === "vencido")} showAtraso />
+              <ParcelasTable rows={abertos.filter((a) => a.status === "vencido")} showAtraso />
             </CardContent>
           </Card>
         </TabsContent>
@@ -146,7 +146,7 @@ export default function RelatoriosFinanceiro() {
   );
 }
 
-function ParcelasTable({ rows, showAtraso }: { rows: any[]; showAtraso?: boolean }) {
+function ParcelasTable({ rows, showAtraso }: { rows: AbertoRow[]; showAtraso?: boolean }) {
   return (
     <Table>
       <TableHeader>
@@ -159,7 +159,7 @@ function ParcelasTable({ rows, showAtraso }: { rows: any[]; showAtraso?: boolean
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.slice(0, 200).map((r: any) => (
+        {rows.slice(0, 200).map((r) => (
           <TableRow key={r.parcela_id}>
             <TableCell>{new Date(r.vencimento).toLocaleDateString("pt-BR")}</TableCell>
             <TableCell>{r.aluno_nome}</TableCell>
