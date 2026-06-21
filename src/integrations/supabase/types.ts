@@ -3943,6 +3943,21 @@ export type Database = {
         }
         Relationships: []
       }
+      v_audit_resumo: {
+        Row: {
+          created_at: string | null
+          dados_antes: Json | null
+          dados_depois: Json | null
+          id: string | null
+          operacao: string | null
+          registro_id: string | null
+          tabela: string | null
+          tipo_operacao: string | null
+          user_id: string | null
+          usuario_email: string | null
+        }
+        Relationships: []
+      }
       v_cancelamentos: {
         Row: {
           aluno_id: string | null
@@ -4390,6 +4405,11 @@ export type Database = {
         Returns: string
       }
       fn_is_auto_renew_plan: { Args: { _tipo: string }; Returns: boolean }
+      fn_lgpd_anonimizar_titular: {
+        Args: { p_aluno_id: string }
+        Returns: Json
+      }
+      fn_lgpd_relatorio_titular: { Args: { p_aluno_id: string }; Returns: Json }
       fn_local_mais_proximo: {
         Args: { _lat: number; _lng: number }
         Returns: {
