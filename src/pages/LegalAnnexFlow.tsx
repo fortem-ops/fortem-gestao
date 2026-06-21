@@ -269,6 +269,7 @@ const LegalAnnexFlow = ({ documentType = "anexo" }: LegalAnnexFlowProps) => {
             onClick={handleNext}
             disabled={
               submitting ||
+              (step === 1 && !lgpdConsent) ||
               (step === 2 && !hasReadTerms) ||
               (step === 4 && !agreedToTerms) ||
               (step === 5 && !signatureData)
