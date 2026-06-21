@@ -91,7 +91,9 @@ const LegalAnnexFlow = ({ documentType = "anexo" }: LegalAnnexFlowProps) => {
       if (!studentData.emergencyContactName.trim()) errors.emergencyContactName = "Nome do contato é obrigatório";
       if (studentData.emergencyContactPhone.replace(/\D/g, "").length < 10) errors.emergencyContactPhone = "Telefone inválido";
       setFormErrors(errors);
-      return Object.keys(errors).length === 0;
+      if (Object.keys(errors).length > 0) return false;
+      if (!lgpdConsent) return false;
+      return true;
     }
     if (step === 2) return hasReadTerms;
     if (step === 3) {
