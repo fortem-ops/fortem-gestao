@@ -5,11 +5,11 @@ import { toast } from "sonner";
 
 interface Props {
   filename: string;
-  rows: Record<string, any>[];
+  rows: Record<string, unknown>[];
   columns?: { key: string; label: string }[];
 }
 
-function toCSV(rows: Record<string, any>[], columns?: { key: string; label: string }[]) {
+function toCSV(rows: Record<string, unknown>[], columns?: { key: string; label: string }[]) {
   if (rows.length === 0) return "";
   const cols = columns ?? Object.keys(rows[0]).map((k) => ({ key: k, label: k }));
   const head = cols.map((c) => `"${c.label.replace(/"/g, '""')}"`).join(",");

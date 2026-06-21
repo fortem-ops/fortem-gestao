@@ -4,6 +4,11 @@ import { KpiCard } from "@/components/relatorios/KpiCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, DollarSign, Users, AlertTriangle } from "lucide-react";
 
+type VendaResumoRow = { valor_final: number | string | null; status_pagamento: string | null; data_venda: string };
+type RecebimentoRow = { valor: number | string | null; data_pagamento: string };
+type AlertaRow = { aluno_id: string; avaliacao_atrasada: boolean | null; treino_desatualizado: boolean | null };
+type InsightRow = { id: string; titulo: string; descricao: string | null };
+
 export default function RelatoriosHome() {
   const { data: kpis } = useQuery({
     queryKey: ["relatorios-home-kpis"],
@@ -19,10 +24,10 @@ export default function RelatoriosHome() {
         supabase.from("v_tecnico_alertas").select("aluno_id,avaliacao_atrasada,treino_desatualizado"),
       ]);
 
-      const vendasOk = (vendas.data ?? []).filter((v: any) => v.status_pagamento !== "cancelado");
-      const totalVendas = vendasOk.reduce((s: number, v: any) => s + Number(v.valor_final || 0), 0);
-      const totalRecebido = (recebidos.data ?? []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-      const totalAlertas = (alertas.data ?? []).filter((a: any) => a.avaliacao_atrasada || a.treino_desatualizado).length;
+      const vendasOk = ((vendas.data ?? []) as VendaResumoRow[]).filter((v) => v.status_pagamento !== "cancelado");
+      const totalVendas = vendasOk.reduce((s, v) => s + Number(v.valor_final || 0), 0);
+      const totalRecebido = ((recebidos.data ?? []) as RecebimentoRow[]).reduce((s, r) => s + Number(r.valor || 0), 0);
+      const totalAlertas = ((alertas.data ?? []) as AlertaRow[]).filter((a) => a.avaliacao_atrasada || a.treino_desatualizado).length;
       return {
         totalVendas,
         totalRecebido,
@@ -33,7 +38,7 @@ export default function RelatoriosHome() {
     },
   });
 
-  const { data: insights } = useQuery({
+  const { data: insights } = useQuery<InsightRow[]>({
     queryKey: ["relatorios-insights"],
     queryFn: async () => {
       const { data } = await supabase
@@ -41,7 +46,7 @@ export default function RelatoriosHome() {
         .select("*")
         .order("gerado_em", { ascending: false })
         .limit(6);
-      return data ?? [];
+      return (data ?? []) as InsightRow[];
     },
   });
 
@@ -70,7 +75,7 @@ export default function RelatoriosHome() {
             {(insights ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhum insight gerado ainda.</p>
             ) : (
-              insights!.map((i: any) => (
+              insights!.map((i) => (
                 <div key={i.id} className="rounded-md border border-border p-3">
                   <p className="font-medium">{i.titulo}</p>
                   {i.descricao && <p className="text-sm text-muted-foreground mt-1">{i.descricao}</p>}
