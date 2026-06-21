@@ -11,7 +11,7 @@ import { ExportMenu } from "@/components/relatorios/ExportMenu";
 import { BarChart3, TrendingUp, ShoppingBag } from "lucide-react";
 import { calcStats, calcPorPlano, formatBrl, type VendaRow } from "@/lib/vendas-calc";
 
-const PAGE_SIZE = 50;
+import { calcRange, calcTotalPages, hasPrevPage, hasNextPage } from "@/lib/vendas-paginacao";
 
 type VendaViewRow = {
   venda_id: string;
@@ -46,8 +46,7 @@ export default function RelatoriosVendas() {
   const { data: pageData, isLoading } = useQuery({
     queryKey: ["rel-vendas-page", periodo, currentPage],
     queryFn: async () => {
-      const from = (currentPage - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
+      const { from, to } = calcRange(currentPage);
       const { data, error, count } = await supabase
         .from("v_vendas_resumo")
         .select("*", { count: "exact" })
@@ -62,7 +61,7 @@ export default function RelatoriosVendas() {
 
   const rows: VendaViewRow[] = pageData?.rows ?? [];
   const totalCount = pageData?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const totalPages = calcTotalPages(totalCount);
 
   // Agregado do período inteiro (para KPIs e gráfico por plano)
   const { data: aggRows = [] } = useQuery({
