@@ -21,6 +21,8 @@
 | `clube_fortem_membros` | ✅ | Staff total; aluno lê o próprio (sem expor qr_secret de outros) |
 | `legal_annexes` | ✅ | Staff total; aluno lê os próprios; anon pode inserir (fluxo /assinar) |
 
+> **Nota técnica:** a tabela `pagamento_parcelas` não possui coluna `aluno_id` direta; a política de auto-leitura do aluno resolve o vínculo via `pagamentos.aluno_id`.
+
 ### Funções helper criadas
 
 - `public.is_staff()` — verifica se uid tem papel de staff
