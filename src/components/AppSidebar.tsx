@@ -5,8 +5,7 @@ import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import {
   Sidebar,
   SidebarContent,
@@ -125,36 +124,10 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
   useNotificacaoRealtime();
 
-  const { data: isCoordAdmin } = useQuery({
-    queryKey: ["sidebar-coord-admin", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
-      return !!data;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60_000,
-  });
-
-  const { data: isAdmin } = useQuery({
-    queryKey: ["sidebar-is-admin", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("is_admin", { _user_id: user!.id });
-      return !!data;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60_000,
-  });
-
-  const { data: isParceiro } = useQuery({
-    queryKey: ["sidebar-is-parceiro", user?.id],
-    queryFn: async () => {
-      if (!user) return false;
-      const { data } = await supabase.from("parceiros").select("id").eq("user_id", user.id).eq("ativo", true).maybeSingle();
-      return !!data;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60_000,
-  });
+  const { data: roles } = useUserRoles();
+  const isCoordAdmin = roles?.isCoordAdmin;
+  const isAdmin = roles?.isAdmin;
+  const isParceiro = roles?.isParceiro;
 
   return (
     <Sidebar collapsible="icon">
