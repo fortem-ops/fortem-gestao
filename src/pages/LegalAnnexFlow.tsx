@@ -161,6 +161,27 @@ const LegalAnnexFlow = ({ documentType = "anexo" }: LegalAnnexFlowProps) => {
                 <p className="body-text text-sm mt-1">Preencha seus dados pessoais para continuar.</p>
               </div>
               <StudentDataForm data={studentData} onChange={setStudentData} errors={formErrors} />
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card">
+                <input
+                  id="lgpd-consent"
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 cursor-pointer"
+                  checked={lgpdConsent}
+                  onChange={(e) => setLgpdConsent(e.target.checked)}
+                />
+                <label htmlFor="lgpd-consent" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                  Li e concordo com a{" "}
+                  <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                    Política de Privacidade
+                  </a>{" "}
+                  e autorizo o tratamento dos meus dados pessoais conforme a LGPD (Lei 13.709/2018).
+                </label>
+              </div>
+              {!lgpdConsent && (
+                <p className="text-xs text-destructive mt-1">
+                  É necessário aceitar a Política de Privacidade para continuar.
+                </p>
+              )}
             </>
           )}
 
