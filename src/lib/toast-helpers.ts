@@ -1,4 +1,4 @@
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { classifyError } from "./errors";
 import { logger } from "./logger";
 
@@ -8,17 +8,13 @@ import { logger } from "./logger";
  */
 
 export function toastSuccess(title: string, description?: string) {
-  toast({ title, description });
+  toast.success(title, { description: description });
 }
 
 export function toastError(err: unknown, fallbackTitle?: string) {
   const c = classifyError(err);
   logger.error(err, { category: c.category });
-  toast({
-    title: fallbackTitle && c.category === "unknown" ? fallbackTitle : c.title,
-    description: c.description,
-    variant: "destructive",
-  });
+  toast.error(fallbackTitle && c.category === "unknown" ? fallbackTitle : c.title, { description: c.description });
 }
 
 /** Mantido por compatibilidade — prefira `classifyError(err).category === "network"`. */

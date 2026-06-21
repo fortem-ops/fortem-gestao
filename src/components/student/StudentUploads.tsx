@@ -4,7 +4,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Image, Upload, Loader2, Download, Trash2, Eye, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -80,11 +80,11 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
         if (dbError) throw dbError;
       }
 
-      toast({ title: "Upload concluído", description: `${files.length} arquivo(s) enviado(s)` });
+      toast.success("Upload concluído", { description: `${files.length} arquivo(s) enviado(s)` });
       queryClient.invalidateQueries({ queryKey: ["uploads", student.id] });
       queryClient.invalidateQueries({ queryKey: ["historico-timeline", student.id] });
     } catch (err: any) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      toast.error("Erro no upload", { description: err.message });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -96,7 +96,7 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
       .from("aluno-files")
       .createSignedUrl(upload.storage_path, 60);
     if (error || !data?.signedUrl) {
-      toast({ title: "Erro ao baixar", description: error?.message || "URL não gerada", variant: "destructive" });
+      toast.error("Erro ao baixar", { description: error?.message || "URL não gerada" });
       return;
     }
     window.open(data.signedUrl, "_blank");
@@ -109,11 +109,11 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Arquivo removido" });
+      toast("Arquivo removido");
       queryClient.invalidateQueries({ queryKey: ["uploads", student.id] });
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
+      toast.error("Erro ao remover", { description: err.message });
     },
   });
 
@@ -128,7 +128,7 @@ export function StudentUploads({ student }: { student: Tables<"alunos"> }) {
       .createSignedUrl(file.storage_path, 300);
     setLoadingPreviewId(null);
     if (error || !data?.signedUrl) {
-      toast({ title: "Erro ao pré-visualizar", description: error?.message || "URL não gerada", variant: "destructive" });
+      toast.error("Erro ao pré-visualizar", { description: error?.message || "URL não gerada" });
       return;
     }
     setPreview({ url: data.signedUrl, file });

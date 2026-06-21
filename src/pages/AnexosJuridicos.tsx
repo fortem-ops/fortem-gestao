@@ -11,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 type MedicalType = "ok" | "restricao";
 type DocType = "anexo" | "experimental";
@@ -64,13 +64,10 @@ const AnexosJuridicos = () => {
       const { data, error } = await supabase.functions.invoke("migrate-from-consent-care");
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({
-        title: "Importação concluída",
-        description: `${data.imported} importados, ${data.skipped} já existiam, ${data.errors} erros (de ${data.total_source} encontrados na origem).`,
-      });
+      toast.success("Importação concluída", { description: `${data.imported} importados, ${data.skipped} já existiam, ${data.errors} erros (de ${data.total_source} encontrados na origem).` });
       qc.invalidateQueries({ queryKey: ["legal_annexes"] });
     } catch (e: any) {
-      toast({ title: "Erro na importação", description: e.message, variant: "destructive" });
+      toast.error("Erro na importação", { description: e.message });
     } finally {
       setImporting(false);
       setImportOpen(false);
@@ -80,8 +77,8 @@ const AnexosJuridicos = () => {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const { error } = await supabase.from("legal_annexes").delete().eq("id", deleteTarget.id);
-    if (error) toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    else { toast({ title: "Registro excluído com sucesso" }); qc.invalidateQueries({ queryKey: ["legal_annexes"] }); }
+    if (error) toast.error("Erro ao excluir", { description: error.message });
+    else { toast("Registro excluído com sucesso"); qc.invalidateQueries({ queryKey: ["legal_annexes"] }); }
     setDeleteTarget(null);
   };
 

@@ -15,7 +15,7 @@ import {
   type JornadaTolerancia,
 } from "@/lib/pontoTolerancia";
 import { LogIn, Coffee, Utensils, LogOut, MessageSquarePlus, MapPin, Info } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export interface EventoPonto {
   tipo: "entrada" | "intervalo_inicio" | "intervalo_fim" | "saida";
@@ -131,12 +131,12 @@ export function ResumoDoDia({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Observação salva" });
+      toast("Observação salva");
       setAdding(false);
       qc.invalidateQueries({ queryKey: ["ponto-estado"] });
       qc.invalidateQueries({ queryKey: ["ponto-jornada-hoje"] });
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   const evMap = new Map<EventoPonto["tipo"], EventoPonto>();

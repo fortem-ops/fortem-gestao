@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2 } from "lucide-react";
 import { formatMinutes } from "@/lib/ponto";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const TIPO_LABEL: Record<string, string> = {
   credito_manual: "Crédito manual",
@@ -46,11 +46,11 @@ export function HistoricoBancoHorasDialog({ open, onOpenChange, usuarioId, usuar
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Lançamento excluído" });
+      toast("Lançamento excluído");
       qc.invalidateQueries({ queryKey: ["admin-banco"] });
       qc.invalidateQueries({ queryKey: ["admin-banco-historico", usuarioId] });
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   const saldoColor = (n: number) => (n >= 0 ? "text-success" : "text-destructive");

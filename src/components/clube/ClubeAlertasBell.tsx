@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell, AlertTriangle, AlertCircle, Info, Check } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 type Severidade = "info" | "aviso" | "critico";
 type Tipo = "cron_falha" | "divergencia_nivel" | "sincronizacao_parcial" | "manual";
@@ -61,7 +61,7 @@ export function ClubeAlertasBell() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["clube-alertas"] }),
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => toast.error("Erro", { description: err.message }),
   });
 
   const marcarTodosLidos = useMutation({

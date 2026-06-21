@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { FileSignature, Plus, Upload, FileCheck2, FileX2, Download, Trash2, Coffee } from "lucide-react";
 
 type TipoAcordo = "estendido_2h" | "reduzido_30min";
@@ -85,16 +85,16 @@ export function AdminAcordosIntervalo() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Acordo removido" });
+      toast("Acordo removido");
       qc.invalidateQueries({ queryKey: ["ponto-acordos-intervalo"] });
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   const baixarPdf = async (path: string) => {
     const { data, error } = await supabase.storage.from("acordos-intervalo").createSignedUrl(path, 60);
     if (error || !data) {
-      toast({ title: "Erro", description: error?.message ?? "Falha ao baixar", variant: "destructive" });
+      toast.error("Erro", { description: error?.message ?? "Falha ao baixar" });
       return;
     }
     window.open(data.signedUrl, "_blank");
@@ -267,12 +267,12 @@ function NovoAcordoDialog({ open, onOpenChange, colaboradores }: NovoProps) {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Acordo registrado" });
+      toast("Acordo registrado");
       qc.invalidateQueries({ queryKey: ["ponto-acordos-intervalo"] });
       reset();
       onOpenChange(false);
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 
   return (

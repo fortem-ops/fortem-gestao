@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import fortemIcon from "@/assets/fortem-icon.png";
 import { z } from "zod";
 
@@ -18,14 +18,13 @@ const schema = z.object({
 export default function PortalSignUp() {
   const [form, setForm] = useState({ email: "", password: "", fullName: "" });
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
-      toast({ title: "Verifique os dados", description: parsed.error.errors[0].message, variant: "destructive" });
+      toast.error("Verifique os dados", { description: parsed.error.errors[0].message });
       return;
     }
     setLoading(true);
@@ -39,13 +38,10 @@ export default function PortalSignUp() {
     });
     setLoading(false);
     if (error) {
-      toast({ title: "Erro ao criar conta", description: error.message, variant: "destructive" });
+      toast.error("Erro ao criar conta", { description: error.message });
       return;
     }
-    toast({
-      title: "Conta criada!",
-      description: "Verifique seu e-mail para confirmar e depois faça login.",
-    });
+    toast.success("Conta criada!", { description: "Verifique seu e-mail para confirmar e depois faça login." });
     navigate("/portal/login");
   }
 

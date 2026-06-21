@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -53,14 +53,14 @@ export function AjustarJornadaDialog({ open, onOpenChange, jornadaId, professorN
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Ajuste registrado", description: "A alteração foi gravada no log de auditoria." });
+      toast.success("Ajuste registrado", { description: "A alteração foi gravada no log de auditoria." });
       qc.invalidateQueries({ queryKey: ["ponto-equipe"] });
       qc.invalidateQueries({ queryKey: ["ponto-fechamento-mes"] });
       onOpenChange(false);
       setMotivo("");
       setHora("");
     },
-    onError: (e: any) => toast({ title: "Falha ao ajustar", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Falha ao ajustar", { description: e.message }),
   });
 
   return (

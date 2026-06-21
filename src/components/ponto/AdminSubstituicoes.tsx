@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Plus, Check, X, UserCheck, Replace } from "lucide-react";
 
 type Forma = "pagamento" | "banco_horas";
@@ -109,14 +109,12 @@ export function AdminSubstituicoes() {
       }
     },
     onSuccess: (_, vars) => {
-      toast({
-        title: vars.novoStatus === "aprovada" ? "Substituição aprovada" : "Substituição rejeitada",
-      });
+      toast(vars.novoStatus === "aprovada" ? "Substituição aprovada" : "Substituição rejeitada");
       qc.invalidateQueries({ queryKey: ["ponto-substituicoes"] });
       qc.invalidateQueries({ queryKey: ["admin-banco"] });
     },
     onError: (e: any) =>
-      toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      toast.error("Erro", { description: e.message }),
   });
 
   return (
@@ -285,11 +283,11 @@ function NovaSubstituicaoDialog({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Substituição registrada", description: "Aguardando aprovação." });
+      toast.success("Substituição registrada", { description: "Aguardando aprovação." });
       onCreated();
     },
     onError: (e: any) =>
-      toast({ title: "Erro", description: e.message, variant: "destructive" }),
+      toast.error("Erro", { description: e.message }),
   });
 
   return (

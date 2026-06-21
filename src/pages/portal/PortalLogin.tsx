@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
@@ -20,7 +20,6 @@ export default function PortalLogin() {
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   const [testing, setTesting] = useState(false);
   const { signIn, user, resetAuthState } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const runDiagnosis = async () => {
@@ -53,7 +52,7 @@ export default function PortalLogin() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      toast.error("Preencha todos os campos");
       return;
     }
     setLoading(true);
@@ -65,10 +64,10 @@ export default function PortalLogin() {
       if (isNetwork) {
         const d = await runDiagnosis();
         const { title, description } = describeDiagnosis(d);
-        toast({ title, description, variant: "destructive" });
+        toast.error(title, { description: description });
       } else {
         setDiagnosis(null);
-        toast({ title: "Erro ao entrar", description: "E-mail ou senha incorretos.", variant: "destructive" });
+        toast.error("Erro ao entrar", { description: "E-mail ou senha incorretos." });
       }
       return;
     }
@@ -79,10 +78,7 @@ export default function PortalLogin() {
     setLoading(true);
     await resetAuthState();
     setLoading(false);
-    toast({
-      title: "Sessão limpa",
-      description: "Tente entrar novamente com seu e-mail e senha.",
-    });
+    toast.success("Sessão limpa", { description: "Tente entrar novamente com seu e-mail e senha." });
   }
 
   return (

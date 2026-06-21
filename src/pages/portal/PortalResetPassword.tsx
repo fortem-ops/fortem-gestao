@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export default function PortalResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,21 +26,21 @@ export default function PortalResetPassword() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 8) {
-      toast({ title: "Senha curta", description: "Use pelo menos 8 caracteres.", variant: "destructive" });
+      toast.error("Senha curta", { description: "Use pelo menos 8 caracteres." });
       return;
     }
     if (password !== confirm) {
-      toast({ title: "Senhas não conferem", variant: "destructive" });
+      toast.error("Senhas não conferem");
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast.error("Erro", { description: error.message });
       return;
     }
-    toast({ title: "Senha atualizada!" });
+    toast("Senha atualizada!");
     navigate("/portal");
   }
 
