@@ -37,6 +37,7 @@ const LegalAnnexFlow = ({ documentType = "anexo" }: LegalAnnexFlowProps) => {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [lgpdConsent, setLgpdConsent] = useState(false);
 
   const submitToDatabase = async () => {
     setSubmitting(true);
