@@ -4316,6 +4316,7 @@ export type Database = {
       }
     }
     Functions: {
+      aluno_user_id: { Args: { p_aluno_id: string }; Returns: string }
       ativar_treinos_agendados: { Args: never; Returns: undefined }
       fn_acordo_intervalo_vigente: {
         Args: { _data: string; _usuario: string }
@@ -4541,9 +4542,11 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: { Args: { _user_id: string }; Returns: boolean }
-      is_coordinator_or_admin: { Args: { _user_id: string }; Returns: boolean }
-      is_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_admin: { Args: { _user_id?: string }; Returns: boolean }
+      is_coordinator_or_admin: { Args: { _user_id?: string }; Returns: boolean }
+      is_staff:
+        | { Args: never; Returns: boolean }
+        | { Args: { _user_id: string }; Returns: boolean }
       rename_exercicio_categoria: {
         Args: {
           p_new_grupo: string
