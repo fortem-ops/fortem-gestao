@@ -88,7 +88,7 @@ const AnnexDetailModal = ({ annex, open, onClose }: Props) => {
             <tbody>
               <Row label="Tipo" value={isExperimental ? "Treino Experimental" : "Anexo Padrão (Aluno)"} />
               <Row label="Nome" value={annex.nome} />
-              <Row label="CPF" value={annex.cpf} mono />
+              <Row label="CPF" value={annex.cpf ? annex.cpf.replace(/(\d{3})\.\d{3}\.\d{3}-(\d{2})/, "$1.***.***-$2") : "—"} mono />
               <Row label="E-mail" value={annex.email} />
               {annex.telefone && <Row label="Telefone" value={annex.telefone} />}
               {annex.data_nascimento && <Row label="Data de nascimento" value={new Date(annex.data_nascimento + "T12:00:00").toLocaleDateString("pt-BR")} />}
