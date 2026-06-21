@@ -87,7 +87,7 @@ export default function RelatoriosVendas() {
         <PeriodoFilter value={periodo} onChange={setPeriodo} />
         <ExportMenu
           filename={`vendas-${periodo.inicio}-${periodo.fim}`}
-          rows={rows as any[]}
+          rows={rows as unknown as Record<string, unknown>[]}
           columns={[
             { key: "data_venda", label: "Data" },
             { key: "aluno_nome", label: "Aluno" },

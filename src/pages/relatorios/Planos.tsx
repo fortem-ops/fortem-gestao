@@ -118,7 +118,7 @@ export default function RelatoriosPlanos() {
         </div>
         <ExportMenu
           filename={`planos-${situacao}`}
-          rows={filtered as any[]}
+          rows={filtered as unknown as Record<string, unknown>[]}
           columns={[
             { key: "aluno_nome", label: "Aluno" },
             { key: "tipo", label: "Tipo" },
