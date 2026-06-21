@@ -75,7 +75,7 @@ export default function RelatoriosHome() {
             {(insights ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhum insight gerado ainda.</p>
             ) : (
-              insights!.map((i: any) => (
+              insights!.map((i) => (
                 <div key={i.id} className="rounded-md border border-border p-3">
                   <p className="font-medium">{i.titulo}</p>
                   {i.descricao && <p className="text-sm text-muted-foreground mt-1">{i.descricao}</p>}
