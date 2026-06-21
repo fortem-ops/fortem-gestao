@@ -4,8 +4,8 @@
 
 ### Como aplicar no Supabase
 
-1. Acesse o **SQL Editor** no painel do Supabase
-2. Abra o arquivo `supabase/migrations/20260621000001_rls_fase1_seguranca.sql`
+1. Acesse o **SQL Editor** no painel do backend
+2. Abra o arquivo de migração gerado em `supabase/migrations/20260621194624_95f5f4ce-4fd9-4c8f-90cd-b3c2e8e08faa.sql` (RLS Fase 1)
 3. Cole o conteúdo e clique em **Run**
 4. Verifique em **Authentication → Policies** que as políticas aparecem nas tabelas
 
