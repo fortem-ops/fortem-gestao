@@ -37,6 +37,7 @@ const LegalAnnexFlow = ({ documentType = "anexo" }: LegalAnnexFlowProps) => {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [lgpdConsent, setLgpdConsent] = useState(false);
 
   const submitToDatabase = async () => {
     setSubmitting(true);
@@ -90,7 +91,9 @@ const LegalAnnexFlow = ({ documentType = "anexo" }: LegalAnnexFlowProps) => {
       if (!studentData.emergencyContactName.trim()) errors.emergencyContactName = "Nome do contato é obrigatório";
       if (studentData.emergencyContactPhone.replace(/\D/g, "").length < 10) errors.emergencyContactPhone = "Telefone inválido";
       setFormErrors(errors);
-      return Object.keys(errors).length === 0;
+      if (Object.keys(errors).length > 0) return false;
+      if (!lgpdConsent) return false;
+      return true;
     }
     if (step === 2) return hasReadTerms;
     if (step === 3) {
@@ -158,6 +161,27 @@ const LegalAnnexFlow = ({ documentType = "anexo" }: LegalAnnexFlowProps) => {
                 <p className="body-text text-sm mt-1">Preencha seus dados pessoais para continuar.</p>
               </div>
               <StudentDataForm data={studentData} onChange={setStudentData} errors={formErrors} />
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card">
+                <input
+                  id="lgpd-consent"
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 cursor-pointer"
+                  checked={lgpdConsent}
+                  onChange={(e) => setLgpdConsent(e.target.checked)}
+                />
+                <label htmlFor="lgpd-consent" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                  Li e concordo com a{" "}
+                  <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                    Política de Privacidade
+                  </a>{" "}
+                  e autorizo o tratamento dos meus dados pessoais conforme a LGPD (Lei 13.709/2018).
+                </label>
+              </div>
+              {!lgpdConsent && (
+                <p className="text-xs text-destructive mt-1">
+                  É necessário aceitar a Política de Privacidade para continuar.
+                </p>
+              )}
             </>
           )}
 
@@ -245,6 +269,7 @@ const LegalAnnexFlow = ({ documentType = "anexo" }: LegalAnnexFlowProps) => {
             onClick={handleNext}
             disabled={
               submitting ||
+              (step === 1 && !lgpdConsent) ||
               (step === 2 && !hasReadTerms) ||
               (step === 4 && !agreedToTerms) ||
               (step === 5 && !signatureData)

@@ -14,6 +14,22 @@ export function setErrorSink(fn: typeof errorSink) {
   errorSink = fn;
 }
 
+const SENSITIVE_KEYS = ["cpf", "rg", "senha", "password", "signature_data", "token", "secret", "ip_address", "email"];
+
+function sanitizeCtx(ctx: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(ctx)) {
+    if (SENSITIVE_KEYS.some((s) => k.toLowerCase().includes(s))) {
+      out[k] = "[REDACTED]";
+    } else if (v && typeof v === "object" && !Array.isArray(v)) {
+      out[k] = sanitizeCtx(v as Record<string, unknown>);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 function emit(level: Level, args: unknown[]) {
   if (!isDev && (level === "debug" || level === "info")) return;
   // eslint-disable-next-line no-console
@@ -25,7 +41,8 @@ export const logger = {
   info: (...args: unknown[]) => emit("info", args),
   warn: (...args: unknown[]) => emit("warn", args),
   error: (err: unknown, ctx?: Record<string, unknown>) => {
-    emit("error", ctx ? [err, ctx] : [err]);
-    try { errorSink?.(err, ctx); } catch { /* noop */ }
+    const safeCtx = ctx ? sanitizeCtx(ctx) : undefined;
+    emit("error", safeCtx ? [err, safeCtx] : [err]);
+    try { errorSink?.(err, safeCtx); } catch { /* noop */ }
   },
 };
