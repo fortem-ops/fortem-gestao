@@ -12,6 +12,23 @@ import { DollarSign, AlertCircle, Clock } from "lucide-react";
 
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+type RecebimentoRow = {
+  parcela_id: string;
+  data_pagamento: string;
+  aluno_nome: string | null;
+  forma_pagamento: string | null;
+  valor: number | string | null;
+};
+
+type AbertoRow = {
+  parcela_id: string;
+  vencimento: string;
+  aluno_nome: string | null;
+  valor: number | string | null;
+  status: string;
+  dias_atraso: number | null;
+};
+
 export default function RelatoriosFinanceiro() {
   const [periodo, setPeriodo] = useState(defaultPeriodo());
 
