@@ -30,7 +30,7 @@
 
 ### Em caso de emergência
 
-Execute o arquivo `supabase/migrations/20260621000001_rls_fase1_rollback.sql` para desativar todas as políticas desta fase.
+Execute o arquivo `supabase/rollback/20260621000001_rls_fase1_rollback.sql` para desativar todas as políticas desta fase.
 
 ### Próximas fases
 
