@@ -107,11 +107,8 @@ const App = () => (
             {/* Portal do Aluno — auth e rotas próprias */}
             <Route path="/portal/login" element={<Suspense fallback={<RouteFallback />}><PortalLogin /></Suspense>} />
             <Route path="/portal/cadastro" element={<Suspense fallback={<RouteFallback />}><PortalSignUp /></Suspense>} />
-            <Route path="/portal/signup" element={<Suspense fallback={<RouteFallback />}><PortalSignUp /></Suspense>} />
             <Route path="/portal/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><PortalRecoverPassword /></Suspense>} />
-            <Route path="/portal/forgot-password" element={<Suspense fallback={<RouteFallback />}><PortalRecoverPassword /></Suspense>} />
             <Route path="/portal/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><PortalResetPassword /></Suspense>} />
-            <Route path="/portal/reset-password" element={<Suspense fallback={<RouteFallback />}><PortalResetPassword /></Suspense>} />
             <Route
               element={
                 <RequireStudent>
