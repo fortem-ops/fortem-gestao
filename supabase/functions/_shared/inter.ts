@@ -155,7 +155,8 @@ export async function interFetch(
     headers["Content-Type"] = "application/json";
     body = JSON.stringify(init.json);
   }
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const origin = new URL(BASE_URL).origin;
+  const res = await fetch(`${origin}${path}`, {
     ...init,
     headers,
     body,
