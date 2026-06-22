@@ -56,12 +56,33 @@ export async function requireAdminOrCoord(req: Request) {
 const BASE_URL = (Deno.env.get("INTER_BASE_URL") ?? "").replace(/\/$/, "");
 const CONTA = Deno.env.get("INTER_CONTA_CORRENTE") ?? "";
 
+function normalizePem(raw: string, kind: "CERT" | "KEY"): string {
+  let s = raw.trim();
+  // Unescape literal \n / \r if pasted as a single line.
+  if (s.includes("\\n")) s = s.replace(/\\r/g, "").replace(/\\n/g, "\n");
+  // If no PEM header present, assume it's base64-encoded PEM and decode.
+  if (!s.includes("-----BEGIN")) {
+    try {
+      const decoded = atob(s.replace(/\s+/g, ""));
+      if (decoded.includes("-----BEGIN")) s = decoded;
+    } catch { /* ignore */ }
+  }
+  // Normalize CRLF -> LF and ensure trailing newline.
+  s = s.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim() + "\n";
+  if (!s.includes("-----BEGIN")) {
+    throw new Error(`INTER_${kind}_PEM inválido: nenhum bloco PEM encontrado`);
+  }
+  return s;
+}
+
 let _httpClient: any = null;
 function getHttpClient(): any {
   if (_httpClient) return _httpClient;
-  const cert = Deno.env.get("INTER_CERT_PEM");
-  const key = Deno.env.get("INTER_KEY_PEM");
-  if (!cert || !key) throw new Error("INTER_CERT_PEM / INTER_KEY_PEM ausentes");
+  const certRaw = Deno.env.get("INTER_CERT_PEM");
+  const keyRaw = Deno.env.get("INTER_KEY_PEM");
+  if (!certRaw || !keyRaw) throw new Error("INTER_CERT_PEM / INTER_KEY_PEM ausentes");
+  const cert = normalizePem(certRaw, "CERT");
+  const key = normalizePem(keyRaw, "KEY");
   // @ts-ignore Deno.createHttpClient is unstable but available in Supabase Edge Runtime
   _httpClient = Deno.createHttpClient({ cert, key });
   return _httpClient;
