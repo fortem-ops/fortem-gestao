@@ -27,10 +27,38 @@ function basicAuth(pv: string, token: string) {
   return "Basic " + btoa(`${pv}:${token}`);
 }
 
-async function loadSecrets(supabase: any) {
-  const { data } = await supabase.schema("vault").from("decrypted_secrets").select("name, decrypted_secret");
+async function loadSecrets(supabase: any): Promise<Record<string, string>> {
   const m: Record<string, string> = {};
-  (data ?? []).forEach((s: any) => { m[s.name] = s.decrypted_secret; });
+
+  // Tentativa 1: Supabase Vault
+  try {
+    const { data, error } = await supabase
+      .schema("vault")
+      .from("decrypted_secrets")
+      .select("name, decrypted_secret")
+      .in("name", ["rede_pv", "rede_token", "rede_ambiente"]);
+
+    if (!error && data && data.length > 0) {
+      data.forEach((s: any) => { if (s.decrypted_secret) m[s.name] = s.decrypted_secret; });
+      console.log("[rede] secrets via Vault:", Object.keys(m).join(", "));
+    } else {
+      console.warn("[rede] Vault inacessível:", error?.message ?? "sem dados");
+    }
+  } catch (e) {
+    console.warn("[rede] Vault exception:", String(e));
+  }
+
+  // Fallback 2: variáveis de ambiente (Supabase Edge Function Secrets)
+  if (!m["rede_pv"])       m["rede_pv"]       = Deno.env.get("REDE_PV")       ?? "";
+  if (!m["rede_token"])    m["rede_token"]    = Deno.env.get("REDE_TOKEN")    ?? "";
+  if (!m["rede_ambiente"]) m["rede_ambiente"] = Deno.env.get("REDE_AMBIENTE") ?? "sandbox";
+
+  console.log("[rede] credenciais carregadas:", {
+    pv_ok:     m["rede_pv"].length > 0,
+    token_ok:  m["rede_token"].length > 0,
+    ambiente:  m["rede_ambiente"],
+  });
+
   return m;
 }
 
