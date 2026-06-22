@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       solicitacaoPagador: descricao ?? "Mensalidade Fortem",
     };
 
-    const { status, data, raw } = await interFetch(`/pix-automatico/v1/cobr/${txid}`, {
+    const { status, data, raw } = await interFetch(`/pix/v2/cobr/${txid}`, {
       method: "PUT",
       json: payload,
     });

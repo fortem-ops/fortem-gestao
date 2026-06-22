@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       ativacao: { dadosJornada: { txid: crypto.randomUUID().replace(/-/g, "") } },
     };
 
-    const { status, data, raw } = await interFetch("/pix-automatico/v1/rec", {
+    const { status, data, raw } = await interFetch("/pix/v2/rec", {
       method: "POST",
       json: payload,
     });

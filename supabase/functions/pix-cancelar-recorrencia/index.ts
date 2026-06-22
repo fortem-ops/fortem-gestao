@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
     const { idRec, motivo } = (await req.json().catch(() => null)) ?? {};
     if (!idRec) return jsonResponse({ error: "idRec é obrigatório" }, 400);
 
-    const { status, data, raw } = await interFetch(`/pix-automatico/v1/rec/${idRec}`, {
+    const { status, data, raw } = await interFetch(`/pix/v2/rec/${idRec}`, {
       method: "PATCH",
       json: { status: "CANCELADA" },
     });

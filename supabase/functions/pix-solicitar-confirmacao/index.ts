@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       destinatario: { cpf, nome: aluno.nome },
     };
 
-    const { status, data, raw } = await interFetch("/pix-automatico/v1/solicrec", {
+    const { status, data, raw } = await interFetch("/pix/v2/solicrec", {
       method: "POST",
       json: payload,
     });
