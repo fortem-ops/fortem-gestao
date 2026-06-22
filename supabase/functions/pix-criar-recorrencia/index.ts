@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const payload: any = {
       vinculo: {
         objeto: "Plano mensal FORTEM",
-        contrato: aluno_id,
+        contrato: aluno_id.replace(/-/g, "").substring(0, 35),
         devedor: { cpf, nome: aluno.nome },
       },
       calendario: {
