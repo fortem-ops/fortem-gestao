@@ -104,7 +104,8 @@ async function fetchNewToken(): Promise<{ access_token: string; expires_in: numb
     grant_type: "client_credentials",
     scope: SCOPES,
   });
-  const res = await fetch(`${BASE_URL}/oauth/v2/token`, {
+  const origin = new URL(BASE_URL).origin;
+  const res = await fetch(`${origin}/oauth/v2/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
