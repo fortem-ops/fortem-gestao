@@ -312,6 +312,20 @@ export function HistoricoVendas({ alunoId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {cobrandoVenda && (
+        <PagarCartaoDialog
+          open={!!cobrandoVenda}
+          onOpenChange={(o) => !o && setCobrandoVenda(null)}
+          vendaId={cobrandoVenda.id}
+          alunoId={alunoId}
+          valor={Number(cobrandoVenda.valor_final ?? cobrandoVenda.valor ?? 0)}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+            setCobrandoVenda(null);
+          }}
+        />
+      )}
     </div>
   );
 }
