@@ -1606,6 +1606,30 @@ export type Database = {
           },
         ]
       }
+      inter_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          scope: string | null
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          scope?: string | null
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          scope?: string | null
+        }
+        Relationships: []
+      }
       lead_origens: {
         Row: {
           ativo: boolean
@@ -2417,6 +2441,152 @@ export type Database = {
           position?: number
         }
         Relationships: []
+      }
+      pix_cobrancas: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          data_vencimento: string
+          descricao: string | null
+          id: string
+          id_rec: string
+          liquidado_em: string | null
+          motivo_rejeicao: string | null
+          pagamento_id: string | null
+          raw_response: Json | null
+          status: string
+          txid: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          data_vencimento: string
+          descricao?: string | null
+          id?: string
+          id_rec: string
+          liquidado_em?: string | null
+          motivo_rejeicao?: string | null
+          pagamento_id?: string | null
+          raw_response?: Json | null
+          status?: string
+          txid: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          data_vencimento?: string
+          descricao?: string | null
+          id?: string
+          id_rec?: string
+          liquidado_em?: string | null
+          motivo_rejeicao?: string | null
+          pagamento_id?: string | null
+          raw_response?: Json | null
+          status?: string
+          txid?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pix_cobrancas_id_rec_fkey"
+            columns: ["id_rec"]
+            isOneToOne: false
+            referencedRelation: "pix_recorrencias"
+            referencedColumns: ["id_rec"]
+          },
+          {
+            foreignKeyName: "pix_cobrancas_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pix_recorrencias: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          id: string
+          id_rec: string
+          id_solic_rec: string | null
+          motivo_cancelamento: string | null
+          periodicidade: string
+          politica_retentativa: string
+          raw_response: Json | null
+          status: string
+          updated_at: string
+          valor_minimo: number
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio: string
+          id?: string
+          id_rec: string
+          id_solic_rec?: string | null
+          motivo_cancelamento?: string | null
+          periodicidade?: string
+          politica_retentativa?: string
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          valor_minimo: number
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          id_rec?: string
+          id_solic_rec?: string | null
+          motivo_cancelamento?: string | null
+          periodicidade?: string
+          politica_retentativa?: string
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string
+          valor_minimo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_recorrencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_recorrencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
       }
       planos: {
         Row: {
