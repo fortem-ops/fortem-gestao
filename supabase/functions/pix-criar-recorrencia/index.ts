@@ -28,9 +28,9 @@ Deno.serve(async (req) => {
 
     const payload: any = {
       vinculo: {
+        objeto: "Plano mensal FORTEM",
         contrato: aluno_id,
         devedor: { cpf, nome: aluno.nome },
-        objeto: "Mensalidade Fortem",
       },
       calendario: {
         dataInicial: data_inicio,
@@ -39,8 +39,6 @@ Deno.serve(async (req) => {
       },
       valor: { valorMinimoRecebedor: valor.toFixed(2) },
       politicaRetentativa: "PERMITE_3R_7D",
-      loc: { tipoCob: "cob" },
-      ativacao: { dadosJornada: { txid: crypto.randomUUID().replace(/-/g, "") } },
     };
 
     const { status, data, raw } = await interFetch("/pix/v2/rec", {
