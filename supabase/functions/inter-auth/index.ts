@@ -6,7 +6,10 @@ Deno.serve(async (req) => {
     const auth = await requireAdminOrCoord(req);
     if ("error" in auth) return auth.error;
 
+    const clientId = Deno.env.get("INTER_CLIENT_ID") ?? "";
+    console.log("[inter-auth] CLIENT_ID:", clientId.substring(0, 8) + "..." + clientId.slice(-4), "len=", clientId.length);
     const token = await getInterToken();
+    console.log("[inter-auth] token prefix:", token.substring(0, 20), "len=", token.length);
     const { data } = await admin()
       .from("inter_tokens")
       .select("expires_at")
