@@ -103,6 +103,7 @@ async function fetchNewToken(): Promise<{ access_token: string; expires_in: numb
   const clientId = Deno.env.get("INTER_CLIENT_ID");
   const clientSecret = Deno.env.get("INTER_CLIENT_SECRET");
   if (!clientId || !clientSecret) throw new Error("INTER_CLIENT_ID/SECRET ausentes");
+  console.log("[inter:oauth] CLIENT_ID:", clientId.substring(0, 8) + "..." + clientId.slice(-4), "len=", clientId.length);
   const body = new URLSearchParams({
     client_id: clientId,
     client_secret: clientSecret,
@@ -119,7 +120,9 @@ async function fetchNewToken(): Promise<{ access_token: string; expires_in: numb
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`Inter OAuth ${res.status}: ${text}`);
-  return JSON.parse(text);
+  const parsed = JSON.parse(text);
+  console.log("[inter:oauth] token prefix:", String(parsed.access_token).substring(0, 20), "expires_in:", parsed.expires_in, "scope:", parsed.scope);
+  return parsed;
 }
 
 export async function getInterToken(): Promise<string> {
@@ -161,7 +164,14 @@ export async function interFetch(
     body = JSON.stringify(init.json);
   }
   const origin = new URL(BASE_URL).origin;
-  const res = await fetch(`${origin}${path}`, {
+  const url = `${origin}${path}`;
+  console.log("[inter:fetch]", init.method ?? "GET", url);
+  console.log("[inter:fetch] token prefix:", token.substring(0, 20), "len=", token.length);
+  console.log("[inter:fetch] x-conta-corrente:", CONTA);
+  if (init.json !== undefined) {
+    console.log("[inter:fetch] payload:", JSON.stringify(init.json));
+  }
+  const res = await fetch(url, {
     ...init,
     headers,
     body,
@@ -169,6 +179,11 @@ export async function interFetch(
     client: getHttpClient(),
   });
   const raw = await res.text();
+  if (res.status >= 400) {
+    console.error("[inter:fetch] status:", res.status, "raw:", raw.substring(0, 800));
+  } else {
+    console.log("[inter:fetch] status:", res.status);
+  }
   let data: any = null;
   try { data = raw ? JSON.parse(raw) : null; } catch { data = raw; }
   return { status: res.status, data, raw };
