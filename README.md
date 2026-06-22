@@ -26,6 +26,18 @@ npx vitest run --coverage   # com cobertura
 
 ## Segurança
 
+### Gateway e-Rede (2026-06-22)
+
+Migração: `20260622000001_gateway_rede_tabelas.sql`
+
+Tabelas: `cartoes_salvos`, `pagamentos_rede`, `webhook_events_rede`, `rate_limit_cobrancas`.
+Edge Functions: `rede-cobrar-cartao`, `rede-cobrar-token`, `rede-cancelar`, `rede-webhook`.
+Credenciais: armazenadas no `supabase_vault` (nunca em código).
+Ambiente atual: **sandbox**.
+PCI-DSS SAQ-A: PAN/CVV nunca persistidos. Sanitização em dupla camada (edge function + trigger BEFORE INSERT).
+
+
+
 Todas as migrações de banco ficam em `supabase/migrations/` e são versionadas
 junto com o código. Nunca edite o schema fora desse diretório — qualquer
 alteração de tabela, policy, função ou trigger deve ser uma nova migração.

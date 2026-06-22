@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { History, RefreshCw, Pencil } from "lucide-react";
+import { History, RefreshCw, Pencil, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
+import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 
 type Props = { alunoId: string };
 
@@ -18,6 +19,8 @@ const statusColor: Record<string, string> = {
   pago: "status-active",
   pendente: "status-warning",
   cancelado: "status-urgent",
+  falha: "status-urgent",
+  estornado: "status-info",
 };
 
 export function HistoricoVendas({ alunoId }: Props) {
@@ -99,6 +102,7 @@ export function HistoricoVendas({ alunoId }: Props) {
   const [editParcelas, setEditParcelas] = useState(1);
   const [editStatus, setEditStatus] = useState<string>("pendente");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [cobrandoVenda, setCobrandoVenda] = useState<any | null>(null);
 
   function openEdit(v: any) {
     setEditing(v);
@@ -241,9 +245,20 @@ export function HistoricoVendas({ alunoId }: Props) {
                     <TableCell className="text-sm">{creditoRestante(v)}</TableCell>
                     {isCoordAdmin && (
                       <TableCell>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(v)} title="Editar pagamento">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {(v.status_pagamento === "pendente" || v.status_pagamento === "falha") && (
+                            <Button
+                              size="icon" variant="ghost" className="h-7 w-7"
+                              onClick={() => setCobrandoVenda(v)}
+                              title="Cobrar no cartão"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(v)} title="Editar pagamento">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
@@ -297,6 +312,20 @@ export function HistoricoVendas({ alunoId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {cobrandoVenda && (
+        <PagarCartaoDialog
+          open={!!cobrandoVenda}
+          onOpenChange={(o) => !o && setCobrandoVenda(null)}
+          vendaId={cobrandoVenda.id}
+          alunoId={alunoId}
+          valor={Number(cobrandoVenda.valor_final ?? cobrandoVenda.valor ?? 0)}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+            setCobrandoVenda(null);
+          }}
+        />
+      )}
     </div>
   );
 }

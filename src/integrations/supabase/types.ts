@@ -970,6 +970,66 @@ export type Database = {
         }
         Relationships: []
       }
+      cartoes_salvos: {
+        Row: {
+          aluno_id: string
+          ativo: boolean
+          brand: string
+          created_at: string
+          expiration_month: number
+          expiration_year: number
+          holder_name: string
+          id: string
+          is_default: boolean
+          last4: string
+          token_rede: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          ativo?: boolean
+          brand: string
+          created_at?: string
+          expiration_month: number
+          expiration_year: number
+          holder_name: string
+          id?: string
+          is_default?: boolean
+          last4: string
+          token_rede: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          ativo?: boolean
+          brand?: string
+          created_at?: string
+          expiration_month?: number
+          expiration_year?: number
+          holder_name?: string
+          id?: string
+          is_default?: boolean
+          last4?: string
+          token_rede?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartoes_salvos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cartoes_salvos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       clube_alertas: {
         Row: {
           aluno_id: string | null
@@ -2180,6 +2240,79 @@ export type Database = {
           },
         ]
       }
+      pagamentos_rede: {
+        Row: {
+          amount: number
+          authorization_code: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          installments: number
+          kind: string
+          nsu: string | null
+          raw_response: Json | null
+          return_code: string | null
+          return_message: string | null
+          status: string
+          tid: string | null
+          venda_id: string
+        }
+        Insert: {
+          amount: number
+          authorization_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installments?: number
+          kind?: string
+          nsu?: string | null
+          raw_response?: Json | null
+          return_code?: string | null
+          return_message?: string | null
+          status?: string
+          tid?: string | null
+          venda_id: string
+        }
+        Update: {
+          amount?: number
+          authorization_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installments?: number
+          kind?: string
+          nsu?: string | null
+          raw_response?: Json | null
+          return_code?: string | null
+          return_message?: string | null
+          status?: string
+          tid?: string | null
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_rede_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_rede_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pagamentos_rede_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parceiros: {
         Row: {
           ativo: boolean
@@ -2592,6 +2725,7 @@ export type Database = {
         Row: {
           aluno_id: string
           ativo: boolean
+          cartao_token_id: string | null
           created_at: string
           data_fim: string | null
           data_inicio: string
@@ -2611,6 +2745,7 @@ export type Database = {
         Insert: {
           aluno_id: string
           ativo?: boolean
+          cartao_token_id?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio: string
@@ -2630,6 +2765,7 @@ export type Database = {
         Update: {
           aluno_id?: string
           ativo?: boolean
+          cartao_token_id?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
@@ -2660,6 +2796,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "planos_cartao_token_id_fkey"
+            columns: ["cartao_token_id"]
+            isOneToOne: false
+            referencedRelation: "cartoes_salvos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3476,6 +3619,39 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_cobrancas: {
+        Row: {
+          aluno_id: string
+          contagem: number
+          janela_min: number
+        }
+        Insert: {
+          aluno_id: string
+          contagem?: number
+          janela_min: number
+        }
+        Update: {
+          aluno_id?: string
+          contagem?: number
+          janela_min?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_limit_cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_limit_cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       regras_elegibilidade: {
         Row: {
           ativo: boolean
@@ -4069,6 +4245,24 @@ export type Database = {
           },
         ]
       }
+      webhook_events_rede: {
+        Row: {
+          event_id: string
+          payload: Json
+          processed_at: string
+        }
+        Insert: {
+          event_id: string
+          payload: Json
+          processed_at?: string
+        }
+        Update: {
+          event_id?: string
+          payload?: Json
+          processed_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       parceiros_publico: {
@@ -4526,6 +4720,10 @@ export type Database = {
         }[]
       }
       fn_carteira_total_ativos: { Args: never; Returns: number }
+      fn_check_rate_limit: {
+        Args: { p_aluno_id: string; p_janela: number; p_limite: number }
+        Returns: boolean
+      }
       fn_clube_check_divergencias: { Args: never; Returns: Json }
       fn_clube_dashboard: { Args: { _periodo_dias?: number }; Returns: Json }
       fn_clube_generate_qr_token: { Args: { _aluno_id: string }; Returns: Json }
@@ -4721,6 +4919,7 @@ export type Database = {
         Args: { _aluno_id: string; _fallback: string }
         Returns: string
       }
+      fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
       fn_tentar_comissao_experimental: {
         Args: { _agenda: string; _aluno: string; _profissional: string }
         Returns: undefined
@@ -4911,7 +5110,7 @@ export type Database = {
         | "coordenador_gestao"
       uso_origem_validacao: "scanner" | "cpf_manual" | "admin"
       uso_status_validacao: "valido" | "recusado" | "expirado" | "bloqueado"
-      venda_status: "pendente" | "pago" | "cancelado"
+      venda_status: "pendente" | "pago" | "cancelado" | "falha" | "estornado"
       venda_tipo: "plano" | "servico"
     }
     CompositeTypes: {
@@ -5209,7 +5408,7 @@ export const Constants = {
       ],
       uso_origem_validacao: ["scanner", "cpf_manual", "admin"],
       uso_status_validacao: ["valido", "recusado", "expirado", "bloqueado"],
-      venda_status: ["pendente", "pago", "cancelado"],
+      venda_status: ["pendente", "pago", "cancelado", "falha", "estornado"],
       venda_tipo: ["plano", "servico"],
     },
   },
