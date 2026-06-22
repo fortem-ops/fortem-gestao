@@ -19,6 +19,8 @@ const statusColor: Record<string, string> = {
   pago: "status-active",
   pendente: "status-warning",
   cancelado: "status-urgent",
+  falha: "status-urgent",
+  estornado: "status-info",
 };
 
 export function HistoricoVendas({ alunoId }: Props) {
