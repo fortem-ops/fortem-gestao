@@ -245,9 +245,20 @@ export function HistoricoVendas({ alunoId }: Props) {
                     <TableCell className="text-sm">{creditoRestante(v)}</TableCell>
                     {isCoordAdmin && (
                       <TableCell>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(v)} title="Editar pagamento">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {(v.status_pagamento === "pendente" || v.status_pagamento === "falha") && (
+                            <Button
+                              size="icon" variant="ghost" className="h-7 w-7"
+                              onClick={() => setCobrandoVenda(v)}
+                              title="Cobrar no cartão"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(v)} title="Editar pagamento">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
