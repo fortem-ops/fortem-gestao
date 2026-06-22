@@ -170,6 +170,62 @@ export default function PortalProfile() {
           Os créditos são atualizados automaticamente conforme você consome cada serviço.
         </p>
       </section>
+
+      {/* Cartões salvos */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-heading font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+          <CreditCard className="w-4 h-4" /> Cartões salvos
+        </h2>
+        {cartoes.length === 0 ? (
+          <Card className="glass-card p-4 text-sm text-muted-foreground">
+            Nenhum cartão salvo. Cartões são adicionados ao pagar uma cobrança com a opção
+            <span className="font-medium text-foreground"> "Salvar para renovação automática"</span>.
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {cartoes.map((c: any) => (
+              <Card key={c.id} className="glass-card p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold capitalize">{c.brand}</p>
+                    <p className="text-sm font-mono text-muted-foreground">•••• {c.last4}</p>
+                    {c.is_default && (
+                      <Badge variant="outline" className="text-[10px] border-primary/40 text-primary bg-primary/10">
+                        Padrão
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {String(c.expiration_month).padStart(2, "0")}/{c.expiration_year} · {c.holder_name}
+                  </p>
+                </div>
+                {!c.is_default && (
+                  <Button
+                    size="icon" variant="ghost" className="h-8 w-8"
+                    title="Definir como padrão"
+                    onClick={() => definirPadrao.mutate(c.id)}
+                  >
+                    <Star className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button
+                  size="icon" variant="ghost" className="h-8 w-8 text-destructive"
+                  title="Remover"
+                  onClick={() => removerCartao.mutate(c.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </Card>
+            ))}
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground">
+          Não armazenamos o número do cartão — apenas um token seguro fornecido pela Rede.
+        </p>
+      </section>
     </div>
   );
 }
