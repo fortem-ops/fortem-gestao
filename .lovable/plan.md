@@ -1,61 +1,63 @@
-# Mover Pipedrive para /pipeline + mapeamento de etapas
+# Pix Automático Banco Inter — Jornada 1 (Escopo confirmado)
 
-Sim, é totalmente possível mapear etapas. Hoje todo lead importado cai em "Novo lead"; vou adicionar mapeamento configurável entre **stages do Pipedrive** e **stages do Fortem** (qualquer um dos 14 já existentes — Novo lead, Prospect, Treino experimental agendado, Avaliação agendada, Aluno ativo, etc.).
+## 1. Banco de dados (1 migração)
 
-## Mudanças
+Criar 3 tabelas:
 
-### 1. Mover a UI para /pipeline
-- Remover a aba "Integração Pipedrive" de `/admin` (limpar import + entrada em `allTabs` em `src/pages/Admin.tsx`).
-- Em `src/pages/Pipeline.tsx`, adicionar botão **"Importar do Pipedrive"** no header (admin only, ao lado de "Recalcular status" e "Gerenciar etapas").
-- Renomear `AdminPipedrive.tsx` → `src/components/pipeline/PipedriveImportSheet.tsx`. Trocar layout de página para **Sheet/Dialog em tela cheia** (mais natural dentro do Pipeline). Mesmo conteúdo: status, filtros, tabela, importação.
+- **`inter_tokens`** — cache do OAuth2 do Inter (`access_token`, `expires_at`, `scope`). RLS ligada, sem policies; acesso apenas via `service_role` nas Edge Functions.
+- **`pix_recorrencias`** — `aluno_id`, `id_rec` (único), `id_solic_rec`, `status` (`CRIADA`/`AGUARDANDO_AUTORIZACAO`/`AUTORIZADA`/`CANCELADA`/`REJEITADA`), `valor_minimo`, `periodicidade` (MENSAL), `data_inicio`, `data_fim`, `politica_retentativa` (PERMITE_3R_7D), `motivo_cancelamento`, `raw_response`.
+- **`pix_cobrancas`** — `id_rec`, `aluno_id`, `txid` (único), `valor`, `data_vencimento`, `status` (`CRIADA`/`AGENDADA`/`LIQUIDADA`/`REJEITADA`/`CANCELADA`), `descricao`, `pagamento_id` (FK opcional para `pagamentos`), `motivo_rejeicao`, `liquidado_em`, `raw_response`.
 
-### 2. Tabela de mapeamento de etapas
-Migration nova:
+GRANTs para `authenticated` + `service_role` nas tabelas Pix; RLS com policies restringindo SELECT/INSERT/UPDATE/DELETE a `admin` ou `coordenador` via `has_role`. Triggers de `updated_at` e índices em `aluno_id`, `id_rec`, `txid`, `status`.
 
-```sql
-CREATE TABLE public.pipedrive_stage_mapping (
-  pipedrive_stage_id int PRIMARY KEY,
-  pipedrive_stage_name text,
-  fortem_stage_id uuid NOT NULL REFERENCES public.pipeline_stages(id) ON DELETE CASCADE,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.pipedrive_stage_mapping TO authenticated;
-GRANT ALL ON public.pipedrive_stage_mapping TO service_role;
-ALTER TABLE public.pipedrive_stage_mapping ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admin/Coord manage stage mapping" ON public.pipedrive_stage_mapping
-  FOR ALL TO authenticated
-  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'coordenador'))
-  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'coordenador'));
-```
+## 2. Edge Functions
 
-### 3. UI de mapeamento (dentro do Sheet)
-Seção "**Mapeamento de etapas**" acima da tabela de deals:
-- Aparece após o primeiro "Buscar leads" (que descobre os stages do Pipedrive presentes nos deals retornados).
-- Tabela: `Stage Pipedrive` → `Select com stages do Fortem` (agrupados por funnel: Prospects / Aluno / Inativo) → botão "Salvar mapeamento".
-- Stages não mapeados caem no fallback **"Novo lead"** com badge de aviso.
-- Mapeamento é persistido em `pipedrive_stage_mapping` (upsert por `pipedrive_stage_id`).
+Helper compartilhado em `supabase/functions/_shared/inter.ts`:
+- `getInterToken()` — lê o token mais recente em `inter_tokens` (margem 60s); se expirado, chama `/oauth/v2/token` (client_credentials + escopos Pix Automático) com mTLS via `Deno.createHttpClient({ cert, key })` usando `INTER_CERT_PEM`/`INTER_KEY_PEM`, persiste e retorna.
+- `interFetch(path, init)` — injeta `Authorization: Bearer`, `x-conta-corrente: INTER_CONTA_CORRENTE`, base = `INTER_BASE_URL`, com mTLS client.
+- `requireAdminOrCoord(req)` — valida JWT do chamador e checa papel em `user_roles`.
+- `genTxid()` — UUID sem traços (32 chars alfanum).
 
-### 4. Importação respeita o mapeamento
-Atualizar `supabase/functions/pipedrive-import-leads/index.ts`:
-- Aceitar novo campo opcional `pipedriveStageId` por item.
-- Carregar `pipedrive_stage_mapping` em batch para os stage IDs recebidos.
-- Para cada item, resolver stage destino: mapeamento → nome da stage do Fortem → `fn_move_pipeline(_to_stage_name=...)`. Sem mapeamento → "Novo lead".
+Funções:
 
-Atualizar `src/lib/pipedrive.ts` para enviar `pipedriveStageId` em `importPipedriveLeads`.
+1. **`inter-auth`** — POST `/oauth/v2/token`; reaproveita token válido; retorna `{ access_token, expires_at }`.
+2. **`pix-criar-recorrencia`** — `{ aluno_id, valor_minimo, data_inicio, data_fim }` → busca CPF/nome do aluno → POST `/rec` com `vinculo`, `calendario`, `valor.valorMinimoRecebedor`, `politicaRetentativa: PERMITE_3R_7D`, `periodicidade: MENSAL`. Persiste em `pix_recorrencias` (status `CRIADA`).
+3. **`pix-solicitar-confirmacao`** — `{ idRec }` → POST `/solicrec` com devedor. Atualiza `status = AGUARDANDO_AUTORIZACAO`, grava `id_solic_rec`.
+4. **`pix-criar-cobranca`** — `{ idRec, valor, dataVencimento, descricao }` → valida `status = AUTORIZADA` → gera `txid` → PUT `/cobr/{txid}` com `calendario`, `devedor`, `valor`, `idRec`, `solicitacaoPagador`. Persiste em `pix_cobrancas`.
+5. **`pix-cancelar-recorrencia`** — `{ idRec, motivo? }` → PATCH `/rec/{idRec}` com `status: CANCELADA`. Atualiza tabela.
+6. **`pix-webhook`** — público (sem JWT). Processa eventos `REC_AUTORIZADA`, `REC_CANCELADA`, `COBR_LIQUIDADA`, `COBR_REJEITADA`; em `COBR_LIQUIDADA` cria linha em `pagamentos` e vincula via `pagamento_id`; em `COBR_LIQUIDADA`/`COBR_REJEITADA` cria notificação interna para todos os admins (categoria `financeiro`, tipo `simples`, prioridade `alta`) via `notificacoes` + `notificacao_destinatarios`.
 
-### 5. Status do deal Pipedrive
-A função `pipedrive-list-leads` hoje só busca `status=open`. Vou adicionar filtro UI **"Status do deal"** (Aberto/Ganhos/Perdidos/Todos) — útil quando queremos importar histórico já fechado para reconstituir base no Fortem.
+## 3. Frontend
 
-## Fora de escopo (continua na fase 2)
+- Adicionar `<TabsTrigger value="financeiro">Financeiro</TabsTrigger>` em `src/pages/StudentProfile.tsx` (após "Plano/Serviços").
+- `src/components/student/StudentFinanceiro.tsx` — wrapper da aba (já preparado para receber novas seções).
+- `src/components/student/financeiro/PixAutomaticoSection.tsx`:
+  - Query da recorrência mais recente do aluno + badge colorido por status.
+  - **Ativar Pix Automático** (quando não existe ativa) → `AtivarPixDialog` (valor mínimo, data início/fim) → chama `pix-criar-recorrencia` e em seguida `pix-solicitar-confirmacao`; mostra a mensagem de instrução sobre autorização no app do banco.
+  - **Gerar Cobrança do Mês** (só com status `AUTORIZADA`) → `GerarCobrancaDialog` (valor, vencimento, descrição) → `pix-criar-cobranca`.
+  - **Histórico de cobranças** com status (LIQUIDADA/REJEITADA/AGENDADA/CANCELADA/CRIADA) e valor formatado em BRL.
+  - **Cancelar Pix Automático** com `AlertDialog` → `pix-cancelar-recorrencia`.
+  - Realtime subscribe em `pix_recorrencias` e `pix_cobrancas` do aluno para refletir webhooks.
 
-- Espelhamento Fortem → Pipedrive (atualizar deal quando lead muda de stage no Fortem).
-- Sync automático/agendado.
-- Importação de Activities ↔ tarefas.
+## 4. Notificações internas
 
-## Validação final
+No `pix-webhook`, ao processar `COBR_LIQUIDADA` ou `COBR_REJEITADA`, inserir uma linha em `notificacoes` (titulo descritivo, descricao com aluno/valor/txid, categoria `financeiro`, tipo `simples`, prioridade `alta`, `aluno_id`) e popular `notificacao_destinatarios` com todos os `user_id` cujo papel é `admin`. Professor/coordenador ficam de fora conforme combinado.
 
-- Botão "Importar do Pipedrive" visível em `/pipeline` para admin; some de `/admin`.
-- Salvar mapeamento `Stage 8 → Prospect` e importar 1 deal desse stage → aluno aparece direto em "Prospect" no kanban (não em "Novo lead").
-- Deal sem mapeamento ainda cai em "Novo lead".
-- Re-importar continua idempotente.
+## 5. Pós-deploy
+
+Após o deploy, registrar o webhook no Inter via `PUT /webhookrec` e `PUT /webhookcobr` apontando para a URL pública de `pix-webhook`. Vou entregar o comando `curl` pronto com a URL correta do projeto ao final.
+
+## Notas técnicas
+
+- mTLS no Supabase Edge Runtime: `Deno.createHttpClient({ cert, key })` passado como `client` no `fetch`.
+- Reuso de token: select em `inter_tokens` com `expires_at > now()+60s`; respeita o rate limit (120/min).
+- `txid`: `crypto.randomUUID().replace(/-/g,'')` → 32 chars alfanuméricos.
+- Nenhuma credencial do Inter é exposta ao frontend — todas as chamadas passam pelas Edge Functions.
+- `supabase/config.toml`: não precisa de override (default `verify_jwt = false`); autorização é validada em código.
+- Tipos do Supabase serão regenerados automaticamente após a migração.
+
+## Fora do escopo (confirmado)
+
+- Exportação de relatório financeiro Pix — depois.
+- Retentativa manual de cobrança rejeitada — depois.
+- Notificação a professor/coordenador — fora; só admin.
