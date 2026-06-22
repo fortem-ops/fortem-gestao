@@ -102,6 +102,7 @@ export function HistoricoVendas({ alunoId }: Props) {
   const [editParcelas, setEditParcelas] = useState(1);
   const [editStatus, setEditStatus] = useState<string>("pendente");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [cobrandoVenda, setCobrandoVenda] = useState<any | null>(null);
 
   function openEdit(v: any) {
     setEditing(v);
