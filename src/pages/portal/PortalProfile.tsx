@@ -1,11 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Apple, Dumbbell, HeartPulse, Activity } from "lucide-react";
+import { Apple, Dumbbell, HeartPulse, Activity, CreditCard, Star, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const TIPOS = [
   { key: "Avaliação Funcional", label: "Avaliação Funcional", icon: Activity },
