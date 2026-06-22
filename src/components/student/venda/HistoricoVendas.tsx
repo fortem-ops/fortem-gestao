@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { History, RefreshCw, Pencil } from "lucide-react";
+import { History, RefreshCw, Pencil, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
+import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 
 type Props = { alunoId: string };
 
