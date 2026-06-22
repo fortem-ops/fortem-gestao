@@ -81,8 +81,13 @@ function getHttpClient(): any {
   const certRaw = Deno.env.get("INTER_CERT_PEM");
   const keyRaw = Deno.env.get("INTER_KEY_PEM");
   if (!certRaw || !keyRaw) throw new Error("INTER_CERT_PEM / INTER_KEY_PEM ausentes");
+  console.log("[inter] CERT raw prefix:", certRaw.substring(0, 30));
+  console.log("[inter] KEY  raw prefix:", keyRaw.substring(0, 30));
   const cert = normalizePem(certRaw, "CERT");
   const key = normalizePem(keyRaw, "KEY");
+  console.log("[inter] CERT normalized prefix:", cert.substring(0, 30), "len=", cert.length);
+  console.log("[inter] KEY  normalized prefix:", key.substring(0, 30), "len=", key.length);
+  console.log("[inter] CLIENT_ID present:", !!Deno.env.get("INTER_CLIENT_ID"), "CONTA:", Deno.env.get("INTER_CONTA_CORRENTE"));
   // @ts-ignore Deno.createHttpClient is unstable but available in Supabase Edge Runtime
   _httpClient = Deno.createHttpClient({ cert, key });
   return _httpClient;
