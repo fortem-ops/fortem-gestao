@@ -133,6 +133,27 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // Rate limit ANTES do auth — protege contra brute-force mesmo sem JWT válido
+  const bodyText = await req.text();
+  let bodyParsed: any = null;
+  try { bodyParsed = JSON.parse(bodyText); } catch { /* ignore */ }
+
+  const alunoIdRL = bodyParsed?.aluno_id;
+  if (alunoIdRL && /^[0-9a-f-]{36}$/i.test(alunoIdRL)) {
+    const janelaRL = Math.floor(Date.now() / 60000);
+    const { data: rlOk } = await supabase.rpc("fn_check_rate_limit", {
+      p_aluno_id: alunoIdRL,
+      p_janela:   janelaRL,
+      p_limite:   MAX_TENTATIVAS,
+    });
+    if (!rlOk) {
+      return new Response(
+        JSON.stringify({ error: "Limite de tentativas excedido. Aguarde 1 minuto." }),
+        { status: 429, headers }
+      );
+    }
+  }
+
   const authHeader = req.headers.get("Authorization");
   const { data: { user }, error: authErr } = await supabase.auth.getUser(
     authHeader?.replace("Bearer ", "") ?? ""
@@ -146,7 +167,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Sem permissão — necessário coord ou admin" }), { status: 403, headers });
   }
 
-  const body = await req.json().catch(() => null);
+  const body = bodyParsed;
   if (!body) {
     return new Response(JSON.stringify({ error: "Body JSON inválido" }), { status: 400, headers });
   }
@@ -170,14 +191,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Número de cartão inválido (falhou no Luhn)" }), { status: 400, headers });
   }
 
-  // Rate limit
-  const janela = Math.floor(Date.now() / 60000);
-  const { data: rl } = await supabase.rpc("fn_check_rate_limit", {
-    p_aluno_id: aluno_id, p_janela: janela, p_limite: MAX_TENTATIVAS,
-  });
-  if (!rl) {
-    return new Response(JSON.stringify({ error: "Limite de tentativas excedido. Aguarde 1 minuto." }), { status: 429, headers });
-  }
+
 
   // Idempotência
   const { data: existing } = await supabase
