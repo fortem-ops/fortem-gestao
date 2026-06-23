@@ -90,11 +90,26 @@ serve(async (req) => {
     const pv    = secrets["rede_pv"]    ?? "";
     const token = secrets["rede_token"] ?? "";
 
+    const ambiente = secrets["rede_ambiente"] ?? "sandbox";
+    const baseUrl = REDE_URLS[ambiente as "sandbox" | "producao"] ?? REDE_URLS.sandbox;
+
+    let oauthTest = "não testado";
+    let accessTokenForTest: string | null = null;
+    try {
+      accessTokenForTest = await getRedeAccessToken(pv.trim(), token.trim(), ambiente);
+      oauthTest = accessTokenForTest
+        ? "OK — token obtido (" + accessTokenForTest.slice(0, 8) + "...)"
+        : "falhou";
+    } catch (e) {
+      oauthTest = "erro: " + String(e).slice(0, 200);
+    }
+
     let redeTestStatus = 0;
     let redeTestBody   = "";
     try {
-      const baseUrl = REDE_URLS[secrets["rede_ambiente"] as "sandbox" | "producao"] ?? REDE_URLS.sandbox;
-      const authHeader = "Basic " + btoa(`${pv.trim()}:${token.trim()}`);
+      const authHeader = accessTokenForTest
+        ? "Bearer " + accessTokenForTest
+        : "Bearer (sem token)";
       const resp = await fetch(`${baseUrl}/transactions?reference=ping-test`, {
         method: "GET",
         headers: {
@@ -118,8 +133,9 @@ serve(async (req) => {
       token_trimmed:    token === token.trim(),
       token_first4:     token.slice(0, 4),
       token_last4:      token.slice(-4),
-      ambiente:         secrets["rede_ambiente"],
-      rede_url:         REDE_URLS[secrets["rede_ambiente"] as "sandbox" | "producao"] ?? REDE_URLS.sandbox,
+      ambiente,
+      rede_url:         baseUrl,
+      oauth_test:       oauthTest,
       rede_test_http:   redeTestStatus,
       rede_test_body:   redeTestBody,
     }), { headers });
@@ -253,7 +269,7 @@ serve(async (req) => {
     const resp = await fetch(`${baseUrl}/transactions`, {
       method:  "POST",
       headers: {
-        "Authorization":  basicAuth(pv, token),
+        "Authorization":  "Bearer " + (await getRedeAccessToken(pv, token, secrets["rede_ambiente"] ?? "sandbox")),
         "Content-Type":   "application/json",
       },
       body: JSON.stringify(payload),
