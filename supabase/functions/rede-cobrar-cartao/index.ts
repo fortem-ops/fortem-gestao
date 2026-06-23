@@ -317,6 +317,7 @@ serve(async (req) => {
         expiration_month:  Number(expiration_month),
         expiration_year:   Number(expiration_year),
         is_default:        true,
+        origem,
       });
       console.log("[rede] cartão salvo com token:", cardToken.slice(0, 8) + "...");
     } else {
