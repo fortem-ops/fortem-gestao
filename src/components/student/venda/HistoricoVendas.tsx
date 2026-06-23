@@ -7,7 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { History, RefreshCw, Pencil, CreditCard } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { History, RefreshCw, Pencil, CreditCard, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
@@ -20,7 +24,7 @@ const statusColor: Record<string, string> = {
   pendente: "status-warning",
   cancelado: "status-urgent",
   falha: "status-urgent",
-  estornado: "status-info",
+  estornado: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
 export function HistoricoVendas({ alunoId }: Props) {
@@ -82,6 +86,65 @@ export function HistoricoVendas({ alunoId }: Props) {
       return !!data;
     },
   });
+
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["is_admin"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase.rpc("is_admin", { _user_id: user.id });
+      return !!data;
+    },
+  });
+
+  // Mapa de venda_id -> tid aprovado (para mostrar botão de estorno)
+  const vendaIds = vendas.map((v: any) => v.id);
+  const { data: tidsAprovados = {} } = useQuery<Record<string, string>>({
+    queryKey: ["pagamentos-rede-aprovados", alunoId, vendaIds.join(",")],
+    queryFn: async () => {
+      if (vendaIds.length === 0) return {};
+      const { data } = await (supabase as any)
+        .from("pagamentos_rede")
+        .select("venda_id, tid")
+        .in("venda_id", vendaIds)
+        .eq("status", "approved");
+      const map: Record<string, string> = {};
+      (data || []).forEach((p: any) => { if (!map[p.venda_id]) map[p.venda_id] = p.tid; });
+      return map;
+    },
+    enabled: vendaIds.length > 0 && isAdmin,
+  });
+
+  const [estornando, setEstornando] = useState<any | null>(null);
+  const [estornoLoading, setEstornoLoading] = useState(false);
+
+  async function confirmarEstorno() {
+    if (!estornando) return;
+    const tid = tidsAprovados[estornando.id];
+    if (!tid) {
+      toast.error("TID não encontrado para esta venda");
+      return;
+    }
+    setEstornoLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("rede-cancelar", {
+        body: { tid, venda_id: estornando.id },
+      });
+      if (error) throw error;
+      if (data && (data as any).success === false) {
+        throw new Error((data as any).return_message || "Falha no estorno");
+      }
+      toast.success("Estorno realizado com sucesso");
+      qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["pagamentos-rede-aprovados", alunoId] });
+      setEstornando(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao estornar");
+    } finally {
+      setEstornoLoading(false);
+    }
+  }
+
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -255,6 +318,16 @@ export function HistoricoVendas({ alunoId }: Props) {
                               <CreditCard className="w-3.5 h-3.5" />
                             </Button>
                           )}
+                          {isAdmin && v.status_pagamento === "pago" && tidsAprovados[v.id] && (
+                            <Button
+                              size="icon" variant="ghost"
+                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setEstornando(v)}
+                              title="Estornar venda"
+                            >
+                              <Undo2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(v)} title="Editar pagamento">
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
@@ -326,6 +399,31 @@ export function HistoricoVendas({ alunoId }: Props) {
           }}
         />
       )}
+
+      <AlertDialog open={!!estornando} onOpenChange={(o) => !o && !estornoLoading && setEstornando(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar estorno</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirma o estorno desta venda de{" "}
+              <span className="font-semibold text-foreground">
+                {formatBRL(Number(estornando?.valor_final ?? estornando?.valor ?? 0))}
+              </span>
+              ? Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={estornoLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={estornoLoading}
+              onClick={(e) => { e.preventDefault(); confirmarEstorno(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {estornoLoading ? "Estornando..." : "Confirmar estorno"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
