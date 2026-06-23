@@ -318,6 +318,16 @@ export function HistoricoVendas({ alunoId }: Props) {
                               <CreditCard className="w-3.5 h-3.5" />
                             </Button>
                           )}
+                          {isAdmin && v.status_pagamento === "pago" && tidsAprovados[v.id] && (
+                            <Button
+                              size="icon" variant="ghost"
+                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setEstornando(v)}
+                              title="Estornar venda"
+                            >
+                              <Undo2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(v)} title="Editar pagamento">
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
