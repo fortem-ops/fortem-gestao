@@ -155,6 +155,7 @@ serve(async (req) => {
     venda_id, aluno_id, card_number, card_holder,
     expiration_month, expiration_year, security_code,
     installments = 1, save_card = false,
+    origem = "recepcao",
   } = body;
 
   // Validações básicas
