@@ -216,7 +216,10 @@ serve(async (req) => {
     expiration_month, expiration_year, security_code,
     installments = 1, save_card = false,
     origem = "recepcao",
+    auth_mode = "bearer",        // "bearer" | "basic" — diagnóstico
+    capture_override,             // boolean opcional — força capture
   } = body;
+
 
   // Validações básicas
   if (!venda_id || !aluno_id || !card_number || !card_holder || !security_code || !expiration_month || !expiration_year) {
