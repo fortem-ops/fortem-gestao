@@ -982,6 +982,7 @@ export type Database = {
           id: string
           is_default: boolean
           last4: string
+          origem: string
           token_rede: string
           updated_at: string
         }
@@ -996,6 +997,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           last4: string
+          origem?: string
           token_rede: string
           updated_at?: string
         }
@@ -1010,6 +1012,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           last4?: string
+          origem?: string
           token_rede?: string
           updated_at?: string
         }

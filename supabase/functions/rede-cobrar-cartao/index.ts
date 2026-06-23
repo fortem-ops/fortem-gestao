@@ -155,6 +155,7 @@ serve(async (req) => {
     venda_id, aluno_id, card_number, card_holder,
     expiration_month, expiration_year, security_code,
     installments = 1, save_card = false,
+    origem = "recepcao",
   } = body;
 
   // Validações básicas
@@ -316,6 +317,7 @@ serve(async (req) => {
         expiration_month:  Number(expiration_month),
         expiration_year:   Number(expiration_year),
         is_default:        true,
+        origem,
       });
       console.log("[rede] cartão salvo com token:", cardToken.slice(0, 8) + "...");
     } else {
