@@ -399,6 +399,31 @@ export function HistoricoVendas({ alunoId }: Props) {
           }}
         />
       )}
+
+      <AlertDialog open={!!estornando} onOpenChange={(o) => !o && !estornoLoading && setEstornando(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar estorno</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirma o estorno desta venda de{" "}
+              <span className="font-semibold text-foreground">
+                {formatBRL(Number(estornando?.valor_final ?? estornando?.valor ?? 0))}
+              </span>
+              ? Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={estornoLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={estornoLoading}
+              onClick={(e) => { e.preventDefault(); confirmarEstorno(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {estornoLoading ? "Estornando..." : "Confirmar estorno"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
