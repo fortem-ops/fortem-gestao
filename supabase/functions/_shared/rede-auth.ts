@@ -17,9 +17,8 @@ export async function getRedeAccessToken(
     return cachedToken;
   }
 
-  const authUrl = ambiente === "producao"
-    ? "https://auth.userede.com.br/oauth2/token"
-    : "https://auth.sandbox-erede.useredecloud.com.br/oauth2/token";
+  // Sandbox e produção usam mesma URL — distinção pelas credenciais
+  const authUrl = "https://api.userede.com.br/redelabs/oauth2/token";
 
   const body = new URLSearchParams({
     grant_type: "client_credentials",
