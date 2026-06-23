@@ -268,7 +268,9 @@ serve(async (req) => {
     cardNumber:   payload.cardNumber ? "****" + String(payload.cardNumber).slice(-4) : undefined,
     securityCode: payload.securityCode ? "***" : undefined,
   }, null, 2));
-  console.log("[rede] URL:", `${baseUrl}/transactions`);
+  console.log("[rede] URL final:", `${baseUrl}/transactions`);
+  console.log("[rede] reference enviado:", payload.reference);
+
   console.log("[rede] amount:", amount, "installments:", installments);
   console.log("[rede] expirationMonth:", payload.expirationMonth, "type:", typeof payload.expirationMonth);
   console.log("[rede] expirationYear:", payload.expirationYear, "type:", typeof payload.expirationYear);
