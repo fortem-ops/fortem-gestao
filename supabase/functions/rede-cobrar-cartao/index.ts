@@ -104,6 +104,7 @@ serve(async (req) => {
       oauthTest = "erro: " + String(e).slice(0, 200);
     }
 
+    // Bearer (OAuth) GET sondagem
     let redeTestStatus = 0;
     let redeTestBody   = "";
     try {
@@ -123,6 +124,24 @@ serve(async (req) => {
       redeTestBody = "fetch error: " + String(e);
     }
 
+    // Basic Auth GET sondagem (PV:Token)
+    let basicTestStatus = 0;
+    let basicTestBody   = "";
+    try {
+      const basic = btoa(`${pv.trim()}:${token.trim()}`);
+      const resp = await fetch(`${baseUrl}/transactions?reference=ping-test`, {
+        method: "GET",
+        headers: {
+          "Authorization": "Basic " + basic,
+          "Content-Type":  "application/json",
+        },
+      });
+      basicTestStatus = resp.status;
+      basicTestBody   = (await resp.text()).slice(0, 300);
+    } catch (e) {
+      basicTestBody = "fetch error: " + String(e);
+    }
+
     return new Response(JSON.stringify({
       ok: true,
       pv_length:        pv.length,
@@ -136,10 +155,13 @@ serve(async (req) => {
       ambiente,
       rede_url:         baseUrl,
       oauth_test:       oauthTest,
-      rede_test_http:   redeTestStatus,
-      rede_test_body:   redeTestBody,
+      bearer_test_http: redeTestStatus,
+      bearer_test_body: redeTestBody,
+      basic_test_http:  basicTestStatus,
+      basic_test_body:  basicTestBody,
     }), { headers });
   }
+
 
   // ── COBRANÇA (POST) ──
   const supabase = createClient(
