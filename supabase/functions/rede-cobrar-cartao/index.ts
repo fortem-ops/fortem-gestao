@@ -2,10 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 
-// URLs oficiais e-Rede (manual v1.13, seção Endpoints)
+// URLs Rede Labs (OAuth 2.0) — mesmas raízes do /oauth2/token
 const REDE_URLS = {
-  sandbox:  "https://sandbox-erede.useredecloud.com.br/v1",
-  producao: "https://api.userede.com.br/erede/v1",
+  sandbox:  "https://rl7sandbox-api.useredecloud.com.br/redelabs/merchant/v1",
+  producao: "https://api.userede.com.br/redelabs/merchant/v1",
 };
 
 const MAX_TENTATIVAS = 5;
