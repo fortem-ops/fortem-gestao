@@ -121,7 +121,7 @@ serve(async (req) => {
       token_first4:     token.slice(0, 4),
       token_last4:      token.slice(-4),
       ambiente:         secrets["rede_ambiente"],
-      rede_url:         "https://sandbox-erede.useredecloud.com.br/v1",
+      rede_url:         REDE_URLS[secrets["rede_ambiente"] as "sandbox" | "producao"] ?? REDE_URLS.sandbox,
       rede_test_http:   redeTestStatus,
       rede_test_body:   redeTestBody,
     }), { headers });
