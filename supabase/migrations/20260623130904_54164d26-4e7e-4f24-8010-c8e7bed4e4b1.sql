@@ -1,0 +1,1 @@
+DELETE FROM public.webhook_events_rede WHERE event_id = 'evt-homolog-t10';
