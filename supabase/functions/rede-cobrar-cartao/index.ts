@@ -104,6 +104,7 @@ serve(async (req) => {
       oauthTest = "erro: " + String(e).slice(0, 200);
     }
 
+    // Bearer (OAuth) GET sondagem
     let redeTestStatus = 0;
     let redeTestBody   = "";
     try {
@@ -123,6 +124,24 @@ serve(async (req) => {
       redeTestBody = "fetch error: " + String(e);
     }
 
+    // Basic Auth GET sondagem (PV:Token)
+    let basicTestStatus = 0;
+    let basicTestBody   = "";
+    try {
+      const basic = btoa(`${pv.trim()}:${token.trim()}`);
+      const resp = await fetch(`${baseUrl}/transactions?reference=ping-test`, {
+        method: "GET",
+        headers: {
+          "Authorization": "Basic " + basic,
+          "Content-Type":  "application/json",
+        },
+      });
+      basicTestStatus = resp.status;
+      basicTestBody   = (await resp.text()).slice(0, 300);
+    } catch (e) {
+      basicTestBody = "fetch error: " + String(e);
+    }
+
     return new Response(JSON.stringify({
       ok: true,
       pv_length:        pv.length,
@@ -136,10 +155,13 @@ serve(async (req) => {
       ambiente,
       rede_url:         baseUrl,
       oauth_test:       oauthTest,
-      rede_test_http:   redeTestStatus,
-      rede_test_body:   redeTestBody,
+      bearer_test_http: redeTestStatus,
+      bearer_test_body: redeTestBody,
+      basic_test_http:  basicTestStatus,
+      basic_test_body:  basicTestBody,
     }), { headers });
   }
+
 
   // ── COBRANÇA (POST) ──
   const supabase = createClient(
@@ -194,7 +216,10 @@ serve(async (req) => {
     expiration_month, expiration_year, security_code,
     installments = 1, save_card = false,
     origem = "recepcao",
+    auth_mode = "bearer",        // "bearer" | "basic" — diagnóstico
+    capture_override,             // boolean opcional — força capture
   } = body;
+
 
   // Validações básicas
   if (!venda_id || !aluno_id || !card_number || !card_holder || !security_code || !expiration_month || !expiration_year) {
@@ -245,8 +270,9 @@ serve(async (req) => {
 
   const cardClean = card_number.replace(/\D/g, "");
 
+  const captureFinal = typeof capture_override === "boolean" ? capture_override : true;
   const payload: Record<string, unknown> = {
-    capture:          true,
+    capture:          captureFinal,
     kind:             "credit",
     reference:        String(venda_id).replace(/-/g, "").slice(0, 20),
     amount,
@@ -257,6 +283,7 @@ serve(async (req) => {
     expirationYear:   (() => { const y = String(expiration_year).trim(); return y.length === 2 ? "20" + y : y; })(),
     securityCode:     String(security_code),
   };
+
 
   if (save_card) {
     payload.storageCard = 1; // integer, não objeto (1=CIT primeira tx, 2=MIT subsequente)
@@ -280,15 +307,25 @@ serve(async (req) => {
   let redeResponse: any = null;
   let redeStatus = 0;
   try {
+    let authHeaderRede: string;
+    if (auth_mode === "basic") {
+      authHeaderRede = "Basic " + btoa(`${pv.trim()}:${token.trim()}`);
+      console.log("[rede] auth_mode: BASIC (PV:Token)");
+    } else {
+      authHeaderRede = "Bearer " + (await getRedeAccessToken(pv, token, secrets["rede_ambiente"] ?? "sandbox"));
+      console.log("[rede] auth_mode: BEARER (OAuth)");
+    }
+    console.log("[rede] capture final:", captureFinal);
     const resp = await fetch(`${baseUrl}/transactions`, {
       method:  "POST",
       headers: {
-        "Authorization":  "Bearer " + (await getRedeAccessToken(pv, token, secrets["rede_ambiente"] ?? "sandbox")),
+        "Authorization":  authHeaderRede,
         "Content-Type":   "application/json",
       },
       body: JSON.stringify(payload),
     });
     redeStatus = resp.status;
+
     const text = await resp.text();
     console.log("[rede] HTTP status:", redeStatus);
     console.log("[rede] response body bruto:", text.slice(0, 1000));
