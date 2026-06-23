@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 
 const REDE_URLS = {
   sandbox:  "https://sandbox-erede.useredecloud.com.br/v1",
@@ -46,7 +47,7 @@ serve(async (req) => {
 
   const resp = await fetch(`${baseUrl}/transactions/${tid}/refunds`, {
     method: "POST",
-    headers: { Authorization: "Basic " + btoa(`${pv}:${token}`), "Content-Type": "application/json" },
+    headers: { Authorization: "Bearer " + (await getRedeAccessToken(pv, token, secrets["rede_ambiente"] ?? "sandbox")), "Content-Type": "application/json" },
     body: JSON.stringify({ amount: amount ? Math.round(Number(amount) * 100) : undefined }),
   });
   const redeResponse = await resp.json();
