@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // URLs oficiais e-Rede (manual v1.13, seção Endpoints)
 const REDE_URLS = {
-  sandbox:  "https://sandbox-erede.userede.com.br/v1",
+  sandbox:  "https://sandbox-erede.useredecloud.com.br/v1",
   producao: "https://api.userede.com.br/erede/v1",
 };
 
