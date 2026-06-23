@@ -72,6 +72,11 @@ const comercialAdminItems = [
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
 ];
 
+/* ─── Financeiro ─── */
+const financeiroItems = [
+  { title: "Cartões de Crédito", url: "/financeiro/cartoes", icon: CreditCard },
+];
+
 /* ─── Relatórios ─── */
 const relatoriosItems = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
