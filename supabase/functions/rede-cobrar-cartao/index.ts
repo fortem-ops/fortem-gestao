@@ -262,6 +262,17 @@ serve(async (req) => {
   }
 
   console.log("[rede] chamando", baseUrl, "amount:", amount, "installments:", installments);
+  console.log("[rede] payload enviado:", JSON.stringify({
+    ...payload,
+    cardNumber:   payload.cardNumber ? "****" + String(payload.cardNumber).slice(-4) : undefined,
+    securityCode: payload.securityCode ? "***" : undefined,
+  }, null, 2));
+  console.log("[rede] URL:", `${baseUrl}/transactions`);
+  console.log("[rede] amount:", amount, "installments:", installments);
+  console.log("[rede] expirationMonth:", payload.expirationMonth, "type:", typeof payload.expirationMonth);
+  console.log("[rede] expirationYear:", payload.expirationYear, "type:", typeof payload.expirationYear);
+  console.log("[rede] cardholderName:", payload.cardholderName, "type:", typeof payload.cardholderName);
+  console.log("[rede] kind:", payload.kind, "capture:", payload.capture);
 
   let redeResponse: any = null;
   let redeStatus = 0;
@@ -276,8 +287,11 @@ serve(async (req) => {
     });
     redeStatus = resp.status;
     const text = await resp.text();
-    console.log("[rede] HTTP status:", redeStatus, "body:", text.slice(0, 300));
+    console.log("[rede] HTTP status:", redeStatus);
+    console.log("[rede] response body bruto:", text.slice(0, 1000));
     try { redeResponse = JSON.parse(text); } catch { redeResponse = { rawText: text }; }
+    console.log("[rede] response parseado:", JSON.stringify(redeResponse));
+
   } catch (e) {
     console.error("[rede] fetch error:", String(e));
     return new Response(JSON.stringify({ error: "Erro de comunicação com a Rede", detalhe: String(e) }), { status: 502, headers });
