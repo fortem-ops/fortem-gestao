@@ -307,15 +307,25 @@ serve(async (req) => {
   let redeResponse: any = null;
   let redeStatus = 0;
   try {
+    let authHeaderRede: string;
+    if (auth_mode === "basic") {
+      authHeaderRede = "Basic " + btoa(`${pv.trim()}:${token.trim()}`);
+      console.log("[rede] auth_mode: BASIC (PV:Token)");
+    } else {
+      authHeaderRede = "Bearer " + (await getRedeAccessToken(pv, token, secrets["rede_ambiente"] ?? "sandbox"));
+      console.log("[rede] auth_mode: BEARER (OAuth)");
+    }
+    console.log("[rede] capture final:", captureFinal);
     const resp = await fetch(`${baseUrl}/transactions`, {
       method:  "POST",
       headers: {
-        "Authorization":  "Bearer " + (await getRedeAccessToken(pv, token, secrets["rede_ambiente"] ?? "sandbox")),
+        "Authorization":  authHeaderRede,
         "Content-Type":   "application/json",
       },
       body: JSON.stringify(payload),
     });
     redeStatus = resp.status;
+
     const text = await resp.text();
     console.log("[rede] HTTP status:", redeStatus);
     console.log("[rede] response body bruto:", text.slice(0, 1000));
