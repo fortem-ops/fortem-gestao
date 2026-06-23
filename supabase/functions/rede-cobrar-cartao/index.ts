@@ -270,8 +270,9 @@ serve(async (req) => {
 
   const cardClean = card_number.replace(/\D/g, "");
 
+  const captureFinal = typeof capture_override === "boolean" ? capture_override : true;
   const payload: Record<string, unknown> = {
-    capture:          true,
+    capture:          captureFinal,
     kind:             "credit",
     reference:        String(venda_id).replace(/-/g, "").slice(0, 20),
     amount,
@@ -282,6 +283,7 @@ serve(async (req) => {
     expirationYear:   (() => { const y = String(expiration_year).trim(); return y.length === 2 ? "20" + y : y; })(),
     securityCode:     String(security_code),
   };
+
 
   if (save_card) {
     payload.storageCard = 1; // integer, não objeto (1=CIT primeira tx, 2=MIT subsequente)
