@@ -77,24 +77,33 @@ export function HistoricoVendas({ alunoId }: Props) {
     enabled: planoIds.length > 0,
   });
 
-  const { data: isCoordAdmin = false } = useQuery({
-    queryKey: ["is_coord_admin"],
+  const { data: currentUser } = useQuery({
+    queryKey: ["auth-user"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user.id });
+      return user;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: isCoordAdmin = false } = useQuery({
+    queryKey: ["is_coord_admin", currentUser?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: currentUser!.id });
       return !!data;
     },
+    enabled: !!currentUser?.id,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: isAdmin = false } = useQuery({
-    queryKey: ["is_admin"],
+    queryKey: ["is_admin", currentUser?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-      const { data } = await supabase.rpc("is_admin", { _user_id: user.id });
+      const { data } = await supabase.rpc("is_admin", { _user_id: currentUser!.id });
       return !!data;
     },
+    enabled: !!currentUser?.id,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Mapa de venda_id -> tid aprovado (para mostrar botão de estorno)
@@ -113,6 +122,7 @@ export function HistoricoVendas({ alunoId }: Props) {
       return map;
     },
     enabled: vendaIds.length > 0 && isAdmin,
+    staleTime: 1000 * 60,
   });
 
   const [estornando, setEstornando] = useState<any | null>(null);
