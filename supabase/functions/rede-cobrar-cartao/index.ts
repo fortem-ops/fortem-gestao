@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 
 // URLs oficiais e-Rede (manual v1.13, seção Endpoints)
 const REDE_URLS = {
@@ -27,9 +28,6 @@ function luhn(n: string): boolean {
   return s % 10 === 0;
 }
 
-function basicAuth(pv: string, token: string) {
-  return "Basic " + btoa(`${pv}:${token}`);
-}
 
 async function loadSecrets(supabase: any): Promise<Record<string, string>> {
   const m: Record<string, string> = {};
