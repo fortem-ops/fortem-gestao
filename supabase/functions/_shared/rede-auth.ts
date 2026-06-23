@@ -30,7 +30,7 @@ export async function getRedeAccessToken(
   // URL correta por ambiente (conforme tutorial oficial Rede)
   const authUrl = ambiente === "producao"
     ? "https://api.userede.com.br/redelabs/oauth2/token"
-    : "https://rl7sandbox-api.useredecloud.com.br/oauth2/token";
+    : "https://rl7-sandbox-api.useredecloud.com.br/oauth2/token";
 
   // Authorization: Basic Base64(clientId:clientSecret) — conforme tutorial Rede
   const basicCredential = btoa(`${clientId}:${clientSecret}`);
