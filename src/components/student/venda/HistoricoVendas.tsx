@@ -87,6 +87,65 @@ export function HistoricoVendas({ alunoId }: Props) {
     },
   });
 
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["is_admin"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase.rpc("is_admin", { _user_id: user.id });
+      return !!data;
+    },
+  });
+
+  // Mapa de venda_id -> tid aprovado (para mostrar botão de estorno)
+  const vendaIds = vendas.map((v: any) => v.id);
+  const { data: tidsAprovados = {} } = useQuery<Record<string, string>>({
+    queryKey: ["pagamentos-rede-aprovados", alunoId, vendaIds.join(",")],
+    queryFn: async () => {
+      if (vendaIds.length === 0) return {};
+      const { data } = await (supabase as any)
+        .from("pagamentos_rede")
+        .select("venda_id, tid")
+        .in("venda_id", vendaIds)
+        .eq("status", "approved");
+      const map: Record<string, string> = {};
+      (data || []).forEach((p: any) => { if (!map[p.venda_id]) map[p.venda_id] = p.tid; });
+      return map;
+    },
+    enabled: vendaIds.length > 0 && isAdmin,
+  });
+
+  const [estornando, setEstornando] = useState<any | null>(null);
+  const [estornoLoading, setEstornoLoading] = useState(false);
+
+  async function confirmarEstorno() {
+    if (!estornando) return;
+    const tid = tidsAprovados[estornando.id];
+    if (!tid) {
+      toast.error("TID não encontrado para esta venda");
+      return;
+    }
+    setEstornoLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("rede-cancelar", {
+        body: { tid, venda_id: estornando.id },
+      });
+      if (error) throw error;
+      if (data && (data as any).success === false) {
+        throw new Error((data as any).return_message || "Falha no estorno");
+      }
+      toast.success("Estorno realizado com sucesso");
+      qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["pagamentos-rede-aprovados", alunoId] });
+      setEstornando(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao estornar");
+    } finally {
+      setEstornoLoading(false);
+    }
+  }
+
+
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await (supabase as any).from("vendas").update({ status_pagamento: status }).eq("id", id);
