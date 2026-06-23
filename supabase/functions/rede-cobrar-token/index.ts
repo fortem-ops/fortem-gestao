@@ -53,7 +53,7 @@ serve(async (req) => {
 
   const secrets = await loadSecrets(supabase);
   const pv = secrets["rede_pv"], token = secrets["rede_token"];
-  const baseUrl = secrets["rede_ambiente"] === "sandbox" ? REDE_SANDBOX : REDE_PROD;
+  const baseUrl = REDE_URLS[secrets["rede_ambiente"] as "sandbox" | "producao"] ?? REDE_URLS.sandbox;
 
   const payload = {
     capture: true,
