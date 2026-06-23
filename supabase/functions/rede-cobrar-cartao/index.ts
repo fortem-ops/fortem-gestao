@@ -89,12 +89,41 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
     const secrets = await loadSecrets(supabaseDiag);
+    const pv    = secrets["rede_pv"]    ?? "";
+    const token = secrets["rede_token"] ?? "";
+
+    let redeTestStatus = 0;
+    let redeTestBody   = "";
+    try {
+      const baseUrl = "https://sandbox-erede.useredecloud.com.br/v1";
+      const authHeader = "Basic " + btoa(`${pv.trim()}:${token.trim()}`);
+      const resp = await fetch(`${baseUrl}/transactions?reference=ping-test`, {
+        method: "GET",
+        headers: {
+          "Authorization": authHeader,
+          "Content-Type": "application/json",
+        },
+      });
+      redeTestStatus = resp.status;
+      redeTestBody   = (await resp.text()).slice(0, 300);
+    } catch (e) {
+      redeTestBody = "fetch error: " + String(e);
+    }
+
     return new Response(JSON.stringify({
       ok: true,
-      pv_ok:    secrets["rede_pv"].length > 0,
-      token_ok: secrets["rede_token"].length > 0,
-      ambiente: secrets["rede_ambiente"],
-      rede_url: REDE_URLS[secrets["rede_ambiente"] as "sandbox" | "producao"] ?? REDE_URLS.sandbox,
+      pv_length:        pv.length,
+      pv_trimmed:       pv === pv.trim(),
+      pv_first2:        pv.slice(0, 2),
+      pv_last2:         pv.slice(-2),
+      token_length:     token.length,
+      token_trimmed:    token === token.trim(),
+      token_first4:     token.slice(0, 4),
+      token_last4:      token.slice(-4),
+      ambiente:         secrets["rede_ambiente"],
+      rede_url:         "https://sandbox-erede.useredecloud.com.br/v1",
+      rede_test_http:   redeTestStatus,
+      rede_test_body:   redeTestBody,
     }), { headers });
   }
 
