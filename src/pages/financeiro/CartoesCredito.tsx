@@ -187,12 +187,12 @@ export default function CartoesCredito() {
     if (e1) return toast.error("Falha ao desativar: " + e1.message);
 
     // Remove vínculo em planos (se houver coluna)
-    await supabase
-      .from("planos" as any)
-      .update({ cartao_token_id: null } as any)
-      .eq("cartao_token_id", c.id)
-      .then(() => {})
-      .catch(() => {});
+    try {
+      await supabase
+        .from("planos" as any)
+        .update({ cartao_token_id: null } as any)
+        .eq("cartao_token_id", c.id);
+    } catch { /* coluna pode não existir — ignore */ }
 
     toast.success(`Cartão **** ${c.last4} desativado`);
     setToDeactivate(null);
