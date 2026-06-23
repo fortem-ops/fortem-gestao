@@ -139,13 +139,15 @@ serve(async (req) => {
   try { bodyParsed = JSON.parse(bodyText); } catch { /* ignore */ }
 
   const alunoIdRL = bodyParsed?.aluno_id;
+  console.log("[rate-limit] aluno_id:", alunoIdRL, "bodyKeys:", bodyParsed ? Object.keys(bodyParsed) : null);
   if (alunoIdRL && /^[0-9a-f-]{36}$/i.test(alunoIdRL)) {
     const janelaRL = Math.floor(Date.now() / 60000);
-    const { data: rlOk } = await supabase.rpc("fn_check_rate_limit", {
+    const { data: rlOk, error: rlErr } = await supabase.rpc("fn_check_rate_limit", {
       p_aluno_id: alunoIdRL,
       p_janela:   janelaRL,
       p_limite:   MAX_TENTATIVAS,
     });
+    console.log("[rate-limit] rpc result:", { rlOk, rlErr: rlErr?.message, janela: janelaRL });
     if (!rlOk) {
       return new Response(
         JSON.stringify({ error: "Limite de tentativas excedido. Aguarde 1 minuto." }),
@@ -153,6 +155,7 @@ serve(async (req) => {
       );
     }
   }
+
 
   const authHeader = req.headers.get("Authorization");
   const { data: { user }, error: authErr } = await supabase.auth.getUser(
