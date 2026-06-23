@@ -248,15 +248,16 @@ serve(async (req) => {
   const payload: Record<string, unknown> = {
     capture:          true,
     kind:             "credit",
-    reference:        venda_id,
+    reference:        String(venda_id).replace(/-/g, "").slice(0, 20),
     amount,
     installments:     Number(installments),
-    cardholderName:   card_holder,
+    cardholderName:   String(card_holder).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
     cardNumber:       cardClean,
     expirationMonth:  String(expiration_month).padStart(2, "0"),
-    expirationYear:   String(expiration_year),
+    expirationYear:   (() => { const y = String(expiration_year).trim(); return y.length === 2 ? "20" + y : y; })(),
     securityCode:     String(security_code),
   };
+
   if (save_card) {
     payload.storageCard = 1; // integer, não objeto (1=CIT primeira tx, 2=MIT subsequente)
   }
