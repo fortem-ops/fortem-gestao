@@ -225,7 +225,9 @@ serve(async (req) => {
     expirationYear:   String(expiration_year),
     securityCode:     String(security_code),
   };
-  if (save_card) payload.storageCard = { saveCard: true };
+  if (save_card) {
+    payload.storageCard = 1; // integer, não objeto (1=CIT primeira tx, 2=MIT subsequente)
+  }
 
   console.log("[rede] chamando", baseUrl, "amount:", amount, "installments:", installments);
 
