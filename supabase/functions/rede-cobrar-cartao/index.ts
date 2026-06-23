@@ -225,7 +225,9 @@ serve(async (req) => {
     expirationYear:   String(expiration_year),
     securityCode:     String(security_code),
   };
-  if (save_card) payload.storageCard = { saveCard: true };
+  if (save_card) {
+    payload.storageCard = 1; // integer, não objeto (1=CIT primeira tx, 2=MIT subsequente)
+  }
 
   console.log("[rede] chamando", baseUrl, "amount:", amount, "installments:", installments);
 
@@ -288,17 +290,37 @@ serve(async (req) => {
   }
 
   // Salvar token se solicitado e aprovado
-  if (approved && save_card && redeResponse?.storageCard?.cardId) {
-    await supabase.from("cartoes_salvos").insert({
-      aluno_id,
-      token_rede:        redeResponse.storageCard.cardId,
-      brand:             redeResponse?.brand ?? "unknown",
-      last4:             cardClean.slice(-4),
-      holder_name:       card_holder,
-      expiration_month:  Number(expiration_month),
-      expiration_year:   Number(expiration_year),
-      is_default:        true,
+  if (approved && save_card) {
+    // A Rede pode retornar o token em diferentes campos dependendo da versão
+    const cardToken = redeResponse?.cardToken
+      ?? redeResponse?.cardStorage?.cardId
+      ?? redeResponse?.storageCard?.cardId
+      ?? redeResponse?.tokenId
+      ?? null;
+
+    console.log("[rede] campos de token na resposta:", {
+      cardToken:    redeResponse?.cardToken,
+      cardStorage:  redeResponse?.cardStorage,
+      storageCard:  redeResponse?.storageCard,
+      tokenId:      redeResponse?.tokenId,
+      allKeys:      Object.keys(redeResponse ?? {}),
     });
+
+    if (cardToken) {
+      await supabase.from("cartoes_salvos").insert({
+        aluno_id,
+        token_rede:        cardToken,
+        brand:             redeResponse?.brand ?? redeResponse?.brandName ?? "unknown",
+        last4:             cardClean.slice(-4),
+        holder_name:       card_holder,
+        expiration_month:  Number(expiration_month),
+        expiration_year:   Number(expiration_year),
+        is_default:        true,
+      });
+      console.log("[rede] cartão salvo com token:", cardToken.slice(0, 8) + "...");
+    } else {
+      console.warn("[rede] cartão não salvo — token ausente na resposta. Chaves disponíveis:", Object.keys(redeResponse ?? {}));
+    }
   }
 
   return new Response(JSON.stringify({
