@@ -95,7 +95,7 @@ serve(async (req) => {
     let redeTestStatus = 0;
     let redeTestBody   = "";
     try {
-      const baseUrl = "https://sandbox-erede.useredecloud.com.br/v1";
+      const baseUrl = REDE_URLS[secrets["rede_ambiente"] as "sandbox" | "producao"] ?? REDE_URLS.sandbox;
       const authHeader = "Basic " + btoa(`${pv.trim()}:${token.trim()}`);
       const resp = await fetch(`${baseUrl}/transactions?reference=ping-test`, {
         method: "GET",
