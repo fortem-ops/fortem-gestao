@@ -77,7 +77,8 @@ export function useUnreadCount() {
         .from("notificacao_destinatarios")
         .select("id", { count: "exact", head: true })
         .eq("usuario_id", user.id)
-        .is("visualizado_em", null);
+        .is("visualizado_em", null)
+        .neq("status", "arquivada");
       return count ?? 0;
     },
     enabled: !!user,
