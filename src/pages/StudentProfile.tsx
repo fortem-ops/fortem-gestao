@@ -168,6 +168,7 @@ export default function StudentProfile() {
           <TabsTrigger value="clube">Clube FORTEM</TabsTrigger>
           <TabsTrigger value="plano">Plano/Serviços</TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="contrato">Contrato</TabsTrigger>
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
           <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
@@ -180,6 +181,7 @@ export default function StudentProfile() {
         <TabsContent value="clube"><StudentClubePanel student={student} /></TabsContent>
         <TabsContent value="plano"><StudentPlan student={student} /></TabsContent>
         <TabsContent value="financeiro"><StudentFinanceiro student={student} /></TabsContent>
+        <TabsContent value="contrato"><ContratoFinanceiro alunoId={student.id} /></TabsContent>
         <TabsContent value="treinos"><StudentWorkouts student={student} /></TabsContent>
         <TabsContent value="avaliacoes"><StudentAssessments student={student} /></TabsContent>
         <TabsContent value="tarefas"><StudentTasks student={student} /></TabsContent>
