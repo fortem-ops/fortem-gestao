@@ -66,12 +66,7 @@ export function GlobalCadastroSearch() {
     queryFn: async () => {
       const t = debounced.trim();
       if (t.length < 2) return [] as any[];
-      const { data, error } = await supabase
-        .from("alunos")
-        .select("id,nome,telefone,status,current_pipeline_stage_id")
-        .ilike("nome", `%${t}%`)
-        .order("nome")
-        .limit(40);
+      const { data, error } = await supabase.rpc("search_cadastros", { termo: t });
       if (error) throw error;
       return data || [];
     },
