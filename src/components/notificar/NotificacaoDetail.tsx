@@ -105,6 +105,35 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notif"] }),
   });
 
+  const myDest = (data?.dests ?? []).find((d: any) => d.usuario_id === user?.id);
+  const isCriadorEarly = data?.notif && (data.notif as any).criado_por === user?.id;
+  const globalArquivada = data?.notif && ((data.notif as any).status === "arquivada" || (data.notif as any).status === "concluida");
+  const minhaArquivada = myDest?.status === "arquivada";
+  const estaArquivada = !!(globalArquivada || minhaArquivada);
+
+  const arquivarMut = useMutation({
+    mutationFn: async () => {
+      if (!id || !user) return;
+      if (isCriadorEarly) {
+        await updateStatus(id, estaArquivada ? "aberta" : "arquivada");
+      }
+      if (myDest) {
+        const novoStatus = estaArquivada ? "lida" : "arquivada";
+        const { error } = await supabase
+          .from("notificacao_destinatarios")
+          .update({ status: novoStatus })
+          .eq("notificacao_id", id)
+          .eq("usuario_id", user.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(estaArquivada ? "Conversa desarquivada" : "Conversa arquivada");
+      qc.invalidateQueries({ queryKey: ["notif"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao arquivar"),
+  });
+
   if (!id) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
