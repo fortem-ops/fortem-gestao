@@ -66,12 +66,7 @@ export function GlobalCadastroSearch() {
     queryFn: async () => {
       const t = debounced.trim();
       if (t.length < 2) return [] as any[];
-      const { data, error } = await supabase
-        .from("alunos")
-        .select("id,nome,telefone,status,current_pipeline_stage_id")
-        .ilike("nome", `%${t}%`)
-        .order("nome")
-        .limit(40);
+      const { data, error } = await supabase.rpc("search_cadastros", { termo: t });
       if (error) throw error;
       return data || [];
     },
@@ -139,7 +134,7 @@ export function GlobalCadastroSearch() {
         )}
         {!isFetching && totalResultados > 0 && (
           <div className="py-1">
-            {(Object.keys(grouped) as Tipo[]).map((tipo) => {
+            {(["ativo", "prospect", "lead", "inativo"] as Tipo[]).map((tipo) => {
               const items = grouped[tipo];
               if (!items.length) return null;
               const meta = TIPO_META[tipo];

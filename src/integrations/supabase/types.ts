@@ -5364,6 +5364,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      search_cadastros: {
+        Args: { termo: string }
+        Returns: {
+          current_pipeline_stage_id: string
+          id: string
+          nome: string
+          status: string
+          telefone: string
+        }[]
+      }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       app_role:
