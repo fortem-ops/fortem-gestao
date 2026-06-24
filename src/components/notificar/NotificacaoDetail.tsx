@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Paperclip, Send, X } from "lucide-react";
+import { Paperclip, Send, X, Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -105,6 +105,35 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notif"] }),
   });
 
+  const myDest = (data?.dests ?? []).find((d: any) => d.usuario_id === user?.id);
+  const isCriadorEarly = data?.notif && (data.notif as any).criado_por === user?.id;
+  const globalArquivada = data?.notif && ((data.notif as any).status === "arquivada" || (data.notif as any).status === "concluida");
+  const minhaArquivada = myDest?.status === "arquivada";
+  const estaArquivada = !!(globalArquivada || minhaArquivada);
+
+  const arquivarMut = useMutation({
+    mutationFn: async () => {
+      if (!id || !user) return;
+      if (isCriadorEarly) {
+        await updateStatus(id, estaArquivada ? "em_andamento" : "arquivada");
+      }
+      if (myDest) {
+        const novoStatus = estaArquivada ? "visualizada" : "arquivada";
+        const { error } = await supabase
+          .from("notificacao_destinatarios")
+          .update({ status: novoStatus })
+          .eq("notificacao_id", id)
+          .eq("usuario_id", user.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(estaArquivada ? "Conversa desarquivada" : "Conversa arquivada");
+      qc.invalidateQueries({ queryKey: ["notif"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao arquivar"),
+  });
+
   if (!id) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -156,11 +185,23 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
             {n.reuniao_local && <> · 📍 {n.reuniao_local}</>}
           </div>
         )}
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 pt-2 flex-wrap">
           <Select value={n.status} onValueChange={(v) => statusMut.mutate(v as NotifStatus)} disabled={!isCriador}>
             <SelectTrigger className="w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>{NOTIF_STATUS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
           </Select>
+          {(isCriador || !!myDest) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => arquivarMut.mutate()}
+              disabled={arquivarMut.isPending}
+            >
+              {estaArquivada ? <ArchiveRestore className="w-3.5 h-3.5 mr-1" /> : <Archive className="w-3.5 h-3.5 mr-1" />}
+              {estaArquivada ? "Desarquivar" : "Arquivar"}
+            </Button>
+          )}
           <span className="text-xs text-muted-foreground">{data.dests.length} destinatário(s) · {data.dests.filter((d: any) => d.visualizado_em).length} visualizou</span>
         </div>
       </div>

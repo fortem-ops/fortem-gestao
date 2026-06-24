@@ -26,7 +26,9 @@ export default function Notificar() {
   const all = tab === "enviadas" ? enviadas.data ?? [] : recebidas.data ?? [];
   const filtered = useMemo(() => {
     return all.filter((n) => {
-      const isArquivada = n.status === "arquivada" || n.status === "concluida";
+      const globalArquivada = n.status === "arquivada" || n.status === "concluida";
+      const destArquivada = n.dest_status === "arquivada";
+      const isArquivada = tab === "enviadas" ? globalArquivada : (globalArquivada || destArquivada);
       if (tab === "arquivadas" && !isArquivada) return false;
       if (tab !== "arquivadas" && isArquivada) return false;
       if (search && !n.titulo.toLowerCase().includes(search.toLowerCase())) return false;
