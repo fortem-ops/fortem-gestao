@@ -1,39 +1,39 @@
-## 1. Parar de gerar notificações de ponto
+## Objetivo
 
-Nova migração SQL:
+Na busca global de cadastros (header — "Buscar aluno… ⌘K"):
+1. Exibir os grupos na ordem: **Alunos Ativos → Prospects → Leads → (Inativos por último)**.
+2. Tornar a busca **insensível a acentos** (ex.: "Marcia" encontra "Márcia", "Joao" encontra "João", e vice-versa).
 
-- Recriar `fn_ponto_registrar` e `fn_ponto_alertas_diarios` removendo todos os `INSERT INTO notificacoes` / `notificacao_destinatarios` de categoria `ponto`. A lógica de ponto (registro de eventos, alertas internos do painel) continua funcionando — apenas deixa de criar registro em "Notificar".
-- Apagar histórico já existente: `DELETE FROM notificacoes WHERE categoria = 'ponto'` (cascade remove destinatários, comentários e histórico). São 11 registros atuais.
-- `AlertasPontoPanel` lê `notificacoes` filtrando por `categoria='ponto'` — vai ficar vazio, que é o comportamento desejado.
+## Mudanças
 
-## 2. Arquivar conversa por usuário
+### 1. Backend — RPC para busca sem acento
+Criar função `public.search_cadastros(termo text)` usando a extensão `unaccent` (já habilitada no projeto). Ela aplica `unaccent(lower(nome)) ILIKE unaccent(lower('%termo%'))` para que acentos no termo digitado e/ou no nome armazenado sejam ignorados na comparação.
 
-Hoje só o criador consegue mudar o `status` da notificação, e a aba "Arquivadas" filtra pelo status global. Vamos passar a usar `notificacao_destinatarios.status = 'arquivada'` **por usuário**, mantendo o status global apenas como atalho do criador.
+Retorna as mesmas colunas hoje consumidas pelo componente: `id, nome, telefone, status, current_pipeline_stage_id`, limitado a 40 linhas, ordenado por `nome`. `SECURITY INVOKER` para respeitar as RLS atuais de `alunos`. `GRANT EXECUTE` para `authenticated`.
 
-**`src/components/notificar/NotificacaoDetail.tsx`**
-- Adicionar botão "Arquivar" / "Desarquivar" no cabeçalho, visível para qualquer participante (criador ou destinatário).
-- Criador: atualiza `notificacoes.status` para `arquivada` / volta para `aberta`.
-- Destinatário: faz `update` em `notificacao_destinatarios` (escopo `usuario_id = auth.uid()` + `notificacao_id`), alternando entre `arquivada` e `lida`.
-- Invalida queries `["notif"]`.
+### 2. Frontend — `src/components/GlobalCadastroSearch.tsx`
+- Substituir o `supabase.from("alunos").select(...).ilike("nome", ...)` por `supabase.rpc("search_cadastros", { termo: t })`.
+- Alterar a ordem de renderização dos grupos para uma lista explícita: `["ativo", "prospect", "lead", "inativo"]`, em vez de iterar `Object.keys(grouped)`.
 
-**`src/pages/Notificar.tsx`**
-- Ajustar o filtro da aba "Arquivadas":
-  - Em `recebidas`: arquivada quando `dest_status === 'arquivada'` ou a notificação global estiver `arquivada/concluida`.
-  - Em `enviadas`: arquivada quando `status === 'arquivada' | 'concluida'`.
-
-**`src/hooks/useNotificacoes.ts`**
-- `useUnreadCount`: ignorar destinatários com `status='arquivada'` (não contar como não-lida).
-- Demais hooks já retornam `dest_status`, sem mudança.
+Nenhum outro componente é afetado. Comportamento de navegação ao clicar e badges permanecem iguais.
 
 ## Detalhes técnicos
 
-- O RLS de `notificacao_destinatarios` já permite o próprio usuário fazer `UPDATE` (`usuario_id = auth.uid()`), então não precisa de policy nova.
-- Não disparar entrada em `notificacao_historico` para o arquivamento individual (evita poluir o log de todos).
-- Após implementar: rodar `npx tsc --noEmit`.
+```sql
+CREATE OR REPLACE FUNCTION public.search_cadastros(termo text)
+RETURNS TABLE (
+  id uuid, nome text, telefone text,
+  status text, current_pipeline_stage_id uuid
+)
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = public
+AS $$
+  SELECT a.id, a.nome, a.telefone, a.status, a.current_pipeline_stage_id
+  FROM public.alunos a
+  WHERE unaccent(lower(a.nome)) ILIKE unaccent(lower('%' || termo || '%'))
+  ORDER BY a.nome
+  LIMIT 40;
+$$;
+GRANT EXECUTE ON FUNCTION public.search_cadastros(text) TO authenticated;
+```
 
-## Arquivos afetados
-
-- Migração nova: remoção das notificações de ponto + DELETE dos registros existentes
-- `src/components/notificar/NotificacaoDetail.tsx`
-- `src/pages/Notificar.tsx`
-- `src/hooks/useNotificacoes.ts`
+No componente, a ordem de exibição passa a ser fixa (Ativos primeiro, Inativos por último), atendendo ao pedido.
