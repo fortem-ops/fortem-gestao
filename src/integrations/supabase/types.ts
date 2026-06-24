@@ -1582,6 +1582,7 @@ export type Database = {
           motivo_cancelamento: string | null
           multa_percentual: number | null
           notificacao_30d_enviada: boolean
+          observacoes: string | null
           parcelas: number
           percentual_reajuste: number | null
           plano_id: string | null
@@ -1610,6 +1611,7 @@ export type Database = {
           motivo_cancelamento?: string | null
           multa_percentual?: number | null
           notificacao_30d_enviada?: boolean
+          observacoes?: string | null
           parcelas?: number
           percentual_reajuste?: number | null
           plano_id?: string | null
@@ -1638,6 +1640,7 @@ export type Database = {
           motivo_cancelamento?: string | null
           multa_percentual?: number | null
           notificacao_30d_enviada?: boolean
+          observacoes?: string | null
           parcelas?: number
           percentual_reajuste?: number | null
           plano_id?: string | null
