@@ -1033,6 +1033,57 @@ export type Database = {
           },
         ]
       }
+      ciclos_credito: {
+        Row: {
+          cobranca_id: string | null
+          contrato_id: string
+          created_at: string
+          creditos_liberados: number
+          creditos_usados: number
+          data_fim: string | null
+          data_inicio: string
+          id: string
+          status: string
+        }
+        Insert: {
+          cobranca_id?: string | null
+          contrato_id: string
+          created_at?: string
+          creditos_liberados: number
+          creditos_usados?: number
+          data_fim?: string | null
+          data_inicio: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          cobranca_id?: string | null
+          contrato_id?: string
+          created_at?: string
+          creditos_liberados?: number
+          creditos_usados?: number
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ciclos_credito_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "cobrancas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ciclos_credito_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clube_alertas: {
         Row: {
           aluno_id: string | null
@@ -1190,6 +1241,82 @@ export type Database = {
           },
         ]
       }
+      cobrancas: {
+        Row: {
+          aluno_id: string
+          comprovante_url: string | null
+          contrato_id: string
+          created_at: string
+          data_pagamento: string | null
+          data_vencimento: string
+          forma_pagamento: string
+          gateway: string | null
+          id: string
+          meio_registro: string
+          numero_ciclo: number
+          registrado_por: string | null
+          status: string
+          tid: string | null
+          valor: number
+        }
+        Insert: {
+          aluno_id: string
+          comprovante_url?: string | null
+          contrato_id: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento: string
+          forma_pagamento: string
+          gateway?: string | null
+          id?: string
+          meio_registro?: string
+          numero_ciclo: number
+          registrado_por?: string | null
+          status?: string
+          tid?: string | null
+          valor: number
+        }
+        Update: {
+          aluno_id?: string
+          comprovante_url?: string | null
+          contrato_id?: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string
+          forma_pagamento?: string
+          gateway?: string | null
+          id?: string
+          meio_registro?: string
+          numero_ciclo?: number
+          registrado_por?: string | null
+          status?: string
+          tid?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "cobrancas_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comissionamento_config: {
         Row: {
           ativo: boolean
@@ -1343,6 +1470,7 @@ export type Database = {
         Row: {
           agenda_id: string | null
           aluno_id: string
+          contrato_id: string | null
           created_at: string
           data_consumo: string
           id: string
@@ -1357,6 +1485,7 @@ export type Database = {
         Insert: {
           agenda_id?: string | null
           aluno_id: string
+          contrato_id?: string | null
           created_at?: string
           data_consumo?: string
           id?: string
@@ -1371,6 +1500,7 @@ export type Database = {
         Update: {
           agenda_id?: string | null
           aluno_id?: string
+          contrato_id?: string | null
           created_at?: string
           data_consumo?: string
           id?: string
@@ -1412,6 +1542,13 @@ export type Database = {
             referencedColumns: ["aluno_id"]
           },
           {
+            foreignKeyName: "consumo_servicos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "consumo_servicos_plano_id_fkey"
             columns: ["plano_id"]
             isOneToOne: false
@@ -1420,6 +1557,129 @@ export type Database = {
           },
           {
             foreignKeyName: "consumo_servicos_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "v_planos_base"
+            referencedColumns: ["plano_id"]
+          },
+        ]
+      }
+      contratos: {
+        Row: {
+          aluno_id: string
+          cartao_token_id: string | null
+          created_at: string
+          creditos_total: number
+          criado_por: string | null
+          data_cancelamento: string | null
+          data_fim: string | null
+          data_inicio: string
+          data_renovacao: string | null
+          forma_pagamento: string
+          frequencia_semanal: number
+          id: string
+          indice_reajuste: string | null
+          motivo_cancelamento: string | null
+          multa_percentual: number | null
+          notificacao_30d_enviada: boolean
+          parcelas: number
+          percentual_reajuste: number | null
+          plano_id: string | null
+          plano_tipo: string
+          status: string
+          taxa_recorrencia: number
+          updated_at: string
+          valor_base: number
+          valor_cobrado: number
+          vigencia_tipo: string
+        }
+        Insert: {
+          aluno_id: string
+          cartao_token_id?: string | null
+          created_at?: string
+          creditos_total: number
+          criado_por?: string | null
+          data_cancelamento?: string | null
+          data_fim?: string | null
+          data_inicio: string
+          data_renovacao?: string | null
+          forma_pagamento: string
+          frequencia_semanal: number
+          id?: string
+          indice_reajuste?: string | null
+          motivo_cancelamento?: string | null
+          multa_percentual?: number | null
+          notificacao_30d_enviada?: boolean
+          parcelas?: number
+          percentual_reajuste?: number | null
+          plano_id?: string | null
+          plano_tipo: string
+          status?: string
+          taxa_recorrencia?: number
+          updated_at?: string
+          valor_base: number
+          valor_cobrado: number
+          vigencia_tipo: string
+        }
+        Update: {
+          aluno_id?: string
+          cartao_token_id?: string | null
+          created_at?: string
+          creditos_total?: number
+          criado_por?: string | null
+          data_cancelamento?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          data_renovacao?: string | null
+          forma_pagamento?: string
+          frequencia_semanal?: number
+          id?: string
+          indice_reajuste?: string | null
+          motivo_cancelamento?: string | null
+          multa_percentual?: number | null
+          notificacao_30d_enviada?: boolean
+          parcelas?: number
+          percentual_reajuste?: number | null
+          plano_id?: string | null
+          plano_tipo?: string
+          status?: string
+          taxa_recorrencia?: number
+          updated_at?: string
+          valor_base?: number
+          valor_cobrado?: number
+          vigencia_tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "contratos_cartao_token_id_fkey"
+            columns: ["cartao_token_id"]
+            isOneToOne: false
+            referencedRelation: "cartoes_salvos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_plano_id_fkey"
             columns: ["plano_id"]
             isOneToOne: false
             referencedRelation: "v_planos_base"
@@ -1666,6 +1926,74 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      inadimplencias: {
+        Row: {
+          aluno_id: string
+          cobranca_id: string
+          contrato_id: string
+          created_at: string
+          data_regularizacao: string | null
+          data_vencimento: string
+          id: string
+          notificacoes: Json
+          status: string
+          valor: number
+        }
+        Insert: {
+          aluno_id: string
+          cobranca_id: string
+          contrato_id: string
+          created_at?: string
+          data_regularizacao?: string | null
+          data_vencimento: string
+          id?: string
+          notificacoes?: Json
+          status?: string
+          valor: number
+        }
+        Update: {
+          aluno_id?: string
+          cobranca_id?: string
+          contrato_id?: string
+          created_at?: string
+          data_regularizacao?: string | null
+          data_vencimento?: string
+          id?: string
+          notificacoes?: Json
+          status?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inadimplencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "cobrancas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4268,6 +4596,77 @@ export type Database = {
       }
     }
     Views: {
+      inadimplencias_view: {
+        Row: {
+          aluno_id: string | null
+          cobranca_id: string | null
+          contrato_id: string | null
+          created_at: string | null
+          data_regularizacao: string | null
+          data_vencimento: string | null
+          dias_atraso: number | null
+          id: string | null
+          notificacoes: Json | null
+          status: string | null
+          valor: number | null
+        }
+        Insert: {
+          aluno_id?: string | null
+          cobranca_id?: string | null
+          contrato_id?: string | null
+          created_at?: string | null
+          data_regularizacao?: string | null
+          data_vencimento?: string | null
+          dias_atraso?: never
+          id?: string | null
+          notificacoes?: Json | null
+          status?: string | null
+          valor?: number | null
+        }
+        Update: {
+          aluno_id?: string | null
+          cobranca_id?: string | null
+          contrato_id?: string | null
+          created_at?: string | null
+          data_regularizacao?: string | null
+          data_vencimento?: string | null
+          dias_atraso?: never
+          id?: string | null
+          notificacoes?: Json | null
+          status?: string | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inadimplencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "cobrancas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inadimplencias_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parceiros_publico: {
         Row: {
           ativo: boolean | null
@@ -4711,6 +5110,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["tipo_acordo_intervalo"]
       }
       fn_agendar_reavaliacoes_pendentes: { Args: never; Returns: Json }
+      fn_calcular_rescisao: { Args: { p_contrato_id: string }; Returns: Json }
       fn_call_edge_function: {
         Args: { p_body: Json; p_name: string }
         Returns: undefined
