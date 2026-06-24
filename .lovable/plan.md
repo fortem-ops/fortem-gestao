@@ -1,44 +1,40 @@
-# Corrigir endpoints para e-Rede API v2
+## Diagnóstico inicial
 
-## Diagnóstico
+O console mostra `TypeError: f.includes is not a function` dentro do chunk `BancoTreinos`. Em `src/pages/BancoTreinos.tsx` há vários `.includes` (linhas 55, 149, 372, 539, 810, 1070, 1172). Os mais frágeis são os que assumem array vindo do banco (`formData.dias`, `effDias`, `userRoles`). Como o erro derruba a página inteira via ErrorBoundary, ele também impede o fluxo "Importar treino para aluno", que é renderizado a partir da mesma página.
 
-A última tentativa retornou `{"message":"Requisição inválida."}` (HTTP 4xx, sem `returnCode` → salvou como `XX`). Isso confirma que `/redelabs/merchant/v1/transactions` não é o path correto.
+Os outros 4 sintomas relatados precisam de investigação dirigida — não há erros ainda nos logs porque o usuário provavelmente não chegou a disparar o fluxo. Vou abrir cada arquivo, reproduzir e corrigir um a um.
 
-Pesquisando a documentação oficial e o SDK PHP v2 da Rede (que usa OAuth 2.0 client_credentials, exatamente o nosso caso), os endpoints corretos são:
+## Plano de correção
 
-| Ambiente  | Transactions                                                  | OAuth Token                                                  |
-|-----------|---------------------------------------------------------------|--------------------------------------------------------------|
-| Produção  | `https://api.userede.com.br/erede/v2/transactions`            | `https://api.userede.com.br/redelabs/oauth2/token`           |
-| Sandbox   | `https://sandbox-erede.useredecloud.com.br/v2/transactions`   | `https://rl7-sandbox-api.useredecloud.com.br/oauth2/token`   |
+### 1. BancoTreinos (e "Importar treino para aluno")
+- Localizar a chamada `.includes` que recebe valor não-array. Suspeitos principais:
+  - `formData.dias` / `effDias` (template vindo do banco pode estar como string ou null).
+  - `userRoles` (defaultado a `[]`, mas vale revisar).
+- Adicionar coerções defensivas: `Array.isArray(x) ? x : []` antes de qualquer `.includes`.
+- Validar que o "Importar treino para aluno" volta a funcionar após o crash sumir.
 
-Ou seja: o path transacional continua sendo `/erede/v…/transactions` (v2 em vez de v1), e o auth é `Bearer <access_token>` da OAuth. O token Bearer **funciona** nesse endpoint v2; a API v1 que usávamos é que só aceitava Basic.
+### 2. Upload de arquivos no perfil do aluno
+- Abrir `StudentUploads` (aba `uploads` em `StudentProfile.tsx`).
+- Reproduzir o upload, inspecionar erro real (storage bucket / RLS de `uploads` / política em `storage.objects`).
+- Corrigir o ponto exato: política de bucket, header `Authorization` na chamada, ou conversão de path.
 
-## Mudanças
+### 3. Conversão Prospect → Aluno
+- Abrir `src/components/pipeline/ConvertToAlunoDialog.tsx` (usado por `Prospects.tsx`).
+- Reproduzir e capturar erro (provável RLS em `alunos` / `pipeline_movements` ou edge function sem token).
+- Aplicar correção pontual.
 
-### 1. `supabase/functions/rede-cobrar-cartao/index.ts` (linhas 5-9)
+### 4. Notificar — seleção individual de pessoas (caso Gustavo Dubois)
+- A lista do `RecipientPicker` vem do RPC `fn_notificar_listar_profissionais`, que só retorna dados se o `auth.uid()` atual tiver role em `('admin','coordenador','professor','nutricionista','fisioterapeuta')`.
+- Verificar via SQL qual role o usuário Gustavo Dubois possui em `user_roles`.
+  - Se faltar role apropriada → atribuir a role correta (provavelmente `professor`) via `insert`.
+  - Se a regra atual está correta mas deveria incluir outros papéis (ex.: `recepcao`) → ajustar o RPC para liberar a leitura da lista a todo usuário autenticado, mantendo a restrição de envio nas funções de gravação.
 
-```ts
-const REDE_URLS = {
-  sandbox:  "https://sandbox-erede.useredecloud.com.br/v2",
-  producao: "https://api.userede.com.br/erede/v2",
-};
-```
+### 5. Verificações finais
+- `npx tsc --noEmit` para garantir zero erros de tipo após as mudanças de front-end.
+- Confirmar no preview que: BancoTreinos abre, importar treino funciona, upload conclui, conversão prospect→aluno cria o aluno, e o Gustavo Dubois consegue ver e marcar pessoas individualmente.
 
-### 2. `supabase/functions/_shared/rede-auth.ts` (linhas 31-33)
+## Observações técnicas
 
-Corrigir o host de sandbox do OAuth — está faltando um hífen:
-
-```ts
-const authUrl = ambiente === "producao"
-  ? "https://api.userede.com.br/redelabs/oauth2/token"
-  : "https://rl7-sandbox-api.useredecloud.com.br/oauth2/token";
-```
-
-(A URL de produção já está correta — o `oauth_test` retornou OK.)
-
-## Após o deploy
-
-1. GET de diagnóstico — esperado: `bearer_test_body` com `returnCode` estruturado (ex.: 13 "amount inválido" no ping com query string), não mais 403 "Requisição inválida".
-2. Cobrança real — esperado: `returnCode "00"` (sucesso) ou um código de recusa do emissor (05/51/etc.), com mensagem legível.
-
-Nenhuma migration, nenhum secret novo.
+- Nenhuma alteração de schema deve ser necessária além, possivelmente, do ajuste do RPC `fn_notificar_listar_profissionais` (item 4) — qualquer migração será criada via tool `supabase--migration`.
+- Mudanças do item 1 são puramente front-end (sanitização defensiva), sem alterar lógica de negócio.
+- Antes de aplicar o item 4, vou consultar o banco para saber a role atual de Gustavo Dubois e decidir entre "atribuir role" (dado) vs "relaxar RPC" (schema).

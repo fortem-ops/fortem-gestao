@@ -794,7 +794,7 @@ export default function BancoTreinos() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: userRoles = [] } = useQuery({
+  const { data: userRolesRaw } = useQuery({
     queryKey: ["user-roles", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
@@ -807,6 +807,7 @@ export default function BancoTreinos() {
     },
     staleTime: 5 * 60_000,
   });
+  const userRoles: string[] = Array.isArray(userRolesRaw) ? userRolesRaw : [];
   const canEdit = userRoles.includes("admin") || userRoles.includes("coordenador");
 
   const [selected, setSelected] = useState<WorkoutTemplate | null>(null);
