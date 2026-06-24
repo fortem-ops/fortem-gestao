@@ -26,6 +26,7 @@ import { StudentNotes } from "@/components/student/StudentNotes";
 import EditStudentDialog from "@/components/student/EditStudentDialog";
 import { StudentPipelinePanel } from "@/components/pipeline/StudentPipelinePanel";
 import { StudentClubePanel } from "@/components/clube/StudentClubePanel";
+import ContratoFinanceiro from "@/pages/alunos/ContratoFinanceiro";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
 import { addMonths } from "date-fns";
