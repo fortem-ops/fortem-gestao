@@ -1,40 +1,39 @@
-## Diagnóstico inicial
+## 1. Parar de gerar notificações de ponto
 
-O console mostra `TypeError: f.includes is not a function` dentro do chunk `BancoTreinos`. Em `src/pages/BancoTreinos.tsx` há vários `.includes` (linhas 55, 149, 372, 539, 810, 1070, 1172). Os mais frágeis são os que assumem array vindo do banco (`formData.dias`, `effDias`, `userRoles`). Como o erro derruba a página inteira via ErrorBoundary, ele também impede o fluxo "Importar treino para aluno", que é renderizado a partir da mesma página.
+Nova migração SQL:
 
-Os outros 4 sintomas relatados precisam de investigação dirigida — não há erros ainda nos logs porque o usuário provavelmente não chegou a disparar o fluxo. Vou abrir cada arquivo, reproduzir e corrigir um a um.
+- Recriar `fn_ponto_registrar` e `fn_ponto_alertas_diarios` removendo todos os `INSERT INTO notificacoes` / `notificacao_destinatarios` de categoria `ponto`. A lógica de ponto (registro de eventos, alertas internos do painel) continua funcionando — apenas deixa de criar registro em "Notificar".
+- Apagar histórico já existente: `DELETE FROM notificacoes WHERE categoria = 'ponto'` (cascade remove destinatários, comentários e histórico). São 11 registros atuais.
+- `AlertasPontoPanel` lê `notificacoes` filtrando por `categoria='ponto'` — vai ficar vazio, que é o comportamento desejado.
 
-## Plano de correção
+## 2. Arquivar conversa por usuário
 
-### 1. BancoTreinos (e "Importar treino para aluno")
-- Localizar a chamada `.includes` que recebe valor não-array. Suspeitos principais:
-  - `formData.dias` / `effDias` (template vindo do banco pode estar como string ou null).
-  - `userRoles` (defaultado a `[]`, mas vale revisar).
-- Adicionar coerções defensivas: `Array.isArray(x) ? x : []` antes de qualquer `.includes`.
-- Validar que o "Importar treino para aluno" volta a funcionar após o crash sumir.
+Hoje só o criador consegue mudar o `status` da notificação, e a aba "Arquivadas" filtra pelo status global. Vamos passar a usar `notificacao_destinatarios.status = 'arquivada'` **por usuário**, mantendo o status global apenas como atalho do criador.
 
-### 2. Upload de arquivos no perfil do aluno
-- Abrir `StudentUploads` (aba `uploads` em `StudentProfile.tsx`).
-- Reproduzir o upload, inspecionar erro real (storage bucket / RLS de `uploads` / política em `storage.objects`).
-- Corrigir o ponto exato: política de bucket, header `Authorization` na chamada, ou conversão de path.
+**`src/components/notificar/NotificacaoDetail.tsx`**
+- Adicionar botão "Arquivar" / "Desarquivar" no cabeçalho, visível para qualquer participante (criador ou destinatário).
+- Criador: atualiza `notificacoes.status` para `arquivada` / volta para `aberta`.
+- Destinatário: faz `update` em `notificacao_destinatarios` (escopo `usuario_id = auth.uid()` + `notificacao_id`), alternando entre `arquivada` e `lida`.
+- Invalida queries `["notif"]`.
 
-### 3. Conversão Prospect → Aluno
-- Abrir `src/components/pipeline/ConvertToAlunoDialog.tsx` (usado por `Prospects.tsx`).
-- Reproduzir e capturar erro (provável RLS em `alunos` / `pipeline_movements` ou edge function sem token).
-- Aplicar correção pontual.
+**`src/pages/Notificar.tsx`**
+- Ajustar o filtro da aba "Arquivadas":
+  - Em `recebidas`: arquivada quando `dest_status === 'arquivada'` ou a notificação global estiver `arquivada/concluida`.
+  - Em `enviadas`: arquivada quando `status === 'arquivada' | 'concluida'`.
 
-### 4. Notificar — seleção individual de pessoas (caso Gustavo Dubois)
-- A lista do `RecipientPicker` vem do RPC `fn_notificar_listar_profissionais`, que só retorna dados se o `auth.uid()` atual tiver role em `('admin','coordenador','professor','nutricionista','fisioterapeuta')`.
-- Verificar via SQL qual role o usuário Gustavo Dubois possui em `user_roles`.
-  - Se faltar role apropriada → atribuir a role correta (provavelmente `professor`) via `insert`.
-  - Se a regra atual está correta mas deveria incluir outros papéis (ex.: `recepcao`) → ajustar o RPC para liberar a leitura da lista a todo usuário autenticado, mantendo a restrição de envio nas funções de gravação.
+**`src/hooks/useNotificacoes.ts`**
+- `useUnreadCount`: ignorar destinatários com `status='arquivada'` (não contar como não-lida).
+- Demais hooks já retornam `dest_status`, sem mudança.
 
-### 5. Verificações finais
-- `npx tsc --noEmit` para garantir zero erros de tipo após as mudanças de front-end.
-- Confirmar no preview que: BancoTreinos abre, importar treino funciona, upload conclui, conversão prospect→aluno cria o aluno, e o Gustavo Dubois consegue ver e marcar pessoas individualmente.
+## Detalhes técnicos
 
-## Observações técnicas
+- O RLS de `notificacao_destinatarios` já permite o próprio usuário fazer `UPDATE` (`usuario_id = auth.uid()`), então não precisa de policy nova.
+- Não disparar entrada em `notificacao_historico` para o arquivamento individual (evita poluir o log de todos).
+- Após implementar: rodar `npx tsc --noEmit`.
 
-- Nenhuma alteração de schema deve ser necessária além, possivelmente, do ajuste do RPC `fn_notificar_listar_profissionais` (item 4) — qualquer migração será criada via tool `supabase--migration`.
-- Mudanças do item 1 são puramente front-end (sanitização defensiva), sem alterar lógica de negócio.
-- Antes de aplicar o item 4, vou consultar o banco para saber a role atual de Gustavo Dubois e decidir entre "atribuir role" (dado) vs "relaxar RPC" (schema).
+## Arquivos afetados
+
+- Migração nova: remoção das notificações de ponto + DELETE dos registros existentes
+- `src/components/notificar/NotificacaoDetail.tsx`
+- `src/pages/Notificar.tsx`
+- `src/hooks/useNotificacoes.ts`
