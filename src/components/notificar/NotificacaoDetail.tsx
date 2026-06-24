@@ -185,11 +185,23 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
             {n.reuniao_local && <> · 📍 {n.reuniao_local}</>}
           </div>
         )}
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 pt-2 flex-wrap">
           <Select value={n.status} onValueChange={(v) => statusMut.mutate(v as NotifStatus)} disabled={!isCriador}>
             <SelectTrigger className="w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>{NOTIF_STATUS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
           </Select>
+          {(isCriador || !!myDest) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => arquivarMut.mutate()}
+              disabled={arquivarMut.isPending}
+            >
+              {estaArquivada ? <ArchiveRestore className="w-3.5 h-3.5 mr-1" /> : <Archive className="w-3.5 h-3.5 mr-1" />}
+              {estaArquivada ? "Desarquivar" : "Arquivar"}
+            </Button>
+          )}
           <span className="text-xs text-muted-foreground">{data.dests.length} destinatário(s) · {data.dests.filter((d: any) => d.visualizado_em).length} visualizou</span>
         </div>
       </div>
