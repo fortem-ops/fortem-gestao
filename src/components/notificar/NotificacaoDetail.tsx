@@ -115,10 +115,10 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
     mutationFn: async () => {
       if (!id || !user) return;
       if (isCriadorEarly) {
-        await updateStatus(id, estaArquivada ? "aberta" : "arquivada");
+        await updateStatus(id, estaArquivada ? "em_andamento" : "arquivada");
       }
       if (myDest) {
-        const novoStatus = estaArquivada ? "lida" : "arquivada";
+        const novoStatus = estaArquivada ? "visualizada" : "arquivada";
         const { error } = await supabase
           .from("notificacao_destinatarios")
           .update({ status: novoStatus })
