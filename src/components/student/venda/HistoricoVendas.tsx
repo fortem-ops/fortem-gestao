@@ -365,6 +365,16 @@ export function HistoricoVendas({ alunoId }: Props) {
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(v)} title="Editar pagamento">
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
+                          {isCoordAdmin && (
+                            <Button
+                              size="icon" variant="ghost"
+                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setExcluindo(v)}
+                              title="Excluir venda"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     )}
