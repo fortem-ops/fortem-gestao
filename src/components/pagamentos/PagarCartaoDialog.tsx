@@ -93,7 +93,7 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
           expiration_year: ano.length === 2 ? "20" + ano : ano,
 
           security_code: cvv,
-          installments: Number(parcelas),
+          installments: recorrencia ? 1 : Number(parcelas),
           save_card: salvar,
         },
       });
