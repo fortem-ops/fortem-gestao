@@ -468,6 +468,33 @@ export function HistoricoVendas({ alunoId }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!excluindo} onOpenChange={(o) => !o && !excluindoLoading && setExcluindo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir venda</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a venda{" "}
+              <span className="font-semibold text-foreground">{excluindo?.nome_snapshot}</span>{" "}
+              de{" "}
+              <span className="font-semibold text-foreground">
+                {formatBRL(Number(excluindo?.valor_final ?? excluindo?.valor ?? 0))}
+              </span>
+              ? Os créditos e comissões vinculados também serão removidos. Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindoLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindoLoading}
+              onClick={(e) => { e.preventDefault(); confirmarExclusao(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluindoLoading ? "Excluindo..." : "Excluir venda"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
