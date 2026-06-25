@@ -303,40 +303,68 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8 text-center">#</TableHead>
                   <TableHead>Vencimento</TableHead>
+                  <TableHead>Pgto</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Forma</TableHead>
+                  <TableHead>Meio</TableHead>
                   <TableHead>TID</TableHead>
+                  {podeCancelar && <TableHead className="text-right">Ação</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cobrancas.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>{fmtDate(c.data_vencimento)}</TableCell>
-                    <TableCell>{fmt(Number(c.valor))}</TableCell>
+                {cobrancas.map((c, idx) => (
+                  <TableRow key={c.id} className={c.status === "pago" ? "opacity-60" : ""}>
+                    <TableCell className="text-center text-xs text-muted-foreground font-mono">{idx + 1}</TableCell>
+                    <TableCell className="whitespace-nowrap">{fmtDate(c.data_vencimento)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{c.data_pagamento ? fmtDate(c.data_pagamento) : "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap font-medium">{fmt(Number(c.valor))}</TableCell>
                     <TableCell>
                       <Badge
                         className={
                           c.status === "pago"
-                            ? "bg-green-600"
+                            ? "bg-green-600 hover:bg-green-600"
                             : c.status === "atrasado"
-                            ? "bg-red-600"
+                            ? "bg-red-600 hover:bg-red-600"
                             : c.status === "cancelado"
-                            ? "bg-gray-500"
-                            : "bg-yellow-500"
+                            ? "bg-gray-500 hover:bg-gray-500"
+                            : "bg-yellow-500 hover:bg-yellow-500 text-black"
                         }
                       >
-                        {c.status}
+                        {c.status === "pago" ? "Pago" :
+                         c.status === "pendente" ? "Pendente" :
+                         c.status === "atrasado" ? "Atrasado" :
+                         c.status === "cancelado" ? "Cancelado" :
+                         c.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {LABEL_PAGAMENTO[c.forma_pagamento as keyof typeof LABEL_PAGAMENTO] ??
-                        c.forma_pagamento}
+                      {LABEL_PAGAMENTO[c.forma_pagamento as keyof typeof LABEL_PAGAMENTO] ?? c.forma_pagamento}
                     </TableCell>
                     <TableCell className="text-xs font-mono text-muted-foreground">
                       {c.tid ?? "—"}
                     </TableCell>
+                    {podeCancelar && (
+                      <TableCell className="text-right">
+                        {(c.status === "pendente" || c.status === "atrasado") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
+                            onClick={() => {
+                              setBaixaCobranca(c);
+                              setBaixaData(new Date().toISOString().split("T")[0]);
+                              setBaixaGateway("dinheiro");
+                              setBaixaOpen(true);
+                            }}
+                          >
+                            <CheckCircle className="h-3 w-3" />
+                            Dar baixa
+                          </Button>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
