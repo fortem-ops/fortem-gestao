@@ -431,6 +431,12 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       canTogglesAluno2025={isCoordAdmin}
                     />
 
+                    {tipoCobranca === "recorrencia" && (
+                      <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground/90">
+                        Será criado um <strong>contrato de 12 meses</strong> com cobranças automáticas mensais. A 1ª mensalidade é cobrada agora; as outras 11 ficam agendadas como pendentes.
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <Label>Observações (opcional)</Label>
                       <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} placeholder="Notas internas sobre essa venda..." />
