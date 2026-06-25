@@ -11,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { History, RefreshCw, Pencil, CreditCard, Undo2 } from "lucide-react";
+import { History, RefreshCw, Pencil, CreditCard, Undo2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
