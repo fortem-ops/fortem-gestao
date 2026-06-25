@@ -11,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { History, RefreshCw, Pencil, CreditCard, Undo2 } from "lucide-react";
+import { History, RefreshCw, Pencil, CreditCard, Undo2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
@@ -127,6 +127,30 @@ export function HistoricoVendas({ alunoId }: Props) {
 
   const [estornando, setEstornando] = useState<any | null>(null);
   const [estornoLoading, setEstornoLoading] = useState(false);
+  const [excluindo, setExcluindo] = useState<any | null>(null);
+  const [excluindoLoading, setExcluindoLoading] = useState(false);
+
+  async function confirmarExclusao() {
+    if (!excluindo) return;
+    setExcluindoLoading(true);
+    try {
+      const vid = excluindo.id;
+      // Limpa registros dependentes (sem FK cascade)
+      await (supabase as any).from("pagamentos_rede").delete().eq("venda_id", vid);
+      await (supabase as any).from("creditos_aluno").delete().eq("origem_id", vid);
+      await (supabase as any).from("comissionamentos").delete().eq("origem_id", vid);
+      const { error } = await (supabase as any).from("vendas").delete().eq("id", vid);
+      if (error) throw error;
+      toast.success("Venda excluída");
+      qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
+      setExcluindo(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir venda");
+    } finally {
+      setExcluindoLoading(false);
+    }
+  }
 
   async function confirmarEstorno() {
     if (!estornando) return;
@@ -341,6 +365,16 @@ export function HistoricoVendas({ alunoId }: Props) {
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(v)} title="Editar pagamento">
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
+                          {isCoordAdmin && (
+                            <Button
+                              size="icon" variant="ghost"
+                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setExcluindo(v)}
+                              title="Excluir venda"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     )}
@@ -430,6 +464,33 @@ export function HistoricoVendas({ alunoId }: Props) {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {estornoLoading ? "Estornando..." : "Confirmar estorno"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!excluindo} onOpenChange={(o) => !o && !excluindoLoading && setExcluindo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir venda</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a venda{" "}
+              <span className="font-semibold text-foreground">{excluindo?.nome_snapshot}</span>{" "}
+              de{" "}
+              <span className="font-semibold text-foreground">
+                {formatBRL(Number(excluindo?.valor_final ?? excluindo?.valor ?? 0))}
+              </span>
+              ? Os créditos e comissões vinculados também serão removidos. Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindoLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindoLoading}
+              onClick={(e) => { e.preventDefault(); confirmarExclusao(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluindoLoading ? "Excluindo..." : "Excluir venda"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
