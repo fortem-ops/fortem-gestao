@@ -184,6 +184,34 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     qc.invalidateQueries({ queryKey: ["ciclo-ativo", ativo.id] });
   };
 
+  const handleBaixa = async () => {
+    if (!baixaCobranca) return;
+    setBaixaLoading(true);
+    try {
+      const { error } = await supabase
+        .from("cobrancas")
+        .update({
+          status: "pago",
+          data_pagamento: baixaData,
+          gateway: baixaGateway,
+          meio_registro: "manual_admin",
+        })
+        .eq("id", baixaCobranca.id);
+
+      if (error) throw error;
+
+      toast({ title: "Baixa registrada", description: `Cobrança de ${fmt(Number(baixaCobranca.valor))} marcada como paga.` });
+      setBaixaOpen(false);
+      setBaixaCobranca(null);
+      qc.invalidateQueries({ queryKey: ["cobrancas-contrato", ativo?.id] });
+      qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setBaixaLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Contrato ativo */}
