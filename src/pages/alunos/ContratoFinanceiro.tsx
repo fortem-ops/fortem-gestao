@@ -411,6 +411,60 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           onConfirmar={handleCancelar}
         />
       )}
+
+      {/* Dialog de baixa manual */}
+      <Dialog open={baixaOpen} onOpenChange={setBaixaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar pagamento manual</DialogTitle>
+            <DialogDescription>
+              Cobrança de <strong>{fmt(Number(baixaCobranca?.valor))}</strong> com vencimento em{" "}
+              <strong>{fmtDate(baixaCobranca?.data_vencimento)}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="baixa-data" className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" /> Data do pagamento
+              </Label>
+              <Input
+                id="baixa-data"
+                type="date"
+                value={baixaData}
+                onChange={(e) => setBaixaData(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="baixa-gateway">Meio de pagamento</Label>
+              <Select value={baixaGateway} onValueChange={setBaixaGateway}>
+                <SelectTrigger id="baixa-gateway">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="maquina">Máquina (débito/crédito)</SelectItem>
+                  <SelectItem value="inter_pix">Pix</SelectItem>
+                  <SelectItem value="rede">Cartão de Crédito (Rede)</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBaixaOpen(false)} disabled={baixaLoading}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleBaixa}
+              disabled={baixaLoading || !baixaData}
+              className="bg-green-600 hover:bg-green-700 text-white gap-1"
+            >
+              {baixaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+              Confirmar pagamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
