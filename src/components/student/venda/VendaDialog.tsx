@@ -355,22 +355,77 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                         <Button variant="outline" size="sm" onClick={() => setPStep(1)}>Escolher outra frequência</Button>
                       </div>
                     ) : (
-                      planosFiltrados.map((p: any) => (
-                        <RadioCard
-                          key={p.id}
-                          selected={planoId === p.id}
-                          onClick={() => setPlanoId(p.id)}
-                          icon={<span className="inline-block w-4 h-4 rounded-full mt-1" style={{ background: p.cor || "#999" }} />}
-                          title={p.nome}
-                          subtitle={
-                            <span className="flex flex-wrap gap-2 mt-1">
-                              <Badge variant="outline" className="gap-1"><Calendar className="w-3 h-3" />{p.periodo_meses} {p.periodo_meses === 1 ? "mês" : "meses"}</Badge>
-                              <Badge variant="outline" className="gap-1"><Zap className="w-3 h-3" />{p.ilimitado ? "Ilimitado" : `${p.quantidade_creditos} créditos`}</Badge>
-                            </span>
-                          }
-                          right={<span className="text-base font-semibold text-primary">{formatBRL(p.valor)}</span>}
-                        />
-                      ))
+                      (() => {
+                        // Agrupar por nome (Start, Start+, Power, Pro, Max)
+                        const grupos = new Map<string, any[]>();
+                        for (const p of planosFiltrados) {
+                          const arr = grupos.get(p.nome) || [];
+                          arr.push(p);
+                          grupos.set(p.nome, arr);
+                        }
+                        const lista = Array.from(grupos.entries()).map(([nome, variantes]) => {
+                          const ordenadas = [...variantes].sort((a, b) => (a.periodo_meses || 0) - (b.periodo_meses || 0));
+                          const menorValor = Math.min(...variantes.map((v) => Number(v.valor) || 0));
+                          return { nome, variantes: ordenadas, menorValor, cor: ordenadas[0]?.cor };
+                        }).sort((a, b) => a.menorValor - b.menorValor);
+
+                        return lista.map((g) => {
+                          const selectedVariante = g.variantes.find((v) => v.id === planoId);
+                          const isOpen = !!selectedVariante;
+                          return (
+                            <RadioCard
+                              key={g.nome}
+                              selected={isOpen}
+                              onClick={() => {
+                                if (isOpen) return;
+                                setPlanoId(g.variantes[0].id);
+                              }}
+                              icon={<span className="inline-block w-4 h-4 rounded-full mt-1" style={{ background: g.cor || "#999" }} />}
+                              title={g.nome}
+                              subtitle={
+                                <span className="flex flex-wrap gap-2 mt-1">
+                                  {g.variantes.map((v) => (
+                                    <Badge key={v.id} variant="outline" className="gap-1">
+                                      <Calendar className="w-3 h-3" />{v.periodo_meses} {v.periodo_meses === 1 ? "mês" : "meses"}
+                                    </Badge>
+                                  ))}
+                                </span>
+                              }
+                              right={
+                                <span className="text-right">
+                                  <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">a partir de</span>
+                                  <span className="text-base font-semibold text-primary">{formatBRL(g.menorValor)}</span>
+                                </span>
+                              }
+                            >
+                              {isOpen && g.variantes.length > 1 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {g.variantes.map((v) => (
+                                    <button
+                                      key={v.id}
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); setPlanoId(v.id); }}
+                                      className={cn(
+                                        "rounded-lg border px-3 py-1.5 text-xs transition",
+                                        planoId === v.id
+                                          ? "border-primary bg-primary/10 text-primary font-medium"
+                                          : "border-border hover:border-primary/40"
+                                      )}
+                                    >
+                                      {v.periodo_meses} {v.periodo_meses === 1 ? "mês" : "meses"} · {formatBRL(v.valor)}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {isOpen && g.variantes.length === 1 && (
+                                <div className="text-xs text-muted-foreground">
+                                  {g.variantes[0].ilimitado ? "Ilimitado" : `${g.variantes[0].quantidade_creditos} créditos`} · {formatBRL(g.variantes[0].valor)}
+                                </div>
+                              )}
+                            </RadioCard>
+                          );
+                        });
+                      })()
                     )}
                     <div className="flex justify-between pt-4">
                       <Button variant="outline" onClick={() => setPStep(1)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
