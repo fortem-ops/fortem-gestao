@@ -1,99 +1,73 @@
 ## Objetivo
 
-No fluxo de Nova Venda de Plano, transformar a etapa "Resumo" em duas escolhas: tipo de cobrança + resumo dos valores, e introduzir uma nova **Fase 4 — Pagamento**, com fluxos diferentes para Recorrência e Tradicional.
+Quando o usuário fechar uma venda de plano com **Tipo de Cobrança = Recorrência**, o sistema deve, além de registrar a venda, criar automaticamente:
 
-## 1. Banco de dados (migração)
+1. **1 contrato** vinculado ao aluno (12 meses, com forma de pagamento e cartão tokenizado quando aplicável).
+2. **12 cobranças mensais** (`cobrancas`) — a 1ª referente ao mês atual e as outras 11 pendentes nos vencimentos futuros (+1, +2, … +11 meses).
+3. A 1ª cobrança é marcada como **paga** quando o pagamento inicial é confirmado (cartão online via REDE aprovado, Pix à vista confirmado, dinheiro, débito etc.). Caso o usuário escolha "finalizar com pagamento pendente", a 1ª cobrança nasce como **pendente**.
+4. As 11 cobranças seguintes ficam sempre **pendentes** e serão processadas automaticamente pelo job diário existente (`renovar-planos-mensais` / `pg_cron`) usando o cartão tokenizado, Pix Automático ou Boleto definidos na venda.
 
-Adicionar campos para suportar a nova lógica:
+Vendas **Tradicional** continuam sem gerar contrato/cobranças automáticas (comportamento atual preservado).
 
-- `alunos.aluno_2025` (boolean, default false) — marca alunos com isenção da taxa mensal.
-- `vendas.tipo_cobranca` (text: `recorrencia` | `tradicional`).
-- `vendas.taxa_mensal` (numeric, default 0) — armazena o valor da taxa aplicada (geralmente 20,00 ou 0).
-- `vendas.modalidade_pagamento` (text nullable) — slug do método escolhido na Fase 4 (`cartao_credito`, `pix_automatico`, `boleto`, `dinheiro`, `debito`, `pix_avista`, `pendente`).
-- `vendas.canal_pagamento` (text nullable) — `maquininha` | `online` | `manual` (para diferenciar cartão presencial vs. integração REDE).
+## Mudanças
 
-A coluna existente `forma_pagamento` (slug livre) continua sendo gravada para compatibilidade com relatórios.
+### 1. Backend — função SQL `fn_criar_contrato_recorrencia`
 
-## 2. Fluxo do Wizard de Planos
+Criar função `security definer` que recebe:
+- `p_venda_id`, `p_aluno_id`, `p_plano_id`
+- `p_valor_mensal` (valor do plano para 1 mês — calculado pelo front)
+- `p_taxa_mensal` (R$ 20 ou 0 se Aluno 2025)
+- `p_data_inicio`
+- `p_forma_pagamento` (cartao_credito / pix_automatico / boleto / pendente)
+- `p_cartao_token_id` (uuid opcional)
+- `p_primeira_paga` (boolean — define status da cobrança #1)
 
-O StepIndicator passa de 3 para **4 etapas**: Frequência → Plano → Resumo → Pagamento.
+Comportamento:
+- Insere 1 linha em `contratos` (vigencia_tipo='mensal', 12 ciclos, frequencia/plano_tipo herdados de `planos_catalogo`).
+- Insere 12 linhas em `cobrancas` (`numero_ciclo` 1..12, vencimentos `data_inicio + (n-1) mês`, valor = `valor_mensal + taxa_mensal`, gateway/forma herdados).
+- Marca `cobrancas.status='pago'` e `data_pagamento=hoje` na #1 quando `p_primeira_paga=true`; caso contrário, status='pendente'.
+- Retorna `contrato_id`.
 
-### Etapa 3 — Resumo (refeita)
+`GRANT EXECUTE ... TO authenticated, service_role`.
 
-Conteúdo:
+### 2. Edge function `rede-cobrar-cartao`
 
-1. Card do plano selecionado (como hoje).
-2. Data de início (mantém).
-3. **Tipo de cobrança** (novo, dois RadioCards):
-   - **Recorrência** — cobrança mensal automática; adiciona R$ 20,00/mês de taxa de serviço (exceto Aluno 2025).
-   - **Tradicional** — pagamento único/parcelado, sem taxa mensal.
-4. Quando "Recorrência":
-   - Checkbox **"Aluno de 2025 (sem taxa de R$ 20/mês)"**.
-     - Visível apenas para Coordenador/Admin (`useUserRoles`).
-     - Ao marcar, persiste em `alunos.aluno_2025 = true` no momento da venda.
-     - Se o aluno já estiver marcado como 2025, vem pré-marcado.
-5. Campo **Desconto (R$)** mantido (aplica sobre o valor do plano, não sobre a taxa mensal).
-6. Observações (mantém).
-7. **Resumo financeiro** (recalculado):
-   - Valor do plano
-   - Desconto
-   - Subtotal do plano
-   - Taxa mensal × meses do plano (apenas Recorrência sem isenção)
-   - **Total a cobrar**
-   - **Mensal estimado** (quando Recorrência): `(subtotal/periodo_meses) + taxa_mensal`
-8. Botões: Voltar / **Continuar para Pagamento**.
+Após aprovar a transação inicial vinculada a uma venda de Recorrência (`vendas.tipo_cobranca='recorrencia'`):
+- Salva o cartão tokenizado em `cartoes_salvos` (já existe rotina) e obtém `cartao_token_id`.
+- Chama `fn_criar_contrato_recorrencia(..., p_primeira_paga := true, p_cartao_token_id := <id>)`.
 
-A escolha de forma de pagamento sai da Etapa 3 (era feita pelo `PaymentFields` aqui).
+### 3. Front — `VendaDialog.tsx` (mutation `venderPlano`)
 
-### Etapa 4 — Pagamento (nova)
+Quando `tipoCobranca === 'recorrencia'` e a modalidade **não** for `cartao_credito` (que é tratado pela edge function após aprovação), após inserir a venda, chamar o RPC:
 
-Opções renderizadas dependem do tipo de cobrança:
+```ts
+await supabase.rpc('fn_criar_contrato_recorrencia', {
+  p_venda_id, p_aluno_id, p_plano_id: planoSelecionado.id,
+  p_valor_mensal: totaisPlano.valorMensalEstimado,
+  p_taxa_mensal: totaisPlano.taxaMensal,
+  p_data_inicio: format(dataInicio, 'yyyy-MM-dd'),
+  p_forma_pagamento: modalidade,
+  p_cartao_token_id: null,
+  p_primeira_paga: modalidade !== 'pendente' && modalidade !== 'pix_automatico' && modalidade !== 'boleto'
+});
+```
 
-**Recorrência** (RadioCards):
-- Cartão de Crédito (recorrente) → abre subtela com formulário de cartão + tokenização via edge function `rede-cobrar-token` (reaproveita `PagarCartaoDialog`).
-- Pix Automático → chama fluxo já existente em `PixAutomaticoSection` para autorizar.
-- Boleto → marca venda como aguardando geração de boleto (placeholder; integração futura).
-- Finalizar com **pagamento pendente**.
+Para `pix_automatico` / `boleto`: 1ª cobrança nasce **pendente** (será paga via webhook futuro). Para `dinheiro`/`pix_avista`/`debito`: 1ª cobrança nasce **paga**.
 
-**Tradicional** (RadioCards):
-- Cartão de Crédito → sub-opções:
-  - Parcelas: select 1x–12x.
-  - Canal: **Maquininha (presencial)** ou **Online (REDE)** → este abre `PagarCartaoDialog` para cobrança imediata.
-- Débito (maquininha).
-- Dinheiro.
-- Pix à vista.
-- Finalizar com **pagamento pendente**.
+Invalida caches de `contratos` e perfil financeiro.
 
-Cada subtela tem **Voltar** para a lista de opções e **Confirmar venda**.
+### 4. UI — Resumo (Fase 3) e Pagamento (Fase 4)
 
-## 3. Lógica de gravação
+- Adicionar nota informativa no Resumo quando Recorrência estiver selecionada: *"Será criado um contrato de 12 meses com cobranças automáticas mensais."*
+- Sem novas telas/etapas.
 
-Mutation `vender` atualizada:
+## Detalhes técnicos
 
-- `tipo_cobranca`, `taxa_mensal`, `modalidade_pagamento`, `canal_pagamento`, `parcelas`, `desconto`, `valor`, `valor_final` (= plano − desconto; a taxa mensal é registrada à parte, não somada ao `valor_final` da venda).
-- Se Recorrência com "Aluno 2025" marcado pela primeira vez, faz `update alunos set aluno_2025 = true`.
-- Se Recorrência + Cartão Online ou Pix Automático: após cobrança/autorização bem-sucedida (handler já existente) seta `status_pagamento = 'pago'` ou `'autorizado'`; senão grava `pendente`.
-- Se Tradicional + Cartão Online: aciona `rede-cobrar-cartao` via `PagarCartaoDialog`; sucesso → `status_pagamento = 'pago'`.
-- Demais casos (maquininha, dinheiro, débito, pix à vista, boleto, finalizar pendente): grava com `status_pagamento` selecionado pelo usuário (default `pendente`, com opção rápida "Já recebido" → `pago`).
+- O job `renovar-planos-mensais` já varre `cobrancas` pendentes e dispara cobrança via REDE/Pix/Boleto conforme `contratos.forma_pagamento` e `cartao_token_id`. Nenhuma alteração necessária nesse job.
+- `contratos.parcelas` = 12, `contratos.valor_base` = `valor_mensal`, `contratos.valor_cobrado` = `valor_mensal + taxa_mensal`, `contratos.taxa_recorrencia` = `taxa_mensal`.
+- `cobrancas.meio_registro` = 'automatico' (cartão/pix_auto/boleto) ou 'manual' (dinheiro/pendente).
+- Vigência: `data_fim = data_inicio + 12 meses`.
 
-## 4. Componentização
+## Fora de escopo
 
-- `src/components/student/venda/VendaDialog.tsx`: adiciona Step 4 e estados (`tipoCobranca`, `aluno2025`, `modalidade`, `canalCartao`, `parcelas`).
-- Novo `src/components/student/venda/TipoCobrancaSection.tsx`: bloco visual com os dois RadioCards e o checkbox Aluno 2025.
-- Novo `src/components/student/venda/PagamentoStep.tsx`: renderiza as opções conforme `tipoCobranca`, e dispatches para subtelas (cartão, pix, etc.).
-- `src/lib/vendas-calc.ts`: função `calcularTotais({ valorPlano, desconto, periodoMeses, tipoCobranca, taxaMensal })` retornando `{ subtotalPlano, taxaTotal, total, mensalEstimado }`.
-- `PaymentFields` deixa de ser usado no Step Resumo; só o input de Desconto é mantido inline (componente pequeno reaproveitando o trecho atual).
-
-## 5. Constantes
-
-- `TAXA_MENSAL_RECORRENCIA = 20` em `src/lib/vendas-calc.ts` (exportada para reuso futuro).
-
-## 6. Permissões
-
-- Toggle "Aluno 2025" só aparece para `admin`/`coordenador`. Demais perfis veem a taxa aplicada sem opção de remover.
-
-## 7. Fora de escopo (não implementado agora)
-
-- Geração efetiva de boleto (apenas placeholder com `status_pagamento = 'pendente'` e modalidade gravada).
-- Recibos e contratos automáticos.
-- Backfill de `aluno_2025` para alunos existentes (será marcado manualmente).
+- Reagendamento manual de cobranças, alteração de cartão durante o ciclo, parcelamento customizado (≠ 12), webhooks Pix/Boleto (ficam para próxima etapa).

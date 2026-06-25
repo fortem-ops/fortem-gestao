@@ -262,8 +262,23 @@ serve(async (req) => {
   }
 
   // Valor da venda
-  const { data: venda } = await supabase.from("vendas").select("valor_final").eq("id", venda_id).single();
-  const amount = Math.round((Number(venda?.valor_final) || 0) * 100);
+  const { data: venda } = await supabase.from("vendas")
+    .select("valor_final, valor, desconto, tipo_cobranca, taxa_mensal, catalogo_id, data_venda")
+    .eq("id", venda_id).single();
+  // Para Recorrência cobramos APENAS a 1ª mensalidade agora (valor mensal + taxa)
+  const isRecorrencia = (venda as any)?.tipo_cobranca === "recorrencia";
+  let amount: number;
+  if (isRecorrencia) {
+    // Buscar período do plano para calcular valor mensal
+    const { data: plano } = await supabase.from("planos_catalogo")
+      .select("periodo_meses").eq("id", (venda as any)?.catalogo_id).maybeSingle();
+    const periodo = Math.max(1, Number((plano as any)?.periodo_meses) || 1);
+    const subtotal = Math.max(0, (Number((venda as any)?.valor) || 0) - (Number((venda as any)?.desconto) || 0));
+    const mensal = subtotal / periodo + (Number((venda as any)?.taxa_mensal) || 0);
+    amount = Math.round(mensal * 100);
+  } else {
+    amount = Math.round((Number((venda as any)?.valor_final) || 0) * 100);
+  }
   if (amount <= 0) {
     return new Response(JSON.stringify({ error: "Valor da venda inválido ou zerado" }), { status: 400, headers });
   }
@@ -392,8 +407,9 @@ serve(async (req) => {
       allKeys:      Object.keys(redeResponse ?? {}),
     });
 
+    let savedCartaoId: string | null = null;
     if (cardToken) {
-      await supabase.from("cartoes_salvos").insert({
+      const { data: inserted } = await supabase.from("cartoes_salvos").insert({
         aluno_id,
         token_rede:        cardToken,
         brand:             redeResponse?.brand ?? redeResponse?.brandName ?? "unknown",
@@ -403,10 +419,32 @@ serve(async (req) => {
         expiration_year:   Number(expiration_year),
         is_default:        true,
         origem,
-      });
+      }).select("id").single();
+      savedCartaoId = (inserted as any)?.id ?? null;
       console.log("[rede] cartão salvo com token:", cardToken.slice(0, 8) + "...");
     } else {
       console.warn("[rede] cartão não salvo — token ausente na resposta. Chaves disponíveis:", Object.keys(redeResponse ?? {}));
+    }
+
+    // Recorrência: criar contrato + 12 cobranças (1ª paga)
+    if (isRecorrencia) {
+      const periodoQ = await supabase.from("planos_catalogo")
+        .select("periodo_meses").eq("id", (venda as any)?.catalogo_id).maybeSingle();
+      const periodo = Math.max(1, Number((periodoQ.data as any)?.periodo_meses) || 1);
+      const subtotal = Math.max(0, (Number((venda as any)?.valor) || 0) - (Number((venda as any)?.desconto) || 0));
+      const valorMensal = subtotal / periodo;
+      const { error: rpcErr } = await supabase.rpc("fn_criar_contrato_recorrencia", {
+        p_venda_id: venda_id,
+        p_aluno_id: aluno_id,
+        p_plano_id: (venda as any)?.catalogo_id,
+        p_valor_mensal: valorMensal,
+        p_taxa_mensal: Number((venda as any)?.taxa_mensal) || 0,
+        p_data_inicio: (venda as any)?.data_venda ?? new Date().toISOString().split("T")[0],
+        p_forma_pagamento: "cartao_credito",
+        p_cartao_token_id: savedCartaoId,
+        p_primeira_paga: true,
+      });
+      if (rpcErr) console.error("[rede] fn_criar_contrato_recorrencia:", rpcErr.message);
     }
   }
 
