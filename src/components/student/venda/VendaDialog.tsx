@@ -122,7 +122,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [canalCartao, setCanalCartao] = useState<Canal | null>(null);
 
   // Cartão dialog (REDE)
-  const [cartaoDialog, setCartaoDialog] = useState<{ vendaId: string; valor: number } | null>(null);
+  const [cartaoDialog, setCartaoDialog] = useState<{ vendaId: string; valor: number; recorrencia: boolean; parcelasTotais: number } | null>(null);
 
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
@@ -288,9 +288,13 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         if (rpcErr) throw rpcErr;
       }
 
-      return { vendaId: vendaIns?.id as string, cartaoOnline, valorFinal };
+      const periodoPlano = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
+      const valorCartaoOnline = tipoCobranca === "recorrencia"
+        ? totaisPlano.mensalEstimado
+        : valorFinal;
+      return { vendaId: vendaIns?.id as string, cartaoOnline, valorFinal: valorCartaoOnline, periodoPlano };
     },
-    onSuccess: ({ vendaId, cartaoOnline, valorFinal }) => {
+    onSuccess: ({ vendaId, cartaoOnline, valorFinal, periodoPlano }) => {
       qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["aluno-2025-flag", alunoId] });
@@ -299,7 +303,12 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       invalidatePlanoCaches(qc, alunoId);
       if (cartaoOnline && vendaId) {
         toast.success("Venda registrada — informe os dados do cartão");
-        setCartaoDialog({ vendaId, valor: valorFinal });
+        setCartaoDialog({
+          vendaId,
+          valor: valorFinal,
+          recorrencia: tipoCobranca === "recorrencia",
+          parcelasTotais: tipoCobranca === "recorrencia" ? periodoPlano : 1,
+        });
       } else {
         toast.success("Venda registrada com sucesso");
         onOpenChange(false);
@@ -355,22 +364,77 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                         <Button variant="outline" size="sm" onClick={() => setPStep(1)}>Escolher outra frequência</Button>
                       </div>
                     ) : (
-                      planosFiltrados.map((p: any) => (
-                        <RadioCard
-                          key={p.id}
-                          selected={planoId === p.id}
-                          onClick={() => setPlanoId(p.id)}
-                          icon={<span className="inline-block w-4 h-4 rounded-full mt-1" style={{ background: p.cor || "#999" }} />}
-                          title={p.nome}
-                          subtitle={
-                            <span className="flex flex-wrap gap-2 mt-1">
-                              <Badge variant="outline" className="gap-1"><Calendar className="w-3 h-3" />{p.periodo_meses} {p.periodo_meses === 1 ? "mês" : "meses"}</Badge>
-                              <Badge variant="outline" className="gap-1"><Zap className="w-3 h-3" />{p.ilimitado ? "Ilimitado" : `${p.quantidade_creditos} créditos`}</Badge>
-                            </span>
-                          }
-                          right={<span className="text-base font-semibold text-primary">{formatBRL(p.valor)}</span>}
-                        />
-                      ))
+                      (() => {
+                        // Agrupar por nome (Start, Start+, Power, Pro, Max)
+                        const grupos = new Map<string, any[]>();
+                        for (const p of planosFiltrados) {
+                          const arr = grupos.get(p.nome) || [];
+                          arr.push(p);
+                          grupos.set(p.nome, arr);
+                        }
+                        const lista = Array.from(grupos.entries()).map(([nome, variantes]) => {
+                          const ordenadas = [...variantes].sort((a, b) => (a.periodo_meses || 0) - (b.periodo_meses || 0));
+                          const menorValor = Math.min(...variantes.map((v) => Number(v.valor) || 0));
+                          return { nome, variantes: ordenadas, menorValor, cor: ordenadas[0]?.cor };
+                        }).sort((a, b) => a.menorValor - b.menorValor);
+
+                        return lista.map((g) => {
+                          const selectedVariante = g.variantes.find((v) => v.id === planoId);
+                          const isOpen = !!selectedVariante;
+                          return (
+                            <div key={g.nome} className="space-y-2">
+                              <RadioCard
+                                selected={isOpen}
+                                onClick={() => {
+                                  if (isOpen) return;
+                                  setPlanoId(g.variantes[0].id);
+                                }}
+                                icon={<span className="inline-block w-4 h-4 rounded-full mt-1" style={{ background: g.cor || "#999" }} />}
+                                title={g.nome}
+                                subtitle={
+                                  <span className="flex flex-wrap gap-2 mt-1">
+                                    {g.variantes.map((v) => (
+                                      <Badge key={v.id} variant="outline" className="gap-1">
+                                        <Calendar className="w-3 h-3" />{v.periodo_meses} {v.periodo_meses === 1 ? "mês" : "meses"}
+                                      </Badge>
+                                    ))}
+                                  </span>
+                                }
+                                right={
+                                  <span className="text-right">
+                                    <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">a partir de</span>
+                                    <span className="text-base font-semibold text-primary">{formatBRL(g.menorValor)}</span>
+                                  </span>
+                                }
+                              />
+                              {isOpen && g.variantes.length > 1 && (
+                                <div className="flex flex-wrap gap-2 pl-4">
+                                  {g.variantes.map((v) => (
+                                    <button
+                                      key={v.id}
+                                      type="button"
+                                      onClick={() => setPlanoId(v.id)}
+                                      className={cn(
+                                        "rounded-lg border px-3 py-1.5 text-xs transition",
+                                        planoId === v.id
+                                          ? "border-primary bg-primary/10 text-primary font-medium"
+                                          : "border-border hover:border-primary/40"
+                                      )}
+                                    >
+                                      {v.periodo_meses} {v.periodo_meses === 1 ? "mês" : "meses"} · {formatBRL(v.valor)}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {isOpen && g.variantes.length === 1 && (
+                                <div className="pl-4 text-xs text-muted-foreground">
+                                  {g.variantes[0].ilimitado ? "Ilimitado" : `${g.variantes[0].quantidade_creditos} créditos`} · {formatBRL(g.variantes[0].valor)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        });
+                      })()
                     )}
                     <div className="flex justify-between pt-4">
                       <Button variant="outline" onClick={() => setPStep(1)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
@@ -453,7 +517,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                   <div className="space-y-4">
                     <PagamentoStep
                       tipoCobranca={tipoCobranca}
-                      total={totaisPlano.subtotalPlano}
+                      total={totaisPlano.total}
+                      mensalEstimado={totaisPlano.mensalEstimado}
+                      periodoMeses={planoSelecionado.periodo_meses || 1}
                       modalidade={modalidade}
                       onModalidadeChange={(m) => {
                         setModalidade(m);
@@ -596,6 +662,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
             vendaId={cartaoDialog.vendaId}
             alunoId={alunoId}
             valor={cartaoDialog.valor}
+            recorrencia={cartaoDialog.recorrencia}
+            parcelasTotais={cartaoDialog.parcelasTotais}
             onSuccess={() => {
               qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
               invalidatePlanoCaches(qc, alunoId);

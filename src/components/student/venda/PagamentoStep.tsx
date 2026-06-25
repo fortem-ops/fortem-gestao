@@ -44,6 +44,8 @@ function Option({
 type Props = {
   tipoCobranca: TipoCobranca;
   total: number;
+  mensalEstimado?: number;
+  periodoMeses?: number;
   modalidade: Modalidade | null;
   onModalidadeChange: (m: Modalidade) => void;
   canalCartao: Canal | null;
@@ -68,17 +70,36 @@ const MODALIDADES_TRADICIONAL: { value: Modalidade; title: string; subtitle: str
 ];
 
 export function PagamentoStep({
-  tipoCobranca, total, modalidade, onModalidadeChange,
+  tipoCobranca, total, mensalEstimado, periodoMeses,
+  modalidade, onModalidadeChange,
   canalCartao, onCanalCartaoChange, parcelas, onParcelasChange,
 }: Props) {
   const lista = tipoCobranca === "recorrencia" ? MODALIDADES_RECORRENCIA : MODALIDADES_TRADICIONAL;
   const isCartaoTradicional = tipoCobranca === "tradicional" && modalidade === "cartao_credito";
+  const isRecorrencia = tipoCobranca === "recorrencia";
+  const periodo = Math.max(1, Number(periodoMeses) || 12);
+  const mensal = Number(mensalEstimado) || total / periodo;
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm flex items-center justify-between">
-        <span className="text-muted-foreground">Total a cobrar</span>
-        <span className="font-semibold text-primary">{formatBRL(total)}</span>
+      <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
+        {isRecorrencia ? (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Mensalidade (cobrança agora e mensal)</span>
+              <span className="font-semibold text-primary">{formatBRL(mensal)}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Total do contrato ({periodo}× {formatBRL(mensal)})</span>
+              <span>{formatBRL(total)}</span>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Total a cobrar</span>
+            <span className="font-semibold text-primary">{formatBRL(total)}</span>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

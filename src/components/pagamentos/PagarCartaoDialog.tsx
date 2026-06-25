@@ -17,6 +17,8 @@ type Props = {
   alunoId: string;
   valor: number;
   onSuccess?: () => void;
+  recorrencia?: boolean;
+  parcelasTotais?: number;
 };
 
 function luhn(n: string): boolean {
@@ -57,7 +59,7 @@ const brandLabel: Record<string, string> = {
   amex: "Amex", diners: "Diners", desconhecida: "Bandeira",
 };
 
-export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor, onSuccess }: Props) {
+export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor, onSuccess, recorrencia, parcelasTotais = 12 }: Props) {
   const [num, setNum] = useState("");
   const [holder, setHolder] = useState("");
   const [mes, setMes] = useState("");
@@ -91,7 +93,7 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
           expiration_year: ano.length === 2 ? "20" + ano : ano,
 
           security_code: cvv,
-          installments: Number(parcelas),
+          installments: recorrencia ? 1 : Number(parcelas),
           save_card: salvar,
         },
       });
@@ -195,20 +197,29 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Parcelas</Label>
-            <Select value={parcelas} onValueChange={setParcelas}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-                  <SelectItem key={n} value={String(n)}>
-                    {n}x de {(valor / n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    {n === 1 ? " à vista" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {recorrencia ? (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs leading-relaxed">
+              Será cobrada a <strong>1ª mensalidade</strong> de{" "}
+              <strong>{valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong> agora.
+              As demais <strong>{Math.max(0, parcelasTotais - 1)} mensalidades</strong> ficam agendadas no contrato
+              para cobrança automática.
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Parcelas</Label>
+              <Select value={parcelas} onValueChange={setParcelas}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}x de {(valor / n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      {n === 1 ? " à vista" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex items-start gap-2 pt-1">
             <Checkbox id="salvar" checked={salvar} onCheckedChange={(v) => setSalvar(!!v)} />
