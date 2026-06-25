@@ -22,30 +22,45 @@ export function useContratosAluno(alunoId: string) {
   });
 }
 
+export type StatusPagamento = 'pago' | 'pendente' | 'vencida' | 'sem_cobranca';
+
 export function useTodosContratos(filtroStatus?: string) {
   return useQuery({
     queryKey: ['contratos', 'todos', filtroStatus],
     queryFn: async () => {
       let query = db
         .from('contratos')
-        .select('*, alunos(id, nome, email), cobrancas(data_vencimento, status)')
+        .select('*, alunos(id, nome, email), cobrancas(data_vencimento, data_pagamento, status)')
         .order('created_at', { ascending: false });
       if (filtroStatus && filtroStatus !== 'todos') {
         query = query.eq('status', filtroStatus);
       }
       const { data, error } = await query;
       if (error) throw error;
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
       const list = (data ?? []) as any[];
       return list.map((c) => {
-        const pendentes = (c.cobrancas ?? [])
-          .filter((cb: any) => cb.status === 'pendente' && cb.data_vencimento)
-          .map((cb: any) => cb.data_vencimento as string)
+        const cobs = (c.cobrancas ?? []) as any[];
+        const pendentes = cobs
+          .filter((cb) => cb.status === 'pendente' && cb.data_vencimento)
+          .map((cb) => cb.data_vencimento as string)
           .sort();
-        return { ...c, proxima_cobranca: pendentes[0] ?? null };
-      }) as (Contrato & { proxima_cobranca: string | null })[];
+        const proxima_cobranca = pendentes[0] ?? null;
+
+        let status_pagamento: StatusPagamento = 'sem_cobranca';
+        if (proxima_cobranca) {
+          const venc = new Date(proxima_cobranca + 'T00:00:00');
+          status_pagamento = venc < hoje ? 'vencida' : 'pendente';
+        } else if (cobs.some((cb) => cb.status === 'pago')) {
+          status_pagamento = 'pago';
+        }
+        return { ...c, proxima_cobranca, status_pagamento };
+      }) as (Contrato & { proxima_cobranca: string | null; status_pagamento: StatusPagamento })[];
     },
   });
 }
+
 
 export function useCobrancasContrato(contratoId: string) {
   return useQuery({
