@@ -51,6 +51,7 @@ const RelatoriosVendas = lazy(() => import("./pages/relatorios/Vendas"));
 const RelatoriosFinanceiro = lazy(() => import("./pages/relatorios/Financeiro"));
 const CartoesCredito = lazy(() => import("./pages/financeiro/CartoesCredito"));
 const Contratos = lazy(() => import("./pages/financeiro/Contratos"));
+const Adquirente = lazy(() => import("./pages/financeiro/Adquirente"));
 const RelatoriosPlanos = lazy(() => import("./pages/relatorios/Planos"));
 const RelatoriosCancelamentos = lazy(() => import("./pages/relatorios/Cancelamentos"));
 const RelatoriosServicos = lazy(() => import("./pages/relatorios/Servicos"));
@@ -406,6 +407,15 @@ const App = () => (
                   </Suspense>
                 }
               />
+              <Route
+                path="/financeiro/adquirente"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Adquirente />
+                  </Suspense>
+                }
+              />
+
               <Route
                 path="/relatorios"
                 element={

@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      adquirentes_config: {
+        Row: {
+          adquirente: string
+          aluguel_mensal: number
+          ativo: boolean
+          created_at: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          adquirente?: string
+          aluguel_mensal?: number
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          adquirente?: string
+          aluguel_mensal?: number
+          ativo?: boolean
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      adquirentes_taxas: {
+        Row: {
+          adquirente: string
+          ativo: boolean
+          bandeira: Database["public"]["Enums"]["adquirente_bandeira"]
+          created_at: string
+          id: string
+          modalidade: Database["public"]["Enums"]["adquirente_modalidade"]
+          prazo_recebimento_dias: number | null
+          taxa_percentual: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          adquirente?: string
+          ativo?: boolean
+          bandeira: Database["public"]["Enums"]["adquirente_bandeira"]
+          created_at?: string
+          id?: string
+          modalidade: Database["public"]["Enums"]["adquirente_modalidade"]
+          prazo_recebimento_dias?: number | null
+          taxa_percentual?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          adquirente?: string
+          ativo?: boolean
+          bandeira?: Database["public"]["Enums"]["adquirente_bandeira"]
+          created_at?: string
+          id?: string
+          modalidade?: Database["public"]["Enums"]["adquirente_modalidade"]
+          prazo_recebimento_dias?: number | null
+          taxa_percentual?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       agenda_diaria_log: {
         Row: {
           data: string
@@ -5377,6 +5443,12 @@ export type Database = {
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
+      adquirente_bandeira: "visa" | "mastercard" | "elo"
+      adquirente_modalidade:
+        | "debito"
+        | "credito_vista"
+        | "credito_2_6x"
+        | "credito_7_12x"
       app_role:
         | "admin"
         | "coordenador"
@@ -5656,6 +5728,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      adquirente_bandeira: ["visa", "mastercard", "elo"],
+      adquirente_modalidade: [
+        "debito",
+        "credito_vista",
+        "credito_2_6x",
+        "credito_7_12x",
+      ],
       app_role: [
         "admin",
         "coordenador",

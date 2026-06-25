@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard } from "lucide-react";
+import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
@@ -76,6 +76,7 @@ const comercialAdminItems = [
 const financeiroItems = [
   { title: "Contratos", url: "/financeiro/contratos", icon: FileSignature },
   { title: "Cartões de Crédito", url: "/financeiro/cartoes", icon: CreditCard },
+  { title: "Adquirente", url: "/financeiro/adquirente", icon: Percent },
 ];
 
 /* ─── Relatórios ─── */
