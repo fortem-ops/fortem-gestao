@@ -149,7 +149,7 @@ export default function Contratos() {
                     <TableCell>{PLANO_LABELS[c.plano_tipo]}</TableCell>
                     <TableCell>{FREQUENCIA_LABELS[c.frequencia_semanal]}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatBRL(c.valor_cobrado)}</TableCell>
-                    <TableCell>{c.data_renovacao ? new Date(c.data_renovacao + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</TableCell>
+                    <TableCell>{(c as any).proxima_cobranca ? new Date((c as any).proxima_cobranca + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={STATUS_VARIANT[c.status]}>
                         {STATUS_CONTRATO_LABELS[c.status]}
