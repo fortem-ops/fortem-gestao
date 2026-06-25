@@ -127,6 +127,30 @@ export function HistoricoVendas({ alunoId }: Props) {
 
   const [estornando, setEstornando] = useState<any | null>(null);
   const [estornoLoading, setEstornoLoading] = useState(false);
+  const [excluindo, setExcluindo] = useState<any | null>(null);
+  const [excluindoLoading, setExcluindoLoading] = useState(false);
+
+  async function confirmarExclusao() {
+    if (!excluindo) return;
+    setExcluindoLoading(true);
+    try {
+      const vid = excluindo.id;
+      // Limpa registros dependentes (sem FK cascade)
+      await (supabase as any).from("pagamentos_rede").delete().eq("venda_id", vid);
+      await (supabase as any).from("creditos_aluno").delete().eq("origem_id", vid);
+      await (supabase as any).from("comissionamentos").delete().eq("origem_id", vid);
+      const { error } = await (supabase as any).from("vendas").delete().eq("id", vid);
+      if (error) throw error;
+      toast.success("Venda excluída");
+      qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
+      setExcluindo(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir venda");
+    } finally {
+      setExcluindoLoading(false);
+    }
+  }
 
   async function confirmarEstorno() {
     if (!estornando) return;
