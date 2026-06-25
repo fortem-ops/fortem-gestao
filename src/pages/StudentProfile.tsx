@@ -38,7 +38,7 @@ export default function StudentProfile() {
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["resumo","pipeline","clube","plano","financeiro","treinos","avaliacoes","tarefas","observacoes","uploads"];
+  const validTabs = ["resumo","pipeline","clube","plano","financeiro","contrato","treinos","avaliacoes","tarefas","observacoes","uploads"];
   const tabParam = searchParams.get("tab");
   const tabValue = tabParam && validTabs.includes(tabParam) ? tabParam : "resumo";
 
