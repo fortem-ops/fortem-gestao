@@ -24,7 +24,26 @@ import {
   CreditCard,
   FileX,
   Loader2,
+  CheckCircle,
+  Calendar,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
 import { RescisaoDialog } from "@/components/contratos/RescisaoDialog";
@@ -51,6 +70,11 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const { data: roles } = useUserRoles();
   const podeCancelar = !!(roles?.isAdmin || roles?.isCoordAdmin);
   const [rescOpen, setRescOpen] = useState(false);
+  const [baixaOpen, setBaixaOpen] = useState(false);
+  const [baixaCobranca, setBaixaCobranca] = useState<any | null>(null);
+  const [baixaData, setBaixaData] = useState(new Date().toISOString().split("T")[0]);
+  const [baixaGateway, setBaixaGateway] = useState<string>("dinheiro");
+  const [baixaLoading, setBaixaLoading] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["contratos-aluno", alunoId],
@@ -160,6 +184,34 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     qc.invalidateQueries({ queryKey: ["ciclo-ativo", ativo.id] });
   };
 
+  const handleBaixa = async () => {
+    if (!baixaCobranca) return;
+    setBaixaLoading(true);
+    try {
+      const { error } = await supabase
+        .from("cobrancas")
+        .update({
+          status: "pago",
+          data_pagamento: baixaData,
+          gateway: baixaGateway,
+          meio_registro: "manual_admin",
+        })
+        .eq("id", baixaCobranca.id);
+
+      if (error) throw error;
+
+      toast({ title: "Baixa registrada", description: `Cobrança de ${fmt(Number(baixaCobranca.valor))} marcada como paga.` });
+      setBaixaOpen(false);
+      setBaixaCobranca(null);
+      qc.invalidateQueries({ queryKey: ["cobrancas-contrato", ativo?.id] });
+      qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setBaixaLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Contrato ativo */}
@@ -251,40 +303,68 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8 text-center">#</TableHead>
                   <TableHead>Vencimento</TableHead>
+                  <TableHead>Pgto</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Forma</TableHead>
+                  <TableHead>Meio</TableHead>
                   <TableHead>TID</TableHead>
+                  {podeCancelar && <TableHead className="text-right">Ação</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cobrancas.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>{fmtDate(c.data_vencimento)}</TableCell>
-                    <TableCell>{fmt(Number(c.valor))}</TableCell>
+                {cobrancas.map((c, idx) => (
+                  <TableRow key={c.id} className={c.status === "pago" ? "opacity-60" : ""}>
+                    <TableCell className="text-center text-xs text-muted-foreground font-mono">{idx + 1}</TableCell>
+                    <TableCell className="whitespace-nowrap">{fmtDate(c.data_vencimento)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{c.data_pagamento ? fmtDate(c.data_pagamento) : "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap font-medium">{fmt(Number(c.valor))}</TableCell>
                     <TableCell>
                       <Badge
                         className={
                           c.status === "pago"
-                            ? "bg-green-600"
+                            ? "bg-green-600 hover:bg-green-600"
                             : c.status === "atrasado"
-                            ? "bg-red-600"
+                            ? "bg-red-600 hover:bg-red-600"
                             : c.status === "cancelado"
-                            ? "bg-gray-500"
-                            : "bg-yellow-500"
+                            ? "bg-gray-500 hover:bg-gray-500"
+                            : "bg-yellow-500 hover:bg-yellow-500 text-black"
                         }
                       >
-                        {c.status}
+                        {c.status === "pago" ? "Pago" :
+                         c.status === "pendente" ? "Pendente" :
+                         c.status === "atrasado" ? "Atrasado" :
+                         c.status === "cancelado" ? "Cancelado" :
+                         c.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {LABEL_PAGAMENTO[c.forma_pagamento as keyof typeof LABEL_PAGAMENTO] ??
-                        c.forma_pagamento}
+                      {LABEL_PAGAMENTO[c.forma_pagamento as keyof typeof LABEL_PAGAMENTO] ?? c.forma_pagamento}
                     </TableCell>
                     <TableCell className="text-xs font-mono text-muted-foreground">
                       {c.tid ?? "—"}
                     </TableCell>
+                    {podeCancelar && (
+                      <TableCell className="text-right">
+                        {(c.status === "pendente" || c.status === "atrasado") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
+                            onClick={() => {
+                              setBaixaCobranca(c);
+                              setBaixaData(new Date().toISOString().split("T")[0]);
+                              setBaixaGateway("dinheiro");
+                              setBaixaOpen(true);
+                            }}
+                          >
+                            <CheckCircle className="h-3 w-3" />
+                            Dar baixa
+                          </Button>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -331,6 +411,60 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           onConfirmar={handleCancelar}
         />
       )}
+
+      {/* Dialog de baixa manual */}
+      <Dialog open={baixaOpen} onOpenChange={setBaixaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar pagamento manual</DialogTitle>
+            <DialogDescription>
+              Cobrança de <strong>{fmt(Number(baixaCobranca?.valor))}</strong> com vencimento em{" "}
+              <strong>{fmtDate(baixaCobranca?.data_vencimento)}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="baixa-data" className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" /> Data do pagamento
+              </Label>
+              <Input
+                id="baixa-data"
+                type="date"
+                value={baixaData}
+                onChange={(e) => setBaixaData(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="baixa-gateway">Meio de pagamento</Label>
+              <Select value={baixaGateway} onValueChange={setBaixaGateway}>
+                <SelectTrigger id="baixa-gateway">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="maquina">Máquina (débito/crédito)</SelectItem>
+                  <SelectItem value="inter_pix">Pix</SelectItem>
+                  <SelectItem value="rede">Cartão de Crédito (Rede)</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBaixaOpen(false)} disabled={baixaLoading}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleBaixa}
+              disabled={baixaLoading || !baixaData}
+              className="bg-green-600 hover:bg-green-700 text-white gap-1"
+            >
+              {baixaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+              Confirmar pagamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
