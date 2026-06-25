@@ -122,7 +122,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [canalCartao, setCanalCartao] = useState<Canal | null>(null);
 
   // Cartão dialog (REDE)
-  const [cartaoDialog, setCartaoDialog] = useState<{ vendaId: string; valor: number } | null>(null);
+  const [cartaoDialog, setCartaoDialog] = useState<{ vendaId: string; valor: number; recorrencia: boolean; parcelasTotais: number } | null>(null);
 
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
@@ -288,9 +288,13 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         if (rpcErr) throw rpcErr;
       }
 
-      return { vendaId: vendaIns?.id as string, cartaoOnline, valorFinal };
+      const periodoPlano = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
+      const valorCartaoOnline = tipoCobranca === "recorrencia"
+        ? totaisPlano.mensalEstimado
+        : valorFinal;
+      return { vendaId: vendaIns?.id as string, cartaoOnline, valorFinal: valorCartaoOnline, periodoPlano };
     },
-    onSuccess: ({ vendaId, cartaoOnline, valorFinal }) => {
+    onSuccess: ({ vendaId, cartaoOnline, valorFinal, periodoPlano }) => {
       qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["aluno-2025-flag", alunoId] });
@@ -299,7 +303,12 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       invalidatePlanoCaches(qc, alunoId);
       if (cartaoOnline && vendaId) {
         toast.success("Venda registrada — informe os dados do cartão");
-        setCartaoDialog({ vendaId, valor: valorFinal });
+        setCartaoDialog({
+          vendaId,
+          valor: valorFinal,
+          recorrencia: tipoCobranca === "recorrencia",
+          parcelasTotais: tipoCobranca === "recorrencia" ? periodoPlano : 1,
+        });
       } else {
         toast.success("Venda registrada com sucesso");
         onOpenChange(false);
