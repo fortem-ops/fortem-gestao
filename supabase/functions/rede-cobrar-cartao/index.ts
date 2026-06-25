@@ -407,8 +407,9 @@ serve(async (req) => {
       allKeys:      Object.keys(redeResponse ?? {}),
     });
 
+    let savedCartaoId: string | null = null;
     if (cardToken) {
-      await supabase.from("cartoes_salvos").insert({
+      const { data: inserted } = await supabase.from("cartoes_salvos").insert({
         aluno_id,
         token_rede:        cardToken,
         brand:             redeResponse?.brand ?? redeResponse?.brandName ?? "unknown",
@@ -418,10 +419,32 @@ serve(async (req) => {
         expiration_year:   Number(expiration_year),
         is_default:        true,
         origem,
-      });
+      }).select("id").single();
+      savedCartaoId = (inserted as any)?.id ?? null;
       console.log("[rede] cartão salvo com token:", cardToken.slice(0, 8) + "...");
     } else {
       console.warn("[rede] cartão não salvo — token ausente na resposta. Chaves disponíveis:", Object.keys(redeResponse ?? {}));
+    }
+
+    // Recorrência: criar contrato + 12 cobranças (1ª paga)
+    if (isRecorrencia) {
+      const periodoQ = await supabase.from("planos_catalogo")
+        .select("periodo_meses").eq("id", (venda as any)?.catalogo_id).maybeSingle();
+      const periodo = Math.max(1, Number((periodoQ.data as any)?.periodo_meses) || 1);
+      const subtotal = Math.max(0, (Number((venda as any)?.valor) || 0) - (Number((venda as any)?.desconto) || 0));
+      const valorMensal = subtotal / periodo;
+      const { error: rpcErr } = await supabase.rpc("fn_criar_contrato_recorrencia", {
+        p_venda_id: venda_id,
+        p_aluno_id: aluno_id,
+        p_plano_id: (venda as any)?.catalogo_id,
+        p_valor_mensal: valorMensal,
+        p_taxa_mensal: Number((venda as any)?.taxa_mensal) || 0,
+        p_data_inicio: (venda as any)?.data_venda ?? new Date().toISOString().split("T")[0],
+        p_forma_pagamento: "cartao_credito",
+        p_cartao_token_id: savedCartaoId,
+        p_primeira_paga: true,
+      });
+      if (rpcErr) console.error("[rede] fn_criar_contrato_recorrencia:", rpcErr.message);
     }
   }
 
