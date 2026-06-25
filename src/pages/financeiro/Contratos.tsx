@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FileText, Users, AlertTriangle, RefreshCw, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -145,7 +146,13 @@ export default function Contratos() {
                 const isInad = c.status === 'inadimplente' || c.status === 'suspenso';
                 return (
                   <TableRow key={c.id} className={isInad ? 'bg-destructive/5' : ''}>
-                    <TableCell className="font-medium">{c.alunos?.nome ?? '—'}</TableCell>
+                    <TableCell className="font-medium">
+                      {c.aluno_id ? (
+                        <Link to={`/alunos/${c.aluno_id}?tab=contrato`} className="hover:text-primary hover:underline">
+                          {c.alunos?.nome ?? '—'}
+                        </Link>
+                      ) : (c.alunos?.nome ?? '—')}
+                    </TableCell>
                     <TableCell>{PLANO_LABELS[c.plano_tipo]}</TableCell>
                     <TableCell>{FREQUENCIA_LABELS[c.frequencia_semanal]}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatBRL(c.valor_cobrado)}</TableCell>

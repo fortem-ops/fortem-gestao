@@ -100,7 +100,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         .from("cobrancas")
         .select("*")
         .eq("contrato_id", ativo!.id)
-        .order("data_vencimento", { ascending: false });
+        .order("data_vencimento", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
