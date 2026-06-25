@@ -5244,6 +5244,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_criar_contrato_recorrencia: {
+        Args: {
+          p_aluno_id: string
+          p_cartao_token_id?: string
+          p_data_inicio: string
+          p_forma_pagamento: string
+          p_plano_id: string
+          p_primeira_paga?: boolean
+          p_taxa_mensal: number
+          p_valor_mensal: number
+          p_venda_id: string
+        }
+        Returns: string
+      }
       fn_criar_tarefa_reavaliacao: {
         Args: { _aluno_id: string; _criado_por: string; _data_ultima: string }
         Returns: string
