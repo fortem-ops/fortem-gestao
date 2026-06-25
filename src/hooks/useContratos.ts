@@ -24,6 +24,7 @@ export function useContratosAluno(alunoId: string) {
 
 export type StatusPagamento = 'pago' | 'pendente' | 'vencida' | 'sem_cobranca';
 
+
 export function useTodosContratos(filtroStatus?: string) {
   return useQuery({
     queryKey: ['contratos', 'todos', filtroStatus],
@@ -61,6 +62,46 @@ export function useTodosContratos(filtroStatus?: string) {
   });
 }
 
+export interface CobrancaListagem extends Cobranca {
+  status_pagamento: StatusPagamento;
+  contratos?: {
+    id: string;
+    plano_tipo: string;
+    frequencia_semanal: number;
+    forma_pagamento: string;
+    status: string;
+    aluno_id: string;
+    alunos?: { id: string; nome: string; email?: string };
+  };
+}
+
+export function useCobrancasListagem(filtroStatusContrato?: string) {
+  return useQuery({
+    queryKey: ['cobrancas', 'listagem', filtroStatusContrato],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from('cobrancas')
+        .select('*, contratos!inner(id, plano_tipo, frequencia_semanal, forma_pagamento, status, aluno_id, alunos(id, nome, email))')
+        .order('data_vencimento', { ascending: true });
+      if (error) throw error;
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      let list = (data ?? []) as any[];
+      if (filtroStatusContrato && filtroStatusContrato !== 'todos') {
+        list = list.filter((cb) => cb.contratos?.status === filtroStatusContrato);
+      }
+      return list.map((cb) => {
+        let status_pagamento: StatusPagamento;
+        if (cb.status === 'pago') status_pagamento = 'pago';
+        else if (cb.status === 'pendente' && cb.data_vencimento) {
+          const venc = new Date(cb.data_vencimento + 'T00:00:00');
+          status_pagamento = venc < hoje ? 'vencida' : 'pendente';
+        } else status_pagamento = 'sem_cobranca';
+        return { ...cb, status_pagamento };
+      }) as CobrancaListagem[];
+    },
+  });
+}
 
 export function useCobrancasContrato(contratoId: string) {
   return useQuery({
@@ -77,6 +118,7 @@ export function useCobrancasContrato(contratoId: string) {
     enabled: !!contratoId,
   });
 }
+
 
 export function useCiclosCredito(contratoId: string) {
   return useQuery({

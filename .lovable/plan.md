@@ -1,34 +1,35 @@
-## Mudanças em `src/pages/financeiro/Contratos.tsx` e `src/hooks/useContratos.ts`
+## Histórico de pagamentos em Financeiro > Contratos
 
-### 1. Ordem cronológica crescente
-- Ordenar a lista pela `proxima_cobranca` (ascendente), colocando contratos sem próxima cobrança no fim.
-- Para contratos sem cobrança pendente, usar a `data_vencimento` da última cobrança paga como fallback de ordenação.
+Hoje a tela mostra **1 linha por contrato** (com a próxima cobrança pendente). Vou trocar a tabela para mostrar **1 linha por cobrança**, incluindo as já pagas — exatamente o histórico que o filtro de período deve revelar.
 
-### 2. Coluna "Status" com Pago / Pendente
-- Adicionar uma nova coluna **"Status pagamento"** ao lado da coluna atual de status do contrato.
-- Para cada contrato, derivar o status da cobrança vigente:
-  - **Pago** (verde): se a cobrança do mês atual já está marcada como `pago`.
-  - **Pendente** (amarelo): existe cobrança pendente ainda não vencida.
-  - **Vencida** (vermelho): existe cobrança pendente com `data_vencimento < hoje`.
-  - **—**: sem cobranças.
-- O hook `useTodosContratos` já traz `cobrancas(data_vencimento, status)`; estender o `select` para incluir também `data_pagamento` e calcular `status_pagamento` + `proxima_cobranca` no `.map`.
+### Comportamento
 
-### 3. Novo filtro de período (sobre "Próxima cobrança")
-Adicionar um 5º `Select` "Período" no card de Filtros com presets:
+- Cada contrato pode aparecer várias vezes (uma por cobrança).
+- Coluna "Data" = `data_vencimento` (ou `data_pagamento` quando paga, dependendo do filtro — ver abaixo).
+- Status pagamento por linha: **Pago** (verde), **Pendente** (amarelo, vencimento ≥ hoje), **Vencida** (vermelho, vencimento < hoje).
+- Ordem cronológica crescente por data de vencimento.
+- Filtros existentes (status de contrato, plano, forma de pagamento, busca por aluno) continuam funcionando.
+- Filtro **Período** agora atua sobre `data_vencimento` da cobrança. Exemplo: "Mês atual" → todas as cobranças (pagas + pendentes + vencidas) com vencimento no mês corrente.
+- Clique no nome do aluno continua levando para `Perfil > Contrato`.
 
-- **Todos** (default)
-- **Passado** (próxima cobrança < hoje — vencidas)
-- **Presente / Atual** (vencimento dentro do mês corrente)
-- **Futuro** (vencimento > hoje)
-- **Mês atual**
-- **Mês passado**
-- **Próximo mês**
-- **Período entre…** — abre dois `DatePicker` (shadcn Popover + Calendar com `pointer-events-auto`) para `de` / `até`
+### Colunas
 
-A filtragem ocorre client-side no `useMemo` existente, comparando `c.proxima_cobranca` com a janela escolhida. Quando "Período entre…" está ativo, mostrar os dois date pickers logo abaixo da grid de filtros.
+| Aluno | Plano | Vencimento | Pagamento | Valor | Forma | Status pagamento | Status contrato |
 
-### Arquivos alterados
-- `src/hooks/useContratos.ts` — estender `useTodosContratos` para derivar `status_pagamento` (pago/pendente/vencida) por contrato.
-- `src/pages/financeiro/Contratos.tsx` — ordenação asc, nova coluna de status pagamento, filtro de período com presets + intervalo customizado.
+- **Vencimento**: `data_vencimento` formatada.
+- **Pagamento**: `data_pagamento` quando paga, senão "—".
+- **Valor**: `valor` da cobrança.
+- **Forma**: `forma_pagamento` da cobrança (fallback para a do contrato).
 
-Nenhuma alteração de schema, RLS ou edge function.
+### KPIs (mantidos, com pequenos ajustes)
+
+- Contratos ativos / Inadimplentes / Renovações: continuam por contrato.
+- "Receita prevista (mês)" → recalcular como soma das cobranças do mês atual (pagas + pendentes), ficando coerente com a nova granularidade.
+- Acrescentar mini-resumo do recorte atual: **Recebido no período** (soma de pagas) e **A receber no período** (soma de pendentes + vencidas), visíveis acima da tabela.
+
+### Implementação
+
+- `src/hooks/useContratos.ts`: novo hook `useCobrancasListagem(filtroStatusContrato)` que faz `select` em `cobrancas` com join `contratos(... , alunos(id, nome, email))` e devolve cada cobrança achatada com os campos do contrato/aluno. Mantém o hook antigo (`useTodosContratos`) intacto para outras telas.
+- `src/pages/financeiro/Contratos.tsx`: trocar fonte de dados para o novo hook, ajustar `useMemo` de filtragem (período aplica sobre `data_vencimento`), reescrever tabela com as colunas acima, manter filtros e DatePickers já criados.
+
+Sem alterações de schema, RLS ou edge function.
