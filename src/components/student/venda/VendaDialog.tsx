@@ -268,12 +268,34 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         await (supabase as any).from("alunos").update({ aluno_2025: aluno2025 }).eq("id", alunoId);
       }
 
+      // Recorrência sem cartão online → criar contrato + 12 cobranças via RPC
+      // (cartão online é tratado pela edge function rede-cobrar-cartao após aprovação)
+      if (tipoCobranca === "recorrencia" && modalidade !== "cartao_credito") {
+        const periodo = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
+        const valorMensal = totaisPlano.subtotalPlano / periodo;
+        const primeiraPaga = modalidade === "dinheiro" || modalidade === "pix_avista" || modalidade === "debito";
+        const { error: rpcErr } = await (supabase as any).rpc("fn_criar_contrato_recorrencia", {
+          p_venda_id: vendaIns?.id,
+          p_aluno_id: alunoId,
+          p_plano_id: planoSelecionado.id,
+          p_valor_mensal: valorMensal,
+          p_taxa_mensal: totaisPlano.taxaMensal,
+          p_data_inicio: format(dataInicio, "yyyy-MM-dd"),
+          p_forma_pagamento: modalidade,
+          p_cartao_token_id: null,
+          p_primeira_paga: primeiraPaga,
+        });
+        if (rpcErr) throw rpcErr;
+      }
+
       return { vendaId: vendaIns?.id as string, cartaoOnline, valorFinal };
     },
     onSuccess: ({ vendaId, cartaoOnline, valorFinal }) => {
       qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["aluno-2025-flag", alunoId] });
+      qc.invalidateQueries({ queryKey: ["contratos"] });
+      qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
       invalidatePlanoCaches(qc, alunoId);
       if (cartaoOnline && vendaId) {
         toast.success("Venda registrada — informe os dados do cartão");
