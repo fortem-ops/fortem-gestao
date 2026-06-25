@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Users, AlertTriangle, RefreshCw, Search, CalendarIcon } from 'lucide-react';
+import { FileText, Users, AlertTriangle, RefreshCw, Search, CalendarIcon, TrendingUp, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { useTodosContratos, type StatusPagamento } from '@/hooks/useContratos';
+import { useCobrancasListagem, useTodosContratos, type StatusPagamento } from '@/hooks/useContratos';
 import {
   PLANO_LABELS, FREQUENCIA_LABELS, STATUS_CONTRATO_LABELS,
   FORMA_PAGAMENTO_LABELS, formatBRL, ContratoStatus,
@@ -79,54 +79,65 @@ export default function Contratos() {
   const [customAte, setCustomAte] = useState<Date | undefined>();
   const [busca, setBusca] = useState('');
 
-  const { data: contratos, isLoading, refetch, isRefetching } = useTodosContratos(filtroStatus);
+  const { data: cobrancas, isLoading, refetch, isRefetching } = useCobrancasListagem(filtroStatus);
+  const { data: contratos } = useTodosContratos();
 
-  const filtrados = useMemo(() => {
-    let list = (contratos ?? []).slice();
-    if (filtroPlano !== 'todos') list = list.filter((c) => c.plano_tipo === filtroPlano);
-    if (filtroPgto !== 'todos') list = list.filter((c) => c.forma_pagamento === filtroPgto);
+  const filtradas = useMemo(() => {
+    let list = (cobrancas ?? []).slice();
+    if (filtroPlano !== 'todos') list = list.filter((c) => c.contratos?.plano_tipo === filtroPlano);
+    if (filtroPgto !== 'todos') {
+      list = list.filter((c) => (c.forma_pagamento || c.contratos?.forma_pagamento) === filtroPgto);
+    }
     if (busca.trim()) {
       const q = busca.toLowerCase();
-      list = list.filter((c) => c.alunos?.nome?.toLowerCase().includes(q));
+      list = list.filter((c) => c.contratos?.alunos?.nome?.toLowerCase().includes(q));
     }
     if (filtroPeriodo !== 'todos') {
       const { from, to } = getRange(filtroPeriodo, customDe, customAte);
       list = list.filter((c) => {
-        const px = (c as any).proxima_cobranca as string | null;
-        if (!px) return false;
-        const d = new Date(px + 'T00:00:00');
+        if (!c.data_vencimento) return false;
+        const d = new Date(c.data_vencimento + 'T00:00:00');
         if (from && d < from) return false;
         if (to && d > to) return false;
         return true;
       });
     }
-    // Ordem cronológica crescente por próxima cobrança
-    list.sort((a, b) => {
-      const pa = (a as any).proxima_cobranca as string | null;
-      const pb = (b as any).proxima_cobranca as string | null;
-      if (!pa && !pb) return 0;
-      if (!pa) return 1;
-      if (!pb) return -1;
-      return pa.localeCompare(pb);
-    });
+    list.sort((a, b) => (a.data_vencimento || '').localeCompare(b.data_vencimento || ''));
     return list;
-  }, [contratos, filtroPlano, filtroPgto, busca, filtroPeriodo, customDe, customAte]);
+  }, [cobrancas, filtroPlano, filtroPgto, busca, filtroPeriodo, customDe, customAte]);
+
+  const resumoPeriodo = useMemo(() => {
+    const recebido = filtradas.filter((c) => c.status_pagamento === 'pago').reduce((s, c) => s + Number(c.valor || 0), 0);
+    const receber  = filtradas.filter((c) => c.status_pagamento === 'pendente' || c.status_pagamento === 'vencida').reduce((s, c) => s + Number(c.valor || 0), 0);
+    return { recebido, receber };
+  }, [filtradas]);
 
   const kpis = useMemo(() => {
     const all = contratos ?? [];
     const ativos = all.filter((c) => c.status === 'ativo');
     const inadimplentes = all.filter((c) => c.status === 'inadimplente' || c.status === 'suspenso');
-    const receitaPrevista = ativos.reduce((sum, c) => sum + Number(c.valor_cobrado || 0), 0);
     const em30dias = new Date();
     em30dias.setDate(em30dias.getDate() + 30);
     const renovacoes = ativos.filter((c) => c.data_renovacao && new Date(c.data_renovacao) <= em30dias);
+
+    // Receita prevista do mês atual = soma de cobranças do mês (pagas + pendentes)
+    const hoje = new Date();
+    const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
+    const mesAtual = (cobrancas ?? []).filter((c) => {
+      if (!c.data_vencimento) return false;
+      const d = new Date(c.data_vencimento + 'T00:00:00');
+      return d >= ini && d <= fim;
+    });
+    const receita = mesAtual.reduce((s, c) => s + Number(c.valor || 0), 0);
+
     return {
       ativos: ativos.length,
-      receita: receitaPrevista,
+      receita,
       inadimplentes: inadimplentes.length,
       renovacoes: renovacoes.length,
     };
-  }, [contratos]);
+  }, [contratos, cobrancas]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -213,48 +224,58 @@ export default function Contratos() {
         </CardContent>
       </Card>
 
+      {/* Resumo do período */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Kpi icon={FileText} label="Cobranças no recorte" value={String(filtradas.length)} />
+        <Kpi icon={TrendingUp} label="Recebido no período" value={formatBRL(resumoPeriodo.recebido)} />
+        <Kpi icon={Clock} label="A receber no período" value={formatBRL(resumoPeriodo.receber)} tone="danger" />
+      </div>
+
       {/* Tabela */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Aluno</TableHead>
                 <TableHead>Plano</TableHead>
-                <TableHead>Frequência</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead>Pagamento</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Próxima cobrança</TableHead>
+                <TableHead>Forma</TableHead>
                 <TableHead>Status pagamento</TableHead>
                 <TableHead>Status contrato</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : filtrados.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum contrato encontrado.</TableCell></TableRow>
-              ) : filtrados.map((c) => {
-                const isInad = c.status === 'inadimplente' || c.status === 'suspenso';
-                const pag = (c as any).status_pagamento as StatusPagamento;
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              ) : filtradas.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma cobrança encontrada.</TableCell></TableRow>
+              ) : filtradas.map((c) => {
+                const contratoStatus = (c.contratos?.status || 'ativo') as ContratoStatus;
+                const isInad = c.status_pagamento === 'vencida';
+                const forma = (c.forma_pagamento || c.contratos?.forma_pagamento || '') as keyof typeof FORMA_PAGAMENTO_LABELS;
                 return (
                   <TableRow key={c.id} className={isInad ? 'bg-destructive/5' : ''}>
                     <TableCell className="font-medium">
-                      {c.aluno_id ? (
-                        <Link to={`/alunos/${c.aluno_id}?tab=contrato`} className="hover:text-primary hover:underline">
-                          {c.alunos?.nome ?? '—'}
+                      {c.contratos?.aluno_id ? (
+                        <Link to={`/alunos/${c.contratos.aluno_id}?tab=contrato`} className="hover:text-primary hover:underline">
+                          {c.contratos.alunos?.nome ?? '—'}
                         </Link>
-                      ) : (c.alunos?.nome ?? '—')}
+                      ) : (c.contratos?.alunos?.nome ?? '—')}
                     </TableCell>
-                    <TableCell>{PLANO_LABELS[c.plano_tipo]}</TableCell>
-                    <TableCell>{FREQUENCIA_LABELS[c.frequencia_semanal]}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatBRL(c.valor_cobrado)}</TableCell>
-                    <TableCell>{(c as any).proxima_cobranca ? new Date((c as any).proxima_cobranca + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</TableCell>
+                    <TableCell>{c.contratos?.plano_tipo ? PLANO_LABELS[c.contratos.plano_tipo as keyof typeof PLANO_LABELS] : '—'}</TableCell>
+                    <TableCell>{c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</TableCell>
+                    <TableCell>{c.data_pagamento ? new Date(c.data_pagamento + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatBRL(c.valor)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{FORMA_PAGAMENTO_LABELS[forma] ?? forma ?? '—'}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={PAG_VARIANT[pag]}>{PAG_LABEL[pag]}</Badge>
+                      <Badge variant="outline" className={PAG_VARIANT[c.status_pagamento]}>{PAG_LABEL[c.status_pagamento]}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={STATUS_VARIANT[c.status]}>
-                        {STATUS_CONTRATO_LABELS[c.status]}
+                      <Badge variant="outline" className={STATUS_VARIANT[contratoStatus]}>
+                        {STATUS_CONTRATO_LABELS[contratoStatus]}
                       </Badge>
                     </TableCell>
                   </TableRow>
