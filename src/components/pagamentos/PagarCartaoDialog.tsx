@@ -17,6 +17,8 @@ type Props = {
   alunoId: string;
   valor: number;
   onSuccess?: () => void;
+  recorrencia?: boolean;
+  parcelasTotais?: number;
 };
 
 function luhn(n: string): boolean {
