@@ -262,8 +262,23 @@ serve(async (req) => {
   }
 
   // Valor da venda
-  const { data: venda } = await supabase.from("vendas").select("valor_final").eq("id", venda_id).single();
-  const amount = Math.round((Number(venda?.valor_final) || 0) * 100);
+  const { data: venda } = await supabase.from("vendas")
+    .select("valor_final, valor, desconto, tipo_cobranca, taxa_mensal, catalogo_id, data_venda")
+    .eq("id", venda_id).single();
+  // Para Recorrência cobramos APENAS a 1ª mensalidade agora (valor mensal + taxa)
+  const isRecorrencia = (venda as any)?.tipo_cobranca === "recorrencia";
+  let amount: number;
+  if (isRecorrencia) {
+    // Buscar período do plano para calcular valor mensal
+    const { data: plano } = await supabase.from("planos_catalogo")
+      .select("periodo_meses").eq("id", (venda as any)?.catalogo_id).maybeSingle();
+    const periodo = Math.max(1, Number((plano as any)?.periodo_meses) || 1);
+    const subtotal = Math.max(0, (Number((venda as any)?.valor) || 0) - (Number((venda as any)?.desconto) || 0));
+    const mensal = subtotal / periodo + (Number((venda as any)?.taxa_mensal) || 0);
+    amount = Math.round(mensal * 100);
+  } else {
+    amount = Math.round((Number((venda as any)?.valor_final) || 0) * 100);
+  }
   if (amount <= 0) {
     return new Response(JSON.stringify({ error: "Valor da venda inválido ou zerado" }), { status: 400, headers });
   }
