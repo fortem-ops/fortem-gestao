@@ -373,38 +373,38 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                           const selectedVariante = g.variantes.find((v) => v.id === planoId);
                           const isOpen = !!selectedVariante;
                           return (
-                            <RadioCard
-                              key={g.nome}
-                              selected={isOpen}
-                              onClick={() => {
-                                if (isOpen) return;
-                                setPlanoId(g.variantes[0].id);
-                              }}
-                              icon={<span className="inline-block w-4 h-4 rounded-full mt-1" style={{ background: g.cor || "#999" }} />}
-                              title={g.nome}
-                              subtitle={
-                                <span className="flex flex-wrap gap-2 mt-1">
-                                  {g.variantes.map((v) => (
-                                    <Badge key={v.id} variant="outline" className="gap-1">
-                                      <Calendar className="w-3 h-3" />{v.periodo_meses} {v.periodo_meses === 1 ? "mês" : "meses"}
-                                    </Badge>
-                                  ))}
-                                </span>
-                              }
-                              right={
-                                <span className="text-right">
-                                  <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">a partir de</span>
-                                  <span className="text-base font-semibold text-primary">{formatBRL(g.menorValor)}</span>
-                                </span>
-                              }
-                            >
+                            <div key={g.nome} className="space-y-2">
+                              <RadioCard
+                                selected={isOpen}
+                                onClick={() => {
+                                  if (isOpen) return;
+                                  setPlanoId(g.variantes[0].id);
+                                }}
+                                icon={<span className="inline-block w-4 h-4 rounded-full mt-1" style={{ background: g.cor || "#999" }} />}
+                                title={g.nome}
+                                subtitle={
+                                  <span className="flex flex-wrap gap-2 mt-1">
+                                    {g.variantes.map((v) => (
+                                      <Badge key={v.id} variant="outline" className="gap-1">
+                                        <Calendar className="w-3 h-3" />{v.periodo_meses} {v.periodo_meses === 1 ? "mês" : "meses"}
+                                      </Badge>
+                                    ))}
+                                  </span>
+                                }
+                                right={
+                                  <span className="text-right">
+                                    <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">a partir de</span>
+                                    <span className="text-base font-semibold text-primary">{formatBRL(g.menorValor)}</span>
+                                  </span>
+                                }
+                              />
                               {isOpen && g.variantes.length > 1 && (
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-2 pl-4">
                                   {g.variantes.map((v) => (
                                     <button
                                       key={v.id}
                                       type="button"
-                                      onClick={(e) => { e.stopPropagation(); setPlanoId(v.id); }}
+                                      onClick={() => setPlanoId(v.id)}
                                       className={cn(
                                         "rounded-lg border px-3 py-1.5 text-xs transition",
                                         planoId === v.id
@@ -418,11 +418,11 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                                 </div>
                               )}
                               {isOpen && g.variantes.length === 1 && (
-                                <div className="text-xs text-muted-foreground">
+                                <div className="pl-4 text-xs text-muted-foreground">
                                   {g.variantes[0].ilimitado ? "Ilimitado" : `${g.variantes[0].quantidade_creditos} créditos`} · {formatBRL(g.variantes[0].valor)}
                                 </div>
                               )}
-                            </RadioCard>
+                            </div>
                           );
                         });
                       })()
