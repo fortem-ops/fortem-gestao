@@ -70,6 +70,11 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const { data: roles } = useUserRoles();
   const podeCancelar = !!(roles?.isAdmin || roles?.isCoordAdmin);
   const [rescOpen, setRescOpen] = useState(false);
+  const [baixaOpen, setBaixaOpen] = useState(false);
+  const [baixaCobranca, setBaixaCobranca] = useState<any | null>(null);
+  const [baixaData, setBaixaData] = useState(new Date().toISOString().split("T")[0]);
+  const [baixaGateway, setBaixaGateway] = useState<string>("dinheiro");
+  const [baixaLoading, setBaixaLoading] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["contratos-aluno", alunoId],
