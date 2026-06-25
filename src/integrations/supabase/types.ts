@@ -316,6 +316,7 @@ export type Database = {
       }
       alunos: {
         Row: {
+          aluno_2025: boolean
           bairro: string | null
           cep: string | null
           cidade: string | null
@@ -344,6 +345,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          aluno_2025?: boolean
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          aluno_2025?: boolean
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -4540,6 +4543,7 @@ export type Database = {
       vendas: {
         Row: {
           aluno_id: string
+          canal_pagamento: string | null
           catalogo_id: string
           created_at: string
           data_cancelamento: string | null
@@ -4547,6 +4551,7 @@ export type Database = {
           desconto: number
           forma_pagamento: string | null
           id: string
+          modalidade_pagamento: string | null
           motivo_cancelamento_id: string | null
           nome_snapshot: string
           observacao_cancelamento: string | null
@@ -4555,7 +4560,9 @@ export type Database = {
           parcelas: number
           plano_id: string | null
           status_pagamento: Database["public"]["Enums"]["venda_status"]
+          taxa_mensal: number
           tipo: Database["public"]["Enums"]["venda_tipo"]
+          tipo_cobranca: string | null
           updated_at: string
           valor: number
           valor_final: number
@@ -4563,6 +4570,7 @@ export type Database = {
         }
         Insert: {
           aluno_id: string
+          canal_pagamento?: string | null
           catalogo_id: string
           created_at?: string
           data_cancelamento?: string | null
@@ -4570,6 +4578,7 @@ export type Database = {
           desconto?: number
           forma_pagamento?: string | null
           id?: string
+          modalidade_pagamento?: string | null
           motivo_cancelamento_id?: string | null
           nome_snapshot: string
           observacao_cancelamento?: string | null
@@ -4578,7 +4587,9 @@ export type Database = {
           parcelas?: number
           plano_id?: string | null
           status_pagamento?: Database["public"]["Enums"]["venda_status"]
+          taxa_mensal?: number
           tipo: Database["public"]["Enums"]["venda_tipo"]
+          tipo_cobranca?: string | null
           updated_at?: string
           valor?: number
           valor_final?: number
@@ -4586,6 +4597,7 @@ export type Database = {
         }
         Update: {
           aluno_id?: string
+          canal_pagamento?: string | null
           catalogo_id?: string
           created_at?: string
           data_cancelamento?: string | null
@@ -4593,6 +4605,7 @@ export type Database = {
           desconto?: number
           forma_pagamento?: string | null
           id?: string
+          modalidade_pagamento?: string | null
           motivo_cancelamento_id?: string | null
           nome_snapshot?: string
           observacao_cancelamento?: string | null
@@ -4601,7 +4614,9 @@ export type Database = {
           parcelas?: number
           plano_id?: string | null
           status_pagamento?: Database["public"]["Enums"]["venda_status"]
+          taxa_mensal?: number
           tipo?: Database["public"]["Enums"]["venda_tipo"]
+          tipo_cobranca?: string | null
           updated_at?: string
           valor?: number
           valor_final?: number

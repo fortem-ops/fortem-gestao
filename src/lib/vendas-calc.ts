@@ -36,3 +36,28 @@ export function formatBrl(n: number): string {
     currency: "BRL",
   }).format(Number(n) || 0);
 }
+
+export const TAXA_MENSAL_RECORRENCIA = 20;
+
+export type TipoCobranca = "recorrencia" | "tradicional";
+
+export function calcularTotaisVenda(opts: {
+  valorPlano: number;
+  desconto: number;
+  periodoMeses: number;
+  tipoCobranca: TipoCobranca | null;
+  aluno2025: boolean;
+}) {
+  const valorPlano = Number(opts.valorPlano) || 0;
+  const desconto = Math.max(0, Math.min(Number(opts.desconto) || 0, valorPlano));
+  const subtotalPlano = Math.max(0, valorPlano - desconto);
+  const periodo = Math.max(1, Number(opts.periodoMeses) || 1);
+  const taxaMensal =
+    opts.tipoCobranca === "recorrencia" && !opts.aluno2025 ? TAXA_MENSAL_RECORRENCIA : 0;
+  const taxaTotal = taxaMensal * periodo;
+  const total = subtotalPlano + taxaTotal;
+  const mensalEstimado =
+    opts.tipoCobranca === "recorrencia" ? subtotalPlano / periodo + taxaMensal : total;
+  return { valorPlano, desconto, subtotalPlano, taxaMensal, taxaTotal, total, mensalEstimado };
+}
+

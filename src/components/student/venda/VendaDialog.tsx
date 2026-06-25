@@ -15,9 +15,14 @@ import { ShoppingCart, Calendar, Repeat, Zap, Check, ArrowLeft, Activity, Infini
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { formatBRL, calcularCreditos, type Frequencia } from "@/lib/vendas";
+import { formatBRL, type Frequencia } from "@/lib/vendas";
+import { calcularTotaisVenda, type TipoCobranca } from "@/lib/vendas-calc";
 import { cn } from "@/lib/utils";
 import { PaymentFields } from "./PaymentFields";
+import { TipoCobrancaSection } from "./TipoCobrancaSection";
+import { PagamentoStep, type Modalidade, type Canal } from "./PagamentoStep";
+import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
 
 type Props = { alunoId: string; alunoNome: string; open: boolean; onOpenChange: (v: boolean) => void };
@@ -84,8 +89,13 @@ function RadioCard({
   );
 }
 
+const PLANO_STEPS = ["Frequência", "Plano", "Resumo", "Pagamento"];
+
 export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const qc = useQueryClient();
+  const { data: roles } = useUserRoles();
+  const isCoordAdmin = !!roles?.isCoordAdmin;
+
   const [tab, setTab] = useState<"planos" | "servicos">("planos");
 
   // Plano wizard
@@ -105,16 +115,41 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [parcelas, setParcelas] = useState(1);
   const [dataInicio, setDataInicio] = useState<Date>(new Date());
 
+  // Novo: tipo de cobrança / pagamento (Plano)
+  const [tipoCobranca, setTipoCobranca] = useState<TipoCobranca | null>(null);
+  const [aluno2025, setAluno2025] = useState(false);
+  const [modalidade, setModalidade] = useState<Modalidade | null>(null);
+  const [canalCartao, setCanalCartao] = useState<Canal | null>(null);
+
+  // Cartão dialog (REDE)
+  const [cartaoDialog, setCartaoDialog] = useState<{ vendaId: string; valor: number } | null>(null);
+
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
     setSStep(1); setServicoId("");
     setStatusPagamento("pendente"); setObservacoes("");
     setDesconto(0); setFormaPagamento(null); setParcelas(1);
     setDataInicio(new Date());
+    setTipoCobranca(null); setModalidade(null); setCanalCartao(null);
+    // aluno2025 preservado pelo fetch abaixo
   };
 
   useEffect(() => { if (!open) reset(); }, [open]);
   useEffect(() => { reset(); }, [tab]);
+
+  // Preload aluno_2025 do aluno
+  const { data: alunoInfo } = useQuery({
+    queryKey: ["aluno-2025-flag", alunoId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("alunos").select("aluno_2025").eq("id", alunoId).maybeSingle();
+      return data || { aluno_2025: false };
+    },
+    enabled: open,
+  });
+  useEffect(() => {
+    if (alunoInfo) setAluno2025(!!alunoInfo.aluno_2025);
+  }, [alunoInfo]);
 
   const { data: planos = [], isLoading: lp } = useQuery({
     queryKey: ["planos-catalogo-ativos"],
@@ -138,16 +173,26 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const planoSelecionado = planos.find((p: any) => p.id === planoId);
   const servicoSelecionado = servicos.find((s: any) => s.id === servicoId);
 
-  const vender = useMutation({
-    mutationFn: async (payload: { tipo: "plano" | "servico"; item: any }) => {
+  const totaisPlano = planoSelecionado
+    ? calcularTotaisVenda({
+        valorPlano: Number(planoSelecionado.valor || 0),
+        desconto,
+        periodoMeses: planoSelecionado.periodo_meses || 1,
+        tipoCobranca,
+        aluno2025,
+      })
+    : null;
+
+  const venderServico = useMutation({
+    mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      const valor = Number(payload.item.valor || 0);
+      const valor = Number(servicoSelecionado.valor || 0);
       const valorFinal = Math.max(0, valor - (desconto || 0));
       const { error } = await (supabase as any).from("vendas").insert({
         aluno_id: alunoId,
-        tipo: payload.tipo,
-        catalogo_id: payload.item.id,
-        nome_snapshot: payload.item.nome,
+        tipo: "servico",
+        catalogo_id: servicoSelecionado.id,
+        nome_snapshot: servicoSelecionado.nome,
         valor,
         desconto: desconto || 0,
         valor_final: valorFinal,
@@ -156,7 +201,6 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         vendedor_id: user?.id,
         status_pagamento: statusPagamento,
         observacoes: observacoes.trim() || null,
-        ...(payload.tipo === "plano" ? { data_venda: format(dataInicio, "yyyy-MM-dd") } : {}),
       });
       if (error) throw error;
     },
@@ -170,11 +214,77 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const creditosCalc = planoSelecionado
-    ? (planoSelecionado.ilimitado
-        ? { quantidade: null, ilimitado: true }
-        : { quantidade: planoSelecionado.quantidade_creditos, ilimitado: false })
-    : null;
+  const venderPlano = useMutation({
+    mutationFn: async () => {
+      if (!planoSelecionado || !tipoCobranca || !modalidade || !totaisPlano) {
+        throw new Error("Dados de pagamento incompletos");
+      }
+      if (modalidade === "cartao_credito" && tipoCobranca === "tradicional" && !canalCartao) {
+        throw new Error("Selecione o canal do cartão (maquininha ou online)");
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const valor = Number(planoSelecionado.valor || 0);
+      const valorFinal = totaisPlano.subtotalPlano;
+      const formaPgto = mapForma(modalidade, canalCartao);
+      const canal = modalidade === "cartao_credito"
+        ? (tipoCobranca === "recorrencia" ? "online" : canalCartao)
+        : modalidade === "pix_automatico" || modalidade === "boleto" || modalidade === "pix_avista"
+          ? "online"
+          : modalidade === "debito" ? "maquininha"
+          : modalidade === "dinheiro" ? "manual"
+          : null;
+
+      // status inicial
+      const cartaoOnline = modalidade === "cartao_credito" && (tipoCobranca === "recorrencia" || canalCartao === "online");
+      const initialStatus: "pendente" | "pago" =
+        modalidade === "pendente" ? "pendente"
+        : cartaoOnline ? "pendente"  // será atualizado pelo PagarCartaoDialog
+        : statusPagamento;
+
+      const { data: vendaIns, error } = await (supabase as any).from("vendas").insert({
+        aluno_id: alunoId,
+        tipo: "plano",
+        catalogo_id: planoSelecionado.id,
+        nome_snapshot: planoSelecionado.nome,
+        valor,
+        desconto: desconto || 0,
+        valor_final: valorFinal,
+        forma_pagamento: formaPgto,
+        parcelas: parcelas || 1,
+        vendedor_id: user?.id,
+        status_pagamento: initialStatus,
+        observacoes: observacoes.trim() || null,
+        data_venda: format(dataInicio, "yyyy-MM-dd"),
+        tipo_cobranca: tipoCobranca,
+        taxa_mensal: totaisPlano.taxaMensal,
+        modalidade_pagamento: modalidade,
+        canal_pagamento: canal,
+      }).select("id").single();
+      if (error) throw error;
+
+      // Atualiza flag aluno_2025 se mudou
+      if (tipoCobranca === "recorrencia" && aluno2025 !== !!alunoInfo?.aluno_2025) {
+        await (supabase as any).from("alunos").update({ aluno_2025: aluno2025 }).eq("id", alunoId);
+      }
+
+      return { vendaId: vendaIns?.id as string, cartaoOnline, valorFinal };
+    },
+    onSuccess: ({ vendaId, cartaoOnline, valorFinal }) => {
+      qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["aluno-2025-flag", alunoId] });
+      invalidatePlanoCaches(qc, alunoId);
+      if (cartaoOnline && vendaId) {
+        toast.success("Venda registrada — informe os dados do cartão");
+        setCartaoDialog({ vendaId, valor: valorFinal });
+      } else {
+        toast.success("Venda registrada com sucesso");
+        onOpenChange(false);
+      }
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -193,7 +303,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
           {/* ============= PLANOS ============= */}
           <TabsContent value="planos" className="mt-6">
-            <StepIndicator steps={["Frequência", "Plano", "Resumo"]} current={pStep} />
+            <StepIndicator steps={PLANO_STEPS} current={pStep} />
 
             {lp ? <Skeleton className="h-40 w-full" /> : (
               <>
@@ -261,7 +371,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                         <div><span className="text-muted-foreground">Aluno:</span> <span className="font-medium">{alunoNome}</span></div>
                         <div><span className="text-muted-foreground">Frequência:</span> <span className="font-medium">{frequencia}</span></div>
                         <div><span className="text-muted-foreground">Período:</span> <span className="font-medium">{planoSelecionado.periodo_meses} {planoSelecionado.periodo_meses === 1 ? "mês" : "meses"}</span></div>
-                        <div><span className="text-muted-foreground">Créditos:</span> <span className="font-medium">{creditosCalc?.ilimitado ? "Ilimitado" : `${creditosCalc?.quantidade}`}</span></div>
+                        <div><span className="text-muted-foreground">Créditos:</span> <span className="font-medium">{planoSelecionado.ilimitado ? "Ilimitado" : `${planoSelecionado.quantidade_creditos}`}</span></div>
                       </div>
                     </div>
 
@@ -287,26 +397,17 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       </Popover>
                     </div>
 
-                    <PaymentFields
-                      valorBase={Number(planoSelecionado.valor || 0)}
+                    <TipoCobrancaSection
+                      valorPlano={Number(planoSelecionado.valor || 0)}
+                      periodoMeses={planoSelecionado.periodo_meses || 1}
                       desconto={desconto}
                       onDescontoChange={setDesconto}
-                      formaPagamentoSlug={formaPagamento}
-                      onFormaPagamentoChange={setFormaPagamento}
-                      parcelas={parcelas}
-                      onParcelasChange={setParcelas}
+                      tipoCobranca={tipoCobranca}
+                      onTipoCobrancaChange={setTipoCobranca}
+                      aluno2025={aluno2025}
+                      onAluno2025Change={setAluno2025}
+                      canTogglesAluno2025={isCoordAdmin}
                     />
-
-                    <div className="space-y-2">
-                      <Label>Status do pagamento</Label>
-                      <Select value={statusPagamento} onValueChange={(v) => setStatusPagamento(v as any)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pendente">Pendente</SelectItem>
-                          <SelectItem value="pago">Pago</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
 
                     <div className="space-y-2">
                       <Label>Observações (opcional)</Label>
@@ -315,8 +416,53 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
                     <div className="flex justify-between pt-2">
                       <Button variant="outline" onClick={() => setPStep(2)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
-                      <Button disabled={vender.isPending} onClick={() => vender.mutate({ tipo: "plano", item: planoSelecionado })}>
-                        Confirmar venda
+                      <Button disabled={!tipoCobranca} onClick={() => setPStep(4)}>Continuar para Pagamento</Button>
+                    </div>
+                  </div>
+                )}
+
+                {pStep === 4 && planoSelecionado && tipoCobranca && totaisPlano && (
+                  <div className="space-y-4">
+                    <PagamentoStep
+                      tipoCobranca={tipoCobranca}
+                      total={totaisPlano.subtotalPlano}
+                      modalidade={modalidade}
+                      onModalidadeChange={(m) => {
+                        setModalidade(m);
+                        if (m !== "cartao_credito") setCanalCartao(null);
+                      }}
+                      canalCartao={canalCartao}
+                      onCanalCartaoChange={setCanalCartao}
+                      parcelas={parcelas}
+                      onParcelasChange={setParcelas}
+                    />
+
+                    {modalidade && modalidade !== "pendente" && !(modalidade === "cartao_credito" && tipoCobranca === "tradicional" && canalCartao === "online") && (
+                      <div className="space-y-2">
+                        <Label>Status do pagamento</Label>
+                        <Select value={statusPagamento} onValueChange={(v) => setStatusPagamento(v as any)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pendente">Pendente</SelectItem>
+                            <SelectItem value="pago">Já recebido</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between pt-2">
+                      <Button variant="outline" onClick={() => setPStep(3)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
+                      <Button
+                        disabled={
+                          venderPlano.isPending ||
+                          !modalidade ||
+                          (modalidade === "cartao_credito" && tipoCobranca === "tradicional" && !canalCartao)
+                        }
+                        onClick={() => venderPlano.mutate()}
+                      >
+                        {modalidade === "cartao_credito" && (tipoCobranca === "recorrencia" || canalCartao === "online")
+                          ? "Avançar para dados do cartão"
+                          : "Confirmar venda"}
                       </Button>
                     </div>
                   </div>
@@ -399,7 +545,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
                     <div className="flex justify-between pt-2">
                       <Button variant="outline" onClick={() => setSStep(1)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
-                      <Button disabled={vender.isPending} onClick={() => vender.mutate({ tipo: "servico", item: servicoSelecionado })}>
+                      <Button disabled={venderServico.isPending} onClick={() => venderServico.mutate()}>
                         Confirmar venda
                       </Button>
                     </div>
@@ -409,7 +555,39 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
             )}
           </TabsContent>
         </Tabs>
+
+        {cartaoDialog && (
+          <PagarCartaoDialog
+            open={!!cartaoDialog}
+            onOpenChange={(o) => {
+              if (!o) {
+                setCartaoDialog(null);
+                onOpenChange(false);
+              }
+            }}
+            vendaId={cartaoDialog.vendaId}
+            alunoId={alunoId}
+            valor={cartaoDialog.valor}
+            onSuccess={() => {
+              qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+              invalidatePlanoCaches(qc, alunoId);
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
+}
+
+function mapForma(modalidade: Modalidade, canal: Canal | null): string {
+  switch (modalidade) {
+    case "cartao_credito":
+      return canal === "maquininha" ? "cartao_credito_maquininha" : "cartao_credito";
+    case "pix_automatico": return "pix_automatico";
+    case "boleto": return "boleto";
+    case "debito": return "debito";
+    case "dinheiro": return "dinheiro";
+    case "pix_avista": return "pix";
+    case "pendente": return "pendente";
+  }
 }

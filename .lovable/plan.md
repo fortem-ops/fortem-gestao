@@ -1,64 +1,99 @@
 ## Objetivo
-Adicionar a página **Financeiro > Adquirente** para cadastrar manualmente as taxas MDR (Rede) por bandeira e modalidade, mais o **aluguel de máquina** (custo fixo mensal). Esses valores serão a base para calcular recebíveis reais nas próximas etapas.
 
-## Escopo desta entrega
-Apenas cadastro + edição. A aplicação das taxas/aluguel em relatórios e recebíveis líquidos fica para o próximo passo.
+No fluxo de Nova Venda de Plano, transformar a etapa "Resumo" em duas escolhas: tipo de cobrança + resumo dos valores, e introduzir uma nova **Fase 4 — Pagamento**, com fluxos diferentes para Recorrência e Tradicional.
 
-## Estrutura das taxas
-Matriz Bandeira × Modalidade:
+## 1. Banco de dados (migração)
 
-```text
-Bandeiras:   VISA · MASTERCARD · ELO
-Modalidades: Débito
-             Crédito à vista (recorrência REDE)
-             Crédito parcelado 2–6x
-             Crédito parcelado 7–12x
-```
-Total: 3 × 4 = **12 taxas** por adquirente.
+Adicionar campos para suportar a nova lógica:
 
-Mais 1 campo separado: **Aluguel de máquina (R$/mês)** por adquirente.
+- `alunos.aluno_2025` (boolean, default false) — marca alunos com isenção da taxa mensal.
+- `vendas.tipo_cobranca` (text: `recorrencia` | `tradicional`).
+- `vendas.taxa_mensal` (numeric, default 0) — armazena o valor da taxa aplicada (geralmente 20,00 ou 0).
+- `vendas.modalidade_pagamento` (text nullable) — slug do método escolhido na Fase 4 (`cartao_credito`, `pix_automatico`, `boleto`, `dinheiro`, `debito`, `pix_avista`, `pendente`).
+- `vendas.canal_pagamento` (text nullable) — `maquininha` | `online` | `manual` (para diferenciar cartão presencial vs. integração REDE).
 
-## Backend (Lovable Cloud)
+A coluna existente `forma_pagamento` (slug livre) continua sendo gravada para compatibilidade com relatórios.
 
-**Tabela `adquirentes_taxas`** (matriz MDR):
-- `adquirente` (text, default `'rede'`)
-- `bandeira` (enum: `visa | mastercard | elo`)
-- `modalidade` (enum: `debito | credito_vista | credito_2_6x | credito_7_12x`)
-- `taxa_percentual` (numeric(5,2)) — ex.: `3.19` = 3,19%
-- `prazo_recebimento_dias` (int, opcional)
-- `ativo` (bool, default true)
-- `updated_by` (uuid), `created_at`, `updated_at`
-- UNIQUE (`adquirente`, `bandeira`, `modalidade`)
-- CHECK `taxa_percentual BETWEEN 0 AND 100`
+## 2. Fluxo do Wizard de Planos
 
-**Tabela `adquirentes_config`** (configs de adquirente, 1 linha por adquirente):
-- `adquirente` (text PK, default `'rede'`)
-- `aluguel_mensal` (numeric(10,2), default 0) — valor em R$
-- `ativo` (bool, default true)
-- `updated_by`, `created_at`, `updated_at`
-- CHECK `aluguel_mensal >= 0`
+O StepIndicator passa de 3 para **4 etapas**: Frequência → Plano → Resumo → Pagamento.
 
-RLS: leitura/escrita restritas a Admin e Coordenador (via `has_role`). GRANT para `authenticated` e `service_role`. Trigger `updated_at`. Seed: 12 linhas Rede em `adquirentes_taxas` com `0.00` e 1 linha Rede em `adquirentes_config` com aluguel `0.00`.
+### Etapa 3 — Resumo (refeita)
 
-## Frontend
-1. **Rota** `/financeiro/adquirente` em `src/App.tsx` (lazy).
-2. **Sidebar** (`src/components/AppSidebar.tsx`): item "Adquirente" no grupo Financeiro (ícone `Percent`), abaixo de "Cartões de Crédito".
-3. **Página** `src/pages/financeiro/Adquirente.tsx`:
-   - Header com seletor de adquirente (apenas "Rede" por enquanto).
-   - **Card 1 — Taxas MDR (%)**: tabela editável 3 linhas (bandeiras) × 4 colunas (modalidades), inputs numéricos com sufixo `%`, 2 casas decimais.
-   - **Card 2 — Aluguel de máquina (R$/mês)**: input único com máscara de moeda BRL.
-   - Botões **Salvar alterações** / **Descartar**; destaque visual quando `dirty`.
-   - Toasts de sucesso/erro; persistência em lote via Supabase (`upsert`).
-4. **Hook** `src/hooks/useAdquirente.ts` com `useQuery` (taxas + config) e mutations de upsert.
-5. **Tipos** `src/types/adquirente.ts` (enums + labels PT-BR).
-6. **Permissão**: Admin/Coordenador editam; demais visualizam em modo leitura.
+Conteúdo:
 
-## Validações
-- Taxa: `0`–`100`, até 2 casas decimais (Zod + CHECK no banco).
-- Aluguel: `>= 0`, até 2 casas decimais.
-- Linhas com taxa = 0 ficam sinalizadas em amarelo ("não configurado").
+1. Card do plano selecionado (como hoje).
+2. Data de início (mantém).
+3. **Tipo de cobrança** (novo, dois RadioCards):
+   - **Recorrência** — cobrança mensal automática; adiciona R$ 20,00/mês de taxa de serviço (exceto Aluno 2025).
+   - **Tradicional** — pagamento único/parcelado, sem taxa mensal.
+4. Quando "Recorrência":
+   - Checkbox **"Aluno de 2025 (sem taxa de R$ 20/mês)"**.
+     - Visível apenas para Coordenador/Admin (`useUserRoles`).
+     - Ao marcar, persiste em `alunos.aluno_2025 = true` no momento da venda.
+     - Se o aluno já estiver marcado como 2025, vem pré-marcado.
+5. Campo **Desconto (R$)** mantido (aplica sobre o valor do plano, não sobre a taxa mensal).
+6. Observações (mantém).
+7. **Resumo financeiro** (recalculado):
+   - Valor do plano
+   - Desconto
+   - Subtotal do plano
+   - Taxa mensal × meses do plano (apenas Recorrência sem isenção)
+   - **Total a cobrar**
+   - **Mensal estimado** (quando Recorrência): `(subtotal/periodo_meses) + taxa_mensal`
+8. Botões: Voltar / **Continuar para Pagamento**.
 
-## Fora do escopo (próximas etapas)
-- Cálculo de recebível líquido por cobrança (MDR + rateio de aluguel).
-- Coluna "Valor líquido" em Financeiro > Contratos e nos relatórios.
-- Histórico/versionamento de taxas por data de vigência.
+A escolha de forma de pagamento sai da Etapa 3 (era feita pelo `PaymentFields` aqui).
+
+### Etapa 4 — Pagamento (nova)
+
+Opções renderizadas dependem do tipo de cobrança:
+
+**Recorrência** (RadioCards):
+- Cartão de Crédito (recorrente) → abre subtela com formulário de cartão + tokenização via edge function `rede-cobrar-token` (reaproveita `PagarCartaoDialog`).
+- Pix Automático → chama fluxo já existente em `PixAutomaticoSection` para autorizar.
+- Boleto → marca venda como aguardando geração de boleto (placeholder; integração futura).
+- Finalizar com **pagamento pendente**.
+
+**Tradicional** (RadioCards):
+- Cartão de Crédito → sub-opções:
+  - Parcelas: select 1x–12x.
+  - Canal: **Maquininha (presencial)** ou **Online (REDE)** → este abre `PagarCartaoDialog` para cobrança imediata.
+- Débito (maquininha).
+- Dinheiro.
+- Pix à vista.
+- Finalizar com **pagamento pendente**.
+
+Cada subtela tem **Voltar** para a lista de opções e **Confirmar venda**.
+
+## 3. Lógica de gravação
+
+Mutation `vender` atualizada:
+
+- `tipo_cobranca`, `taxa_mensal`, `modalidade_pagamento`, `canal_pagamento`, `parcelas`, `desconto`, `valor`, `valor_final` (= plano − desconto; a taxa mensal é registrada à parte, não somada ao `valor_final` da venda).
+- Se Recorrência com "Aluno 2025" marcado pela primeira vez, faz `update alunos set aluno_2025 = true`.
+- Se Recorrência + Cartão Online ou Pix Automático: após cobrança/autorização bem-sucedida (handler já existente) seta `status_pagamento = 'pago'` ou `'autorizado'`; senão grava `pendente`.
+- Se Tradicional + Cartão Online: aciona `rede-cobrar-cartao` via `PagarCartaoDialog`; sucesso → `status_pagamento = 'pago'`.
+- Demais casos (maquininha, dinheiro, débito, pix à vista, boleto, finalizar pendente): grava com `status_pagamento` selecionado pelo usuário (default `pendente`, com opção rápida "Já recebido" → `pago`).
+
+## 4. Componentização
+
+- `src/components/student/venda/VendaDialog.tsx`: adiciona Step 4 e estados (`tipoCobranca`, `aluno2025`, `modalidade`, `canalCartao`, `parcelas`).
+- Novo `src/components/student/venda/TipoCobrancaSection.tsx`: bloco visual com os dois RadioCards e o checkbox Aluno 2025.
+- Novo `src/components/student/venda/PagamentoStep.tsx`: renderiza as opções conforme `tipoCobranca`, e dispatches para subtelas (cartão, pix, etc.).
+- `src/lib/vendas-calc.ts`: função `calcularTotais({ valorPlano, desconto, periodoMeses, tipoCobranca, taxaMensal })` retornando `{ subtotalPlano, taxaTotal, total, mensalEstimado }`.
+- `PaymentFields` deixa de ser usado no Step Resumo; só o input de Desconto é mantido inline (componente pequeno reaproveitando o trecho atual).
+
+## 5. Constantes
+
+- `TAXA_MENSAL_RECORRENCIA = 20` em `src/lib/vendas-calc.ts` (exportada para reuso futuro).
+
+## 6. Permissões
+
+- Toggle "Aluno 2025" só aparece para `admin`/`coordenador`. Demais perfis veem a taxa aplicada sem opção de remover.
+
+## 7. Fora de escopo (não implementado agora)
+
+- Geração efetiva de boleto (apenas placeholder com `status_pagamento = 'pendente'` e modalidade gravada).
+- Recibos e contratos automáticos.
+- Backfill de `aluno_2025` para alunos existentes (será marcado manualmente).
