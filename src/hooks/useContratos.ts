@@ -28,14 +28,21 @@ export function useTodosContratos(filtroStatus?: string) {
     queryFn: async () => {
       let query = db
         .from('contratos')
-        .select('*, alunos(id, nome, email)')
+        .select('*, alunos(id, nome, email), cobrancas(data_vencimento, status)')
         .order('created_at', { ascending: false });
       if (filtroStatus && filtroStatus !== 'todos') {
         query = query.eq('status', filtroStatus);
       }
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as Contrato[];
+      const list = (data ?? []) as any[];
+      return list.map((c) => {
+        const pendentes = (c.cobrancas ?? [])
+          .filter((cb: any) => cb.status === 'pendente' && cb.data_vencimento)
+          .map((cb: any) => cb.data_vencimento as string)
+          .sort();
+        return { ...c, proxima_cobranca: pendentes[0] ?? null };
+      }) as (Contrato & { proxima_cobranca: string | null })[];
     },
   });
 }
