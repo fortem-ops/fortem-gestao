@@ -24,7 +24,6 @@ export function useContratosAluno(alunoId: string) {
 
 export type StatusPagamento = 'pago' | 'pendente' | 'vencida' | 'sem_cobranca';
 
-export type StatusPagamento = 'pago' | 'pendente' | 'vencida' | 'sem_cobranca';
 
 export function useTodosContratos(filtroStatus?: string) {
   return useQuery({
