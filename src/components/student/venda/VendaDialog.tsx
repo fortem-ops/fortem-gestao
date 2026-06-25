@@ -517,7 +517,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                   <div className="space-y-4">
                     <PagamentoStep
                       tipoCobranca={tipoCobranca}
-                      total={totaisPlano.subtotalPlano}
+                      total={totaisPlano.total}
+                      mensalEstimado={totaisPlano.mensalEstimado}
+                      periodoMeses={planoSelecionado.periodo_meses || 1}
                       modalidade={modalidade}
                       onModalidadeChange={(m) => {
                         setModalidade(m);
@@ -660,6 +662,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
             vendaId={cartaoDialog.vendaId}
             alunoId={alunoId}
             valor={cartaoDialog.valor}
+            recorrencia={cartaoDialog.recorrencia}
+            parcelasTotais={cartaoDialog.parcelasTotais}
             onSuccess={() => {
               qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
               invalidatePlanoCaches(qc, alunoId);
