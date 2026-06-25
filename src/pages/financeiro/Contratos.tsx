@@ -40,16 +40,16 @@ const PAG_LABEL: Record<StatusPagamento, string> = {
   pago: 'Pago', pendente: 'Pendente', vencida: 'Vencida', sem_cobranca: '—',
 };
 
-type PeriodoPreset = 'todos' | 'passado' | 'presente' | 'futuro' | 'mes_atual' | 'mes_passado' | 'proximo_mes' | 'custom';
+type PeriodoPreset = 'todos' | 'hoje' | 'ontem' | 'ultimos_7' | 'semana_atual' | 'mes_atual' | 'mes_passado' | 'custom';
 
 const PERIODO_LABELS: Record<PeriodoPreset, string> = {
   todos: 'Todos os períodos',
-  passado: 'Passado (vencidas)',
-  presente: 'Presente / atual',
-  futuro: 'Futuro',
+  hoje: 'Hoje',
+  ontem: 'Ontem',
+  ultimos_7: 'Últimos 7 dias',
+  semana_atual: 'Semana atual',
   mes_atual: 'Mês atual',
   mes_passado: 'Mês passado',
-  proximo_mes: 'Próximo mês',
   custom: 'Período entre…',
 };
 
@@ -58,13 +58,19 @@ function getRange(p: PeriodoPreset, de?: Date, ate?: Date): { from: Date | null;
   const y = hoje.getFullYear(); const m = hoje.getMonth();
   const startMonth = (yy: number, mm: number) => new Date(yy, mm, 1);
   const endMonth = (yy: number, mm: number) => { const d = new Date(yy, mm + 1, 0); d.setHours(23,59,59,999); return d; };
+  const endOfDay = (d: Date) => { const x = new Date(d); x.setHours(23,59,59,999); return x; };
   switch (p) {
-    case 'passado':    return { from: null, to: new Date(hoje.getTime() - 1) };
-    case 'futuro':     { const d = new Date(hoje); d.setDate(d.getDate() + 1); return { from: d, to: null }; }
-    case 'presente':
+    case 'hoje':       return { from: hoje, to: endOfDay(hoje) };
+    case 'ontem':      { const d = new Date(hoje); d.setDate(d.getDate() - 1); return { from: d, to: endOfDay(d) }; }
+    case 'ultimos_7':  { const d = new Date(hoje); d.setDate(d.getDate() - 6); return { from: d, to: endOfDay(hoje) }; }
+    case 'semana_atual': {
+      // Semana começando no domingo
+      const d = new Date(hoje); d.setDate(d.getDate() - d.getDay());
+      const fim = new Date(d); fim.setDate(d.getDate() + 6);
+      return { from: d, to: endOfDay(fim) };
+    }
     case 'mes_atual':  return { from: startMonth(y, m), to: endMonth(y, m) };
     case 'mes_passado':return { from: startMonth(y, m - 1), to: endMonth(y, m - 1) };
-    case 'proximo_mes':return { from: startMonth(y, m + 1), to: endMonth(y, m + 1) };
     case 'custom':     return { from: de ?? null, to: ate ? new Date(ate.getFullYear(), ate.getMonth(), ate.getDate(), 23,59,59,999) : null };
     default:           return { from: null, to: null };
   }
