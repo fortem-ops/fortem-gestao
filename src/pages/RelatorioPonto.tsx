@@ -117,6 +117,11 @@ export default function RelatorioPonto() {
     () => new Map(profissionais.map((p: any) => [p.user_id, p.full_name])),
     [profissionais],
   );
+  const profIdsAtivos = useMemo(
+    () => new Set(profissionais.map((p: any) => p.user_id as string)),
+    [profissionais],
+  );
+  const isAtivo = (uid: string) => profIdsAtivos.size === 0 || profIdsAtivos.has(uid);
 
   // Config global para saber se intervalo é obrigatório
   const { data: configGlobal } = useQuery({
