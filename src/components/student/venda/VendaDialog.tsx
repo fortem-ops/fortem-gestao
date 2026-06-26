@@ -311,7 +311,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     formaPagamento: string | null;
     parcelas: number;
     recorrencia: boolean;
+    modo: "substituir" | "renovacao" | "adicional";
   }) => {
+
     const inicio = format(params.dataInicio, "yyyy-MM-dd");
     const fimDate = new Date(params.dataInicio);
     fimDate.setMonth(fimDate.getMonth() + params.duracaoMeses);
