@@ -200,11 +200,20 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
 
       if (error) throw error;
 
+      // Fecha inadimplência correspondente (defesa em profundidade — trigger no banco também faz isso)
+      await supabase
+        .from("inadimplencias")
+        .update({ status: "regularizada", data_regularizacao: baixaData })
+        .eq("cobranca_id", baixaCobranca.id)
+        .eq("status", "aberta");
+
       toast({ title: "Baixa registrada", description: `Cobrança de ${fmt(Number(baixaCobranca.valor))} marcada como paga.` });
       setBaixaOpen(false);
       setBaixaCobranca(null);
       qc.invalidateQueries({ queryKey: ["cobrancas-contrato", ativo?.id] });
       qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias-contrato", ativo?.id] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias-aluno", alunoId] });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {

@@ -1,39 +1,24 @@
-## Diagnóstico
 
-O widget **Plano Contratado** (`src/components/student/StudentPlan.tsx`) lê os créditos de Avaliação Funcional / Nutrição / Reabilitação diretamente da coluna `planos.servicos` (array de strings no formato `"N Tipo de Serviço"`).
+Trigger de defesa no banco já aplicado ✅ — `trg_close_inadimplencia_on_pagamento` fecha automaticamente a inadimplência quando uma cobrança vira `pago`, e inadimplências antigas já foram regularizadas.
 
-Na venda atual:
-- `VendaDialog.venderPlano` insere a venda e cria créditos em `creditos_aluno` (tradicional) ou chama a RPC `fn_criar_contrato_recorrencia` (recorrência), que cria `contratos` + 12 cobranças + créditos.
-- **Nenhum dos dois fluxos atualiza `planos.servicos`** — por isso a contagem do widget mostra `0/0` mesmo após a venda registrar corretamente os créditos em "Serviços e Créditos Contratados".
+Falta aplicar as 4 edições de frontend abaixo (precisa de aprovação para sair do plan mode):
 
-Confirmado no banco: o plano ativo do aluno tem `servicos: []`.
+## 1. `src/pages/StudentProfile.tsx`
+- Renomear labels das abas: **Financeiro → Carteira** e **Contrato → Pagamentos** (mantendo os `value` originais para preservar URLs `?tab=…`).
+- Importar `DollarSign` e `VendaDialog`; adicionar estado `vendaOpen`.
+- Adicionar botão **"Nova venda"** logo após o `EditStudentDialog` no header, abrindo o `VendaDialog` já existente.
 
-## Correção
+## 2. `src/pages/alunos/ContratoFinanceiro.tsx` (`handleBaixa`)
+- Após marcar a cobrança como paga, fechar `inadimplencias` com `cobranca_id = baixaCobranca.id` e `status='aberta'` (defesa em profundidade junto com o trigger).
+- Invalidar `["inadimplencias-contrato", ativo?.id]` e `["inadimplencias-aluno", alunoId]`.
 
-1. **`src/components/student/venda/VendaDialog.tsx` — `venderPlano.mutationFn`**
-   Após sucesso da venda (e da RPC quando recorrência), sincronizar o registro do `planos` do aluno:
-   - Desativar planos anteriores ativos (`ativo=false`).
-   - Fazer `insert` em `planos` com:
-     - `tipo` = nome do plano (`planoSelecionado.nome`)
-     - `valor` = `totaisPlano.subtotalPlano` (ou mensal × período conforme já usado)
-     - `data_inicio`, `duracao_meses = periodo_meses`, `data_fim = data_inicio + periodo`
-     - `forma_pagamento_padrao`, `parcelas_padrao`, `renovacao_automatica = tipoCobranca === "recorrencia"`
-     - `servicos`: array montado a partir de `servicosInclusos` no formato esperado pelo widget:
-       - `${avaliacao_funcional} Avaliação Funcional`
-       - `${nutricao} Consultas Nutrição`
-       - `${reabilitacao} Consultas Reabilitação`
-       (omitindo entradas com `0`)
-   - Aplicar também para vendas sem etapa de serviços (Start) → array vazio.
+## 3. `src/components/student/StudentSummary.tsx`
+- Nova query `["inadimplencias-aluno", student.id]` lendo `inadimplencias` em aberto do aluno.
+- Adicionar cada inadimplência ao array `alerts` com mensagem  
+  `"Inadimplência: Venc. DD/MM/AAAA · N dia(s) em atraso — R$ X,XX"`, severidade `urgente` se >7 dias.
 
-2. **`supabase/functions`/RPC `fn_criar_contrato_recorrencia`**
-   Não duplicar a criação do plano. A função continua criando `contratos` + `cobrancas` + `creditos_aluno`; o `planos` passa a ser responsabilidade exclusiva do frontend logo após a chamada. (Se hoje a RPC mexer no `planos`, manter inalterado — apenas o frontend garante o `servicos` correto via `update` posterior.)
+## 4. Banco (já feito)
+- Função `fn_close_inadimplencia_on_pagamento` + trigger `trg_close_inadimplencia_on_pagamento` em `cobrancas`.
+- `UPDATE` retroativo regularizando inadimplências cujas cobranças já estavam pagas.
 
-3. **Invalidação de cache**
-   Já existe `invalidatePlanoCaches(qc, alunoId)` no `onSuccess`. Garantir que continue sendo chamado em ambos os caminhos (tradicional e após o `PagarCartaoDialog` confirmar a recorrência online).
-
-4. **Validação**
-   - Vender um plano Power com opção "2 Nutrição" → widget deve mostrar `0/1 usados` em Avaliação Funcional e `0/2 usados` em Consultas Nutrição.
-   - Vender Max → `0/3`, `0/5`, `0/5`.
-   - Vender Start → widget exibe créditos zerados (sem benefícios), sem erro.
-
-Nenhuma mudança de schema é necessária — apenas população correta de `planos.servicos`.
+Confirma para aplicar as edições de frontend?
