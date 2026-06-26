@@ -293,14 +293,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const displayStep = hasServicos ? pStep : (pStep < 4 ? pStep : pStep - 1);
 
   // Cria créditos de serviços para vendas não recorrentes (recorrência usa a RPC)
-  const criarCreditosServicos = async (svc: ServicosInclusos) => {
+  const criarCreditosServicos = async (svc: ServicosInclusos, vendaId: string) => {
     const linhas: { atividade: string; quantidade_inicial: number }[] = [];
     if (svc.avaliacao_funcional > 0) linhas.push({ atividade: "Avaliação Funcional", quantidade_inicial: svc.avaliacao_funcional });
     if (svc.nutricao > 0) linhas.push({ atividade: "Nutrição", quantidade_inicial: svc.nutricao });
     if (svc.reabilitacao > 0) linhas.push({ atividade: "Reabilitação", quantidade_inicial: svc.reabilitacao });
     if (!linhas.length) return;
     await (supabase as any).from("creditos_aluno").insert(
-      linhas.map((l) => ({ aluno_id: alunoId, origem_tipo: "plano", ...l })),
+      linhas.map((l) => ({ aluno_id: alunoId, origem_tipo: "plano", origem_id: vendaId, ...l })),
     );
   };
 
@@ -457,8 +457,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       // Créditos de serviços incluídos: criar sempre que houver, tanto em
       // tradicional quanto em recorrência. O trigger não cria mais o bônus
       // hard-coded do Start+, então não há duplicação.
-      if (hasServicos) {
-        await criarCreditosServicos(servicosInclusos);
+      if (hasServicos && vendaIns?.id) {
+        await criarCreditosServicos(servicosInclusos, vendaIns.id);
       }
 
       // Atualiza o registro `planos` criado pelo trigger refletindo a venda.
