@@ -1,47 +1,45 @@
-## Problema observado (Marilza Vallejo · Start+ 1x/sem)
+## Problema
 
-Foram criados **2 contratos** para a mesma venda:
+Ao selecionar **"Novo contrato (adicional)"** em uma nova venda:
 
-| Contrato | valor_cobrado | parcelas | vigência | cobranças |
-|---|---|---|---|---|
-| A (trigger automático) | R$ 3.588,00 (total anual) | 1 | mensal | 1 |
-| B (RPC fn_criar_contrato_recorrencia) | R$ 299,00 (mensal) | 12 | **mensal** (errado) | 12 |
-
-Causas:
-
-1. **Duplicação** — Ao salvar a venda, o trigger `trg_vendas_processar` cria o registro em `planos`, o que dispara `trg_auto_criar_contrato_ciclo` e gera o contrato A. Em seguida o frontend chama `fn_criar_contrato_recorrencia`, que cria o contrato B. As duas vias coexistem sem se conhecerem.
-2. **Vigência sempre "mensal"** — Tanto `fn_criar_contrato_recorrencia` quanto `fn_auto_criar_contrato_ciclo` gravam `vigencia_tipo='mensal'` fixo, independente de o plano ser anual (Start+, Power, Pro, Max — `periodo_meses=12` no catálogo).
+1. A data de início está sendo forçada para "dia seguinte ao fim do plano vigente" — o `useEffect` em `VendaDialog.tsx` (linhas 212‑218) hoje só checa `modo === "renovacao"`, mas o estado padrão quando há plano vigente também é `"renovacao"`, e mesmo trocando para `"adicional"` a data fica desalinhada porque nunca volta para "hoje".
+2. Em **Pagamentos** (`ContratoFinanceiro.tsx`, linha 94) só é exibido **um** contrato ativo (`contratos.find(c => c.status === "ativo")`), escondendo o contrato adicional recém‑criado.
 
 ## Correções
 
-### 1. `fn_criar_contrato_recorrencia` (única fonte de verdade para vendas via UI)
+### 1. `src/components/student/venda/VendaDialog.tsx`
 
-- Derivar `vigencia_tipo` do catálogo: `'anual'` quando `planos_catalogo.periodo_meses = 12`, senão `'mensal'`.
-- Ajustar `data_fim` para `data_inicio + periodo_meses` (hoje está fixo em +12 meses; correto para anuais, mas precisa respeitar mensais quando reutilizado).
-- Manter geração de 12 cobranças mensais para planos anuais em recorrência (já está correto).
+- No `useEffect` que ajusta `dataInicio` em função de `modoContrato`:
+  - `renovacao` → continua: `fimVigente + 1 dia`.
+  - `adicional` → setar `dataInicio` para **hoje** (permitindo override manual pelo usuário).
+  - `substituir` → manter hoje (já é o default).
+- Garantir que, ao alternar entre os três modos, a data se reajusta corretamente (resetar para hoje quando sair de "renovacao").
+- Sem nenhuma outra mudança de lógica de venda.
 
-### 2. `fn_auto_criar_contrato_ciclo` (trigger em `planos`)
+### 2. `src/pages/alunos/ContratoFinanceiro.tsx`
 
-Evitar duplicação. Estratégia: o trigger só deve atuar em renovações automáticas mensais (job `renovar-planos-mensais` e backfill), **nunca** durante a inserção de uma venda nova.
+Refatorar a página para suportar **N contratos ativos simultâneos**:
 
-- Adicionar guarda: pular quando já existir um registro em `vendas` com `plano_id = NEW.id` OU criado na mesma transação para o mesmo `aluno_id` com `tipo='plano'` nos últimos segundos.
-- Também aplicar a mesma lógica de `vigencia_tipo` baseada no `periodo_meses` do plano correspondente no catálogo (lookup por `lower(tipo)` + `frequencia`/`valor`).
+- Trocar `const ativo = contratos.find(...)` por `const ativos = contratos.filter(c => c.status === 'ativo' || c.status === 'inadimplente' || c.status === 'suspenso')`.
+- Ordenar `ativos` por `data_inicio` ascendente — assim o **plano vigente atual aparece em cima** e os **adicionais/renovações futuros aparecem logo abaixo**.
+- Extrair o bloco hoje renderizado para o "ativo" em um subcomponente local `ContratoAtivoCard` que recebe `contrato` e renderiza:
+  - Cabeçalho (badges, datas, valor mensal, próxima cobrança, créditos do ciclo).
+  - Bloco de **Inadimplências** específicas daquele contrato.
+  - Tabela de **Cobranças** específicas daquele contrato.
+  - Botão de cancelar contrato (mantém RBAC `podeCancelar`).
+- Hoje há `useQuery` para `cobrancas`, `ciclo` e `inadimplencias` atrelados a um único `ativo`. Mover essas queries para dentro do subcomponente, indexadas pelo `contrato.id`, para que cada card carregue seus próprios dados.
+- Adicionar um pequeno rótulo visual quando houver mais de um contrato ativo:
+  - O primeiro (data_inicio mais antiga) recebe badge "Vigente".
+  - Os demais recebem badge "Futuro" (data_inicio > hoje) ou "Adicional" (data_inicio ≤ hoje).
+- Histórico (contratos não‑ativos) e Histórico de Pagamentos continuam intactos no fim da página.
 
-### 3. Limpeza dos dados da Marilza
+### 3. Sem alterações de banco / RPC
 
-- Remover o contrato A duplicado (R$ 3.588, 1 cobrança) e sua cobrança/ciclo associados, mantendo o contrato B (12x R$ 299).
-- Atualizar o contrato B para `vigencia_tipo='anual'`.
-
-### 4. Backfill de vigência
-
-Atualizar `contratos.vigencia_tipo` para `'anual'` em todos os contratos cujo `plano_tipo` esteja em (`start_plus`, `power`, `pro`, `max`) — esses sempre são planos de 12 meses no negócio atual.
+Nenhuma migração necessária. A RPC `fn_criar_contrato_recorrencia` e o trigger `trg_auto_criar_contrato_ciclo` continuam criando o contrato corretamente; a página passa a apenas **exibir** todos os ativos.
 
 ## Validação
 
-- Repetir venda Start+ 1x/sem para um aluno teste → resultado esperado: **1 único contrato**, badge **"Anual"**, **12 cobranças mensais** de R$ 299.
-- Renovação automática mensal de Start (mensal) continua criando 1 contrato por ciclo via trigger.
-
-## Arquivos / objetos alterados
-
-- Migração SQL: `fn_criar_contrato_recorrencia`, `fn_auto_criar_contrato_ciclo`, UPDATE de backfill em `contratos`, DELETE do contrato duplicado da Marilza.
-- Nenhuma alteração de frontend necessária (o badge "Anual" já é renderizado em `ContratoFinanceiro.tsx` quando `vigencia_tipo='anual'`).
+- Aluno com plano Start+ vigente → abrir Nova venda → marcar **Novo contrato (adicional)** → data de início deve voltar para **hoje** (editável).
+- Após finalizar, a aba **Pagamentos** deve mostrar **dois cards** de contrato ativo, na ordem: vigente em cima, novo logo abaixo, cada um com suas próprias cobranças.
+- Alternar para "Renovação" continua deslocando a data para o dia seguinte ao fim do plano atual.
+- "Substituir" continua desativando o anterior (volta a um único card ativo).
