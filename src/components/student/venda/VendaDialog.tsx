@@ -614,7 +614,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                     )}
 
                     <div className="flex justify-between pt-2">
-                      <Button variant="outline" onClick={() => setPStep(3)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
+                      <Button variant="outline" onClick={() => setPStep(4)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
                       <Button
                         disabled={
                           venderPlano.isPending ||
