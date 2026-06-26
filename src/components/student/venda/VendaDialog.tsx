@@ -457,8 +457,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       // Créditos de serviços incluídos: criar sempre que houver, tanto em
       // tradicional quanto em recorrência. O trigger não cria mais o bônus
       // hard-coded do Start+, então não há duplicação.
-      if (hasServicos) {
-        await criarCreditosServicos(servicosInclusos);
+      if (hasServicos && vendaIns?.id) {
+        await criarCreditosServicos(servicosInclusos, vendaIns.id);
       }
 
       // Atualiza o registro `planos` criado pelo trigger refletindo a venda.
