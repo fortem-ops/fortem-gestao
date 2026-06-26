@@ -153,8 +153,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     setDataInicio(new Date());
     setTipoCobranca(null); setModalidade(null); setCanalCartao(null);
     setOpcaoServicoId(null); setOpcaoServico(null);
+    setModoContrato("substituir");
     // aluno2025 preservado pelo fetch abaixo
   };
+
 
 
   useEffect(() => { if (!open) reset(); }, [open]);
