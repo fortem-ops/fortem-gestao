@@ -359,9 +359,17 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
             <ShoppingCart className="w-4 h-4" /> Venda
           </Button>
         </div>
-        <div className="glass-card rounded-lg p-5">
-          <p className="text-sm text-muted-foreground">Nenhum plano ativo encontrado para este aluno.</p>
-        </div>
+        {futurosFiltrados.length === 0 ? (
+          <div className="glass-card rounded-lg p-5">
+            <p className="text-sm text-muted-foreground">Nenhum plano ativo encontrado para este aluno.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {futurosFiltrados.map((p: any) => (
+              <PlanoFuturoCard key={p.id} plano={p} />
+            ))}
+          </div>
+        )}
 
 
         <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
