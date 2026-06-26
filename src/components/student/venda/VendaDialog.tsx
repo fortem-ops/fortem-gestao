@@ -486,12 +486,30 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                     )}
                     <div className="flex justify-between pt-4">
                       <Button variant="outline" onClick={() => setPStep(1)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
-                      <Button disabled={!planoId} onClick={() => setPStep(3)}>Continuar</Button>
+                      <Button disabled={!planoId} onClick={() => setPStep(hasServicos ? 3 : 4)}>Continuar</Button>
                     </div>
                   </div>
                 )}
 
-                {pStep === 3 && planoSelecionado && (
+                {pStep === 3 && planoSelecionado && hasServicos && regraServicos && (
+                  <div className="space-y-4">
+                    <ServicosPlanoStep
+                      regra={regraServicos}
+                      opcaoId={opcaoServicoId}
+                      onChange={(id, opc) => { setOpcaoServicoId(id); setOpcaoServico(opc); }}
+                    />
+                    <div className="flex justify-between pt-2">
+                      <Button variant="outline" onClick={() => setPStep(2)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
+                      <Button
+                        disabled={requerEscolhaServico(regraServicos) && !opcaoServicoId}
+                        onClick={() => setPStep(4)}
+                      >Continuar</Button>
+                    </div>
+                  </div>
+                )}
+
+                {pStep === 4 && planoSelecionado && (
+
                   <div className="space-y-4">
                     <div className="rounded-xl border border-border bg-card p-5 space-y-3">
                       <div className="flex items-center justify-between">
