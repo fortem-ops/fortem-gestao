@@ -135,7 +135,11 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [canalCartao, setCanalCartao] = useState<Canal | null>(null);
 
   // Cartão dialog (REDE)
-  const [cartaoDialog, setCartaoDialog] = useState<{ vendaId: string; valor: number; recorrencia: boolean; parcelasTotais: number } | null>(null);
+  const [cartaoDialog, setCartaoDialog] = useState<{ vendaId: string; valor: number; recorrencia: boolean; parcelasTotais: number; servicosInclusos: ServicosInclusos | null } | null>(null);
+
+  // Serviços bônus do plano
+  const [opcaoServicoId, setOpcaoServicoId] = useState<string | null>(null);
+  const [opcaoServico, setOpcaoServico] = useState<OpcaoConsulta | null>(null);
 
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
@@ -144,8 +148,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     setDesconto(0); setFormaPagamento(null); setParcelas(1);
     setDataInicio(new Date());
     setTipoCobranca(null); setModalidade(null); setCanalCartao(null);
+    setOpcaoServicoId(null); setOpcaoServico(null);
     // aluno2025 preservado pelo fetch abaixo
   };
+
 
   useEffect(() => { if (!open) reset(); }, [open]);
   useEffect(() => { reset(); }, [tab]);
