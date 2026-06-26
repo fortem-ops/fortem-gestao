@@ -1,44 +1,38 @@
-# Correção: duplicação na venda e créditos não exibidos
-
 ## Diagnóstico
 
-Cada venda de plano hoje cria **dois registros em `planos`**:
+A duplicação de "Avaliação Funcional" no aluno (Marilza) tem duas causas combinadas:
 
-1. O trigger `fn_processar_venda` (BEFORE INSERT em `vendas`) insere o plano com `servicos: []` e seta `NEW.plano_id`.
-2. `sincronizarPlano` em `VendaDialog.tsx` insere um **segundo** plano com `servicos: ["1 Avaliação Funcional", ...]` preenchido.
+1. **`criarCreditosServicos` (VendaDialog.tsx) insere o crédito de AF com `origem_id = NULL`.** Sem vínculo com a venda, esse crédito fica órfão e não é removido quando a venda é excluída.
+2. **A exclusão de venda em `HistoricoVendas.tsx` só apaga `creditos_aluno` por `origem_id = venda.id`**, e nada apaga `contratos` / `ciclos_credito` / `cobrancas` ligados à venda. As tentativas anteriores da Marilza geraram 6 contratos `cancelado` e deixaram 1 crédito de AF preso (`origem_id` apontando para um contrato cancelado).
 
-O `contrato`/`venda` aponta para o plano #1 (vazio), então:
-- "Plano Contratado → Créditos de Serviços" não mostra Avaliação Funcional, pois lê de `planos.servicos` do plano linkado (vazio).
-- A aba mostra duas linhas em `planos` ativos do mesmo aluno (origem da duplicidade percebida).
+Resultado: a tabela "Serviços e Créditos Contratados" lê todos os créditos `ativo=true` do aluno e mostra 2 AF (1 órfão do contrato cancelado `3de3f031` + 1 da venda atual).
 
-Em `creditos_aluno` a duplicidade vem de dois pontos:
-- O trigger possui um bloco "Bônus Start+: 1 Avaliação Funcional" hard-coded que insere automaticamente.
-- A etapa "Serviços do Plano" do dialog selecionaria os mesmos créditos (Start+ default = 1 AF) — hoje só é gravada na recorrência cartão online via `sincronizarPlano` no plano errado; em vendas tradicionais o `criarCreditosServicos` insere os créditos da etapa também. Quando os dois caminhos passam a coexistir (ex.: futura execução da RPC pós-cobrança), AF aparece duas vezes. Já hoje, vendas antigas deixam `creditos_aluno.ativo=true` e somam-se aos novos.
+## O que será feito
 
-Além disso, `fn_processar_venda` desativa **todos** os planos ativos do aluno, ignorando o seletor "Renovação / Novo contrato / Substituir" do UI.
+### 1. Frontend — `src/components/student/venda/VendaDialog.tsx`
+- Em `criarCreditosServicos`, gravar `origem_id = vendaId` para amarrar os créditos de serviço (AF / Nutrição / Reabilitação) à venda. Assinatura recebe o `vendaId` retornado pelo insert.
+- Chamar `criarCreditosServicos(servicosInclusos, vendaIns.id)` no fluxo.
 
-## Mudanças
+### 2. Frontend — `src/components/student/venda/HistoricoVendas.tsx`
+Ampliar a exclusão da venda para um cleanup transacional na ordem:
+1. Buscar contratos com `plano_id = venda.plano_id`.
+2. Para cada contrato: `delete cobrancas where contrato_id=...`, `delete ciclos_credito where contrato_id=...`, `delete contratos where id=...`.
+3. `delete creditos_aluno where origem_id = venda.id` (já existe — agora cobre AF/Nutri/Reab também, graças ao item 1).
+4. `delete pagamentos_rede`, `delete comissionamentos`, `delete vendas` (mantém).
+5. Se o `plano` vinculado ficar sem outras vendas/contratos ativos, marcar `ativo=false`.
 
-### 1. Migration — `fn_processar_venda`
+### 3. Migração de limpeza (data-fix)
+- Deletar `creditos_aluno` cujo `origem_tipo='plano'` e `origem_id` aponte para um contrato com `status='cancelado'` **ou** para uma venda inexistente.
+- Deletar `ciclos_credito` e `cobrancas` de contratos `status='cancelado'`, depois deletar esses contratos.
+- Desativar (`ativo=false`) registros em `planos` sem venda associada e sem contrato `ativo`.
 
-- Continuar criando o registro em `planos` (necessário para `NEW.plano_id` e FKs), com `servicos: []`, `ativo=true`, datas do catálogo — mas **sem** desativar planos anteriores.
-- Remover o bloco "Bônus Start+ → Avaliação Funcional" (passa a ser responsabilidade do frontend, que já lê `getRegrasServicosPorPlano`).
-- Manter inserção do crédito de **Treino** + movimento de compra.
+Escopo conservador: filtrar pelo aluno `23f6ae86-...` primeiro para validar, depois aplicar ao universo. (O plano pode rodar global já que a regra é segura — só remove o que está marcado como cancelado/órfão.)
 
-### 2. `src/components/student/venda/VendaDialog.tsx`
+### 4. Verificação
+Re-consultar `creditos_aluno` da Marilza e confirmar 2 linhas ativas: Treino (52) + Avaliação Funcional (1). UI deve refletir após `invalidateQueries`.
 
-- Substituir `sincronizarPlano` por `atualizarPlanoDaVenda`: faz `UPDATE` no `vendas.plano_id` recém-criado preenchendo `tipo`, `valor`, `data_inicio`, `data_fim`, `duracao_meses`, `servicos`, `renovacao_automatica`, `forma_pagamento_padrao`, `parcelas_padrao`. Sem `INSERT` novo em `planos`.
-- Respeitar `modo`:
-  - `substituir` (ou ausência de plano vigente): desativar (`ativo=false`, `data_fim = hoje`) os outros planos ativos do aluno, exceto o novo `plano_id`. Desativar também os `creditos_aluno` (`ativo=false`) com `origem_tipo='plano'` cujo plano foi desativado, para limpar a tabela "Serviços e Créditos Contratados".
-  - `renovacao` / `adicional`: não tocar nos planos vigentes nem nos créditos antigos.
-- Chamar `criarCreditosServicos(servicosInclusos)` sempre que `hasServicos`, inclusive para `recorrencia` (hoje só roda em `tradicional`). Como o trigger não cria mais o bônus, não há duplicação.
+## Detalhes técnicos
 
-### 3. Dados existentes (sem migração destrutiva)
-
-Sem backfill automático. Para a Marilza, a tela vai estabilizar na próxima venda; se preferir, fazemos limpeza pontual depois.
-
-## Fora de escopo
-
-- `fn_criar_contrato_recorrencia`, `trg_auto_criar_contrato_ciclo`, edge functions Rede.
-- Aba Pagamentos e tabela `contratos`.
-- Visual/UX da aba Plano/Serviços.
+- O trigger `fn_processar_venda` já está correto (cria só o crédito de Treino com `origem_id=venda.id`); não será alterado.
+- A RPC `fn_criar_contrato_recorrencia` não toca `creditos_aluno`; não será alterada.
+- Não há FK ON DELETE CASCADE de `creditos_aluno → vendas` (origem_id é polimórfico via `origem_tipo`), por isso a limpeza precisa ser explícita no app.
