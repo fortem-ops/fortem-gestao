@@ -7,6 +7,7 @@ import type { QueryClient } from "@tanstack/react-query";
  */
 export function invalidatePlanoCaches(qc: QueryClient, alunoId: string) {
   qc.invalidateQueries({ queryKey: ["plano_ativo", alunoId] });
+  qc.invalidateQueries({ queryKey: ["planos_futuros", alunoId] });
   qc.invalidateQueries({ queryKey: ["plano_resumo", alunoId] });
   qc.invalidateQueries({ queryKey: ["aluno_display_status", alunoId] });
   qc.invalidateQueries({ queryKey: ["aluno_licencas_summary", alunoId] });

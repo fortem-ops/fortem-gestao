@@ -173,6 +173,24 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     },
   });
 
+  // Planos contratados ainda não vigentes (renovação / contrato adicional futuro)
+  const { data: planosFuturos = [] } = useQuery({
+    queryKey: ["planos_futuros", student.id],
+    queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const { data: futuros } = await supabase
+        .from("planos")
+        .select("*")
+        .eq("aluno_id", student.id)
+        .eq("ativo", true)
+        .gt("data_inicio", today)
+        .order("data_inicio", { ascending: true });
+      return futuros ?? [];
+    },
+  });
+
+  const futurosFiltrados = (planosFuturos as any[]).filter((p) => !data || p.id !== data.id);
+
   async function handleSaveCredit(dbLabel: string) {
     if (!data) return;
     setSaving(true);
@@ -341,9 +359,17 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
             <ShoppingCart className="w-4 h-4" /> Venda
           </Button>
         </div>
-        <div className="glass-card rounded-lg p-5">
-          <p className="text-sm text-muted-foreground">Nenhum plano ativo encontrado para este aluno.</p>
-        </div>
+        {futurosFiltrados.length === 0 ? (
+          <div className="glass-card rounded-lg p-5">
+            <p className="text-sm text-muted-foreground">Nenhum plano ativo encontrado para este aluno.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {futurosFiltrados.map((p: any) => (
+              <PlanoFuturoCard key={p.id} plano={p} />
+            ))}
+          </div>
+        )}
 
 
         <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
@@ -589,6 +615,15 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
         <StudentLicencas alunoId={student.id} planoId={data.id} planoTipo={data.tipo} isCoordAdmin={isCoordAdmin} />
       </div>
+
+      {futurosFiltrados.length > 0 && (
+        <div className="space-y-3">
+          {futurosFiltrados.map((p: any) => (
+            <PlanoFuturoCard key={p.id} plano={p} />
+          ))}
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground">Editável apenas por Coordenação e Administração</p>
 
       <Dialog open={addUsageOpen} onOpenChange={setAddUsageOpen}>
@@ -908,5 +943,66 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PlanoFuturoCard({ plano }: { plano: any }) {
+  const inicio = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") : "—";
+  const fim = plano.data_fim
+    ? new Date(plano.data_fim + "T00:00:00").toLocaleDateString("pt-BR")
+    : (plano.data_inicio ? calcEndDate(plano.data_inicio, plano.duracao_meses ?? 1) : "—");
+  const servicos: string[] = plano.servicos || [];
+  return (
+    <div className="glass-card rounded-lg p-5 space-y-3 border-l-4 border-l-warning/70">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge className="text-sm px-3 py-1">{plano.tipo}</Badge>
+          <Badge variant="outline" className="status-warning gap-1">
+            <Clock className="h-3 w-3" /> Aguardando início
+          </Badge>
+          {(plano.renovacao_automatica || isAutoRenewPlan(plano.tipo)) && (
+            <Badge variant="outline" className="status-info gap-1">
+              <RefreshCw className="h-3 w-3" /> Renovação automática
+            </Badge>
+          )}
+        </div>
+        {plano.valor != null && plano.valor > 0 && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <DollarSign className="h-4 w-4" />
+            <span>R$ {Number(plano.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-muted-foreground">Início</p>
+            <p className="font-medium text-foreground">{inicio}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-muted-foreground">Término</p>
+            <p className="font-medium text-foreground">{fim}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-muted-foreground">Duração</p>
+            <p className="font-medium text-foreground">{plano.duracao_meses} {plano.duracao_meses === 1 ? "mês" : "meses"}</p>
+          </div>
+        </div>
+      </div>
+      {servicos.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {servicos.map((s, i) => (
+            <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
