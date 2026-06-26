@@ -97,7 +97,9 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
           security_code: cvv,
           installments: recorrencia ? 1 : Number(parcelas),
           save_card: salvar,
+          servicos_inclusos: servicosInclusos,
         },
+
       });
       if (error) throw error;
       if (data?.success) {
