@@ -465,7 +465,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       qc.invalidateQueries({ queryKey: ["contratos", alunoId] });
       qc.invalidateQueries({ queryKey: ["cobrancas"] });
       qc.invalidateQueries({ queryKey: ["ciclos_credito"] });
+      qc.invalidateQueries({ queryKey: ["plano-vigente-venda", alunoId] });
       invalidatePlanoCaches(qc, alunoId);
+
       if (cartaoOnline && vendaId) {
         toast.success("Venda registrada — informe os dados do cartão");
         setCartaoDialog({
