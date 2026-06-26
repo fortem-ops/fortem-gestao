@@ -740,6 +740,12 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
             onSuccess={() => {
               qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+              qc.invalidateQueries({ queryKey: ["contratos"] });
+              qc.invalidateQueries({ queryKey: ["contratos", alunoId] });
+              qc.invalidateQueries({ queryKey: ["cobrancas"] });
+              qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
+              qc.invalidateQueries({ queryKey: ["creditos_resumo", alunoId] });
+              qc.invalidateQueries({ queryKey: ["creditos_aluno_lista", alunoId] });
               invalidatePlanoCaches(qc, alunoId);
             }}
           />
