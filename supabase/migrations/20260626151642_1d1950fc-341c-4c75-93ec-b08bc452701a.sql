@@ -1,0 +1,2 @@
+ALTER TABLE public.ponto_horarios_professor DROP CONSTRAINT ponto_horarios_professor_check1;
+ALTER TABLE public.ponto_horarios_professor ADD CONSTRAINT ponto_horarios_professor_check1 CHECK (horario_inicio >= '05:00:00'::time AND horario_fim <= '21:15:00'::time);
