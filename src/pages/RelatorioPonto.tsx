@@ -696,8 +696,28 @@ function DiarioTable({
                   <TableCell>
                     {!isFalta && justificativaBadge({ motivo: (l as any).motivo, descricao: (l as any).descricao })}
                   </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground">
-                    {isFalta ? "Sem ponto" : "—"}
+                  <TableCell className="text-right">
+                    {isFalta ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => {
+                          setAjusteAlvo({
+                            id: null,
+                            usuario_id: l.usuario_id,
+                            nome: profMap.get(l.usuario_id) ?? "—",
+                            data: l.data,
+                            criar: true,
+                          });
+                          setAjusteOpen(true);
+                        }}
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Registrar ponto
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               );
