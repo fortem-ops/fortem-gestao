@@ -296,7 +296,7 @@ export default function RelatorioPonto() {
     const mesIni = mesFiltro + "-01";
     const dt = new Date(mesIni + "T00:00");
     const ultimo = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).toISOString().slice(0, 10);
-    const dentroMes = jornadas.filter((j) => j.data >= mesIni && j.data <= ultimo);
+    const dentroMes = jornadas.filter((j) => j.data >= mesIni && j.data <= ultimo && isAtivo(j.usuario_id));
     const porUser = new Map<string, { dias: number; total: number; pend: number }>();
     dentroMes.forEach((j) => {
       const r = porUser.get(j.usuario_id) ?? { dias: 0, total: 0, pend: 0 };
@@ -307,9 +307,10 @@ export default function RelatorioPonto() {
     });
     // previsto = soma das janelas previstas dos dias do mês + conta faltas
     const out: MensalExport[] = [];
-    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id)));
+    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id))).filter(isAtivo);
     const usuariosNoMes = new Set<string>([...porUser.keys(), ...usuariosComHorario]);
     usuariosNoMes.forEach((uid) => {
+      if (!isAtivo(uid)) return;
       const agg = porUser.get(uid) ?? { dias: 0, total: 0, pend: 0 };
       let previsto = 0;
       let faltas = 0;
