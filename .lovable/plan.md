@@ -1,45 +1,27 @@
-## Problema
+## Objetivo
 
-Ao selecionar **"Novo contrato (adicional)"** em uma nova venda:
+Em **Perfil do Aluno → Plano/Serviços**, replicar o comportamento da aba **Pagamentos**: listar **todos os planos contratados ativos** (não apenas o vigente). Renovações e contratos adicionais com `data_inicio > hoje` aparecem logo abaixo do plano vigente com o badge **"Aguardando início"**.
 
-1. A data de início está sendo forçada para "dia seguinte ao fim do plano vigente" — o `useEffect` em `VendaDialog.tsx` (linhas 212‑218) hoje só checa `modo === "renovacao"`, mas o estado padrão quando há plano vigente também é `"renovacao"`, e mesmo trocando para `"adicional"` a data fica desalinhada porque nunca volta para "hoje".
-2. Em **Pagamentos** (`ContratoFinanceiro.tsx`, linha 94) só é exibido **um** contrato ativo (`contratos.find(c => c.status === "ativo")`), escondendo o contrato adicional recém‑criado.
+## Estado atual
 
-## Correções
+`src/components/student/StudentPlan.tsx` busca apenas **um** plano em `planos` (o vigente hoje, ou o mais recente como fallback). Renovações já vendidas com início futuro ficam invisíveis nessa aba até o dia em que entram em vigência.
 
-### 1. `src/components/student/venda/VendaDialog.tsx`
+## Mudanças
 
-- No `useEffect` que ajusta `dataInicio` em função de `modoContrato`:
-  - `renovacao` → continua: `fimVigente + 1 dia`.
-  - `adicional` → setar `dataInicio` para **hoje** (permitindo override manual pelo usuário).
-  - `substituir` → manter hoje (já é o default).
-- Garantir que, ao alternar entre os três modos, a data se reajusta corretamente (resetar para hoje quando sair de "renovacao").
-- Sem nenhuma outra mudança de lógica de venda.
+### 1. `src/components/student/StudentPlan.tsx`
 
-### 2. `src/pages/alunos/ContratoFinanceiro.tsx`
+- Trocar a query `plano_ativo` por **`planos_contratados`**: traz todos os registros de `planos` do aluno com `ativo = true`, ordenados por `data_inicio` ascendente. Para cada um, carrega `consumo_servicos` daquele `plano_id` e monta o objeto `credits` exatamente como hoje.
+- Separar a lista em:
+  - **Vigente** (`data_inicio <= hoje` e ainda não vencido) — o primeiro/único; renderizado com o card completo atual (edição, créditos, licenças, cancelar contrato, etc.).
+  - **Aguardando início** (`data_inicio > hoje`) — renderizados abaixo, cada um em um card mais enxuto com: badge **"Aguardando início"** (status-warning), tipo, valor, início, término, duração e a linha de créditos do plano. Sem botões de edição/uso para não duplicar fluxos; mantém apenas "Cancelar contrato" para admin/coord (reusa `CancelContractDialog` passando o `plano` correspondente).
+- Se não houver vigente mas existir futuro, o card de futuro é o único exibido (com aviso "Plano ainda não iniciou").
+- Manter `StudentServicos` e `StudentLicencas` ligados ao plano **vigente** (comportamento atual). Para o futuro, apenas a faixa de créditos prevista do próprio plano.
+- Atualizar `invalidatePlanoCaches` chamadas para a nova `queryKey` (adicionar `"planos_contratados"` em `src/lib/planoCache.ts`).
 
-Refatorar a página para suportar **N contratos ativos simultâneos**:
+### 2. `src/lib/planoCache.ts`
 
-- Trocar `const ativo = contratos.find(...)` por `const ativos = contratos.filter(c => c.status === 'ativo' || c.status === 'inadimplente' || c.status === 'suspenso')`.
-- Ordenar `ativos` por `data_inicio` ascendente — assim o **plano vigente atual aparece em cima** e os **adicionais/renovações futuros aparecem logo abaixo**.
-- Extrair o bloco hoje renderizado para o "ativo" em um subcomponente local `ContratoAtivoCard` que recebe `contrato` e renderiza:
-  - Cabeçalho (badges, datas, valor mensal, próxima cobrança, créditos do ciclo).
-  - Bloco de **Inadimplências** específicas daquele contrato.
-  - Tabela de **Cobranças** específicas daquele contrato.
-  - Botão de cancelar contrato (mantém RBAC `podeCancelar`).
-- Hoje há `useQuery` para `cobrancas`, `ciclo` e `inadimplencias` atrelados a um único `ativo`. Mover essas queries para dentro do subcomponente, indexadas pelo `contrato.id`, para que cada card carregue seus próprios dados.
-- Adicionar um pequeno rótulo visual quando houver mais de um contrato ativo:
-  - O primeiro (data_inicio mais antiga) recebe badge "Vigente".
-  - Os demais recebem badge "Futuro" (data_inicio > hoje) ou "Adicional" (data_inicio ≤ hoje).
-- Histórico (contratos não‑ativos) e Histórico de Pagamentos continuam intactos no fim da página.
+- Acrescentar `qc.invalidateQueries({ queryKey: ["planos_contratados", alunoId] });` para que vendas/edições/cancelamentos refresquem a nova lista.
 
-### 3. Sem alterações de banco / RPC
+## Fora de escopo
 
-Nenhuma migração necessária. A RPC `fn_criar_contrato_recorrencia` e o trigger `trg_auto_criar_contrato_ciclo` continuam criando o contrato corretamente; a página passa a apenas **exibir** todos os ativos.
-
-## Validação
-
-- Aluno com plano Start+ vigente → abrir Nova venda → marcar **Novo contrato (adicional)** → data de início deve voltar para **hoje** (editável).
-- Após finalizar, a aba **Pagamentos** deve mostrar **dois cards** de contrato ativo, na ordem: vigente em cima, novo logo abaixo, cada um com suas próprias cobranças.
-- Alternar para "Renovação" continua deslocando a data para o dia seguinte ao fim do plano atual.
-- "Substituir" continua desativando o anterior (volta a um único card ativo).
+- Nenhuma mudança em RPC, migrations, edge functions, `VendaDialog`, `ContratoFinanceiro` ou regras de negócio. A view de "Pagamentos" continua como referência visual — não é compartilhada.
