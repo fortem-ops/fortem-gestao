@@ -20,10 +20,10 @@ const DIAS = [
   { val: 6, label: "Sábado" },
 ];
 
-// 06:00 → 21:15 em passos de 15 min
+// 05:00 → 21:15 em passos de 15 min
 const HORARIOS = (() => {
   const out: string[] = [];
-  for (let h = 6; h <= 21; h++) {
+  for (let h = 5; h <= 21; h++) {
     for (let m = 0; m < 60; m += 15) {
       if (h === 21 && m > 15) break;
       out.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
