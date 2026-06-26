@@ -469,7 +469,7 @@ export default function RelatorioPonto() {
                 <ExportarRelatorioMenu
                   onCSV={() => handleExportDiario("csv")}
                   onXLSX={() => handleExportDiario("xlsx")}
-                  disabled={!jornadasFiltradas.length}
+                  disabled={!linhasDiarias.length}
                 />
               </div>
             </div>
@@ -478,17 +478,18 @@ export default function RelatorioPonto() {
           <Card className="p-4">
             {loadingJornadas ? (
               <Skeleton className="h-64" />
-            ) : !jornadasFiltradas.length ? (
-              <p className="text-sm text-muted-foreground py-10 text-center">Nenhuma jornada encontrada no período.</p>
+            ) : !linhasDiarias.length ? (
+              <p className="text-sm text-muted-foreground py-10 text-center">Nenhum registro no período.</p>
             ) : (
               <DiarioTable
-                jornadas={jornadasFiltradas}
+                linhas={linhasDiarias}
                 profMap={profMap}
                 horarioPara={horarioPara}
                 intervaloObrigatorio={intervaloObrigatorio}
                 ausenciaPara={ausenciaPara}
               />
             )}
+
           </Card>
         </TabsContent>
 
