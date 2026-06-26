@@ -444,7 +444,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         formaPagamento: formaPgto,
         parcelas: parcelas || 1,
         recorrencia: tipoCobranca === "recorrencia",
+        modo: planoVigente ? modoContrato : "substituir",
       });
+
 
 
       const periodoPlano = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
