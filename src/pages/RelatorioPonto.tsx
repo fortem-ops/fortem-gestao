@@ -584,13 +584,13 @@ export default function RelatorioPonto() {
 
 // ====== Subcomponente: tabela diária com expand de eventos e ajuste ======
 function DiarioTable({
-  jornadas,
+  linhas,
   profMap,
   horarioPara,
   intervaloObrigatorio,
   ausenciaPara,
 }: {
-  jornadas: Jornada[];
+  linhas: LinhaDiaria[];
   profMap: Map<string, string>;
   horarioPara: (uid: string, data: string) => HorarioRow | undefined;
   intervaloObrigatorio: boolean;
@@ -645,7 +645,39 @@ function DiarioTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jornadas.map((j) => {
+          {linhas.map((l, idx) => {
+            if (l.kind !== "jornada") {
+              const isFalta = l.kind === "falta";
+              const key = `${l.kind}-${l.usuario_id}-${l.data}-${idx}`;
+              return (
+                <TableRow key={key} className={isFalta ? "bg-destructive/5" : "bg-info/5"}>
+                  <TableCell></TableCell>
+                  <TableCell className="font-medium">
+                    {new Date(l.data + "T00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                  </TableCell>
+                  <TableCell>{profMap.get(l.usuario_id) ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">—</TableCell>
+                  <TableCell className="text-muted-foreground">—</TableCell>
+                  <TableCell className="text-muted-foreground">—</TableCell>
+                  <TableCell className="text-right font-semibold text-muted-foreground">0min</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{formatMinutes(l.previsto)}</TableCell>
+                  <TableCell>
+                    {isFalta ? (
+                      <Badge variant="destructive" className="text-[10px]">Falta</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">—</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {!isFalta && justificativaBadge({ motivo: (l as any).motivo, descricao: (l as any).descricao })}
+                  </TableCell>
+                  <TableCell className="text-right text-xs text-muted-foreground">
+                    {isFalta ? "Sem ponto" : "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            }
+            const j = l.jornada;
             const open = expanded === j.id;
             const prev = previstoMinutos(horarioPara(j.usuario_id, j.data));
             const pend = pendenciasJornada(j, intervaloObrigatorio);
@@ -732,6 +764,7 @@ function DiarioTable({
           })}
         </TableBody>
       </Table>
+
 
       <AjustarJornadaDialog
         open={ajusteOpen}
