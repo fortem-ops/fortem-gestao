@@ -21,9 +21,20 @@ import { cn } from "@/lib/utils";
 import { PaymentFields } from "./PaymentFields";
 import { TipoCobrancaSection } from "./TipoCobrancaSection";
 import { PagamentoStep, type Modalidade, type Canal } from "./PagamentoStep";
+import { ServicosPlanoStep } from "./ServicosPlanoStep";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
+import {
+  getRegrasServicosPorPlano,
+  planoTemEtapaServicos,
+  montarServicosInclusos,
+  requerEscolhaServico,
+  mapModalidadeParaContrato,
+  type OpcaoConsulta,
+  type ServicosInclusos,
+} from "@/lib/vendas-servicos";
+
 
 type Props = { alunoId: string; alunoNome: string; open: boolean; onOpenChange: (v: boolean) => void };
 
@@ -89,7 +100,9 @@ function RadioCard({
   );
 }
 
-const PLANO_STEPS = ["Frequência", "Plano", "Resumo", "Pagamento"];
+const PLANO_STEPS_FULL = ["Frequência", "Plano", "Serviços", "Resumo", "Pagamento"];
+const PLANO_STEPS_BASE = ["Frequência", "Plano", "Resumo", "Pagamento"];
+
 
 export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const qc = useQueryClient();
