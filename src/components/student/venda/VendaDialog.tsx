@@ -237,7 +237,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const hasServicos = !!regraServicos;
   const servicosInclusos: ServicosInclusos = montarServicosInclusos(regraServicos, opcaoServico);
   const planoSteps = hasServicos ? PLANO_STEPS_FULL : PLANO_STEPS_BASE;
-  const displayStep = !hasServicos && pStep >= 3 ? pStep - 1 : pStep;
+  const displayStep = hasServicos ? pStep : (pStep < 4 ? pStep : pStep - 1);
 
   // Cria créditos de serviços para vendas não recorrentes (recorrência usa a RPC)
   const criarCreditosServicos = async (svc: ServicosInclusos) => {
