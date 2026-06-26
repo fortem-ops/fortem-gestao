@@ -119,7 +119,7 @@ export function AdminPontoHorarios() {
         <h3 className="font-heading font-semibold text-lg">Horário por funcionário</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Defina a janela de trabalho (06:00–21:15) para cada dia da semana (segunda a sábado) e se haverá intervalo de 15 minutos.
+        Defina a janela de trabalho (05:00–21:15) para cada dia da semana (segunda a sábado) e se haverá intervalo de 15 minutos.
       </p>
 
       <div className="max-w-sm">
