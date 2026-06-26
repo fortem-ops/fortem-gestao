@@ -61,7 +61,7 @@ const brandLabel: Record<string, string> = {
   amex: "Amex", diners: "Diners", desconhecida: "Bandeira",
 };
 
-export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor, onSuccess, recorrencia, parcelasTotais = 12 }: Props) {
+export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor, onSuccess, recorrencia, parcelasTotais = 12, servicosInclusos = null }: Props) {
   const [num, setNum] = useState("");
   const [holder, setHolder] = useState("");
   const [mes, setMes] = useState("");
