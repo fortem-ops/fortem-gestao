@@ -224,16 +224,63 @@ export default function RelatorioPonto() {
     return horarios.find((h) => h.usuario_id === uid && h.dia_semana === dow);
   };
 
-  // Aplicar filtro de status
-  const jornadasFiltradas = useMemo(() => {
-    return jornadas.filter((j) => {
+  // Constrói linhas sintéticas de FALTA / AUSÊNCIA JUSTIFICADA para dias do período
+  // em que existe horário previsto mas não há jornada registrada.
+  const linhasSinteticas = useMemo<LinhaDiaria[]>(() => {
+    if (!horarios.length) return [];
+    const out: LinhaDiaria[] = [];
+    const existentes = new Set(jornadas.map((j) => `${j.usuario_id}|${j.data}`));
+    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id)));
+    const alvos = profId === "todos" ? usuariosComHorario : [profId];
+    const cur = new Date(inicio + "T00:00");
+    const end = new Date(fim + "T00:00");
+    while (cur <= end) {
+      const iso = cur.toISOString().slice(0, 10);
+      const dow = cur.getDay();
+      for (const uid of alvos) {
+        if (existentes.has(`${uid}|${iso}`)) continue;
+        const h = horarios.find((x) => x.usuario_id === uid && x.dia_semana === dow);
+        if (!h) continue;
+        const prev = previstoMinutos(h);
+        if (prev <= 0) continue;
+        const aus = ausenciaPara(uid, iso);
+        if (aus) {
+          out.push({ kind: "ausencia", usuario_id: uid, data: iso, previsto: prev, motivo: aus.motivo, descricao: aus.descricao });
+        } else {
+          out.push({ kind: "falta", usuario_id: uid, data: iso, previsto: prev });
+        }
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }, [horarios, jornadas, profId, inicio, fim, feriadoMap, ferias]);
+
+  // Combina e filtra por status
+  const linhasDiarias = useMemo<LinhaDiaria[]>(() => {
+    const jornadasLinhas: LinhaDiaria[] = jornadas.map((j) => ({ kind: "jornada", jornada: j }));
+    const todas = [...jornadasLinhas, ...linhasSinteticas];
+    const filtradas = todas.filter((l) => {
       if (statusFilter === "todos") return true;
-      if (statusFilter === "aberto") return !j.saida;
-      if (statusFilter === "encerrada") return !!j.saida;
-      if (statusFilter === "pendencia") return pendenciasJornada(j, intervaloObrigatorio).length > 0;
-      return true;
+      if (statusFilter === "falta") return l.kind === "falta";
+      if (l.kind === "jornada") {
+        const j = l.jornada;
+        if (statusFilter === "aberto") return !j.saida;
+        if (statusFilter === "encerrada") return !!j.saida;
+        if (statusFilter === "pendencia") return pendenciasJornada(j, intervaloObrigatorio).length > 0;
+        return true;
+      }
+      // Sintéticas: contam para "pendência" apenas se forem falta
+      if (statusFilter === "pendencia") return l.kind === "falta";
+      return false;
     });
-  }, [jornadas, statusFilter, intervaloObrigatorio]);
+    return filtradas.sort((a, b) => {
+      const da = a.kind === "jornada" ? a.jornada.data : a.data;
+      const db = b.kind === "jornada" ? b.jornada.data : b.data;
+      return db.localeCompare(da);
+    });
+  }, [jornadas, linhasSinteticas, statusFilter, intervaloObrigatorio]);
+
+
 
   const periodoLabel = `${inicio}_a_${fim}`;
 
