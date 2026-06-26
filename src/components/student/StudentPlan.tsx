@@ -132,7 +132,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
 
       // Plano vencido sem renovação automática => tratar como inativo
-      const today = new Date().toISOString().split("T")[0];
+
       const autoRenew = (plano as any).renovacao_automatica || isAutoRenewPlan(plano.tipo);
       if (!autoRenew && (plano as any).data_fim && (plano as any).data_fim < today) {
         return null;
