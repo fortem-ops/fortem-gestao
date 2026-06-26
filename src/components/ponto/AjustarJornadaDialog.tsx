@@ -82,10 +82,13 @@ export function AjustarJornadaDialog({
       toast.success(criando ? "Ponto registrado" : "Ajuste registrado", {
         description: "A alteração foi gravada no log de auditoria.",
       });
-      qc.invalidateQueries({ queryKey: ["ponto-equipe"] });
-      qc.invalidateQueries({ queryKey: ["ponto-fechamento-mes"] });
-      qc.invalidateQueries({ queryKey: ["relatorio-ponto"] });
-      qc.invalidateQueries({ queryKey: ["ponto-jornadas"] });
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey?.[0];
+          return typeof k === "string" && (k.startsWith("relatorio-") || k.startsWith("ponto-"));
+        },
+        refetchType: "active",
+      });
       onOpenChange(false);
       setMotivo("");
       setHora("");
