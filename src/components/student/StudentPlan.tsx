@@ -185,9 +185,11 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         .eq("ativo", true)
         .gt("data_inicio", today)
         .order("data_inicio", { ascending: true });
-      return (futuros ?? []).filter((p: any) => !data || p.id !== data.id);
+      return futuros ?? [];
     },
   });
+
+  const futurosFiltrados = (planosFuturos as any[]).filter((p) => !data || p.id !== data.id);
 
   async function handleSaveCredit(dbLabel: string) {
     if (!data) return;
