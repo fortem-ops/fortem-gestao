@@ -176,6 +176,48 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     if (alunoInfo) setAluno2025(!!alunoInfo.aluno_2025);
   }, [alunoInfo]);
 
+  // Plano vigente do aluno (para definir Renovação/Adicional/Substituir)
+  const { data: planoVigente } = useQuery({
+    queryKey: ["plano-vigente-venda", alunoId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("planos")
+        .select("id, tipo, data_inicio, data_fim, duracao_meses, renovacao_automatica")
+        .eq("aluno_id", alunoId)
+        .eq("ativo", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data || null;
+    },
+    enabled: open && tab === "planos",
+  });
+
+  // Quando há plano vigente, o padrão é "renovacao" (não substituir)
+  useEffect(() => {
+    if (planoVigente) setModoContrato("renovacao");
+    else setModoContrato("substituir");
+  }, [planoVigente?.id]);
+
+  // Calcula término do vigente (data_fim ou início + duração)
+  const fimVigente = (() => {
+    if (!planoVigente) return null;
+    if (planoVigente.data_fim) return new Date(planoVigente.data_fim + "T00:00:00");
+    const d = new Date(planoVigente.data_inicio + "T00:00:00");
+    d.setMonth(d.getMonth() + (planoVigente.duracao_meses || 1));
+    return d;
+  })();
+
+  // Em modo "renovacao", força data de início para o dia após o término do vigente
+  useEffect(() => {
+    if (modoContrato === "renovacao" && fimVigente) {
+      const proxima = new Date(fimVigente);
+      proxima.setDate(proxima.getDate() + 1);
+      setDataInicio(proxima);
+    }
+  }, [modoContrato, fimVigente?.getTime()]);
+
+
   const { data: planos = [], isLoading: lp } = useQuery({
     queryKey: ["planos-catalogo-ativos"],
     queryFn: async () => {
