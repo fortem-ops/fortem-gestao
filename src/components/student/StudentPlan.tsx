@@ -16,7 +16,7 @@ import { StudentLicencas } from "./StudentLicencas";
 import { isAutoRenewPlan } from "@/lib/planTipo";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
-import { HistoricoVendas } from "./venda/HistoricoVendas";
+
 import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
@@ -103,19 +103,36 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const { data, isLoading } = useQuery({
     queryKey: ["plano_ativo", student.id],
     queryFn: async () => {
-      const { data: planos } = await supabase
+      const today = new Date().toISOString().split("T")[0];
+      // Prioriza o plano em vigência hoje (data_inicio <= today). Se houver
+      // apenas planos futuros (caso de renovação ou contrato adicional ainda
+      // não iniciado), cai para o registro mais recente para que algo apareça.
+      const { data: planosAtuais } = await supabase
         .from("planos")
         .select("*")
         .eq("aluno_id", student.id)
         .eq("ativo", true)
-        .order("created_at", { ascending: false })
+        .lte("data_inicio", today)
+        .order("data_inicio", { ascending: false })
         .limit(1);
+      let planos = planosAtuais;
+      if (!planos || planos.length === 0) {
+        const { data: futuros } = await supabase
+          .from("planos")
+          .select("*")
+          .eq("aluno_id", student.id)
+          .eq("ativo", true)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        planos = futuros;
+      }
 
       if (!planos || planos.length === 0) return null;
       const plano = planos[0];
 
+
       // Plano vencido sem renovação automática => tratar como inativo
-      const today = new Date().toISOString().split("T")[0];
+
       const autoRenew = (plano as any).renovacao_automatica || isAutoRenewPlan(plano.tipo);
       if (!autoRenew && (plano as any).data_fim && (plano as any).data_fim < today) {
         return null;
@@ -327,7 +344,8 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         <div className="glass-card rounded-lg p-5">
           <p className="text-sm text-muted-foreground">Nenhum plano ativo encontrado para este aluno.</p>
         </div>
-        <HistoricoVendas alunoId={student.id} />
+
+
         <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
       </div>
     );
@@ -597,7 +615,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
 
-      <HistoricoVendas alunoId={student.id} />
+      
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
 
       <CancelContractDialog

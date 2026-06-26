@@ -141,6 +141,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [opcaoServicoId, setOpcaoServicoId] = useState<string | null>(null);
   const [opcaoServico, setOpcaoServico] = useState<OpcaoConsulta | null>(null);
 
+  // Modo do contrato em relação ao plano vigente
+  const [modoContrato, setModoContrato] = useState<"substituir" | "renovacao" | "adicional">("substituir");
+
+
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
     setSStep(1); setServicoId("");
@@ -149,8 +153,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     setDataInicio(new Date());
     setTipoCobranca(null); setModalidade(null); setCanalCartao(null);
     setOpcaoServicoId(null); setOpcaoServico(null);
+    setModoContrato("substituir");
     // aluno2025 preservado pelo fetch abaixo
   };
+
 
 
   useEffect(() => { if (!open) reset(); }, [open]);
@@ -169,6 +175,48 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   useEffect(() => {
     if (alunoInfo) setAluno2025(!!alunoInfo.aluno_2025);
   }, [alunoInfo]);
+
+  // Plano vigente do aluno (para definir Renovação/Adicional/Substituir)
+  const { data: planoVigente } = useQuery({
+    queryKey: ["plano-vigente-venda", alunoId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("planos")
+        .select("id, tipo, data_inicio, data_fim, duracao_meses, renovacao_automatica")
+        .eq("aluno_id", alunoId)
+        .eq("ativo", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data || null;
+    },
+    enabled: open && tab === "planos",
+  });
+
+  // Quando há plano vigente, o padrão é "renovacao" (não substituir)
+  useEffect(() => {
+    if (planoVigente) setModoContrato("renovacao");
+    else setModoContrato("substituir");
+  }, [planoVigente?.id]);
+
+  // Calcula término do vigente (data_fim ou início + duração)
+  const fimVigente = (() => {
+    if (!planoVigente) return null;
+    if (planoVigente.data_fim) return new Date(planoVigente.data_fim + "T00:00:00");
+    const d = new Date(planoVigente.data_inicio + "T00:00:00");
+    d.setMonth(d.getMonth() + (planoVigente.duracao_meses || 1));
+    return d;
+  })();
+
+  // Em modo "renovacao", força data de início para o dia após o término do vigente
+  useEffect(() => {
+    if (modoContrato === "renovacao" && fimVigente) {
+      const proxima = new Date(fimVigente);
+      proxima.setDate(proxima.getDate() + 1);
+      setDataInicio(proxima);
+    }
+  }, [modoContrato, fimVigente?.getTime()]);
+
 
   const { data: planos = [], isLoading: lp } = useQuery({
     queryKey: ["planos-catalogo-ativos"],
@@ -263,7 +311,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     formaPagamento: string | null;
     parcelas: number;
     recorrencia: boolean;
+    modo: "substituir" | "renovacao" | "adicional";
   }) => {
+
     const inicio = format(params.dataInicio, "yyyy-MM-dd");
     const fimDate = new Date(params.dataInicio);
     fimDate.setMonth(fimDate.getMonth() + params.duracaoMeses);
@@ -274,11 +324,16 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     if (params.svc.nutricao > 0) servicosArr.push(`${params.svc.nutricao} Consultas Nutrição`);
     if (params.svc.reabilitacao > 0) servicosArr.push(`${params.svc.reabilitacao} Consultas Reabilitação`);
 
-    await (supabase as any)
-      .from("planos")
-      .update({ ativo: false })
-      .eq("aluno_id", alunoId)
-      .eq("ativo", true);
+    // Em "renovacao"/"adicional" mantemos o plano vigente ativo (ele continua
+    // valendo até a data_fim natural). Só "substituir" desativa o anterior.
+    if (params.modo === "substituir") {
+      await (supabase as any)
+        .from("planos")
+        .update({ ativo: false })
+        .eq("aluno_id", alunoId)
+        .eq("ativo", true);
+    }
+
 
     await (supabase as any).from("planos").insert({
       aluno_id: alunoId,
@@ -389,7 +444,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         formaPagamento: formaPgto,
         parcelas: parcelas || 1,
         recorrencia: tipoCobranca === "recorrencia",
+        modo: planoVigente ? modoContrato : "substituir",
       });
+
 
 
       const periodoPlano = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
@@ -408,7 +465,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       qc.invalidateQueries({ queryKey: ["contratos", alunoId] });
       qc.invalidateQueries({ queryKey: ["cobrancas"] });
       qc.invalidateQueries({ queryKey: ["ciclos_credito"] });
+      qc.invalidateQueries({ queryKey: ["plano-vigente-venda", alunoId] });
       invalidatePlanoCaches(qc, alunoId);
+
       if (cartaoOnline && vendaId) {
         toast.success("Venda registrada — informe os dados do cartão");
         setCartaoDialog({
@@ -590,6 +649,39 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                         <div><span className="text-muted-foreground">Créditos:</span> <span className="font-medium">{planoSelecionado.ilimitado ? "Ilimitado" : `${planoSelecionado.quantidade_creditos}`}</span></div>
                       </div>
                     </div>
+
+                    {planoVigente && (
+                      <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 space-y-3">
+                        <div className="text-sm">
+                          <div className="font-medium text-foreground">Aluno já possui plano vigente</div>
+                          <div className="text-xs text-muted-foreground">
+                            {planoVigente.tipo} · até {fimVigente ? format(fimVigente, "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                          </div>
+                        </div>
+                        <div className="grid gap-2">
+                          <RadioCard
+                            selected={modoContrato === "renovacao"}
+                            onClick={() => setModoContrato("renovacao")}
+                            title="Renovação"
+                            subtitle="Mantém o plano atual ativo até o fim. O novo contrato começa no dia seguinte ao término."
+                          />
+                          <RadioCard
+                            selected={modoContrato === "adicional"}
+                            onClick={() => setModoContrato("adicional")}
+                            title="Novo contrato (adicional)"
+                            subtitle="Mantém o plano atual e cria um contrato independente com data de início livre."
+                          />
+                          <RadioCard
+                            selected={modoContrato === "substituir"}
+                            onClick={() => setModoContrato("substituir")}
+                            title="Substituir plano atual"
+                            subtitle="Encerra o plano vigente imediatamente e ativa o novo no lugar."
+                          />
+                        </div>
+                      </div>
+                    )}
+
+
 
                     <div className="space-y-2">
                       <Label>Data de Início do Plano</Label>

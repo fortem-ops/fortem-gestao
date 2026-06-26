@@ -47,6 +47,7 @@ import {
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
 import { RescisaoDialog } from "@/components/contratos/RescisaoDialog";
+import { HistoricoVendas } from "@/components/student/venda/HistoricoVendas";
 import {
   LABEL_PLANO,
   LABEL_PAGAMENTO,
@@ -54,6 +55,7 @@ import {
   type Contrato,
   type ServicoUtilizado,
 } from "@/lib/contratos-calc";
+
 
 interface Props {
   alunoId: string;
@@ -143,12 +145,19 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
 
   if (!contratos.length) {
     return (
-      <Card className="p-8 text-center text-muted-foreground">
-        <FileX className="h-10 w-10 mx-auto mb-3 opacity-50" />
-        Nenhum contrato cadastrado para este aluno.
-      </Card>
+      <div className="space-y-6">
+        <Card className="p-8 text-center text-muted-foreground">
+          <FileX className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          Nenhum contrato cadastrado para este aluno.
+        </Card>
+        <Card className="p-5">
+          <h3 className="font-medium mb-3">Histórico de Pagamentos</h3>
+          <HistoricoVendas alunoId={alunoId} />
+        </Card>
+      </div>
     );
   }
+
 
   const proxCob = cobrancas.find((c) => c.status === "pendente");
 
@@ -409,6 +418,14 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           </CollapsibleContent>
         </Collapsible>
       )}
+
+      {/* Histórico de Pagamentos (vendas) */}
+      <Card className="p-5">
+        <h3 className="font-medium mb-3">Histórico de Pagamentos</h3>
+        <HistoricoVendas alunoId={alunoId} />
+      </Card>
+
+
 
       {/* Dialog de rescisão */}
       {ativo && (
