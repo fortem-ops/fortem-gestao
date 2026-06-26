@@ -47,6 +47,7 @@ import {
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
 import { RescisaoDialog } from "@/components/contratos/RescisaoDialog";
+import { HistoricoVendas } from "@/components/student/venda/HistoricoVendas";
 import {
   LABEL_PLANO,
   LABEL_PAGAMENTO,
@@ -54,6 +55,7 @@ import {
   type Contrato,
   type ServicoUtilizado,
 } from "@/lib/contratos-calc";
+
 
 interface Props {
   alunoId: string;
