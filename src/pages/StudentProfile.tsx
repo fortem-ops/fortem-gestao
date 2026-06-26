@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
@@ -24,6 +24,7 @@ import { StudentPlan } from "@/components/student/StudentPlan";
 import { StudentTasks } from "@/components/student/StudentTasks";
 import { StudentNotes } from "@/components/student/StudentNotes";
 import EditStudentDialog from "@/components/student/EditStudentDialog";
+import { VendaDialog } from "@/components/student/venda/VendaDialog";
 import { StudentPipelinePanel } from "@/components/pipeline/StudentPipelinePanel";
 import { StudentClubePanel } from "@/components/clube/StudentClubePanel";
 import ContratoFinanceiro from "@/pages/alunos/ContratoFinanceiro";
@@ -37,6 +38,7 @@ export default function StudentProfile() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
+  const [vendaOpen, setVendaOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const validTabs = ["resumo","pipeline","clube","plano","financeiro","contrato","treinos","avaliacoes","tarefas","observacoes","uploads"];
   const tabParam = searchParams.get("tab");
@@ -133,6 +135,16 @@ export default function StudentProfile() {
           </p>
         </div>
         <EditStudentDialog student={student} onStudentUpdated={() => refetch()} />
+        <Button variant="default" size="sm" onClick={() => setVendaOpen(true)} className="gap-1">
+          <DollarSign className="w-4 h-4" />
+          Nova venda
+        </Button>
+        <VendaDialog
+          alunoId={student.id}
+          alunoNome={student.nome}
+          open={vendaOpen}
+          onOpenChange={setVendaOpen}
+        />
         {isAdmin && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -168,8 +180,8 @@ export default function StudentProfile() {
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
           <TabsTrigger value="clube">Clube FORTEM</TabsTrigger>
           <TabsTrigger value="plano">Plano/Serviços</TabsTrigger>
-          <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-          <TabsTrigger value="contrato">Contrato</TabsTrigger>
+          <TabsTrigger value="financeiro">Carteira</TabsTrigger>
+          <TabsTrigger value="contrato">Pagamentos</TabsTrigger>
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
           <TabsTrigger value="tarefas">Tarefas</TabsTrigger>

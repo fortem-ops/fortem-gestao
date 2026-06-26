@@ -342,9 +342,36 @@ export function StudentSummary({ student }: { student: Aluno }) {
   });
 
 
+  const { data: inadimplenciasAluno = [] } = useQuery({
+    queryKey: ["inadimplencias-aluno", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("inadimplencias")
+        .select("id, data_vencimento, valor, status")
+        .eq("aluno_id", student.id)
+        .eq("status", "aberta")
+        .order("data_vencimento", { ascending: true });
+      return data ?? [];
+    },
+  });
+
   // Build alerts for this student
   const alerts: Alert[] = [];
   const today = new Date();
+
+  // Inadimplências em aberto
+  inadimplenciasAluno.forEach((i: any) => {
+    const venc = new Date(i.data_vencimento + "T00:00:00");
+    const dias = Math.floor((today.getTime() - venc.getTime()) / 86400000);
+    const valor = Number(i.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    alerts.push({
+      id: `inad-${i.id}`,
+      type: "inadimplencia",
+      severity: dias > 7 ? "urgente" : "atencao",
+      message: `Inadimplência: Venc. ${venc.toLocaleDateString("pt-BR")} · ${dias} dia(s) em atraso — ${valor}`,
+      icon: DollarSign,
+    });
+  });
 
   const RECURRING_PLANS = ["Start", "Gympass/Wellhub", "Total Pass"];
   const isRecurring = (tipo: string) =>
