@@ -173,6 +173,22 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     },
   });
 
+  // Planos contratados ainda não vigentes (renovação / contrato adicional futuro)
+  const { data: planosFuturos = [] } = useQuery({
+    queryKey: ["planos_futuros", student.id],
+    queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const { data: futuros } = await supabase
+        .from("planos")
+        .select("*")
+        .eq("aluno_id", student.id)
+        .eq("ativo", true)
+        .gt("data_inicio", today)
+        .order("data_inicio", { ascending: true });
+      return (futuros ?? []).filter((p: any) => !data || p.id !== data.id);
+    },
+  });
+
   async function handleSaveCredit(dbLabel: string) {
     if (!data) return;
     setSaving(true);
