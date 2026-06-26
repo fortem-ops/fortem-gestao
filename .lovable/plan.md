@@ -1,18 +1,18 @@
-## Mudança
+## Problema
 
-Em `src/components/ponto/AdminPontoHorarios.tsx`, expandir a lista `HORARIOS` para começar às **05:00** em vez de 06:00, adicionando os slots 05:00, 05:15, 05:30 e 05:45 (mantendo o passo de 15 min até 21:15).
+A constraint `ponto_horarios_professor_check1` exige `horario_inicio >= 06:00`, então qualquer valor entre 05:00–05:59 é rejeitado pelo banco.
 
-### Detalhe técnico
+## Correção
 
-Trocar o loop:
-```ts
-for (let h = 6; h <= 21; h++) { ... }
+Migração para relaxar o limite inferior do check para 05:00:
+
+```sql
+ALTER TABLE public.ponto_horarios_professor
+  DROP CONSTRAINT ponto_horarios_professor_check1;
+
+ALTER TABLE public.ponto_horarios_professor
+  ADD CONSTRAINT ponto_horarios_professor_check1
+  CHECK (horario_inicio >= '05:00:00'::time AND horario_fim <= '21:15:00'::time);
 ```
-por:
-```ts
-for (let h = 5; h <= 21; h++) { ... }
-```
 
-Atualizar também o texto descritivo do card de "06:00–21:15" para "05:00–21:15".
-
-Nenhuma alteração no banco — o campo já aceita qualquer `time`.
+Nenhuma mudança de código adicional — o seletor já oferece 05:00–05:45.
