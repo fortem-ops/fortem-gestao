@@ -442,11 +442,13 @@ serve(async (req) => {
         p_valor_mensal: valorMensal,
         p_taxa_mensal: Number((venda as any)?.taxa_mensal) || 0,
         p_data_inicio: (venda as any)?.data_venda ?? new Date().toISOString().split("T")[0],
-        p_forma_pagamento: "cartao_credito",
+        p_forma_pagamento: "cartao_recorrencia",
         p_cartao_token_id: savedCartaoId,
         p_primeira_paga: true,
+        p_servicos_inclusos: servicos_inclusos,
       });
       if (rpcErr) console.error("[rede] fn_criar_contrato_recorrencia:", rpcErr.message);
+
     }
   }
 
