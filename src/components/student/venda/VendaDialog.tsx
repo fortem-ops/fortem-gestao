@@ -575,13 +575,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                     </div>
 
                     <div className="flex justify-between pt-2">
-                      <Button variant="outline" onClick={() => setPStep(2)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
-                      <Button disabled={!tipoCobranca} onClick={() => setPStep(4)}>Continuar para Pagamento</Button>
+                      <Button variant="outline" onClick={() => setPStep(hasServicos ? 3 : 2)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
+                      <Button disabled={!tipoCobranca} onClick={() => setPStep(5)}>Continuar para Pagamento</Button>
                     </div>
                   </div>
                 )}
 
-                {pStep === 4 && planoSelecionado && tipoCobranca && totaisPlano && (
+                {pStep === 5 && planoSelecionado && tipoCobranca && totaisPlano && (
+
                   <div className="space-y-4">
                     <PagamentoStep
                       tipoCobranca={tipoCobranca}
