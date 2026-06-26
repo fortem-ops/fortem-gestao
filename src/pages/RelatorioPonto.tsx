@@ -348,7 +348,7 @@ export default function RelatorioPonto() {
     });
 
     return out.sort((a, b) => a.professor.localeCompare(b.professor));
-  }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio, bancoPorUser]);
+  }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio, bancoPorUser, profIdsAtivos]);
 
   // Buscar status de fechamentos do mês selecionado
   const { data: fechamentos = [] } = useQuery({
