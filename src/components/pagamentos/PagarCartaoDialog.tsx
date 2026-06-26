@@ -19,7 +19,9 @@ type Props = {
   onSuccess?: () => void;
   recorrencia?: boolean;
   parcelasTotais?: number;
+  servicosInclusos?: { avaliacao_funcional: number; nutricao: number; reabilitacao: number; definir_depois: boolean } | null;
 };
+
 
 function luhn(n: string): boolean {
   const d = n.replace(/\D/g, "");
