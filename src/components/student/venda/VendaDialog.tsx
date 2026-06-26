@@ -382,7 +382,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
           {/* ============= PLANOS ============= */}
           <TabsContent value="planos" className="mt-6">
-            <StepIndicator steps={PLANO_STEPS} current={pStep} />
+            <StepIndicator steps={planoSteps} current={displayStep} />
 
             {lp ? <Skeleton className="h-40 w-full" /> : (
               <>
