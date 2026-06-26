@@ -208,12 +208,17 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     return d;
   })();
 
-  // Em modo "renovacao", força data de início para o dia após o término do vigente
+  // Ajusta data de início conforme o modo de contrato:
+  // - renovacao  → dia seguinte ao fim do plano vigente
+  // - adicional  → hoje (novo contrato paralelo, começa já)
+  // - substituir → hoje (substitui o anterior)
   useEffect(() => {
     if (modoContrato === "renovacao" && fimVigente) {
       const proxima = new Date(fimVigente);
       proxima.setDate(proxima.getDate() + 1);
       setDataInicio(proxima);
+    } else {
+      setDataInicio(new Date());
     }
   }, [modoContrato, fimVigente?.getTime()]);
 
