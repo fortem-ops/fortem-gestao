@@ -355,21 +355,41 @@ export default function RelatorioPonto() {
 
   // Exportações
   const handleExportDiario = (kind: "csv" | "xlsx") => {
-    const list: JornadaExport[] = jornadasFiltradas.map((j) => ({
-      data: j.data,
-      professor: (profMap.get(j.usuario_id) as string) ?? "—",
-      entrada: j.entrada,
-      intervalo_inicio: j.intervalo_inicio,
-      intervalo_fim: j.intervalo_fim,
-      saida: j.saida,
-      minutos_trabalhados: j.minutos_trabalhados,
-      minutos_previstos: previstoMinutos(horarioPara(j.usuario_id, j.data)),
-      pendencias: pendenciasJornada(j, intervaloObrigatorio).join("; "),
-    }));
+    const list: JornadaExport[] = linhasDiarias.map((l) => {
+      if (l.kind === "jornada") {
+        const j = l.jornada;
+        return {
+          data: j.data,
+          professor: (profMap.get(j.usuario_id) as string) ?? "—",
+          entrada: j.entrada,
+          intervalo_inicio: j.intervalo_inicio,
+          intervalo_fim: j.intervalo_fim,
+          saida: j.saida,
+          minutos_trabalhados: j.minutos_trabalhados,
+          minutos_previstos: previstoMinutos(horarioPara(j.usuario_id, j.data)),
+          pendencias: pendenciasJornada(j, intervaloObrigatorio).join("; "),
+        };
+      }
+      const pend = l.kind === "falta"
+        ? "Falta"
+        : `Ausência justificada${l.descricao ? ": " + l.descricao : ` (${l.motivo})`}`;
+      return {
+        data: l.data,
+        professor: (profMap.get(l.usuario_id) as string) ?? "—",
+        entrada: null,
+        intervalo_inicio: null,
+        intervalo_fim: null,
+        saida: null,
+        minutos_trabalhados: 0,
+        minutos_previstos: l.previsto,
+        pendencias: pend,
+      };
+    });
     if (kind === "csv") return exportarDiarioCSV(list, periodoLabel);
     // XLSX precisa também de eventos — busca sob demanda
     void (async () => {
-      const ids = jornadasFiltradas.map((j) => j.id);
+      const jornadasReais = linhasDiarias.filter((l): l is Extract<LinhaDiaria, { kind: "jornada" }> => l.kind === "jornada").map((l) => l.jornada);
+      const ids = jornadasReais.map((j) => j.id);
       let eventos: EventoExport[] = [];
       if (ids.length) {
         const { data } = await supabase
@@ -377,9 +397,9 @@ export default function RelatorioPonto() {
           .select("usuario_id, jornada_id, tipo, data_hora, latitude, longitude, dispositivo, observacao")
           .in("jornada_id", ids)
           .order("data_hora", { ascending: true });
-        const jMap = new Map(jornadasFiltradas.map((j) => [j.id, j.data]));
+        const jMap = new Map(jornadasReais.map((j) => [j.id, j.data]));
         eventos = (data ?? []).map((e: any) => ({
-          data: jMap.get(e.jornada_id) ?? "",
+          data: (jMap.get(e.jornada_id) as string) ?? "",
           professor: (profMap.get(e.usuario_id) as string) ?? "—",
           tipo: e.tipo,
           data_hora: e.data_hora,
@@ -392,6 +412,7 @@ export default function RelatorioPonto() {
       exportarDiarioXLSX(list, eventos, periodoLabel);
     })();
   };
+
 
   return (
     <div className="space-y-6 animate-fade-in">
