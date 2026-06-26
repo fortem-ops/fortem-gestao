@@ -55,7 +55,14 @@ const STATUS_OPTS = [
   { v: "aberto", l: "Em aberto" },
   { v: "encerrada", l: "Encerrada" },
   { v: "pendencia", l: "Com pendência" },
+  { v: "falta", l: "Faltas" },
 ];
+
+type LinhaDiaria =
+  | { kind: "jornada"; jornada: Jornada }
+  | { kind: "falta"; usuario_id: string; data: string; previsto: number }
+  | { kind: "ausencia"; usuario_id: string; data: string; previsto: number; motivo: string; descricao?: string };
+
 
 function previstoMinutos(h?: HorarioRow): number {
   if (!h || !h.ativo) return 0;
@@ -217,16 +224,63 @@ export default function RelatorioPonto() {
     return horarios.find((h) => h.usuario_id === uid && h.dia_semana === dow);
   };
 
-  // Aplicar filtro de status
-  const jornadasFiltradas = useMemo(() => {
-    return jornadas.filter((j) => {
+  // Constrói linhas sintéticas de FALTA / AUSÊNCIA JUSTIFICADA para dias do período
+  // em que existe horário previsto mas não há jornada registrada.
+  const linhasSinteticas = useMemo<LinhaDiaria[]>(() => {
+    if (!horarios.length) return [];
+    const out: LinhaDiaria[] = [];
+    const existentes = new Set(jornadas.map((j) => `${j.usuario_id}|${j.data}`));
+    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id)));
+    const alvos = profId === "todos" ? usuariosComHorario : [profId];
+    const cur = new Date(inicio + "T00:00");
+    const end = new Date(fim + "T00:00");
+    while (cur <= end) {
+      const iso = cur.toISOString().slice(0, 10);
+      const dow = cur.getDay();
+      for (const uid of alvos) {
+        if (existentes.has(`${uid}|${iso}`)) continue;
+        const h = horarios.find((x) => x.usuario_id === uid && x.dia_semana === dow);
+        if (!h) continue;
+        const prev = previstoMinutos(h);
+        if (prev <= 0) continue;
+        const aus = ausenciaPara(uid, iso);
+        if (aus) {
+          out.push({ kind: "ausencia", usuario_id: uid, data: iso, previsto: prev, motivo: aus.motivo, descricao: aus.descricao });
+        } else {
+          out.push({ kind: "falta", usuario_id: uid, data: iso, previsto: prev });
+        }
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }, [horarios, jornadas, profId, inicio, fim, feriadoMap, ferias]);
+
+  // Combina e filtra por status
+  const linhasDiarias = useMemo<LinhaDiaria[]>(() => {
+    const jornadasLinhas: LinhaDiaria[] = jornadas.map((j) => ({ kind: "jornada", jornada: j }));
+    const todas = [...jornadasLinhas, ...linhasSinteticas];
+    const filtradas = todas.filter((l) => {
       if (statusFilter === "todos") return true;
-      if (statusFilter === "aberto") return !j.saida;
-      if (statusFilter === "encerrada") return !!j.saida;
-      if (statusFilter === "pendencia") return pendenciasJornada(j, intervaloObrigatorio).length > 0;
-      return true;
+      if (statusFilter === "falta") return l.kind === "falta";
+      if (l.kind === "jornada") {
+        const j = l.jornada;
+        if (statusFilter === "aberto") return !j.saida;
+        if (statusFilter === "encerrada") return !!j.saida;
+        if (statusFilter === "pendencia") return pendenciasJornada(j, intervaloObrigatorio).length > 0;
+        return true;
+      }
+      // Sintéticas: contam para "pendência" apenas se forem falta
+      if (statusFilter === "pendencia") return l.kind === "falta";
+      return false;
     });
-  }, [jornadas, statusFilter, intervaloObrigatorio]);
+    return filtradas.sort((a, b) => {
+      const da = a.kind === "jornada" ? a.jornada.data : a.data;
+      const db = b.kind === "jornada" ? b.jornada.data : b.data;
+      return db.localeCompare(da);
+    });
+  }, [jornadas, linhasSinteticas, statusFilter, intervaloObrigatorio]);
+
+
 
   const periodoLabel = `${inicio}_a_${fim}`;
 
@@ -244,18 +298,28 @@ export default function RelatorioPonto() {
       r.pend += pendenciasJornada(j, intervaloObrigatorio).length;
       porUser.set(j.usuario_id, r);
     });
-    // previsto = soma das janelas previstas dos dias do mês para cada user
+    // previsto = soma das janelas previstas dos dias do mês + conta faltas
     const out: MensalExport[] = [];
-    porUser.forEach((agg, uid) => {
+    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id)));
+    const usuariosNoMes = new Set<string>([...porUser.keys(), ...usuariosComHorario]);
+    usuariosNoMes.forEach((uid) => {
+      const agg = porUser.get(uid) ?? { dias: 0, total: 0, pend: 0 };
       let previsto = 0;
+      let faltas = 0;
+      const jornadasUid = new Set(
+        dentroMes.filter((j) => j.usuario_id === uid).map((j) => j.data),
+      );
       const cur = new Date(mesIni + "T00:00");
       const end = new Date(ultimo + "T00:00");
       while (cur <= end) {
         const dow = cur.getDay();
         const iso = cur.toISOString().slice(0, 10);
-        if (!ausenciaPara(uid, iso)) {
-          const h = horarios.find((x) => x.usuario_id === uid && x.dia_semana === dow);
-          previsto += previstoMinutos(h);
+        const h = horarios.find((x) => x.usuario_id === uid && x.dia_semana === dow);
+        const prev = previstoMinutos(h);
+        const aus = ausenciaPara(uid, iso);
+        if (!aus) {
+          previsto += prev;
+          if (prev > 0 && !jornadasUid.has(iso)) faltas += 1;
         }
         cur.setDate(cur.getDate() + 1);
       }
@@ -270,10 +334,11 @@ export default function RelatorioPonto() {
         saldo_minutos: saldoJornadas + saldoBanco,
         saldo_jornadas: saldoJornadas,
         saldo_banco: saldoBanco,
-        pendencias: agg.pend,
+        pendencias: agg.pend + faltas,
         status: "—",
       });
     });
+
     return out.sort((a, b) => a.professor.localeCompare(b.professor));
   }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio, bancoPorUser]);
 
@@ -301,21 +366,41 @@ export default function RelatorioPonto() {
 
   // Exportações
   const handleExportDiario = (kind: "csv" | "xlsx") => {
-    const list: JornadaExport[] = jornadasFiltradas.map((j) => ({
-      data: j.data,
-      professor: (profMap.get(j.usuario_id) as string) ?? "—",
-      entrada: j.entrada,
-      intervalo_inicio: j.intervalo_inicio,
-      intervalo_fim: j.intervalo_fim,
-      saida: j.saida,
-      minutos_trabalhados: j.minutos_trabalhados,
-      minutos_previstos: previstoMinutos(horarioPara(j.usuario_id, j.data)),
-      pendencias: pendenciasJornada(j, intervaloObrigatorio).join("; "),
-    }));
+    const list: JornadaExport[] = linhasDiarias.map((l) => {
+      if (l.kind === "jornada") {
+        const j = l.jornada;
+        return {
+          data: j.data,
+          professor: (profMap.get(j.usuario_id) as string) ?? "—",
+          entrada: j.entrada,
+          intervalo_inicio: j.intervalo_inicio,
+          intervalo_fim: j.intervalo_fim,
+          saida: j.saida,
+          minutos_trabalhados: j.minutos_trabalhados,
+          minutos_previstos: previstoMinutos(horarioPara(j.usuario_id, j.data)),
+          pendencias: pendenciasJornada(j, intervaloObrigatorio).join("; "),
+        };
+      }
+      const pend = l.kind === "falta"
+        ? "Falta"
+        : `Ausência justificada${l.descricao ? ": " + l.descricao : ` (${l.motivo})`}`;
+      return {
+        data: l.data,
+        professor: (profMap.get(l.usuario_id) as string) ?? "—",
+        entrada: null,
+        intervalo_inicio: null,
+        intervalo_fim: null,
+        saida: null,
+        minutos_trabalhados: 0,
+        minutos_previstos: l.previsto,
+        pendencias: pend,
+      };
+    });
     if (kind === "csv") return exportarDiarioCSV(list, periodoLabel);
     // XLSX precisa também de eventos — busca sob demanda
     void (async () => {
-      const ids = jornadasFiltradas.map((j) => j.id);
+      const jornadasReais = linhasDiarias.filter((l): l is Extract<LinhaDiaria, { kind: "jornada" }> => l.kind === "jornada").map((l) => l.jornada);
+      const ids = jornadasReais.map((j) => j.id);
       let eventos: EventoExport[] = [];
       if (ids.length) {
         const { data } = await supabase
@@ -323,9 +408,9 @@ export default function RelatorioPonto() {
           .select("usuario_id, jornada_id, tipo, data_hora, latitude, longitude, dispositivo, observacao")
           .in("jornada_id", ids)
           .order("data_hora", { ascending: true });
-        const jMap = new Map(jornadasFiltradas.map((j) => [j.id, j.data]));
+        const jMap = new Map(jornadasReais.map((j) => [j.id, j.data]));
         eventos = (data ?? []).map((e: any) => ({
-          data: jMap.get(e.jornada_id) ?? "",
+          data: (jMap.get(e.jornada_id) as string) ?? "",
           professor: (profMap.get(e.usuario_id) as string) ?? "—",
           tipo: e.tipo,
           data_hora: e.data_hora,
@@ -338,6 +423,7 @@ export default function RelatorioPonto() {
       exportarDiarioXLSX(list, eventos, periodoLabel);
     })();
   };
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -394,7 +480,7 @@ export default function RelatorioPonto() {
                 <ExportarRelatorioMenu
                   onCSV={() => handleExportDiario("csv")}
                   onXLSX={() => handleExportDiario("xlsx")}
-                  disabled={!jornadasFiltradas.length}
+                  disabled={!linhasDiarias.length}
                 />
               </div>
             </div>
@@ -403,17 +489,18 @@ export default function RelatorioPonto() {
           <Card className="p-4">
             {loadingJornadas ? (
               <Skeleton className="h-64" />
-            ) : !jornadasFiltradas.length ? (
-              <p className="text-sm text-muted-foreground py-10 text-center">Nenhuma jornada encontrada no período.</p>
+            ) : !linhasDiarias.length ? (
+              <p className="text-sm text-muted-foreground py-10 text-center">Nenhum registro no período.</p>
             ) : (
               <DiarioTable
-                jornadas={jornadasFiltradas}
+                linhas={linhasDiarias}
                 profMap={profMap}
                 horarioPara={horarioPara}
                 intervaloObrigatorio={intervaloObrigatorio}
                 ausenciaPara={ausenciaPara}
               />
             )}
+
           </Card>
         </TabsContent>
 
@@ -508,13 +595,13 @@ export default function RelatorioPonto() {
 
 // ====== Subcomponente: tabela diária com expand de eventos e ajuste ======
 function DiarioTable({
-  jornadas,
+  linhas,
   profMap,
   horarioPara,
   intervaloObrigatorio,
   ausenciaPara,
 }: {
-  jornadas: Jornada[];
+  linhas: LinhaDiaria[];
   profMap: Map<string, string>;
   horarioPara: (uid: string, data: string) => HorarioRow | undefined;
   intervaloObrigatorio: boolean;
@@ -569,7 +656,39 @@ function DiarioTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jornadas.map((j) => {
+          {linhas.map((l, idx) => {
+            if (l.kind !== "jornada") {
+              const isFalta = l.kind === "falta";
+              const key = `${l.kind}-${l.usuario_id}-${l.data}-${idx}`;
+              return (
+                <TableRow key={key} className={isFalta ? "bg-destructive/5" : "bg-info/5"}>
+                  <TableCell></TableCell>
+                  <TableCell className="font-medium">
+                    {new Date(l.data + "T00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                  </TableCell>
+                  <TableCell>{profMap.get(l.usuario_id) ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">—</TableCell>
+                  <TableCell className="text-muted-foreground">—</TableCell>
+                  <TableCell className="text-muted-foreground">—</TableCell>
+                  <TableCell className="text-right font-semibold text-muted-foreground">0min</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{formatMinutes(l.previsto)}</TableCell>
+                  <TableCell>
+                    {isFalta ? (
+                      <Badge variant="destructive" className="text-[10px]">Falta</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px]">—</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {!isFalta && justificativaBadge({ motivo: (l as any).motivo, descricao: (l as any).descricao })}
+                  </TableCell>
+                  <TableCell className="text-right text-xs text-muted-foreground">
+                    {isFalta ? "Sem ponto" : "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            }
+            const j = l.jornada;
             const open = expanded === j.id;
             const prev = previstoMinutos(horarioPara(j.usuario_id, j.data));
             const pend = pendenciasJornada(j, intervaloObrigatorio);
@@ -656,6 +775,7 @@ function DiarioTable({
           })}
         </TableBody>
       </Table>
+
 
       <AjustarJornadaDialog
         open={ajusteOpen}
