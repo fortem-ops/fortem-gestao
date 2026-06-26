@@ -285,7 +285,7 @@ export default function RelatorioPonto() {
       const db = b.kind === "jornada" ? b.jornada.data : b.data;
       return db.localeCompare(da);
     });
-  }, [jornadas, linhasSinteticas, statusFilter, intervaloObrigatorio]);
+  }, [jornadas, linhasSinteticas, statusFilter, intervaloObrigatorio, profIdsAtivos]);
 
 
 
