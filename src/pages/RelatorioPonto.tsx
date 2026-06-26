@@ -298,18 +298,28 @@ export default function RelatorioPonto() {
       r.pend += pendenciasJornada(j, intervaloObrigatorio).length;
       porUser.set(j.usuario_id, r);
     });
-    // previsto = soma das janelas previstas dos dias do mês para cada user
+    // previsto = soma das janelas previstas dos dias do mês + conta faltas
     const out: MensalExport[] = [];
-    porUser.forEach((agg, uid) => {
+    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id)));
+    const usuariosNoMes = new Set<string>([...porUser.keys(), ...usuariosComHorario]);
+    usuariosNoMes.forEach((uid) => {
+      const agg = porUser.get(uid) ?? { dias: 0, total: 0, pend: 0 };
       let previsto = 0;
+      let faltas = 0;
+      const jornadasUid = new Set(
+        dentroMes.filter((j) => j.usuario_id === uid).map((j) => j.data),
+      );
       const cur = new Date(mesIni + "T00:00");
       const end = new Date(ultimo + "T00:00");
       while (cur <= end) {
         const dow = cur.getDay();
         const iso = cur.toISOString().slice(0, 10);
-        if (!ausenciaPara(uid, iso)) {
-          const h = horarios.find((x) => x.usuario_id === uid && x.dia_semana === dow);
-          previsto += previstoMinutos(h);
+        const h = horarios.find((x) => x.usuario_id === uid && x.dia_semana === dow);
+        const prev = previstoMinutos(h);
+        const aus = ausenciaPara(uid, iso);
+        if (!aus) {
+          previsto += prev;
+          if (prev > 0 && !jornadasUid.has(iso)) faltas += 1;
         }
         cur.setDate(cur.getDate() + 1);
       }
@@ -324,10 +334,11 @@ export default function RelatorioPonto() {
         saldo_minutos: saldoJornadas + saldoBanco,
         saldo_jornadas: saldoJornadas,
         saldo_banco: saldoBanco,
-        pendencias: agg.pend,
+        pendencias: agg.pend + faltas,
         status: "—",
       });
     });
+
     return out.sort((a, b) => a.professor.localeCompare(b.professor));
   }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio, bancoPorUser]);
 
