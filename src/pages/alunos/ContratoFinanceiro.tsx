@@ -419,6 +419,14 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         </Collapsible>
       )}
 
+      {/* Histórico de Pagamentos (vendas) */}
+      <Card className="p-5">
+        <h3 className="font-medium mb-3">Histórico de Pagamentos</h3>
+        <HistoricoVendas alunoId={alunoId} />
+      </Card>
+
+
+
       {/* Dialog de rescisão */}
       {ativo && (
         <RescisaoDialog
