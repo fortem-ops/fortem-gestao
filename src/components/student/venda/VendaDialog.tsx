@@ -648,6 +648,39 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       </div>
                     </div>
 
+                    {planoVigente && (
+                      <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 space-y-3">
+                        <div className="text-sm">
+                          <div className="font-medium text-foreground">Aluno já possui plano vigente</div>
+                          <div className="text-xs text-muted-foreground">
+                            {planoVigente.tipo} · até {fimVigente ? format(fimVigente, "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                          </div>
+                        </div>
+                        <div className="grid gap-2">
+                          <RadioCard
+                            selected={modoContrato === "renovacao"}
+                            onClick={() => setModoContrato("renovacao")}
+                            title="Renovação"
+                            subtitle="Mantém o plano atual ativo até o fim. O novo contrato começa no dia seguinte ao término."
+                          />
+                          <RadioCard
+                            selected={modoContrato === "adicional"}
+                            onClick={() => setModoContrato("adicional")}
+                            title="Novo contrato (adicional)"
+                            subtitle="Mantém o plano atual e cria um contrato independente com data de início livre."
+                          />
+                          <RadioCard
+                            selected={modoContrato === "substituir"}
+                            onClick={() => setModoContrato("substituir")}
+                            title="Substituir plano atual"
+                            subtitle="Encerra o plano vigente imediatamente e ativa o novo no lugar."
+                          />
+                        </div>
+                      </div>
+                    )}
+
+
+
                     <div className="space-y-2">
                       <Label>Data de Início do Plano</Label>
                       <Popover>
