@@ -1,0 +1,4 @@
+REVOKE ALL ON FUNCTION public.fn_criar_contrato_recorrencia(uuid, uuid, uuid, numeric, numeric, date, text, uuid, boolean, jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.fn_criar_contrato_recorrencia(uuid, uuid, uuid, numeric, numeric, date, text, uuid, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fn_criar_contrato_recorrencia(uuid, uuid, uuid, numeric, numeric, date, text, uuid, boolean, jsonb) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.fn_criar_contrato_recorrencia(uuid, uuid, uuid, numeric, numeric, date, text, uuid, boolean) TO authenticated, service_role;

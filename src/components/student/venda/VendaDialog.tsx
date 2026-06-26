@@ -342,10 +342,13 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     onSuccess: ({ vendaId, cartaoOnline, valorFinal, periodoPlano }) => {
       qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["creditos_resumo", alunoId] });
+      qc.invalidateQueries({ queryKey: ["creditos_aluno_lista", alunoId] });
       qc.invalidateQueries({ queryKey: ["aluno-2025-flag", alunoId] });
       qc.invalidateQueries({ queryKey: ["contratos"] });
-      qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
-      qc.invalidateQueries({ queryKey: ["cobrancas-contrato"] });
+      qc.invalidateQueries({ queryKey: ["contratos", alunoId] });
+      qc.invalidateQueries({ queryKey: ["cobrancas"] });
+      qc.invalidateQueries({ queryKey: ["ciclos_credito"] });
       invalidatePlanoCaches(qc, alunoId);
       if (cartaoOnline && vendaId) {
         toast.success("Venda registrada — informe os dados do cartão");
@@ -737,6 +740,12 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
             onSuccess={() => {
               qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+              qc.invalidateQueries({ queryKey: ["contratos"] });
+              qc.invalidateQueries({ queryKey: ["contratos", alunoId] });
+              qc.invalidateQueries({ queryKey: ["cobrancas"] });
+              qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
+              qc.invalidateQueries({ queryKey: ["creditos_resumo", alunoId] });
+              qc.invalidateQueries({ queryKey: ["creditos_aluno_lista", alunoId] });
               invalidatePlanoCaches(qc, alunoId);
             }}
           />
