@@ -145,12 +145,19 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
 
   if (!contratos.length) {
     return (
-      <Card className="p-8 text-center text-muted-foreground">
-        <FileX className="h-10 w-10 mx-auto mb-3 opacity-50" />
-        Nenhum contrato cadastrado para este aluno.
-      </Card>
+      <div className="space-y-6">
+        <Card className="p-8 text-center text-muted-foreground">
+          <FileX className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          Nenhum contrato cadastrado para este aluno.
+        </Card>
+        <Card className="p-5">
+          <h3 className="font-medium mb-3">Histórico de Pagamentos</h3>
+          <HistoricoVendas alunoId={alunoId} />
+        </Card>
+      </div>
     );
   }
+
 
   const proxCob = cobrancas.find((c) => c.status === "pendente");
 
