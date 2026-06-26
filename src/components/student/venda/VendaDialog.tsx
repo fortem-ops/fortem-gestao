@@ -304,10 +304,11 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     );
   };
 
-  // Sincroniza o registro de `planos` (Plano Contratado) refletindo a venda.
-  // Desativa planos ativos anteriores e cria um novo com tipo, valor, datas
-  // e a lista `servicos` no formato "N <Tipo>" lida pelo widget Plano Contratado.
-  const sincronizarPlano = async (params: {
+  // Atualiza o registro `planos` criado pelo trigger `fn_processar_venda`
+  // (linkado a `vendas.plano_id`) refletindo a venda. Não insere novo plano —
+  // o trigger já criou um placeholder. Honra o modo de contrato escolhido.
+  const atualizarPlanoDaVenda = async (params: {
+    planoId: string;
     nome: string;
     valor: number;
     dataInicio: Date;
@@ -318,7 +319,6 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     recorrencia: boolean;
     modo: "substituir" | "renovacao" | "adicional";
   }) => {
-
     const inicio = format(params.dataInicio, "yyyy-MM-dd");
     const fimDate = new Date(params.dataInicio);
     fimDate.setMonth(fimDate.getMonth() + params.duracaoMeses);
@@ -329,19 +329,40 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     if (params.svc.nutricao > 0) servicosArr.push(`${params.svc.nutricao} Consultas Nutrição`);
     if (params.svc.reabilitacao > 0) servicosArr.push(`${params.svc.reabilitacao} Consultas Reabilitação`);
 
-    // Em "renovacao"/"adicional" mantemos o plano vigente ativo (ele continua
-    // valendo até a data_fim natural). Só "substituir" desativa o anterior.
+    // Substituir: desativa demais planos ativos do aluno (mantém o novo) e
+    // desativa créditos vinculados a esses planos para limpar a tabela
+    // "Serviços e Créditos Contratados".
     if (params.modo === "substituir") {
-      await (supabase as any)
+      const { data: outrosPlanos } = await (supabase as any)
         .from("planos")
-        .update({ ativo: false })
+        .select("id")
         .eq("aluno_id", alunoId)
-        .eq("ativo", true);
+        .eq("ativo", true)
+        .neq("id", params.planoId);
+      const outrosIds = (outrosPlanos ?? []).map((p: any) => p.id);
+      if (outrosIds.length > 0) {
+        const hoje = format(new Date(), "yyyy-MM-dd");
+        await (supabase as any)
+          .from("planos")
+          .update({ ativo: false, data_fim: hoje })
+          .in("id", outrosIds);
+        const { data: vendasDosPlanos } = await (supabase as any)
+          .from("vendas")
+          .select("id")
+          .in("plano_id", outrosIds);
+        const vendasIds = (vendasDosPlanos ?? []).map((v: any) => v.id);
+        if (vendasIds.length > 0) {
+          await (supabase as any)
+            .from("creditos_aluno")
+            .update({ ativo: false })
+            .eq("aluno_id", alunoId)
+            .eq("origem_tipo", "plano")
+            .in("origem_id", vendasIds);
+        }
+      }
     }
 
-
-    await (supabase as any).from("planos").insert({
-      aluno_id: alunoId,
+    await (supabase as any).from("planos").update({
       tipo: params.nome,
       valor: params.valor,
       data_inicio: inicio,
@@ -352,7 +373,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       renovacao_automatica: params.recorrencia,
       forma_pagamento_padrao: params.formaPagamento,
       parcelas_padrao: params.parcelas || 1,
-    });
+    }).eq("id", params.planoId);
   };
 
   const venderPlano = useMutation({
@@ -404,7 +425,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         taxa_mensal: totaisPlano.taxaMensal,
         modalidade_pagamento: modalidade,
         canal_pagamento: canal,
-      }).select("id").single();
+      }).select("id, plano_id").single();
       if (error) throw error;
 
       // Atualiza flag aluno_2025 se mudou
@@ -432,25 +453,30 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           p_servicos_inclusos: servicosInclusos,
         });
         if (rpcErr) throw rpcErr;
-      } else if (tipoCobranca === "tradicional" && hasServicos) {
-        // Tradicional com benefícios — criar créditos diretamente
+      }
+      // Créditos de serviços incluídos: criar sempre que houver, tanto em
+      // tradicional quanto em recorrência. O trigger não cria mais o bônus
+      // hard-coded do Start+, então não há duplicação.
+      if (hasServicos) {
         await criarCreditosServicos(servicosInclusos);
       }
 
-      // Sincroniza o Plano Contratado (widget StudentPlan) para refletir
-      // tipo, valor, datas e serviços incluídos no plano vendido.
+      // Atualiza o registro `planos` criado pelo trigger refletindo a venda.
       const periodoMeses = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
-      await sincronizarPlano({
-        nome: planoSelecionado.nome,
-        valor: valor,
-        dataInicio,
-        duracaoMeses: periodoMeses,
-        svc: servicosInclusos,
-        formaPagamento: formaPgto,
-        parcelas: parcelas || 1,
-        recorrencia: tipoCobranca === "recorrencia",
-        modo: planoVigente ? modoContrato : "substituir",
-      });
+      if (vendaIns?.plano_id) {
+        await atualizarPlanoDaVenda({
+          planoId: vendaIns.plano_id,
+          nome: planoSelecionado.nome,
+          valor: valor,
+          dataInicio,
+          duracaoMeses: periodoMeses,
+          svc: servicosInclusos,
+          formaPagamento: formaPgto,
+          parcelas: parcelas || 1,
+          recorrencia: tipoCobranca === "recorrencia",
+          modo: planoVigente ? modoContrato : "substituir",
+        });
+      }
 
 
 
