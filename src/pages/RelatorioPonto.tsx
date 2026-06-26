@@ -617,7 +617,13 @@ function DiarioTable({
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [ajusteOpen, setAjusteOpen] = useState(false);
-  const [ajusteAlvo, setAjusteAlvo] = useState<{ id: string; nome: string; data: string } | null>(null);
+  const [ajusteAlvo, setAjusteAlvo] = useState<{
+    id: string | null;
+    usuario_id: string;
+    nome: string;
+    data: string;
+    criar?: boolean;
+  } | null>(null);
 
   const { data: eventos = [] } = useQuery({
     queryKey: ["relatorio-eventos", expanded],
