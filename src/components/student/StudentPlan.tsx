@@ -103,16 +103,33 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const { data, isLoading } = useQuery({
     queryKey: ["plano_ativo", student.id],
     queryFn: async () => {
-      const { data: planos } = await supabase
+      const today = new Date().toISOString().split("T")[0];
+      // Prioriza o plano em vigência hoje (data_inicio <= today). Se houver
+      // apenas planos futuros (caso de renovação ou contrato adicional ainda
+      // não iniciado), cai para o registro mais recente para que algo apareça.
+      const { data: planosAtuais } = await supabase
         .from("planos")
         .select("*")
         .eq("aluno_id", student.id)
         .eq("ativo", true)
-        .order("created_at", { ascending: false })
+        .lte("data_inicio", today)
+        .order("data_inicio", { ascending: false })
         .limit(1);
+      let planos = planosAtuais;
+      if (!planos || planos.length === 0) {
+        const { data: futuros } = await supabase
+          .from("planos")
+          .select("*")
+          .eq("aluno_id", student.id)
+          .eq("ativo", true)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        planos = futuros;
+      }
 
       if (!planos || planos.length === 0) return null;
       const plano = planos[0];
+
 
       // Plano vencido sem renovação automática => tratar como inativo
       const today = new Date().toISOString().split("T")[0];
