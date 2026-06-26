@@ -1,55 +1,47 @@
-## Diagnóstico
+## Problema observado (Marilza Vallejo · Start+ 1x/sem)
 
-A aluna CAMILA CANALI SCHMITZ tem o plano Start renovado automaticamente em 25/06/2026 no fluxo **antigo**:
+Foram criados **2 contratos** para a mesma venda:
 
-- `planos`: novo registro ativo (25/06 → 25/07) ✔
-- `vendas`: nova venda `origem='renovacao_automatica'`, `status_pagamento='pendente'` ✔
-- `contratos` / `cobrancas` / `inadimplencias`: **nada**
+| Contrato | valor_cobrado | parcelas | vigência | cobranças |
+|---|---|---|---|---|
+| A (trigger automático) | R$ 3.588,00 (total anual) | 1 | mensal | 1 |
+| B (RPC fn_criar_contrato_recorrencia) | R$ 299,00 (mensal) | 12 | **mensal** (errado) | 12 |
 
-A aba **Pagamentos** lê apenas `contratos`/`cobrancas` (novo módulo financeiro), e a aluna nunca teve contrato criado — existem **68 alunos com plano recorrente ativo sem `contrato` correspondente**. Por isso a aba aparece vazia e dá a impressão de "plano pago".
+Causas:
 
-Além disso, o job diário `renovar-planos-mensais` só gera `vendas` legadas — não cria `cobrancas` nem alimenta o ciclo do novo módulo. O job `processar-cobrancas-diario` (que vira `cobrança → atrasada → inadimplência`) só funciona se a cobrança existir.
+1. **Duplicação** — Ao salvar a venda, o trigger `trg_vendas_processar` cria o registro em `planos`, o que dispara `trg_auto_criar_contrato_ciclo` e gera o contrato A. Em seguida o frontend chama `fn_criar_contrato_recorrencia`, que cria o contrato B. As duas vias coexistem sem se conhecerem.
+2. **Vigência sempre "mensal"** — Tanto `fn_criar_contrato_recorrencia` quanto `fn_auto_criar_contrato_ciclo` gravam `vigencia_tipo='mensal'` fixo, independente de o plano ser anual (Start+, Power, Pro, Max — `periodo_meses=12` no catálogo).
 
-## Objetivo
+## Correções
 
-Toda renovação mensal deve gerar automaticamente uma **cobrança pendente** vinculada a um **contrato** do aluno, para que:
-1. A aba **Pagamentos** mostre a mensalidade do ciclo corrente como pendente.
-2. Se vencer sem pagamento, vire **inadimplência** automaticamente (job já existente alimenta o widget de Resumo).
-3. Baixa manual ou pagamento via Rede atualize tanto `vendas` quanto `cobrancas`.
+### 1. `fn_criar_contrato_recorrencia` (única fonte de verdade para vendas via UI)
 
-## Decisões confirmadas
-- Forma de pagamento padrão no backfill e em novas renovações: **`cartao_recorrencia`** (Rede Online).
-- Backfill cobre **somente o ciclo corrente** (sem histórico retroativo de cobranças passadas).
+- Derivar `vigencia_tipo` do catálogo: `'anual'` quando `planos_catalogo.periodo_meses = 12`, senão `'mensal'`.
+- Ajustar `data_fim` para `data_inicio + periodo_meses` (hoje está fixo em +12 meses; correto para anuais, mas precisa respeitar mensais quando reutilizado).
+- Manter geração de 12 cobranças mensais para planos anuais em recorrência (já está correto).
 
-## Plano
+### 2. `fn_auto_criar_contrato_ciclo` (trigger em `planos`)
 
-### 1. Backfill (migração de dados)
-Para cada `planos` ativo, com `renovacao_automatica=true`, sem `contratos`:
-- Criar `contratos` (status `ativo`, mapeando `tipo→plano_tipo`, `valor→valor_cobrado/valor_base`, `data_inicio = planos.data_inicio`, `data_fim = proxima_renovacao`, `forma_pagamento = 'cartao_recorrencia'`, `parcelas = 1`).
-- Criar `ciclos_credito` apenas do ciclo corrente.
-- Criar `cobrancas` apenas do ciclo corrente (`numero_ciclo=1`, `data_vencimento = proxima_renovacao`):
-  - Se já existe `vendas` paga do ciclo corrente → `pago` com `data_pagamento`.
-  - Caso contrário → `pendente`.
+Evitar duplicação. Estratégia: o trigger só deve atuar em renovações automáticas mensais (job `renovar-planos-mensais` e backfill), **nunca** durante a inserção de uma venda nova.
 
-### 2. Renovação automática integrada
-Atualizar `supabase/functions/renovar-planos-mensais/index.ts` para, **além** de criar a `vendas` legada:
-- Localizar (ou criar via mesmos defaults do backfill) o `contrato` ativo do aluno.
-- Inserir `cobranca` `pendente` com `data_vencimento = proxima_renovacao` e `numero_ciclo` incrementado a partir do último ciclo do contrato.
-- Inserir `ciclos_credito` do novo período.
-- Gravar `vendas.cobranca_id` apontando para a cobrança recém-criada (nova coluna FK opcional).
+- Adicionar guarda: pular quando já existir um registro em `vendas` com `plano_id = NEW.id` OU criado na mesma transação para o mesmo `aluno_id` com `tipo='plano'` nos últimos segundos.
+- Também aplicar a mesma lógica de `vigencia_tipo` baseada no `periodo_meses` do plano correspondente no catálogo (lookup por `lower(tipo)` + `frequencia`/`valor`).
 
-### 3. Sincronização venda ↔ cobrança
-Triggers `SECURITY DEFINER` (`search_path=public`):
-- `vendas`: ao mudar `status_pagamento` para `pago` e houver `cobranca_id`, marca a `cobranca` como `pago` com a `data_venda` (ou hoje).
-- `cobrancas`: ao mudar para `pago`, marca a `vendas` ligada como `pago` (idempotente, sem loop via `pg_trigger_depth`).
+### 3. Limpeza dos dados da Marilza
 
-### 4. Validação
-- Rodar o backfill e conferir que Camila passa a ter contrato + cobrança pendente 25/07/2026 visível na aba Pagamentos.
-- Antecipar `data_vencimento` para uma data passada em ambiente de teste e rodar `processar-cobrancas-diario` para confirmar geração de `inadimplencias` e exibição no widget de Resumo.
-- Conferir que dar baixa manual em uma cobrança marca a `vendas` correspondente como paga.
+- Remover o contrato A duplicado (R$ 3.588, 1 cobrança) e sua cobrança/ciclo associados, mantendo o contrato B (12x R$ 299).
+- Atualizar o contrato B para `vigencia_tipo='anual'`.
 
-## Detalhes técnicos
-- Backfill via `supabase--migration` (DML em transação) — joins `planos ⨝ alunos ⨝ vendas` para datas/valor.
-- Nova coluna: `vendas.cobranca_id uuid REFERENCES public.cobrancas(id) ON DELETE SET NULL`.
-- Triggers seguem o padrão de hardening (`SECURITY DEFINER` + `SET search_path = public`).
-- Sem alterações no front-end — a aba Pagamentos já consome `contratos`/`cobrancas`.
+### 4. Backfill de vigência
+
+Atualizar `contratos.vigencia_tipo` para `'anual'` em todos os contratos cujo `plano_tipo` esteja em (`start_plus`, `power`, `pro`, `max`) — esses sempre são planos de 12 meses no negócio atual.
+
+## Validação
+
+- Repetir venda Start+ 1x/sem para um aluno teste → resultado esperado: **1 único contrato**, badge **"Anual"**, **12 cobranças mensais** de R$ 299.
+- Renovação automática mensal de Start (mensal) continua criando 1 contrato por ciclo via trigger.
+
+## Arquivos / objetos alterados
+
+- Migração SQL: `fn_criar_contrato_recorrencia`, `fn_auto_criar_contrato_ciclo`, UPDATE de backfill em `contratos`, DELETE do contrato duplicado da Marilza.
+- Nenhuma alteração de frontend necessária (o badge "Anual" já é renderizado em `ContratoFinanceiro.tsx` quando `vigencia_tipo='anual'`).
