@@ -617,7 +617,13 @@ function DiarioTable({
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [ajusteOpen, setAjusteOpen] = useState(false);
-  const [ajusteAlvo, setAjusteAlvo] = useState<{ id: string; nome: string; data: string } | null>(null);
+  const [ajusteAlvo, setAjusteAlvo] = useState<{
+    id: string | null;
+    usuario_id: string;
+    nome: string;
+    data: string;
+    criar?: boolean;
+  } | null>(null);
 
   const { data: eventos = [] } = useQuery({
     queryKey: ["relatorio-eventos", expanded],
@@ -690,8 +696,28 @@ function DiarioTable({
                   <TableCell>
                     {!isFalta && justificativaBadge({ motivo: (l as any).motivo, descricao: (l as any).descricao })}
                   </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground">
-                    {isFalta ? "Sem ponto" : "—"}
+                  <TableCell className="text-right">
+                    {isFalta ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => {
+                          setAjusteAlvo({
+                            id: null,
+                            usuario_id: l.usuario_id,
+                            nome: profMap.get(l.usuario_id) ?? "—",
+                            data: l.data,
+                            criar: true,
+                          });
+                          setAjusteOpen(true);
+                        }}
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Registrar ponto
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -734,7 +760,7 @@ function DiarioTable({
                       variant="outline"
                       className="gap-1"
                       onClick={() => {
-                        setAjusteAlvo({ id: j.id, nome: profMap.get(j.usuario_id) ?? "—", data: j.data });
+                        setAjusteAlvo({ id: j.id, usuario_id: j.usuario_id, nome: profMap.get(j.usuario_id) ?? "—", data: j.data });
                         setAjusteOpen(true);
                       }}
                     >
@@ -791,6 +817,8 @@ function DiarioTable({
         jornadaId={ajusteAlvo?.id ?? null}
         professorNome={ajusteAlvo?.nome ?? ""}
         data={ajusteAlvo?.data ?? ""}
+        usuarioId={ajusteAlvo?.usuario_id}
+        permitirCriacao={!!ajusteAlvo?.criar}
       />
     </>
   );
