@@ -141,6 +141,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [opcaoServicoId, setOpcaoServicoId] = useState<string | null>(null);
   const [opcaoServico, setOpcaoServico] = useState<OpcaoConsulta | null>(null);
 
+  // Modo do contrato em relação ao plano vigente
+  const [modoContrato, setModoContrato] = useState<"substituir" | "renovacao" | "adicional">("substituir");
+
+
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
     setSStep(1); setServicoId("");
