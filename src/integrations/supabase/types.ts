@@ -4548,6 +4548,7 @@ export type Database = {
           aluno_id: string
           canal_pagamento: string | null
           catalogo_id: string
+          cobranca_id: string | null
           created_at: string
           data_cancelamento: string | null
           data_venda: string
@@ -4575,6 +4576,7 @@ export type Database = {
           aluno_id: string
           canal_pagamento?: string | null
           catalogo_id: string
+          cobranca_id?: string | null
           created_at?: string
           data_cancelamento?: string | null
           data_venda?: string
@@ -4602,6 +4604,7 @@ export type Database = {
           aluno_id?: string
           canal_pagamento?: string | null
           catalogo_id?: string
+          cobranca_id?: string | null
           created_at?: string
           data_cancelamento?: string | null
           data_venda?: string
@@ -4639,6 +4642,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "vendas_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "cobrancas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "vendas_motivo_cancelamento_id_fkey"
