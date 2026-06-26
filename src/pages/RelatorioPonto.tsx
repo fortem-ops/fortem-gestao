@@ -817,6 +817,8 @@ function DiarioTable({
         jornadaId={ajusteAlvo?.id ?? null}
         professorNome={ajusteAlvo?.nome ?? ""}
         data={ajusteAlvo?.data ?? ""}
+        usuarioId={ajusteAlvo?.usuario_id}
+        permitirCriacao={!!ajusteAlvo?.criar}
       />
     </>
   );
