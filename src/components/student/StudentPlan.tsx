@@ -598,7 +598,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
 
-      <HistoricoVendas alunoId={student.id} />
+      
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
 
       <CancelContractDialog
