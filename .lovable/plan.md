@@ -1,42 +1,39 @@
 ## Diagnóstico
 
-- A venda está sendo criada e o plano fica ativo porque o trigger de vendas cria registro em `planos` e crédito de treino.
-- O contrato não aparece em Perfil do Aluno > Contrato porque a RPC `fn_criar_contrato_recorrencia` ainda falha depois da venda, então nada é gravado em `contratos`/`cobrancas`.
-- Os créditos adicionais não aparecem porque há incompatibilidade de chaves:
-  - Frontend envia `servicos_inclusos` como `{ avaliacao_funcional, nutricao, reabilitacao, definir_depois }`.
-  - A RPC lê `consultas_nutricao` e `consultas_reabilitacao`, então recebe zero para Nutrição/Reabilitação.
-- Além disso, existe uma versão antiga da RPC sem `p_servicos_inclusos`, que pode causar chamadas ambíguas ou manutenção confusa.
+O widget **Plano Contratado** (`src/components/student/StudentPlan.tsx`) lê os créditos de Avaliação Funcional / Nutrição / Reabilitação diretamente da coluna `planos.servicos` (array de strings no formato `"N Tipo de Serviço"`).
 
-## Plano de correção
+Na venda atual:
+- `VendaDialog.venderPlano` insere a venda e cria créditos em `creditos_aluno` (tradicional) ou chama a RPC `fn_criar_contrato_recorrencia` (recorrência), que cria `contratos` + 12 cobranças + créditos.
+- **Nenhum dos dois fluxos atualiza `planos.servicos`** — por isso a contagem do widget mostra `0/0` mesmo após a venda registrar corretamente os créditos em "Serviços e Créditos Contratados".
 
-1. **Corrigir a RPC de recorrência**
-   - Atualizar `fn_criar_contrato_recorrencia` para ler os campos corretos: `nutricao` e `reabilitacao`.
-   - Manter compatibilidade aceitando também `consultas_nutricao` e `consultas_reabilitacao` como fallback.
-   - Garantir que o contrato use o `plano_id` real do aluno vindo da venda (`vendas.plano_id`), não o ID do catálogo.
-   - Preservar as correções já feitas para `plano_tipo`, `frequencia_semanal`, `forma_pagamento` e criação das 12 cobranças.
+Confirmado no banco: o plano ativo do aluno tem `servicos: []`.
 
-2. **Remover ambiguidade da função antiga**
-   - Eliminar a overload antiga de `fn_criar_contrato_recorrencia` sem `p_servicos_inclusos`, ou substituí-la por wrapper explícito que encaminha para a versão nova com `{}`.
-   - Isso evita que chamadas futuras usem a versão sem serviços por engano.
+## Correção
 
-3. **Criar movimentos de crédito para serviços adicionais**
-   - Para cada crédito bônus criado pela RPC (Avaliação Funcional, Nutrição, Reabilitação), também registrar o respectivo movimento em `creditos_movimentos`, seguindo o padrão do trigger atual.
-   - Isso deixa os créditos consistentes com o restante do sistema.
+1. **`src/components/student/venda/VendaDialog.tsx` — `venderPlano.mutationFn`**
+   Após sucesso da venda (e da RPC quando recorrência), sincronizar o registro do `planos` do aluno:
+   - Desativar planos anteriores ativos (`ativo=false`).
+   - Fazer `insert` em `planos` com:
+     - `tipo` = nome do plano (`planoSelecionado.nome`)
+     - `valor` = `totaisPlano.subtotalPlano` (ou mensal × período conforme já usado)
+     - `data_inicio`, `duracao_meses = periodo_meses`, `data_fim = data_inicio + periodo`
+     - `forma_pagamento_padrao`, `parcelas_padrao`, `renovacao_automatica = tipoCobranca === "recorrencia"`
+     - `servicos`: array montado a partir de `servicosInclusos` no formato esperado pelo widget:
+       - `${avaliacao_funcional} Avaliação Funcional`
+       - `${nutricao} Consultas Nutrição`
+       - `${reabilitacao} Consultas Reabilitação`
+       (omitindo entradas com `0`)
+   - Aplicar também para vendas sem etapa de serviços (Start) → array vazio.
 
-4. **Ajustar o frontend para cache correto**
-   - Corrigir a invalidação de cache do contrato do aluno para bater com o hook atual (`['contratos', alunoId]`).
-   - Após venda recorrente pendente, invalidar também cobranças e créditos para a aba Contrato atualizar sem depender de reload.
+2. **`supabase/functions`/RPC `fn_criar_contrato_recorrencia`**
+   Não duplicar a criação do plano. A função continua criando `contratos` + `cobrancas` + `creditos_aluno`; o `planos` passa a ser responsabilidade exclusiva do frontend logo após a chamada. (Se hoje a RPC mexer no `planos`, manter inalterado — apenas o frontend garante o `servicos` correto via `update` posterior.)
 
-5. **Validar com os dados reais do aluno atual**
-   - Conferir a última venda recorrente do aluno.
-   - Verificar que, após a correção, uma nova venda pendente cria:
-     - 1 contrato em `contratos`;
-     - 12 cobranças em `cobrancas`;
-     - créditos de treino + serviços adicionais selecionados em `creditos_aluno`.
+3. **Invalidação de cache**
+   Já existe `invalidatePlanoCaches(qc, alunoId)` no `onSuccess`. Garantir que continue sendo chamado em ambos os caminhos (tradicional e após o `PagarCartaoDialog` confirmar a recorrência online).
 
-## Resultado esperado
+4. **Validação**
+   - Vender um plano Power com opção "2 Nutrição" → widget deve mostrar `0/1 usados` em Avaliação Funcional e `0/2 usados` em Consultas Nutrição.
+   - Vender Max → `0/3`, `0/5`, `0/5`.
+   - Vender Start → widget exibe créditos zerados (sem benefícios), sem erro.
 
-- Ao finalizar recorrência como pagamento pendente, a tela não exibirá erro.
-- O plano continuará ativo.
-- O contrato aparecerá em Perfil do Aluno > Contrato.
-- Os serviços adicionais selecionados serão transformados automaticamente em créditos do aluno.
+Nenhuma mudança de schema é necessária — apenas população correta de `planos.servicos`.

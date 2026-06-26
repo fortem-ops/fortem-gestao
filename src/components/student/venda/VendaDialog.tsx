@@ -251,6 +251,50 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     );
   };
 
+  // Sincroniza o registro de `planos` (Plano Contratado) refletindo a venda.
+  // Desativa planos ativos anteriores e cria um novo com tipo, valor, datas
+  // e a lista `servicos` no formato "N <Tipo>" lida pelo widget Plano Contratado.
+  const sincronizarPlano = async (params: {
+    nome: string;
+    valor: number;
+    dataInicio: Date;
+    duracaoMeses: number;
+    svc: ServicosInclusos;
+    formaPagamento: string | null;
+    parcelas: number;
+    recorrencia: boolean;
+  }) => {
+    const inicio = format(params.dataInicio, "yyyy-MM-dd");
+    const fimDate = new Date(params.dataInicio);
+    fimDate.setMonth(fimDate.getMonth() + params.duracaoMeses);
+    const fim = format(fimDate, "yyyy-MM-dd");
+
+    const servicosArr: string[] = [];
+    if (params.svc.avaliacao_funcional > 0) servicosArr.push(`${params.svc.avaliacao_funcional} Avaliação Funcional`);
+    if (params.svc.nutricao > 0) servicosArr.push(`${params.svc.nutricao} Consultas Nutrição`);
+    if (params.svc.reabilitacao > 0) servicosArr.push(`${params.svc.reabilitacao} Consultas Reabilitação`);
+
+    await (supabase as any)
+      .from("planos")
+      .update({ ativo: false })
+      .eq("aluno_id", alunoId)
+      .eq("ativo", true);
+
+    await (supabase as any).from("planos").insert({
+      aluno_id: alunoId,
+      tipo: params.nome,
+      valor: params.valor,
+      data_inicio: inicio,
+      data_fim: fim,
+      duracao_meses: params.duracaoMeses,
+      servicos: servicosArr,
+      ativo: true,
+      renovacao_automatica: params.recorrencia,
+      forma_pagamento_padrao: params.formaPagamento,
+      parcelas_padrao: params.parcelas || 1,
+    });
+  };
+
   const venderPlano = useMutation({
     mutationFn: async () => {
       if (!planoSelecionado || !tipoCobranca || !modalidade || !totaisPlano) {
@@ -332,6 +376,21 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         // Tradicional com benefícios — criar créditos diretamente
         await criarCreditosServicos(servicosInclusos);
       }
+
+      // Sincroniza o Plano Contratado (widget StudentPlan) para refletir
+      // tipo, valor, datas e serviços incluídos no plano vendido.
+      const periodoMeses = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
+      await sincronizarPlano({
+        nome: planoSelecionado.nome,
+        valor: valor,
+        dataInicio,
+        duracaoMeses: periodoMeses,
+        svc: servicosInclusos,
+        formaPagamento: formaPgto,
+        parcelas: parcelas || 1,
+        recorrencia: tipoCobranca === "recorrencia",
+      });
+
 
       const periodoPlano = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
       const valorCartaoOnline = tipoCobranca === "recorrencia"
