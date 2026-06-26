@@ -5400,6 +5400,10 @@ export type Database = {
         Args: { _jornada_id: string }
         Returns: undefined
       }
+      fn_ponto_criar_jornada_manual: {
+        Args: { _data: string; _motivo: string; _user_id: string }
+        Returns: string
+      }
       fn_ponto_dashboard_coordenador: {
         Args: { _data?: string }
         Returns: Json
