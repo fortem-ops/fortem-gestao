@@ -1,50 +1,40 @@
+## Objetivo
+Permitir que **Coordenação e Administração** ajustem horários de ponto em qualquer dia — inclusive nos dias marcados como **Falta** (sem nenhum registro), cobrindo casos de esquecimento do funcionário.
 
-## Problema
+## Escopo
 
-No Relatório de Ponto aparece um profissional com nome "—". A causa: as queries de `ponto_jornadas`, `ponto_eventos` e horários trazem registros cujo `usuario_id` não está mais na lista de profissionais ativos (lista derivada de `user_roles` com role `professor`/`admin` + `profiles`). Quando o usuário foi removido (caso Igor), o `profMap.get(uid)` retorna `undefined` e o código renderiza `"—"`.
+### 1. Backend — nova RPC para criar jornada retroativa
+Criar `public.fn_ponto_criar_jornada_manual(_user_id uuid, _data date, _motivo text) RETURNS uuid`:
+- `SECURITY DEFINER`, `search_path = public`.
+- Restrita a `is_coordinator_or_admin(auth.uid())` (erro `42501` caso contrário).
+- Valida `_motivo` (mín. 3 caracteres) e que `_data` não seja futura.
+- Insere em `ponto_jornadas` uma linha vazia para `(usuario_id=_user_id, data=_data)` com `status_ponto='ajustada'`, `observacao` prefixada com "Criada manualmente por <coord>: <motivo>".
+- Se já existir jornada nesse dia, retorna o `id` existente (idempotente).
+- Grava entrada em `ponto_ajustes_log` (campo `criacao_manual`) com `usuario_alvo`, `usuario_responsavel=auth.uid()`, `motivo`.
+- `GRANT EXECUTE ... TO authenticated`.
 
-## Solução
+Nenhuma alteração em `fn_ponto_ajustar_jornada`: ela continua sendo chamada em seguida para preencher entrada/intervalo/saída.
 
-### 1. Filtrar no front (`src/pages/RelatorioPonto.tsx`)
-Tratar `profissionais` como a fonte de verdade de quem deve aparecer no relatório:
+### 2. Frontend — `src/components/ponto/AjustarJornadaDialog.tsx`
+- Aceitar novas props opcionais: `usuarioId: string`, `permitirCriacao?: boolean`.
+- Quando `jornadaId` for `null` e `permitirCriacao` for `true`:
+  - Antes de chamar `fn_ponto_ajustar_jornada`, invocar `fn_ponto_criar_jornada_manual` com `usuarioId`, `data` e o `motivo` digitado.
+  - Usar o `id` retornado para a chamada de ajuste.
+- Texto de cabeçalho: quando criando, mostrar "Registrar ponto retroativo" em vez de "Ajustar jornada".
+- Invalidar também `["relatorio-ponto"]` / `["ponto-jornadas"]` para refletir a nova linha imediatamente.
 
-- Construir `profIdsAtivos = new Set(profissionais.map(p => p.user_id))`.
-- Em todos os agrupamentos/listagens que hoje usam `profMap.get(uid) ?? "—"`, ignorar registros cujo `usuario_id` não esteja em `profIdsAtivos`:
-  - Agregado mensal (linhas ~320-342).
-  - Linhas diárias / linhas sintéticas (jornadas, faltas, ausências) — linhas ~370-414.
-  - Geração de "Faltas" a partir de `ponto_horarios_professor` (só cria falta se o usuário ainda é ativo).
-- Remover o fallback `"—"` (passa a ser código morto, já que filtramos antes).
-- Os Selects de filtro já usam `profissionais`, então não precisam mudar.
+### 3. Frontend — `src/pages/RelatorioPonto.tsx`
+- Nas linhas `kind === "falta"`, exibir no canto direito (coluna Ações, hoje "Sem ponto") um botão `Registrar ponto` (somente para coord/admin — já é a regra de acesso da página).
+- Ao clicar, abrir `AjustarJornadaDialog` com:
+  - `jornadaId={null}`
+  - `usuarioId={l.usuario_id}`
+  - `professorNome` e `data` correspondentes
+  - `permitirCriacao` = `true`
+- Manter o botão "Ajustar" existente nas jornadas normais (sem mudanças).
 
-Isso resolve imediatamente o caso do Igor e qualquer outro usuário deletado/sem role.
+### 4. Sem mudanças necessárias
+- RLS de `ponto_jornadas` / `ponto_ajustes_log` permanecem como estão (a RPC `SECURITY DEFINER` gerencia o acesso).
+- `EquipeAoVivoTable` continua usando o diálogo no modo legado (apenas edição).
 
-### 2. Regra de desligamento no banco
-Para garantir que, ao desligar/excluir um funcionário, ele pare de gerar relatório (inclusive sem depender só do filtro do front), criar trigger:
-
-- **Trigger `trg_ponto_desligamento_usuario`** em `public.user_roles` AFTER DELETE: se o usuário não tem mais nenhuma role em (`professor`,`admin`), executar:
-  - `UPDATE public.ponto_horarios_professor SET ativo = false WHERE usuario_id = OLD.user_id;`
-  - Isso impede geração futura de "Faltas" sintéticas e de jornadas previstas.
-- **Trigger equivalente** em `auth.users` não é permitido (schema bloqueado). Como `user_roles.user_id` tem FK `ON DELETE CASCADE` para `auth.users`, ao deletar um usuário o trigger acima dispara naturalmente via cascade.
-- Histórico em `ponto_jornadas`/`ponto_eventos` é preservado (auditoria), mas deixa de aparecer no relatório por causa do filtro do passo 1.
-
-### 3. Limpeza pontual
-Rodar uma vez:
-```sql
-UPDATE public.ponto_horarios_professor h
-SET ativo = false
-WHERE ativo = true
-  AND NOT EXISTS (
-    SELECT 1 FROM public.user_roles r
-    WHERE r.user_id = h.usuario_id AND r.role IN ('professor','admin')
-  );
-```
-Para neutralizar o caso do Igor e similares já existentes.
-
-## Arquivos / mudanças
-- `src/pages/RelatorioPonto.tsx` — filtragem por `profIdsAtivos` em agregados, linhas diárias e geração de faltas.
-- Migração SQL — trigger em `user_roles` + função `fn_ponto_on_role_revogada` (com `search_path = public`).
-- Data fix SQL — desativar horários órfãos existentes.
-
-## Fora do escopo
-- Não alterar UI/filtros (apenas a lista de dados exibida).
-- Não apagar histórico de `ponto_jornadas`/`ponto_eventos`.
+## Resultado esperado
+Em Relatório Ponto, ao lado de cada "Falta", coordenador/admin clica em **Registrar ponto**, informa entrada/saída e motivo. O sistema cria a jornada retroativa, grava no log de auditoria e o dia deixa de figurar como falta.
