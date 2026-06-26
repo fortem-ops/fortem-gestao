@@ -607,6 +607,15 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
         <StudentLicencas alunoId={student.id} planoId={data.id} planoTipo={data.tipo} isCoordAdmin={isCoordAdmin} />
       </div>
+
+      {futurosFiltrados.length > 0 && (
+        <div className="space-y-3">
+          {futurosFiltrados.map((p: any) => (
+            <PlanoFuturoCard key={p.id} plano={p} />
+          ))}
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground">Editável apenas por Coordenação e Administração</p>
 
       <Dialog open={addUsageOpen} onOpenChange={setAddUsageOpen}>
