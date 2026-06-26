@@ -117,6 +117,11 @@ export default function RelatorioPonto() {
     () => new Map(profissionais.map((p: any) => [p.user_id, p.full_name])),
     [profissionais],
   );
+  const profIdsAtivos = useMemo(
+    () => new Set(profissionais.map((p: any) => p.user_id as string)),
+    [profissionais],
+  );
+  const isAtivo = (uid: string) => profIdsAtivos.size === 0 || profIdsAtivos.has(uid);
 
   // Config global para saber se intervalo é obrigatório
   const { data: configGlobal } = useQuery({
@@ -230,8 +235,8 @@ export default function RelatorioPonto() {
     if (!horarios.length) return [];
     const out: LinhaDiaria[] = [];
     const existentes = new Set(jornadas.map((j) => `${j.usuario_id}|${j.data}`));
-    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id)));
-    const alvos = profId === "todos" ? usuariosComHorario : [profId];
+    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id))).filter(isAtivo);
+    const alvos = profId === "todos" ? usuariosComHorario : (isAtivo(profId) ? [profId] : []);
     const cur = new Date(inicio + "T00:00");
     const end = new Date(fim + "T00:00");
     while (cur <= end) {
@@ -253,11 +258,13 @@ export default function RelatorioPonto() {
       cur.setDate(cur.getDate() + 1);
     }
     return out;
-  }, [horarios, jornadas, profId, inicio, fim, feriadoMap, ferias]);
+  }, [horarios, jornadas, profId, inicio, fim, feriadoMap, ferias, profIdsAtivos]);
 
   // Combina e filtra por status
   const linhasDiarias = useMemo<LinhaDiaria[]>(() => {
-    const jornadasLinhas: LinhaDiaria[] = jornadas.map((j) => ({ kind: "jornada", jornada: j }));
+    const jornadasLinhas: LinhaDiaria[] = jornadas
+      .filter((j) => isAtivo(j.usuario_id))
+      .map((j) => ({ kind: "jornada", jornada: j }));
     const todas = [...jornadasLinhas, ...linhasSinteticas];
     const filtradas = todas.filter((l) => {
       if (statusFilter === "todos") return true;
@@ -278,7 +285,7 @@ export default function RelatorioPonto() {
       const db = b.kind === "jornada" ? b.jornada.data : b.data;
       return db.localeCompare(da);
     });
-  }, [jornadas, linhasSinteticas, statusFilter, intervaloObrigatorio]);
+  }, [jornadas, linhasSinteticas, statusFilter, intervaloObrigatorio, profIdsAtivos]);
 
 
 
@@ -289,7 +296,7 @@ export default function RelatorioPonto() {
     const mesIni = mesFiltro + "-01";
     const dt = new Date(mesIni + "T00:00");
     const ultimo = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).toISOString().slice(0, 10);
-    const dentroMes = jornadas.filter((j) => j.data >= mesIni && j.data <= ultimo);
+    const dentroMes = jornadas.filter((j) => j.data >= mesIni && j.data <= ultimo && isAtivo(j.usuario_id));
     const porUser = new Map<string, { dias: number; total: number; pend: number }>();
     dentroMes.forEach((j) => {
       const r = porUser.get(j.usuario_id) ?? { dias: 0, total: 0, pend: 0 };
@@ -300,9 +307,10 @@ export default function RelatorioPonto() {
     });
     // previsto = soma das janelas previstas dos dias do mês + conta faltas
     const out: MensalExport[] = [];
-    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id)));
+    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id))).filter(isAtivo);
     const usuariosNoMes = new Set<string>([...porUser.keys(), ...usuariosComHorario]);
     usuariosNoMes.forEach((uid) => {
+      if (!isAtivo(uid)) return;
       const agg = porUser.get(uid) ?? { dias: 0, total: 0, pend: 0 };
       let previsto = 0;
       let faltas = 0;
@@ -340,7 +348,7 @@ export default function RelatorioPonto() {
     });
 
     return out.sort((a, b) => a.professor.localeCompare(b.professor));
-  }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio, bancoPorUser]);
+  }, [jornadas, mesFiltro, horarios, profMap, intervaloObrigatorio, bancoPorUser, profIdsAtivos]);
 
   // Buscar status de fechamentos do mês selecionado
   const { data: fechamentos = [] } = useQuery({

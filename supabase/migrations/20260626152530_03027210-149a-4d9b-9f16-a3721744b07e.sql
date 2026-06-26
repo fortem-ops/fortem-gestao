@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.fn_ponto_on_role_revogada() FROM PUBLIC, anon, authenticated;
