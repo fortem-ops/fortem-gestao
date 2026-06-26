@@ -56,7 +56,6 @@ import {
   type ServicoUtilizado,
 } from "@/lib/contratos-calc";
 
-
 interface Props {
   alunoId: string;
 }
@@ -66,12 +65,15 @@ const fmt = (n: number) =>
 const fmtDate = (d: string | null) =>
   d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—";
 
+const STATUS_ATIVOS = ["ativo", "inadimplente", "suspenso"] as const;
+
 export default function ContratoFinanceiro({ alunoId }: Props) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: roles } = useUserRoles();
   const podeCancelar = !!(roles?.isAdmin || roles?.isCoordAdmin);
-  const [rescOpen, setRescOpen] = useState(false);
+
+  const [rescContrato, setRescContrato] = useState<Contrato | null>(null);
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaCobranca, setBaixaCobranca] = useState<any | null>(null);
   const [baixaData, setBaixaData] = useState(new Date().toISOString().split("T")[0]);
@@ -85,55 +87,18 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         .from("contratos")
         .select("*")
         .eq("aluno_id", alunoId)
-        .order("created_at", { ascending: false });
+        .order("data_inicio", { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as Contrato[];
     },
   });
 
-  const ativo = contratos.find((c) => c.status === "ativo") ?? null;
-  const historico = contratos.filter((c) => c.status !== "ativo");
-
-  const { data: cobrancas = [] } = useQuery({
-    queryKey: ["cobrancas-contrato", ativo?.id],
-    enabled: !!ativo,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cobrancas")
-        .select("*")
-        .eq("contrato_id", ativo!.id)
-        .order("data_vencimento", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: ciclo } = useQuery({
-    queryKey: ["ciclo-ativo", ativo?.id],
-    enabled: !!ativo,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("ciclos_credito")
-        .select("*")
-        .eq("contrato_id", ativo!.id)
-        .eq("status", "ativo")
-        .maybeSingle();
-      return data;
-    },
-  });
-
-  const { data: inadimplencias = [] } = useQuery({
-    queryKey: ["inadimplencias-contrato", ativo?.id],
-    enabled: !!ativo,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("inadimplencias")
-        .select("*")
-        .eq("contrato_id", ativo!.id)
-        .eq("status", "aberta");
-      return data ?? [];
-    },
-  });
+  const ativos = contratos
+    .filter((c) => (STATUS_ATIVOS as readonly string[]).includes(c.status))
+    .sort((a, b) => (a.data_inicio ?? "").localeCompare(b.data_inicio ?? ""));
+  const historico = contratos.filter(
+    (c) => !(STATUS_ATIVOS as readonly string[]).includes(c.status),
+  );
 
   if (isLoading) {
     return (
@@ -158,11 +123,9 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     );
   }
 
-
-  const proxCob = cobrancas.find((c) => c.status === "pendente");
-
   const handleCancelar = async () => {
-    if (!ativo) return;
+    const alvo = rescContrato;
+    if (!alvo) return;
     const hoje = new Date().toISOString().split("T")[0];
     const { error } = await supabase
       .from("contratos")
@@ -171,7 +134,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         motivo_cancelamento: "Solicitação do aluno",
         data_cancelamento: hoje,
       })
-      .eq("id", ativo.id);
+      .eq("id", alvo.id);
     if (error) {
       toast({ title: "Erro ao cancelar", description: error.message, variant: "destructive" });
       return;
@@ -179,18 +142,19 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     await supabase
       .from("cobrancas")
       .update({ status: "cancelado" })
-      .eq("contrato_id", ativo.id)
+      .eq("contrato_id", alvo.id)
       .eq("status", "pendente");
     await supabase
       .from("ciclos_credito")
       .update({ status: "cancelado" })
-      .eq("contrato_id", ativo.id)
+      .eq("contrato_id", alvo.id)
       .eq("status", "ativo");
 
     toast({ title: "Contrato cancelado", description: "Cobranças e créditos suspensos." });
     qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
-    qc.invalidateQueries({ queryKey: ["cobrancas-contrato", ativo.id] });
-    qc.invalidateQueries({ queryKey: ["ciclo-ativo", ativo.id] });
+    qc.invalidateQueries({ queryKey: ["cobrancas-contrato", alvo.id] });
+    qc.invalidateQueries({ queryKey: ["ciclo-ativo", alvo.id] });
+    setRescContrato(null);
   };
 
   const handleBaixa = async () => {
@@ -209,7 +173,6 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
 
       if (error) throw error;
 
-      // Fecha inadimplência correspondente (defesa em profundidade — trigger no banco também faz isso)
       await supabase
         .from("inadimplencias")
         .update({ status: "regularizada", data_regularizacao: baixaData })
@@ -218,10 +181,11 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
 
       toast({ title: "Baixa registrada", description: `Cobrança de ${fmt(Number(baixaCobranca.valor))} marcada como paga.` });
       setBaixaOpen(false);
+      const contratoId = baixaCobranca.contrato_id;
       setBaixaCobranca(null);
-      qc.invalidateQueries({ queryKey: ["cobrancas-contrato", ativo?.id] });
+      qc.invalidateQueries({ queryKey: ["cobrancas-contrato", contratoId] });
       qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
-      qc.invalidateQueries({ queryKey: ["inadimplencias-contrato", ativo?.id] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias-contrato", contratoId] });
       qc.invalidateQueries({ queryKey: ["inadimplencias-aluno", alunoId] });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -230,165 +194,43 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     }
   };
 
+  const pedirBaixa = (c: any) => {
+    setBaixaCobranca(c);
+    setBaixaData(new Date().toISOString().split("T")[0]);
+    setBaixaGateway("dinheiro");
+    setBaixaOpen(true);
+  };
+
+  const hojeStr = new Date().toISOString().split("T")[0];
+
   return (
     <div className="space-y-6">
-      {/* Contrato ativo */}
-      {ativo ? (
-        <Card className="p-5 space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-2">
-              <div className="flex flex-wrap gap-2">
-                <Badge className={LABEL_STATUS[ativo.status]?.color ?? "bg-gray-500"}>
-                  {LABEL_STATUS[ativo.status]?.label ?? ativo.status}
-                </Badge>
-                <Badge variant="outline">{LABEL_PLANO[ativo.plano_tipo] ?? ativo.plano_tipo}</Badge>
-                <Badge variant="outline">
-                  {ativo.vigencia_tipo === "anual" ? "Anual" : "Mensal"}
-                </Badge>
-                <Badge variant="outline">{LABEL_PAGAMENTO[ativo.forma_pagamento]}</Badge>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Início {fmtDate(ativo.data_inicio)} · Fim {fmtDate(ativo.data_fim)}
-              </div>
-            </div>
-            {podeCancelar && (
-              <Button variant="destructive" size="sm" onClick={() => setRescOpen(true)}>
-                Cancelar contrato
-              </Button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-            <Info label="Valor mensal" value={fmt(ativo.valor_cobrado)} />
-            <Info
-              label="Próxima cobrança"
-              value={proxCob ? `${fmtDate(proxCob.data_vencimento)} · ${fmt(Number(proxCob.valor))}` : "—"}
+      {/* Contratos ativos (vigente + adicionais/futuros) */}
+      {ativos.length > 0 ? (
+        ativos.map((c, idx) => {
+          let rotulo: { label: string; variant: "default" | "secondary" | "outline" } | null = null;
+          if (ativos.length > 1) {
+            if (idx === 0) rotulo = { label: "Vigente", variant: "default" };
+            else if ((c.data_inicio ?? "") > hojeStr) rotulo = { label: "Futuro", variant: "secondary" };
+            else rotulo = { label: "Adicional", variant: "secondary" };
+          }
+          return (
+            <ContratoAtivoCard
+              key={c.id}
+              contrato={c}
+              rotulo={rotulo}
+              podeCancelar={podeCancelar}
+              onCancelar={() => setRescContrato(c)}
+              onPedirBaixa={pedirBaixa}
             />
-            <Info
-              label="Créditos do ciclo"
-              value={
-                ciclo
-                  ? `${ciclo.creditos_usados}/${ciclo.creditos_liberados}`
-                  : "—"
-              }
-            />
-            <Info label="Créditos contrato" value={String(ativo.creditos_total)} />
-          </div>
-        </Card>
+          );
+        })
       ) : (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Sem contrato ativo</AlertTitle>
           <AlertDescription>Este aluno não possui contrato em vigência.</AlertDescription>
         </Alert>
-      )}
-
-      {/* Inadimplências */}
-      {inadimplencias.length > 0 && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Inadimplências em aberto</AlertTitle>
-          <AlertDescription>
-            <ul className="mt-2 space-y-1">
-              {inadimplencias.map((i) => {
-                const dias = Math.floor(
-                  (Date.now() - new Date(i.data_vencimento + "T00:00:00").getTime()) /
-                    86400000,
-                );
-                return (
-                  <li key={i.id} className="flex justify-between gap-3 text-sm">
-                    <span>
-                      Venc. {fmtDate(i.data_vencimento)} · {dias} dia(s) em atraso
-                    </span>
-                    <span className="font-semibold">{fmt(Number(i.valor))}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Cobranças */}
-      {ativo && (
-        <Card className="p-5">
-          <h3 className="font-medium flex items-center gap-2 mb-3">
-            <CreditCard className="h-4 w-4" /> Cobranças
-          </h3>
-          {cobrancas.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhuma cobrança registrada.</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8 text-center">#</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Pgto</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Meio</TableHead>
-                  <TableHead>TID</TableHead>
-                  {podeCancelar && <TableHead className="text-right">Ação</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cobrancas.map((c, idx) => (
-                  <TableRow key={c.id} className={c.status === "pago" ? "opacity-60" : ""}>
-                    <TableCell className="text-center text-xs text-muted-foreground font-mono">{idx + 1}</TableCell>
-                    <TableCell className="whitespace-nowrap">{fmtDate(c.data_vencimento)}</TableCell>
-                    <TableCell className="whitespace-nowrap">{c.data_pagamento ? fmtDate(c.data_pagamento) : "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap font-medium">{fmt(Number(c.valor))}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          c.status === "pago"
-                            ? "bg-green-600 hover:bg-green-600"
-                            : c.status === "atrasado"
-                            ? "bg-red-600 hover:bg-red-600"
-                            : c.status === "cancelado"
-                            ? "bg-gray-500 hover:bg-gray-500"
-                            : "bg-yellow-500 hover:bg-yellow-500 text-black"
-                        }
-                      >
-                        {c.status === "pago" ? "Pago" :
-                         c.status === "pendente" ? "Pendente" :
-                         c.status === "atrasado" ? "Atrasado" :
-                         c.status === "cancelado" ? "Cancelado" :
-                         c.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {LABEL_PAGAMENTO[c.forma_pagamento as keyof typeof LABEL_PAGAMENTO] ?? c.forma_pagamento}
-                    </TableCell>
-                    <TableCell className="text-xs font-mono text-muted-foreground">
-                      {c.tid ?? "—"}
-                    </TableCell>
-                    {podeCancelar && (
-                      <TableCell className="text-right">
-                        {(c.status === "pendente" || c.status === "atrasado") && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
-                            onClick={() => {
-                              setBaixaCobranca(c);
-                              setBaixaData(new Date().toISOString().split("T")[0]);
-                              setBaixaGateway("dinheiro");
-                              setBaixaOpen(true);
-                            }}
-                          >
-                            <CheckCircle className="h-3 w-3" />
-                            Dar baixa
-                          </Button>
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </Card>
       )}
 
       {/* Histórico */}
@@ -425,15 +267,13 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         <HistoricoVendas alunoId={alunoId} />
       </Card>
 
-
-
       {/* Dialog de rescisão */}
-      {ativo && (
+      {rescContrato && (
         <RescisaoDialog
-          contrato={ativo}
+          contrato={rescContrato}
           servicosUtilizados={[] as ServicoUtilizado[]}
-          open={rescOpen}
-          onOpenChange={setRescOpen}
+          open={!!rescContrato}
+          onOpenChange={(v) => !v && setRescContrato(null)}
           onConfirmar={handleCancelar}
         />
       )}
@@ -500,6 +340,200 @@ function Info({ label, value }: { label: string; value: string }) {
     <div>
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="font-medium text-sm">{value}</div>
+    </div>
+  );
+}
+
+interface ContratoAtivoCardProps {
+  contrato: Contrato;
+  rotulo: { label: string; variant: "default" | "secondary" | "outline" } | null;
+  podeCancelar: boolean;
+  onCancelar: () => void;
+  onPedirBaixa: (cobranca: any) => void;
+}
+
+function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedirBaixa }: ContratoAtivoCardProps) {
+  const { data: cobrancas = [] } = useQuery({
+    queryKey: ["cobrancas-contrato", contrato.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cobrancas")
+        .select("*")
+        .eq("contrato_id", contrato.id)
+        .order("data_vencimento", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: ciclo } = useQuery({
+    queryKey: ["ciclo-ativo", contrato.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ciclos_credito")
+        .select("*")
+        .eq("contrato_id", contrato.id)
+        .eq("status", "ativo")
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: inadimplencias = [] } = useQuery({
+    queryKey: ["inadimplencias-contrato", contrato.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("inadimplencias")
+        .select("*")
+        .eq("contrato_id", contrato.id)
+        .eq("status", "aberta");
+      return data ?? [];
+    },
+  });
+
+  const proxCob = cobrancas.find((c) => c.status === "pendente");
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-5 space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2 items-center">
+              {rotulo && (
+                <Badge variant={rotulo.variant}>{rotulo.label}</Badge>
+              )}
+              <Badge className={LABEL_STATUS[contrato.status]?.color ?? "bg-gray-500"}>
+                {LABEL_STATUS[contrato.status]?.label ?? contrato.status}
+              </Badge>
+              <Badge variant="outline">{LABEL_PLANO[contrato.plano_tipo] ?? contrato.plano_tipo}</Badge>
+              <Badge variant="outline">
+                {contrato.vigencia_tipo === "anual" ? "Anual" : "Mensal"}
+              </Badge>
+              <Badge variant="outline">{LABEL_PAGAMENTO[contrato.forma_pagamento]}</Badge>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Início {fmtDate(contrato.data_inicio)} · Fim {fmtDate(contrato.data_fim)}
+            </div>
+          </div>
+          {podeCancelar && (
+            <Button variant="destructive" size="sm" onClick={onCancelar}>
+              Cancelar contrato
+            </Button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+          <Info label="Valor mensal" value={fmt(contrato.valor_cobrado)} />
+          <Info
+            label="Próxima cobrança"
+            value={proxCob ? `${fmtDate(proxCob.data_vencimento)} · ${fmt(Number(proxCob.valor))}` : "—"}
+          />
+          <Info
+            label="Créditos do ciclo"
+            value={ciclo ? `${ciclo.creditos_usados}/${ciclo.creditos_liberados}` : "—"}
+          />
+          <Info label="Créditos contrato" value={String(contrato.creditos_total)} />
+        </div>
+      </Card>
+
+      {inadimplencias.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Inadimplências em aberto</AlertTitle>
+          <AlertDescription>
+            <ul className="mt-2 space-y-1">
+              {inadimplencias.map((i) => {
+                const dias = Math.floor(
+                  (Date.now() - new Date(i.data_vencimento + "T00:00:00").getTime()) /
+                    86400000,
+                );
+                return (
+                  <li key={i.id} className="flex justify-between gap-3 text-sm">
+                    <span>
+                      Venc. {fmtDate(i.data_vencimento)} · {dias} dia(s) em atraso
+                    </span>
+                    <span className="font-semibold">{fmt(Number(i.valor))}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card className="p-5">
+        <h3 className="font-medium flex items-center gap-2 mb-3">
+          <CreditCard className="h-4 w-4" /> Cobranças
+        </h3>
+        {cobrancas.length === 0 ? (
+          <div className="text-sm text-muted-foreground">Nenhuma cobrança registrada.</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8 text-center">#</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead>Pgto</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Meio</TableHead>
+                <TableHead>TID</TableHead>
+                {podeCancelar && <TableHead className="text-right">Ação</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cobrancas.map((c, idx) => (
+                <TableRow key={c.id} className={c.status === "pago" ? "opacity-60" : ""}>
+                  <TableCell className="text-center text-xs text-muted-foreground font-mono">{idx + 1}</TableCell>
+                  <TableCell className="whitespace-nowrap">{fmtDate(c.data_vencimento)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{c.data_pagamento ? fmtDate(c.data_pagamento) : "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap font-medium">{fmt(Number(c.valor))}</TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        c.status === "pago"
+                          ? "bg-green-600 hover:bg-green-600"
+                          : c.status === "atrasado"
+                          ? "bg-red-600 hover:bg-red-600"
+                          : c.status === "cancelado"
+                          ? "bg-gray-500 hover:bg-gray-500"
+                          : "bg-yellow-500 hover:bg-yellow-500 text-black"
+                      }
+                    >
+                      {c.status === "pago" ? "Pago" :
+                       c.status === "pendente" ? "Pendente" :
+                       c.status === "atrasado" ? "Atrasado" :
+                       c.status === "cancelado" ? "Cancelado" :
+                       c.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {LABEL_PAGAMENTO[c.forma_pagamento as keyof typeof LABEL_PAGAMENTO] ?? c.forma_pagamento}
+                  </TableCell>
+                  <TableCell className="text-xs font-mono text-muted-foreground">
+                    {c.tid ?? "—"}
+                  </TableCell>
+                  {podeCancelar && (
+                    <TableCell className="text-right">
+                      {(c.status === "pendente" || c.status === "atrasado") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
+                          onClick={() => onPedirBaixa(c)}
+                        >
+                          <CheckCircle className="h-3 w-3" />
+                          Dar baixa
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
     </div>
   );
 }
