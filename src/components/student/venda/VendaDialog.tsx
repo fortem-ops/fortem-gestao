@@ -425,7 +425,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         taxa_mensal: totaisPlano.taxaMensal,
         modalidade_pagamento: modalidade,
         canal_pagamento: canal,
-      }).select("id").single();
+      }).select("id, plano_id").single();
       if (error) throw error;
 
       // Atualiza flag aluno_2025 se mudou
@@ -453,25 +453,30 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           p_servicos_inclusos: servicosInclusos,
         });
         if (rpcErr) throw rpcErr;
-      } else if (tipoCobranca === "tradicional" && hasServicos) {
-        // Tradicional com benefícios — criar créditos diretamente
+      }
+      // Créditos de serviços incluídos: criar sempre que houver, tanto em
+      // tradicional quanto em recorrência. O trigger não cria mais o bônus
+      // hard-coded do Start+, então não há duplicação.
+      if (hasServicos) {
         await criarCreditosServicos(servicosInclusos);
       }
 
-      // Sincroniza o Plano Contratado (widget StudentPlan) para refletir
-      // tipo, valor, datas e serviços incluídos no plano vendido.
+      // Atualiza o registro `planos` criado pelo trigger refletindo a venda.
       const periodoMeses = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
-      await sincronizarPlano({
-        nome: planoSelecionado.nome,
-        valor: valor,
-        dataInicio,
-        duracaoMeses: periodoMeses,
-        svc: servicosInclusos,
-        formaPagamento: formaPgto,
-        parcelas: parcelas || 1,
-        recorrencia: tipoCobranca === "recorrencia",
-        modo: planoVigente ? modoContrato : "substituir",
-      });
+      if (vendaIns?.plano_id) {
+        await atualizarPlanoDaVenda({
+          planoId: vendaIns.plano_id,
+          nome: planoSelecionado.nome,
+          valor: valor,
+          dataInicio,
+          duracaoMeses: periodoMeses,
+          svc: servicosInclusos,
+          formaPagamento: formaPgto,
+          parcelas: parcelas || 1,
+          recorrencia: tipoCobranca === "recorrencia",
+          modo: planoVigente ? modoContrato : "substituir",
+        });
+      }
 
 
 
