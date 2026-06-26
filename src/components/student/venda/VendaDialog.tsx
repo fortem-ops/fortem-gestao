@@ -324,11 +324,16 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     if (params.svc.nutricao > 0) servicosArr.push(`${params.svc.nutricao} Consultas Nutrição`);
     if (params.svc.reabilitacao > 0) servicosArr.push(`${params.svc.reabilitacao} Consultas Reabilitação`);
 
-    await (supabase as any)
-      .from("planos")
-      .update({ ativo: false })
-      .eq("aluno_id", alunoId)
-      .eq("ativo", true);
+    // Em "renovacao"/"adicional" mantemos o plano vigente ativo (ele continua
+    // valendo até a data_fim natural). Só "substituir" desativa o anterior.
+    if (params.modo === "substituir") {
+      await (supabase as any)
+        .from("planos")
+        .update({ ativo: false })
+        .eq("aluno_id", alunoId)
+        .eq("ativo", true);
+    }
+
 
     await (supabase as any).from("planos").insert({
       aluno_id: alunoId,
