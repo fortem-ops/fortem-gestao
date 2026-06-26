@@ -218,7 +218,9 @@ serve(async (req) => {
     origem = "recepcao",
     auth_mode = "bearer",        // "bearer" | "basic" — diagnóstico
     capture_override,             // boolean opcional — força capture
+    servicos_inclusos = null,    // { avaliacao_funcional, nutricao, reabilitacao, definir_depois }
   } = body;
+
 
 
   // Validações básicas
