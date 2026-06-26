@@ -20,10 +20,10 @@ const DIAS = [
   { val: 6, label: "Sábado" },
 ];
 
-// 06:00 → 21:15 em passos de 15 min
+// 05:00 → 21:15 em passos de 15 min
 const HORARIOS = (() => {
   const out: string[] = [];
-  for (let h = 6; h <= 21; h++) {
+  for (let h = 5; h <= 21; h++) {
     for (let m = 0; m < 60; m += 15) {
       if (h === 21 && m > 15) break;
       out.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
@@ -119,7 +119,7 @@ export function AdminPontoHorarios() {
         <h3 className="font-heading font-semibold text-lg">Horário por funcionário</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Defina a janela de trabalho (06:00–21:15) para cada dia da semana (segunda a sábado) e se haverá intervalo de 15 minutos.
+        Defina a janela de trabalho (05:00–21:15) para cada dia da semana (segunda a sábado) e se haverá intervalo de 15 minutos.
       </p>
 
       <div className="max-w-sm">
