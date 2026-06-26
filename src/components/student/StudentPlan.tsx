@@ -945,3 +945,64 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
     </Dialog>
   );
 }
+
+function PlanoFuturoCard({ plano }: { plano: any }) {
+  const inicio = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") : "—";
+  const fim = plano.data_fim
+    ? new Date(plano.data_fim + "T00:00:00").toLocaleDateString("pt-BR")
+    : (plano.data_inicio ? calcEndDate(plano.data_inicio, plano.duracao_meses ?? 1) : "—");
+  const servicos: string[] = plano.servicos || [];
+  return (
+    <div className="glass-card rounded-lg p-5 space-y-3 border-l-4 border-l-warning/70">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge className="text-sm px-3 py-1">{plano.tipo}</Badge>
+          <Badge variant="outline" className="status-warning gap-1">
+            <Clock className="h-3 w-3" /> Aguardando início
+          </Badge>
+          {(plano.renovacao_automatica || isAutoRenewPlan(plano.tipo)) && (
+            <Badge variant="outline" className="status-info gap-1">
+              <RefreshCw className="h-3 w-3" /> Renovação automática
+            </Badge>
+          )}
+        </div>
+        {plano.valor != null && plano.valor > 0 && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <DollarSign className="h-4 w-4" />
+            <span>R$ {Number(plano.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-muted-foreground">Início</p>
+            <p className="font-medium text-foreground">{inicio}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-muted-foreground">Término</p>
+            <p className="font-medium text-foreground">{fim}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-muted-foreground">Duração</p>
+            <p className="font-medium text-foreground">{plano.duracao_meses} {plano.duracao_meses === 1 ? "mês" : "meses"}</p>
+          </div>
+        </div>
+      </div>
+      {servicos.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {servicos.map((s, i) => (
+            <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
