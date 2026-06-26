@@ -235,8 +235,8 @@ export default function RelatorioPonto() {
     if (!horarios.length) return [];
     const out: LinhaDiaria[] = [];
     const existentes = new Set(jornadas.map((j) => `${j.usuario_id}|${j.data}`));
-    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id)));
-    const alvos = profId === "todos" ? usuariosComHorario : [profId];
+    const usuariosComHorario = Array.from(new Set(horarios.map((h) => h.usuario_id))).filter(isAtivo);
+    const alvos = profId === "todos" ? usuariosComHorario : (isAtivo(profId) ? [profId] : []);
     const cur = new Date(inicio + "T00:00");
     const end = new Date(fim + "T00:00");
     while (cur <= end) {
