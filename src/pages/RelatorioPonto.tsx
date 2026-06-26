@@ -55,7 +55,14 @@ const STATUS_OPTS = [
   { v: "aberto", l: "Em aberto" },
   { v: "encerrada", l: "Encerrada" },
   { v: "pendencia", l: "Com pendência" },
+  { v: "falta", l: "Faltas" },
 ];
+
+type LinhaDiaria =
+  | { kind: "jornada"; jornada: Jornada }
+  | { kind: "falta"; usuario_id: string; data: string; previsto: number }
+  | { kind: "ausencia"; usuario_id: string; data: string; previsto: number; motivo: string; descricao?: string };
+
 
 function previstoMinutos(h?: HorarioRow): number {
   if (!h || !h.ativo) return 0;
