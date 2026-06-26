@@ -377,6 +377,21 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         await criarCreditosServicos(servicosInclusos);
       }
 
+      // Sincroniza o Plano Contratado (widget StudentPlan) para refletir
+      // tipo, valor, datas e serviços incluídos no plano vendido.
+      const periodoMeses = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
+      await sincronizarPlano({
+        nome: planoSelecionado.nome,
+        valor: valor,
+        dataInicio,
+        duracaoMeses: periodoMeses,
+        svc: servicosInclusos,
+        formaPagamento: formaPgto,
+        parcelas: parcelas || 1,
+        recorrencia: tipoCobranca === "recorrencia",
+      });
+
+
       const periodoPlano = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
       const valorCartaoOnline = tipoCobranca === "recorrencia"
         ? totaisPlano.mensalEstimado
