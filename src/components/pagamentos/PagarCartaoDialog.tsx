@@ -19,7 +19,9 @@ type Props = {
   onSuccess?: () => void;
   recorrencia?: boolean;
   parcelasTotais?: number;
+  servicosInclusos?: { avaliacao_funcional: number; nutricao: number; reabilitacao: number; definir_depois: boolean } | null;
 };
+
 
 function luhn(n: string): boolean {
   const d = n.replace(/\D/g, "");
@@ -59,7 +61,7 @@ const brandLabel: Record<string, string> = {
   amex: "Amex", diners: "Diners", desconhecida: "Bandeira",
 };
 
-export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor, onSuccess, recorrencia, parcelasTotais = 12 }: Props) {
+export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor, onSuccess, recorrencia, parcelasTotais = 12, servicosInclusos = null }: Props) {
   const [num, setNum] = useState("");
   const [holder, setHolder] = useState("");
   const [mes, setMes] = useState("");
@@ -95,7 +97,9 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
           security_code: cvv,
           installments: recorrencia ? 1 : Number(parcelas),
           save_card: salvar,
+          servicos_inclusos: servicosInclusos,
         },
+
       });
       if (error) throw error;
       if (data?.success) {

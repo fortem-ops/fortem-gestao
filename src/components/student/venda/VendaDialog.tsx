@@ -21,9 +21,20 @@ import { cn } from "@/lib/utils";
 import { PaymentFields } from "./PaymentFields";
 import { TipoCobrancaSection } from "./TipoCobrancaSection";
 import { PagamentoStep, type Modalidade, type Canal } from "./PagamentoStep";
+import { ServicosPlanoStep } from "./ServicosPlanoStep";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
+import {
+  getRegrasServicosPorPlano,
+  planoTemEtapaServicos,
+  montarServicosInclusos,
+  requerEscolhaServico,
+  mapModalidadeParaContrato,
+  type OpcaoConsulta,
+  type ServicosInclusos,
+} from "@/lib/vendas-servicos";
+
 
 type Props = { alunoId: string; alunoNome: string; open: boolean; onOpenChange: (v: boolean) => void };
 
@@ -89,7 +100,9 @@ function RadioCard({
   );
 }
 
-const PLANO_STEPS = ["Frequência", "Plano", "Resumo", "Pagamento"];
+const PLANO_STEPS_FULL = ["Frequência", "Plano", "Serviços", "Resumo", "Pagamento"];
+const PLANO_STEPS_BASE = ["Frequência", "Plano", "Resumo", "Pagamento"];
+
 
 export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const qc = useQueryClient();
@@ -122,7 +135,11 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [canalCartao, setCanalCartao] = useState<Canal | null>(null);
 
   // Cartão dialog (REDE)
-  const [cartaoDialog, setCartaoDialog] = useState<{ vendaId: string; valor: number; recorrencia: boolean; parcelasTotais: number } | null>(null);
+  const [cartaoDialog, setCartaoDialog] = useState<{ vendaId: string; valor: number; recorrencia: boolean; parcelasTotais: number; servicosInclusos: ServicosInclusos | null } | null>(null);
+
+  // Serviços bônus do plano
+  const [opcaoServicoId, setOpcaoServicoId] = useState<string | null>(null);
+  const [opcaoServico, setOpcaoServico] = useState<OpcaoConsulta | null>(null);
 
   const reset = () => {
     setPStep(1); setFrequencia(""); setPlanoId("");
@@ -131,8 +148,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     setDesconto(0); setFormaPagamento(null); setParcelas(1);
     setDataInicio(new Date());
     setTipoCobranca(null); setModalidade(null); setCanalCartao(null);
+    setOpcaoServicoId(null); setOpcaoServico(null);
     // aluno2025 preservado pelo fetch abaixo
   };
+
 
   useEffect(() => { if (!open) reset(); }, [open]);
   useEffect(() => { reset(); }, [tab]);
@@ -214,6 +233,24 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const regraServicos = getRegrasServicosPorPlano(planoSelecionado?.nome);
+  const hasServicos = !!regraServicos;
+  const servicosInclusos: ServicosInclusos = montarServicosInclusos(regraServicos, opcaoServico);
+  const planoSteps = hasServicos ? PLANO_STEPS_FULL : PLANO_STEPS_BASE;
+  const displayStep = hasServicos ? pStep : (pStep < 4 ? pStep : pStep - 1);
+
+  // Cria créditos de serviços para vendas não recorrentes (recorrência usa a RPC)
+  const criarCreditosServicos = async (svc: ServicosInclusos) => {
+    const linhas: { atividade: string; quantidade_inicial: number }[] = [];
+    if (svc.avaliacao_funcional > 0) linhas.push({ atividade: "Avaliação Funcional", quantidade_inicial: svc.avaliacao_funcional });
+    if (svc.nutricao > 0) linhas.push({ atividade: "Nutrição", quantidade_inicial: svc.nutricao });
+    if (svc.reabilitacao > 0) linhas.push({ atividade: "Reabilitação", quantidade_inicial: svc.reabilitacao });
+    if (!linhas.length) return;
+    await (supabase as any).from("creditos_aluno").insert(
+      linhas.map((l) => ({ aluno_id: alunoId, origem_tipo: "plano", ...l })),
+    );
+  };
+
   const venderPlano = useMutation({
     mutationFn: async () => {
       if (!planoSelecionado || !tipoCobranca || !modalidade || !totaisPlano) {
@@ -221,6 +258,9 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       }
       if (modalidade === "cartao_credito" && tipoCobranca === "tradicional" && !canalCartao) {
         throw new Error("Selecione o canal do cartão (maquininha ou online)");
+      }
+      if (hasServicos && requerEscolhaServico(regraServicos) && !opcaoServico) {
+        throw new Error("Selecione a opção de serviços incluídos no plano");
       }
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -274,6 +314,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         const periodo = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
         const valorMensal = totaisPlano.subtotalPlano / periodo;
         const primeiraPaga = modalidade === "dinheiro" || modalidade === "pix_avista" || modalidade === "debito";
+        const formaContrato = mapModalidadeParaContrato(modalidade, canalCartao);
         const { error: rpcErr } = await (supabase as any).rpc("fn_criar_contrato_recorrencia", {
           p_venda_id: vendaIns?.id,
           p_aluno_id: alunoId,
@@ -281,11 +322,15 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           p_valor_mensal: valorMensal,
           p_taxa_mensal: totaisPlano.taxaMensal,
           p_data_inicio: format(dataInicio, "yyyy-MM-dd"),
-          p_forma_pagamento: modalidade,
+          p_forma_pagamento: formaContrato,
           p_cartao_token_id: null,
           p_primeira_paga: primeiraPaga,
+          p_servicos_inclusos: servicosInclusos,
         });
         if (rpcErr) throw rpcErr;
+      } else if (tipoCobranca === "tradicional" && hasServicos) {
+        // Tradicional com benefícios — criar créditos diretamente
+        await criarCreditosServicos(servicosInclusos);
       }
 
       const periodoPlano = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
@@ -300,6 +345,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       qc.invalidateQueries({ queryKey: ["aluno-2025-flag", alunoId] });
       qc.invalidateQueries({ queryKey: ["contratos"] });
       qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["cobrancas-contrato"] });
       invalidatePlanoCaches(qc, alunoId);
       if (cartaoOnline && vendaId) {
         toast.success("Venda registrada — informe os dados do cartão");
@@ -308,6 +354,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           valor: valorFinal,
           recorrencia: tipoCobranca === "recorrencia",
           parcelasTotais: tipoCobranca === "recorrencia" ? periodoPlano : 1,
+          servicosInclusos,
         });
       } else {
         toast.success("Venda registrada com sucesso");
@@ -316,6 +363,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -334,7 +382,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
           {/* ============= PLANOS ============= */}
           <TabsContent value="planos" className="mt-6">
-            <StepIndicator steps={PLANO_STEPS} current={pStep} />
+            <StepIndicator steps={planoSteps} current={displayStep} />
 
             {lp ? <Skeleton className="h-40 w-full" /> : (
               <>
@@ -438,12 +486,32 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                     )}
                     <div className="flex justify-between pt-4">
                       <Button variant="outline" onClick={() => setPStep(1)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
-                      <Button disabled={!planoId} onClick={() => setPStep(3)}>Continuar</Button>
+                      <Button disabled={!planoId} onClick={() => setPStep(hasServicos ? 3 : 4)}>Continuar</Button>
                     </div>
                   </div>
                 )}
 
-                {pStep === 3 && planoSelecionado && (
+                {pStep === 3 && planoSelecionado && hasServicos && regraServicos && (
+                  <div className="space-y-4">
+                    <ServicosPlanoStep
+                      nomePlano={planoSelecionado.nome}
+                      regra={regraServicos}
+                      opcaoSelecionadaId={opcaoServicoId}
+                      onOpcaoChange={(opc) => { setOpcaoServicoId(opc?.id ?? null); setOpcaoServico(opc); }}
+                    />
+
+                    <div className="flex justify-between pt-2">
+                      <Button variant="outline" onClick={() => setPStep(2)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
+                      <Button
+                        disabled={requerEscolhaServico(regraServicos) && !opcaoServicoId}
+                        onClick={() => setPStep(4)}
+                      >Continuar</Button>
+                    </div>
+                  </div>
+                )}
+
+                {pStep === 4 && planoSelecionado && (
+
                   <div className="space-y-4">
                     <div className="rounded-xl border border-border bg-card p-5 space-y-3">
                       <div className="flex items-center justify-between">
@@ -507,13 +575,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                     </div>
 
                     <div className="flex justify-between pt-2">
-                      <Button variant="outline" onClick={() => setPStep(2)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
-                      <Button disabled={!tipoCobranca} onClick={() => setPStep(4)}>Continuar para Pagamento</Button>
+                      <Button variant="outline" onClick={() => setPStep(hasServicos ? 3 : 2)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
+                      <Button disabled={!tipoCobranca} onClick={() => setPStep(5)}>Continuar para Pagamento</Button>
                     </div>
                   </div>
                 )}
 
-                {pStep === 4 && planoSelecionado && tipoCobranca && totaisPlano && (
+                {pStep === 5 && planoSelecionado && tipoCobranca && totaisPlano && (
+
                   <div className="space-y-4">
                     <PagamentoStep
                       tipoCobranca={tipoCobranca}
@@ -545,7 +614,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                     )}
 
                     <div className="flex justify-between pt-2">
-                      <Button variant="outline" onClick={() => setPStep(3)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
+                      <Button variant="outline" onClick={() => setPStep(4)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
                       <Button
                         disabled={
                           venderPlano.isPending ||
@@ -664,6 +733,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
             valor={cartaoDialog.valor}
             recorrencia={cartaoDialog.recorrencia}
             parcelasTotais={cartaoDialog.parcelasTotais}
+            servicosInclusos={cartaoDialog.servicosInclusos}
+
             onSuccess={() => {
               qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
               invalidatePlanoCaches(qc, alunoId);
