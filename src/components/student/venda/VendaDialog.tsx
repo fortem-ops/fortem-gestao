@@ -292,17 +292,25 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const planoSteps = hasServicos ? PLANO_STEPS_FULL : PLANO_STEPS_BASE;
   const displayStep = hasServicos ? pStep : (pStep < 4 ? pStep : pStep - 1);
 
-  // Cria créditos de serviços para vendas não recorrentes (recorrência usa a RPC)
+  // Cria créditos de serviços para vendas não recorrentes (recorrência usa a RPC).
+  // Regra permanente: sempre amarrar ao `vendaId` via `origem_id` e usar upsert
+  // idempotente (índice único `idx_creditos_unicos_por_venda`).
   const criarCreditosServicos = async (svc: ServicosInclusos, vendaId: string) => {
+    if (!vendaId) throw new Error("vendaId obrigatório para criar créditos de serviço");
     const linhas: { atividade: string; quantidade_inicial: number }[] = [];
     if (svc.avaliacao_funcional > 0) linhas.push({ atividade: "Avaliação Funcional", quantidade_inicial: svc.avaliacao_funcional });
     if (svc.nutricao > 0) linhas.push({ atividade: "Nutrição", quantidade_inicial: svc.nutricao });
     if (svc.reabilitacao > 0) linhas.push({ atividade: "Reabilitação", quantidade_inicial: svc.reabilitacao });
     if (!linhas.length) return;
-    await (supabase as any).from("creditos_aluno").insert(
-      linhas.map((l) => ({ aluno_id: alunoId, origem_tipo: "plano", origem_id: vendaId, ...l })),
-    );
+    const { error } = await (supabase as any)
+      .from("creditos_aluno")
+      .upsert(
+        linhas.map((l) => ({ aluno_id: alunoId, origem_tipo: "plano", origem_id: vendaId, ativo: true, ...l })),
+        { onConflict: "aluno_id,atividade,origem_tipo,origem_id", ignoreDuplicates: true },
+      );
+    if (error) throw error;
   };
+
 
   // Atualiza o registro `planos` criado pelo trigger `fn_processar_venda`
   // (linkado a `vendas.plano_id`) refletindo a venda. Não insere novo plano —

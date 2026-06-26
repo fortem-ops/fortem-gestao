@@ -1,38 +1,87 @@
-## Diagnóstico
+## Objetivo
 
-A duplicação de "Avaliação Funcional" no aluno (Marilza) tem duas causas combinadas:
+Transformar a correção feita para a Marilza em **regra permanente do sistema**, garantindo que:
+1. Nenhum aluno tenha créditos de serviço duplicados/órfãos.
+2. Toda nova venda crie créditos vinculados corretamente (`origem_id = venda.id`).
+3. Toda exclusão de venda limpe contratos, ciclos, cobranças e créditos em cascata.
+4. O banco mantenha integridade automaticamente, sem depender só do frontend.
 
-1. **`criarCreditosServicos` (VendaDialog.tsx) insere o crédito de AF com `origem_id = NULL`.** Sem vínculo com a venda, esse crédito fica órfão e não é removido quando a venda é excluída.
-2. **A exclusão de venda em `HistoricoVendas.tsx` só apaga `creditos_aluno` por `origem_id = venda.id`**, e nada apaga `contratos` / `ciclos_credito` / `cobrancas` ligados à venda. As tentativas anteriores da Marilza geraram 6 contratos `cancelado` e deixaram 1 crédito de AF preso (`origem_id` apontando para um contrato cancelado).
+---
 
-Resultado: a tabela "Serviços e Créditos Contratados" lê todos os créditos `ativo=true` do aluno e mostra 2 AF (1 órfão do contrato cancelado `3de3f031` + 1 da venda atual).
+## 1. Data-fix global (limpeza retroativa)
 
-## O que será feito
+Migração única que varre **todos os alunos** e:
 
-### 1. Frontend — `src/components/student/venda/VendaDialog.tsx`
-- Em `criarCreditosServicos`, gravar `origem_id = vendaId` para amarrar os créditos de serviço (AF / Nutrição / Reabilitação) à venda. Assinatura recebe o `vendaId` retornado pelo insert.
-- Chamar `criarCreditosServicos(servicosInclusos, vendaIns.id)` no fluxo.
+- Remove `creditos_aluno` onde `origem_tipo='plano'` e `origem_id` aponta para:
+  - contrato com `status='cancelado'`, **ou**
+  - venda inexistente (registro órfão).
+- Remove `cobrancas` → `ciclos_credito` → `contratos` com `status='cancelado'` (na ordem correta de FK).
+- Desativa (`ativo=false`) planos sem venda associada nem contrato ativo.
+- Dedup de créditos ativos por `(aluno_id, atividade, origem_tipo, origem_id)` mantendo o mais recente — apaga sobras antigas de antes do fix.
 
-### 2. Frontend — `src/components/student/venda/HistoricoVendas.tsx`
-Ampliar a exclusão da venda para um cleanup transacional na ordem:
-1. Buscar contratos com `plano_id = venda.plano_id`.
-2. Para cada contrato: `delete cobrancas where contrato_id=...`, `delete ciclos_credito where contrato_id=...`, `delete contratos where id=...`.
-3. `delete creditos_aluno where origem_id = venda.id` (já existe — agora cobre AF/Nutri/Reab também, graças ao item 1).
-4. `delete pagamentos_rede`, `delete comissionamentos`, `delete vendas` (mantém).
-5. Se o `plano` vinculado ficar sem outras vendas/contratos ativos, marcar `ativo=false`.
+Saída: relatório (`RAISE NOTICE`) com totais removidos por categoria.
 
-### 3. Migração de limpeza (data-fix)
-- Deletar `creditos_aluno` cujo `origem_tipo='plano'` e `origem_id` aponte para um contrato com `status='cancelado'` **ou** para uma venda inexistente.
-- Deletar `ciclos_credito` e `cobrancas` de contratos `status='cancelado'`, depois deletar esses contratos.
-- Desativar (`ativo=false`) registros em `planos` sem venda associada e sem contrato `ativo`.
+---
 
-Escopo conservador: filtrar pelo aluno `23f6ae86-...` primeiro para validar, depois aplicar ao universo. (O plano pode rodar global já que a regra é segura — só remove o que está marcado como cancelado/órfão.)
+## 2. Regras no banco (garantia estrutural)
 
-### 4. Verificação
-Re-consultar `creditos_aluno` da Marilza e confirmar 2 linhas ativas: Treino (52) + Avaliação Funcional (1). UI deve refletir após `invalidateQueries`.
+### 2a. Trigger de cascata em `vendas`
+
+`trg_cleanup_on_venda_delete` (BEFORE DELETE em `public.vendas`):
+- Apaga `creditos_aluno` com `origem_id = OLD.id` (qualquer `origem_tipo`).
+- Para cada `contrato` com `plano_id = OLD.plano_id`: apaga `cobrancas`, `ciclos_credito`, `inadimplencias`, depois o contrato.
+- Apaga `pagamentos_rede` e `comissionamentos` ligados à venda.
+- Se o `plano` ficar sem outras vendas/contratos ativos → `ativo=false`.
+
+Resultado: a UI pode simplesmente fazer `DELETE FROM vendas` que o resto cai junto. O HistoricoVendas vira mais simples e qualquer outra origem de exclusão (SQL manual, RPC futura) fica segura.
+
+### 2b. Índice único parcial em `creditos_aluno`
+
+```
+CREATE UNIQUE INDEX idx_creditos_unicos_por_venda
+ON creditos_aluno (aluno_id, atividade, origem_tipo, origem_id)
+WHERE ativo = true AND origem_id IS NOT NULL;
+```
+
+Impede que qualquer caminho (trigger + frontend, ou duas chamadas) crie dois créditos da mesma atividade para a mesma venda. Tentativas duplicadas falham na hora.
+
+### 2c. Hardening do trigger `fn_processar_venda`
+
+- Garantir que insere o crédito de Treino com `ON CONFLICT DO NOTHING` (usando o índice acima), para tolerar reexecução.
+- Não tocar mais em planos antigos (já está assim, manter).
+
+---
+
+## 3. Regras no frontend (consistência)
+
+### 3a. `VendaDialog.tsx` — `criarCreditosServicos`
+
+- Já passa `origem_id = vendaId` (Marilza-fix). **Manter como contrato fixo**: a função nunca insere crédito sem `origem_id`. Adicionar guard que lança erro se `vendaId` vier vazio.
+- Usar `upsert` com `onConflict: 'aluno_id,atividade,origem_tipo,origem_id'` para ficar idempotente com o índice do 2b.
+
+### 3b. `HistoricoVendas.tsx` — `confirmarExclusao`
+
+- Simplificar: chamar apenas `delete from vendas where id=...`. A cascata do trigger 2a cuida do resto.
+- Manter `invalidateQueries` em planos, créditos, contratos e cobranças.
+
+### 3c. Tipos / helpers
+
+- Em `src/lib/vendas-servicos.ts`, documentar que `montarServicosInclusos` é a **única fonte** de quantidades de serviço por plano. Nada de hard-code em outro lugar.
+
+---
+
+## 4. Verificação
+
+- Query: alunos com mais de 1 crédito ativo de "Avaliação Funcional" da mesma origem → deve retornar 0.
+- Query: créditos `origem_tipo='plano'` com `origem_id` apontando para venda inexistente → 0.
+- Query: contratos `cancelado` com cobranças/ciclos pendentes → 0.
+- Teste manual: criar venda Start+ para qualquer aluno → 1 AF + 1 Treino. Excluir a venda → ambos somem, plano desativa se único.
+
+---
 
 ## Detalhes técnicos
 
-- O trigger `fn_processar_venda` já está correto (cria só o crédito de Treino com `origem_id=venda.id`); não será alterado.
-- A RPC `fn_criar_contrato_recorrencia` não toca `creditos_aluno`; não será alterada.
-- Não há FK ON DELETE CASCADE de `creditos_aluno → vendas` (origem_id é polimórfico via `origem_tipo`), por isso a limpeza precisa ser explícita no app.
+- O índice único exige que a limpeza (passo 1) rode **antes** de criá-lo, senão falha.
+- O trigger de cascata é `BEFORE DELETE` para evitar violar FK de `cobrancas → contratos`.
+- Nenhuma alteração em RLS ou grants — apenas DDL de triggers/índices e DML de limpeza.
+- `fn_processar_venda` continua sendo o criador do crédito de Treino; o frontend só cuida dos serviços (AF/Nutri/Reab).
