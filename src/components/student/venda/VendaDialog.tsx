@@ -494,10 +494,12 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                 {pStep === 3 && planoSelecionado && hasServicos && regraServicos && (
                   <div className="space-y-4">
                     <ServicosPlanoStep
+                      nomePlano={planoSelecionado.nome}
                       regra={regraServicos}
-                      opcaoId={opcaoServicoId}
-                      onChange={(id, opc) => { setOpcaoServicoId(id); setOpcaoServico(opc); }}
+                      opcaoSelecionadaId={opcaoServicoId}
+                      onOpcaoChange={(opc) => { setOpcaoServicoId(opc?.id ?? null); setOpcaoServico(opc); }}
                     />
+
                     <div className="flex justify-between pt-2">
                       <Button variant="outline" onClick={() => setPStep(2)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
                       <Button
