@@ -135,15 +135,46 @@ export function HistoricoVendas({ alunoId }: Props) {
     setExcluindoLoading(true);
     try {
       const vid = excluindo.id;
-      // Limpa registros dependentes (sem FK cascade)
-      await (supabase as any).from("pagamentos_rede").delete().eq("venda_id", vid);
-      await (supabase as any).from("creditos_aluno").delete().eq("origem_id", vid);
-      await (supabase as any).from("comissionamentos").delete().eq("origem_id", vid);
-      const { error } = await (supabase as any).from("vendas").delete().eq("id", vid);
+      const planoId = excluindo.plano_id as string | null;
+      const sb = supabase as any;
+
+      // Cascata: contratos -> cobranças/ciclos -> contratos; depois créditos/pagamentos/comissionamentos
+      if (planoId) {
+        const { data: contratos } = await sb
+          .from("contratos")
+          .select("id")
+          .eq("plano_id", planoId);
+        const contratoIds = (contratos ?? []).map((c: any) => c.id);
+        if (contratoIds.length > 0) {
+          await sb.from("cobrancas").delete().in("contrato_id", contratoIds);
+          await sb.from("ciclos_credito").delete().in("contrato_id", contratoIds);
+          await sb.from("contratos").delete().in("id", contratoIds);
+        }
+      }
+
+      await sb.from("pagamentos_rede").delete().eq("venda_id", vid);
+      await sb.from("creditos_aluno").delete().eq("origem_id", vid);
+      await sb.from("comissionamentos").delete().eq("origem_id", vid);
+      const { error } = await sb.from("vendas").delete().eq("id", vid);
       if (error) throw error;
+
+      // Desativa plano se não houver mais vendas/contratos vinculados
+      if (planoId) {
+        const [{ count: vendasRest }, { count: contratosRest }] = await Promise.all([
+          sb.from("vendas").select("id", { count: "exact", head: true }).eq("plano_id", planoId),
+          sb.from("contratos").select("id", { count: "exact", head: true }).eq("plano_id", planoId),
+        ]);
+        if ((vendasRest ?? 0) === 0 && (contratosRest ?? 0) === 0) {
+          await sb.from("planos").update({ ativo: false }).eq("id", planoId);
+        }
+      }
+
       toast.success("Venda excluída");
       qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["creditos_aluno_lista", alunoId] });
+      qc.invalidateQueries({ queryKey: ["contratos", alunoId] });
+      qc.invalidateQueries({ queryKey: ["cobrancas"] });
       setExcluindo(null);
     } catch (e: any) {
       toast.error(e.message || "Erro ao excluir venda");
