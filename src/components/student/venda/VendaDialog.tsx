@@ -733,6 +733,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
             valor={cartaoDialog.valor}
             recorrencia={cartaoDialog.recorrencia}
             parcelasTotais={cartaoDialog.parcelasTotais}
+            servicosInclusos={cartaoDialog.servicosInclusos}
+
             onSuccess={() => {
               qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
               invalidatePlanoCaches(qc, alunoId);
