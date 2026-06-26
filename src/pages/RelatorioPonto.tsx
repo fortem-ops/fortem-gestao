@@ -262,7 +262,9 @@ export default function RelatorioPonto() {
 
   // Combina e filtra por status
   const linhasDiarias = useMemo<LinhaDiaria[]>(() => {
-    const jornadasLinhas: LinhaDiaria[] = jornadas.map((j) => ({ kind: "jornada", jornada: j }));
+    const jornadasLinhas: LinhaDiaria[] = jornadas
+      .filter((j) => isAtivo(j.usuario_id))
+      .map((j) => ({ kind: "jornada", jornada: j }));
     const todas = [...jornadasLinhas, ...linhasSinteticas];
     const filtradas = todas.filter((l) => {
       if (statusFilter === "todos") return true;
