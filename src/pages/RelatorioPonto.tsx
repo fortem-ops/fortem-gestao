@@ -258,7 +258,7 @@ export default function RelatorioPonto() {
       cur.setDate(cur.getDate() + 1);
     }
     return out;
-  }, [horarios, jornadas, profId, inicio, fim, feriadoMap, ferias]);
+  }, [horarios, jornadas, profId, inicio, fim, feriadoMap, ferias, profIdsAtivos]);
 
   // Combina e filtra por status
   const linhasDiarias = useMemo<LinhaDiaria[]>(() => {
