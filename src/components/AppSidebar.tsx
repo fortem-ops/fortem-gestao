@@ -183,6 +183,10 @@ export function AppSidebar() {
           <SidebarGroupLabel>Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <PontoSidebarItem
+                item={{ title: "Ponto", url: "/ponto", icon: Clock }}
+                isActive={isActive}
+              />
               {principalItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
