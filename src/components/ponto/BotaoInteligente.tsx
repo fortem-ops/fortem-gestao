@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ACAO_LABEL, type ProximaAcao, shortDevice, tryGeo } from "@/lib/ponto";
+import { ACAO_LABEL, type ProximaAcao, shortDevice, tryGeo, localMaisProximo } from "@/lib/ponto";
 import { Play, Coffee, Utensils, Square, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -29,10 +29,19 @@ const ACAO_ICON: Record<NonNullable<ProximaAcao>, typeof Play> = {
   saida: Square,
 };
 
+const RAIO_M = 300;
+
 /** Botão único contextual: dispara a próxima ação válida do estado atual. */
 export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [checandoGeo, setChecandoGeo] = useState(false);
+  const [geoCoords, setGeoCoords] = useState<{ lat: number | null; lng: number | null } | null>(null);
+  const [geoAlerta, setGeoAlerta] = useState<{
+    distM: number;
+    localNome: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Em jornadas curtas (≤4h), o intervalo é opcional: substituímos por encerramento.
   const acaoEfetiva: ProximaAcao =
@@ -41,7 +50,8 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
   const mut = useMutation({
     mutationFn: async () => {
       if (!acaoEfetiva) throw new Error("Sem próxima ação disponível");
-      const { lat, lng } = await tryGeo();
+      const coords = geoCoords ?? (await tryGeo());
+      const { lat, lng } = coords;
       const { data, error } = await supabase.rpc("fn_ponto_registrar", {
         _tipo: acaoEfetiva,
         _lat: lat,
@@ -66,9 +76,11 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
       qc.invalidateQueries({ queryKey: ["ponto-historico"] });
       qc.invalidateQueries({ queryKey: ["ponto-widget"] });
       qc.invalidateQueries({ queryKey: ["ponto-eventos-dia"] });
+      setGeoCoords(null);
     },
     onError: (err: any) => {
       toast.error("Não foi possível registrar", { description: err.message });
+      setGeoCoords(null);
     },
   });
 
@@ -84,21 +96,44 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
   const label = ACAO_LABEL[acaoEfetiva];
   const isDestructive = acaoEfetiva === "saida";
 
-  const handleClick = () => {
-    if (isDestructive) setConfirmOpen(true);
-    else mut.mutate();
+  const handleClick = async () => {
+    setChecandoGeo(true);
+    try {
+      const coords = await tryGeo();
+      setGeoCoords(coords);
+      if (coords.lat != null && coords.lng != null) {
+        const { nome, distM } = localMaisProximo(coords.lat, coords.lng);
+        if (distM > RAIO_M) {
+          setGeoAlerta({
+            distM: Math.round(distM),
+            localNome: nome,
+            onConfirm: () => {
+              if (isDestructive) setConfirmOpen(true);
+              else mut.mutate();
+            },
+          });
+          return;
+        }
+      }
+      if (isDestructive) setConfirmOpen(true);
+      else mut.mutate();
+    } finally {
+      setChecandoGeo(false);
+    }
   };
+
+  const busy = mut.isPending || checandoGeo;
 
   return (
     <>
       <Button
         size="lg"
         onClick={handleClick}
-        disabled={mut.isPending}
+        disabled={busy}
         variant={isDestructive ? "destructive" : "default"}
         className="w-full h-14 text-base font-semibold gap-2 shadow-md"
       >
-        {mut.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Icon className="w-5 h-5" />}
+        {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Icon className="w-5 h-5" />}
         {label}
       </Button>
 
@@ -113,6 +148,31 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => mut.mutate()}>Encerrar agora</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!geoAlerta} onOpenChange={(o) => !o && setGeoAlerta(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você está fora da Fortem</AlertDialogTitle>
+            <AlertDialogDescription>
+              {geoAlerta
+                ? `Seu dispositivo está a aproximadamente ${geoAlerta.distM}m do local mais próximo (${geoAlerta.localNome}). Deseja registrar o ponto assim mesmo? Seu coordenador será notificado.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                geoAlerta?.onConfirm();
+                setGeoAlerta(null);
+              }}
+            >
+              Registrar assim mesmo
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
