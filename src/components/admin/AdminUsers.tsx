@@ -456,6 +456,26 @@ export function AdminUsers() {
                 <Input value={createForm.specialty} onChange={(e) => setCreateForm({ ...createForm, specialty: e.target.value })} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>CPF</Label>
+                <Input
+                  value={createForm.cpf}
+                  onChange={(e) => setCreateForm({ ...createForm, cpf: maskCPF(e.target.value) })}
+                  placeholder="000.000.000-00"
+                  inputMode="numeric"
+                />
+              </div>
+              <div>
+                <Label>PIS/PASEP</Label>
+                <Input
+                  value={createForm.pis_pasep}
+                  onChange={(e) => setCreateForm({ ...createForm, pis_pasep: maskPIS(e.target.value) })}
+                  placeholder="000.00000.00-0"
+                  inputMode="numeric"
+                />
+              </div>
+            </div>
             <div>
               <Label>Permissão inicial</Label>
               <Select value={createForm.role} onValueChange={(v) => setCreateForm({ ...createForm, role: v })}>
@@ -533,7 +553,27 @@ export function AdminUsers() {
                   />
                 </div>
               )}
-            </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>CPF</Label>
+                  <Input
+                    value={editForm.cpf}
+                    onChange={(e) => setEditForm({ ...editForm, cpf: maskCPF(e.target.value) })}
+                    placeholder="000.000.000-00"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <Label>PIS/PASEP</Label>
+                  <Input
+                    value={editForm.pis_pasep}
+                    onChange={(e) => setEditForm({ ...editForm, pis_pasep: maskPIS(e.target.value) })}
+                    placeholder="000.00000.00-0"
+                    inputMode="numeric"
+                  />
+                </div>
+              </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
