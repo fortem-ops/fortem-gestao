@@ -3519,6 +3519,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ponto_consentimento_geo: {
+        Row: {
+          aceito: boolean
+          aceito_em: string
+          created_at: string
+          id: string
+          ip_aceite: string | null
+          updated_at: string
+          user_agent: string | null
+          usuario_id: string
+          versao_termo: string
+        }
+        Insert: {
+          aceito: boolean
+          aceito_em?: string
+          created_at?: string
+          id?: string
+          ip_aceite?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          usuario_id: string
+          versao_termo?: string
+        }
+        Update: {
+          aceito?: boolean
+          aceito_em?: string
+          created_at?: string
+          id?: string
+          ip_aceite?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          usuario_id?: string
+          versao_termo?: string
+        }
+        Relationships: []
+      }
       ponto_eventos: {
         Row: {
           created_at: string

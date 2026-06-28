@@ -19,6 +19,8 @@ import { MeuBancoHoras } from "@/components/ponto/MeuBancoHoras";
 import { JanelasDoDia } from "@/components/ponto/JanelasDoDia";
 import { MeusAcordosIntervalo } from "@/components/ponto/MeusAcordosIntervalo";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
+import { useConsentimentoGeo } from "@/hooks/useConsentimentoGeo";
+import { ConsentimentoGeoDialog } from "@/components/ponto/ConsentimentoGeoDialog";
 
 interface EstadoAtual {
   status: PontoEstado;
@@ -34,6 +36,8 @@ interface EstadoAtual {
 export default function Ponto() {
   const { user, loading } = useAuth();
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
+  const { consentimento, registrar, registrando } = useConsentimentoGeo();
+  const [consentDialogOpen, setConsentDialogOpen] = useState(false);
 
   const { data: isCoordAdmin } = useQuery({
     queryKey: ["ponto-role", user?.id],
@@ -193,7 +197,22 @@ export default function Ponto() {
           ) : (
             <p className="text-xs text-warning mt-1">Sem jornada prevista para hoje (verifique Admin Ponto).</p>
           )}
+          {!isViewingOther && consentimento && (
+            <p className="text-xs text-muted-foreground mt-1">
+              📍 Localização:{" "}
+              {consentimento.aceito ? "coletada com seu consentimento" : "não coletada"}
+              {" · "}
+              <button
+                type="button"
+                className="underline hover:text-foreground"
+                onClick={() => setConsentDialogOpen(true)}
+              >
+                {consentimento.aceito ? "Revogar" : "Ativar"}
+              </button>
+            </p>
+          )}
         </div>
+
 
         {isCoordAdmin && (
           <div className="flex items-end gap-2">
@@ -283,6 +302,20 @@ export default function Ponto() {
           <MeuBancoHoras userId={targetId!} />
         </TabsContent>
       </Tabs>
+
+      <ConsentimentoGeoDialog
+        open={(!isViewingOther && consentimento === null) || consentDialogOpen}
+        onAceitar={async () => {
+          if (registrando) return;
+          await registrar(true);
+          setConsentDialogOpen(false);
+        }}
+        onRecusar={async () => {
+          if (registrando) return;
+          await registrar(false);
+          setConsentDialogOpen(false);
+        }}
+      />
     </div>
   );
 }
