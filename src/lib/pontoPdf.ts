@@ -76,22 +76,41 @@ const fHora = (ts?: string | null) =>
   ts ? new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—";
 const fDiv = (m?: number | null) => (m == null ? "—" : `${m > 0 ? "+" : ""}${m}m`);
 
+/** Formata CPF (somente dígitos) como XXX.XXX.XXX-XX. */
+function formatCPF(v?: string | null): string | null {
+  if (!v) return null;
+  const d = v.replace(/\D/g, "");
+  if (d.length !== 11) return v;
+  return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+}
+
+/** Formata PIS/PASEP (somente dígitos) como XXX.XXXXX.XX-X. */
+function formatPIS(v?: string | null): string | null {
+  if (!v) return null;
+  const d = v.replace(/\D/g, "");
+  if (d.length !== 11) return v;
+  return d.replace(/(\d{3})(\d{5})(\d{2})(\d{1})/, "$1.$2.$3-$4");
+}
+
 /** Espelho de ponto individual */
 export function gerarEspelhoPonto(opts: {
   colaborador: string;
-  cpf?: string;
+  cpf?: string | null;
+  pisPasep?: string | null;
   periodoInicio: string;
   periodoFim: string;
   jornadas: JornadaPdfRow[];
   saldoBancoMin?: number;
 }) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const cpfFmt = formatCPF(opts.cpf);
+  const pisFmt = formatPIS(opts.pisPasep);
+  const docLine = [cpfFmt && `CPF: ${cpfFmt}`, pisFmt && `PIS/PASEP: ${pisFmt}`].filter(Boolean).join(" | ");
+  const periodoLabel = `${new Date(opts.periodoInicio).toLocaleDateString("pt-BR")} a ${new Date(opts.periodoFim).toLocaleDateString("pt-BR")}`;
   header(
     doc,
     "Espelho de Ponto",
-    `${opts.colaborador}${opts.cpf ? ` — CPF ${opts.cpf}` : ""} — ${new Date(
-      opts.periodoInicio,
-    ).toLocaleDateString("pt-BR")} a ${new Date(opts.periodoFim).toLocaleDateString("pt-BR")}`,
+    `${opts.colaborador} — ${periodoLabel}${docLine ? ` — ${docLine}` : ""}`,
   );
 
   const body = opts.jornadas.map((j) => [

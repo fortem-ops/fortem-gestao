@@ -108,7 +108,11 @@ export default function RelatorioPonto() {
       const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("role", ["professor", "admin"]);
       const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
       if (!ids.length) return [];
-      const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids).order("full_name");
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, cpf, pis_pasep")
+        .in("user_id", ids)
+        .order("full_name");
       return data ?? [];
     },
   });
