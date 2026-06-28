@@ -3917,6 +3917,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ponto_politica_retencao: {
+        Row: {
+          base_legal: string
+          contato_dpo: string | null
+          criado_em: string
+          criado_por: string | null
+          id: string
+          responsavel_dados: string
+          retencao_banco_horas_anos: number
+          retencao_eventos_anos: number
+          retencao_jornadas_anos: number
+          versao: string
+          vigente_desde: string
+        }
+        Insert: {
+          base_legal?: string
+          contato_dpo?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          responsavel_dados?: string
+          retencao_banco_horas_anos?: number
+          retencao_eventos_anos?: number
+          retencao_jornadas_anos?: number
+          versao?: string
+          vigente_desde?: string
+        }
+        Update: {
+          base_legal?: string
+          contato_dpo?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          responsavel_dados?: string
+          retencao_banco_horas_anos?: number
+          retencao_eventos_anos?: number
+          retencao_jornadas_anos?: number
+          versao?: string
+          vigente_desde?: string
+        }
+        Relationships: []
+      }
       ponto_substituicoes: {
         Row: {
           aprovado_em: string | null
