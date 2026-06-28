@@ -15,6 +15,8 @@ const CreateSchema = z.object({
   full_name: z.string().trim().min(1).max(120),
   phone: z.string().trim().max(40).optional().nullable(),
   specialty: z.string().trim().max(120).optional().nullable(),
+  cpf: z.string().trim().max(14).optional().nullable(),
+  pis_pasep: z.string().trim().max(14).optional().nullable(),
   role: z.enum(ROLES).optional().nullable(),
 });
 
@@ -26,6 +28,8 @@ const UpdateSchema = z.object({
   full_name: z.string().trim().min(1).max(120).optional().nullable(),
   phone: z.string().trim().max(40).optional().nullable(),
   specialty: z.string().trim().max(120).optional().nullable(),
+  cpf: z.string().trim().max(14).optional().nullable(),
+  pis_pasep: z.string().trim().max(14).optional().nullable(),
 });
 
 const DeleteSchema = z.object({
@@ -104,6 +108,8 @@ Deno.serve(async (req) => {
           full_name: body.full_name,
           phone: body.phone ?? null,
           specialty: body.specialty ?? null,
+          cpf: body.cpf ? body.cpf.replace(/\D/g, "") : null,
+          pis_pasep: body.pis_pasep ? body.pis_pasep.replace(/\D/g, "") : null,
         },
         { onConflict: "user_id" },
       );
@@ -128,6 +134,8 @@ Deno.serve(async (req) => {
       if (body.full_name != null) profilePatch.full_name = body.full_name;
       if (body.phone !== undefined) profilePatch.phone = body.phone;
       if (body.specialty !== undefined) profilePatch.specialty = body.specialty;
+      if (body.cpf !== undefined) profilePatch.cpf = body.cpf ? body.cpf.replace(/\D/g, "") : null;
+      if (body.pis_pasep !== undefined) profilePatch.pis_pasep = body.pis_pasep ? body.pis_pasep.replace(/\D/g, "") : null;
       if (Object.keys(profilePatch).length > 0) {
         const { error: pErr } = await admin
           .from("profiles")

@@ -45,6 +45,8 @@ type ProfileRow = {
   full_name: string;
   phone: string | null;
   specialty: string | null;
+  cpf: string | null;
+  pis_pasep: string | null;
 };
 
 type CreateForm = {
@@ -53,6 +55,8 @@ type CreateForm = {
   password: string;
   phone: string;
   specialty: string;
+  cpf: string;
+  pis_pasep: string;
   role: string;
 };
 
@@ -62,8 +66,26 @@ type EditForm = {
   email: string;
   phone: string;
   specialty: string;
+  cpf: string;
+  pis_pasep: string;
   changePassword: boolean;
   password: string;
+};
+
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
+const maskCPF = (v: string) => {
+  const d = onlyDigits(v).slice(0, 11);
+  return d
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+};
+const maskPIS = (v: string) => {
+  const d = onlyDigits(v).slice(0, 11);
+  return d
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{5})(\d)/, "$1.$2.$3")
+    .replace(/^(\d{3})\.(\d{5})\.(\d{2})(\d)/, "$1.$2.$3-$4");
 };
 
 export function AdminUsers() {
@@ -76,7 +98,7 @@ export function AdminUsers() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>({
-    full_name: "", email: "", password: "", phone: "", specialty: "", role: "",
+    full_name: "", email: "", password: "", phone: "", specialty: "", cpf: "", pis_pasep: "", role: "",
   });
 
   const [editOpen, setEditOpen] = useState(false);
@@ -167,6 +189,8 @@ export function AdminUsers() {
           full_name: f.full_name.trim(),
           phone: f.phone.trim() || null,
           specialty: f.specialty.trim() || null,
+          cpf: onlyDigits(f.cpf) || null,
+          pis_pasep: onlyDigits(f.pis_pasep) || null,
           role: f.role || null,
         },
       });
@@ -177,7 +201,7 @@ export function AdminUsers() {
       invalidateAll();
       toast.success("Usuário criado");
       setCreateOpen(false);
-      setCreateForm({ full_name: "", email: "", password: "", phone: "", specialty: "", role: "" });
+      setCreateForm({ full_name: "", email: "", password: "", phone: "", specialty: "", cpf: "", pis_pasep: "", role: "" });
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -193,6 +217,8 @@ export function AdminUsers() {
           full_name: f.full_name.trim(),
           phone: f.phone.trim() || null,
           specialty: f.specialty.trim() || null,
+          cpf: onlyDigits(f.cpf) || null,
+          pis_pasep: onlyDigits(f.pis_pasep) || null,
         },
       });
       if (error) throw error;
@@ -244,6 +270,8 @@ export function AdminUsers() {
       email: emailByUserId.get(p.user_id) || "",
       phone: p.phone || "",
       specialty: p.specialty || "",
+      cpf: p.cpf ? maskCPF(p.cpf) : "",
+      pis_pasep: p.pis_pasep ? maskPIS(p.pis_pasep) : "",
       changePassword: false,
       password: "",
     });
@@ -428,6 +456,26 @@ export function AdminUsers() {
                 <Input value={createForm.specialty} onChange={(e) => setCreateForm({ ...createForm, specialty: e.target.value })} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>CPF</Label>
+                <Input
+                  value={createForm.cpf}
+                  onChange={(e) => setCreateForm({ ...createForm, cpf: maskCPF(e.target.value) })}
+                  placeholder="000.000.000-00"
+                  inputMode="numeric"
+                />
+              </div>
+              <div>
+                <Label>PIS/PASEP</Label>
+                <Input
+                  value={createForm.pis_pasep}
+                  onChange={(e) => setCreateForm({ ...createForm, pis_pasep: maskPIS(e.target.value) })}
+                  placeholder="000.00000.00-0"
+                  inputMode="numeric"
+                />
+              </div>
+            </div>
             <div>
               <Label>Permissão inicial</Label>
               <Select value={createForm.role} onValueChange={(v) => setCreateForm({ ...createForm, role: v })}>
@@ -494,6 +542,26 @@ export function AdminUsers() {
                   onChange={(e) => setEditForm({ ...editForm, changePassword: e.target.checked, password: "" })}
                 />
                 <Label htmlFor="chgpw" className="cursor-pointer">Alterar senha</Label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>CPF</Label>
+                  <Input
+                    value={editForm.cpf}
+                    onChange={(e) => setEditForm({ ...editForm, cpf: maskCPF(e.target.value) })}
+                    placeholder="000.000.000-00"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <Label>PIS/PASEP</Label>
+                  <Input
+                    value={editForm.pis_pasep}
+                    onChange={(e) => setEditForm({ ...editForm, pis_pasep: maskPIS(e.target.value) })}
+                    placeholder="000.00000.00-0"
+                    inputMode="numeric"
+                  />
+                </div>
               </div>
               {editForm.changePassword && (
                 <div>

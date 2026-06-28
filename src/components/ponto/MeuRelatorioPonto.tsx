@@ -94,8 +94,12 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
     queryKey: ["meu-relatorio-perfil", targetId],
     enabled: !!targetId,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", targetId!).single();
-      return data;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, cpf, pis_pasep")
+        .eq("user_id", targetId!)
+        .single();
+      return data as { full_name: string; cpf: string | null; pis_pasep: string | null } | null;
     },
   });
   const meuNome = perfil?.full_name ?? "Eu";
@@ -401,6 +405,8 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
                   onPDF={() =>
                     gerarEspelhoPonto({
                       colaborador: meuNome,
+                      cpf: perfil?.cpf ?? null,
+                      pisPasep: perfil?.pis_pasep ?? null,
                       periodoInicio: inicio,
                       periodoFim: fim,
                       jornadas: jornadasFiltradas as any,
