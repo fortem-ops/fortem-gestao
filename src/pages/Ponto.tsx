@@ -302,6 +302,20 @@ export default function Ponto() {
           <MeuBancoHoras userId={targetId!} />
         </TabsContent>
       </Tabs>
+
+      <ConsentimentoGeoDialog
+        open={(!isViewingOther && consentimento === null) || consentDialogOpen}
+        onAceitar={async () => {
+          if (registrando) return;
+          await registrar(true);
+          setConsentDialogOpen(false);
+        }}
+        onRecusar={async () => {
+          if (registrando) return;
+          await registrar(false);
+          setConsentDialogOpen(false);
+        }}
+      />
     </div>
   );
 }
