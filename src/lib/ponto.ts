@@ -86,3 +86,32 @@ export function tryGeo(): Promise<{ lat: number | null; lng: number | null }> {
 export function mesLabel(d: Date): string {
   return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 }
+
+/** Locais oficiais da Fortem para geofencing (raio padrão 300m). */
+export const FORTEM_LOCAIS = [
+  { nome: "Fortem Matriz", lat: -30.029346, lng: -51.217840 },
+  { nome: "Orla", lat: -30.044967, lng: -51.232644 },
+  { nome: "Pista Ramiro Souto", lat: -30.035945, lng: -51.213151 },
+] as const;
+
+/** Distância em metros entre duas coordenadas (fórmula de Haversine). */
+export function haversineDistM(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/** Retorna o local da Fortem mais próximo das coordenadas dadas. */
+export function localMaisProximo(lat: number, lng: number): { nome: string; distM: number } {
+  let melhor = { nome: FORTEM_LOCAIS[0].nome, distM: Infinity };
+  for (const loc of FORTEM_LOCAIS) {
+    const d = haversineDistM(lat, lng, loc.lat, loc.lng);
+    if (d < melhor.distM) melhor = { nome: loc.nome, distM: d };
+  }
+  return melhor;
+}
