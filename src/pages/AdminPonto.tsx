@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,9 +15,12 @@ import { AdminSubstituicoes } from "@/components/ponto/AdminSubstituicoes";
 import { AdminAtividadesEspeciais } from "@/components/ponto/AdminAtividadesEspeciais";
 import { AdminAcordosIntervalo } from "@/components/ponto/AdminAcordosIntervalo";
 import { AdminPontoLocais } from "@/components/ponto/AdminPontoLocais";
+import { AdminBancoHorasConfig } from "@/components/ponto/AdminBancoHorasConfig";
+import { AdminBancoHorasTable } from "@/components/ponto/AdminBancoHorasTable";
 
 export default function AdminPonto() {
   const { user, loading } = useAuth();
+  const [profId, setProfId] = useState<string>("todos");
 
   const { data: isAdmin, isLoading: checking } = useQuery({
     queryKey: ["admin-ponto-access", user?.id],
@@ -25,6 +29,25 @@ export default function AdminPonto() {
       return !!data;
     },
     enabled: !!user,
+  });
+
+  const { data: profissionais = [] } = useQuery({
+    queryKey: ["admin-ponto-profs"],
+    enabled: !!isAdmin,
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["professor", "admin"]);
+      const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
+      if (!ids.length) return [];
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids)
+        .order("full_name");
+      return (data ?? []) as Array<{ user_id: string; full_name: string }>;
+    },
   });
 
   if (loading || checking) return <Skeleton className="h-64" />;
@@ -54,6 +77,7 @@ export default function AdminPonto() {
           <TabsTrigger value="substituicoes">Substituições</TabsTrigger>
           <TabsTrigger value="atividades">Atividades especiais</TabsTrigger>
           <TabsTrigger value="acordos">Acordos de intervalo</TabsTrigger>
+          <TabsTrigger value="banco">Banco de horas</TabsTrigger>
         </TabsList>
         <TabsContent value="vinculos"><AdminPontoVinculos /></TabsContent>
         <TabsContent value="horarios"><AdminPontoHorarios /></TabsContent>
@@ -63,6 +87,10 @@ export default function AdminPonto() {
         <TabsContent value="substituicoes"><AdminSubstituicoes /></TabsContent>
         <TabsContent value="atividades"><AdminAtividadesEspeciais /></TabsContent>
         <TabsContent value="acordos"><AdminAcordosIntervalo /></TabsContent>
+        <TabsContent value="banco" className="space-y-4">
+          <AdminBancoHorasConfig />
+          <AdminBancoHorasTable profissionais={profissionais} profId={profId} setProfId={setProfId} />
+        </TabsContent>
       </Tabs>
     </div>
   );
