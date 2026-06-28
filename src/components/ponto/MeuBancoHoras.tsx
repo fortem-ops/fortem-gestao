@@ -79,7 +79,9 @@ export function MeuBancoHoras({ userId }: { userId?: string }) {
     return exp;
   })();
 
+  const { data: resumo } = useQuery({
     queryKey: ["meu-banco-resumo", targetId, mes],
+
     enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("fn_ponto_banco_resumo", {
