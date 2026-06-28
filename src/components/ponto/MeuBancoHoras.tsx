@@ -44,7 +44,41 @@ export function MeuBancoHoras({ userId }: { userId?: string }) {
     },
   });
 
-  const { data: resumo } = useQuery({
+  const { data: expCfg } = useQuery({
+    queryKey: ["banco-exp-cfg"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ponto_configuracoes")
+        .select("banco_horas_validade_meses")
+        .is("usuario_id", null)
+        .maybeSingle();
+      return ((data as any)?.banco_horas_validade_meses as number | null) ?? null;
+    },
+  });
+
+  const { data: maisAntigoCredito } = useQuery({
+    queryKey: ["banco-mais-antigo", targetId],
+    enabled: !!targetId && !!expCfg && (saldoTotal ?? 0) > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ponto_banco_horas" as any)
+        .select("data")
+        .eq("usuario_id", targetId!)
+        .gt("minutos", 0)
+        .order("data", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return (data as any)?.data as string | undefined;
+    },
+  });
+
+  const dataExpiracao = (() => {
+    if (!expCfg || !maisAntigoCredito) return null;
+    const d = new Date(maisAntigoCredito + "T00:00");
+    const exp = new Date(d.getFullYear(), d.getMonth() + expCfg + 1, 1);
+    return exp;
+  })();
+
     queryKey: ["meu-banco-resumo", targetId, mes],
     enabled: !!targetId,
     queryFn: async () => {
