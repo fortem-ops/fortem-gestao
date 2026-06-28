@@ -335,13 +335,12 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   }, [studentCredits, planoTemSaldo, servicoTemSaldo, exigeEscolhaOrigem]);
 
 
-  const filteredAlunos = useMemo(() => {
-    if (!alunoSearch.trim()) return alunos;
-    const search = alunoSearch.toLowerCase();
-    return alunos.filter((a: any) => (a.nome ?? "").toLowerCase().includes(search));
-  }, [alunos, alunoSearch]);
+  const filteredAlunos = alunos;
 
-  const selectedAluno = useMemo(() => alunos.find((a: any) => a.id === alunoId), [alunos, alunoId]);
+  const selectedAluno = useMemo(() => {
+    if (!alunoId) return undefined;
+    return alunos.find((a: any) => a.id === alunoId) ?? selectedAlunoData ?? undefined;
+  }, [alunos, alunoId, selectedAlunoData]);
 
   const mutation = useMutation({
     mutationFn: async () => {
