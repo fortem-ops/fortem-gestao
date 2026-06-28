@@ -30,6 +30,7 @@ import {
   type JornadaExport,
   type MensalExport,
 } from "@/lib/relatorioPontoExport";
+import { CienciaFechamentoCard } from "@/components/ponto/CienciaFechamentoCard";
 
 interface Jornada {
   id: string;
@@ -486,6 +487,8 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
               </Table>
             )}
           </Card>
+
+          <CienciaFechamentoCard userId={targetId!} mes={mesFiltro} />
         </TabsContent>
       </Tabs>
     </div>
