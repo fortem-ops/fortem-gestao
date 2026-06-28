@@ -151,6 +151,9 @@ function PontoSidebarItem({ item, isActive }: { item: { title: string; url: stri
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
+}
+
+
 
 export function AppSidebar() {
   const { state } = useSidebar();
