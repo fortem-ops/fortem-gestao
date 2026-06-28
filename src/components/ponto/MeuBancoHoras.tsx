@@ -143,7 +143,14 @@ export function MeuBancoHoras({ userId }: { userId?: string }) {
             <p className={`text-3xl font-bold ${saldoColor(saldoTotal ?? 0)}`}>
               {saldoSign(saldoTotal ?? 0)}{formatMinutes(Math.abs(saldoTotal ?? 0))}
             </p>
+            {dataExpiracao && (saldoTotal ?? 0) > 0 && (
+              <Badge variant="outline" className="mt-2 gap-1 border-warning/40 text-warning bg-warning/10">
+                <AlertTriangle className="w-3 h-3" />
+                Créditos expiram em {dataExpiracao.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+              </Badge>
+            )}
           </div>
+
         </div>
       </Card>
 
