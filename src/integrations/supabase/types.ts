@@ -3526,6 +3526,7 @@ export type Database = {
           created_at: string
           id: string
           ip_aceite: string | null
+          texto_termo: string | null
           updated_at: string
           user_agent: string | null
           usuario_id: string
@@ -3537,6 +3538,7 @@ export type Database = {
           created_at?: string
           id?: string
           ip_aceite?: string | null
+          texto_termo?: string | null
           updated_at?: string
           user_agent?: string | null
           usuario_id: string
@@ -3548,6 +3550,7 @@ export type Database = {
           created_at?: string
           id?: string
           ip_aceite?: string | null
+          texto_termo?: string | null
           updated_at?: string
           user_agent?: string | null
           usuario_id?: string
