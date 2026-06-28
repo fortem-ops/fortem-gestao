@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -158,11 +159,22 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     },
   });
 
-  const { data: alunos = [] } = useQuery({
-    queryKey: ["alunos_agenda_picker"],
+  const debouncedAlunoSearch = useDebounce(alunoSearch, 250);
+  const searchTermo = debouncedAlunoSearch.trim();
+  const searchAtivo = searchTermo.length >= 2;
+
+  const { data: alunos = [], isFetching: isSearchingAlunos } = useQuery({
+    queryKey: ["alunos_agenda_picker", searchTermo],
+    enabled: searchAtivo,
     queryFn: async () => {
+      const like = `%${searchTermo.replace(/[%,]/g, " ")}%`;
       const [{ data: alunosData, error }, { data: stagesData }] = await Promise.all([
-        supabase.from("alunos").select("id, nome, status, current_pipeline_stage_id, responsavel_id").order("nome"),
+        supabase
+          .from("alunos")
+          .select("id, nome, status, current_pipeline_stage_id, responsavel_id, email")
+          .or(`nome.ilike.${like},email.ilike.${like}`)
+          .order("nome")
+          .limit(50),
         supabase.from("pipeline_stages").select("id, name"),
       ]);
       if (error) throw error;
@@ -179,6 +191,21 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           return { ...a, tipo };
         })
         .filter((a: any) => a.tipo !== "lead");
+    },
+  });
+
+  // Carrega separadamente o aluno selecionado para que o badge continue exibido
+  // mesmo após limpar/alterar o termo de busca.
+  const { data: selectedAlunoData } = useQuery({
+    queryKey: ["aluno_agenda_selected", alunoId],
+    enabled: !!alunoId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("alunos")
+        .select("id, nome, status, current_pipeline_stage_id, responsavel_id")
+        .eq("id", alunoId)
+        .maybeSingle();
+      return data as any;
     },
   });
 
@@ -308,13 +335,12 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   }, [studentCredits, planoTemSaldo, servicoTemSaldo, exigeEscolhaOrigem]);
 
 
-  const filteredAlunos = useMemo(() => {
-    if (!alunoSearch.trim()) return alunos;
-    const search = alunoSearch.toLowerCase();
-    return alunos.filter((a: any) => (a.nome ?? "").toLowerCase().includes(search));
-  }, [alunos, alunoSearch]);
+  const filteredAlunos = alunos;
 
-  const selectedAluno = useMemo(() => alunos.find((a: any) => a.id === alunoId), [alunos, alunoId]);
+  const selectedAluno = useMemo(() => {
+    if (!alunoId) return undefined;
+    return alunos.find((a: any) => a.id === alunoId) ?? selectedAlunoData ?? undefined;
+  }, [alunos, alunoId, selectedAlunoData]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -511,7 +537,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                 </button>
               </div>
             )}
-            {!alunoId && alunoSearch.trim() && filteredAlunos.length > 0 && (
+            {!alunoId && searchAtivo && filteredAlunos.length > 0 && (
               <ScrollArea className="max-h-32 rounded-md border border-border bg-popover">
                 {filteredAlunos.map((a: any) => (
                   <button
@@ -535,8 +561,14 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                 ))}
               </ScrollArea>
             )}
-            {!alunoId && alunoSearch.trim() && filteredAlunos.length === 0 && (
+            {!alunoId && alunoSearch.trim() && !searchAtivo && (
+              <p className="text-xs text-muted-foreground">Digite ao menos 2 letras…</p>
+            )}
+            {!alunoId && searchAtivo && !isSearchingAlunos && filteredAlunos.length === 0 && (
               <p className="text-xs text-muted-foreground">Nenhum aluno encontrado</p>
+            )}
+            {!alunoId && searchAtivo && isSearchingAlunos && filteredAlunos.length === 0 && (
+              <p className="text-xs text-muted-foreground">Buscando…</p>
             )}
           </div>
 
