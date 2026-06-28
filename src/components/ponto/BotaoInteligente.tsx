@@ -43,16 +43,26 @@ const ACAO_ICON: Record<NonNullable<ProximaAcao>, typeof Play> = {
 const RAIO_M = 300;
 
 /** Botão único contextual: dispara a próxima ação válida do estado atual. */
-export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
+export function BotaoInteligente({ proximaAcao, pularIntervalo, entrada }: Props) {
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [checandoGeo, setChecandoGeo] = useState(false);
   const [geoCoords, setGeoCoords] = useState<{ lat: number | null; lng: number | null } | null>(null);
+  const [obsEncerramento, setObsEncerramento] = useState("");
+  const [, setTick] = useState(0);
   const [geoAlerta, setGeoAlerta] = useState<{
     distM: number;
     localNome: string;
     onConfirm: () => void;
   } | null>(null);
+
+  // Re-render a cada 60s enquanto o diálogo de encerramento está aberto, para
+  // atualizar o "Tempo trabalhado" exibido.
+  useEffect(() => {
+    if (!confirmOpen) return;
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, [confirmOpen]);
 
   // Em jornadas curtas (≤4h), o intervalo é opcional: substituímos por encerramento.
   const acaoEfetiva: ProximaAcao =
@@ -63,12 +73,16 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
       if (!acaoEfetiva) throw new Error("Sem próxima ação disponível");
       const coords = geoCoords ?? (await tryGeo());
       const { lat, lng } = coords;
-      const { data, error } = await supabase.rpc("fn_ponto_registrar", {
+      const args: Record<string, unknown> = {
         _tipo: acaoEfetiva,
         _lat: lat,
         _lng: lng,
         _dispositivo: shortDevice(),
-      });
+      };
+      if (acaoEfetiva === "saida" && obsEncerramento.trim()) {
+        args._observacao = obsEncerramento.trim();
+      }
+      const { data, error } = await supabase.rpc("fn_ponto_registrar", args as any);
       if (error) throw error;
       return { data, semGps: lat == null || lng == null };
     },
@@ -88,12 +102,14 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo }: Props) {
       qc.invalidateQueries({ queryKey: ["ponto-widget"] });
       qc.invalidateQueries({ queryKey: ["ponto-eventos-dia"] });
       setGeoCoords(null);
+      setObsEncerramento("");
     },
     onError: (err: any) => {
       toast.error("Não foi possível registrar", { description: err.message });
       setGeoCoords(null);
     },
   });
+
 
   if (!acaoEfetiva) {
     return (
