@@ -140,6 +140,17 @@ export function AjustarJornadaDialog({
               }
               rows={3}
             />
+            {motivo.length > 0 && (
+              motivo.trim().length < 10 ? (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  {motivo.trim().length} / 10 caracteres
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {motivo.trim().length} caracteres
+                </p>
+              )
+            )}
           </div>
 
           {criando && (
