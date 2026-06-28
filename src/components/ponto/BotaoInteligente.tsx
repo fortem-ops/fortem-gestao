@@ -164,20 +164,56 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo, entrada }: Props
         {label}
       </Button>
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(o) => {
+          setConfirmOpen(o);
+          if (!o) setObsEncerramento("");
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Encerrar jornada?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Após encerrada, novas batidas só serão possíveis amanhã. Tem certeza?
+            <AlertDialogDescription className="sr-only">
+              Confirme o encerramento da jornada de trabalho.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2 text-sm">
+            {entrada ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Entrada</span>
+                <span className="font-medium">{formatHora(entrada)}</span>
+              </div>
+            ) : null}
+            {entrada ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tempo trabalhado</span>
+                <span className="font-medium">{formatMinutes(minutesSince(entrada))}</span>
+              </div>
+            ) : null}
+            <p className="text-xs text-muted-foreground pt-1">
+              Após encerrada, novas batidas só serão possíveis amanhã.
+            </p>
+            <div className="pt-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Observação (opcional)
+              </label>
+              <Textarea
+                value={obsEncerramento}
+                onChange={(e) => setObsEncerramento(e.target.value)}
+                placeholder="Ex.: saí para atendimento externo…"
+                rows={2}
+                className="mt-2 text-sm"
+              />
+            </div>
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setObsEncerramento("")}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => mut.mutate()}>Encerrar agora</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <AlertDialog open={!!geoAlerta} onOpenChange={(o) => !o && setGeoAlerta(null)}>
         <AlertDialogContent>
