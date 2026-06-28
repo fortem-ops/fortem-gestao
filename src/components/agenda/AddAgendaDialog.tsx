@@ -537,7 +537,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                 </button>
               </div>
             )}
-            {!alunoId && alunoSearch.trim() && filteredAlunos.length > 0 && (
+            {!alunoId && searchAtivo && filteredAlunos.length > 0 && (
               <ScrollArea className="max-h-32 rounded-md border border-border bg-popover">
                 {filteredAlunos.map((a: any) => (
                   <button
@@ -561,8 +561,14 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                 ))}
               </ScrollArea>
             )}
-            {!alunoId && alunoSearch.trim() && filteredAlunos.length === 0 && (
+            {!alunoId && alunoSearch.trim() && !searchAtivo && (
+              <p className="text-xs text-muted-foreground">Digite ao menos 2 letras…</p>
+            )}
+            {!alunoId && searchAtivo && !isSearchingAlunos && filteredAlunos.length === 0 && (
               <p className="text-xs text-muted-foreground">Nenhum aluno encontrado</p>
+            )}
+            {!alunoId && searchAtivo && isSearchingAlunos && filteredAlunos.length === 0 && (
+              <p className="text-xs text-muted-foreground">Buscando…</p>
             )}
           </div>
 
