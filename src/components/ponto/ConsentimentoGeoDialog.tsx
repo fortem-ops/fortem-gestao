@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PoliticaRetencaoCard } from "@/components/ponto/PoliticaRetencaoCard";
 
 interface Props {
   open: boolean;
@@ -50,6 +51,7 @@ export function ConsentimentoGeoDialog({ open, onAceitar, onRecusar }: Props) {
           <Badge variant="outline" className="text-info border-info/30 bg-info/10 whitespace-normal text-left leading-snug py-1.5">
             Base legal: Legítimo interesse do empregador (Art. 7º, IX da LGPD) e obrigação legal (Art. 7º, II da LGPD)
           </Badge>
+          <PoliticaRetencaoCard defaultExpanded />
         </div>
 
         <DialogFooter className="gap-2">
