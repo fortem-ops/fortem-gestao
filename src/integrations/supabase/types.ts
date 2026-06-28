@@ -3625,6 +3625,8 @@ export type Database = {
         Row: {
           aprovado_em: string | null
           aprovado_por: string | null
+          ciencia_colaborador_em: string | null
+          ciencia_colaborador_ip: string | null
           created_at: string
           dias_feriado: number
           dias_ferias: number
@@ -3642,6 +3644,8 @@ export type Database = {
         Insert: {
           aprovado_em?: string | null
           aprovado_por?: string | null
+          ciencia_colaborador_em?: string | null
+          ciencia_colaborador_ip?: string | null
           created_at?: string
           dias_feriado?: number
           dias_ferias?: number
@@ -3659,6 +3663,8 @@ export type Database = {
         Update: {
           aprovado_em?: string | null
           aprovado_por?: string | null
+          ciencia_colaborador_em?: string | null
+          ciencia_colaborador_ip?: string | null
           created_at?: string
           dias_feriado?: number
           dias_ferias?: number
