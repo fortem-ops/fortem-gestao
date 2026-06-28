@@ -159,11 +159,22 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     },
   });
 
-  const { data: alunos = [] } = useQuery({
-    queryKey: ["alunos_agenda_picker"],
+  const debouncedAlunoSearch = useDebounce(alunoSearch, 250);
+  const searchTermo = debouncedAlunoSearch.trim();
+  const searchAtivo = searchTermo.length >= 2;
+
+  const { data: alunos = [], isFetching: isSearchingAlunos } = useQuery({
+    queryKey: ["alunos_agenda_picker", searchTermo],
+    enabled: searchAtivo,
     queryFn: async () => {
+      const like = `%${searchTermo.replace(/[%,]/g, " ")}%`;
       const [{ data: alunosData, error }, { data: stagesData }] = await Promise.all([
-        supabase.from("alunos").select("id, nome, status, current_pipeline_stage_id, responsavel_id").order("nome"),
+        supabase
+          .from("alunos")
+          .select("id, nome, status, current_pipeline_stage_id, responsavel_id, email")
+          .or(`nome.ilike.${like},email.ilike.${like}`)
+          .order("nome")
+          .limit(50),
         supabase.from("pipeline_stages").select("id, name"),
       ]);
       if (error) throw error;
@@ -180,6 +191,21 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           return { ...a, tipo };
         })
         .filter((a: any) => a.tipo !== "lead");
+    },
+  });
+
+  // Carrega separadamente o aluno selecionado para que o badge continue exibido
+  // mesmo após limpar/alterar o termo de busca.
+  const { data: selectedAlunoData } = useQuery({
+    queryKey: ["aluno_agenda_selected", alunoId],
+    enabled: !!alunoId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("alunos")
+        .select("id, nome, status, current_pipeline_stage_id, responsavel_id")
+        .eq("id", alunoId)
+        .maybeSingle();
+      return data as any;
     },
   });
 
