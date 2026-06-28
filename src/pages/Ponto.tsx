@@ -248,7 +248,7 @@ export default function Ponto() {
 
               {!isViewingOther && (
                 <Card className="p-4">
-                  <BotaoInteligente proximaAcao={estado.proxima_acao} pularIntervalo={pularIntervalo} />
+                  <BotaoInteligente proximaAcao={estado.proxima_acao} pularIntervalo={pularIntervalo} entrada={estado?.entrada} />
                 </Card>
               )}
 
