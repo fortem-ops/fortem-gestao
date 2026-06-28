@@ -108,7 +108,7 @@ export function haversineDistM(lat1: number, lng1: number, lat2: number, lng2: n
 
 /** Retorna o local da Fortem mais próximo das coordenadas dadas. */
 export function localMaisProximo(lat: number, lng: number): { nome: string; distM: number } {
-  let melhor = { nome: FORTEM_LOCAIS[0].nome, distM: Infinity };
+  let melhor: { nome: string; distM: number } = { nome: FORTEM_LOCAIS[0].nome, distM: Infinity };
   for (const loc of FORTEM_LOCAIS) {
     const d = haversineDistM(lat, lng, loc.lat, loc.lng);
     if (d < melhor.distM) melhor = { nome: loc.nome, distM: d };
