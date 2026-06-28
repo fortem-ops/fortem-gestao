@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ACAO_LABEL, type ProximaAcao, shortDevice, tryGeo, localMaisProximo } from "@/lib/ponto";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ACAO_LABEL,
+  type ProximaAcao,
+  shortDevice,
+  tryGeo,
+  localMaisProximo,
+  minutesSince,
+  formatMinutes,
+  formatHora,
+} from "@/lib/ponto";
 import { Play, Coffee, Utensils, Square, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,6 +30,7 @@ interface Props {
   proximaAcao: ProximaAcao;
   /** Se true, jornada não exige intervalo: pula direto para encerramento. */
   pularIntervalo?: boolean;
+  entrada?: string | null;
 }
 
 const ACAO_ICON: Record<NonNullable<ProximaAcao>, typeof Play> = {
