@@ -36,6 +36,8 @@ interface EstadoAtual {
 export default function Ponto() {
   const { user, loading } = useAuth();
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
+  const { consentimento, registrar, registrando } = useConsentimentoGeo();
+  const [consentDialogOpen, setConsentDialogOpen] = useState(false);
 
   const { data: isCoordAdmin } = useQuery({
     queryKey: ["ponto-role", user?.id],
