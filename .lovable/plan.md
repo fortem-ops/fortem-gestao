@@ -1,62 +1,39 @@
 ## Diagnóstico
 
-A Carteira mostra **81** porque filtra `planos.ativo = true`. No banco existem **205** com `status='ativo'`. Faltam **124**:
+O Lourival **existe** como prospect na base (`stage = "Prospect"`, `status = "prospect"`) e a lógica de classificação em `AddAgendaDialog.tsx` o marcaria corretamente como `tipo: "prospect"` (apenas `"lead"` é filtrado). O problema é outro:
 
-- **93** com contrato ativo, mas plano marcado `ativo=false` (importação dos 103 contratos)
-- **27** com plano histórico, sem contrato ativo
-- **4** sem contrato e sem plano
+- A tabela `alunos` tem **1.724 registros**.
+- A query atual em `AddAgendaDialog.tsx` (linha 161-183) faz `supabase.from("alunos").select(...).order("nome")` **sem `limit`/`range`**, e o PostgREST aplica o teto padrão de **1.000 linhas**.
+- Ordenado por nome, "Lourival" cai depois do corte → ele simplesmente nunca chega ao cliente, então a busca local não acha nada.
 
-### Lista dos 27 (sem contrato ativo, com plano histórico)
+Há um segundo registro homônimo (`LOURIVAL MAY CHULA`) que é um lead — esse continua corretamente oculto.
 
-| Nome | Telefone | Última data_fim |
-|---|---|---|
-| ALLANA NUNES BENTO | (53) 99992-1314 | 2026-06-12 |
-| ALONSO ALEJANDRO GONZALEZ CORNEJO | (51) 98493-5581 | — |
-| ANA CAROLINA TESAINER MITIDIERO | (51) 99314-6012 | 2026-06-12 |
-| DAIANE HEMIELEWSKI | (51) 99917-0992 | 2027-05-10 |
-| DÉBORA PERIN DECOL | (54) 99152-9129 | 2026-06-25 |
-| EDUARDO C. ALTHAUS | (51) 98184-6469 | — |
-| ELIEZER BERNART | (51) 98300-3886 | 2026-06-02 |
-| FABIANE ELIZABETHA DE MORAES RIBEIRO | (51) 99851-7733 | — |
-| FERNANDA GALLAS | (51) 99632-8727 | 2026-07-13 |
-| GABRIELA BALAGUEZ | (51) 99318-3029 | — |
-| GUILHERME SILVEIRA | (51) 99325-4005 | 2026-06-28 |
-| GUSTAVO LUCAS AGUILAR | (51) 98158-3239 | 2026-06-16 |
-| JULIA MARCHETTI | (51) 98525-8002 | — |
-| KARINA SASSI | (51) 99440-3113 | 2026-08-01 |
-| LAURA FERRARI MONTEMEZZO | (51) 98511-3343 | 2026-12-03 |
-| LAURA KREBS ALVARES | (51) 99318-8894 | 2026-06-29 |
-| LUIZ FELIPE BASTOS DUARTE | (51) 99957-0306 | — |
-| MANUELE MONTANARI ARALDI | (54) 98142-3683 | 2026-10-21 |
-| MARCELO SPILLARI VIOLA | (51) 99863-7200 | — |
-| MÁRCIA RIBEIRO WINGERT | (51) 99653-6813 | 2026-06-25 |
-| NATHÁLIA NUNES DA CONCEIÇÃO | (51) 99977-2564 | 2026-07-07 |
-| PAULO SERGIO DE OLIVEIRA MACHADO | (51) 99941-7392 | — |
-| RAFAELA CESAR MACHADO | (75) 1263-1318 | 2026-11-22 |
-| SERGEI JÚLIO DOS SANTOS | (51) 99315-4514 | 2026-10-15 |
-| SONIA MARCHETTI | (51) 99114-2494 | 2026-10-09 |
-| TALITHA PERALTA | (51) 99904-4913 | 2026-06-17 |
-| ZILMARA BONAI | (51) 98400-5561 | 2026-07-09 |
+## Correção
 
-### Lista dos 4 (sem contrato e sem plano)
+Trocar a busca local (filtra em memória sobre lista truncada) por **busca server-side** com `ilike`, que escala e devolve qualquer aluno/prospect independente do volume.
 
-| Nome | Telefone |
-|---|---|
-| GABRIELLE DIAS SALTON | (51) 98433-9239 |
-| JULIANA GONÇALVES MORENO | (51) 98205-7335 |
-| Nicolas Squeff Janovik | 51991519640 |
-| SOPHIA DE ANDRADE BICHELS | (51) 99737-8437 |
+### Alterações em `src/components/agenda/AddAgendaDialog.tsx`
 
-## Plano de correção (apenas dados)
+1. **Substituir a query `alunos_agenda_picker`** por uma query parametrizada pelo termo de busca:
+   - `queryKey: ["alunos_agenda_picker", debouncedSearch]`
+   - `enabled: debouncedSearch.trim().length >= 2` (evita carregar 1.724 linhas à toa)
+   - Filtro: `.or("nome.ilike.%termo%,email.ilike.%termo%")` + `.limit(50)` + `.order("nome")`
+   - Mantém o JOIN lógico com `pipeline_stages` (busca todos os stages — são poucos) para classificar `tipo`.
+   - Mantém o filtro `tipo !== "lead"` (prospects continuam aparecendo).
 
-1. **93 alunos com contrato ativo** → atualizar plano mais recente: `ativo=true`, `data_inicio`/`data_fim`/`valor_mensal`/`plano_tipo`/`frequencia_semanal` sincronizados com o contrato vigente.
-2. **27 alunos sem contrato ativo** → reativar plano histórico mais recente (`ativo=true`):
-   - se tiver `data_fim` futura, mantém;
-   - se `data_fim` é passada ou nula, estende para **CURRENT_DATE + 30 dias** (provisório, até criar contrato real).
-3. **4 sem nada** → criar plano básico mensal (Start, 1x/semana, valor 0) com `data_inicio=CURRENT_DATE`, `data_fim=CURRENT_DATE+30`, `ativo=true`. Vai gerar tarefa de revisão no histórico_profissional.
+2. **Adicionar debounce de 250 ms** no `alunoSearch` usando o hook já existente `useDebounce` (`src/hooks/useDebounce.ts`).
 
-Resultado esperado: Carteira passa de **81 → 205** alunos.
+3. **Garantir que o aluno selecionado continue exibido** mesmo depois de limpar a busca:
+   - Carregar o registro do `alunoId` selecionado em uma query separada e leve (`["aluno_agenda_selected", alunoId]`), para `selectedAluno` não depender da lista de busca.
 
-Sem alterações em código (`.tsx`/`.ts`). Só migração/insert de dados.
+4. **Ajustar `filteredAlunos`**: como agora a query já vem filtrada do servidor, `filteredAlunos = alunos` (mantém variável para minimizar mudanças no JSX). Mensagens de estado:
+   - termo < 2 caracteres → dica "Digite ao menos 2 letras…"
+   - sem resultados → mensagem atual "Nenhum aluno encontrado".
 
-Confirma executar os 3 passos?
+### Verificação pós-fix
+
+- Confirmar via preview que digitar "lour" lista o prospect **Lourival May Chula** com badge "Prospect".
+- Confirmar que alunos ativos e inativos continuam aparecendo normalmente.
+- Confirmar que o lead homônimo **não** aparece.
+
+Nenhum outro arquivo é alterado. Sem mudança de schema, RLS ou backend.
