@@ -43,7 +43,8 @@ export function useConsentimentoGeo() {
               typeof navigator !== "undefined"
                 ? navigator.userAgent.slice(0, 500)
                 : null,
-            versao_termo: "1.0",
+            versao_termo: "1.1",
+            texto_termo: TEXTO_TERMO_V1_1,
           },
           { onConflict: "usuario_id" },
         );
