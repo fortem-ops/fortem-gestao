@@ -55,7 +55,7 @@ export function AjustarJornadaDialog({
   const mut = useMutation({
     mutationFn: async () => {
       if (!hora) throw new Error("Informe o horário");
-      if (motivo.trim().length < 3) throw new Error("Motivo obrigatório (mín. 3 caracteres)");
+      if (motivo.trim().length < 10) throw new Error("Motivo obrigatório (mín. 10 caracteres)");
 
       let idAlvo = jornadaId;
 
