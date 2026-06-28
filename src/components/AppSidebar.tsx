@@ -1,5 +1,6 @@
 import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
+import { usePontoStatus } from "@/hooks/usePontoStatus";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
@@ -23,7 +24,6 @@ import { Button } from "@/components/ui/button";
 /* ─── Principal ─── */
 const principalItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Ponto", url: "/ponto", icon: Clock },
   { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
   { title: "Notificar", url: "/notificar", icon: Bell, badge: "unread" as const },
   { title: "Comissionamentos", url: "/comissionamentos", icon: DollarSign },
@@ -123,6 +123,38 @@ function SidebarItem({ item, isActive }: { item: { title: string; url: string; i
   );
 }
 
+function PontoSidebarItem({ item, isActive }: { item: { title: string; url: string; icon: any }; isActive: (p: string) => boolean }) {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  const { data: pontoStatus } = usePontoStatus();
+
+  const dotClass =
+    pontoStatus === "em_jornada"
+      ? "bg-emerald-500"
+      : pontoStatus === "em_intervalo"
+      ? "bg-amber-400"
+      : null;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive(item.url)}>
+        <NavLink to={item.url} end={false} activeClassName="bg-sidebar-accent text-sidebar-primary">
+          <item.icon className="mr-2 h-4 w-4" />
+          {!collapsed && <span className="flex-1">{item.title}</span>}
+          {dotClass && (
+            <span
+              className={`${collapsed ? "absolute right-1 top-1" : "ml-auto"} w-2 h-2 rounded-full ${dotClass} shrink-0`}
+              title={pontoStatus === "em_jornada" ? "Em jornada" : "Em intervalo"}
+            />
+          )}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -151,6 +183,10 @@ export function AppSidebar() {
           <SidebarGroupLabel>Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <PontoSidebarItem
+                item={{ title: "Ponto", url: "/ponto", icon: Clock }}
+                isActive={isActive}
+              />
               {principalItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
