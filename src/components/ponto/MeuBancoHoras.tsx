@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { formatMinutes } from "@/lib/ponto";
 
 const TIPO_LABEL: Record<string, string> = {
@@ -16,6 +16,7 @@ const TIPO_LABEL: Record<string, string> = {
   debito_manual: "Débito manual",
   compensacao: "Compensação",
   ajuste_saldo: "Ajuste de saldo",
+  expiracao: "Expiração automática",
 };
 
 interface Lancamento {
@@ -43,8 +44,44 @@ export function MeuBancoHoras({ userId }: { userId?: string }) {
     },
   });
 
+  const { data: expCfg } = useQuery({
+    queryKey: ["banco-exp-cfg"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ponto_configuracoes")
+        .select("banco_horas_validade_meses")
+        .is("usuario_id", null)
+        .maybeSingle();
+      return ((data as any)?.banco_horas_validade_meses as number | null) ?? null;
+    },
+  });
+
+  const { data: maisAntigoCredito } = useQuery({
+    queryKey: ["banco-mais-antigo", targetId],
+    enabled: !!targetId && !!expCfg && (saldoTotal ?? 0) > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ponto_banco_horas" as any)
+        .select("data")
+        .eq("usuario_id", targetId!)
+        .gt("minutos", 0)
+        .order("data", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return (data as any)?.data as string | undefined;
+    },
+  });
+
+  const dataExpiracao = (() => {
+    if (!expCfg || !maisAntigoCredito) return null;
+    const d = new Date(maisAntigoCredito + "T00:00");
+    const exp = new Date(d.getFullYear(), d.getMonth() + expCfg + 1, 1);
+    return exp;
+  })();
+
   const { data: resumo } = useQuery({
     queryKey: ["meu-banco-resumo", targetId, mes],
+
     enabled: !!targetId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("fn_ponto_banco_resumo", {
@@ -106,7 +143,14 @@ export function MeuBancoHoras({ userId }: { userId?: string }) {
             <p className={`text-3xl font-bold ${saldoColor(saldoTotal ?? 0)}`}>
               {saldoSign(saldoTotal ?? 0)}{formatMinutes(Math.abs(saldoTotal ?? 0))}
             </p>
+            {dataExpiracao && (saldoTotal ?? 0) > 0 && (
+              <Badge variant="outline" className="mt-2 gap-1 border-warning/40 text-warning bg-warning/10">
+                <AlertTriangle className="w-3 h-3" />
+                Créditos expiram em {dataExpiracao.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+              </Badge>
+            )}
           </div>
+
         </div>
       </Card>
 
