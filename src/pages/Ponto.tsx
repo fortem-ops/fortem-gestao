@@ -197,7 +197,22 @@ export default function Ponto() {
           ) : (
             <p className="text-xs text-warning mt-1">Sem jornada prevista para hoje (verifique Admin Ponto).</p>
           )}
+          {!isViewingOther && consentimento && (
+            <p className="text-xs text-muted-foreground mt-1">
+              📍 Localização:{" "}
+              {consentimento.aceito ? "coletada com seu consentimento" : "não coletada"}
+              {" · "}
+              <button
+                type="button"
+                className="underline hover:text-foreground"
+                onClick={() => setConsentDialogOpen(true)}
+              >
+                {consentimento.aceito ? "Revogar" : "Ativar"}
+              </button>
+            </p>
+          )}
         </div>
+
 
         {isCoordAdmin && (
           <div className="flex items-end gap-2">
