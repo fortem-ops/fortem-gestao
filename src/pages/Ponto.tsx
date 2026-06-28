@@ -19,6 +19,8 @@ import { MeuBancoHoras } from "@/components/ponto/MeuBancoHoras";
 import { JanelasDoDia } from "@/components/ponto/JanelasDoDia";
 import { MeusAcordosIntervalo } from "@/components/ponto/MeusAcordosIntervalo";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
+import { useConsentimentoGeo } from "@/hooks/useConsentimentoGeo";
+import { ConsentimentoGeoDialog } from "@/components/ponto/ConsentimentoGeoDialog";
 
 interface EstadoAtual {
   status: PontoEstado;
