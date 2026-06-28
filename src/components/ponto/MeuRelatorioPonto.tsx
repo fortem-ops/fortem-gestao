@@ -31,6 +31,7 @@ import {
   type MensalExport,
 } from "@/lib/relatorioPontoExport";
 import { CienciaFechamentoCard } from "@/components/ponto/CienciaFechamentoCard";
+import { ExportarMeusDadosLGPD } from "@/components/ponto/ExportarMeusDadosLGPD";
 
 interface Jornada {
   id: string;
@@ -435,6 +436,7 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
 
           {/* Ausências justificadas no período */}
           <AusenciasJustificadasCard inicio={inicio} fim={fim} ausenciaPara={ausenciaPara} />
+          <ExportarMeusDadosLGPD userId={targetId!} nome={meuNome} />
         </TabsContent>
 
         {/* ===== MENSAL ===== */}
