@@ -543,17 +543,6 @@ export function AdminUsers() {
                 />
                 <Label htmlFor="chgpw" className="cursor-pointer">Alterar senha</Label>
               </div>
-              {editForm.changePassword && (
-                <div>
-                  <Label>Nova senha (mín. 6)</Label>
-                  <Input
-                    type="password"
-                    value={editForm.password}
-                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                  />
-                </div>
-              )}
-              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>CPF</Label>
@@ -574,6 +563,17 @@ export function AdminUsers() {
                   />
                 </div>
               </div>
+              {editForm.changePassword && (
+                <div>
+                  <Label>Nova senha (mín. 6)</Label>
+                  <Input
+                    type="password"
+                    value={editForm.password}
+                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  />
+                </div>
+              )}
+            </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
