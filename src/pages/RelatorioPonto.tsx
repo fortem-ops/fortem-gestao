@@ -775,9 +775,21 @@ function DiarioTable({
                         <p className="text-sm text-muted-foreground py-2">Sem eventos registrados.</p>
                       ) : (
                         <div className="space-y-1 py-2">
-                          {eventos.map((e: any, i: number) => (
+                          {eventos.map((e: any, i: number) => {
+                            const isAjuste = typeof e.tipo === "string" && e.tipo.startsWith("ajuste");
+                            return (
                             <div key={i} className="flex flex-wrap items-center gap-3 text-sm">
-                              <Badge variant="secondary" className="text-[10px] uppercase">{e.tipo}</Badge>
+                              {isAjuste && <Pencil className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
+                              <Badge
+                                variant={isAjuste ? "outline" : "secondary"}
+                                className={
+                                  isAjuste
+                                    ? "text-[10px] uppercase border-amber-400/40 bg-amber-400/10 text-amber-600"
+                                    : "text-[10px] uppercase"
+                                }
+                              >
+                                {e.tipo}
+                              </Badge>
                               <span className="tabular-nums">{new Date(e.data_hora).toLocaleString("pt-BR")}</span>
                               {e.latitude != null && e.longitude != null && (
                                 <a
@@ -795,10 +807,15 @@ function DiarioTable({
                                 </span>
                               )}
                               {e.observacao && (
-                                <span className="text-xs italic text-muted-foreground">"{e.observacao}"</span>
+                                isAjuste ? (
+                                  <span className="text-xs font-medium text-amber-700 dark:text-amber-400">"{e.observacao}"</span>
+                                ) : (
+                                  <span className="text-xs italic text-muted-foreground">"{e.observacao}"</span>
+                                )
                               )}
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </TableCell>
