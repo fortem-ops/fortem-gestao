@@ -45,6 +45,8 @@ type ProfileRow = {
   full_name: string;
   phone: string | null;
   specialty: string | null;
+  cpf: string | null;
+  pis_pasep: string | null;
 };
 
 type CreateForm = {
@@ -53,6 +55,8 @@ type CreateForm = {
   password: string;
   phone: string;
   specialty: string;
+  cpf: string;
+  pis_pasep: string;
   role: string;
 };
 
@@ -62,8 +66,26 @@ type EditForm = {
   email: string;
   phone: string;
   specialty: string;
+  cpf: string;
+  pis_pasep: string;
   changePassword: boolean;
   password: string;
+};
+
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
+const maskCPF = (v: string) => {
+  const d = onlyDigits(v).slice(0, 11);
+  return d
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+};
+const maskPIS = (v: string) => {
+  const d = onlyDigits(v).slice(0, 11);
+  return d
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{5})(\d)/, "$1.$2.$3")
+    .replace(/^(\d{3})\.(\d{5})\.(\d{2})(\d)/, "$1.$2.$3-$4");
 };
 
 export function AdminUsers() {
@@ -76,7 +98,7 @@ export function AdminUsers() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>({
-    full_name: "", email: "", password: "", phone: "", specialty: "", role: "",
+    full_name: "", email: "", password: "", phone: "", specialty: "", cpf: "", pis_pasep: "", role: "",
   });
 
   const [editOpen, setEditOpen] = useState(false);
@@ -167,6 +189,8 @@ export function AdminUsers() {
           full_name: f.full_name.trim(),
           phone: f.phone.trim() || null,
           specialty: f.specialty.trim() || null,
+          cpf: onlyDigits(f.cpf) || null,
+          pis_pasep: onlyDigits(f.pis_pasep) || null,
           role: f.role || null,
         },
       });
@@ -177,7 +201,7 @@ export function AdminUsers() {
       invalidateAll();
       toast.success("Usuário criado");
       setCreateOpen(false);
-      setCreateForm({ full_name: "", email: "", password: "", phone: "", specialty: "", role: "" });
+      setCreateForm({ full_name: "", email: "", password: "", phone: "", specialty: "", cpf: "", pis_pasep: "", role: "" });
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -193,6 +217,8 @@ export function AdminUsers() {
           full_name: f.full_name.trim(),
           phone: f.phone.trim() || null,
           specialty: f.specialty.trim() || null,
+          cpf: onlyDigits(f.cpf) || null,
+          pis_pasep: onlyDigits(f.pis_pasep) || null,
         },
       });
       if (error) throw error;
@@ -244,6 +270,8 @@ export function AdminUsers() {
       email: emailByUserId.get(p.user_id) || "",
       phone: p.phone || "",
       specialty: p.specialty || "",
+      cpf: p.cpf ? maskCPF(p.cpf) : "",
+      pis_pasep: p.pis_pasep ? maskPIS(p.pis_pasep) : "",
       changePassword: false,
       password: "",
     });
