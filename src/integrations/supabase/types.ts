@@ -3479,6 +3479,7 @@ export type Database = {
       }
       ponto_configuracoes: {
         Row: {
+          banco_horas_validade_meses: number | null
           carga_diaria_min: number
           created_at: string
           id: string
@@ -3491,6 +3492,7 @@ export type Database = {
           usuario_id: string | null
         }
         Insert: {
+          banco_horas_validade_meses?: number | null
           carga_diaria_min?: number
           created_at?: string
           id?: string
@@ -3503,6 +3505,7 @@ export type Database = {
           usuario_id?: string | null
         }
         Update: {
+          banco_horas_validade_meses?: number | null
           carga_diaria_min?: number
           created_at?: string
           id?: string
