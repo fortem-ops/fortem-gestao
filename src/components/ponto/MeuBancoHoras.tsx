@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { formatMinutes } from "@/lib/ponto";
 
 const TIPO_LABEL: Record<string, string> = {
@@ -16,6 +16,7 @@ const TIPO_LABEL: Record<string, string> = {
   debito_manual: "Débito manual",
   compensacao: "Compensação",
   ajuste_saldo: "Ajuste de saldo",
+  expiracao: "Expiração automática",
 };
 
 interface Lancamento {
