@@ -56,6 +56,7 @@ const RelatoriosPlanos = lazy(() => import("./pages/relatorios/Planos"));
 const RelatoriosCancelamentos = lazy(() => import("./pages/relatorios/Cancelamentos"));
 const RelatoriosServicos = lazy(() => import("./pages/relatorios/Servicos"));
 const RelatoriosEmBreve = lazy(() => import("./pages/relatorios/EmBreve"));
+const RelatoriosEquipe = lazy(() => import("./pages/relatorios/Equipe"));
 
 // Portal do Aluno
 const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
@@ -432,7 +433,7 @@ const App = () => (
                 <Route path="servicos" element={<Suspense fallback={<RouteFallback />}><RelatoriosServicos /></Suspense>} />
                 <Route path="crm" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="CRM" /></Suspense>} />
                 <Route path="tecnicos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Técnicos" /></Suspense>} />
-                <Route path="equipe" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Equipe" /></Suspense>} />
+                <Route path="equipe" element={<Suspense fallback={<RouteFallback />}><RelatoriosEquipe /></Suspense>} />
               </Route>
             </Route>
             <Route
