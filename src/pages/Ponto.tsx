@@ -20,6 +20,7 @@ import { JanelasDoDia } from "@/components/ponto/JanelasDoDia";
 import { MeusAcordosIntervalo } from "@/components/ponto/MeusAcordosIntervalo";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
 import { useConsentimentoGeo } from "@/hooks/useConsentimentoGeo";
+import { useTermoVigente } from "@/hooks/useTermoVigente";
 import { ConsentimentoGeoDialog } from "@/components/ponto/ConsentimentoGeoDialog";
 
 interface EstadoAtual {
