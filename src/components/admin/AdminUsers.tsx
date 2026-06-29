@@ -208,6 +208,10 @@ export function AdminUsers() {
 
   const updateMutation = useMutation({
     mutationFn: async (f: EditForm) => {
+      const cpfDigits = onlyDigits(f.cpf);
+      const pisDigits = onlyDigits(f.pis_pasep);
+      if (cpfDigits && cpfDigits.length !== 11) throw new Error("CPF deve conter 11 dígitos");
+      if (pisDigits && pisDigits.length !== 11) throw new Error("PIS/PASEP deve conter 11 dígitos");
       const { data, error } = await supabase.functions.invoke("admin-users", {
         body: {
           action: "update",
@@ -217,12 +221,13 @@ export function AdminUsers() {
           full_name: f.full_name.trim(),
           phone: f.phone.trim() || null,
           specialty: f.specialty.trim() || null,
-          cpf: onlyDigits(f.cpf) || null,
-          pis_pasep: onlyDigits(f.pis_pasep) || null,
+          cpf: cpfDigits || null,
+          pis_pasep: pisDigits || null,
         },
       });
       if (error) throw error;
       if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Erro ao atualizar");
+      return data?.profile ?? null;
     },
     onSuccess: () => {
       invalidateAll();
