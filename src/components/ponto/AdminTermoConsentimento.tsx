@@ -56,7 +56,7 @@ export function AdminTermoConsentimento() {
         .select("*")
         .order("criado_em", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Versao[];
+      return (data ?? []) as unknown as Versao[];
     },
   });
 
