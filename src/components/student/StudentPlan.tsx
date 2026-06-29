@@ -56,6 +56,7 @@ const SERVICE_TYPES = [
 
 export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   const queryClient = useQueryClient();
+  const [, setSearchParams] = useSearchParams();
   const [editingService, setEditingService] = useState<string | null>(null);
   const [editValue, setEditValue] = useState(0);
   const [saving, setSaving] = useState(false);
