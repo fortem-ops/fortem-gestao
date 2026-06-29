@@ -434,12 +434,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
             return (
               <button
                 type="button"
-                onClick={() => {
-                  const url = new URL(window.location.href);
-                  url.searchParams.set("tab", "contrato");
-                  window.history.pushState({}, "", url.toString());
-                  window.dispatchEvent(new PopStateEvent("popstate"));
-                }}
+                onClick={() => setSearchParams({ tab: "contrato" }, { replace: true })}
                 className="inline-flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning hover:bg-warning/20 transition w-fit"
                 title="Gerenciar em Pagamentos"
               >
