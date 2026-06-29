@@ -130,20 +130,49 @@ Deno.serve(async (req) => {
         const { error: uErr } = await admin.auth.admin.updateUserById(body.user_id, authPatch);
         if (uErr) return json({ error: uErr.message }, 400);
       }
-      const profilePatch: Record<string, unknown> = {};
-      if (body.full_name != null) profilePatch.full_name = body.full_name;
-      if (body.phone !== undefined) profilePatch.phone = body.phone;
-      if (body.specialty !== undefined) profilePatch.specialty = body.specialty;
-      if (body.cpf !== undefined) profilePatch.cpf = body.cpf ? body.cpf.replace(/\D/g, "") : null;
-      if (body.pis_pasep !== undefined) profilePatch.pis_pasep = body.pis_pasep ? body.pis_pasep.replace(/\D/g, "") : null;
-      if (Object.keys(profilePatch).length > 0) {
-        const { error: pErr } = await admin
-          .from("profiles")
-          .update(profilePatch)
-          .eq("user_id", body.user_id);
-        if (pErr) return json({ error: pErr.message }, 500);
+
+      // Validate CPF/PIS digit length (if provided non-null)
+      const cpfDigits = body.cpf == null ? null : body.cpf.replace(/\D/g, "");
+      const pisDigits = body.pis_pasep == null ? null : body.pis_pasep.replace(/\D/g, "");
+      if (cpfDigits && cpfDigits.length !== 11) {
+        return json({ error: "CPF deve conter 11 dígitos" }, 400);
       }
-      return json({ ok: true });
+      if (pisDigits && pisDigits.length !== 11) {
+        return json({ error: "PIS/PASEP deve conter 11 dígitos" }, 400);
+      }
+
+      // Read current profile to preserve required fields on upsert
+      const { data: current } = await admin
+        .from("profiles")
+        .select("user_id, full_name, phone, specialty, cpf, pis_pasep")
+        .eq("user_id", body.user_id)
+        .maybeSingle();
+
+      const upsertRow: Record<string, unknown> = {
+        user_id: body.user_id,
+        full_name: body.full_name ?? current?.full_name ?? "Sem nome",
+        phone: body.phone !== undefined ? body.phone : (current?.phone ?? null),
+        specialty: body.specialty !== undefined ? body.specialty : (current?.specialty ?? null),
+        cpf: body.cpf !== undefined ? (cpfDigits || null) : (current?.cpf ?? null),
+        pis_pasep: body.pis_pasep !== undefined ? (pisDigits || null) : (current?.pis_pasep ?? null),
+      };
+
+      console.log("admin-users update", {
+        user_id: body.user_id,
+        had_profile: !!current,
+        patch: { ...upsertRow, cpf: upsertRow.cpf ? "***" : null, pis_pasep: upsertRow.pis_pasep ? "***" : null },
+      });
+
+      const { data: saved, error: pErr } = await admin
+        .from("profiles")
+        .upsert(upsertRow, { onConflict: "user_id" })
+        .select("user_id, full_name, phone, specialty, cpf, pis_pasep")
+        .maybeSingle();
+      if (pErr) {
+        console.error("admin-users upsert error", pErr);
+        return json({ error: pErr.message }, 500);
+      }
+      return json({ ok: true, profile: saved });
     }
 
     if (body.action === "delete") {
