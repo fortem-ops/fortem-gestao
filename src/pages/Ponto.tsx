@@ -39,6 +39,7 @@ export default function Ponto() {
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
   const { consentimento, registrar, registrando } = useConsentimentoGeo();
   const [consentDialogOpen, setConsentDialogOpen] = useState(false);
+  const { termo: termoVigente } = useTermoVigente();
 
   const { data: isCoordAdmin } = useQuery({
     queryKey: ["ponto-role", user?.id],
