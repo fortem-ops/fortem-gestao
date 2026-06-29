@@ -306,7 +306,14 @@ export default function Ponto() {
       </Tabs>
 
       <ConsentimentoGeoDialog
-        open={(!isViewingOther && (consentimento === null || consentimento.versao_termo !== "1.1")) || consentDialogOpen}
+        open={
+          (!isViewingOther &&
+            !!termoVigente &&
+            (consentimento === null || consentimento.versao_termo !== termoVigente.versao)) ||
+          consentDialogOpen
+        }
+        textoTermo={termoVigente?.texto_termo}
+        versao={termoVigente?.versao}
         onAceitar={async () => {
           if (registrando) return;
           await registrar(true);
