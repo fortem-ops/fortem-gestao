@@ -123,37 +123,102 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
     );
   }
 
-  const handleCancelar = async () => {
+  const handleCancelar = async (payload: {
+    dataCancelamento: string;
+    valorMulta: number;
+    tratamento: "estorno" | "nova_cobranca";
+    vencimentoMulta?: string;
+  }) => {
     const alvo = rescContrato;
     if (!alvo) return;
     const hoje = new Date().toISOString().split("T")[0];
+    const isImediato = payload.dataCancelamento <= hoje;
+    const motivo = isImediato
+      ? "Solicitação do aluno"
+      : `Cancelamento agendado para ${payload.dataCancelamento}`;
+
     const { error } = await supabase
       .from("contratos")
       .update({
-        status: "cancelado",
-        motivo_cancelamento: "Solicitação do aluno",
-        data_cancelamento: hoje,
+        status: isImediato ? "cancelado" : alvo.status,
+        motivo_cancelamento: motivo,
+        data_cancelamento: payload.dataCancelamento,
+        data_fim: payload.dataCancelamento,
       })
       .eq("id", alvo.id);
     if (error) {
       toast({ title: "Erro ao cancelar", description: error.message, variant: "destructive" });
       return;
     }
+
+    // Cancela cobranças pendentes posteriores à data efetiva
     await supabase
       .from("cobrancas")
       .update({ status: "cancelado" })
       .eq("contrato_id", alvo.id)
-      .eq("status", "pendente");
-    await supabase
-      .from("ciclos_credito")
-      .update({ status: "cancelado" })
-      .eq("contrato_id", alvo.id)
-      .eq("status", "ativo");
+      .eq("status", "pendente")
+      .gt("data_vencimento", payload.dataCancelamento);
 
-    toast({ title: "Contrato cancelado", description: "Cobranças e créditos suspensos." });
+    // Suspende ciclos ativos somente se imediato
+    if (isImediato) {
+      await supabase
+        .from("ciclos_credito")
+        .update({ status: "cancelado" })
+        .eq("contrato_id", alvo.id)
+        .eq("status", "ativo");
+    }
+
+    // Espelha no plano: encerra renovação automática e ajusta data_fim
+    await supabase
+      .from("planos")
+      .update({
+        renovacao_automatica: false,
+        data_fim: payload.dataCancelamento,
+        ativo: isImediato ? false : true,
+      } as any)
+      .eq("aluno_id", alunoId)
+      .eq("ativo", true);
+
+    // Tratamento da multa
+    if (payload.valorMulta > 0) {
+      const numero = 999; // marcador de movimento extra-ciclo
+      if (payload.tratamento === "estorno") {
+        await supabase.from("cobrancas").insert({
+          contrato_id: alvo.id,
+          aluno_id: alunoId,
+          numero_ciclo: numero,
+          valor: -Math.abs(payload.valorMulta),
+          data_vencimento: hoje,
+          data_pagamento: hoje,
+          status: "pago",
+          forma_pagamento: alvo.forma_pagamento,
+          meio_registro: "estorno_cancelamento",
+        } as any);
+      } else {
+        await supabase.from("cobrancas").insert({
+          contrato_id: alvo.id,
+          aluno_id: alunoId,
+          numero_ciclo: numero,
+          valor: Math.abs(payload.valorMulta),
+          data_vencimento: payload.vencimentoMulta ?? hoje,
+          status: "pendente",
+          forma_pagamento: alvo.forma_pagamento,
+          meio_registro: "multa_cancelamento",
+        } as any);
+      }
+    }
+
+    toast({
+      title: isImediato ? "Contrato cancelado" : "Cancelamento agendado",
+      description: isImediato
+        ? "Cobranças futuras e créditos foram suspensos."
+        : `Efetivação em ${new Date(payload.dataCancelamento + "T00:00:00").toLocaleDateString("pt-BR")}.`,
+    });
     qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
     qc.invalidateQueries({ queryKey: ["cobrancas-contrato", alvo.id] });
     qc.invalidateQueries({ queryKey: ["ciclo-ativo", alvo.id] });
+    qc.invalidateQueries({ queryKey: ["plano-aluno", alunoId] });
+    qc.invalidateQueries({ queryKey: ["plano", alunoId] });
     setRescContrato(null);
   };
 
