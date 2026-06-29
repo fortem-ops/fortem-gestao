@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-
-const TEXTO_TERMO_V1_1 = `A FORTEM utiliza sistema eletrônico de registro de ponto por navegador, com coleta de geolocalização exclusivamente no momento da marcação de entrada, saída e intervalos, com a finalidade de comprovar o local do registro de jornada. Não há rastreamento contínuo do colaborador. Quando o colaborador não desejar utilizar dispositivo próprio, a empresa disponibilizará equipamento no local de trabalho para realização da marcação. Os dados de localização são armazenados de forma segura e retidos por 5 anos, conforme obrigação legal trabalhista (Art. 11 da CLT). Base legal: Legítimo interesse do empregador (Art. 7º, IX da LGPD) e obrigação legal (Art. 7º, II da LGPD). Versão 1.1.`;
+import { useTermoVigente } from "@/hooks/useTermoVigente";
 
 export interface ConsentimentoGeo {
   aceito: boolean;
@@ -13,6 +12,7 @@ export interface ConsentimentoGeo {
 export function useConsentimentoGeo() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { termo } = useTermoVigente();
 
   const query = useQuery({
     queryKey: ["ponto-consentimento-geo", user?.id],
@@ -32,6 +32,8 @@ export function useConsentimentoGeo() {
   const mutation = useMutation({
     mutationFn: async (aceito: boolean) => {
       if (!user) throw new Error("Usuário não autenticado");
+      const versao = termo?.versao ?? "1.1";
+      const texto = termo?.texto_termo ?? "";
       const { error } = await supabase
         .from("ponto_consentimento_geo")
         .upsert(
@@ -43,8 +45,8 @@ export function useConsentimentoGeo() {
               typeof navigator !== "undefined"
                 ? navigator.userAgent.slice(0, 500)
                 : null,
-            versao_termo: "1.1",
-            texto_termo: TEXTO_TERMO_V1_1,
+            versao_termo: versao,
+            texto_termo: texto,
           },
           { onConflict: "usuario_id" },
         );
@@ -60,5 +62,6 @@ export function useConsentimentoGeo() {
     loading: query.isLoading,
     registrar: (aceito: boolean) => mutation.mutateAsync(aceito),
     registrando: mutation.isPending,
+    versaoVigente: termo?.versao ?? null,
   };
 }
