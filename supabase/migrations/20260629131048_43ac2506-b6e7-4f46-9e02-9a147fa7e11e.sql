@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.fn_pipeline_touch_activity() FROM PUBLIC, anon, authenticated;
