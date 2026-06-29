@@ -422,22 +422,6 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
                 <Edit3 className="h-3.5 w-3.5" /> Editar Plano
               </Button>
             )}
-            {isCoordAdmin && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-destructive border-destructive/40 hover:bg-destructive/10"
-                disabled={saving}
-                onClick={() => {
-                  const today = new Date().toISOString().split("T")[0];
-                  setCancelDate((data as any).data_fim && (data as any).data_fim >= today ? (data as any).data_fim : today);
-                  setCancelMotivo("");
-                  setCancelOpen(true);
-                }}
-              >
-                <Ban className="h-3.5 w-3.5 mr-1.5" /> Cancelar Contrato
-              </Button>
-            )}
           </div>
         </div>
 
@@ -446,10 +430,20 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
           const df = (data as any).data_fim;
           if (df && df > today && (data as any).renovacao_automatica === false) {
             return (
-              <Badge variant="outline" className="status-warning gap-1.5 w-fit">
+              <button
+                type="button"
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("tab", "contrato");
+                  window.history.pushState({}, "", url.toString());
+                  window.dispatchEvent(new PopStateEvent("popstate"));
+                }}
+                className="inline-flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning hover:bg-warning/20 transition w-fit"
+                title="Gerenciar em Pagamentos"
+              >
                 <Ban className="h-3 w-3" />
-                Cancelamento agendado para {new Date(df + "T00:00:00").toLocaleDateString("pt-BR")}
-              </Badge>
+                Cancelamento agendado para {new Date(df + "T00:00:00").toLocaleDateString("pt-BR")} · gerenciar em Pagamentos
+              </button>
             );
           }
           return null;
