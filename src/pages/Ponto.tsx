@@ -20,6 +20,7 @@ import { JanelasDoDia } from "@/components/ponto/JanelasDoDia";
 import { MeusAcordosIntervalo } from "@/components/ponto/MeusAcordosIntervalo";
 import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
 import { useConsentimentoGeo } from "@/hooks/useConsentimentoGeo";
+import { useTermoVigente } from "@/hooks/useTermoVigente";
 import { ConsentimentoGeoDialog } from "@/components/ponto/ConsentimentoGeoDialog";
 
 interface EstadoAtual {
@@ -38,6 +39,7 @@ export default function Ponto() {
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
   const { consentimento, registrar, registrando } = useConsentimentoGeo();
   const [consentDialogOpen, setConsentDialogOpen] = useState(false);
+  const { termo: termoVigente } = useTermoVigente();
 
   const { data: isCoordAdmin } = useQuery({
     queryKey: ["ponto-role", user?.id],
@@ -304,7 +306,14 @@ export default function Ponto() {
       </Tabs>
 
       <ConsentimentoGeoDialog
-        open={(!isViewingOther && (consentimento === null || consentimento.versao_termo !== "1.1")) || consentDialogOpen}
+        open={
+          (!isViewingOther &&
+            !!termoVigente &&
+            (consentimento === null || consentimento.versao_termo !== termoVigente.versao)) ||
+          consentDialogOpen
+        }
+        textoTermo={termoVigente?.texto_termo}
+        versao={termoVigente?.versao}
         onAceitar={async () => {
           if (registrando) return;
           await registrar(true);

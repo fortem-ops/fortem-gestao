@@ -15,9 +15,11 @@ interface Props {
   open: boolean;
   onAceitar: () => void;
   onRecusar: () => void;
+  textoTermo?: string | null;
+  versao?: string | null;
 }
 
-export function ConsentimentoGeoDialog({ open, onAceitar, onRecusar }: Props) {
+export function ConsentimentoGeoDialog({ open, onAceitar, onRecusar, textoTermo, versao }: Props) {
   return (
     <Dialog open={open} onOpenChange={() => { /* só fecha via botões */ }}>
       <DialogContent
@@ -37,28 +39,29 @@ export function ConsentimentoGeoDialog({ open, onAceitar, onRecusar }: Props) {
         </DialogHeader>
 
         <div className="space-y-3 text-sm text-foreground">
-          <p>
-            A FORTEM utiliza sistema eletrônico de registro de ponto por navegador, com coleta de
-            geolocalização <strong>exclusivamente no momento da marcação</strong> de entrada, saída e
-            intervalos, com a finalidade de comprovar o local do registro de jornada.{" "}
-            <strong>Não há rastreamento contínuo do colaborador.</strong>
-          </p>
-          <p>
-            Quando você não desejar utilizar dispositivo próprio, a Fortem disponibilizará
-            equipamento no local de trabalho para realização da marcação — nesse caso, clique em{" "}
-            <strong>Recusar</strong> abaixo.
-          </p>
-          <p className="text-muted-foreground">
-            Os dados de localização são armazenados de forma segura e retidos por 5 anos, conforme
-            obrigação legal trabalhista (Art. 11 da CLT). Você tem direito de acessar, corrigir e
-            solicitar informações sobre seus dados a qualquer momento.
-          </p>
+          {textoTermo ? (
+            <p className="whitespace-pre-wrap leading-relaxed">{textoTermo}</p>
+          ) : (
+            <>
+              <p>
+                A FORTEM utiliza sistema eletrônico de registro de ponto por navegador, com coleta de
+                geolocalização <strong>exclusivamente no momento da marcação</strong> de entrada, saída e
+                intervalos, com a finalidade de comprovar o local do registro de jornada.{" "}
+                <strong>Não há rastreamento contínuo do colaborador.</strong>
+              </p>
+              <p>
+                Quando você não desejar utilizar dispositivo próprio, a Fortem disponibilizará
+                equipamento no local de trabalho para realização da marcação — nesse caso, clique em{" "}
+                <strong>Recusar</strong> abaixo.
+              </p>
+            </>
+          )}
           <Badge
             variant="outline"
             className="text-info border-info/30 bg-info/10 whitespace-normal text-left leading-snug py-1.5"
           >
             Base legal: Legítimo interesse do empregador (Art. 7º, IX da LGPD) e obrigação legal
-            (Art. 7º, II da LGPD)
+            (Art. 7º, II da LGPD){versao ? ` · Versão ${versao}` : ""}
           </Badge>
           <PoliticaRetencaoCard defaultExpanded />
         </div>

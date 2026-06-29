@@ -3923,41 +3923,56 @@ export type Database = {
       ponto_politica_retencao: {
         Row: {
           base_legal: string
+          changelog: string | null
           contato_dpo: string | null
           criado_em: string
           criado_por: string | null
           id: string
+          rascunho: boolean
           responsavel_dados: string
           retencao_banco_horas_anos: number
           retencao_eventos_anos: number
           retencao_jornadas_anos: number
+          texto_termo: string | null
+          titulo: string | null
           versao: string
+          vigente: boolean
           vigente_desde: string
         }
         Insert: {
           base_legal?: string
+          changelog?: string | null
           contato_dpo?: string | null
           criado_em?: string
           criado_por?: string | null
           id?: string
+          rascunho?: boolean
           responsavel_dados?: string
           retencao_banco_horas_anos?: number
           retencao_eventos_anos?: number
           retencao_jornadas_anos?: number
+          texto_termo?: string | null
+          titulo?: string | null
           versao?: string
+          vigente?: boolean
           vigente_desde?: string
         }
         Update: {
           base_legal?: string
+          changelog?: string | null
           contato_dpo?: string | null
           criado_em?: string
           criado_por?: string | null
           id?: string
+          rascunho?: boolean
           responsavel_dados?: string
           retencao_banco_horas_anos?: number
           retencao_eventos_anos?: number
           retencao_jornadas_anos?: number
+          texto_termo?: string | null
+          titulo?: string | null
           versao?: string
+          vigente?: boolean
           vigente_desde?: string
         }
         Relationships: []

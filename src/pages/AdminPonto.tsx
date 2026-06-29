@@ -17,6 +17,8 @@ import { AdminAcordosIntervalo } from "@/components/ponto/AdminAcordosIntervalo"
 import { AdminPontoLocais } from "@/components/ponto/AdminPontoLocais";
 import { AdminBancoHorasConfig } from "@/components/ponto/AdminBancoHorasConfig";
 import { AdminBancoHorasTable } from "@/components/ponto/AdminBancoHorasTable";
+import { AdminConsentimentosGeo } from "@/components/ponto/AdminConsentimentosGeo";
+import { AdminTermoConsentimento } from "@/components/ponto/AdminTermoConsentimento";
 
 export default function AdminPonto() {
   const { user, loading } = useAuth();
@@ -78,6 +80,7 @@ export default function AdminPonto() {
           <TabsTrigger value="atividades">Atividades especiais</TabsTrigger>
           <TabsTrigger value="acordos">Acordos de intervalo</TabsTrigger>
           <TabsTrigger value="banco">Banco de horas</TabsTrigger>
+          <TabsTrigger value="consentimentos">Consentimentos LGPD</TabsTrigger>
         </TabsList>
         <TabsContent value="vinculos"><AdminPontoVinculos /></TabsContent>
         <TabsContent value="horarios"><AdminPontoHorarios /></TabsContent>
@@ -90,6 +93,20 @@ export default function AdminPonto() {
         <TabsContent value="banco" className="space-y-4">
           <AdminBancoHorasConfig />
           <AdminBancoHorasTable profissionais={profissionais} profId={profId} setProfId={setProfId} />
+        </TabsContent>
+        <TabsContent value="consentimentos" className="space-y-4">
+          <Tabs defaultValue="colaboradores">
+            <TabsList>
+              <TabsTrigger value="colaboradores">Colaboradores</TabsTrigger>
+              <TabsTrigger value="versoes">Versões do termo</TabsTrigger>
+            </TabsList>
+            <TabsContent value="colaboradores">
+              <AdminConsentimentosGeo profissionais={profissionais} />
+            </TabsContent>
+            <TabsContent value="versoes">
+              <AdminTermoConsentimento />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
     </div>
