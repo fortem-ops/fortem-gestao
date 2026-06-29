@@ -7,7 +7,10 @@ import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PipelineCard, type PipelineCardData } from "./PipelineCard";
-import { stageColor, type Funnel } from "@/lib/pipeline";
+import { PipelineLeadDrawer } from "./PipelineLeadDrawer";
+import { MarkLostDialog } from "./MarkLostDialog";
+import { stageColor, type Funnel, isLostStage, formatCurrencyBRL, computeTemperature } from "@/lib/pipeline";
+import type { PipelineFiltersValue } from "./PipelineFilters";
 import { cn } from "@/lib/utils";
 
 interface Stage {
@@ -16,57 +19,70 @@ interface Stage {
   position: number;
   color: string;
   funnel: Funnel;
+  probabilidade: number | null;
 }
 
 interface PipelineKanbanProps {
   funnel: Funnel;
-  filters: {
-    search?: string;
-    professorId?: string | null;
-    origem?: string | null;
-  };
+  filters: PipelineFiltersValue;
 }
 
 function StageColumn({
   stage,
   students,
+  totalValor,
   isOver,
   setRef,
+  onOpenCard,
 }: {
   stage: Stage;
   students: PipelineCardData[];
+  totalValor: number;
   isOver: boolean;
   setRef: (el: HTMLDivElement | null) => void;
+  onOpenCard: (s: PipelineCardData) => void;
 }) {
   const colors = stageColor(stage.color);
   return (
     <div
       ref={setRef}
       className={cn(
-        "flex flex-col w-[260px] shrink-0 rounded-lg border bg-card/40 transition-colors",
+        "flex flex-col w-[272px] shrink-0 rounded-lg border bg-card/40 transition-colors",
         colors.border,
         isOver && "ring-2 ring-primary/60 bg-card/80",
       )}
     >
-      <div className={cn("px-3 py-2 rounded-t-lg flex items-center justify-between gap-2", colors.bg)}>
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={cn("w-2 h-2 rounded-full shrink-0", colors.dot)} />
-          <span className={cn("text-xs font-semibold truncate", colors.text)}>{stage.name}</span>
+      <div className={cn("px-3 py-2 rounded-t-lg space-y-1", colors.bg)}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={cn("w-2 h-2 rounded-full shrink-0", colors.dot)} />
+            <span className={cn("text-xs font-semibold truncate", colors.text)}>{stage.name}</span>
+          </div>
+          <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">
+            {students.length} {students.length === 1 ? "lead" : "leads"}
+          </span>
         </div>
-        <span className="text-[10px] tabular-nums text-muted-foreground shrink-0">{students.length}</span>
+        <div className="flex items-center justify-between gap-2 text-[10px]">
+          <span className="text-emerald-300 font-semibold tabular-nums">
+            {totalValor > 0 ? `${formatCurrencyBRL(totalValor)}/mês` : "—"}
+          </span>
+          {stage.probabilidade != null && !isLostStage(stage.name) && (
+            <span className="text-muted-foreground tabular-nums">{stage.probabilidade}%</span>
+          )}
+        </div>
       </div>
       <div className="flex-1 p-2 space-y-2 min-h-[200px] max-h-[calc(100vh-280px)] overflow-y-auto">
         {students.length === 0 ? (
           <p className="text-[11px] text-muted-foreground text-center py-6 italic">Vazio</p>
         ) : (
-          students.map((s) => <PipelineCard key={s.id} student={s} />)
+          students.map((s) => <PipelineCard key={s.id} student={s} onOpen={onOpenCard} />)
         )}
       </div>
     </div>
   );
 }
 
-function DroppableColumn(props: { stage: Stage; students: PipelineCardData[] }) {
+function DroppableColumn(props: { stage: Stage; students: PipelineCardData[]; totalValor: number; onOpenCard: (s: PipelineCardData) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: props.stage.id });
   return <StageColumn {...props} isOver={isOver} setRef={setNodeRef} />;
 }
@@ -75,6 +91,9 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeStudent, setActiveStudent] = useState<PipelineCardData | null>(null);
+  const [drawerStudent, setDrawerStudent] = useState<PipelineCardData | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pendingLost, setPendingLost] = useState<{ aluno: PipelineCardData; destinoStage: string } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -83,9 +102,23 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel")
+        .select("id,name,position,color,funnel,probabilidade")
         .eq("is_active", true)
         .eq("funnel", funnel)
+        .order("position") as any);
+      if (error) throw error;
+      return (data || []) as Stage[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: allStages = [] } = useQuery<Stage[]>({
+    queryKey: ["pipeline-stages-all"],
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("pipeline_stages")
+        .select("id,name,position,color,funnel,probabilidade")
+        .eq("is_active", true)
         .order("position") as any);
       if (error) throw error;
       return (data || []) as Stage[];
@@ -98,7 +131,7 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("alunos")
-        .select("id,nome,foto_url,responsavel_id,current_pipeline_stage_id");
+        .select("id,nome,foto_url,responsavel_id,current_pipeline_stage_id,motivo_perda");
       if (error) throw error;
       return data || [];
     },
@@ -109,7 +142,7 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pipeline_metadata")
-        .select("aluno_id,temperatura_lead,valor_estimado_plano,origem_lead");
+        .select("aluno_id,temperatura_lead,valor_estimado_plano,origem_lead,plano_interesse,last_contact_at,updated_at");
       if (error) throw error;
       return data || [];
     },
@@ -164,6 +197,12 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
     return m;
   }, [metadata]);
 
+  function isThisWeek(d?: string | null) {
+    if (!d) return false;
+    const dt = new Date(d).getTime();
+    return Date.now() - dt <= 7 * 86400000;
+  }
+
   const filtered = useMemo(() => {
     const term = (filters.search || "").trim().toLowerCase();
     return alunos.filter((a: any) => {
@@ -173,9 +212,24 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
         const meta = metaMap[a.id];
         if (!meta || meta.origem_lead !== filters.origem) return false;
       }
+      // Quick filters
+      if (filters.quick === "meus") {
+        if (!user || a.responsavel_id !== user.id) return false;
+      }
+      if (filters.quick === "quentes" || filters.quick === "parados") {
+        const meta = metaMap[a.id];
+        const cands = [meta?.last_contact_at, meta?.updated_at, lastMovesMap[a.id]].filter(Boolean) as string[];
+        const last = cands.length ? new Date(Math.max(...cands.map((d) => new Date(d).getTime()))).toISOString() : null;
+        const t = computeTemperature(last);
+        if (filters.quick === "quentes" && t !== "quente") return false;
+        if (filters.quick === "parados" && t !== "parado") return false;
+      }
+      if (filters.quick === "semana") {
+        if (!isThisWeek(lastMovesMap[a.id])) return false;
+      }
       return true;
     });
-  }, [alunos, filters, metaMap]);
+  }, [alunos, filters, metaMap, lastMovesMap, user]);
 
   const byStage = useMemo(() => {
     const map: Record<string, PipelineCardData[]> = {};
@@ -190,7 +244,9 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
         foto_url: a.foto_url,
         responsavel_id: a.responsavel_id,
         responsavel_nome: a.responsavel_id ? profilesMap[a.responsavel_id] : null,
+        motivo_perda: a.motivo_perda,
         current_stage_name: stage?.name,
+        current_stage_probabilidade: stage?.probabilidade ?? null,
         current_funnel: stage?.funnel,
         meta: metaMap[a.id],
         last_moved_at: lastMovesMap[a.id],
@@ -199,6 +255,14 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
     });
     return map;
   }, [stages, filtered, profilesMap, metaMap, lastMovesMap, nextTasksMap]);
+
+  const totaisPorStage = useMemo(() => {
+    const m: Record<string, number> = {};
+    Object.entries(byStage).forEach(([k, list]) => {
+      m[k] = list.reduce((acc, s) => acc + Number(s.meta?.valor_estimado_plano || 0), 0);
+    });
+    return m;
+  }, [byStage]);
 
   function findStudent(id: string): PipelineCardData | null {
     for (const list of Object.values(byStage)) {
@@ -223,6 +287,14 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
 
     const aluno = alunos.find((a: any) => a.id === alunoId);
     if (!aluno || aluno.current_pipeline_stage_id === toStageId) return;
+
+    const student = findStudent(alunoId);
+
+    // Se destino é "perdido" → abrir modal de motivo obrigatório (não move ainda)
+    if (isLostStage(targetStage.name) && student) {
+      setPendingLost({ aluno: student, destinoStage: targetStage.name });
+      return;
+    }
 
     // Optimistic update
     queryClient.setQueryData(["pipeline-alunos"], (old: any) =>
@@ -250,7 +322,7 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
     return (
       <div className="flex gap-3 overflow-x-auto pb-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-[400px] w-[260px] shrink-0" />
+          <Skeleton key={i} className="h-[400px] w-[272px] shrink-0" />
         ))}
       </div>
     );
@@ -261,18 +333,41 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
       <ScrollArea className="w-full">
         <div className="flex gap-3 pb-4">
           {stages.map((stage) => (
-            <DroppableColumn key={stage.id} stage={stage} students={byStage[stage.id] || []} />
+            <DroppableColumn
+              key={stage.id}
+              stage={stage}
+              students={byStage[stage.id] || []}
+              totalValor={totaisPorStage[stage.id] || 0}
+              onOpenCard={(s) => { setDrawerStudent(s); setDrawerOpen(true); }}
+            />
           ))}
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
       <DragOverlay>
         {activeStudent && (
-          <div className="w-[244px] rotate-2">
+          <div className="w-[256px] rotate-2">
             <PipelineCard student={activeStudent} draggable={false} />
           </div>
         )}
       </DragOverlay>
+
+      <PipelineLeadDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        student={drawerStudent}
+        stages={allStages}
+      />
+
+      {pendingLost && (
+        <MarkLostDialog
+          open={!!pendingLost}
+          onOpenChange={(o) => { if (!o) setPendingLost(null); }}
+          alunoId={pendingLost.aluno.id}
+          alunoNome={pendingLost.aluno.nome}
+          destinoStage={pendingLost.destinoStage}
+        />
+      )}
     </DndContext>
   );
 }

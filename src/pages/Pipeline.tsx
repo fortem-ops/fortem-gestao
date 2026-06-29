@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 export default function Pipeline() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<PipelineFiltersValue>({ search: "", professorId: null, origem: null });
+  const [filters, setFilters] = useState<PipelineFiltersValue>({ search: "", professorId: null, origem: null, quick: "todos" });
   const [scanning, setScanning] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [pipedriveOpen, setPipedriveOpen] = useState(false);

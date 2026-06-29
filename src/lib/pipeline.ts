@@ -21,11 +21,70 @@ export function stageColor(color: string) {
   return STAGE_COLORS[color] || STAGE_COLORS.blue;
 }
 
+/** Etapas terminais de "perdido" — disparam modal de motivo ao mover para elas. */
+export const LOST_STAGE_NAMES = ["Aluno perdido", "Aluno inativo"] as const;
+export function isLostStage(name?: string | null): boolean {
+  return !!name && (LOST_STAGE_NAMES as readonly string[]).includes(name);
+}
+
+/** Badge color por plano de interesse. */
+export const PLANO_BADGE_CLASSES: Record<string, string> = {
+  "Start":   "bg-sky-500/20 text-sky-300 border-sky-500/40",
+  "Start+":  "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+  "Power":   "bg-amber-500/20 text-amber-300 border-amber-500/40",
+  "Pro":     "bg-violet-500/20 text-violet-300 border-violet-500/40",
+  "Max":     "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+};
+export const PLANOS_INTERESSE = ["Start", "Start+", "Power", "Pro", "Max"] as const;
+
+/** Temperatura calculada automaticamente a partir da última atividade. */
+export type LeadTemperature = "quente" | "morno" | "parado";
+export function computeTemperature(lastActivityAt: string | Date | null | undefined): LeadTemperature {
+  if (!lastActivityAt) return "parado";
+  const d = typeof lastActivityAt === "string" ? new Date(lastActivityAt) : lastActivityAt;
+  const days = (Date.now() - d.getTime()) / 86400000;
+  if (days <= 1) return "quente";
+  if (days > 5) return "parado";
+  return "morno";
+}
+export const TEMP_DOT_CLASS: Record<LeadTemperature, string> = {
+  quente: "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)]",
+  morno:  "bg-amber-400",
+  parado: "bg-yellow-300/80",
+};
+export const TEMP_DOT_LABEL: Record<LeadTemperature, string> = {
+  quente: "Quente — atividade recente",
+  morno:  "Morno",
+  parado: "Parado há +5 dias",
+};
+
 export const TEMPERATURE_COLORS: Record<string, string> = {
   frio:   "bg-blue-500/20 text-blue-300 border-blue-500/30",
   morno:  "bg-amber-500/20 text-amber-300 border-amber-500/30",
   quente: "bg-rose-500/20 text-rose-300 border-rose-500/30",
 };
+
+export function formatCurrencyBRL(v: number | null | undefined): string {
+  const n = Number(v || 0);
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+}
+
+/** Próxima ação formatada curta para o card: "Ligar amanhã 10h" */
+export function formatNextAction(titulo: string, dueDate: string | null | undefined): string {
+  if (!dueDate) return titulo;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const [y, m, d] = dueDate.split("-").map(Number);
+  const due = new Date(y, (m || 1) - 1, d || 1); due.setHours(0, 0, 0, 0);
+  const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
+  let when: string;
+  if (diff === 0) when = "hoje";
+  else if (diff === 1) when = "amanhã";
+  else if (diff === -1) when = "ontem";
+  else if (diff < 0) when = `há ${-diff}d`;
+  else if (diff <= 7) when = `em ${diff}d`;
+  else when = `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+  return `${titulo} · ${when}`;
+}
 
 /** Returns a wa.me URL with pre-filled message. Strips non-digits from phone. */
 export function waMeLink(telefone: string | null | undefined, message: string): string | null {
