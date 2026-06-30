@@ -757,8 +757,28 @@ export function PersonalizadoEditor({
               <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar no aluno"}
             </Button>
           )}
-          {readOnly && (
+          {readOnly && !canToggleLock && (
             <span className="text-xs text-muted-foreground italic px-2">Somente leitura</span>
+          )}
+          {canToggleLock && locked && (
+            <Button size="sm" variant="outline" onClick={() => setLocked(false)}>
+              <Pencil className="w-3 h-3 mr-1" /> Editar base
+            </Button>
+          )}
+          {canToggleLock && !locked && (
+            <Button
+              size="sm"
+              onClick={async () => {
+                if (modeloId) {
+                  await handleSaveModelo();
+                }
+                setLocked(true);
+                toast.success("Base atualizada");
+              }}
+              disabled={saving}
+            >
+              <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar base"}
+            </Button>
           )}
         </div>
       </div>
