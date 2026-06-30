@@ -1,28 +1,39 @@
-## Diagnóstico
+## Objetivo
+Adicionar uma seção **Inadimplentes** ao Dashboard, alimentada pelos mesmos dados exibidos em **Financeiro › Contratos** (KPI "Inadimplentes" e `inadimplencias_view`), permitindo ação rápida.
 
-O Rafael Gloria **está corretamente vinculado** a uma etapa do funil (`prospects → Informações encaminhadas`), mas não aparece no board.
+## Escopo
 
-Causa raiz: o `PipelineKanban` carrega alunos com `supabase.from("alunos").select(...)` sem nenhum filtro. Hoje temos **1.725 alunos cadastrados** e o PostgREST retorna no máximo 1.000 linhas por chamada — Rafael (e outros alunos com etapa) caem fora dessa janela e simplesmente não chegam ao front. Isso também explica por que mover a etapa pelo perfil "não tem efeito visível": a mudança é gravada, mas o registro nunca é entregue ao kanban.
+### 1. Novo widget `InadimplentesWidget.tsx`
+Local: `src/components/dashboard/InadimplentesWidget.tsx`
 
-Como bônus, a regra que o usuário pediu ("leads de migração não aparecem no Pipeline") já é satisfeita naturalmente se filtrarmos por `current_pipeline_stage_id IS NOT NULL`: os leads importados como migração foram limpos no passado e ficaram sem etapa, portanto não vão para o board — mas continuam visíveis em **Cadastros > Leads** (essa página não filtra por etapa). E se o usuário decidir promover um lead de migração ao CRM atribuindo manualmente uma etapa, ele passa a aparecer normalmente no Pipeline.
+- Usa o hook existente `useInadimplenciasAbertas()` (lê `inadimplencias_view` filtrando `status = 'aberta'`) — mesma fonte da aba Financeiro › Contratos, garantindo correlação 1:1.
+- Layout em `glass-card`, padrão visual idêntico aos demais widgets (ex.: `PlansDistributionWidget`, `AdminAlertsWidget`).
+- Cabeçalho:
+  - Título "Inadimplentes" + ícone `AlertTriangle` (tom danger).
+  - Badge com a contagem total.
+  - Botão "Ver todos" → navega para `/financeiro/contratos`.
+- Conteúdo:
+  - 3 KPIs compactos: **Total em aberto** (R$), **Parcelas vencidas** (qtd), **Alunos afetados** (qtd distintos).
+  - Lista das 5 inadimplências mais antigas (maior `dias_atraso`):
+    - Nome do aluno (link → `/alunos/{id}?tab=contrato`)
+    - Plano + forma de pagamento (badges)
+    - Valor em aberto e dias de atraso (badge danger)
+  - Estado vazio: "Nenhuma inadimplência em aberto" com ícone de check.
+- Estado de loading com `Skeleton`.
 
-## Mudanças
+### 2. Integração no `Dashboard.tsx`
+- Renderiza o `InadimplentesWidget` **apenas para Coord/Admin** (`isCoordAdmin`), já que professores não veem dados financeiros.
+- Posição: na coluna principal (`lg:col-span-2`), logo após o `AdminAlertsWidget`, antes do final.
 
-### 1. `src/components/pipeline/PipelineKanban.tsx`
-Na query `pipeline-alunos` (linha ~129), adicionar `.not("current_pipeline_stage_id", "is", null)` para:
-- Reduzir o resultado a ~215 linhas (cabe no limite do PostgREST).
-- Garantir que apenas alunos com etapa atribuída cheguem ao board.
-- Excluir leads de migração que nunca foram colocados no funil.
+### 3. Correlação com Financeiro › Contratos
+- Fonte de dados única: `inadimplencias_view` + `status = 'aberta'` (mesma usada no KPI da página Contratos).
+- Clique em "Ver todos" leva à página `/financeiro/contratos` já existente; clique no aluno abre o perfil na aba **Pagamentos** (rota `/alunos/{id}?tab=contrato`).
+- Nenhuma mudança em schema, RPC ou na página Contratos — somente leitura.
 
-Manter o restante da lógica (filtros, drag-and-drop, drawer) inalterado.
-
-### 2. `src/components/dashboard/PipelineWidget.tsx`
-Aplicar o mesmo filtro `.not("current_pipeline_stage_id", "is", null)` na query de alunos, pelo mesmo motivo de paginação — assim os KPIs "Novos leads (30d)" e contagens por etapa do widget também ficam corretos quando a base ultrapassar 1.000 registros.
-
-### 3. Validação manual (sem código)
-Após o ajuste, abrir **Comercial > Pipeline** e confirmar que Rafael Gloria aparece em **Prospects → Informações encaminhadas**. Confirmar também que **Cadastros > Leads** continua listando os leads de migração (essa tela não é tocada).
+## Arquivos
+- **Criar**: `src/components/dashboard/InadimplentesWidget.tsx`
+- **Editar**: `src/pages/Dashboard.tsx` (importar e posicionar o widget na seção Coord/Admin)
 
 ## Fora de escopo
-- Adicionar um filtro/aba dedicada para "Leads de migração" em algum outro módulo.
-- Mexer em `src/pages/Leads.tsx`, que já mostra os leads de migração corretamente.
-- Job de limpeza/realocação automática dos leads de migração.
+- Não altera o módulo Financeiro nem cria novas views.
+- Não envia notificações nem cobranças (ações já existem na página Contratos).

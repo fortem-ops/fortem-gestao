@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
 import { AdminAlertsWidget } from "@/components/dashboard/AdminAlertsWidget";
+import { InadimplentesWidget } from "@/components/dashboard/InadimplentesWidget";
 import { TasksWidget } from "@/components/dashboard/TasksWidget";
 import { BirthdaysWidget } from "@/components/dashboard/BirthdaysWidget";
 import { PlansDistributionWidget } from "@/components/dashboard/PlansDistributionWidget";
@@ -108,6 +109,7 @@ export default function Dashboard() {
             <AlertsWidget professorId={effectiveProfessorId} />
             <PlansDistributionWidget />
             <AdminAlertsWidget />
+            <InadimplentesWidget />
           </div>
           <div className="space-y-6 min-w-0">
             {isAdmin && <PipelineWidget />}
