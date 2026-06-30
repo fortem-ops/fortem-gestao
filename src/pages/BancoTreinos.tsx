@@ -1195,6 +1195,11 @@ export default function BancoTreinos() {
                             nome: existing.nome,
                             conteudo: (existing.conteudo as unknown) as PersonalizadoConteudo,
                           });
+                        } else if (!canEdit) {
+                          toast.info("Aguardando configuração", {
+                            description: "Esta base de Corrida ainda não foi configurada por um coordenador.",
+                          });
+                          return;
                         } else {
                           setPersonalizadoOpen({
                             mode: "new",
