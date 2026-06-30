@@ -1141,6 +1141,7 @@ export default function BancoTreinos() {
           onBack={() => setPersonalizadoOpen(null)}
           onSaved={() => { refetchModelos(); }}
           readOnly={isCorridaCard && !canEdit}
+          lockedByDefault={isCorridaCard && canEdit}
         />
       </div>
     );
