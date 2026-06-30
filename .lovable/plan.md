@@ -1,27 +1,31 @@
 ## Objetivo
-No seletor de aluno (`StudentPicker`), nunca listar cadastros de Lead/Prospect. Mostrar apenas alunos **Ativos** e em **Licença**. Aplica-se a todos os usos do componente (inclui o fluxo "Importar de Aluno" em prescrição de treino).
+Padronizar o subtítulo do PDF exportado dos treinos para refletir corretamente o tipo:
+- **Personalizado** ou **qualquer modelo** (ex.: "3 TREINOS (2X3) - MARÍLIA") → `TREINO PERSONALIZADO`
+- **Fases** → `FASE 1`, `FASE 2`, `FASE 3` ou `FASE 4` (conforme o `template_fase`)
 
-## Como identificar Lead/Prospect na tabela `alunos`
-- Hoje o `StudentPicker` faz `select id, nome, status` sem filtro.
-- Lead/Prospect são identificados por `current_pipeline_stage_id` apontando para uma stage cujo `name` é `Novo lead`, `Prospect` ou `Treino experimental agendado` (mesma regra já usada em `GlobalCadastroSearch.tsx` e `PipelineKanban.tsx`).
-- `status` na tabela pode ser `ativo`, `licenca`, `inativo`, `encerrado`, `lead`, `prospect`.
+Hoje o subtítulo monta `(templateFase || descricao || "PLANILHA DE TREINO")`, então quando o treino vem de um modelo o nome do modelo vaza para o cabeçalho (como na imagem enviada).
 
-## Mudanças
+## Alteração
+**Arquivo:** `src/components/student/workout/exportWorkoutPDF.ts`
 
-### 1. `src/components/student/StudentPicker.tsx`
-- Buscar também `current_pipeline_stage_id`.
-- Carregar `pipeline_stages (id, name)` em paralelo (cache `staleTime` 5 min, igual ao `GlobalCadastroSearch`).
-- Construir mapa `stageId → name` e filtrar a lista antes de renderizar:
-  - Excluir se `status in ('lead','prospect','inativo','encerrado')`.
-  - Excluir se a stage atual estiver em `['Novo lead','Prospect','Treino experimental agendado']` (cobre alunos com `status='ativo'` mas ainda no funil).
-  - Manter `status in ('ativo','licenca')` ou `status` nulo sem stage de funil.
-- Ajustar o rótulo lateral: hoje mostra `(status)` quando `!== 'ativo'`; passar a mostrar somente `(licença)` quando aplicável.
-- Atualizar `queryKey` para `['alunos-picker', 'ativos-licenca']` para invalidar cache antigo.
+Antes de montar `subtitleText` (linha ~121), aplicar normalização:
 
-### 2. Sem outras alterações
-- `ImportFromStudentDialog.tsx` e demais consumidores do `StudentPicker` (ex.: agenda, prescrições, comissionamento) herdam o filtro automaticamente — nenhum ajuste necessário.
-- Não mexer em pipeline, leads, conversão, ou regras de negócio.
+```ts
+const normalizeSubtitle = (raw?: string | null): string => {
+  const s = (raw || "").trim();
+  // Aceita "Fase 1".."Fase 4" (com ou sem acento/caixa)
+  const m = s.match(/^fase\s*([1-4])\b/i);
+  if (m) return `Fase ${m[1]}`;
+  return "Treino Personalizado";
+};
 
-## Verificação
-- Abrir `/banco-treinos` → aplicar treino a um aluno → clicar em "Importar de Aluno": o dropdown deve listar apenas alunos Ativos e em Licença, sem Leads/Prospects.
-- Conferir um outro consumidor do `StudentPicker` (ex.: agenda) para confirmar consistência.
+const subtitleText = normalizeSubtitle(templateFase || descricao).toUpperCase();
+```
+
+Isso garante que:
+- `templateFase = "Personalizado"` → `TREINO PERSONALIZADO`
+- `templateFase = "Fase 2"` → `FASE 2`
+- `templateFase = "3 TREINOS (2X3) - MARÍLIA"` (modelo) → `TREINO PERSONALIZADO`
+- Sem `templateFase` e com `descricao` qualquer → `TREINO PERSONALIZADO`
+
+Nenhuma outra parte do PDF é afetada (nome do aluno, frequência, blocos de treino seguem iguais).
