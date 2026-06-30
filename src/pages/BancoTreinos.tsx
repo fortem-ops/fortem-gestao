@@ -723,7 +723,7 @@ function TemplateDetail({
                     onSaveChoice={onSaveChoice}
                     onClearChoice={onClearChoice}
                         onSaveOverride={onSaveOverride}
-                    canEdit={canEdit}
+                    canEdit={effectiveCanEdit}
                     aquecimentoBloco={block}
                   />
                 </div>
@@ -764,7 +764,7 @@ function TemplateDetail({
                         onSaveChoice={onSaveChoice}
                         onClearChoice={onClearChoice}
                         onSaveOverride={onSaveOverride}
-                        canEdit={canEdit}
+                        canEdit={effectiveCanEdit}
                       />
                     </div>
                   )}
@@ -781,7 +781,7 @@ function TemplateDetail({
                         onSaveChoice={onSaveChoice}
                         onClearChoice={onClearChoice}
                         onSaveOverride={onSaveOverride}
-                        canEdit={canEdit}
+                        canEdit={effectiveCanEdit}
                       />
                     </div>
                   )}
