@@ -72,6 +72,8 @@ interface Props {
   onSaved?: () => void;
   /** Quando true, oculta botões de salvar/aplicar e desliga autosave remoto. */
   readOnly?: boolean;
+  /** Quando true, abre travado: usuário com permissão precisa clicar em "Editar" para liberar. */
+  lockedByDefault?: boolean;
 }
 
 const FORCA_CATEGORIAS = [
