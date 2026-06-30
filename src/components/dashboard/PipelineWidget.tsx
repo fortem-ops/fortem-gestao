@@ -20,7 +20,8 @@ export function PipelineWidget() {
 
       const { data: alunos } = await supabase
         .from("alunos")
-        .select("id, current_pipeline_stage_id, created_at");
+        .select("id, current_pipeline_stage_id, created_at")
+        .not("current_pipeline_stage_id", "is", null);
 
       const counts: Record<string, number> = {};
       (alunos || []).forEach((a: any) => {
