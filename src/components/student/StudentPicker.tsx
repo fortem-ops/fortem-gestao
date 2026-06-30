@@ -107,8 +107,8 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
                       )}
                     />
                     <span className="flex-1">{a.nome}</span>
-                    {a.status !== "ativo" && (
-                      <span className="text-xs text-muted-foreground ml-2">({a.status})</span>
+                    {a.status === "licenca" && (
+                      <span className="text-xs text-muted-foreground ml-2">(licença)</span>
                     )}
                   </CommandItem>
                 ))}
