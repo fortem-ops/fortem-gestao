@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { CATEGORY_LABELS } from "./workoutTemplates";
@@ -72,8 +72,6 @@ interface Props {
   onSaved?: () => void;
   /** Quando true, oculta botões de salvar/aplicar e desliga autosave remoto. */
   readOnly?: boolean;
-  /** Quando true, abre travado: usuário com permissão precisa clicar em "Editar" para liberar. */
-  lockedByDefault?: boolean;
 }
 
 const FORCA_CATEGORIAS = [
@@ -103,12 +101,8 @@ export function PersonalizadoEditor({
   treinoId,
   onBack,
   onSaved,
-  readOnly: readOnlyProp = false,
-  lockedByDefault = false,
+  readOnly = false,
 }: Props) {
-  const [locked, setLocked] = useState<boolean>(lockedByDefault);
-  const readOnly = readOnlyProp || locked;
-  const canToggleLock = !readOnlyProp;
   const { user } = useAuth();
   const { categories, grupoSubcategorias } = useExerciseCategories();
   const aquecimentoGrupoMap: Record<AquecimentoBloco, string> = {
@@ -757,28 +751,8 @@ export function PersonalizadoEditor({
               <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar no aluno"}
             </Button>
           )}
-          {readOnly && !canToggleLock && (
+          {readOnly && (
             <span className="text-xs text-muted-foreground italic px-2">Somente leitura</span>
-          )}
-          {canToggleLock && locked && (
-            <Button size="sm" variant="outline" onClick={() => setLocked(false)}>
-              <Pencil className="w-3 h-3 mr-1" /> Editar base
-            </Button>
-          )}
-          {canToggleLock && !locked && (
-            <Button
-              size="sm"
-              onClick={async () => {
-                if (modeloId) {
-                  await handleSaveModelo();
-                }
-                setLocked(true);
-                toast.success("Base atualizada");
-              }}
-              disabled={saving}
-            >
-              <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar base"}
-            </Button>
           )}
         </div>
       </div>
