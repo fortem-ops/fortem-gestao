@@ -1,31 +1,19 @@
-## Objetivo
-Padronizar o subtítulo do PDF exportado dos treinos para refletir corretamente o tipo:
-- **Personalizado** ou **qualquer modelo** (ex.: "3 TREINOS (2X3) - MARÍLIA") → `TREINO PERSONALIZADO`
-- **Fases** → `FASE 1`, `FASE 2`, `FASE 3` ou `FASE 4` (conforme o `template_fase`)
+## Problema
+Ao importar treino de outro aluno (`ImportFromStudentDialog` → `StudentPicker`), a lista para na letra **L**. Causa: o `StudentPicker` faz `supabase.from("alunos").select(...).order("nome")` sem `range`, então o PostgREST aplica o limite padrão de **1000 linhas**. Como a tabela `alunos` contém leads/prospects/inativos (milhares de registros), o corte cai no meio do alfabeto — só depois é que o filtro client-side remove os não-ativos, restando uma lista visivelmente truncada.
 
-Hoje o subtítulo monta `(templateFase || descricao || "PLANILHA DE TREINO")`, então quando o treino vem de um modelo o nome do modelo vaza para o cabeçalho (como na imagem enviada).
+## Correção
+**Arquivo:** `src/components/student/StudentPicker.tsx`
 
-## Alteração
-**Arquivo:** `src/components/student/workout/exportWorkoutPDF.ts`
+Mover o filtro para o **servidor** e paginar a leitura, garantindo trazer todos os ativos/licença sem depender do limite de 1000:
 
-Antes de montar `subtitleText` (linha ~121), aplicar normalização:
+1. No `useQuery`, filtrar direto no banco:
+   - `.in("status", ["ativo", "licenca"])` (descarta lead/prospect/inativo/encerrado server-side)
+   - Manter `.order("nome")`
+2. Implementar leitura paginada em loop com `.range(from, from+999)` até a página retornar menos de 1000 linhas, concatenando os resultados (mesmo padrão já usado em outras telas do projeto após o problema do limite 1000).
+3. Manter o filtro extra client-side por `current_pipeline_stage_id ∈ FUNIL_STAGES` (continua removendo quem está em etapa de funil mesmo com status ativo).
 
-```ts
-const normalizeSubtitle = (raw?: string | null): string => {
-  const s = (raw || "").trim();
-  // Aceita "Fase 1".."Fase 4" (com ou sem acento/caixa)
-  const m = s.match(/^fase\s*([1-4])\b/i);
-  if (m) return `Fase ${m[1]}`;
-  return "Treino Personalizado";
-};
+Nenhuma alteração de UI, props ou comportamento de seleção — apenas a fonte de dados passa a trazer a lista completa.
 
-const subtitleText = normalizeSubtitle(templateFase || descricao).toUpperCase();
-```
-
-Isso garante que:
-- `templateFase = "Personalizado"` → `TREINO PERSONALIZADO`
-- `templateFase = "Fase 2"` → `FASE 2`
-- `templateFase = "3 TREINOS (2X3) - MARÍLIA"` (modelo) → `TREINO PERSONALIZADO`
-- Sem `templateFase` e com `descricao` qualquer → `TREINO PERSONALIZADO`
-
-Nenhuma outra parte do PDF é afetada (nome do aluno, frequência, blocos de treino seguem iguais).
+## Escopo
+- Único arquivo alterado: `src/components/student/StudentPicker.tsx`.
+- Afeta também outros lugares que usam o `StudentPicker` (ex.: aplicar treino), corrigindo o mesmo sintoma de "lista cortada".
