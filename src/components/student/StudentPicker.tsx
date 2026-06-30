@@ -18,15 +18,34 @@ interface StudentPickerProps {
 export function StudentPicker({ value, onChange, label = "Aluno", placeholder = "Buscar aluno pelo nome..." }: StudentPickerProps) {
   const [open, setOpen] = useState(false);
 
+  const { data: stagesMap = {} } = useQuery({
+    queryKey: ["pipeline-stages-map-picker"],
+    queryFn: async () => {
+      const { data } = await supabase.from("pipeline_stages").select("id, name");
+      const m: Record<string, string> = {};
+      (data || []).forEach((s: any) => { m[s.id] = s.name; });
+      return m;
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const FUNIL_STAGES = ["Novo lead", "Prospect", "Treino experimental agendado"];
+
   const { data: alunos = [], isLoading } = useQuery({
-    queryKey: ["alunos-picker"],
+    queryKey: ["alunos-picker", "ativos-licenca", Object.keys(stagesMap).length],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("alunos")
-        .select("id, nome, status")
+        .select("id, nome, status, current_pipeline_stage_id")
         .order("nome");
       if (error) throw error;
-      return data;
+      return (data || []).filter((a: any) => {
+        const stageName = a.current_pipeline_stage_id ? stagesMap[a.current_pipeline_stage_id] : null;
+        if (stageName && FUNIL_STAGES.includes(stageName)) return false;
+        const st = a.status;
+        if (st === "lead" || st === "prospect" || st === "inativo" || st === "encerrado") return false;
+        return true;
+      });
     },
   });
 
@@ -49,8 +68,8 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
               {selected ? (
                 <span className="truncate">
                   {selected.nome}
-                  {selected.status !== "ativo" && (
-                    <span className="text-xs text-muted-foreground ml-1">({selected.status})</span>
+                  {selected.status === "licenca" && (
+                    <span className="text-xs text-muted-foreground ml-1">(licença)</span>
                   )}
                 </span>
               ) : (
@@ -88,8 +107,8 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
                       )}
                     />
                     <span className="flex-1">{a.nome}</span>
-                    {a.status !== "ativo" && (
-                      <span className="text-xs text-muted-foreground ml-2">({a.status})</span>
+                    {a.status === "licenca" && (
+                      <span className="text-xs text-muted-foreground ml-2">(licença)</span>
                     )}
                   </CommandItem>
                 ))}
