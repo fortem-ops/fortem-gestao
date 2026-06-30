@@ -657,8 +657,10 @@ function TemplateDetail({
   onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
 }) {
+  const [editing, setEditing] = useState(false);
   const blocks = ["LIB", "MOB", "ATI"] as const;
   const blockLabels: Record<string, string> = { LIB: "Liberação", MOB: "Mobilidade", ATI: "Ativação" };
+  const effectiveCanEdit = canEdit && editing;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -672,6 +674,25 @@ function TemplateDetail({
         </div>
         {!canEdit && (
           <Badge variant="outline" className="text-xs">Somente leitura</Badge>
+        )}
+        {canEdit && !editing && (
+          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+            <Pencil className="h-3.5 w-3.5 mr-1" /> Editar base
+          </Button>
+        )}
+        {canEdit && editing && (
+          <>
+            <Badge variant="outline" className="text-xs border-primary/40 text-primary">Editando…</Badge>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditing(false);
+                toast.success("Base atualizada");
+              }}
+            >
+              <Check className="h-3.5 w-3.5 mr-1" /> Salvar base
+            </Button>
+          </>
         )}
       </div>
 
