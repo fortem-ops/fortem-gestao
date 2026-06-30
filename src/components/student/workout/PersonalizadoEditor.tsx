@@ -103,8 +103,12 @@ export function PersonalizadoEditor({
   treinoId,
   onBack,
   onSaved,
-  readOnly = false,
+  readOnly: readOnlyProp = false,
+  lockedByDefault = false,
 }: Props) {
+  const [locked, setLocked] = useState<boolean>(lockedByDefault);
+  const readOnly = readOnlyProp || locked;
+  const canToggleLock = !readOnlyProp;
   const { user } = useAuth();
   const { categories, grupoSubcategorias } = useExerciseCategories();
   const aquecimentoGrupoMap: Record<AquecimentoBloco, string> = {
