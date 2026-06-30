@@ -1,39 +1,43 @@
 ## Objetivo
-Adicionar uma seção **Inadimplentes** ao Dashboard, alimentada pelos mesmos dados exibidos em **Financeiro › Contratos** (KPI "Inadimplentes" e `inadimplencias_view`), permitindo ação rápida.
+Permitir que cada usuário reordene livremente os widgets do Dashboard via arrastar-e-soltar, salvando a preferência pessoal para retornar igual na próxima sessão.
 
 ## Escopo
 
-### 1. Novo widget `InadimplentesWidget.tsx`
-Local: `src/components/dashboard/InadimplentesWidget.tsx`
+### 1. Modo "Personalizar" no Dashboard
+- Botão **Personalizar** no cabeçalho do Dashboard (ao lado do filtro de professor).
+- Ao ativar:
+  - Cada widget recebe uma alça de arrasto (ícone `GripVertical`) e um leve realce (borda tracejada / cursor `grab`).
+  - Aparecem botões **Salvar** e **Restaurar padrão**.
+- Fora do modo, o dashboard fica idêntico ao atual (sem alças, sem distração visual).
 
-- Usa o hook existente `useInadimplenciasAbertas()` (lê `inadimplencias_view` filtrando `status = 'aberta'`) — mesma fonte da aba Financeiro › Contratos, garantindo correlação 1:1.
-- Layout em `glass-card`, padrão visual idêntico aos demais widgets (ex.: `PlansDistributionWidget`, `AdminAlertsWidget`).
-- Cabeçalho:
-  - Título "Inadimplentes" + ícone `AlertTriangle` (tom danger).
-  - Badge com a contagem total.
-  - Botão "Ver todos" → navega para `/financeiro/contratos`.
-- Conteúdo:
-  - 3 KPIs compactos: **Total em aberto** (R$), **Parcelas vencidas** (qtd), **Alunos afetados** (qtd distintos).
-  - Lista das 5 inadimplências mais antigas (maior `dias_atraso`):
-    - Nome do aluno (link → `/alunos/{id}?tab=contrato`)
-    - Plano + forma de pagamento (badges)
-    - Valor em aberto e dias de atraso (badge danger)
-  - Estado vazio: "Nenhuma inadimplência em aberto" com ícone de check.
-- Estado de loading com `Skeleton`.
+### 2. Drag-and-drop
+- Usar `@dnd-kit/core` + `@dnd-kit/sortable` (já presentes no projeto, usados no Pipeline).
+- Reordenação **dentro de cada coluna** (principal e lateral). Mover entre colunas fica fora do escopo desta primeira versão.
+- Cada widget vira um item `Sortable` identificado por uma chave estável (`alerts`, `plansDistribution`, `adminAlerts`, `inadimplentes`, `tasks`, `ponto`, `birthdays`, `clube`, `pipeline`).
 
-### 2. Integração no `Dashboard.tsx`
-- Renderiza o `InadimplentesWidget` **apenas para Coord/Admin** (`isCoordAdmin`), já que professores não veem dados financeiros.
-- Posição: na coluna principal (`lg:col-span-2`), logo após o `AdminAlertsWidget`, antes do final.
+### 3. Persistência
+- Preferência salva por usuário em `localStorage` na chave `dashboard:widget-order:{userId}`:
+  ```json
+  { "main": ["alerts","plansDistribution","adminAlerts","inadimplentes"],
+    "side": ["pipeline","ponto","clube","tasks","birthdays"] }
+  ```
+- Persistência local mantém a UX leve, sem migração de banco. Se algum dia for necessário sincronizar entre dispositivos, abrimos uma tarefa específica.
+- Ao montar, o Dashboard lê a preferência; widgets novos (não presentes na lista salva) são adicionados ao final automaticamente.
+- "Restaurar padrão" remove a chave e volta à ordem default.
 
-### 3. Correlação com Financeiro › Contratos
-- Fonte de dados única: `inadimplencias_view` + `status = 'aberta'` (mesma usada no KPI da página Contratos).
-- Clique em "Ver todos" leva à página `/financeiro/contratos` já existente; clique no aluno abre o perfil na aba **Pagamentos** (rota `/alunos/{id}?tab=contrato`).
-- Nenhuma mudança em schema, RPC ou na página Contratos — somente leitura.
+### 4. Respeito ao RBAC
+- A lista de widgets disponíveis continua dependendo do papel (Coord/Admin vs Professor) — ordem personalizada se aplica apenas aos widgets visíveis para aquele perfil.
+- O `StatsCards` (KPIs do topo) e banners (`LembretePontoBanner`, `LembreteAvaliacoesPendentesBanner`) **não** são reordenáveis — permanecem fixos.
 
 ## Arquivos
-- **Criar**: `src/components/dashboard/InadimplentesWidget.tsx`
-- **Editar**: `src/pages/Dashboard.tsx` (importar e posicionar o widget na seção Coord/Admin)
+- **Criar**:
+  - `src/hooks/useDashboardLayout.ts` — leitura/escrita da preferência + merge com defaults.
+  - `src/components/dashboard/SortableWidget.tsx` — wrapper `useSortable` com alça de arrasto.
+- **Editar**:
+  - `src/pages/Dashboard.tsx` — registro dos widgets, modo personalizar, `DndContext` + `SortableContext` por coluna.
 
 ## Fora de escopo
-- Não altera o módulo Financeiro nem cria novas views.
-- Não envia notificações nem cobranças (ações já existem na página Contratos).
+- Mover widgets entre colunas (apenas reordenação dentro da própria coluna).
+- Esconder/exibir widgets individualmente.
+- Sincronização da preferência entre dispositivos (fica em `localStorage`).
+- Mudanças no conteúdo dos widgets.
