@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { CATEGORY_LABELS } from "./workoutTemplates";
