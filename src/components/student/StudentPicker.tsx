@@ -34,16 +34,28 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
   const { data: alunos = [], isLoading } = useQuery({
     queryKey: ["alunos-picker", "ativos-licenca", Object.keys(stagesMap).length],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("alunos")
-        .select("id, nome, status, current_pipeline_stage_id")
-        .order("nome");
-      if (error) throw error;
-      return (data || []).filter((a: any) => {
+      const PAGE = 1000;
+      let from = 0;
+      const all: any[] = [];
+      // Paginação para contornar o limite padrão de 1000 linhas do PostgREST
+      // + filtro server-side por status para evitar trazer leads/prospects/inativos.
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error } = await supabase
+          .from("alunos")
+          .select("id, nome, status, current_pipeline_stage_id")
+          .in("status", ["ativo", "licenca"])
+          .order("nome")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const rows = data || [];
+        all.push(...rows);
+        if (rows.length < PAGE) break;
+        from += PAGE;
+      }
+      return all.filter((a: any) => {
         const stageName = a.current_pipeline_stage_id ? stagesMap[a.current_pipeline_stage_id] : null;
         if (stageName && FUNIL_STAGES.includes(stageName)) return false;
-        const st = a.status;
-        if (st === "lead" || st === "prospect" || st === "inativo" || st === "encerrado") return false;
         return true;
       });
     },
