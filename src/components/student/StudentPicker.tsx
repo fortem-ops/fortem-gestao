@@ -68,8 +68,8 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
               {selected ? (
                 <span className="truncate">
                   {selected.nome}
-                  {selected.status !== "ativo" && (
-                    <span className="text-xs text-muted-foreground ml-1">({selected.status})</span>
+                  {selected.status === "licenca" && (
+                    <span className="text-xs text-muted-foreground ml-1">(licença)</span>
                   )}
                 </span>
               ) : (
