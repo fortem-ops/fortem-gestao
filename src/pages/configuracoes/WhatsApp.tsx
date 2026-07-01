@@ -118,6 +118,49 @@ export default function ConfiguracoesWhatsApp() {
     }
   };
 
+  const handleConnectWhatsApp = () => {
+    if (typeof window === "undefined" || !window.FB) {
+      toast.error("SDK do Facebook ainda não carregou. Aguarde alguns segundos e tente novamente.");
+      return;
+    }
+    setConnecting(true);
+    window.FB.login(
+      (response) => {
+        setConnecting(false);
+        const code = response?.authResponse?.code;
+        if (code) {
+          setEsCode(code);
+          toast.success("WhatsApp conectado! Copie o code abaixo e salve como WHATSAPP_CODE.");
+          console.log("Embedded Signup code:", code);
+        } else {
+          toast.error("Conexão cancelada ou sem code retornado.");
+        }
+      },
+      {
+        config_id: FB_CONFIG_ID,
+        response_type: "code",
+        override_default_response_type: true,
+        extras: {
+          setup: { solutionID: FB_CONFIG_ID },
+          featureType: "coexistence",
+          sessionInfoVersion: "3",
+        },
+      },
+    );
+  };
+
+  const handleCopyCode = async () => {
+    if (!esCode) return;
+    try {
+      await navigator.clipboard.writeText(esCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 1800);
+      toast.success("Code copiado");
+    } catch {
+      toast.error("Não foi possível copiar. Copie manualmente.");
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-2">
