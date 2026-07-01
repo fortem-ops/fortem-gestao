@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
-import { MessageCircle, Copy, Check, Loader2, RefreshCw, Send } from "lucide-react";
+import { MessageCircle, Copy, Check, Loader2, RefreshCw, Send, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -11,6 +11,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+declare global {
+  interface Window {
+    FB?: {
+      login: (
+        cb: (response: {
+          authResponse?: { code?: string; accessToken?: string } | null;
+          status?: string;
+        }) => void,
+        opts: Record<string, unknown>,
+      ) => void;
+      init: (opts: Record<string, unknown>) => void;
+    };
+    fbAsyncInit?: () => void;
+  }
+}
+
+const FB_CONFIG_ID = "673456789012345"; // placeholder - substituir pelo config_id real do Embedded Signup
+
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/whatsapp-webhook`;
@@ -29,6 +49,9 @@ export default function ConfiguracoesWhatsApp() {
   const [testing, setTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState("hello_world");
   const [testLanguage, setTestLanguage] = useState("en_US");
+  const [esCode, setEsCode] = useState<string>("");
+  const [connecting, setConnecting] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const eventsQuery = useQuery({
     queryKey: ["whatsapp-events"],
@@ -95,6 +118,49 @@ export default function ConfiguracoesWhatsApp() {
     }
   };
 
+  const handleConnectWhatsApp = () => {
+    if (typeof window === "undefined" || !window.FB) {
+      toast.error("SDK do Facebook ainda não carregou. Aguarde alguns segundos e tente novamente.");
+      return;
+    }
+    setConnecting(true);
+    window.FB.login(
+      (response) => {
+        setConnecting(false);
+        const code = response?.authResponse?.code;
+        if (code) {
+          setEsCode(code);
+          toast.success("WhatsApp conectado! Copie o code abaixo e salve como WHATSAPP_CODE.");
+          console.log("Embedded Signup code:", code);
+        } else {
+          toast.error("Conexão cancelada ou sem code retornado.");
+        }
+      },
+      {
+        config_id: FB_CONFIG_ID,
+        response_type: "code",
+        override_default_response_type: true,
+        extras: {
+          setup: { solutionID: FB_CONFIG_ID },
+          featureType: "coexistence",
+          sessionInfoVersion: "3",
+        },
+      },
+    );
+  };
+
+  const handleCopyCode = async () => {
+    if (!esCode) return;
+    try {
+      await navigator.clipboard.writeText(esCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 1800);
+      toast.success("Code copiado");
+    } catch {
+      toast.error("Não foi possível copiar. Copie manualmente.");
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-2">
@@ -154,6 +220,58 @@ export default function ConfiguracoesWhatsApp() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Link2 className="w-4 h-4 text-primary" />
+            Conectar número de produção
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Clique no botão abaixo para conectar o número real da Fortem via WhatsApp Business.
+            O número continuará funcionando normalmente no celular (coexistência ativada).
+          </p>
+          <Button onClick={handleConnectWhatsApp} disabled={connecting} className="gap-2">
+            {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+            Conectar WhatsApp Business
+          </Button>
+
+          {esCode && (
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div>
+                <Label className="text-xs text-muted-foreground">Code retornado (Embedded Signup)</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input readOnly value={esCode} className="font-mono text-xs" />
+                  <Button variant="outline" size="icon" onClick={handleCopyCode} title="Copiar code">
+                    {codeCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Próximos passos</Label>
+                <Textarea
+                  readOnly
+                  rows={6}
+                  className="font-mono text-[11px] mt-1"
+                  value={`1. Copie o code acima.
+2. Vá em Project Settings → Secrets e crie/atualize o secret:
+   WHATSAPP_CODE = ${esCode}
+3. O backend usará esse code para trocar pelo access token permanente
+   via POST https://graph.facebook.com/v20.0/oauth/access_token
+   com client_id (App ID) e client_secret (App Secret) da Meta.
+4. Após a troca, atualize também WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID
+   com os valores do número recém-conectado.
+5. Volte a esta tela e clique em "Enviar mensagem de teste" para validar.`}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
 
       <Card>
         <CardHeader>
