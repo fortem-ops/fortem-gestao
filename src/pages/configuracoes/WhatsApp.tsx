@@ -15,21 +15,12 @@ import { Textarea } from "@/components/ui/textarea";
 
 declare global {
   interface Window {
-    FB?: {
-      login: (
-        cb: (response: {
-          authResponse?: { code?: string; accessToken?: string } | null;
-          status?: string;
-        }) => void,
-        opts: Record<string, unknown>,
-      ) => void;
-      init: (opts: Record<string, unknown>) => void;
-    };
+    FB: any;
     fbAsyncInit?: () => void;
   }
 }
 
-const FB_CONFIG_ID = "209247744548053"; // Config ID oficial do Embedded Signup da Fortem
+
 
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -119,25 +110,25 @@ export default function ConfiguracoesWhatsApp() {
   };
 
   const handleConnectWhatsApp = () => {
-    if (typeof window === "undefined" || !window.FB) {
-      toast.error("SDK do Facebook ainda não carregou. Aguarde alguns segundos e tente novamente.");
+    if (typeof window === "undefined" || typeof window.FB === "undefined") {
+      toast.error("SDK do Facebook não carregado. Recarregue a página e tente novamente.");
       return;
     }
     setConnecting(true);
     window.FB.login(
-      (response) => {
+      function (response: any) {
         setConnecting(false);
-        const code = response?.authResponse?.code;
-        if (code) {
+        if (response && response.authResponse && response.authResponse.code) {
+          const code = response.authResponse.code;
           setEsCode(code);
-          toast.success("WhatsApp conectado! Copie o code abaixo e salve como WHATSAPP_CODE.");
+          toast.success("WhatsApp conectado com sucesso!");
           console.log("Embedded Signup code:", code);
         } else {
-          toast.error("Conexão cancelada ou sem code retornado.");
+          toast.error("Conexão cancelada ou não autorizada.");
         }
       },
       {
-        config_id: FB_CONFIG_ID,
+        config_id: "209247744548053",
         response_type: "code",
         override_default_response_type: true,
         extras: {
