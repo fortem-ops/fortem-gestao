@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
-import { MessageCircle, Copy, Check, Loader2, RefreshCw, Send } from "lucide-react";
+import { MessageCircle, Copy, Check, Loader2, RefreshCw, Send, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -11,6 +11,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+declare global {
+  interface Window {
+    FB?: {
+      login: (
+        cb: (response: {
+          authResponse?: { code?: string; accessToken?: string } | null;
+          status?: string;
+        }) => void,
+        opts: Record<string, unknown>,
+      ) => void;
+      init: (opts: Record<string, unknown>) => void;
+    };
+    fbAsyncInit?: () => void;
+  }
+}
+
+const FB_CONFIG_ID = "673456789012345"; // placeholder - substituir pelo config_id real do Embedded Signup
+
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/whatsapp-webhook`;
