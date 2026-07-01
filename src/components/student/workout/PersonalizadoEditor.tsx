@@ -1592,3 +1592,51 @@ function DinamicoRows({
     </>
   );
 }
+
+// ============ Wrappers de reordenação (drag-and-drop) ============
+
+function SortableAqItem({
+  id,
+  children,
+}: {
+  id: string;
+  children: (handleProps: DragHandleProps) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    boxShadow: isDragging ? "0 6px 20px rgba(0,0,0,0.25)" : undefined,
+    zIndex: isDragging ? 10 : undefined,
+    position: "relative",
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ ...attributes, ...listeners })}
+    </div>
+  );
+}
+
+function SortableForcaTbody({
+  id,
+  children,
+}: {
+  id: string;
+  children: (handleProps: DragHandleProps) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    position: "relative",
+    zIndex: isDragging ? 10 : undefined,
+  };
+  return (
+    <tbody ref={setNodeRef} style={style}>
+      {children({ ...attributes, ...listeners })}
+    </tbody>
+  );
+}
+
