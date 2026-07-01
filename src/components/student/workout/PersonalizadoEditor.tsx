@@ -35,7 +35,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, FileDown, Printer, Save, Users, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { CATEGORY_LABELS } from "./workoutTemplates";
@@ -346,6 +363,38 @@ export function PersonalizadoEditor({
       },
     }));
   };
+
+  // ============ Reordenação (drag-and-drop) ============
+  const reorderAquecimento = (bloco: AquecimentoBloco, from: number, to: number) => {
+    if (from === to) return;
+    setData((p) => ({
+      ...p,
+      aquecimento: {
+        ...p.aquecimento,
+        [bloco]: arrayMove(p.aquecimento[bloco] ?? [], from, to),
+      },
+    }));
+  };
+  const reorderExercicioForca = (ti: number, bi: number, from: number, to: number) => {
+    if (from === to) return;
+    setData((p) => ({
+      ...p,
+      treinos: p.treinos.map((t, i) =>
+        i === ti
+          ? {
+              ...t,
+              blocos: t.blocos.map((b, j) =>
+                j === bi ? { ...b, exercicios: arrayMove(b.exercicios, from, to) } : b,
+              ),
+            }
+          : t,
+      ),
+    }));
+  };
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const toggleDia = (bloco: AquecimentoBloco, i: number, dia: string) => {
     setData((p) => ({
       ...p,
@@ -777,91 +826,122 @@ export function PersonalizadoEditor({
             {(data.aquecimento[b.key]?.length ?? 0) === 0 ? (
               <p className="text-[11px] text-muted-foreground italic">Nenhum exercício neste bloco.</p>
             ) : (
-              <div className="space-y-1.5">
-                {(data.aquecimento[b.key] ?? []).map((ex, i) => (
-                  <div key={i} className="flex items-start gap-2 p-2 rounded border border-border/50 bg-card/50">
-                    <span className="text-[10px] text-muted-foreground mt-2 w-4">{i + 1}</span>
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <Select
-                          value={ex.subcategoria ?? ""}
-                          onValueChange={(val) =>
-                            updateAquecimento(b.key, i, {
-                              subcategoria: val,
-                              // limpa exercício para evitar inconsistência
-                              exercicio: "",
-                              exercicio_id: null,
-                              video_url: null,
-                            })
-                          }
-                        >
-                          <SelectTrigger className="h-7 text-xs w-[160px] shrink-0">
-                            <SelectValue placeholder="Subcategoria..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(grupoSubcategorias[aquecimentoGrupoMap[b.key]] || []).map((sub) => (
-                              <SelectItem key={sub} value={sub} className="text-xs">
-                                {sub}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div className="flex-1 min-w-0">
-                          <ExerciseSelector
-                            categoria={b.key}
-                            subcategoria={ex.subcategoria}
-                            value={ex.exercicio}
-                            disabled={!ex.subcategoria}
-                            placeholder={
-                              ex.subcategoria
-                                ? `Buscar em ${ex.subcategoria}...`
-                                : "Selecione a subcategoria primeiro"
-                            }
-                            onChange={(val, video) =>
-                              updateAquecimento(b.key, i, { exercicio: val, video_url: video })
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Label className="text-[10px] text-muted-foreground">Reps</Label>
-                        <Input
-                          value={ex.repeticoes}
-                          onChange={(e) => updateAquecimento(b.key, i, { repeticoes: e.target.value })}
-                          className="h-6 w-20 text-xs"
-                          placeholder='10 ou 60"'
-                        />
-                        <Label className="text-[10px] text-muted-foreground ml-2">Dias</Label>
-                        <ToggleGroup
-                          type="multiple"
-                          value={ex.dias}
-                          onValueChange={() => { /* via onClick individual */ }}
-                          className="gap-1"
-                        >
-                          {DAYS.map((d) => (
-                            <ToggleGroupItem
-                              key={d}
-                              value={d}
-                              className="h-6 px-2 text-[10px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                              onClick={() => toggleDia(b.key, i, d)}
+              <DndContext
+                sensors={dndSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(e: DragEndEvent) => {
+                  const { active, over } = e;
+                  if (!over || active.id === over.id) return;
+                  const items = data.aquecimento[b.key] ?? [];
+                  const from = items.findIndex((_, idx) => `aq-${b.key}-${idx}` === active.id);
+                  const to = items.findIndex((_, idx) => `aq-${b.key}-${idx}` === over.id);
+                  if (from < 0 || to < 0) return;
+                  reorderAquecimento(b.key, from, to);
+                }}
+              >
+                <SortableContext
+                  items={(data.aquecimento[b.key] ?? []).map((_, idx) => `aq-${b.key}-${idx}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-1.5">
+                    {(data.aquecimento[b.key] ?? []).map((ex, i) => (
+                      <SortableAqItem key={`${b.key}-${i}`} id={`aq-${b.key}-${i}`}>
+                        {(handleProps) => (
+                          <div className="flex items-start gap-2 p-2 rounded border border-border/50 bg-card/50">
+                            <button
+                              type="button"
+                              {...handleProps}
+                              className="mt-1 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+                              title="Arrastar para reordenar"
+                              aria-label="Reordenar exercício"
                             >
-                              {d}
-                            </ToggleGroupItem>
-                          ))}
-                        </ToggleGroup>
-                      </div>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => removeAquecimento(b.key, i)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                              <GripVertical className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-[10px] text-muted-foreground mt-2 w-4">{i + 1}</span>
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  value={ex.subcategoria ?? ""}
+                                  onValueChange={(val) =>
+                                    updateAquecimento(b.key, i, {
+                                      subcategoria: val,
+                                      exercicio: "",
+                                      exercicio_id: null,
+                                      video_url: null,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="h-7 text-xs w-[160px] shrink-0">
+                                    <SelectValue placeholder="Subcategoria..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(grupoSubcategorias[aquecimentoGrupoMap[b.key]] || []).map((sub) => (
+                                      <SelectItem key={sub} value={sub} className="text-xs">
+                                        {sub}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <div className="flex-1 min-w-0">
+                                  <ExerciseSelector
+                                    categoria={b.key}
+                                    subcategoria={ex.subcategoria}
+                                    value={ex.exercicio}
+                                    disabled={!ex.subcategoria}
+                                    placeholder={
+                                      ex.subcategoria
+                                        ? `Buscar em ${ex.subcategoria}...`
+                                        : "Selecione a subcategoria primeiro"
+                                    }
+                                    onChange={(val, video) =>
+                                      updateAquecimento(b.key, i, { exercicio: val, video_url: video })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Label className="text-[10px] text-muted-foreground">Reps</Label>
+                                <Input
+                                  value={ex.repeticoes}
+                                  onChange={(e) => updateAquecimento(b.key, i, { repeticoes: e.target.value })}
+                                  className="h-6 w-20 text-xs"
+                                  placeholder='10 ou 60"'
+                                />
+                                <Label className="text-[10px] text-muted-foreground ml-2">Dias</Label>
+                                <ToggleGroup
+                                  type="multiple"
+                                  value={ex.dias}
+                                  onValueChange={() => { /* via onClick individual */ }}
+                                  className="gap-1"
+                                >
+                                  {DAYS.map((d) => (
+                                    <ToggleGroupItem
+                                      key={d}
+                                      value={d}
+                                      className="h-6 px-2 text-[10px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                      onClick={() => toggleDia(b.key, i, d)}
+                                    >
+                                      {d}
+                                    </ToggleGroupItem>
+                                  ))}
+                                </ToggleGroup>
+                              </div>
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-destructive"
+                              onClick={() => removeAquecimento(b.key, i)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </SortableAqItem>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         ))}
@@ -987,30 +1067,51 @@ export function PersonalizadoEditor({
                         <p className="text-[11px] text-muted-foreground italic px-1">Nenhum exercício. Use “+ Exercício”.</p>
                       ) : (
                         <div className="rounded-md border border-border/50 overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                <TableHead className="w-10 h-8 px-2 text-[10px]">#</TableHead>
-                                <TableHead className="w-24 h-8 px-2 text-[10px]">Categoria</TableHead>
-                                <TableHead className="h-8 px-2 text-[10px]">Exercício</TableHead>
-                                <TableHead className="w-16 h-8 px-2 text-[10px] text-center">Séries</TableHead>
-                                <TableHead className="w-20 h-8 px-2 text-[10px] text-center">Reps</TableHead>
-                                <TableHead className="w-10 h-8 px-2"></TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {bl.exercicios.map((ex, ei) => (
-                                <ExercicioRows
-                                  key={ei}
-                                  ex={ex}
-                                  index={ei}
-                                  groups={forcaCategories}
-                                  onRemove={() => removeExercicio(ti, bi, ei)}
-                                  onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
-                                />
-                              ))}
-                            </TableBody>
-                          </Table>
+                          <DndContext
+                            sensors={dndSensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={(e: DragEndEvent) => {
+                              const { active, over } = e;
+                              if (!over || active.id === over.id) return;
+                              const from = bl.exercicios.findIndex((_, k) => `forca-${ti}-${bi}-${k}` === active.id);
+                              const to = bl.exercicios.findIndex((_, k) => `forca-${ti}-${bi}-${k}` === over.id);
+                              if (from < 0 || to < 0) return;
+                              reorderExercicioForca(ti, bi, from, to);
+                            }}
+                          >
+                            <SortableContext
+                              items={bl.exercicios.map((_, k) => `forca-${ti}-${bi}-${k}`)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                    <TableHead className="w-6 h-8 px-1"></TableHead>
+                                    <TableHead className="w-10 h-8 px-2 text-[10px]">#</TableHead>
+                                    <TableHead className="w-24 h-8 px-2 text-[10px]">Categoria</TableHead>
+                                    <TableHead className="h-8 px-2 text-[10px]">Exercício</TableHead>
+                                    <TableHead className="w-16 h-8 px-2 text-[10px] text-center">Séries</TableHead>
+                                    <TableHead className="w-20 h-8 px-2 text-[10px] text-center">Reps</TableHead>
+                                    <TableHead className="w-10 h-8 px-2"></TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                {bl.exercicios.map((ex, ei) => (
+                                  <SortableForcaTbody key={ei} id={`forca-${ti}-${bi}-${ei}`}>
+                                    {(handleProps) => (
+                                      <ExercicioRows
+                                        ex={ex}
+                                        index={ei}
+                                        groups={forcaCategories}
+                                        onRemove={() => removeExercicio(ti, bi, ei)}
+                                        onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
+                                        handleProps={handleProps}
+                                      />
+                                    )}
+                                  </SortableForcaTbody>
+                                ))}
+                              </Table>
+                            </SortableContext>
+                          </DndContext>
                         </div>
                       )}
                     </div>
@@ -1211,18 +1312,40 @@ function CategoriaSelect({
 
 // ============ Renderização em tabela (estilo Fases) ============
 
+type DragHandleProps = Record<string, unknown>;
+
+function DragHandleCell({ handleProps }: { handleProps?: DragHandleProps }) {
+  return (
+    <TableCell className="px-1 py-1.5 align-middle w-6">
+      {handleProps ? (
+        <button
+          type="button"
+          {...handleProps}
+          className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground inline-flex items-center justify-center"
+          title="Arrastar para reordenar"
+          aria-label="Reordenar exercício"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+      ) : null}
+    </TableCell>
+  );
+}
+
 function ExercicioRows({
   ex,
   index,
   groups,
   onRemove,
   onUpdate,
+  handleProps,
 }: {
   ex: PersonalizadoExercicio;
   index: number;
   groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (patch: Partial<PersonalizadoExercicio>) => void;
+  handleProps?: DragHandleProps;
 }) {
   if (ex.tipo === "simples") {
     return (
@@ -1232,6 +1355,7 @@ function ExercicioRows({
         groups={groups}
         onRemove={onRemove}
         onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioSimples>) => void}
+        handleProps={handleProps}
       />
     );
   }
@@ -1242,6 +1366,7 @@ function ExercicioRows({
       groups={groups}
       onRemove={onRemove}
       onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioDinamico>) => void}
+      handleProps={handleProps}
     />
   );
 }
@@ -1252,15 +1377,18 @@ function SimplesRow({
   groups,
   onRemove,
   onUpdate,
+  handleProps,
 }: {
   ex: PersonalizadoExercicioSimples;
   index: number;
   groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioSimples>) => void;
+  handleProps?: DragHandleProps;
 }) {
   return (
     <TableRow className="border-b border-border/60">
+      <DragHandleCell handleProps={handleProps} />
       <TableCell className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground align-middle">
         {index + 1}
       </TableCell>
@@ -1309,12 +1437,14 @@ function DinamicoRows({
   groups,
   onRemove,
   onUpdate,
+  handleProps,
 }: {
   ex: PersonalizadoExercicioDinamico;
   index: number;
   groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioDinamico>) => void;
+  handleProps?: DragHandleProps;
 }) {
   const setRotacao = (rotacao: DinamicoRotacao) => {
     if (rotacao === "impar_par" && ex.variantes.length > 2) {
@@ -1343,6 +1473,7 @@ function DinamicoRows({
     <>
       {/* Linha-cabeçalho do dinâmico */}
       <TableRow className="bg-primary/5 border-b border-border/60 hover:bg-primary/5">
+        <DragHandleCell handleProps={handleProps} />
         <TableCell className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground align-middle">
           {index + 1}
         </TableCell>
@@ -1407,6 +1538,8 @@ function DinamicoRows({
       {/* Linhas das variantes */}
       {ex.variantes.map((v, i) => (
         <TableRow key={i} className="border-b border-border/30 bg-background/40">
+          <TableCell className="px-1 py-1.5 align-middle w-6" />
+
           <TableCell className="px-2 py-1.5 align-middle">
             <Badge variant="outline" className="text-[10px] font-mono">{labelFor(i)}</Badge>
           </TableCell>
@@ -1459,3 +1592,51 @@ function DinamicoRows({
     </>
   );
 }
+
+// ============ Wrappers de reordenação (drag-and-drop) ============
+
+function SortableAqItem({
+  id,
+  children,
+}: {
+  id: string;
+  children: (handleProps: DragHandleProps) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    boxShadow: isDragging ? "0 6px 20px rgba(0,0,0,0.25)" : undefined,
+    zIndex: isDragging ? 10 : undefined,
+    position: "relative",
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ ...attributes, ...listeners })}
+    </div>
+  );
+}
+
+function SortableForcaTbody({
+  id,
+  children,
+}: {
+  id: string;
+  children: (handleProps: DragHandleProps) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    position: "relative",
+    zIndex: isDragging ? 10 : undefined,
+  };
+  return (
+    <tbody ref={setNodeRef} style={style}>
+      {children({ ...attributes, ...listeners })}
+    </tbody>
+  );
+}
+
