@@ -1437,12 +1437,14 @@ function DinamicoRows({
   groups,
   onRemove,
   onUpdate,
+  handleProps,
 }: {
   ex: PersonalizadoExercicioDinamico;
   index: number;
   groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioDinamico>) => void;
+  handleProps?: DragHandleProps;
 }) {
   const setRotacao = (rotacao: DinamicoRotacao) => {
     if (rotacao === "impar_par" && ex.variantes.length > 2) {
@@ -1471,6 +1473,7 @@ function DinamicoRows({
     <>
       {/* Linha-cabeçalho do dinâmico */}
       <TableRow className="bg-primary/5 border-b border-border/60 hover:bg-primary/5">
+        <DragHandleCell handleProps={handleProps} />
         <TableCell className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground align-middle">
           {index + 1}
         </TableCell>
