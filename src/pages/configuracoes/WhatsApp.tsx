@@ -223,6 +223,58 @@ export default function ConfiguracoesWhatsApp() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Link2 className="w-4 h-4 text-primary" />
+            Conectar número de produção
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Clique no botão abaixo para conectar o número real da Fortem via WhatsApp Business.
+            O número continuará funcionando normalmente no celular (coexistência ativada).
+          </p>
+          <Button onClick={handleConnectWhatsApp} disabled={connecting} className="gap-2">
+            {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+            Conectar WhatsApp Business
+          </Button>
+
+          {esCode && (
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div>
+                <Label className="text-xs text-muted-foreground">Code retornado (Embedded Signup)</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input readOnly value={esCode} className="font-mono text-xs" />
+                  <Button variant="outline" size="icon" onClick={handleCopyCode} title="Copiar code">
+                    {codeCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Próximos passos</Label>
+                <Textarea
+                  readOnly
+                  rows={6}
+                  className="font-mono text-[11px] mt-1"
+                  value={`1. Copie o code acima.
+2. Vá em Project Settings → Secrets e crie/atualize o secret:
+   WHATSAPP_CODE = ${esCode}
+3. O backend usará esse code para trocar pelo access token permanente
+   via POST https://graph.facebook.com/v20.0/oauth/access_token
+   com client_id (App ID) e client_secret (App Secret) da Meta.
+4. Após a troca, atualize também WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID
+   com os valores do número recém-conectado.
+5. Volte a esta tela e clique em "Enviar mensagem de teste" para validar.`}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Testar conexão</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
