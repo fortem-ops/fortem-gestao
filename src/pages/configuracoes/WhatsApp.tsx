@@ -15,21 +15,12 @@ import { Textarea } from "@/components/ui/textarea";
 
 declare global {
   interface Window {
-    FB?: {
-      login: (
-        cb: (response: {
-          authResponse?: { code?: string; accessToken?: string } | null;
-          status?: string;
-        }) => void,
-        opts: Record<string, unknown>,
-      ) => void;
-      init: (opts: Record<string, unknown>) => void;
-    };
+    FB: any;
     fbAsyncInit?: () => void;
   }
 }
 
-const FB_CONFIG_ID = "209247744548053"; // Config ID oficial do Embedded Signup da Fortem
+
 
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
