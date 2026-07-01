@@ -4811,6 +4811,27 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_events: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json | null
+          type: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          type?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          type?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       inadimplencias_view: {
