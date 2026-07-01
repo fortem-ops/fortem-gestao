@@ -1538,6 +1538,8 @@ function DinamicoRows({
       {/* Linhas das variantes */}
       {ex.variantes.map((v, i) => (
         <TableRow key={i} className="border-b border-border/30 bg-background/40">
+          <TableCell className="px-1 py-1.5 align-middle w-6" />
+
           <TableCell className="px-2 py-1.5 align-middle">
             <Badge variant="outline" className="text-[10px] font-mono">{labelFor(i)}</Badge>
           </TableCell>
