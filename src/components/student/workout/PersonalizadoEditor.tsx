@@ -826,91 +826,122 @@ export function PersonalizadoEditor({
             {(data.aquecimento[b.key]?.length ?? 0) === 0 ? (
               <p className="text-[11px] text-muted-foreground italic">Nenhum exercício neste bloco.</p>
             ) : (
-              <div className="space-y-1.5">
-                {(data.aquecimento[b.key] ?? []).map((ex, i) => (
-                  <div key={i} className="flex items-start gap-2 p-2 rounded border border-border/50 bg-card/50">
-                    <span className="text-[10px] text-muted-foreground mt-2 w-4">{i + 1}</span>
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <Select
-                          value={ex.subcategoria ?? ""}
-                          onValueChange={(val) =>
-                            updateAquecimento(b.key, i, {
-                              subcategoria: val,
-                              // limpa exercício para evitar inconsistência
-                              exercicio: "",
-                              exercicio_id: null,
-                              video_url: null,
-                            })
-                          }
-                        >
-                          <SelectTrigger className="h-7 text-xs w-[160px] shrink-0">
-                            <SelectValue placeholder="Subcategoria..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(grupoSubcategorias[aquecimentoGrupoMap[b.key]] || []).map((sub) => (
-                              <SelectItem key={sub} value={sub} className="text-xs">
-                                {sub}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div className="flex-1 min-w-0">
-                          <ExerciseSelector
-                            categoria={b.key}
-                            subcategoria={ex.subcategoria}
-                            value={ex.exercicio}
-                            disabled={!ex.subcategoria}
-                            placeholder={
-                              ex.subcategoria
-                                ? `Buscar em ${ex.subcategoria}...`
-                                : "Selecione a subcategoria primeiro"
-                            }
-                            onChange={(val, video) =>
-                              updateAquecimento(b.key, i, { exercicio: val, video_url: video })
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Label className="text-[10px] text-muted-foreground">Reps</Label>
-                        <Input
-                          value={ex.repeticoes}
-                          onChange={(e) => updateAquecimento(b.key, i, { repeticoes: e.target.value })}
-                          className="h-6 w-20 text-xs"
-                          placeholder='10 ou 60"'
-                        />
-                        <Label className="text-[10px] text-muted-foreground ml-2">Dias</Label>
-                        <ToggleGroup
-                          type="multiple"
-                          value={ex.dias}
-                          onValueChange={() => { /* via onClick individual */ }}
-                          className="gap-1"
-                        >
-                          {DAYS.map((d) => (
-                            <ToggleGroupItem
-                              key={d}
-                              value={d}
-                              className="h-6 px-2 text-[10px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                              onClick={() => toggleDia(b.key, i, d)}
+              <DndContext
+                sensors={dndSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(e: DragEndEvent) => {
+                  const { active, over } = e;
+                  if (!over || active.id === over.id) return;
+                  const items = data.aquecimento[b.key] ?? [];
+                  const from = items.findIndex((_, idx) => `aq-${b.key}-${idx}` === active.id);
+                  const to = items.findIndex((_, idx) => `aq-${b.key}-${idx}` === over.id);
+                  if (from < 0 || to < 0) return;
+                  reorderAquecimento(b.key, from, to);
+                }}
+              >
+                <SortableContext
+                  items={(data.aquecimento[b.key] ?? []).map((_, idx) => `aq-${b.key}-${idx}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-1.5">
+                    {(data.aquecimento[b.key] ?? []).map((ex, i) => (
+                      <SortableAqItem key={`${b.key}-${i}`} id={`aq-${b.key}-${i}`}>
+                        {(handleProps) => (
+                          <div className="flex items-start gap-2 p-2 rounded border border-border/50 bg-card/50">
+                            <button
+                              type="button"
+                              {...handleProps}
+                              className="mt-1 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+                              title="Arrastar para reordenar"
+                              aria-label="Reordenar exercício"
                             >
-                              {d}
-                            </ToggleGroupItem>
-                          ))}
-                        </ToggleGroup>
-                      </div>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => removeAquecimento(b.key, i)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                              <GripVertical className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-[10px] text-muted-foreground mt-2 w-4">{i + 1}</span>
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  value={ex.subcategoria ?? ""}
+                                  onValueChange={(val) =>
+                                    updateAquecimento(b.key, i, {
+                                      subcategoria: val,
+                                      exercicio: "",
+                                      exercicio_id: null,
+                                      video_url: null,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="h-7 text-xs w-[160px] shrink-0">
+                                    <SelectValue placeholder="Subcategoria..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(grupoSubcategorias[aquecimentoGrupoMap[b.key]] || []).map((sub) => (
+                                      <SelectItem key={sub} value={sub} className="text-xs">
+                                        {sub}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <div className="flex-1 min-w-0">
+                                  <ExerciseSelector
+                                    categoria={b.key}
+                                    subcategoria={ex.subcategoria}
+                                    value={ex.exercicio}
+                                    disabled={!ex.subcategoria}
+                                    placeholder={
+                                      ex.subcategoria
+                                        ? `Buscar em ${ex.subcategoria}...`
+                                        : "Selecione a subcategoria primeiro"
+                                    }
+                                    onChange={(val, video) =>
+                                      updateAquecimento(b.key, i, { exercicio: val, video_url: video })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Label className="text-[10px] text-muted-foreground">Reps</Label>
+                                <Input
+                                  value={ex.repeticoes}
+                                  onChange={(e) => updateAquecimento(b.key, i, { repeticoes: e.target.value })}
+                                  className="h-6 w-20 text-xs"
+                                  placeholder='10 ou 60"'
+                                />
+                                <Label className="text-[10px] text-muted-foreground ml-2">Dias</Label>
+                                <ToggleGroup
+                                  type="multiple"
+                                  value={ex.dias}
+                                  onValueChange={() => { /* via onClick individual */ }}
+                                  className="gap-1"
+                                >
+                                  {DAYS.map((d) => (
+                                    <ToggleGroupItem
+                                      key={d}
+                                      value={d}
+                                      className="h-6 px-2 text-[10px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                      onClick={() => toggleDia(b.key, i, d)}
+                                    >
+                                      {d}
+                                    </ToggleGroupItem>
+                                  ))}
+                                </ToggleGroup>
+                              </div>
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-destructive"
+                              onClick={() => removeAquecimento(b.key, i)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </SortableAqItem>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         ))}
