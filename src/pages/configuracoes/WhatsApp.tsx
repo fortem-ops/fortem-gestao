@@ -139,15 +139,6 @@ export default function ConfiguracoesWhatsApp() {
       },
     );
   };
-        override_default_response_type: true,
-        extras: {
-          setup: {},
-          featureType: "coexistence",
-          sessionInfoVersion: "3",
-        },
-      },
-    );
-  };
 
   const handleCopyCode = async () => {
     if (!esCode) return;
