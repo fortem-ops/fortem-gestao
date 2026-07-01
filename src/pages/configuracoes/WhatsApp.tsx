@@ -141,7 +141,7 @@ export default function ConfiguracoesWhatsApp() {
         response_type: "code",
         override_default_response_type: true,
         extras: {
-          setup: { solutionID: FB_CONFIG_ID },
+          setup: {},
           featureType: "coexistence",
           sessionInfoVersion: "3",
         },
