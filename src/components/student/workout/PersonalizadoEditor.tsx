@@ -1312,18 +1312,40 @@ function CategoriaSelect({
 
 // ============ Renderização em tabela (estilo Fases) ============
 
+type DragHandleProps = Record<string, unknown>;
+
+function DragHandleCell({ handleProps }: { handleProps?: DragHandleProps }) {
+  return (
+    <TableCell className="px-1 py-1.5 align-middle w-6">
+      {handleProps ? (
+        <button
+          type="button"
+          {...handleProps}
+          className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground inline-flex items-center justify-center"
+          title="Arrastar para reordenar"
+          aria-label="Reordenar exercício"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+      ) : null}
+    </TableCell>
+  );
+}
+
 function ExercicioRows({
   ex,
   index,
   groups,
   onRemove,
   onUpdate,
+  handleProps,
 }: {
   ex: PersonalizadoExercicio;
   index: number;
   groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (patch: Partial<PersonalizadoExercicio>) => void;
+  handleProps?: DragHandleProps;
 }) {
   if (ex.tipo === "simples") {
     return (
@@ -1333,6 +1355,7 @@ function ExercicioRows({
         groups={groups}
         onRemove={onRemove}
         onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioSimples>) => void}
+        handleProps={handleProps}
       />
     );
   }
@@ -1343,6 +1366,7 @@ function ExercicioRows({
       groups={groups}
       onRemove={onRemove}
       onUpdate={onUpdate as (p: Partial<PersonalizadoExercicioDinamico>) => void}
+      handleProps={handleProps}
     />
   );
 }
@@ -1353,15 +1377,18 @@ function SimplesRow({
   groups,
   onRemove,
   onUpdate,
+  handleProps,
 }: {
   ex: PersonalizadoExercicioSimples;
   index: number;
   groups: ExerciseCategory[];
   onRemove: () => void;
   onUpdate: (p: Partial<PersonalizadoExercicioSimples>) => void;
+  handleProps?: DragHandleProps;
 }) {
   return (
     <TableRow className="border-b border-border/60">
+      <DragHandleCell handleProps={handleProps} />
       <TableCell className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground align-middle">
         {index + 1}
       </TableCell>
