@@ -363,6 +363,38 @@ export function PersonalizadoEditor({
       },
     }));
   };
+
+  // ============ Reordenação (drag-and-drop) ============
+  const reorderAquecimento = (bloco: AquecimentoBloco, from: number, to: number) => {
+    if (from === to) return;
+    setData((p) => ({
+      ...p,
+      aquecimento: {
+        ...p.aquecimento,
+        [bloco]: arrayMove(p.aquecimento[bloco] ?? [], from, to),
+      },
+    }));
+  };
+  const reorderExercicioForca = (ti: number, bi: number, from: number, to: number) => {
+    if (from === to) return;
+    setData((p) => ({
+      ...p,
+      treinos: p.treinos.map((t, i) =>
+        i === ti
+          ? {
+              ...t,
+              blocos: t.blocos.map((b, j) =>
+                j === bi ? { ...b, exercicios: arrayMove(b.exercicios, from, to) } : b,
+              ),
+            }
+          : t,
+      ),
+    }));
+  };
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const toggleDia = (bloco: AquecimentoBloco, i: number, dia: string) => {
     setData((p) => ({
       ...p,
