@@ -29,7 +29,7 @@ declare global {
   }
 }
 
-const FB_CONFIG_ID = "673456789012345"; // placeholder - substituir pelo config_id real do Embedded Signup
+const FB_CONFIG_ID = "209247744548053"; // Config ID oficial do Embedded Signup da Fortem
 
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
