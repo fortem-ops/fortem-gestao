@@ -29,7 +29,7 @@ declare global {
   }
 }
 
-const FB_CONFIG_ID = "673456789012345"; // placeholder - substituir pelo config_id real do Embedded Signup
+const FB_CONFIG_ID = "209247744548053"; // Config ID oficial do Embedded Signup da Fortem
 
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -141,7 +141,7 @@ export default function ConfiguracoesWhatsApp() {
         response_type: "code",
         override_default_response_type: true,
         extras: {
-          setup: { solutionID: FB_CONFIG_ID },
+          setup: {},
           featureType: "coexistence",
           sessionInfoVersion: "3",
         },
