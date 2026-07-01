@@ -1067,30 +1067,51 @@ export function PersonalizadoEditor({
                         <p className="text-[11px] text-muted-foreground italic px-1">Nenhum exercício. Use “+ Exercício”.</p>
                       ) : (
                         <div className="rounded-md border border-border/50 overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                <TableHead className="w-10 h-8 px-2 text-[10px]">#</TableHead>
-                                <TableHead className="w-24 h-8 px-2 text-[10px]">Categoria</TableHead>
-                                <TableHead className="h-8 px-2 text-[10px]">Exercício</TableHead>
-                                <TableHead className="w-16 h-8 px-2 text-[10px] text-center">Séries</TableHead>
-                                <TableHead className="w-20 h-8 px-2 text-[10px] text-center">Reps</TableHead>
-                                <TableHead className="w-10 h-8 px-2"></TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {bl.exercicios.map((ex, ei) => (
-                                <ExercicioRows
-                                  key={ei}
-                                  ex={ex}
-                                  index={ei}
-                                  groups={forcaCategories}
-                                  onRemove={() => removeExercicio(ti, bi, ei)}
-                                  onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
-                                />
-                              ))}
-                            </TableBody>
-                          </Table>
+                          <DndContext
+                            sensors={dndSensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={(e: DragEndEvent) => {
+                              const { active, over } = e;
+                              if (!over || active.id === over.id) return;
+                              const from = bl.exercicios.findIndex((_, k) => `forca-${ti}-${bi}-${k}` === active.id);
+                              const to = bl.exercicios.findIndex((_, k) => `forca-${ti}-${bi}-${k}` === over.id);
+                              if (from < 0 || to < 0) return;
+                              reorderExercicioForca(ti, bi, from, to);
+                            }}
+                          >
+                            <SortableContext
+                              items={bl.exercicios.map((_, k) => `forca-${ti}-${bi}-${k}`)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                    <TableHead className="w-6 h-8 px-1"></TableHead>
+                                    <TableHead className="w-10 h-8 px-2 text-[10px]">#</TableHead>
+                                    <TableHead className="w-24 h-8 px-2 text-[10px]">Categoria</TableHead>
+                                    <TableHead className="h-8 px-2 text-[10px]">Exercício</TableHead>
+                                    <TableHead className="w-16 h-8 px-2 text-[10px] text-center">Séries</TableHead>
+                                    <TableHead className="w-20 h-8 px-2 text-[10px] text-center">Reps</TableHead>
+                                    <TableHead className="w-10 h-8 px-2"></TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                {bl.exercicios.map((ex, ei) => (
+                                  <SortableForcaTbody key={ei} id={`forca-${ti}-${bi}-${ei}`}>
+                                    {(handleProps) => (
+                                      <ExercicioRows
+                                        ex={ex}
+                                        index={ei}
+                                        groups={forcaCategories}
+                                        onRemove={() => removeExercicio(ti, bi, ei)}
+                                        onUpdate={(patch) => updateExercicio(ti, bi, ei, patch)}
+                                        handleProps={handleProps}
+                                      />
+                                    )}
+                                  </SortableForcaTbody>
+                                ))}
+                              </Table>
+                            </SortableContext>
+                          </DndContext>
                         </div>
                       )}
                     </div>
