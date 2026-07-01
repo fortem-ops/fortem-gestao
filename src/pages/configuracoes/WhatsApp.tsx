@@ -49,6 +49,9 @@ export default function ConfiguracoesWhatsApp() {
   const [testing, setTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState("hello_world");
   const [testLanguage, setTestLanguage] = useState("en_US");
+  const [esCode, setEsCode] = useState<string>("");
+  const [connecting, setConnecting] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const eventsQuery = useQuery({
     queryKey: ["whatsapp-events"],
