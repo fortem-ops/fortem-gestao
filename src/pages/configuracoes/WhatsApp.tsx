@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/whatsapp-webhook`;
-const TEST_PHONE = "5551994192126";
+const TEST_PHONE = "5551991519640";
 const WHATSAPP_ONBOARDING_URL =
   "https://business.facebook.com/messaging/whatsapp/onboard/?app_id=973289551764344&config_id=2092477445480536&extras=%7B%22sessionInfoVersion%22%3A%223%22%2C%22version%22%3A%22v4%22%7D";
 
