@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/whatsapp-webhook`;
-const TEST_PHONE = "555135199451";
+const TEST_PHONE = "5551994192126";
 const WHATSAPP_ONBOARDING_URL =
   "https://business.facebook.com/messaging/whatsapp/onboard/?app_id=973289551764344&config_id=2092477445480536&extras=%7B%22sessionInfoVersion%22%3A%223%22%2C%22version%22%3A%22v4%22%7D";
 
@@ -165,7 +165,7 @@ export default function ConfiguracoesWhatsApp() {
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Clique no botão abaixo para conectar o número real da Fortem. Você será redirecionado
-            para uma página da Meta onde poderá adicionar o número (51) 3519-9451 com coexistência
+            para uma página da Meta onde poderá adicionar o número (51) 99419-2126 com coexistência
             ativada (o celular continuará funcionando normalmente).
           </p>
           <Button asChild className="gap-2">
@@ -183,7 +183,7 @@ export default function ConfiguracoesWhatsApp() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Envia uma mensagem para <strong>(51) 3519-9451</strong> usando o template abaixo.
+            Envia uma mensagem para <strong>(51) 99419-2126</strong> usando o template abaixo.
             O template já precisa estar aprovado na sua conta do WhatsApp Business.
           </p>
           <div className="grid gap-3 md:grid-cols-2">
