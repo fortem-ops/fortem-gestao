@@ -26,8 +26,9 @@ type Mensagem = {
   status: string;
   created_at: string;
   enviado_por: string | null;
-  profiles?: { full_name: string | null; avatar_url: string | null } | null;
 };
+
+type ProfileInfo = { full_name: string | null; avatar_url: string | null };
 
 function formatPhone(t: string) {
   const d = t.replace(/\D/g, "");
