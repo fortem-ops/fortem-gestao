@@ -145,7 +145,6 @@ export default function WhatsAppSettings() {
                 Inscrever App na WABA
               </Button>
             )}
-            </div>
           </CardContent>
         </Card>
 
