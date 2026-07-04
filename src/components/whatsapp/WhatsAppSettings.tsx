@@ -27,7 +27,10 @@ type WhatsAppEvent = {
 export default function WhatsAppSettings() {
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
   const [testTemplate, setTestTemplate] = useState("hello_world");
+  const [testLanguage, setTestLanguage] = useState("en_US");
+  const { data: roles } = useUserRoles();
   const [testLanguage, setTestLanguage] = useState("en_US");
 
   const eventsQuery = useQuery({
