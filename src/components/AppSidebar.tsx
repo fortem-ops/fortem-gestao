@@ -293,6 +293,9 @@ export function AppSidebar() {
               {isCoordAdmin && sistemaCoordAdminItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
+              {isCoordAdmin && sistemaCoordAdminExtraItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
               {isAdmin && sistemaAdminItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
