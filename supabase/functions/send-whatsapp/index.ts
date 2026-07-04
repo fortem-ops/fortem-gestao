@@ -147,6 +147,7 @@ Deno.serve(async (req) => {
         telefone: toClean,
         conteudo: (payload.text as any).body,
         wamid,
+        enviado_por: typeof body.enviado_por === 'string' ? body.enviado_por : null,
       });
     }
 
