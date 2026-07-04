@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Check, Loader2, RefreshCw, Send, Link2 } from "lucide-react";
+import { Copy, Check, Loader2, RefreshCw, Send, Link2, Webhook } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sendTemplate } from "@/services/whatsappService";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,8 +27,10 @@ type WhatsAppEvent = {
 export default function WhatsAppSettings() {
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
   const [testTemplate, setTestTemplate] = useState("hello_world");
   const [testLanguage, setTestLanguage] = useState("en_US");
+  const { data: roles } = useUserRoles();
 
   const eventsQuery = useQuery({
     queryKey: ["whatsapp-events"],
@@ -82,6 +85,27 @@ export default function WhatsAppSettings() {
     }
   };
 
+  const handleSubscribeWaba = async () => {
+    setSubscribing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("subscribe-waba", { body: {} });
+      if (error) throw error;
+      if (data?.ok) {
+        toast.success("App inscrito na WABA com sucesso!", {
+          description: JSON.stringify(data.result).slice(0, 200),
+        });
+      } else {
+        toast.error("Falha ao inscrever app", {
+          description: JSON.stringify(data?.result ?? data).slice(0, 300),
+        });
+      }
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
@@ -109,6 +133,18 @@ export default function WhatsAppSettings() {
                 Configurado via Secret <code>WHATSAPP_TOKEN</code>
               </div>
             </div>
+            {roles?.isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSubscribeWaba}
+                disabled={subscribing}
+                className="w-full gap-2"
+              >
+                {subscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Webhook className="w-4 h-4" />}
+                Inscrever App na WABA
+              </Button>
+            )}
           </CardContent>
         </Card>
 
