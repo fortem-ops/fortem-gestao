@@ -388,13 +388,18 @@ const App = () => (
                 }
               />
               <Route
-                path="/configuracoes/whatsapp"
+                path="/whatsapp"
                 element={
                   <Suspense fallback={<RouteFallback />}>
-                    <ConfiguracoesWhatsApp />
+                    <WhatsApp />
                   </Suspense>
                 }
               />
+              <Route
+                path="/configuracoes/whatsapp"
+                element={<Navigate to="/whatsapp" replace />}
+              />
+
               <Route
                 path="/comissionamentos"
                 element={
