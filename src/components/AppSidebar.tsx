@@ -91,7 +91,10 @@ const sistemaCoordAdminItems = [
 ];
 const sistemaAdminItems = [
   { title: "Admin Clube", url: "/admin/clube", icon: Sparkles },
-  { title: "WhatsApp", url: "/configuracoes/whatsapp", icon: MessageCircle },
+];
+
+const sistemaCoordAdminExtraItems = [
+  { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
 ];
 
 const sistemaCoordItems = [
@@ -288,6 +291,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {isCoordAdmin && sistemaCoordAdminItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
+              {isCoordAdmin && sistemaCoordAdminExtraItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
               {isAdmin && sistemaAdminItems.map((item) => (

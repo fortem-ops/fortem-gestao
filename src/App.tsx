@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -57,7 +57,7 @@ const RelatoriosCancelamentos = lazy(() => import("./pages/relatorios/Cancelamen
 const RelatoriosServicos = lazy(() => import("./pages/relatorios/Servicos"));
 const RelatoriosEmBreve = lazy(() => import("./pages/relatorios/EmBreve"));
 const RelatoriosEquipe = lazy(() => import("./pages/relatorios/Equipe"));
-const ConfiguracoesWhatsApp = lazy(() => import("./pages/configuracoes/WhatsApp"));
+const WhatsApp = lazy(() => import("./pages/WhatsApp"));
 const Privacidade = lazy(() => import("./pages/Privacidade"));
 
 // Portal do Aluno
@@ -388,13 +388,18 @@ const App = () => (
                 }
               />
               <Route
-                path="/configuracoes/whatsapp"
+                path="/whatsapp"
                 element={
                   <Suspense fallback={<RouteFallback />}>
-                    <ConfiguracoesWhatsApp />
+                    <WhatsApp />
                   </Suspense>
                 }
               />
+              <Route
+                path="/configuracoes/whatsapp"
+                element={<Navigate to="/whatsapp" replace />}
+              />
+
               <Route
                 path="/comissionamentos"
                 element={

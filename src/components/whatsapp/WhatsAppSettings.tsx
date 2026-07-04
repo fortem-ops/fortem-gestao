@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Navigate } from "react-router-dom";
-import { MessageCircle, Copy, Check, Loader2, RefreshCw, Send, Link2 } from "lucide-react";
+import { Copy, Check, Loader2, RefreshCw, Send, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useUserRoles } from "@/hooks/useUserRoles";
 import { sendTemplate } from "@/services/whatsappService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,8 +23,7 @@ type WhatsAppEvent = {
   created_at: string;
 };
 
-export default function ConfiguracoesWhatsApp() {
-  const { data: roles, isLoading: rolesLoading } = useUserRoles();
+export default function WhatsAppSettings() {
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState("hello_world");
@@ -43,7 +40,6 @@ export default function ConfiguracoesWhatsApp() {
       if (error) throw error;
       return (data ?? []) as unknown as WhatsAppEvent[];
     },
-    enabled: !!roles?.isAdmin,
     refetchInterval: 15_000,
   });
 
@@ -57,15 +53,6 @@ export default function ConfiguracoesWhatsApp() {
     const t = setTimeout(() => setCopied(false), 1800);
     return () => clearTimeout(t);
   }, [copied]);
-
-  if (rolesLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-  if (!roles?.isAdmin) return <Navigate to="/" replace />;
 
   const handleCopy = async () => {
     try {
@@ -96,15 +83,7 @@ export default function ConfiguracoesWhatsApp() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center gap-2">
-        <MessageCircle className="w-6 h-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-heading font-bold">WhatsApp Cloud API</h1>
-          <p className="text-sm text-muted-foreground">Integração com Meta • Somente Administradores</p>
-        </div>
-      </div>
-
+    <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -183,7 +162,7 @@ export default function ConfiguracoesWhatsApp() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Envia uma mensagem para <strong>(51) 99419-2126</strong> usando o template abaixo.
+            Envia uma mensagem para <strong>(51) 99151-9640</strong> usando o template abaixo.
             O template já precisa estar aprovado na sua conta do WhatsApp Business.
           </p>
           <div className="grid gap-3 md:grid-cols-2">
