@@ -25,6 +25,8 @@ type Mensagem = {
   conteudo: string | null;
   status: string;
   created_at: string;
+  enviado_por: string | null;
+  profiles?: { full_name: string | null; avatar_url: string | null } | null;
 };
 
 function formatPhone(t: string) {
