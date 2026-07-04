@@ -131,7 +131,19 @@ export default function WhatsAppSettings() {
               <div className="text-muted-foreground">Token</div>
               <div className="font-mono text-xs mt-1 p-2 rounded bg-muted">
                 Configurado via Secret <code>WHATSAPP_TOKEN</code>
-              </div>
+            </div>
+            {roles?.isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSubscribeWaba}
+                disabled={subscribing}
+                className="w-full gap-2"
+              >
+                {subscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Webhook className="w-4 h-4" />}
+                Inscrever App na WABA
+              </Button>
+            )}
             </div>
           </CardContent>
         </Card>
