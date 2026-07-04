@@ -25,6 +25,8 @@ type Mensagem = {
   conteudo: string | null;
   status: string;
   created_at: string;
+  enviado_por: string | null;
+  profiles?: { full_name: string | null; avatar_url: string | null } | null;
 };
 
 function formatPhone(t: string) {
@@ -71,7 +73,7 @@ export default function WhatsAppChat() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("whatsapp_mensagens" as never)
-        .select("*")
+        .select("*, profiles:enviado_por(full_name, avatar_url)")
         .eq("conversa_id", selectedId!)
         .order("created_at", { ascending: true })
         .limit(500);
@@ -151,11 +153,13 @@ export default function WhatsAppChat() {
     setSending(true);
     const text = draft.trim();
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.functions.invoke("send-whatsapp", {
         body: {
           to: selected.telefone,
           type: "text",
           text,
+          enviado_por: user?.id ?? null,
         },
       });
       if (error) throw error;
@@ -263,7 +267,7 @@ export default function WhatsAppChat() {
                     return (
                       <div
                         key={m.id}
-                        className={cn("flex", enviada ? "justify-end" : "justify-start")}
+                        className={cn("flex flex-col", enviada ? "items-end" : "items-start")}
                       >
                         <div
                           className={cn(
@@ -288,6 +292,11 @@ export default function WhatsAppChat() {
                             })}
                           </div>
                         </div>
+                        {enviada && m.profiles?.full_name && (
+                          <div className="text-[10px] opacity-60 mt-0.5 text-right pr-1">
+                            {m.profiles.full_name}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

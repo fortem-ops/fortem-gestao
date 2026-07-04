@@ -13,8 +13,9 @@ async function upsertConversaAndSave(params: {
   telefone: string;
   conteudo: string;
   wamid?: string;
+  enviado_por?: string | null;
 }) {
-  const { telefone, conteudo, wamid } = params;
+  const { telefone, conteudo, wamid, enviado_por } = params;
   const nowIso = new Date().toISOString();
   const { data: conv, error: convErr } = await admin
     .from('whatsapp_conversas')
@@ -35,6 +36,7 @@ async function upsertConversaAndSave(params: {
     tipo: 'text',
     conteudo,
     status: 'sent',
+    enviado_por: enviado_por ?? null,
   });
   if (msgErr) console.error('[send-whatsapp] insert mensagem error', msgErr);
 }
@@ -145,6 +147,7 @@ Deno.serve(async (req) => {
         telefone: toClean,
         conteudo: (payload.text as any).body,
         wamid,
+        enviado_por: typeof body.enviado_por === 'string' ? body.enviado_por : null,
       });
     }
 

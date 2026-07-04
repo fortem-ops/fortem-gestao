@@ -1,0 +1,2 @@
+ALTER TABLE public.whatsapp_mensagens ADD COLUMN IF NOT EXISTS enviado_por uuid REFERENCES public.profiles(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_whatsapp_mensagens_enviado_por ON public.whatsapp_mensagens(enviado_por);
