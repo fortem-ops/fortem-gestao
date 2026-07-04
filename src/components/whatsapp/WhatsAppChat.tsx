@@ -153,11 +153,13 @@ export default function WhatsAppChat() {
     setSending(true);
     const text = draft.trim();
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.functions.invoke("send-whatsapp", {
         body: {
           to: selected.telefone,
           type: "text",
           text,
+          enviado_por: user?.id ?? null,
         },
       });
       if (error) throw error;
