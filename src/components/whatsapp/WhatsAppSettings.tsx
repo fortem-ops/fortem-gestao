@@ -85,6 +85,27 @@ export default function WhatsAppSettings() {
     }
   };
 
+  const handleSubscribeWaba = async () => {
+    setSubscribing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("subscribe-waba", { body: {} });
+      if (error) throw error;
+      if (data?.ok) {
+        toast.success("App inscrito na WABA com sucesso!", {
+          description: JSON.stringify(data.result).slice(0, 200),
+        });
+      } else {
+        toast.error("Falha ao inscrever app", {
+          description: JSON.stringify(data?.result ?? data).slice(0, 300),
+        });
+      }
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
