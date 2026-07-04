@@ -73,7 +73,7 @@ export default function WhatsAppChat() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("whatsapp_mensagens" as never)
-        .select("*")
+        .select("*, profiles:enviado_por(full_name, avatar_url)")
         .eq("conversa_id", selectedId!)
         .order("created_at", { ascending: true })
         .limit(500);
