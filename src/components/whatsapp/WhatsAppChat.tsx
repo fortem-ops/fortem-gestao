@@ -311,9 +311,9 @@ export default function WhatsAppChat() {
                             })}
                           </div>
                         </div>
-                        {enviada && m.profiles?.full_name && (
+                        {enviada && m.enviado_por && profilesQuery.data?.[m.enviado_por]?.full_name && (
                           <div className="text-[10px] opacity-60 mt-0.5 text-right pr-1">
-                            {m.profiles.full_name}
+                            {profilesQuery.data[m.enviado_por].full_name}
                           </div>
                         )}
                       </div>
