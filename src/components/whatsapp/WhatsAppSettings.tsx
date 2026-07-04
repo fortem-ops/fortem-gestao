@@ -31,7 +31,6 @@ export default function WhatsAppSettings() {
   const [testTemplate, setTestTemplate] = useState("hello_world");
   const [testLanguage, setTestLanguage] = useState("en_US");
   const { data: roles } = useUserRoles();
-  const [testLanguage, setTestLanguage] = useState("en_US");
 
   const eventsQuery = useQuery({
     queryKey: ["whatsapp-events"],
