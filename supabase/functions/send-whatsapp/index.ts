@@ -17,26 +17,55 @@ async function upsertConversaAndSave(params: {
 }) {
   const { telefone, conteudo, wamid, enviado_por } = params;
   const nowIso = new Date().toISOString();
-  const { data: conv, error: convErr } = await admin
+
+  let conversaId: string | null = null;
+
+  const { data: upserted, error: upsertErr } = await admin
     .from('whatsapp_conversas')
     .upsert(
       { telefone, ultima_mensagem: conteudo, ultima_mensagem_at: nowIso },
-      { onConflict: 'telefone' },
+      { onConflict: 'telefone', ignoreDuplicates: false },
     )
     .select('id')
     .single();
-  if (convErr) {
-    console.error('[send-whatsapp] upsert conversa error', convErr);
+
+  if (upsertErr || !upserted) {
+    if (upsertErr) console.error('[send-whatsapp] upsert conversa error', upsertErr);
+    const { data: existing } = await admin
+      .from('whatsapp_conversas')
+      .select('id')
+      .eq('telefone', telefone)
+      .single();
+    conversaId = existing?.id ?? null;
+  } else {
+    conversaId = upserted.id;
+  }
+
+  if (!conversaId) {
+    console.error('[send-whatsapp] não foi possível obter conversa id para', telefone);
     return;
   }
+
+  // Valida enviado_por contra profiles para evitar violação de FK
+  let enviadoPorValido: string | null = null;
+  if (enviado_por) {
+    const { data: prof } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('id', enviado_por)
+      .maybeSingle();
+    if (prof) enviadoPorValido = enviado_por;
+    else console.warn('[send-whatsapp] enviado_por sem profile correspondente:', enviado_por);
+  }
+
   const { error: msgErr } = await admin.from('whatsapp_mensagens').insert({
-    conversa_id: conv.id,
-    wamid,
+    conversa_id: conversaId,
+    wamid: wamid ?? null,
     direcao: 'enviada',
     tipo: 'text',
     conteudo,
     status: 'sent',
-    enviado_por: enviado_por ?? null,
+    enviado_por: enviadoPorValido,
   });
   if (msgErr) console.error('[send-whatsapp] insert mensagem error', msgErr);
 }

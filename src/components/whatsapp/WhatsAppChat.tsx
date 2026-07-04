@@ -167,8 +167,9 @@ export default function WhatsAppChat() {
         throw new Error((data as any).error ?? "Falha ao enviar");
       }
       setDraft("");
-      qc.invalidateQueries({ queryKey: ["whatsapp-mensagens", selectedId] });
-      qc.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await qc.invalidateQueries({ queryKey: ["whatsapp-mensagens", selectedId] });
+      await qc.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
     } catch (err) {
       toast.error((err as Error).message ?? "Falha ao enviar mensagem");
     } finally {
