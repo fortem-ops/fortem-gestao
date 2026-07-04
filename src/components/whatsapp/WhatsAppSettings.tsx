@@ -131,6 +131,7 @@ export default function WhatsAppSettings() {
               <div className="text-muted-foreground">Token</div>
               <div className="font-mono text-xs mt-1 p-2 rounded bg-muted">
                 Configurado via Secret <code>WHATSAPP_TOKEN</code>
+              </div>
             </div>
             {roles?.isAdmin && (
               <Button
