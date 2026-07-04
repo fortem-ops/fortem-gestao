@@ -4907,13 +4907,6 @@ export type Database = {
             referencedRelation: "whatsapp_conversas"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "whatsapp_mensagens_enviado_por_fkey"
-            columns: ["enviado_por"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }

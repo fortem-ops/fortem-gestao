@@ -51,8 +51,8 @@ async function upsertConversaAndSave(params: {
   if (enviado_por) {
     const { data: prof } = await admin
       .from('profiles')
-      .select('id')
-      .eq('id', enviado_por)
+      .select('user_id, full_name')
+      .eq('user_id', enviado_por)
       .maybeSingle();
     if (prof) enviadoPorValido = enviado_por;
     else console.warn('[send-whatsapp] enviado_por sem profile correspondente:', enviado_por);

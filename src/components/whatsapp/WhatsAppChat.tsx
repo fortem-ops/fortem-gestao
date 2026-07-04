@@ -26,8 +26,9 @@ type Mensagem = {
   status: string;
   created_at: string;
   enviado_por: string | null;
-  profiles?: { full_name: string | null; avatar_url: string | null } | null;
 };
+
+type ProfileInfo = { full_name: string | null; avatar_url: string | null };
 
 function formatPhone(t: string) {
   const d = t.replace(/\D/g, "");
@@ -73,13 +74,28 @@ export default function WhatsAppChat() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("whatsapp_mensagens" as never)
-        .select("*, profiles:enviado_por(full_name, avatar_url)")
+        .select("*")
         .eq("conversa_id", selectedId!)
         .order("created_at", { ascending: true })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as unknown as Mensagem[];
     },
+  });
+
+  const profilesQuery = useQuery({
+    queryKey: ["profiles-map"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles" as never)
+        .select("user_id, full_name, avatar_url");
+      const map: Record<string, ProfileInfo> = {};
+      (data ?? []).forEach((p: any) => {
+        if (p?.user_id) map[p.user_id] = { full_name: p.full_name ?? null, avatar_url: p.avatar_url ?? null };
+      });
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   // Realtime: conversas
@@ -295,9 +311,9 @@ export default function WhatsAppChat() {
                             })}
                           </div>
                         </div>
-                        {enviada && m.profiles?.full_name && (
+                        {enviada && m.enviado_por && profilesQuery.data?.[m.enviado_por]?.full_name && (
                           <div className="text-[10px] opacity-60 mt-0.5 text-right pr-1">
-                            {m.profiles.full_name}
+                            {profilesQuery.data[m.enviado_por].full_name}
                           </div>
                         )}
                       </div>
