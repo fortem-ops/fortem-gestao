@@ -57,7 +57,7 @@ const RelatoriosCancelamentos = lazy(() => import("./pages/relatorios/Cancelamen
 const RelatoriosServicos = lazy(() => import("./pages/relatorios/Servicos"));
 const RelatoriosEmBreve = lazy(() => import("./pages/relatorios/EmBreve"));
 const RelatoriosEquipe = lazy(() => import("./pages/relatorios/Equipe"));
-const ConfiguracoesWhatsApp = lazy(() => import("./pages/configuracoes/WhatsApp"));
+const WhatsApp = lazy(() => import("./pages/WhatsApp"));
 const Privacidade = lazy(() => import("./pages/Privacidade"));
 
 // Portal do Aluno
