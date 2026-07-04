@@ -267,7 +267,7 @@ export default function WhatsAppChat() {
                     return (
                       <div
                         key={m.id}
-                        className={cn("flex", enviada ? "justify-end" : "justify-start")}
+                        className={cn("flex flex-col", enviada ? "items-end" : "items-start")}
                       >
                         <div
                           className={cn(
@@ -292,6 +292,11 @@ export default function WhatsAppChat() {
                             })}
                           </div>
                         </div>
+                        {enviada && m.profiles?.full_name && (
+                          <div className="text-[10px] opacity-60 mt-0.5 text-right pr-1">
+                            {m.profiles.full_name}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
