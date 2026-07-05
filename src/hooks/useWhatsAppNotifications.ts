@@ -3,42 +3,51 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useWhatsAppNotifications(enabled: boolean = true) {
-  const location = useLocation();
   const navigate = useNavigate();
+  const locationRef = useRef(useLocation().pathname);
   const lastMessageId = useRef<string | null>(null);
-  const pathRef = useRef(location.pathname);
 
+  // Mantém pathname atualizado sem re-subscribing
+  const location = useLocation();
   useEffect(() => {
-    pathRef.current = location.pathname;
+    locationRef.current = location.pathname;
   }, [location.pathname]);
 
   useEffect(() => {
     if (!enabled) return;
     if (typeof window === "undefined" || !("Notification" in window)) return;
 
+    // Solicita permissão se ainda não foi decidido
     if (Notification.permission === "default") {
       Notification.requestPermission().catch(() => {});
     }
 
     const channel = supabase
-      .channel("whatsapp-new-messages-notify")
+      .channel("whatsapp-notifications-v2")
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "whatsapp_mensagens",
-          filter: "direcao=eq.recebida",
         },
         async (payload) => {
           const msg = payload.new as any;
 
+          // Só para mensagens recebidas
+          if (msg.direcao !== "recebida") return;
+
+          // Deduplicação
           if (msg.id === lastMessageId.current) return;
           lastMessageId.current = msg.id;
 
-          if (pathRef.current.startsWith("/whatsapp")) return;
+          // Não notifica se já está na página /whatsapp
+          if (locationRef.current.startsWith("/whatsapp")) return;
+
+          // Verifica permissão em runtime (pode ter sido concedida depois)
           if (Notification.permission !== "granted") return;
 
+          // Busca nome do contato
           const { data: conversa } = await supabase
             .from("whatsapp_conversas" as never)
             .select("nome_contato, telefone")
@@ -48,26 +57,32 @@ export function useWhatsAppNotifications(enabled: boolean = true) {
           const contato =
             (conversa as any)?.nome_contato ||
             (conversa as any)?.telefone ||
-            "Novo contato";
+            "WhatsApp Fortem";
           const texto = msg.conteudo || "Nova mensagem";
+          const body = texto.length > 100 ? texto.substring(0, 100) + "…" : texto;
 
-          const notification = new Notification(`💬 ${contato}`, {
-            body: texto.length > 80 ? texto.substring(0, 80) + "…" : texto,
-            icon: "/favicon.ico",
-            tag: `whatsapp-${msg.conversa_id}`,
-            ...({ renotify: true } as any),
-          });
+          try {
+            const notification = new Notification(`💬 ${contato}`, {
+              body,
+              icon: "/favicon.ico",
+              tag: `whatsapp-${msg.conversa_id}`,
+            });
 
-          notification.onclick = () => {
-            window.focus();
-            navigate("/whatsapp");
-            notification.close();
-          };
+            notification.onclick = () => {
+              window.focus();
+              navigate("/whatsapp");
+              notification.close();
+            };
 
-          setTimeout(() => notification.close(), 6000);
-        },
+            setTimeout(() => notification.close(), 6000);
+          } catch (e) {
+            console.error("[WhatsApp Notification] erro:", e);
+          }
+        }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[WhatsApp Notification] channel status:", status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
