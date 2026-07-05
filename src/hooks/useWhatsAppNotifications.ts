@@ -55,7 +55,7 @@ export function useWhatsAppNotifications(enabled: boolean = true) {
             body: texto.length > 80 ? texto.substring(0, 80) + "…" : texto,
             icon: "/favicon.ico",
             tag: `whatsapp-${msg.conversa_id}`,
-            renotify: true,
+            ...({ renotify: true } as any),
           });
 
           notification.onclick = () => {
