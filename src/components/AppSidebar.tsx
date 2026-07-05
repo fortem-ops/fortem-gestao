@@ -1,5 +1,6 @@
 import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
+import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { usePontoStatus } from "@/hooks/usePontoStatus";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
@@ -126,6 +127,29 @@ function SidebarItem({ item, isActive }: { item: { title: string; url: string; i
     </SidebarMenuItem>
   );
 }
+function WhatsAppSidebarItem({ isActive, enabled }: { isActive: (p: string) => boolean; enabled: boolean }) {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  const unread = useWhatsAppUnread(enabled);
+  const item = { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle };
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive(item.url)}>
+        <NavLink to={item.url} end={false} activeClassName="bg-sidebar-accent text-sidebar-primary">
+          <item.icon className="mr-2 h-4 w-4" />
+          {!collapsed && <span className="flex-1">{item.title}</span>}
+          {unread > 0 && (
+            <span className={`${collapsed ? "absolute right-1 top-1" : "ml-auto"} inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-green-500 text-white text-[10px] font-bold`}>
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+
 
 function PontoSidebarItem({ item, isActive }: { item: { title: string; url: string; icon: any }; isActive: (p: string) => boolean }) {
   const { state } = useSidebar();
@@ -293,9 +317,9 @@ export function AppSidebar() {
               {isCoordAdmin && sistemaCoordAdminItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
-              {isCoordAdmin && sistemaCoordAdminExtraItems.map((item) => (
-                <SidebarItem key={item.title} item={item} isActive={isActive} />
-              ))}
+              {isCoordAdmin && (
+                <WhatsAppSidebarItem isActive={isActive} enabled={!!isCoordAdmin} />
+              )}
               {isAdmin && sistemaAdminItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
