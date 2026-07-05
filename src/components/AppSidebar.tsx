@@ -317,9 +317,9 @@ export function AppSidebar() {
               {isCoordAdmin && sistemaCoordAdminItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
-              {isCoordAdmin && sistemaCoordAdminExtraItems.map((item) => (
-                <SidebarItem key={item.title} item={item} isActive={isActive} />
-              ))}
+              {isCoordAdmin && (
+                <WhatsAppSidebarItem isActive={isActive} enabled={!!isCoordAdmin} />
+              )}
               {isAdmin && sistemaAdminItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
