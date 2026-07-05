@@ -196,6 +196,7 @@ export function AppSidebar() {
   const isCoordAdmin = roles?.isCoordAdmin;
   const isAdmin = roles?.isAdmin;
   const isParceiro = roles?.isParceiro;
+  useWhatsAppNotifications(!!isCoordAdmin);
 
   return (
     <Sidebar collapsible="icon">
