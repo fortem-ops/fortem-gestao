@@ -28,7 +28,8 @@ export async function uploadAndParseKinology(
   alunoId: string,
   file: File,
 ): Promise<KinologyParseResult> {
-  const path = `avaliacoes/laudos-dinamometria/${alunoId}/${Date.now()}-${file.name}`;
+  const safeName = sanitizeFileName(file.name);
+  const path = `avaliacoes/laudos-dinamometria/${alunoId}/${Date.now()}-${safeName}`;
   const { error: upErr } = await supabase.storage
     .from("aluno-files")
     .upload(path, file, { contentType: "application/pdf", upsert: false });
