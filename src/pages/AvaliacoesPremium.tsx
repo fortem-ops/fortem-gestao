@@ -5,6 +5,7 @@ import { useAlunoAvaliacoesConsolidadas } from "@/components/avaliacoes-premium/
 import { AlunoSidebarCard } from "@/components/avaliacoes-premium/AlunoSidebarCard";
 import { DashboardSummary } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
+import { PremiumKinologyImport } from "@/components/avaliacoes-premium/PremiumKinologyImport";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,6 +79,7 @@ export default function AvaliacoesPremium() {
 
           <div className="flex-1 min-w-0 space-y-5">
             <DashboardSummary scores={scores} />
+            <PremiumKinologyImport alunoId={alunoId} />
             <PremiumBodyMap funcional={data.funcional.latest} />
 
             <Tabs defaultValue="forca" className="bio-card p-4">

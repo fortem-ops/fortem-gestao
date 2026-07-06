@@ -138,9 +138,18 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
 
       <div className="flex items-center justify-between">
         <h3 className="font-heading font-semibold text-foreground">Histórico de Avaliações</h3>
-        <Button onClick={() => navigate(`/avaliacoes?aluno=${student.id}&new=1`)} size="sm">
-          <Plus className="w-4 h-4 mr-1" /> Realizar Avaliação
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => navigate(`/avaliacoes-premium/${student.id}`)}
+            size="sm"
+            variant="outline"
+          >
+            Avaliações Premium
+          </Button>
+          <Button onClick={() => navigate(`/avaliacoes?aluno=${student.id}&new=1`)} size="sm">
+            <Plus className="w-4 h-4 mr-1" /> Realizar Avaliação
+          </Button>
+        </div>
       </div>
 
 
