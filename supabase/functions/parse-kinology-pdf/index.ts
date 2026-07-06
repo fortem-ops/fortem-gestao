@@ -53,22 +53,18 @@ Deno.serve(async (req) => {
     const { data: isStaff, error: staffErr } = await admin.rpc("is_staff", { _user_id: userRes.user.id });
     if (staffErr || !isStaff) throw new Error("Acesso negado");
 
-    const { data: file, error: dlErr } = await admin.storage
+    // Em vez de baixar o PDF + base64 (lento: ~25s p/ 2MB e estoura wall-clock em cold start),
+    // gera URL assinada curta e deixa o AI Gateway buscar o arquivo diretamente.
+    const tSign = Date.now();
+    const { data: signed, error: signErr } = await admin.storage
       .from("aluno-files")
-      .download(storage_path);
-    if (dlErr || !file) throw new Error(`Falha ao baixar laudo: ${dlErr?.message}`);
-
-    const buf = await file.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let binary = "";
-    const CHUNK = 0x8000;
-    for (let i = 0; i < bytes.length; i += CHUNK) {
-      binary += String.fromCharCode.apply(
-        null,
-        Array.from(bytes.subarray(i, Math.min(i + CHUNK, bytes.length))),
-      );
+      .createSignedUrl(storage_path, 300);
+    if (signErr || !signed?.signedUrl) {
+      throw new Error(`Falha ao gerar URL do laudo: ${signErr?.message ?? "sem url"}`);
     }
-    const base64 = btoa(binary);
+    const pdfUrl = signed.signedUrl;
+    console.log(`[parse-kinology] signed URL pronta em ${Date.now() - tSign}ms`);
+
 
     const systemPrompt = `Você extrai dados de laudos de dinamometria isométrica do equipamento Kinology.
 Analise APENAS as tabelas das páginas tituladas "Assimetria e Indicativos de Risco | Membros Superiores" e "Assimetria e Indicativos de Risco | Membros Inferiores".
@@ -97,6 +93,8 @@ Formato de resposta:
   ]
 }`;
 
+    console.log(`[parse-kinology] chamando IA (google/gemini-2.5-pro) via URL assinada`);
+    const tAi = Date.now();
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -115,7 +113,7 @@ Formato de resposta:
                 type: "file",
                 file: {
                   filename: "laudo.pdf",
-                  file_data: `data:application/pdf;base64,${base64}`,
+                  file_data: pdfUrl,
                 },
               },
             ],
@@ -124,6 +122,7 @@ Formato de resposta:
         response_format: { type: "json_object" },
       }),
     });
+    console.log(`[parse-kinology] IA respondeu em ${Date.now() - tAi}ms, status ${aiRes.status}`);
 
     if (!aiRes.ok) {
       const txt = await aiRes.text();
@@ -150,6 +149,7 @@ Formato de resposta:
         typeof e.esquerdo_kg === "number",
     );
 
+    console.log(`[parse-kinology] retornando ${exercicios.length} exercício(s) ao cliente`);
     return new Response(
       JSON.stringify({
         paciente: parsed.paciente ?? null,
@@ -158,6 +158,7 @@ Formato de resposta:
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro desconhecido";
     return new Response(JSON.stringify({ error: msg }), {
