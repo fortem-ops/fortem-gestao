@@ -30,7 +30,7 @@ export function PremiumKinologyImport({ alunoId }: Props) {
     setBusy(true);
     const toastId = "kinology-import";
     try {
-      toast.loading("Enviando laudo e lendo com IA...", { id: toastId });
+      toast.loading("Lendo laudo...", { id: toastId });
       const parsed = await uploadAndParseKinology(alunoId, file);
       if (!parsed.exercicios.length) {
         toast.dismiss(toastId);
@@ -38,6 +38,7 @@ export function PremiumKinologyImport({ alunoId }: Props) {
         return;
       }
       const forcaPayload = buildForcaPayload(parsed);
+      const sourceLabel = parsed.source === "deterministic" ? "leitura direta" : "via IA";
 
       const pendente = await findFuncionalV2AguardandoForca(alunoId);
 
@@ -49,9 +50,10 @@ export function PremiumKinologyImport({ alunoId }: Props) {
           .eq("id", pendente.id);
         if (error) throw error;
         toast.dismiss(toastId);
-        toast.success("Força mesclada com sucesso", {
-          description: `${parsed.exercicios.length} exercício(s) integrados à avaliação existente. Comissão liberada.`,
+        toast.success(`Força mesclada com sucesso (${sourceLabel})`, {
+          description: `${parsed.exercicios.length} exercício(s) integrados à avaliação existente.`,
         });
+
       } else {
         const protocoloId = await getFuncionalV2DefaultProtocoloId();
         if (!protocoloId) throw new Error("Protocolo padrão de funcional_v2 não encontrado");
