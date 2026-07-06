@@ -75,6 +75,12 @@ export function PremiumKinologyImport({ alunoId }: Props) {
       qc.invalidateQueries({ queryKey: ["avaliacoes-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-global", alunoId] });
     } catch (e) {
+      console.error("[PremiumKinologyImport] falha ao importar laudo Kinology", {
+        name: e instanceof Error ? e.name : undefined,
+        message: e instanceof Error ? e.message : String(e),
+        stack: e instanceof Error ? e.stack : undefined,
+        error: e,
+      });
       toast.dismiss(toastId);
       toast.error(e instanceof Error ? e.message : "Erro ao importar laudo");
     } finally {
