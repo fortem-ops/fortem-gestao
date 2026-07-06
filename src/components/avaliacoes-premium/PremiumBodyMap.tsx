@@ -35,10 +35,11 @@ export function PremiumBodyMap({ funcional }: Props) {
   const temForca = funcional.forca.length > 0;
   const incompleto = !temMetricas || !temForca;
   const chipLabel = !temForca
-    ? "Aguardando força — comissão não liberada"
+    ? "Avaliação incompleta — força pendente"
     : !temMetricas
-    ? "Aguardando mobilidade/flexibilidade — comissão não liberada"
+    ? "Avaliação incompleta — mobilidade/flexibilidade pendente"
     : null;
+
 
   return (
     <div className="bio-card overflow-hidden relative">
