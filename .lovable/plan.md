@@ -1,147 +1,103 @@
-## Objetivo
+Relatório de investigação + desenho da aba de mobilidade. Sem código aplicado.
 
-Ler os dados de força do laudo Kinology sem chamar IA quando possível. Cair no fluxo atual (`google/gemini-2.5-pro` via `parse-kinology-pdf`) só quando o parser determinístico não reconhecer o padrão. Meta: derrubar os ~42 s de IA para ~1–3 s no caminho feliz.
+## 1. Já existe painel interno de pendências?
 
-## Descoberta (feita agora, só leitura)
+**Sim, dois candidatos — o certo é `/comissionamentos`.**
 
-Rodei `pdftotext -layout` nos dois PDFs de exemplo (`Kinology_Frederico_Muller_2026_05-19.pdf` e `Kinology_Lucas_Busato_2026_04-14.pdf`) e o padrão mais limpo **não é** a seção "Evolução de Assimetria" que você citou — é uma outra seção que aparece antes, chamada **"Assimetria e Indicativos de Risco | Membros Superiores/Inferiores"** (páginas 2 e 3). Ela lista uma linha por exercício, no formato:
+**`/comissionamentos` (`src/pages/Comissionamentos.tsx`, hook `useComissaoPendencias`)**
+- Lê da tabela `comissionamento_pendencias`.
+- Alimentada automaticamente por trigger (`supabase/migrations/20260706072104_...sql`) toda vez que uma avaliação `funcional_v2` é inserida ou atualizada:
+  - Se faltam métricas OU falta força → cria/mantém pendência `concluir_avaliacao_funcional` com descrição já falando "avaliação funcional v2" e vinculada à `avaliacao_id`.
+  - Quando ambos preenchem → a pendência é marcada `concluido = true` automaticamente (é o próprio trigger de "comissão liberada" que já implementamos nesta sessão).
+- Escopada por `profissional_id`, com filtros já existentes.
+- **Conclusão:** o "aguardando força / aguardando mobilidade" já é rastreado ali sem retrabalho. Só precisaria (opcionalmente) refinar a `descricao` do trigger para dizer *qual dos dois lados* está faltando ("aguardando força", "aguardando mobilidade", "aguardando ambos") — hoje o texto é genérico.
+
+**`/tarefas` (`src/pages/TaskCenter.tsx`)**
+- Tabela `tarefas` (com `automatica`/`tipo_auto`), aba "Automáticas", mais focada em ações comerciais (`gravar_video`, etc.). Não conversa com `comissionamento_pendencias`. Encaixar avaliação incompleta aqui exigiria inventar um `tipo_auto` novo e sincronizar via trigger — retrabalho desnecessário quando `comissionamento_pendencias` já resolve.
+
+**Recomendação:** usar `/comissionamentos` como destino da informação "avaliação v2 incompleta". Zero linha de código no lado da UI se aceitarmos o texto genérico atual da pendência; **1 migration curta** se quisermos que a descrição diga exatamente qual metade falta.
+
+## 2. Refatoração do chip em `PremiumBodyMap.tsx`
+
+Hoje (`PremiumBodyMap.tsx:37-41`):
+```text
+"Aguardando força — comissão não liberada"
+"Aguardando mobilidade/flexibilidade — comissão não liberada"
+```
+
+Aluno enxerga esse componente na `/avaliacoes-premium`. Referência a comissão nunca deveria aparecer pra ele.
+
+**Proposta (só troca de texto, mesma lógica):**
+```text
+"Avaliação incompleta — força pendente"
+"Avaliação incompleta — mobilidade/flexibilidade pendente"
+```
+A informação "comissão não liberada" some do cliente e continua visível pra equipe em `/comissionamentos`.
+
+## 3. Nova aba "Mobilidade" na `/avaliacoes-premium`
+
+### Arquitetura
+
+Novo arquivo: `src/components/avaliacoes-premium/tabs/MobilidadeTab.tsx`.
+Adicionar `<TabsTrigger value="mobilidade">Mobilidade</TabsTrigger>` em `AvaliacoesPremium.tsx` entre "Força" e "Composição".
+
+### Reaproveitamento
+
+A tabela de métricas de `FuncionalV2Assessment.tsx` (linhas 186-228, `ALL_FUNCTIONAL_METRICS` iterando com `<Input>` de esquerda/direita e classificação via `classifyAngle`) é o único bloco que a nova aba precisa. Extrair essa tabela para um componente puro reutilizável — nome sugerido `MobilidadeMetricsTable`, arquivo em `src/components/student/assessment/funcionalV2/MobilidadeMetricsTable.tsx` — com props `{ values, onChange, readOnly? }`. `FuncionalV2Assessment.tsx` passa a consumir esse mesmo componente (sem mudança de comportamento). `MobilidadeTab.tsx` também.
+
+Sem duplicação de lógica; `classifyAngle`, `ALL_FUNCTIONAL_METRICS` e `analyze()` continuam onde estão em `bodyMapLogic.ts` e `mock-data.ts`.
+
+### Fluxo de salvar (espelho do Kinology)
+
+Igual ao que já fizemos em `src/lib/kinologyImport.ts` para força, só que ao contrário:
 
 ```text
-  N   <NOME DO EXERCÍCIO>          <dd/mm/aaaa>     <D> kg     <E> kg     <asym>%     <asym anterior>
+1. usuário digita as métricas na nova aba e clica "Salvar mobilidade"
+2. buscar avaliação funcional_v2 mais recente do aluno que tenha `dados.forca.exercicios.length > 0`
+   MAS `dados.metricas` ausente/vazio  → "aguardando mobilidade"
+3a. se encontrar essa linha → UPDATE em `dados.metricas` (mescla, mantém forca)
+    → trigger de comissão libera automaticamente
+3b. se NÃO encontrar → INSERT nova linha funcional_v2 com só métricas
+    (usuário verá aparecer chip "força pendente" no PremiumBodyMap até completar)
+4. invalidar as mesmas queries do PremiumKinologyImport
+   (`aluno-avaliacoes-consolidadas`, `avaliacoes-aluno`, `avaliacoes-global`)
 ```
 
-Exemplo real:
+Simetria exata com `findFuncionalV2AguardandoForca` / `PremiumKinologyImport.handleFile`. Nome sugerido para o helper: `findFuncionalV2AguardandoMobilidade(alunoId)` em `src/lib/mobilidadeSave.ts` (ou juntar num `funcionalV2Save.ts` que exporta os dois helpers).
 
-```text
-1   Rotação interna       25/01/2024   22 kg     18.2 kg   17.27%   Sem dados
-5   Flexão plantar        19/05/2026   50.6 kg   50.8 kg    0.39%   Sem dados
-```
+**Resposta à pergunta 4c/b/a:** deve seguir **(b)** — tentar completar linha existente e só criar nova se não houver espera. Mesma regra do Kinology, mesmo trigger, mesma UX de "libera comissão automaticamente quando fecha o par".
 
-Vantagens sobre "Evolução de Assimetria":
-- Uma linha, sem blocos de múltiplas datas empilhadas.
-- Já é a "última execução" (o próprio laudo consolida).
-- Aparece em todo laudo Kinology (é o resumo padrão dos membros).
+### Cálculo de scores
 
-A seção "Evolução de Assimetria" existe mas é histórico — se um dia quisermos evolução, dá pra parsear também, mas hoje só gravamos a força mais recente.
+Ao inserir/atualizar, o backend não recalcula scores no trigger — a UI premium recalcula tudo em runtime via `useAlunoAvaliacoesConsolidadas` + `computePremiumScores` a partir de `dados.metricas` e `dados.forca`. Ou seja, basta gravar `metricas: rows` no mesmo shape que `FuncionalV2Assessment` já usa (linhas 146-155) e as demais métricas premium se atualizam sozinhas.
 
-## Extração de texto em Deno edge function
+### Anexos e observações
 
-Biblioteca escolhida: **`unpdf`** (`npm:unpdf@0.12`). É um fork serverless-friendly do pdf.js sem dependências nativas, roda em Deno/Workers/Node. API:
-
-```ts
-import { extractText, getDocumentProxy } from "npm:unpdf";
-const pdf = await getDocumentProxy(new Uint8Array(await pdfResp.arrayBuffer()));
-const { text } = await extractText(pdf, { mergePages: true });
-```
-
-Não precisa de worker externo, não precisa de fontes. Testado — funciona no runtime Deno da Supabase.
-
-Alternativa caso `unpdf` dê problema em produção: `pdfjs-dist` via `esm.sh` com `disableWorker=true`. Mantemos como plano B.
-
-## Desenho da função `tryParseKinologyDeterministic`
-
-Arquivo: mesma edge function `supabase/functions/parse-kinology-pdf/index.ts` — não precisa criar function nova, só adiciona uma etapa antes do fetch do AI Gateway.
-
-Fluxo dentro da function:
-
-```text
-1. baixar PDF via service role (necessário: unpdf precisa dos bytes, não URL)
-2. extrair texto com unpdf → string
-3. tryParseKinologyDeterministic(text) → ParsedExercise[]
-4. se resultado.length >= MIN_EXERCICIOS (proposta: 1)
-     → retorna { source: "deterministic", exercicios, paciente, dataEmissao }
-   senão
-     → chama AI Gateway com signed URL (fluxo atual, intocado)
-     → retorna { source: "ai", ... }
-```
-
-Assinatura e lógica do parser:
-
-```ts
-function tryParseKinologyDeterministic(text: string): {
-  paciente: string | null;
-  dataEmissao: string | null;
-  exercicios: ParsedExercise[];
-}
-```
-
-Regex único, aplicado sobre o texto inteiro:
-
-```ts
-// captura: NOME (label), data dd/mm/aaaa, D kg, E kg
-const NOME_ALTS = [
-  "Rotação interna", "Rotação externa",
-  "Dorsiflexão", "Flexão plantar",
-  "Flexão de joelho", "Extensão de joelho",
-  "Flexão de quadril", "Extensão de quadril",
-  "Abdução de quadril", "Adução de quadril",
-];
-const LINE_RE = new RegExp(
-  String.raw`\d+\s+(` + NOME_ALTS.join("|") + String.raw`)\s+` +
-  String.raw`(\d{2}/\d{2}/\d{4})\s+` +
-  String.raw`([\d.,]+)\s*kg\s+([\d.,]+)\s*kg\s+[\d.,]+\s*%`,
-  "gi",
-);
-```
-
-Para cada match: mapear label PT-BR → enum (`rotacao_interna`, etc — mesmo mapa que já existe no system prompt da IA, extraído para constante compartilhada), converter `kg` para number (`parseFloat(x.replace(",","."))`). Deduplica por `nome` mantendo a última ocorrência.
-
-Extras (best-effort, não bloqueantes):
-- `paciente`: regex `/Paciente:\s*(.+?)(?:\s{2,}|$)/`
-- `dataEmissao`: regex `/Emissão:\s*(\d{2}\/\d{2}\/\d{4})/`
-
-Se qualquer um falhar, devolve `null` — o cliente já lida com isso.
-
-## Fallback para IA
-
-Regra: `deterministic.exercicios.length >= 1` → usa determinístico. Senão → IA.
-
-Racional pra threshold=1: se o parser achou ao menos 1 exercício, o PDF é Kinology padrão e o resto (se faltar) provavelmente também está faltando pra IA. Se achou 0, é PDF escaneado (sem texto), formato antigo/novo, ou algo corrompido — IA vale a pena.
-
-Logs pra observabilidade:
-
-```text
-[parse-kinology] texto extraído: N chars, M páginas em Xms
-[parse-kinology] determinístico: K exercício(s) reconhecido(s)
-[parse-kinology] usando determinístico  ← OU  → fallback IA
-```
-
-Resposta ao cliente ganha campo `source: "deterministic" | "ai"` (o cliente não precisa mudar — ignora se não usar; útil pra debug e pra métricas de custo depois).
+`AvaliacaoAnexos` e o textarea de observações da `FuncionalV2Assessment` **não** precisam entrar na aba nova nesta iteração — o escopo pedido é "digitar mobilidade/flexibilidade". Podem entrar depois se necessário.
 
 ## Riscos
 
 | Risco | Mitigação |
 |---|---|
-| PDF escaneado (sem texto selecionável) | `unpdf` devolve string vazia → 0 matches → fallback IA. Comportamento esperado. |
-| Kinology muda layout do laudo | 0 matches → fallback IA. Sem regressão pro usuário. |
-| `unpdf` falhar em runtime Deno (menos provável — bibliotca é feita pra isso) | try/catch em volta da extração → fallback IA. |
-| Nome de exercício com variação (ex: "Rotação Interna" com maiúscula) | Regex `i` já cobre. |
-| Vírgula decimal em vez de ponto | `parseFloat(x.replace(",","."))` cobre. |
-| Ordem D/E invertida em algum laudo | O layout Kinology é fixo (D vem antes de E na coluna). Se algum dia inverter, cai pro fallback via inconsistência — mas hoje não é problema. |
+| Extrair `MobilidadeMetricsTable` quebrar `FuncionalV2Assessment` | Refactor puro sem mudar shape das props internas; testar salvando uma avaliação nova pelo formulário antigo depois. |
+| Se a linha "aguardando mobilidade" foi criada muito antes (semanas), pode haver múltiplas linhas força-only — precisamos escolher a mais recente | Igual `findFuncionalV2AguardandoForca`: `order data desc limit 10` e pega a primeira sem métricas. |
+| UPDATE do `dados` sobrescrever chaves não previstas | Fazer merge no cliente: `{ ...existing.dados, metricas, score...: analyze(...) }` — nunca substituir o objeto inteiro. |
+| Chip refatorado ainda ambíguo para aluno | Texto proposto ("Avaliação incompleta — X pendente") deixa claro sem revelar dado interno. |
 
-## Ganho de tempo esperado
+## Escopo de implementação futura (quando aprovado)
 
-Hoje: ~44 s total (161 ms signed URL + 42 s IA + overhead).
-Novo caminho feliz: baixar PDF (~1 s p/ 2 MB via storage local do mesmo projeto) + extrair texto com `unpdf` (~500 ms – 1.5 s p/ PDFs Kinology de 5–10 páginas) + regex (<10 ms) = **~2 s totais**.
+1. `PremiumBodyMap.tsx` — trocar strings do chip (2 linhas).
+2. Extrair `MobilidadeMetricsTable` de `FuncionalV2Assessment.tsx` e apontar o formulário antigo pra ela (sem mudança de comportamento).
+3. Criar `src/lib/mobilidadeSave.ts` com `findFuncionalV2AguardandoMobilidade(alunoId)` e função de salvar (INSERT vs UPDATE mesclando `metricas`).
+4. Criar `src/components/avaliacoes-premium/tabs/MobilidadeTab.tsx` consumindo o item 2 e chamando o item 3.
+5. Adicionar `<TabsTrigger value="mobilidade">` em `AvaliacoesPremium.tsx`.
+6. (Opcional) Migration ajustando descrição da pendência no trigger para dizer qual metade falta.
 
-Redução: **~95%** de latência e **100%** de custo de IA no caminho feliz.
+Sem nova tabela, sem nova policy, sem nova edge function.
 
-## Escopo desta implementação (quando aprovado)
+## Perguntas pra você antes de eu propor plano de implementação
 
-1. Editar `supabase/functions/parse-kinology-pdf/index.ts`:
-   - Adicionar import `unpdf`.
-   - Baixar PDF via `admin.storage.download()` (voltamos a baixar, mas só usamos os bytes localmente — não mandamos base64 pra lugar nenhum).
-   - Chamar `tryParseKinologyDeterministic(text)`.
-   - Se retornar ≥1 exercício, responder direto (`source: "deterministic"`) e não chamar AI.
-   - Senão, manter fluxo atual (signed URL → AI Gateway) e responder (`source: "ai"`).
-   - Manter todos os `console.log` de tempo, adicionar os do parser.
-
-2. Não mexer em nada do lado cliente (`PremiumKinologyImport.tsx`, `kinologyImport.ts`) — a resposta continua compatível.
-
-3. Não mexer em migrations, protocolos, RLS, ou qualquer outra coisa.
-
-## O que quero confirmar antes de implementar
-
-- **Fonte dos dados**: uso a seção "Assimetria e Indicativos de Risco" (uma linha por exercício, mais limpa) em vez de "Evolução de Assimetria". Os valores são os mesmos para a execução mais recente. OK?
-- **Threshold do fallback**: 1 exercício reconhecido já usa determinístico. Prefere um valor maior (ex: 3, 5)?
-- **Biblioteca**: `unpdf` (Deno-friendly, sem worker). OK ou prefere outra?
+- **Chip do PremiumBodyMap**: OK trocar por "Avaliação incompleta — X pendente" e mover "comissão não liberada" só pra `/comissionamentos`? Ou prefere outro texto?
+- **Descrição da pendência em `/comissionamentos`**: manter genérica ("Avaliação funcional v2 pendente") ou eu ajusto o trigger para detalhar "força pendente" vs "mobilidade pendente"?
+- **Ordem da nova aba** em Avaliações Premium: entre Força e Composição, ou como primeira aba? Nome "Mobilidade" ou "Mobilidade/Flexibilidade"?
+- **Escopo da aba nova**: só a tabela de métricas, ou já embutir observações + anexos também?
