@@ -67,10 +67,11 @@ export function PremiumKinologyImport({ alunoId }: Props) {
         } as never);
         if (error) throw error;
         toast.dismiss(toastId);
-        toast.success("Força registrada", {
+        toast.success(`Força registrada (${sourceLabel})`, {
           description:
-            "Faltam as métricas de mobilidade/flexibilidade para liberar a comissão.",
+            "Faltam as métricas de mobilidade/flexibilidade para completar a avaliação.",
         });
+
       }
 
       qc.invalidateQueries({ queryKey: ["aluno-avaliacoes-consolidadas", alunoId] });
