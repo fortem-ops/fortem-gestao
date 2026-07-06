@@ -93,6 +93,8 @@ Formato de resposta:
   ]
 }`;
 
+    console.log(`[parse-kinology] chamando IA (google/gemini-2.5-pro) via URL assinada`);
+    const tAi = Date.now();
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -111,7 +113,7 @@ Formato de resposta:
                 type: "file",
                 file: {
                   filename: "laudo.pdf",
-                  file_data: `data:application/pdf;base64,${base64}`,
+                  file_data: pdfUrl,
                 },
               },
             ],
@@ -120,6 +122,7 @@ Formato de resposta:
         response_format: { type: "json_object" },
       }),
     });
+    console.log(`[parse-kinology] IA respondeu em ${Date.now() - tAi}ms, status ${aiRes.status}`);
 
     if (!aiRes.ok) {
       const txt = await aiRes.text();
@@ -146,6 +149,7 @@ Formato de resposta:
         typeof e.esquerdo_kg === "number",
     );
 
+    console.log(`[parse-kinology] retornando ${exercicios.length} exercício(s) ao cliente`);
     return new Response(
       JSON.stringify({
         paciente: parsed.paciente ?? null,
@@ -154,6 +158,7 @@ Formato de resposta:
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro desconhecido";
     return new Response(JSON.stringify({ error: msg }), {
