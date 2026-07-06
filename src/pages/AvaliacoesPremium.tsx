@@ -14,6 +14,8 @@ import { ComposicaoTab } from "@/components/avaliacoes-premium/tabs/ComposicaoTa
 import { EvolucaoTab } from "@/components/avaliacoes-premium/tabs/EvolucaoTab";
 import { RecomendacoesTab } from "@/components/avaliacoes-premium/tabs/RecomendacoesTab";
 import { PliometriaTab } from "@/components/avaliacoes-premium/tabs/PliometriaTab";
+import { MobilidadeTab } from "@/components/avaliacoes-premium/tabs/MobilidadeTab";
+
 import { Loader2, Activity } from "lucide-react";
 
 export default function AvaliacoesPremium() {
