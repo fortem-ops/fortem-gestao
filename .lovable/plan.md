@@ -1,244 +1,178 @@
 
-# Migração para `funcional_v2` (Avaliações Premium)
+# Plano — Unificação de Avaliação Funcional + Força em `funcional_v2` (Avaliações Premium)
 
-## Contexto
+Modo somente-leitura: nenhuma migration foi executada e nenhum arquivo foi editado nesta rodada.
 
-Hoje o comissionamento de avaliação funcional depende de dois tipos separados (`funcional` + `forca`, opcionalmente com anexo em `avaliacao_anexos` quando o protocolo tem `permite_upload=true`). O novo fluxo Avaliações Premium grava **um único registro** em `avaliacoes` com `tipo='funcional_v2'`, contendo `dados.metricas` (mobilidade/flexibilidade) e opcionalmente `dados.forca.exercicios` (Kinology importado ou preenchimento manual). A comissão deve ser gerada apenas quando **as duas partes** estiverem presentes na mesma linha.
+## 1. Achados do banco (produção)
 
-Registros legados (`funcional`, `forca`) permanecem intocados — só o comportamento de novos inserts/updates muda.
+`avaliacao_tipos` (todos ativos):
 
----
+| Slug | Nome | Engine | Obs |
+|---|---|---|---|
+| `funcional` | Funcional | `funcional_fixo` | **Antigo** — a desativar |
+| `composicao_corporal` | Composição Corporal | `composicao_pollock` | manter |
+| `pliometria` | Pliometria | `dinamico` | manter |
+| `forca` | Força | `dinamico` | **Antigo isolado (Kinology upload)** — a desativar |
+| `experimental` | Experimental | `dinamico` | manter |
+| `funcional_v2` | Avaliação Funcional (Nova) | `funcional_v2` | **Fluxo alvo** |
 
-## (a) Ordem de execução recomendada
+`avaliacao_protocolos`:
+- `Funcional` (tipo funcional, is_default=true, permite_upload=false)
+- `Pollock - 7 Dobras`
+- `Padrão` (pliometria)
+- `Relatório Força` (tipo forca, is_default=**false**, permite_upload=**true**) — é este que hoje aceita o PDF Kinology no fluxo antigo
+- `Relatório da aula experimental`
 
-1. **Migration SQL** — atualizar `trg_comissao_avaliacao_insert` + adicionar variante para UPDATE, reconhecendo `funcional_v2` com regra de completude.
-2. **Front — `useAlunoAvaliacoesConsolidadas.ts`** — incluir `funcional_v2` no filtro `funcRows`.
-3. **QA manual** com o checklist da seção (e).
-4. *(Opcional, item separado)* Trava de duplicidade por ciclo — ver seção "Item opcional".
+Contagem em `avaliacoes.tipo`: `funcional`=120, `experimental`=15, `forca`=6, `pliometria`=2, `funcional_v2`=0 (ainda não usado em produção). ➜ Migração é 100% forward — sem necessidade de backfill.
 
-A migration vem primeiro porque o gatilho é o ponto mais frágil (silenciosamente deixa de gerar comissões); com ela pronta, a mudança de front apenas passa a exibir dados que já são gravados corretamente.
+## 2. Ordem de execução
 
----
+1. **Front — Import Kinology na Premium (novo componente)** dentro de `/avaliacoes-premium`, no cabeçalho do `PremiumBodyMap` ou como bloco próprio acima das tabs.
+2. **Front — Ajuste de UI**: badge/aviso quando existir linha `funcional_v2` só com força (metricas vazio) ou só com métricas (força vazia).
+3. **Front — Menu/Navegação**: manter `/avaliacoes` (histórico e edição legada) e redirecionar a ação primária "Nova avaliação funcional / força" para `/avaliacoes-premium`.
+4. **DB — Migration de desativação** dos tipos/protocolos antigos (apenas `ativo=false`, sem delete).
+5. **Validação manual** (checklist ao final).
 
-## (b) Arquivos tocados
+## 3. Detalhamento por item
 
-- **Nova migration** `supabase/migrations/<timestamp>_funcional_v2_comissao.sql` — redefine a função `trg_comissao_avaliacao_insert()` e cria a função/trigger de UPDATE.
-- **`src/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas.ts`** — 1 linha no filtro `funcRows`.
+### 3a. Import Kinology dentro da Premium
 
-Não tocar:
-- `trg_comissao_agenda_insert` — o texto "Avaliação Funcional" da agenda continua abrindo a mesma pendência `concluir_avaliacao_funcional`, e o novo trigger continua fechando essa mesma pendência.
-- `trg_comissao_anexo_insert` — mantido para registros legados com protocolo `permite_upload=true`. Como o novo fluxo não usa `avaliacao_anexos`, ele nunca vai disparar para `funcional_v2`.
-- `trg_aval_reavaliacao_4m` — já usa `LIKE '%funcional%'`, cobre `funcional_v2` automaticamente.
-- `comissionamento_config` — o enum `avaliacao_funcional` já é o correto; nada muda ali.
-- Formulário `FuncionalV2Assessment.tsx` — hoje faz sempre um único INSERT com tudo. Mantém como está (mas o trigger novo já cobre o cenário de UPDATE futuro, caso passe a existir edição).
+Local sugerido: `src/components/avaliacoes-premium/PremiumKinologyImport.tsx` (novo), consumido em `src/pages/AvaliacoesPremium.tsx` logo acima do `<PremiumBodyMap>`.
 
----
+Fluxo do botão "Importar PDF Kinology":
 
-## (c) Migration SQL proposta
-
-```sql
--- Redefine trigger de INSERT: reconhece funcional_v2 e só comissiona se completo
-CREATE OR REPLACE FUNCTION public.trg_comissao_avaliacao_insert()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  _permite_upload boolean := false;
-  _aluno_nome text;
-  _agenda_id uuid;
-  _profissional uuid;
-  _is_v2 boolean := (NEW.tipo = 'funcional_v2');
-  _tem_metricas boolean := false;
-  _tem_forca boolean := false;
-BEGIN
-  IF NEW.tipo NOT IN ('funcional','forca','funcional_v2') THEN
-    RETURN NEW;
-  END IF;
-
-  SELECT nome INTO _aluno_nome FROM public.alunos WHERE id = NEW.aluno_id;
-
-  IF _is_v2 THEN
-    _tem_metricas := jsonb_typeof(NEW.dados->'metricas') = 'array'
-                     AND jsonb_array_length(NEW.dados->'metricas') > 0;
-    _tem_forca    := jsonb_typeof(NEW.dados->'forca'->'exercicios') = 'array'
-                     AND jsonb_array_length(NEW.dados->'forca'->'exercicios') > 0;
-  ELSE
-    IF NEW.protocolo_id IS NOT NULL THEN
-      SELECT permite_upload INTO _permite_upload
-      FROM public.avaliacao_protocolos WHERE id = NEW.protocolo_id;
-    END IF;
-  END IF;
-
-  -- Fecha a pendência aberta assim que qualquer parte da avaliação chega
-  UPDATE public.comissionamento_pendencias
-  SET concluido = true, concluido_em = now(),
-      responsavel_id = NEW.avaliador_id, avaliacao_id = NEW.id
-  WHERE id = (
-    SELECT id FROM public.comissionamento_pendencias
-    WHERE aluno_id = NEW.aluno_id
-      AND tipo_pendencia = 'concluir_avaliacao_funcional'
-      AND concluido = false
-    ORDER BY created_at DESC LIMIT 1
-  )
-  RETURNING agenda_id, profissional_id INTO _agenda_id, _profissional;
-
-  IF _profissional IS NULL OR public.has_role(_profissional, 'admin') THEN
-    _profissional := public.fn_resolver_prof_avaliacao(NEW.aluno_id, NEW.data, NEW.avaliador_id);
-  END IF;
-
-  IF _profissional IS NULL THEN
-    INSERT INTO public.comissionamento_pendencias
-      (profissional_id, aluno_id, tipo_pendencia, descricao, avaliacao_id, agenda_id)
-    VALUES (COALESCE(NEW.avaliador_id, NEW.aluno_id), NEW.aluno_id,
-      'concluir_avaliacao_funcional',
-      'Sem profissional vinculado — revisar atribuição', NEW.id, _agenda_id)
-    ON CONFLICT DO NOTHING;
-    RETURN NEW;
-  END IF;
-
-  IF _is_v2 THEN
-    -- Só comissiona quando mobilidade + força estão no mesmo registro
-    IF _tem_metricas AND _tem_forca THEN
-      PERFORM public.fn_gerar_comissao(
-        'avaliacao_funcional', _profissional, NEW.aluno_id,
-        'avaliacoes', NEW.id, 'Avaliação funcional v2 concluída'
-      );
-    END IF;
-    -- Se faltar alguma parte, NADA é feito além de fechar a pendência da agenda;
-    -- a comissão será gerada pelo trigger de UPDATE quando a parte que falta chegar.
-  ELSIF COALESCE(_permite_upload, false) THEN
-    INSERT INTO public.comissionamento_pendencias
-      (profissional_id, aluno_id, tipo_pendencia, descricao, avaliacao_id, agenda_id)
-    VALUES (_profissional, NEW.aluno_id, 'upload_arquivo_forca',
-      'Upload de arquivo da avaliação de ' || COALESCE(_aluno_nome,''), NEW.id, _agenda_id)
-    ON CONFLICT DO NOTHING;
-  ELSE
-    PERFORM public.fn_gerar_comissao(
-      'avaliacao_funcional', _profissional, NEW.aluno_id,
-      'avaliacoes', NEW.id, 'Avaliação funcional concluída'
-    );
-  END IF;
-
-  RETURN NEW;
-END $function$;
-
--- Novo trigger de UPDATE: gera comissão quando funcional_v2 fica completo
-CREATE OR REPLACE FUNCTION public.trg_comissao_avaliacao_v2_update()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  _old_completo boolean;
-  _new_completo boolean;
-  _profissional uuid;
-  _ja_existe boolean;
-BEGIN
-  IF NEW.tipo <> 'funcional_v2' THEN RETURN NEW; END IF;
-
-  _old_completo :=
-       jsonb_typeof(OLD.dados->'metricas') = 'array'
-       AND jsonb_array_length(OLD.dados->'metricas') > 0
-       AND jsonb_typeof(OLD.dados->'forca'->'exercicios') = 'array'
-       AND jsonb_array_length(OLD.dados->'forca'->'exercicios') > 0;
-
-  _new_completo :=
-       jsonb_typeof(NEW.dados->'metricas') = 'array'
-       AND jsonb_array_length(NEW.dados->'metricas') > 0
-       AND jsonb_typeof(NEW.dados->'forca'->'exercicios') = 'array'
-       AND jsonb_array_length(NEW.dados->'forca'->'exercicios') > 0;
-
-  IF _old_completo OR NOT _new_completo THEN
-    RETURN NEW; -- nada a fazer (já completo antes, ou ainda incompleto)
-  END IF;
-
-  -- Idempotência: se já existe comissão dessa avaliação, não duplica
-  SELECT EXISTS (
-    SELECT 1 FROM public.comissionamentos
-    WHERE origem_tabela = 'avaliacoes' AND origem_id = NEW.id
-      AND tipo = 'avaliacao_funcional'
-  ) INTO _ja_existe;
-  IF _ja_existe THEN RETURN NEW; END IF;
-
-  _profissional := public.fn_resolver_prof_avaliacao(NEW.aluno_id, NEW.data, NEW.avaliador_id);
-  IF _profissional IS NULL THEN RETURN NEW; END IF;
-
-  PERFORM public.fn_gerar_comissao(
-    'avaliacao_funcional', _profissional, NEW.aluno_id,
-    'avaliacoes', NEW.id, 'Avaliação funcional v2 completada em update'
-  );
-  RETURN NEW;
-END $function$;
-
-DROP TRIGGER IF EXISTS trg_comissao_avaliacao_v2_update ON public.avaliacoes;
-CREATE TRIGGER trg_comissao_avaliacao_v2_update
-AFTER UPDATE OF dados ON public.avaliacoes
-FOR EACH ROW EXECUTE FUNCTION public.trg_comissao_avaliacao_v2_update();
+```text
+1. Upload do PDF em storage `aluno-files/avaliacoes/laudos-dinamometria/<alunoId>/<ts>-<nome>.pdf`
+2. Invoke edge function `parse-kinology-pdf` (já existe, usada em FuncionalV2Assessment)
+3. Buscar em `avaliacoes` a linha mais recente do aluno onde:
+     tipo = 'funcional_v2'
+     AND dados->'metricas' IS NOT NULL AND jsonb_array_length(dados->'metricas') > 0
+     AND (dados->'forca' IS NULL OR dados->'forca' = 'null'::jsonb)
+   ORDER BY created_at DESC LIMIT 1
+4. Se encontrada → UPDATE mesclando `dados.forca = { laudoPath, importadoEm, exercicios, scoreForca }`
+   (dispara `trg_comissao_avaliacao_v2_update` → gera comissão)
+5. Se NÃO encontrada → INSERT nova linha `funcional_v2` com:
+     dados = { metricas: [], forca: { ... } }
+   e mostrar toast informando "Força registrada, mas faltam as métricas de mobilidade para liberar a comissão"
+6. Invalidate query `useAlunoAvaliacoesConsolidadas`
 ```
 
-**Alteração no front (bloco único):**
+Reaproveita a lógica de `handlePdfUpload` de `FuncionalV2Assessment.tsx` (linhas ~92-131) — extrair para helper `src/lib/kinologyImport.ts` para reutilização entre as duas telas enquanto o antigo fluxo não é aposentado.
 
-```ts
-const funcRows = rows.filter(
-  (r) => r.tipo === "funcional" || r.tipo === "kinology" || r.tipo === "funcional_v2",
+### 3b. Aviso de "linha incompleta" no BodyMap
+
+Em `PremiumBodyMap` (ou `AlunoSidebarCard`): quando a avaliação mais recente tem apenas um dos lados preenchidos, exibir chip:
+- "Aguardando força — comissão não liberada" (verde para métricas ok, cinza para força faltando), ou
+- "Aguardando métricas de mobilidade — comissão não liberada".
+
+Dados já vêm do `useAlunoAvaliacoesConsolidadas` (que agora inclui `funcional_v2`). Basta checar `dados.metricas.length > 0` e `dados.forca?.exercicios?.length > 0`.
+
+### 3c. Desativação dos fluxos antigos
+
+Migration (**apenas proposta — não executar**):
+
+```sql
+-- Desativa tipos e protocolos antigos, preserva histórico
+UPDATE public.avaliacao_tipos
+   SET ativo = false
+ WHERE slug IN ('funcional', 'forca');
+
+UPDATE public.avaliacao_protocolos
+   SET ativo = false
+ WHERE tipo_id IN (
+   SELECT id FROM public.avaliacao_tipos WHERE slug IN ('funcional','forca')
+ );
+
+-- Garante que funcional_v2 tenha protocolo default
+-- (verificar antes se já existe — na consulta acima não apareceu protocolo para funcional_v2!)
+```
+
+⚠️ **Achado crítico**: o tipo `funcional_v2` NÃO tem nenhum protocolo cadastrado hoje. Antes de desativar `funcional`/`forca`, é obrigatório criar ao menos um protocolo default para `funcional_v2` — senão a UI de seleção fica vazia. Sugestão de payload:
+
+```sql
+INSERT INTO public.avaliacao_protocolos (tipo_id, nome, descricao, schema, is_default, ativo, ordem, permite_upload)
+VALUES (
+  '6bc2e5ee-be52-496c-93db-18450b878c62',
+  'Funcional + Força (padrão)',
+  'Mobilidade/flexibilidade + dinamometria isométrica Kinology no mesmo registro.',
+  '{}'::jsonb,
+  true, true, 0, true
 );
 ```
 
----
+Efeitos colaterais em código, se tipos/protocolos antigos ficarem inativos:
+- `src/pages/Avaliacoes.tsx` e demais telas que listam tipos via `fetchTipos()` normalmente filtram por `ativo` (verificar) — resultado: os cards antigos somem para novos cadastros mas registros históricos continuam visíveis (leitura por `avaliacoes.tipo`, não por `tipo_id`).
+- `FuncionalV2Assessment.tsx` continua funcionando para o botão "Nova" que apontar pra ele; se quisermos aposentar essa rota também, decidir se removemos da UI ou apenas escondemos.
 
-## (d) Riscos
+### 3d. Navegação/menu
 
-1. **Silencioso não gerar comissão** — se o profissional salvar `funcional_v2` só com mobilidade, a pendência da agenda **fecha** mas a comissão não é criada. Sem visibilidade, pode passar batido. *Mitigação:* documentar no checklist e considerar (em item futuro) uma flag/relatório de "avaliações v2 incompletas".
-2. **UPDATE dependente de `AFTER UPDATE OF dados`** — se algum código futuro sobrescrever `dados` retirando a parte de força, o trigger corretamente não regenera (idempotência), mas também não "desfaz" a comissão já gerada. Comportamento aceito (mesma semântica do fluxo antigo).
-3. **`fn_gerar_comissao` tem `ON CONFLICT DO NOTHING`**, mas o conflito depende da UNIQUE existente. Confirmar no momento da migration se há UNIQUE em `(origem_tabela, origem_id, tipo)` — o `EXISTS` explícito no trigger de UPDATE já protege independentemente disso.
-4. **Registros legados** (`funcional` / `forca` isolados) continuam funcionando exatamente como hoje, inclusive o caminho de `upload_arquivo_forca` + `trg_comissao_anexo_insert`. Nenhum risco de regressão.
-5. **Fluxo Kinology via IA** — grava tudo em um INSERT (mesmo caminho de `handleSave`), portanto passa direto pelo caminho de INSERT completo. O trigger de UPDATE é seguro adicional para o dia em que o formulário permitir edição.
-6. **Trigger `AFTER UPDATE OF dados`** dispara em qualquer alteração no JSONB (ex: adição de campo cosmético). A guarda `_old_completo OR NOT _new_completo` evita reação; ainda assim recomendo revisar se algum job/back-office atualiza `dados` em massa.
+- `AppSidebar.tsx`: renomear entrada "Avaliações Premium" apenas para "Avaliações" (item primário) e manter "Avaliações (legado)" oculto atrás de flag/rota direta `/avaliacoes` — ou deixar ambos e apenas mudar destaque.
+- Botões "Nova avaliação" no perfil do aluno (`StudentProfile`, widgets) devem passar a apontar para `/avaliacoes-premium/:alunoId`.
 
----
+### 3e. Regra de comissionamento
 
-## Item opcional — trava de duplicidade por ciclo
+Já coberta pela migration anterior (`trg_comissao_avaliacao_insert` + `trg_comissao_avaliacao_v2_update`):
+- INSERT com metricas+forca → comissão imediata.
+- INSERT parcial + UPDATE completando → trigger de UPDATE gera comissão.
+- **Nenhum ajuste adicional necessário** para o novo caminho (import Kinology direto na Premium), porque tanto o UPDATE de linha existente quanto o INSERT parcial + UPDATE futuro caem em um dos dois gatilhos.
 
-**Situação atual:** não há UNIQUE nem lógica em `fn_gerar_comissao` que impeça duas comissões `avaliacao_funcional` para o mesmo aluno/profissional dentro do mesmo `ciclo_credito`. Hoje isso é limitado *de facto* porque a pendência é aberta pela agenda e fechada ao inserir a avaliação — quem "burla" precisa ter duas ocorrências na agenda no mesmo ciclo.
+Único cuidado: o INSERT parcial "só força" (caso 5 do fluxo em 3a) **não** gera comissão sozinho — é o comportamento desejado, mas deve ficar explícito na UI.
 
-**Risco real:** baixo hoje, porém cresce após esta migração, porque `funcional_v2` pode ser inserido sem depender da pendência da agenda (o INSERT gera comissão diretamente quando completo). Um profissional poderia registrar duas avaliações completas no mesmo mês.
+## 4. Arquivos/tabelas tocados (previsão)
 
-**Sugestão (não decidir agora):** adicionar uma UNIQUE PARCIAL em `comissionamentos`:
+Código:
+- `src/pages/AvaliacoesPremium.tsx` — montar componente de import.
+- `src/components/avaliacoes-premium/PremiumKinologyImport.tsx` — **novo**.
+- `src/components/avaliacoes-premium/PremiumBodyMap.tsx` — chip de "linha incompleta".
+- `src/lib/kinologyImport.ts` — **novo** helper compartilhado (opcional).
+- `src/components/AppSidebar.tsx` — reordenação/destaque.
+- Pontos de "Nova avaliação" no perfil do aluno.
 
-```sql
--- (proposta, para discussão — NÃO incluir na migration principal)
-CREATE UNIQUE INDEX comissionamentos_uniq_funcional_ciclo
-ON public.comissionamentos (profissional_id, aluno_id, date_trunc('month', data_referencia))
-WHERE tipo = 'avaliacao_funcional' AND status <> 'cancelado';
-```
+Banco (uma única migration futura):
+- `avaliacao_protocolos` — INSERT protocolo default para `funcional_v2`.
+- `avaliacao_tipos` — UPDATE ativo=false para `funcional` e `forca`.
+- `avaliacao_protocolos` — UPDATE ativo=false para protocolos filhos.
 
-Alternativa mais forte: buscar o `ciclo_credito` vigente do aluno e chavear a UNIQUE por `ciclo_id`. Requer alterar `fn_gerar_comissao` para popular esse campo.
+Nenhuma alteração em triggers, funções ou dados históricos.
 
-Decisão fica com o cliente — recomendo tratar em uma segunda migration depois de confirmarmos que ninguém depende de comissões duplicadas em recuperação de erro.
+## 5. Riscos
 
----
+| Risco | Mitigação |
+|---|---|
+| `funcional_v2` sem protocolo default → tela quebra ao selecionar tipo | Inserir protocolo default **antes** de desativar os antigos, na mesma migration |
+| UI antiga (`/avaliacoes` + `FuncionalV2Assessment`) continua criando linhas paralelas enquanto não removida | Manter os dois caminhos apontando para o mesmo `tipo=funcional_v2`; sem duplicação |
+| Import Kinology na Premium anexa força a uma avaliação errada (ex: linha antiga do mesmo dia) | Filtrar estritamente por `tipo='funcional_v2'` e por ausência de `dados.forca` |
+| Usuário importa força sem antes preencher métricas → não sai comissão e ele não entende | Chip visível + toast explícito no import |
+| Registros legados `tipo='funcional'`/`'forca'` deixam de aparecer em telas que filtram por `avaliacao_tipos.ativo` | Confirmar que histórico é lido por `avaliacoes.tipo` (não por join com tipos) — checar `Avaliacoes.tsx` antes de desativar |
+| Gatilho `trg_comissao_avaliacao_v2_update` conta apenas transições incompleto→completo | Já implementado com essa semântica; import na Premium via UPDATE cai exatamente nesse caso |
 
-## (e) Checklist de teste manual
+## 6. Checklist de teste manual
 
-**Setup:** um aluno de teste com plano ativo e agenda de "Avaliação Funcional" já lançada, gerando pendência `concluir_avaliacao_funcional`.
+Pré-requisitos: aluno com plano ativo, ciclo de crédito aberto, coordenador logado.
 
-1. **funcional_v2 completo (INSERT)** — abrir a tela Premium, preencher mobilidade + salvar com força (manual ou via importação Kinology). Esperado:
-   - pendência da agenda fecha;
-   - 1 comissão `avaliacao_funcional` em `comissionamentos` com `origem_id = avaliacao.id`;
-   - tela Premium mostra a avaliação (filtro atualizado).
-2. **funcional_v2 só com mobilidade (INSERT)** — salvar sem força. Esperado:
-   - pendência da agenda fecha;
-   - **nenhuma** comissão criada;
-   - registro aparece em Avaliações Premium.
-3. **funcional_v2 completado depois (UPDATE)** — pegar o registro do teste 2 e, via SQL/backoffice, dar UPDATE em `dados` adicionando `forca.exercicios`. Esperado:
-   - comissão passa a existir; sem duplicação em nova execução do mesmo UPDATE.
-4. **Legado `funcional` + protocolo `permite_upload=false`** — INSERT antigo. Esperado: comportamento inalterado (comissão direta).
-5. **Legado `funcional` + protocolo `permite_upload=true`** — INSERT antigo. Esperado: abre `upload_arquivo_forca`; ao inserir em `avaliacao_anexos`, comissão é gerada (fluxo intocado).
-6. **Legado `forca`** — INSERT antigo. Esperado: fecha pendência e gera comissão (inalterado).
-7. **Avaliação Física** — INSERT com tipo `fisica`. Esperado: nada acontece (trigger sai no primeiro IF).
-8. **Registro sem profissional vinculado** — testar `funcional_v2` completo sem avaliador resolvível. Esperado: pendência órfã `concluir_avaliacao_funcional` com descrição "Sem profissional vinculado…".
-9. **Idempotência do UPDATE** — repetir UPDATE do teste 3 uma segunda vez. Esperado: sem nova comissão.
-10. **Regressão UI** — abrir Avaliações Premium para aluno com apenas registros `funcional` legados: continuar exibindo histórico normalmente.
+1. **Fluxo feliz A — Métricas primeiro, força depois (na Premium)**
+   - Abrir `/avaliacoes` (ou fluxo funcional_v2 vigente) → salvar apenas métricas de mobilidade.
+   - Ir para `/avaliacoes-premium/:alunoId` → ver chip "aguardando força".
+   - Importar PDF Kinology → confirmar toast "força mesclada".
+   - Verificar em `avaliacoes` que a mesma linha recebeu `dados.forca`, `updated_at` mudou, e uma nova linha em `comissionamentos` foi criada.
+2. **Fluxo feliz B — Import Kinology sem métricas prévias**
+   - Aluno sem `funcional_v2` aberto → importar Kinology na Premium.
+   - Nova linha `funcional_v2` com `metricas=[]` e `forca` preenchida.
+   - Nenhum registro em `comissionamentos` gerado.
+   - Chip "aguardando métricas de mobilidade" aparece.
+   - Voltar em `/avaliacoes`, editar essa linha adicionando métricas e salvar → gatilho UPDATE gera a comissão.
+3. **Não-regressão**
+   - Salvar uma avaliação `funcional_v2` completa (métricas+força) de uma vez → comissão gerada uma única vez, sem duplicar.
+   - Registros legados `tipo='funcional'` continuam visíveis em `/avaliacoes` do aluno e no histórico da Premium.
+   - Importação Kinology duas vezes seguidas para o mesmo aluno não duplica comissão (segundo import cai em UPDATE de linha já completa → trigger não gera duplicata).
+4. **UI**
+   - Cards de "Novo tipo" em `/avaliacoes` não mostram mais "Funcional" antigo nem "Força" isolado.
+   - Menu lateral destaca a Premium como fluxo principal.
+5. **RLS**
+   - Testar com perfil Professor (permissão de INSERT em `avaliacoes` do próprio aluno) e Coordenador; garantir que o UPDATE feito pelo import não é bloqueado.
+
+## 7. Itens que exigem sua decisão antes de implementar
+
+- Confirmar criação do protocolo default `Funcional + Força (padrão)` para `funcional_v2` (nome/permite_upload).
+- Decidir se `/avaliacoes` continua acessível como fallback ou se removemos do menu (não do código).
+- Confirmar se aceita que o INSERT "só força" apareça no histórico como linha aberta (com badge de pendência) ou se prefere que fique escondido até completar.
