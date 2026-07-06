@@ -1,5 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -18,11 +19,83 @@ const EXERCICIO_ENUM = [
   "aducao_quadril",
 ] as const;
 
+type ExercicioEnum = typeof EXERCICIO_ENUM[number];
+
 interface ParsedExercise {
-  nome: typeof EXERCICIO_ENUM[number];
+  nome: ExercicioEnum;
   data?: string;
   direito_kg: number;
   esquerdo_kg: number;
+}
+
+// Mapa label PT-BR (como aparece no PDF Kinology) → enum interno.
+const NOME_LABEL_TO_ENUM: Record<string, ExercicioEnum> = {
+  "rotação interna": "rotacao_interna",
+  "rotação externa": "rotacao_externa",
+  "dorsiflexão": "dorsiflexao",
+  "flexão plantar": "flexao_plantar",
+  "flexão de joelho": "flexao_joelho",
+  "extensão de joelho": "extensao_joelho",
+  "flexão de quadril": "flexao_quadril",
+  "extensão de quadril": "extensao_quadril",
+  "abdução de quadril": "abducao_quadril",
+  "adução de quadril": "aducao_quadril",
+};
+
+const NOME_LABELS = Object.keys(NOME_LABEL_TO_ENUM);
+
+// Regex que casa uma linha da tabela "Assimetria e Indicativos de Risco":
+//   <NOME> <dd/mm/aaaa> <D> kg <E> kg <asym>%
+// Testado nos laudos Kinology reais dos exemplos do projeto (Frederico Muller e Lucas Busato).
+const LINE_RE = new RegExp(
+  String.raw`(` +
+    NOME_LABELS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") +
+    String.raw`)\s+` +
+    String.raw`(\d{2}\/\d{2}\/\d{4})\s+` +
+    String.raw`([\d.,]+)\s*kg\s+([\d.,]+)\s*kg\s+[\d.,]+\s*%`,
+  "gi",
+);
+
+function toNumber(s: string): number {
+  return parseFloat(s.replace(",", "."));
+}
+
+/**
+ * Parser determinístico do laudo Kinology. Não usa IA.
+ * Retorna o mesmo shape que o fluxo de IA — { paciente, dataEmissao, exercicios[] }.
+ * Se não reconhecer o padrão, devolve `exercicios: []` e o caller decide o fallback.
+ */
+function tryParseKinologyDeterministic(text: string): {
+  paciente: string | null;
+  dataEmissao: string | null;
+  exercicios: ParsedExercise[];
+} {
+  const seen = new Map<ExercicioEnum, ParsedExercise>();
+  for (const m of text.matchAll(LINE_RE)) {
+    const label = m[1].toLowerCase();
+    const enumName = NOME_LABEL_TO_ENUM[label];
+    if (!enumName) continue;
+    const d = toNumber(m[3]);
+    const e = toNumber(m[4]);
+    if (!isFinite(d) || !isFinite(e)) continue;
+    // Última ocorrência vence (o laudo lista membros superiores e inferiores em sequência,
+    // e cada exercício aparece uma única vez na seção-fonte).
+    seen.set(enumName, {
+      nome: enumName,
+      data: m[2],
+      direito_kg: d,
+      esquerdo_kg: e,
+    });
+  }
+
+  const pacienteMatch = text.match(/Paciente:\s*([^\n\r]+?)\s{2,}/);
+  const emissaoMatch = text.match(/Emiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/);
+
+  return {
+    paciente: pacienteMatch ? pacienteMatch[1].trim() : null,
+    dataEmissao: emissaoMatch ? emissaoMatch[1] : null,
+    exercicios: [...seen.values()],
+  };
 }
 
 Deno.serve(async (req) => {
@@ -53,8 +126,61 @@ Deno.serve(async (req) => {
     const { data: isStaff, error: staffErr } = await admin.rpc("is_staff", { _user_id: userRes.user.id });
     if (staffErr || !isStaff) throw new Error("Acesso negado");
 
-    // Em vez de baixar o PDF + base64 (lento: ~25s p/ 2MB e estoura wall-clock em cold start),
-    // gera URL assinada curta e deixa o AI Gateway buscar o arquivo diretamente.
+    // ETAPA 1 — extração determinística (rápida, sem IA).
+    // Baixa o PDF, extrai texto com unpdf e roda regex sobre a seção
+    // "Assimetria e Indicativos de Risco". Se casar ≥1 exercício, retorna direto.
+    let deterministicExercicios: ParsedExercise[] = [];
+    let deterministicPaciente: string | null = null;
+    let deterministicDataEmissao: string | null = null;
+
+    try {
+      const tDl = Date.now();
+      const { data: pdfBlob, error: dlErr } = await admin.storage
+        .from("aluno-files")
+        .download(storage_path);
+      if (dlErr || !pdfBlob) throw new Error(dlErr?.message ?? "download vazio");
+      const bytes = new Uint8Array(await pdfBlob.arrayBuffer());
+      console.log(
+        `[parse-kinology] PDF baixado em ${Date.now() - tDl}ms (${bytes.byteLength} bytes)`,
+      );
+
+      const tExtract = Date.now();
+      const pdf = await getDocumentProxy(bytes);
+      const { text, totalPages } = await extractText(pdf, { mergePages: true });
+      const textStr = typeof text === "string" ? text : text.join("\n");
+      console.log(
+        `[parse-kinology] texto extraído: ${textStr.length} chars, ${totalPages} páginas em ${Date.now() - tExtract}ms`,
+      );
+
+      const det = tryParseKinologyDeterministic(textStr);
+      deterministicExercicios = det.exercicios;
+      deterministicPaciente = det.paciente;
+      deterministicDataEmissao = det.dataEmissao;
+      console.log(
+        `[parse-kinology] determinístico: ${deterministicExercicios.length} exercício(s) reconhecido(s)`,
+      );
+    } catch (extractErr) {
+      console.log(
+        `[parse-kinology] extração determinística falhou: ${extractErr instanceof Error ? extractErr.message : String(extractErr)} — caindo pra IA`,
+      );
+    }
+
+    if (deterministicExercicios.length >= 1) {
+      console.log(`[parse-kinology] usando determinístico — retornando ${deterministicExercicios.length} exercício(s)`);
+      return new Response(
+        JSON.stringify({
+          paciente: deterministicPaciente,
+          dataEmissao: deterministicDataEmissao,
+          exercicios: deterministicExercicios,
+          source: "deterministic",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ETAPA 2 — fallback IA (fluxo original intocado): gera URL assinada curta
+    // e deixa o AI Gateway buscar o arquivo diretamente.
+    console.log(`[parse-kinology] fallback IA — 0 exercícios via parser determinístico`);
     const tSign = Date.now();
     const { data: signed, error: signErr } = await admin.storage
       .from("aluno-files")
@@ -149,12 +275,13 @@ Formato de resposta:
         typeof e.esquerdo_kg === "number",
     );
 
-    console.log(`[parse-kinology] retornando ${exercicios.length} exercício(s) ao cliente`);
+    console.log(`[parse-kinology] retornando ${exercicios.length} exercício(s) ao cliente (source=ai)`);
     return new Response(
       JSON.stringify({
         paciente: parsed.paciente ?? null,
         dataEmissao: parsed.dataEmissao ?? null,
         exercicios,
+        source: "ai",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
