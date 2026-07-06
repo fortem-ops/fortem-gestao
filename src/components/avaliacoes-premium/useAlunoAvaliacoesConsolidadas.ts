@@ -126,7 +126,9 @@ export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefine
         avaliador = { id: latestAvaliadorId, nome: prof?.full_name ?? null };
       }
 
-      const funcRows = rows.filter((r) => r.tipo === "funcional" || r.tipo === "kinology");
+      const funcRows = rows.filter(
+        (r) => r.tipo === "funcional" || r.tipo === "kinology" || r.tipo === "funcional_v2",
+      );
       const funcHistory = funcRows
         .map(parseFuncional)
         .filter((x): x is FuncionalSnapshot => !!x);
