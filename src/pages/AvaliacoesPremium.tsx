@@ -14,6 +14,8 @@ import { ComposicaoTab } from "@/components/avaliacoes-premium/tabs/ComposicaoTa
 import { EvolucaoTab } from "@/components/avaliacoes-premium/tabs/EvolucaoTab";
 import { RecomendacoesTab } from "@/components/avaliacoes-premium/tabs/RecomendacoesTab";
 import { PliometriaTab } from "@/components/avaliacoes-premium/tabs/PliometriaTab";
+import { MobilidadeTab } from "@/components/avaliacoes-premium/tabs/MobilidadeTab";
+
 import { Loader2, Activity } from "lucide-react";
 
 export default function AvaliacoesPremium() {
@@ -82,14 +84,18 @@ export default function AvaliacoesPremium() {
             <PremiumKinologyImport alunoId={alunoId} />
             <PremiumBodyMap funcional={data.funcional.latest} />
 
-            <Tabs defaultValue="forca" className="bio-card p-4">
+            <Tabs defaultValue="mobilidade" className="bio-card p-4">
               <TabsList className="bg-white/5 border border-white/5">
+                <TabsTrigger value="mobilidade">Mobilidade/Flexibilidade</TabsTrigger>
                 <TabsTrigger value="forca">Força</TabsTrigger>
                 <TabsTrigger value="composicao">Composição</TabsTrigger>
                 <TabsTrigger value="pliometria">Pliometria</TabsTrigger>
                 <TabsTrigger value="evolucao">Evolução</TabsTrigger>
                 <TabsTrigger value="recomendacoes">Recomendações</TabsTrigger>
               </TabsList>
+              <TabsContent value="mobilidade" className="mt-4">
+                <MobilidadeTab alunoId={alunoId} />
+              </TabsContent>
               <TabsContent value="forca" className="mt-4">
                 <ForcaTab latest={data.funcional.latest} history={data.funcional.history} />
               </TabsContent>
@@ -105,6 +111,7 @@ export default function AvaliacoesPremium() {
               <TabsContent value="recomendacoes" className="mt-4">
                 <RecomendacoesTab recomendacoes={recomendacoes} />
               </TabsContent>
+
             </Tabs>
           </div>
         </div>

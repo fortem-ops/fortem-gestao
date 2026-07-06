@@ -18,7 +18,9 @@ export interface KinologyParseResult {
   dataEmissao: string | null;
   exercicios: KinologyParsedExercise[];
   laudoPath: string;
+  source: "deterministic" | "ai";
 }
+
 
 /**
  * Sanitiza nome de arquivo para uso como chave no Supabase Storage.
@@ -68,7 +70,9 @@ export async function uploadAndParseKinology(
     dataEmissao: data?.dataEmissao ?? null,
     exercicios,
     laudoPath: path,
+    source: (data?.source === "deterministic" ? "deterministic" : "ai"),
   };
+
 }
 
 /**
