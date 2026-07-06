@@ -21,6 +21,27 @@ export interface KinologyParseResult {
 }
 
 /**
+ * Sanitiza nome de arquivo para uso como chave no Supabase Storage.
+ * Remove acentos/diacríticos, troca caracteres fora de [a-zA-Z0-9._-] por "_",
+ * mantém a extensão .pdf e limita o tamanho total.
+ */
+function sanitizeFileName(name: string): string {
+  const dot = name.lastIndexOf(".");
+  const rawBase = dot > 0 ? name.slice(0, dot) : name;
+  const rawExt = dot > 0 ? name.slice(dot + 1) : "pdf";
+  const clean = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  const base = clean(rawBase).slice(0, 80) || "laudo";
+  const ext = clean(rawExt).toLowerCase() || "pdf";
+  return `${base}.${ext}`;
+}
+
+/**
  * Faz upload do PDF Kinology no bucket `aluno-files` e invoca a edge function
  * `parse-kinology-pdf` para extrair os exercícios via IA.
  */
@@ -28,7 +49,8 @@ export async function uploadAndParseKinology(
   alunoId: string,
   file: File,
 ): Promise<KinologyParseResult> {
-  const path = `avaliacoes/laudos-dinamometria/${alunoId}/${Date.now()}-${file.name}`;
+  const safeName = sanitizeFileName(file.name);
+  const path = `avaliacoes/laudos-dinamometria/${alunoId}/${Date.now()}-${safeName}`;
   const { error: upErr } = await supabase.storage
     .from("aluno-files")
     .upload(path, file, { contentType: "application/pdf", upsert: false });
