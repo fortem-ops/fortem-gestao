@@ -1,50 +1,66 @@
-## Diagnóstico (somente leitura — nada foi alterado)
+## Diagnóstico — 400 na importação Kinology (somente leitura)
 
-### O que aconteceu na tentativa (17:25–17:26 UTC de hoje)
+### Onde o 400 aconteceu
 
-1. **Upload no Storage** — OK. Arquivo salvo em `aluno-files/avaliacoes/laudos-dinamometria/9fe79b6b…/1783358750286-2026_-_AVALIACAO_FORCA_-_Filipe_de_Oliveira_Freitas.pdf` (2,17 MB). A sanitização do nome funcionou perfeitamente (sem acentos, espaços viraram `_`).
-   - Observação lateral: o `aluno_id` é o do Lourival, mas o PDF em si é do Filipe — provavelmente o usuário selecionou o arquivo errado. Não é a causa do erro.
+**Não** foi na edge function. **Não** foi na chamada à IA. Foi no `INSERT` que o cliente faz no PostgREST logo depois.
 
-2. **Edge function `parse-kinology-pdf`** — só há eventos de boot no log, nenhum throw explícito, nenhum shutdown com erro.
-
-3. **AI Gateway** — sucesso. `log_id 019f3877-1e02-78e9-a189-badee01ee309`, gemini-2.5-pro, HTTP 200, **22.438 ms**, JSON válido com 6 exercícios (todos passariam pelo filtro do enum + números).
-
-4. **Banco** — nenhuma linha `funcional_v2` foi criada. Só há a `experimental` antiga (29/06). O protocolo default `funcional_v2` existe e está ativo (`f6c9aa11-adbc-43d4-be41-7b3e09e42b30`), então essa não é a causa. Triggers e RLS de `avaliacoes` não bloqueiam esse insert.
-
-### Causa raiz mais provável
-
-**Timeout de wall-clock da edge function.** Timeline:
+Logs de `parse-kinology-pdf` na tentativa de 17:36 UTC:
 
 ```text
-17:25:52  upload OK
-17:25:54  cold boot #1
-17:25:55  cold boot #2
-17:25:55  função baixa PDF do Storage + faz base64 do buffer de 2,17 MB
-17:26:20  começa chamada IA  (25 s desde o boot)
-17:26:42  IA responde OK (22,4 s de duração)
-~17:26:42 função tenta retornar → cortada antes de o cliente receber
+17:36:15  boot
+17:36:16  [parse-kinology] signed URL pronta em 161ms      ← createSignedUrl OK (25s → 161ms 🎉)
+17:36:16  [parse-kinology] chamando IA via URL assinada
+17:36:59  [parse-kinology] IA respondeu em 42337ms, status 200
+17:36:59  [parse-kinology] retornando 6 exercício(s) ao cliente
 ```
 
-Total ~47 s de wall-clock. O runtime provavelmente encerrou o worker (ou o `functions.invoke` do cliente estourou timeout) antes de a resposta chegar ao browser, o que na UI aparece exatamente como "Erro ao importar laudo" após o toast "Lendo laudo com IA…". Consistente com:
+Edge function retornou **200 OK com 6 exercícios**. Wall-clock caiu de ~47 s para ~44 s (a IA em si é lenta — 42 s — mas isso é do modelo, não do nosso código).
 
-- ausência de INSERT `funcional_v2` (o cliente nunca chegou a rodar `buildForcaPayload` + `.insert(...)`),
-- ausência de linha de erro/shutdown na função (kill é externo),
-- tempo total bater com o "ficou carregando um tempo" reportado.
+Confirmado no banco: nenhuma linha nova em `avaliacoes` para o aluno após 17:30 — ou seja, o INSERT do cliente falhou.
 
-Hipótese secundária (menos provável): throw silencioso no cliente entre `uploadAndParseKinology` e o INSERT — sem `console.log` intermediário ou log server-side não dá pra confirmar 100%.
+### Causa raiz
 
-### O que NÃO é a causa
+A tabela `public.avaliacoes` tem um CHECK constraint:
 
-- Não é o nome do arquivo — a sanitização funcionou.
-- Não é RLS/trigger no `avaliacoes`.
-- Não é protocolo default ausente.
-- Não é falha da IA — retornou 200 com JSON válido.
+```sql
+avaliacoes_tipo_check:
+  CHECK (tipo = ANY (ARRAY['funcional','composicao_corporal','pliometria','forca','experimental','kinology']))
+```
 
-### Sugestões (a decidir depois — nada implementado)
+`'funcional_v2'` **não está na lista**. Quando `PremiumKinologyImport` chama `supabase.from("avaliacoes").insert({ tipo: "funcional_v2", ... })`, o Postgres rejeita com `check_violation`, e o PostgREST devolve **HTTP 400** — exatamente o "Failed to load resource: 400" que apareceu no console.
 
-1. **Encurtar o wall-clock**: enviar o PDF diretamente pra IA por URL assinada em vez de baixar → base64 → mandar inline. Elimina ~25 s de I/O + encoding.
-2. **Adicionar `console.log`** em pontos-chave da edge function (após download, após base64, após IA, antes do retorno) para diagnóstico futuro sem depender de reconstrução por timeline.
-3. **Fallback assíncrono**: enfileirar o job em uma tabela `processing_queue` (o edge retorna imediato com `jobId`), um worker/cron processa em background, cliente escuta via realtime. Padrão robusto se PDFs grandes forem comuns.
-4. **Log/handler no cliente**: no `catch` do `PremiumKinologyImport`, logar o erro completo (nome, mensagem, contexto) via `console.error` para o próximo diagnóstico ser instantâneo.
+Isso explica por que:
+- Toda a infra nova (`avaliacao_tipos.engine='funcional_v2'`, protocolo default, trigger de comissão v2, `useAlunoAvaliacoesConsolidadas` incluindo `funcional_v2`, `PremiumBodyMap` mostrando chip) foi criada com sucesso, mas
+- **Nenhuma linha `funcional_v2` jamais foi inserida** (nem manualmente pela UI de funcional_v2, nem por esse import) — o CHECK está bloqueando desde antes desta sessão.
 
-Quando você quiser sair do plan mode, sugiro começarmos pela combinação **(1) + (2) + (4)** — resolve a causa raiz e instrumenta pra próxima ocorrência. Se PDFs de 5+ MB forem comuns, aí vale (3).
+### Correção necessária (proposta — não aplicada)
+
+Uma migration mínima que adiciona `'funcional_v2'` ao CHECK:
+
+```sql
+ALTER TABLE public.avaliacoes DROP CONSTRAINT avaliacoes_tipo_check;
+ALTER TABLE public.avaliacoes ADD CONSTRAINT avaliacoes_tipo_check
+  CHECK (tipo = ANY (ARRAY[
+    'funcional','composicao_corporal','pliometria','forca',
+    'experimental','kinology','funcional_v2'
+  ]));
+```
+
+Risco: nenhum — só amplia o conjunto aceito, não altera linhas existentes.
+
+### O que NÃO precisa mudar
+
+- Edge function `parse-kinology-pdf` — funcionando 100%.
+- Cliente `PremiumKinologyImport` — a lógica de merge/insert está correta.
+- Signed URL — funcionou (161 ms).
+- Sanitização de nome de arquivo — funcionou.
+- IA — retornou JSON válido com 6 exercícios.
+
+### Observações laterais (não bloqueantes)
+
+- 42 s de latência do gemini-2.5-pro é alto mas dentro do orçamento agora que o boot+I/O caiu drasticamente. Se quiser respostas mais rápidas depois, dá pra testar `google/gemini-2.5-flash` (menos raciocínio, provavelmente 5–10 s pra essa tarefa que é bem estruturada).
+- Vale considerar aplicar a mesma correção do CHECK como parte do mesmo item se quisermos evitar viagens futuras.
+
+### Próximo passo sugerido
+
+Sair do plan mode e aplicar a migration acima. Uma linha só, uma migration só.
