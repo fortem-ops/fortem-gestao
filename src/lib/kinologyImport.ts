@@ -70,7 +70,9 @@ export async function uploadAndParseKinology(
     dataEmissao: data?.dataEmissao ?? null,
     exercicios,
     laudoPath: path,
+    source: (data?.source === "deterministic" ? "deterministic" : "ai"),
   };
+
 }
 
 /**
