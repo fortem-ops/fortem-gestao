@@ -94,6 +94,7 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
         assimetria: "",
       });
       setObs("");
+      setData(todayISO());
       qc.invalidateQueries({ queryKey: ["aluno-avaliacoes-consolidadas", alunoId] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar.");
