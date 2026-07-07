@@ -122,6 +122,7 @@ export function MobilidadeTab({ alunoId }: Props) {
         });
       }
       setValues({});
+      setData(todayISO());
       qc.invalidateQueries({ queryKey: ["aluno-avaliacoes-consolidadas", alunoId] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-global", alunoId] });
