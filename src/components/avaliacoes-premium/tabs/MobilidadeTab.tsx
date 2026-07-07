@@ -141,6 +141,13 @@ export function MobilidadeTab({ alunoId }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="bio-card p-4">
+        <AssessmentDateField
+          value={data}
+          onChange={setData}
+          helperText="Usada apenas quando uma nova avaliação for criada. Ao mesclar em uma avaliação existente (com força já registrada), a data original é preservada."
+        />
+      </div>
       <div className="bio-card overflow-hidden">
         <table className="w-full">
           <thead>
