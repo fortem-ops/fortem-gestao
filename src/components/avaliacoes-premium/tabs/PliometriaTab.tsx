@@ -43,6 +43,7 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
     assimetria: "",
   });
   const [obs, setObs] = useState("");
+  const [data, setData] = useState<string>(todayISO());
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
