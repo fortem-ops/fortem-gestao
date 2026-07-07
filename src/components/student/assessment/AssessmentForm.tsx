@@ -278,6 +278,7 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
         avaliador_id: user.id,
         tipo: "composicao_corporal",
         protocolo_id: protocoloId,
+        data: dataAval || todayISO(),
         dados: {
           sexo, idade: parseFloat(idade), peso: parseFloat(peso), altura: parseFloat(altura),
           dobras, sigma7: results.sigma7, densidade: results.dc, percentual_gordura: results.bf,
