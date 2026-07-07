@@ -43,13 +43,22 @@ export function PremiumKinologyImport({ alunoId }: Props) {
       const forcaPayload = buildForcaPayload(parsed);
       const sourceLabel = parsed.source === "deterministic" ? "leitura direta" : "via IA";
 
+      // Resolve final assessment date:
+      // - If the user edited the field manually, that value wins (override final).
+      // - Otherwise pre-fill from the laudo's dataEmissao when available.
+      // - Fallback: today.
+      const finalData = dataTouched
+        ? (data || todayISO())
+        : (parsed.dataEmissao || data || todayISO());
+      if (!dataTouched && parsed.dataEmissao) setData(parsed.dataEmissao);
+
       const pendente = await findFuncionalV2AguardandoForca(alunoId);
 
       if (pendente) {
         const novosDados = { ...pendente.dados, forca: forcaPayload };
         const { error } = await supabase
           .from("avaliacoes")
-          .update({ dados: novosDados } as never)
+          .update({ dados: novosDados, data: finalData } as never)
           .eq("id", pendente.id);
         if (error) throw error;
         toast.dismiss(toastId);
@@ -65,7 +74,7 @@ export function PremiumKinologyImport({ alunoId }: Props) {
           avaliador_id: user.id,
           tipo: "funcional_v2",
           protocolo_id: protocoloId,
-          data: new Date().toISOString().slice(0, 10),
+          data: finalData,
           dados: { metricas: [], forca: forcaPayload },
         } as never);
         if (error) throw error;
