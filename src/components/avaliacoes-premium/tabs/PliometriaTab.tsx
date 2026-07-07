@@ -135,6 +135,7 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
             </span>
           )}
         </div>
+        <AssessmentDateField value={data} onChange={setData} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {FIELDS.map((f) => (
             <div key={f.key}>
