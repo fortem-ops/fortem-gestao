@@ -15,6 +15,7 @@ import { EvolucaoTab } from "@/components/avaliacoes-premium/tabs/EvolucaoTab";
 import { RecomendacoesTab } from "@/components/avaliacoes-premium/tabs/RecomendacoesTab";
 import { PliometriaTab } from "@/components/avaliacoes-premium/tabs/PliometriaTab";
 import { MobilidadeTab } from "@/components/avaliacoes-premium/tabs/MobilidadeTab";
+import { ComparativoTab } from "@/components/avaliacoes-premium/tabs/ComparativoTab";
 
 import { Loader2, Activity } from "lucide-react";
 
