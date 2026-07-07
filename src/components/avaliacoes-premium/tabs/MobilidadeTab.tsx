@@ -113,7 +113,7 @@ export function MobilidadeTab({ alunoId }: Props) {
           avaliador_id: user.id,
           tipo: "funcional_v2",
           protocolo_id: protocoloId,
-          data: new Date().toISOString().slice(0, 10),
+          data: data || todayISO(),
           dados: { metricas: rows, forca: null },
         } as never);
         if (error) throw error;
