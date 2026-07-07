@@ -66,6 +66,7 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
           aluno_id: alunoId,
           avaliador_id: user.id,
           tipo: "pliometria",
+          data: data || todayISO(),
           observacoes: obs || null,
           dados: numericVals,
         } as never)
