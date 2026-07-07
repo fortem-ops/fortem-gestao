@@ -221,22 +221,7 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
   );
 }
 
-const dobrasLabels = ['Peitoral', 'Axilar média', 'Tríceps', 'Subescapular', 'Abdominal', 'Supra-ilíaca', 'Coxa'];
-
-function classifyBF(pct: number, sexo: 'M' | 'F'): { label: string; color: string } {
-  if (sexo === 'M') {
-    if (pct <= 6) return { label: 'Essencial', color: 'text-info' };
-    if (pct <= 13) return { label: 'Excelente', color: 'text-success' };
-    if (pct <= 17) return { label: 'Bom', color: 'text-success' };
-    if (pct <= 24) return { label: 'Médio', color: 'text-warning' };
-    return { label: 'Elevado', color: 'text-destructive' };
-  }
-  if (pct <= 13) return { label: 'Essencial', color: 'text-info' };
-  if (pct <= 20) return { label: 'Excelente', color: 'text-success' };
-  if (pct <= 24) return { label: 'Bom', color: 'text-success' };
-  if (pct <= 31) return { label: 'Médio', color: 'text-warning' };
-  return { label: 'Elevado', color: 'text-destructive' };
-}
+import { DOBRAS_POLLOCK_7 as dobrasLabels, computePollock } from "@/lib/pollockCalculo";
 
 function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tables<"alunos">; protocoloId: string | null; permiteUpload: boolean }) {
   const { user } = useAuth();
@@ -250,23 +235,17 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
   const [saving, setSaving] = useState(false);
   const [savedAvaliacaoId, setSavedAvaliacaoId] = useState<string | null>(null);
 
-  const results = useMemo(() => {
-    const idadeNum = parseFloat(idade);
-    const vals = dobrasLabels.map(d => parseFloat(dobras[d] || ''));
-    if (isNaN(idadeNum) || vals.some(v => isNaN(v))) return null;
-    const sigma7 = vals.reduce((a, b) => a + b, 0);
-    let dc: number;
-    if (sexo === 'M') dc = 1.112 - 0.00043499 * sigma7 + 0.00000055 * sigma7 * sigma7 - 0.00028826 * idadeNum;
-    else dc = 1.097 - 0.00046971 * sigma7 + 0.00000056 * sigma7 * sigma7 - 0.00012828 * idadeNum;
-    const bf = (495 / dc) - 450;
-    const classification = classifyBF(bf, sexo);
-    const pesoNum = parseFloat(peso);
-    const alturaNum = parseFloat(altura);
-    const imc = !isNaN(pesoNum) && !isNaN(alturaNum) && alturaNum > 0 ? pesoNum / ((alturaNum / 100) ** 2) : null;
-    const massaMagra = !isNaN(pesoNum) ? pesoNum * (1 - bf / 100) : null;
-    const massaGorda = !isNaN(pesoNum) ? pesoNum * (bf / 100) : null;
-    return { sigma7, dc, bf, classification, imc, massaMagra, massaGorda };
-  }, [sexo, idade, peso, altura, dobras]);
+  const results = useMemo(
+    () =>
+      computePollock({
+        sexo,
+        idade: parseFloat(idade),
+        peso: parseFloat(peso),
+        altura: parseFloat(altura),
+        dobras,
+      }),
+    [sexo, idade, peso, altura, dobras],
+  );
 
   const handleSave = async () => {
     if (!user) { toast.error("Usuário não autenticado"); return; }
