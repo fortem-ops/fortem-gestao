@@ -11,6 +11,7 @@ import {
   findFuncionalV2AguardandoForca,
   getFuncionalV2DefaultProtocoloId,
 } from "@/lib/kinologyImport";
+import { AssessmentDateField, todayISO } from "./AssessmentDateField";
 
 interface Props {
   alunoId: string;
@@ -21,6 +22,8 @@ export function PremiumKinologyImport({ alunoId }: Props) {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [data, setData] = useState<string>(todayISO());
+  const [dataTouched, setDataTouched] = useState(false);
 
   async function handleFile(file: File) {
     if (!user) {
