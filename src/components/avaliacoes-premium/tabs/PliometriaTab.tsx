@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Save, Loader2, Zap, Gauge, Timer, Activity, Sparkles } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { PliometriaSnapshot } from "../useAlunoAvaliacoesConsolidadas";
+import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 
 interface Props {
   alunoId: string;
