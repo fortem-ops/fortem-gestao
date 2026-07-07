@@ -33,6 +33,7 @@ export function MobilidadeTab({ alunoId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
+  const [data, setData] = useState<string>(todayISO());
   const [saving, setSaving] = useState(false);
 
   const handleChange = (metric: string, side: "left" | "right", val: string) =>
