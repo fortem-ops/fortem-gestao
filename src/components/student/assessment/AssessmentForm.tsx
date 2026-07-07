@@ -21,6 +21,7 @@ import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import type { ExperimentalSchema } from "./experimentalTemplate";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Assessment } from "./funcionalV2/FuncionalV2Assessment";
+import { AssessmentDateField, todayISO } from "@/components/avaliacoes-premium/AssessmentDateField";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
@@ -245,6 +246,7 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
   const [peso, setPeso] = useState('');
   const [altura, setAltura] = useState('');
   const [dobras, setDobras] = useState<Record<string, string>>({});
+  const [dataAval, setDataAval] = useState<string>(todayISO());
   const [saving, setSaving] = useState(false);
   const [savedAvaliacaoId, setSavedAvaliacaoId] = useState<string | null>(null);
 
@@ -276,6 +278,7 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
         avaliador_id: user.id,
         tipo: "composicao_corporal",
         protocolo_id: protocoloId,
+        data: dataAval || todayISO(),
         dados: {
           sexo, idade: parseFloat(idade), peso: parseFloat(peso), altura: parseFloat(altura),
           dobras, sigma7: results.sigma7, densidade: results.dc, percentual_gordura: results.bf,
@@ -317,6 +320,9 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
 
   return (
     <div className="space-y-6">
+      <div className="glass-card rounded-lg p-4">
+        <AssessmentDateField value={dataAval} onChange={setDataAval} />
+      </div>
       <div className="glass-card rounded-lg p-4">
         <h4 className="text-sm font-semibold text-foreground mb-3">Dados do Aluno</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Save, Loader2, Zap, Gauge, Timer, Activity, Sparkles } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { PliometriaSnapshot } from "../useAlunoAvaliacoesConsolidadas";
+import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 
 interface Props {
   alunoId: string;
@@ -42,6 +43,7 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
     assimetria: "",
   });
   const [obs, setObs] = useState("");
+  const [data, setData] = useState<string>(todayISO());
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -64,6 +66,7 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
           aluno_id: alunoId,
           avaliador_id: user.id,
           tipo: "pliometria",
+          data: data || todayISO(),
           observacoes: obs || null,
           dados: numericVals,
         } as never)
@@ -91,6 +94,7 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
         assimetria: "",
       });
       setObs("");
+      setData(todayISO());
       qc.invalidateQueries({ queryKey: ["aluno-avaliacoes-consolidadas", alunoId] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar.");
@@ -131,6 +135,7 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
             </span>
           )}
         </div>
+        <AssessmentDateField value={data} onChange={setData} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {FIELDS.map((f) => (
             <div key={f.key}>

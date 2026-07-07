@@ -17,6 +17,7 @@ import {
 } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { getFuncionalV2DefaultProtocoloId } from "@/lib/kinologyImport";
+import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 
 interface Props {
   alunoId: string;
@@ -32,6 +33,7 @@ export function MobilidadeTab({ alunoId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
+  const [data, setData] = useState<string>(todayISO());
   const [saving, setSaving] = useState(false);
 
   const handleChange = (metric: string, side: "left" | "right", val: string) =>
@@ -111,7 +113,7 @@ export function MobilidadeTab({ alunoId }: Props) {
           avaliador_id: user.id,
           tipo: "funcional_v2",
           protocolo_id: protocoloId,
-          data: new Date().toISOString().slice(0, 10),
+          data: data || todayISO(),
           dados: { metricas: rows, forca: null },
         } as never);
         if (error) throw error;
@@ -120,6 +122,7 @@ export function MobilidadeTab({ alunoId }: Props) {
         });
       }
       setValues({});
+      setData(todayISO());
       qc.invalidateQueries({ queryKey: ["aluno-avaliacoes-consolidadas", alunoId] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-global", alunoId] });
@@ -138,6 +141,13 @@ export function MobilidadeTab({ alunoId }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="bio-card p-4">
+        <AssessmentDateField
+          value={data}
+          onChange={setData}
+          helperText="Usada apenas quando uma nova avaliação for criada. Ao mesclar em uma avaliação existente (com força já registrada), a data original é preservada."
+        />
+      </div>
       <div className="bio-card overflow-hidden">
         <table className="w-full">
           <thead>
