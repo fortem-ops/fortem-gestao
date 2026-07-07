@@ -92,6 +92,7 @@ export default function AvaliacoesPremium() {
                 <TabsTrigger value="composicao">Composição</TabsTrigger>
                 <TabsTrigger value="pliometria">Pliometria</TabsTrigger>
                 <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+                <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
                 <TabsTrigger value="recomendacoes">Recomendações</TabsTrigger>
               </TabsList>
               <TabsContent value="mobilidade" className="mt-4">
