@@ -17,6 +17,7 @@ import {
 } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { getFuncionalV2DefaultProtocoloId } from "@/lib/kinologyImport";
+import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 
 interface Props {
   alunoId: string;
