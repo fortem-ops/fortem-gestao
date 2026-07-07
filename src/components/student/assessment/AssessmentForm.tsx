@@ -21,6 +21,7 @@ import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import type { ExperimentalSchema } from "./experimentalTemplate";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Assessment } from "./funcionalV2/FuncionalV2Assessment";
+import { AssessmentDateField, todayISO } from "@/components/avaliacoes-premium/AssessmentDateField";
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
