@@ -105,44 +105,54 @@ export function PremiumKinologyImport({ alunoId }: Props) {
   }
 
   return (
-    <div className="bio-card p-4 flex items-center justify-between gap-3 flex-wrap">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="p-2 rounded-md bg-rose-500/10 border border-rose-500/30 shrink-0">
-          <FileText className="w-4 h-4 text-rose-300" />
+    <div className="bio-card p-4 space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2 rounded-md bg-rose-500/10 border border-rose-500/30 shrink-0">
+            <FileText className="w-4 h-4 text-rose-300" />
+          </div>
+          <div className="min-w-0">
+            <p className="bio-label">Laudo Kinology</p>
+            <p className="text-sm text-white/70">
+              Importe um PDF de dinamometria — se houver uma avaliação aguardando
+              força, os dados serão mesclados automaticamente.
+            </p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="bio-label">Laudo Kinology</p>
-          <p className="text-sm text-white/70">
-            Importe um PDF de dinamometria — se houver uma avaliação aguardando
-            força, os dados serão mesclados automaticamente.
-          </p>
-        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+          }}
+        />
+        <Button
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          className="shrink-0"
+        >
+          {busy ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processando...
+            </>
+          ) : (
+            <>
+              <Upload className="w-4 h-4 mr-2" /> Importar laudo Kinology (PDF)
+            </>
+          )}
+        </Button>
       </div>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/pdf"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) handleFile(f);
+      <AssessmentDateField
+        value={data}
+        onChange={(v) => {
+          setData(v);
+          setDataTouched(true);
         }}
+        helperText="Se você não alterar este campo, será usada a data extraída do laudo (ou a data de hoje, caso o laudo não a informe). Alterações manuais têm prioridade."
       />
-      <Button
-        onClick={() => fileRef.current?.click()}
-        disabled={busy}
-        className="shrink-0"
-      >
-        {busy ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processando...
-          </>
-        ) : (
-          <>
-            <Upload className="w-4 h-4 mr-2" /> Importar laudo Kinology (PDF)
-          </>
-        )}
-      </Button>
     </div>
   );
 }
