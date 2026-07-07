@@ -15,6 +15,7 @@ import { EvolucaoTab } from "@/components/avaliacoes-premium/tabs/EvolucaoTab";
 import { RecomendacoesTab } from "@/components/avaliacoes-premium/tabs/RecomendacoesTab";
 import { PliometriaTab } from "@/components/avaliacoes-premium/tabs/PliometriaTab";
 import { MobilidadeTab } from "@/components/avaliacoes-premium/tabs/MobilidadeTab";
+import { ComparativoTab } from "@/components/avaliacoes-premium/tabs/ComparativoTab";
 
 import { Loader2, Activity } from "lucide-react";
 
@@ -91,6 +92,7 @@ export default function AvaliacoesPremium() {
                 <TabsTrigger value="composicao">Composição</TabsTrigger>
                 <TabsTrigger value="pliometria">Pliometria</TabsTrigger>
                 <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+                <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
                 <TabsTrigger value="recomendacoes">Recomendações</TabsTrigger>
               </TabsList>
               <TabsContent value="mobilidade" className="mt-4">
@@ -107,6 +109,9 @@ export default function AvaliacoesPremium() {
               </TabsContent>
               <TabsContent value="evolucao" className="mt-4">
                 <EvolucaoTab data={data} />
+              </TabsContent>
+              <TabsContent value="comparativo" className="mt-4">
+                <ComparativoTab data={data} />
               </TabsContent>
               <TabsContent value="recomendacoes" className="mt-4">
                 <RecomendacoesTab recomendacoes={recomendacoes} />
