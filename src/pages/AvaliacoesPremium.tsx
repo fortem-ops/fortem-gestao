@@ -100,7 +100,7 @@ export default function AvaliacoesPremium() {
                 <ForcaTab latest={data.funcional.latest} history={data.funcional.history} />
               </TabsContent>
               <TabsContent value="composicao" className="mt-4">
-                <ComposicaoTab latest={data.composicao.latest} history={data.composicao.history} />
+                <ComposicaoTab alunoId={alunoId} latest={data.composicao.latest} history={data.composicao.history} />
               </TabsContent>
               <TabsContent value="pliometria" className="mt-4">
                 <PliometriaTab alunoId={alunoId} latest={data.pliometria.latest} history={data.pliometria.history} />
