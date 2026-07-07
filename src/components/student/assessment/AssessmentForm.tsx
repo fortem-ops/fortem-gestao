@@ -246,6 +246,7 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
   const [peso, setPeso] = useState('');
   const [altura, setAltura] = useState('');
   const [dobras, setDobras] = useState<Record<string, string>>({});
+  const [dataAval, setDataAval] = useState<string>(todayISO());
   const [saving, setSaving] = useState(false);
   const [savedAvaliacaoId, setSavedAvaliacaoId] = useState<string | null>(null);
 
