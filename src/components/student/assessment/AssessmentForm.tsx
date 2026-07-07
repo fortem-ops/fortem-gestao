@@ -321,6 +321,9 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
   return (
     <div className="space-y-6">
       <div className="glass-card rounded-lg p-4">
+        <AssessmentDateField value={dataAval} onChange={setDataAval} />
+      </div>
+      <div className="glass-card rounded-lg p-4">
         <h4 className="text-sm font-semibold text-foreground mb-3">Dados do Aluno</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
