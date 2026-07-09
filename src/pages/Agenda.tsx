@@ -126,12 +126,19 @@ export default function Agenda() {
       }
       toast.success("Horário removido");
 
-      // Fallback de notificação de cancelamento (idempotente no servidor)
-      if (ev?.id && ev.aluno_id &&
-          ["Treino Experimental","Avaliação Funcional"].includes(ev.atividade)) {
+      // Email para todas as atividades com aluno vinculado
+      if (ev?.id && ev.aluno_id) {
         supabase.functions.invoke("notify-agenda-evento", {
           body: { evento: "cancelado", agenda_id: ev.id, agenda: ev, origem: "frontend" },
-        }).catch((e) => console.error("notify-agenda-evento (delete):", e));
+        }).catch((e) => console.error("notify-agenda-evento (cancelado):", e));
+      }
+
+      // WhatsApp para todas as atividades (com ou sem aluno)
+      if (ev?.id) {
+        supabase.functions.invoke("whatsapp-disparo-agenda", {
+          body: { evento: "agendamento_cancelado", agenda_id: ev.id },
+        }).then((r) => console.log("[WhatsApp Disparo cancelado]", r))
+          .catch((e) => console.error("[WhatsApp Disparo cancelado] erro:", e));
       }
 
       setDeleteTarget(null);
