@@ -1,3 +1,4 @@
+// whatsapp-disparo-agenda — redeploy trigger 2026-07-09
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
