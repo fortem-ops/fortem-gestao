@@ -3,8 +3,16 @@
 function normalizarTelefone(tel: string | null | undefined): string | null {
   if (!tel) return null;
   const digits = tel.replace(/\D/g, '');
-  if (digits.startsWith('55') && digits.length >= 12) return digits;
-  if (digits.length === 10 || digits.length === 11) return '55' + digits;
+  // Já tem DDI 55
+  if (digits.startsWith('55')) {
+    // 13 dígitos (55 + DDD + 9 + 8 dígitos) → remove o 9 extra para compatibilidade Meta
+    if (digits.length === 13) return '55' + digits.slice(2, 4) + digits.slice(5);
+    return digits;
+  }
+  // Sem DDI: 11 dígitos (DDD + 9 + 8) → remove o 9, adiciona 55
+  if (digits.length === 11) return '55' + digits.slice(0, 2) + digits.slice(3);
+  // 10 dígitos (DDD + 8) → adiciona 55
+  if (digits.length === 10) return '55' + digits;
   return digits;
 }
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
