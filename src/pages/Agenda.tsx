@@ -114,6 +114,18 @@ export default function Agenda() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const ev = agendas.find((a: any) => a.id === id);
+
+      // Dispara WhatsApp ANTES do delete (enquanto o registro ainda existe no banco)
+      if (ev?.id) {
+        try {
+          await supabase.functions.invoke("whatsapp-disparo-agenda", {
+            body: { evento: "agendamento_cancelado", agenda_id: ev.id },
+          });
+        } catch (e) {
+          console.error("[WhatsApp Disparo cancelado] erro:", e);
+        }
+      }
+
       const { error } = await supabase.from("agenda_servicos").delete().eq("id", id);
       if (error) throw error;
       return ev;
@@ -133,18 +145,11 @@ export default function Agenda() {
         }).catch((e) => console.error("notify-agenda-evento (cancelado):", e));
       }
 
-      // WhatsApp para todas as atividades (com ou sem aluno)
-      if (ev?.id) {
-        supabase.functions.invoke("whatsapp-disparo-agenda", {
-          body: { evento: "agendamento_cancelado", agenda_id: ev.id },
-        }).then((r) => console.log("[WhatsApp Disparo cancelado]", r))
-          .catch((e) => console.error("[WhatsApp Disparo cancelado] erro:", e));
-      }
-
       setDeleteTarget(null);
     },
     onError: () => toast.error("Erro ao remover horário"),
   });
+
 
   const excecaoMutation = useMutation({
     mutationFn: async ({ agenda_id, data }: { agenda_id: string; data: Date }) => {
