@@ -195,7 +195,9 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const destinoTelefone = cfg.destinatario === 'profissional' ? ctx.profTelefone : ctx.alunoTelefone;
+      const destinoTelefone = normalizarTelefone(
+        cfg.destinatario === 'profissional' ? ctx.profTelefone : ctx.alunoTelefone,
+      );
       const destinoNome = cfg.destinatario === 'profissional' ? ctx.profissional?.full_name : ctx.aluno?.nome;
 
       const mensagem = resolveTemplate(cfg.template_texto, ctx.vars);
