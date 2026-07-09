@@ -175,8 +175,10 @@ Deno.serve(async (req) => {
 
     if (isText) {
       const wamid = (metaJson as any)?.messages?.[0]?.id;
+      // Usa o wa_id retornado pela Meta (pode diferir do número enviado para números brasileiros antigos)
+      const waId = (metaJson as any)?.contacts?.[0]?.wa_id ?? toClean;
       await upsertConversaAndSave({
-        telefone: toClean,
+        telefone: waId,
         conteudo: (payload.text as any).body,
         wamid,
         enviado_por: typeof body.enviado_por === 'string' ? body.enviado_por : null,
