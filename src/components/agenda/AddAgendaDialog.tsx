@@ -395,9 +395,14 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
 
       // Disparos automáticos WhatsApp
       if (!isEditing && inserted?.id) {
+        console.log('[WhatsApp Disparo] Iniciando disparo para agenda:', inserted.id, 'atividade:', inserted.atividade);
         supabase.functions.invoke("whatsapp-disparo-agenda", {
           body: { evento: "agendamento_criado", agenda_id: inserted.id },
-        }).catch((e) => console.error("whatsapp-disparo-agenda:", e));
+        }).then((result) => {
+          console.log('[WhatsApp Disparo] Resultado:', result);
+        }).catch((e) => {
+          console.error('[WhatsApp Disparo] Erro:', e);
+        });
       }
 
       resetForm();
