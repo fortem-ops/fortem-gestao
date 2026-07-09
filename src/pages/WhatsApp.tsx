@@ -33,10 +33,14 @@ export default function WhatsApp() {
       <Tabs defaultValue="chat" className="w-full">
         <TabsList>
           <TabsTrigger value="chat">Chat</TabsTrigger>
+          <TabsTrigger value="disparos">Disparos Automáticos</TabsTrigger>
           <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
         <TabsContent value="chat" className="mt-4">
           <WhatsAppChat />
+        </TabsContent>
+        <TabsContent value="disparos" className="mt-4">
+          <WhatsAppDisparos />
         </TabsContent>
         <TabsContent value="config" className="mt-4">
           <WhatsAppSettings />
