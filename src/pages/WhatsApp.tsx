@@ -3,6 +3,7 @@ import { MessageCircle, Loader2 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import WhatsAppChat from "@/components/whatsapp/WhatsAppChat";
+import WhatsAppDisparos from "@/components/whatsapp/WhatsAppDisparos";
 import WhatsAppSettings from "@/components/whatsapp/WhatsAppSettings";
 
 export default function WhatsApp() {
