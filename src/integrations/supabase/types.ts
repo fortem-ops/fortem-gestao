@@ -4844,6 +4844,132 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_disparos_config: {
+        Row: {
+          atividades: string[] | null
+          ativo: boolean
+          categoria: string
+          created_at: string
+          descricao: string | null
+          destinatario: string
+          gatilho: string
+          id: string
+          modo_teste: boolean
+          nome: string
+          ordem: number
+          template_texto: string
+          updated_at: string
+          variaveis_disponiveis: string[]
+        }
+        Insert: {
+          atividades?: string[] | null
+          ativo?: boolean
+          categoria: string
+          created_at?: string
+          descricao?: string | null
+          destinatario: string
+          gatilho: string
+          id?: string
+          modo_teste?: boolean
+          nome: string
+          ordem?: number
+          template_texto: string
+          updated_at?: string
+          variaveis_disponiveis?: string[]
+        }
+        Update: {
+          atividades?: string[] | null
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          destinatario?: string
+          gatilho?: string
+          id?: string
+          modo_teste?: boolean
+          nome?: string
+          ordem?: number
+          template_texto?: string
+          updated_at?: string
+          variaveis_disponiveis?: string[]
+        }
+        Relationships: []
+      }
+      whatsapp_disparos_log: {
+        Row: {
+          agenda_id: string | null
+          aluno_id: string | null
+          config_id: string | null
+          created_at: string
+          destinatario_nome: string | null
+          destinatario_telefone: string | null
+          erro_detalhe: string | null
+          id: string
+          mensagem_enviada: string | null
+          status: string
+        }
+        Insert: {
+          agenda_id?: string | null
+          aluno_id?: string | null
+          config_id?: string | null
+          created_at?: string
+          destinatario_nome?: string | null
+          destinatario_telefone?: string | null
+          erro_detalhe?: string | null
+          id?: string
+          mensagem_enviada?: string | null
+          status?: string
+        }
+        Update: {
+          agenda_id?: string | null
+          aluno_id?: string | null
+          config_id?: string | null
+          created_at?: string
+          destinatario_nome?: string | null
+          destinatario_telefone?: string | null
+          erro_detalhe?: string | null
+          id?: string
+          mensagem_enviada?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_disparos_log_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_disparos_log_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "v_servicos_agenda"
+            referencedColumns: ["agenda_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_disparos_log_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_disparos_log_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_disparos_log_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_disparos_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_events: {
         Row: {
           created_at: string

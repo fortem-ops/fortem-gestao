@@ -167,9 +167,12 @@ export default function WhatsAppChat() {
   const handleSend = async () => {
     if (!selected || !draft.trim() || sending) return;
     setSending(true);
-    const text = draft.trim();
+    const rawText = draft.trim();
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const myProfile = user?.id ? profilesQuery.data?.[user.id] : null;
+      const nomeFuncionario = myProfile?.full_name?.trim() || null;
+      const text = nomeFuncionario ? `*${nomeFuncionario}:*\n\n${rawText}` : rawText;
       const { data, error } = await supabase.functions.invoke("send-whatsapp", {
         body: {
           to: selected.telefone,

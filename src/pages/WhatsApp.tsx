@@ -3,6 +3,7 @@ import { MessageCircle, Loader2 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import WhatsAppChat from "@/components/whatsapp/WhatsAppChat";
+import WhatsAppDisparos from "@/components/whatsapp/WhatsAppDisparos";
 import WhatsAppSettings from "@/components/whatsapp/WhatsAppSettings";
 
 export default function WhatsApp() {
@@ -32,10 +33,14 @@ export default function WhatsApp() {
       <Tabs defaultValue="chat" className="w-full">
         <TabsList>
           <TabsTrigger value="chat">Chat</TabsTrigger>
+          <TabsTrigger value="disparos">Disparos Automáticos</TabsTrigger>
           <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
         <TabsContent value="chat" className="mt-4">
           <WhatsAppChat />
+        </TabsContent>
+        <TabsContent value="disparos" className="mt-4">
+          <WhatsAppDisparos />
         </TabsContent>
         <TabsContent value="config" className="mt-4">
           <WhatsAppSettings />

@@ -393,6 +393,13 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         }).catch((e) => console.error("notify-agenda-evento (insert):", e));
       }
 
+      // Disparos automáticos WhatsApp
+      if (!isEditing && inserted?.id) {
+        supabase.functions.invoke("whatsapp-disparo-agenda", {
+          body: { evento: "agendamento_criado", agenda_id: inserted.id },
+        }).catch((e) => console.error("whatsapp-disparo-agenda:", e));
+      }
+
       resetForm();
       onOpenChange(false);
     },
