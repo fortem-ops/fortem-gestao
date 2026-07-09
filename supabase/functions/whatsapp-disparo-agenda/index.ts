@@ -141,7 +141,8 @@ async function sendWhatsApp(to: string, text: string): Promise<{ ok: boolean; er
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        'x-supabase-service-role': 'true',
       },
       body: JSON.stringify({ to, type: 'text', text }),
     });
