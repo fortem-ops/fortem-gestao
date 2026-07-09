@@ -14,10 +14,14 @@ export function useWhatsAppNotifications(enabled: boolean = true) {
 
   useEffect(() => {
     console.log("[WhatsApp Notification] hook iniciado, enabled:", enabled);
-    console.log("[WhatsApp Notification] permissão:", typeof window !== "undefined" ? Notification.permission : "N/A");
 
     if (!enabled) return;
-    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      console.log("[WhatsApp Notification] Notification API indisponível neste ambiente");
+      return;
+    }
+
+    console.log("[WhatsApp Notification] permissão:", Notification.permission);
 
     if (Notification.permission === "default") {
       Notification.requestPermission().then(p => {
