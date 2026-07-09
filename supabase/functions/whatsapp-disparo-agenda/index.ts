@@ -1,4 +1,12 @@
-// whatsapp-disparo-agenda — redeploy trigger 2026-07-09
+// whatsapp-disparo-agenda — redeploy trigger 2026-07-09 (normalize phone)
+
+function normalizarTelefone(tel: string | null | undefined): string | null {
+  if (!tel) return null;
+  const digits = tel.replace(/\D/g, '');
+  if (digits.startsWith('55') && digits.length >= 12) return digits;
+  if (digits.length === 10 || digits.length === 11) return '55' + digits;
+  return digits;
+}
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
