@@ -59,6 +59,7 @@ const RelatoriosEmBreve = lazy(() => import("./pages/relatorios/EmBreve"));
 const RelatoriosEquipe = lazy(() => import("./pages/relatorios/Equipe"));
 const WhatsApp = lazy(() => import("./pages/WhatsApp"));
 const Privacidade = lazy(() => import("./pages/Privacidade"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 
 // Portal do Aluno
 const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
@@ -110,6 +111,7 @@ const App = () => (
             <Route path="/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><RecoverPassword /></Suspense>} />
             <Route path="/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><ResetPassword /></Suspense>} />
             <Route path="/privacidade" element={<Suspense fallback={<RouteFallback />}><Privacidade /></Suspense>} />
+            <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<RouteFallback />}><OAuthConsent /></Suspense>} />
 
             {/* Portal do Aluno — auth e rotas próprias */}
             <Route path="/portal/login" element={<Suspense fallback={<RouteFallback />}><PortalLogin /></Suspense>} />
