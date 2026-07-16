@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,10 @@ export default function Login() {
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   const [testing, setTesting] = useState(false);
   const navigate = useNavigate();
+  const [sp] = useSearchParams();
+  const nextParam = sp.get("next");
+  // Só aceita redirecionos same-origin relativos (começando com "/").
+  const safeNext = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : null;
   const { signIn, user, isReady, resetAuthState } = useAuth();
 
   const runDiagnosis = async () => {
@@ -49,15 +53,25 @@ export default function Login() {
     let cancelled = false;
     userHasStaffAccess(user.id)
       .then((isStaff) => {
-        if (!cancelled) navigate(isStaff ? "/" : "/portal", { replace: true });
+        if (cancelled) return;
+        if (safeNext) {
+          window.location.replace(safeNext);
+          return;
+        }
+        navigate(isStaff ? "/" : "/portal", { replace: true });
       })
       .catch(() => {
-        if (!cancelled) navigate("/portal", { replace: true });
+        if (cancelled) return;
+        if (safeNext) {
+          window.location.replace(safeNext);
+          return;
+        }
+        navigate("/portal", { replace: true });
       });
     return () => {
       cancelled = true;
     };
-  }, [navigate, user, isReady]);
+  }, [navigate, user, isReady, safeNext]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
