@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "sdk_version": "0.22.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://dmudgqedzeosfpehpgep.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "fortem-mcp",
+      "version": "0.1.0",
+      "title": "Fortem Gestão Técnica"
+    },
+    "tools": [
+      {
+        "name": "list_alunos",
+        "title": "Listar alunos",
+        "description": "Lista alunos da Fortem visíveis para o usuário autenticado. Suporta busca por nome/e-mail/CPF e filtro por status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "busca": {
+              "type": "string",
+              "description": "Trecho de nome, e-mail ou CPF."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "ativo",
+                "inativo"
+              ],
+              "description": "Filtra pelo status do aluno."
+            },
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Máximo de linhas (padrão 25)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_aluno",
+        "title": "Detalhes do aluno",
+        "description": "Retorna os dados de um aluno pelo id (uuid).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "aluno_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID do aluno."
+            }
+          },
+          "required": [
+            "aluno_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "agenda_do_dia",
+        "title": "Agenda do dia",
+        "description": "Lista os agendamentos (agenda_servicos) de uma data específica (padrão: hoje). Inclui recorrentes do dia da semana e pontuais na data.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Data no formato YYYY-MM-DD. Se omitido, usa a data atual."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
