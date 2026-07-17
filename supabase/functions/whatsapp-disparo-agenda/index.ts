@@ -4,28 +4,14 @@ function normalizarTelefone(tel: string | null | undefined): string | null {
   if (!tel) return null;
   const digits = tel.replace(/\D/g, '');
 
-  // Já tem DDI 55
-  if (digits.startsWith('55')) {
-    // 13 dígitos: 55 + DDD(2) + 9 + número(8) → remove o 9 extra (índice 4)
-    if (digits.length === 13 && digits[4] === '9') {
-      return digits.slice(0, 4) + digits.slice(5); // remove o 9 extra
-    }
-    // 12 dígitos: já está no formato correto
+  // Já tem DDI 55 com pelo menos 10 dígitos locais
+  if (digits.startsWith('55') && digits.length >= 12) {
     return digits;
   }
 
-  // Sem DDI 55
-  // 11 dígitos: DDD(2) + 9 + número(8) → adiciona 55, remove o 9 extra
-  if (digits.length === 11 && digits[2] === '9') {
-    return '55' + digits.slice(0, 2) + digits.slice(3);
-  }
-  // 10 dígitos: DDD(2) + número(8) → adiciona 55 diretamente
-  if (digits.length === 10) {
+  // Sem DDI: adiciona 55
+  if (digits.length >= 10) {
     return '55' + digits;
-  }
-  // 8 dígitos: sem DDD → não consegue normalizar, retorna com 55 e DDD padrão 51
-  if (digits.length === 8) {
-    return '5551' + digits;
   }
 
   return digits;
