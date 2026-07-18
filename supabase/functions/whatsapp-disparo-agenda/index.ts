@@ -152,7 +152,7 @@ async function alreadySent(agendaId: string, configId: string): Promise<boolean>
   return !!data;
 }
 
-async function callSendWhatsApp(payload: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
+async function callSendWhatsApp(payload: Record<string, unknown>): Promise<{ ok: boolean; error?: string; details?: unknown }> {
   try {
     const resp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -165,7 +165,11 @@ async function callSendWhatsApp(payload: Record<string, unknown>): Promise<{ ok:
     });
     const json = await resp.json().catch(() => ({}));
     if (!resp.ok || (json && (json as any).error)) {
-      return { ok: false, error: (json as any)?.error ?? `HTTP ${resp.status}` };
+      return {
+        ok: false,
+        error: (json as any)?.error ?? `HTTP ${resp.status}`,
+        details: (json as any)?.details ?? json,
+      };
     }
     return { ok: true };
   } catch (e) {
@@ -284,7 +288,7 @@ Deno.serve(async (req) => {
         destinatario_nome: destinoNome,
         mensagem_enviada: mensagem,
         status: send.ok ? 'enviado' : 'erro',
-        erro_detalhe: send.ok ? null : send.error,
+        erro_detalhe: send.ok ? null : JSON.stringify({ error: send.error, details: send.details }),
       });
       results.push({ config: cfg.nome, status: send.ok ? 'enviado' : 'erro', error: send.error });
     }
