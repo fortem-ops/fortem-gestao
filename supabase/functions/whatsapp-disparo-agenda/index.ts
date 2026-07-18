@@ -123,6 +123,7 @@ async function buildContext(agendaId: string) {
     '%ATIVIDADE_FISICA%': anamnese?.atividade_fisica ?? '—',
     '%OBJETIVO%': anamnese?.objetivo_treinamento ?? '—',
     '%COMO_CONHECEU%': anamnese?.como_conheceu ?? '—',
+    '%QUEIXA%': anamnese?.queixa ?? anamnese?.limitacoes ?? '—',
     '%ULTIMA_AVALIACAO%': formatDateBR(ultimaAvaliacao?.data_avaliacao ?? null) || 'Nenhuma',
   };
 
