@@ -290,6 +290,50 @@ Deno.serve(async (req) => {
         status: send.ok ? 'enviado' : 'erro',
         erro_detalhe: send.ok ? null : JSON.stringify({ error: send.error, details: send.details }),
       });
+
+      // Após confirmar send.ok === true, salvar no chat
+      if (send.ok) {
+        // Upsert conversa
+        let conversaId: string | null = null;
+        const nowIso = new Date().toISOString();
+
+        const { data: upserted } = await admin
+          .from('whatsapp_conversas')
+          .upsert(
+            {
+              telefone: destinoTelefone,
+              nome_contato: destinoNome,
+              ultima_mensagem: mensagem.substring(0, 100),
+              ultima_mensagem_at: nowIso,
+            },
+            { onConflict: 'telefone', ignoreDuplicates: false },
+          )
+          .select('id')
+          .single();
+
+        if (upserted?.id) {
+          conversaId = upserted.id;
+        } else {
+          const { data: existing } = await admin
+            .from('whatsapp_conversas')
+            .select('id')
+            .eq('telefone', destinoTelefone)
+            .single();
+          conversaId = existing?.id ?? null;
+        }
+
+        if (conversaId) {
+          await admin.from('whatsapp_mensagens').insert({
+            conversa_id: conversaId,
+            direcao: 'enviada',
+            tipo: 'text',
+            conteudo: mensagem,
+            status: 'sent',
+            enviado_por: null, // disparo automático, sem funcionário específico
+          });
+        }
+      }
+
       results.push({ config: cfg.nome, status: send.ok ? 'enviado' : 'erro', error: send.error });
     }
 
