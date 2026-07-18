@@ -152,7 +152,7 @@ async function alreadySent(agendaId: string, configId: string): Promise<boolean>
   return !!data;
 }
 
-async function sendWhatsApp(to: string, text: string): Promise<{ ok: boolean; error?: string }> {
+async function callSendWhatsApp(payload: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
   try {
     const resp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
       method: 'POST',
@@ -161,7 +161,7 @@ async function sendWhatsApp(to: string, text: string): Promise<{ ok: boolean; er
         Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
         'x-supabase-service-role': 'true',
       },
-      body: JSON.stringify({ to, type: 'text', text }),
+      body: JSON.stringify(payload),
     });
     const json = await resp.json().catch(() => ({}));
     if (!resp.ok || (json && (json as any).error)) {
@@ -171,6 +171,19 @@ async function sendWhatsApp(to: string, text: string): Promise<{ ok: boolean; er
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
+}
+
+async function sendWhatsAppText(to: string, text: string) {
+  return callSendWhatsApp({ to, type: 'text', text });
+}
+
+async function sendWhatsAppTemplate(
+  to: string,
+  templateName: string,
+  language: string,
+  components: unknown[],
+) {
+  return callSendWhatsApp({ to, template_name: templateName, language, components });
 }
 
 Deno.serve(async (req) => {
