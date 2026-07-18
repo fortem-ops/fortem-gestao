@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
       }
 
       const send = cfg.gatilho === 'agendamento_cancelado'
-        ? await sendWhatsAppTemplate(destinoTelefone, 'aviso_cancelamento', 'pt_BR', [
+        ? await sendWhatsAppTemplate(destinoTelefone, 'cancelamento_aviso', 'pt_BR', [
             {
               type: 'body',
               parameters: [
