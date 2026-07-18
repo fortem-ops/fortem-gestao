@@ -191,6 +191,91 @@ async function sendWhatsAppTemplate(
   return callSendWhatsApp({ to, template_name: templateName, language, components });
 }
 
+function buildTemplatePayload(
+  configNome: string,
+  gatilho: string,
+  vars: Record<string, string>,
+  destinoTelefone: string,
+): Record<string, unknown> | null {
+  const p = (v: string) => ({ type: 'text', text: vars[v] || '' });
+  const dataCompleta = vars['%DIA_SEMANA%'] && vars['%DATA%']
+    ? `${vars['%DIA_SEMANA%']}, ${vars['%DATA%']}`
+    : vars['%DATA%'] || '';
+
+  if (gatilho === 'agendamento_cancelado') {
+    return {
+      to: destinoTelefone, template_name: 'cancelamento_aviso', language: 'pt_BR',
+      components: [{ type: 'body', parameters: [
+        p('%TIPO_SERVICO%'), p('%DATA%'), p('%HORA_INICIO%'), p('%NOME_ALUNO%'),
+      ]}],
+    };
+  }
+
+  if (configNome.startsWith('Treino Experimental')) {
+    return {
+      to: destinoTelefone, template_name: 'aviso_treino_experimental', language: 'pt_BR',
+      components: [{ type: 'body', parameters: [
+        p('%TIPO_SERVICO%'),
+        { type: 'text', text: dataCompleta },
+        p('%HORA_INICIO%'),
+        p('%NOME_PROFISSIONAL%'),
+        p('%NOME_ALUNO%'),
+        p('%DATA_NASCIMENTO%'),
+        p('%COMO_CONHECEU%'),
+        p('%LIMITACOES%'),
+        p('%ATIVIDADE_FISICA%'),
+        p('%OBJETIVO%'),
+      ]}],
+    };
+  }
+
+  if (configNome.startsWith('Avaliação Funcional')) {
+    return {
+      to: destinoTelefone, template_name: 'aviso_avaliacao_funcional', language: 'pt_BR',
+      components: [{ type: 'body', parameters: [
+        p('%TIPO_SERVICO%'),
+        { type: 'text', text: dataCompleta },
+        p('%HORA_INICIO%'),
+        p('%NOME_PROFISSIONAL%'),
+        p('%NOME_ALUNO%'),
+        p('%DATA_NASCIMENTO%'),
+        p('%ULTIMA_AVALIACAO%'),
+        p('%OBJETIVO%'),
+      ]}],
+    };
+  }
+
+  if (configNome.startsWith('Reabilitação') && !configNome.startsWith('Reabilitação/Nutrição')) {
+    return {
+      to: destinoTelefone, template_name: 'aviso_consulta_reabilitacao', language: 'pt_BR',
+      components: [{ type: 'body', parameters: [
+        { type: 'text', text: dataCompleta },
+        p('%HORA_INICIO%'),
+        p('%NOME_PROFISSIONAL%'),
+        p('%NOME_ALUNO%'),
+        p('%DATA_NASCIMENTO%'),
+        p('%QUEIXA%'),
+      ]}],
+    };
+  }
+
+  if (configNome.startsWith('Nutrição') || configNome.startsWith('Reabilitação/Nutrição')) {
+    return {
+      to: destinoTelefone, template_name: 'aviso_consulta_nutricao', language: 'pt_BR',
+      components: [{ type: 'body', parameters: [
+        { type: 'text', text: dataCompleta },
+        p('%HORA_INICIO%'),
+        p('%NOME_PROFISSIONAL%'),
+        p('%NOME_ALUNO%'),
+        p('%DATA_NASCIMENTO%'),
+      ]}],
+    };
+  }
+
+  return null;
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
