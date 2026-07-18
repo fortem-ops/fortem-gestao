@@ -262,7 +262,19 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const send = await sendWhatsApp(destinoTelefone, mensagem);
+      const send = cfg.gatilho === 'agendamento_cancelado'
+        ? await sendWhatsAppTemplate(destinoTelefone, 'aviso_cancelamento', 'pt_BR', [
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: ctx.vars['%TIPO_SERVICO%'] || 'Agendamento' },
+                { type: 'text', text: ctx.vars['%DATA%'] || '' },
+                { type: 'text', text: ctx.vars['%HORA_INICIO%'] || '' },
+                { type: 'text', text: ctx.vars['%NOME_ALUNO%'] || 'Aluno' },
+              ],
+            },
+          ])
+        : await sendWhatsAppText(destinoTelefone, mensagem);
 
       await admin.from('whatsapp_disparos_log').insert({
         config_id: cfg.id,
