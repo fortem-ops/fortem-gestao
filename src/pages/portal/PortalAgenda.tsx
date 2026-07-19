@@ -488,7 +488,7 @@ export default function PortalAgenda() {
                           ? format(parseISO(h.data_especifica), "dd/MM")
                           : DIA_ABREV[h.dia_semana];
                         window.open(
-                          `https://wa.me/5551919519640?text=${encodeURIComponent(
+                          `https://wa.me/555135199451?text=${encodeURIComponent(
                             `Olá! Quero agendar ${h.atividade} no horário ${h.horario_inicio.slice(0, 5)} de ${quando}.`
                           )}`,
                           "_blank"
@@ -510,7 +510,7 @@ export default function PortalAgenda() {
                 <button
                   onClick={() =>
                     window.open(
-                      "https://wa.me/5551919519640?text=" + encodeURIComponent("Olá! Quero agendar um serviço."),
+                      "https://wa.me/555135199451?text=" + encodeURIComponent("Olá! Quero agendar um serviço."),
                       "_blank"
                     )
                   }

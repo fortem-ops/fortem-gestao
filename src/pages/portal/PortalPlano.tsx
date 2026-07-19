@@ -475,7 +475,7 @@ export default function PortalPlano() {
         )}
 
         <button
-          onClick={() => window.open('https://wa.me/5551919519640?text=Olá! Gostaria de fazer upgrade de frequência no meu plano.', '_blank')}
+          onClick={() => window.open('https://wa.me/555135199451?text=Olá! Gostaria de fazer upgrade de frequência no meu plano.', '_blank')}
           className="w-full flex items-center gap-3 p-4 rounded-xl border bg-card border-border text-left"
         >
           <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
@@ -489,7 +489,7 @@ export default function PortalPlano() {
         </button>
 
         <button
-          onClick={() => window.open('https://wa.me/5551919519640?text=Olá! Gostaria de fazer upgrade do meu plano.', '_blank')}
+          onClick={() => window.open('https://wa.me/555135199451?text=Olá! Gostaria de fazer upgrade do meu plano.', '_blank')}
           className="w-full flex items-center gap-3 p-4 rounded-xl border bg-card border-border text-left"
         >
           <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
