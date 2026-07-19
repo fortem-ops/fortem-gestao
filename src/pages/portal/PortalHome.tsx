@@ -181,7 +181,12 @@ export default function PortalHome() {
                   : `Renova em ${diasRenovacao} dia${diasRenovacao === 1 ? "" : "s"}`
                 : "Renovação próxima"}
             </p>
-            <Progress value={pct} className="h-1.5" />
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${pct >= 100 ? "bg-emerald-500" : "bg-primary"}`}
+                style={{ width: `${Math.min(pct, 100)}%` }}
+              />
+            </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{usado} utilizados</span>
               <span>{saldo} restantes</span>
