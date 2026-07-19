@@ -55,7 +55,7 @@ export default function PortalAgenda() {
     return { icon: Activity };
   };
 
-  const dias7 = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
+  const dias7 = useMemo(() => Array.from({ length: 30 }, (_, i) => addDays(new Date(), i)), []);
   const dataStr = format(diaSelecionado, "yyyy-MM-dd");
 
   const { data: cicloAtivo } = useQuery({
