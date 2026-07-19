@@ -89,6 +89,23 @@ export function PortalLayout() {
         </div>
       </header>
 
+      {/* Banner de ativação de notificações */}
+      {isSupported && !isSubscribed && permission !== "denied" && (
+        <div className="bg-primary/10 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
+          <Bell className="w-4 h-4 text-primary shrink-0" />
+          <p className="text-xs text-foreground flex-1">
+            Ative as notificações para receber alertas de treino, renovação e mais.
+          </p>
+          <button
+            onClick={subscribe}
+            disabled={pushLoading}
+            className="text-xs font-bold text-primary whitespace-nowrap"
+          >
+            {pushLoading ? "..." : "Ativar"}
+          </button>
+        </div>
+      )}
+
       {/* Conteúdo */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 pt-4 pb-28">
         <Outlet />
