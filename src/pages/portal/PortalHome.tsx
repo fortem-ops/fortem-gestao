@@ -129,6 +129,21 @@ export default function PortalHome() {
     },
   });
 
+  const { data: alunoDesde } = useQuery({
+    queryKey: ["portal-aluno-desde", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planos")
+        .select("data_inicio")
+        .eq("aluno_id", student!.id)
+        .order("data_inicio", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return data?.data_inicio ?? null;
+    },
+  });
+
   const iconServico = (atividade: string) => {
     const a = atividade.toLowerCase();
     if (a.includes("nutri")) return { icon: Utensils, label: "Nutrição" };
@@ -397,6 +412,39 @@ export default function PortalHome() {
           </div>
         </div>
       </section>
+
+      {/* Minha jornada */}
+      {alunoDesde && (() => {
+        const d = new Date(alunoDesde + "T00:00:00");
+        const hoje = new Date();
+        const diffDays = Math.floor((hoje.getTime() - d.getTime()) / 86400000);
+        const anos = Math.floor(diffDays / 365);
+        const meses = Math.floor((diffDays % 365) / 30);
+        const tempo = anos > 0
+          ? `${anos} ano${anos > 1 ? "s" : ""}${meses > 0 ? ` e ${meses} mês${meses > 1 ? "es" : ""}` : ""}`
+          : meses > 0
+          ? `${meses} mês${meses > 1 ? "es" : ""}`
+          : `${diffDays} dia${diffDays !== 1 ? "s" : ""}`;
+        const emoji = anos >= 2 ? "🏆" : anos >= 1 ? "⭐" : meses >= 6 ? "💪" : "🌱";
+        return (
+          <section className="space-y-2">
+            <SectionLabel>Minha jornada</SectionLabel>
+            <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 text-2xl">
+                {emoji}
+              </div>
+              <div>
+                <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                  {tempo} na FORTEM
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Membro desde {d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
+                </p>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Banner Avaliação Funcional */}
       {avaliacaoResume && (

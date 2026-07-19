@@ -165,6 +165,20 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
+  const { data: primeiroPlanoDat } = useQuery({
+    queryKey: ["primeiro_plano_data", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planos")
+        .select("data_inicio")
+        .eq("aluno_id", student.id)
+        .order("data_inicio", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return data?.data_inicio ?? null;
+    },
+  });
+
   const { data: origemLead } = useQuery({
     queryKey: ["pipeline_metadata_origem", student.id],
     queryFn: async () => {
@@ -464,7 +478,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
           <DollarSign className="w-4 h-4 text-muted-foreground" />
           Plano
         </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="glass-card rounded-lg p-4">
             <span className="text-xs text-muted-foreground">Tipo</span>
             <p className="text-sm font-semibold text-foreground mt-1">{plano?.tipo || "Sem plano"}</p>
@@ -528,6 +542,28 @@ export function StudentSummary({ student }: { student: Aluno }) {
             <span className="text-xs text-muted-foreground">Valor</span>
             <p className="text-sm font-semibold text-foreground mt-1">
               {plano?.valor ? `R$ ${Number(plano.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+            </p>
+          </div>
+          <div className="glass-card rounded-lg p-4">
+            <span className="text-xs text-muted-foreground">Aluno desde</span>
+            <p className="text-sm font-semibold text-foreground mt-1">
+              {primeiroPlanoDat
+                ? (() => {
+                    const d = new Date(primeiroPlanoDat + "T00:00:00");
+                    const hoje = new Date();
+                    const diffMs = hoje.getTime() - d.getTime();
+                    const diffDays = Math.floor(diffMs / 86400000);
+                    const anos = Math.floor(diffDays / 365);
+                    const meses = Math.floor((diffDays % 365) / 30);
+                    const label =
+                      anos > 0
+                        ? `${anos} ano${anos > 1 ? "s" : ""}${meses > 0 ? ` e ${meses} mês${meses > 1 ? "es" : ""}` : ""}`
+                        : meses > 0
+                        ? `${meses} mês${meses > 1 ? "es" : ""}`
+                        : `${diffDays} dia${diffDays !== 1 ? "s" : ""}`;
+                    return `${d.toLocaleDateString("pt-BR")} · ${label}`;
+                  })()
+                : "—"}
             </p>
           </div>
         </div>
