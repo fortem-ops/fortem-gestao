@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+const DIAS_CURTOS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 type Slot = {
   id: string;
@@ -34,6 +35,11 @@ type Slot = {
 
 type Profile = { user_id: string; full_name: string };
 
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.slice(0, 5).split(":").map(Number);
+  return h * 60 + m;
+}
+
 function SlotDialog({
   open,
   onOpenChange,
@@ -47,8 +53,9 @@ function SlotDialog({
   profiles: Profile[];
   onSaved: () => void;
 }) {
+  const isEdit = !!slot;
   const [form, setForm] = useState({
-    dia_semana: slot?.dia_semana ?? 1,
+    dias: slot ? [slot.dia_semana] : [1],
     horario_inicio: slot?.horario_inicio?.slice(0, 5) ?? "07:00",
     horario_fim: slot?.horario_fim?.slice(0, 5) ?? "08:00",
     capacidade_maxima: slot?.capacidade_maxima ?? 8,
@@ -56,26 +63,46 @@ function SlotDialog({
     observacoes: slot?.observacoes ?? "",
   });
 
+  const toggleDia = (i: number) => {
+    if (isEdit) return;
+    setForm((f) => ({
+      ...f,
+      dias: f.dias.includes(i) ? f.dias.filter((d) => d !== i) : [...f.dias, i].sort(),
+    }));
+  };
+
   const save = useSupabaseMutation({
     mutationFn: async () => {
-      const payload = {
-        dia_semana: form.dia_semana,
+      if (toMinutes(form.horario_fim) <= toMinutes(form.horario_inicio)) {
+        throw new Error("Horário final deve ser maior que o inicial");
+      }
+      if (!isEdit && form.dias.length === 0) {
+        throw new Error("Selecione ao menos um dia da semana");
+      }
+      const base = {
         horario_inicio: form.horario_inicio,
         horario_fim: form.horario_fim,
         capacidade_maxima: form.capacidade_maxima,
         instrutor_id: form.instrutor_id || null,
         observacoes: form.observacoes || null,
       };
-      if (slot) {
-        const { error } = await supabase.from("treino_slots").update(payload).eq("id", slot.id);
+      if (isEdit) {
+        const { error } = await supabase
+          .from("treino_slots")
+          .update({ ...base, dia_semana: form.dias[0] })
+          .eq("id", slot!.id);
         if (error) throw error;
+        return 1;
       } else {
-        const { error } = await supabase.from("treino_slots").insert(payload);
+        const payloads = form.dias.map((d) => ({ ...base, dia_semana: d }));
+        const { error } = await supabase.from("treino_slots").insert(payloads);
         if (error) throw error;
+        return payloads.length;
       }
     },
-    successMessage: slot ? "Horário atualizado" : "Horário criado",
-    onSuccess: () => {
+    onSuccess: (n) => {
+      const msg = isEdit ? "Horário atualizado" : `${n} horário${n === 1 ? "" : "s"} criado${n === 1 ? "" : "s"}`;
+      import("@/lib/toast-helpers").then(({ toastSuccess }) => toastSuccess(msg));
       onSaved();
       onOpenChange(false);
     },
@@ -85,17 +112,38 @@ function SlotDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{slot ? "Editar horário" : "Novo horário"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar horário" : "Novo horário"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Dia da semana</Label>
-            <Select value={String(form.dia_semana)} onValueChange={(v) => setForm({ ...form, dia_semana: Number(v) })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {DIAS.map((d, i) => <SelectItem key={i} value={String(i)}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label>{isEdit ? "Dia da semana" : "Dias da semana"}</Label>
+            <div className="flex flex-wrap gap-2 mt-1.5">
+              {DIAS_CURTOS.map((d, i) => {
+                const active = form.dias.includes(i);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={isEdit}
+                    onClick={() => toggleDia(i)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-sm border transition-colors",
+                      active
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border hover:bg-muted",
+                      isEdit && "opacity-60 cursor-not-allowed",
+                    )}
+                  >
+                    {d}
+                  </button>
+                );
+              })}
+            </div>
+            {!isEdit && (
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Selecione todos os dias com o mesmo horário e capacidade — será criado um horário para cada.
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -136,9 +184,114 @@ function SlotDialog({
   );
 }
 
+const ROW_HEIGHT = 32;
+const SLOT_MIN = 30;
+
+function WeeklyGrid({
+  slots,
+  profileMap,
+  onEdit,
+}: {
+  slots: Slot[];
+  profileMap: Record<string, string>;
+  onEdit: (s: Slot) => void;
+}) {
+  const { startMin, endMin, rows } = useMemo(() => {
+    if (!slots.length) {
+      return { startMin: 6 * 60, endMin: 22 * 60, rows: ((22 - 6) * 60) / SLOT_MIN };
+    }
+    let min = Infinity;
+    let max = -Infinity;
+    for (const s of slots) {
+      min = Math.min(min, toMinutes(s.horario_inicio));
+      max = Math.max(max, toMinutes(s.horario_fim));
+    }
+    const start = Math.floor(min / SLOT_MIN) * SLOT_MIN;
+    const end = Math.ceil(max / SLOT_MIN) * SLOT_MIN;
+    return { startMin: start, endMin: end, rows: (end - start) / SLOT_MIN };
+  }, [slots]);
+
+  const timeLabels = useMemo(() => {
+    const out: string[] = [];
+    for (let m = startMin; m < endMin; m += SLOT_MIN) {
+      const h = Math.floor(m / 60).toString().padStart(2, "0");
+      const mm = (m % 60).toString().padStart(2, "0");
+      out.push(`${h}:${mm}`);
+    }
+    return out;
+  }, [startMin, endMin]);
+
+  return (
+    <Card className="p-3 overflow-x-auto">
+      <div
+        className="grid min-w-[820px] relative"
+        style={{
+          gridTemplateColumns: `64px repeat(7, minmax(110px, 1fr))`,
+          gridTemplateRows: `32px repeat(${rows}, ${ROW_HEIGHT}px)`,
+        }}
+      >
+        <div className="border-b border-border" />
+        {DIAS_CURTOS.map((d, i) => (
+          <div key={`h-${i}`} className="border-b border-border text-center text-xs font-semibold uppercase text-muted-foreground py-1.5">
+            {d}
+          </div>
+        ))}
+
+        {timeLabels.map((label, idx) => (
+          <div key={`t-${idx}`} className="contents">
+            <div
+              className="text-[11px] text-muted-foreground pr-2 text-right -translate-y-1.5"
+              style={{ gridColumn: 1, gridRow: idx + 2 }}
+            >
+              {label}
+            </div>
+            {DIAS_CURTOS.map((_, di) => (
+              <div
+                key={`c-${idx}-${di}`}
+                className={cn("border-t border-border/40", idx % 2 === 0 && "bg-muted/20")}
+                style={{ gridColumn: di + 2, gridRow: idx + 2 }}
+              />
+            ))}
+          </div>
+        ))}
+
+        {slots.map((s) => {
+          const startRow = (toMinutes(s.horario_inicio) - startMin) / SLOT_MIN + 2;
+          const span = Math.max(1, (toMinutes(s.horario_fim) - toMinutes(s.horario_inicio)) / SLOT_MIN);
+          return (
+            <button
+              key={s.id}
+              onClick={() => onEdit(s)}
+              className={cn(
+                "m-0.5 rounded-md border text-left px-2 py-1 overflow-hidden transition-colors z-10",
+                "bg-primary/15 border-primary/40 hover:bg-primary/25",
+                !s.ativo && "opacity-40 bg-muted border-border",
+              )}
+              style={{ gridColumn: s.dia_semana + 2, gridRow: `${startRow} / span ${span}` }}
+            >
+              <div className="text-[11px] font-semibold text-primary leading-tight">
+                {s.horario_inicio.slice(0, 5)}–{s.horario_fim.slice(0, 5)}
+              </div>
+              <div className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
+                <Users className="w-2.5 h-2.5" />{s.capacidade_maxima}
+              </div>
+              {s.instrutor_id && span >= 2 && (
+                <div className="text-[10px] text-muted-foreground truncate leading-tight">
+                  {profileMap[s.instrutor_id] ?? "—"}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 function HorariosTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Slot | null>(null);
+  const [view, setView] = useState<"grade" | "lista">("grade");
 
   const { data: slots = [], refetch } = useQuery({
     queryKey: ["treino-slots-admin"],
@@ -180,15 +333,33 @@ function HorariosTab() {
     return g;
   }, [slots]);
 
+  const openEdit = (s: Slot) => { setEditing(s); setDialogOpen(true); };
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Tabs value={view} onValueChange={(v) => setView(v as "grade" | "lista")}>
+          <TabsList>
+            <TabsTrigger value="grade">Grade semanal</TabsTrigger>
+            <TabsTrigger value="lista">Lista por dia</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <Button onClick={() => { setEditing(null); setDialogOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Novo Horário
         </Button>
       </div>
 
-      {DIAS.map((diaNome, diaIdx) => {
+      {slots.length === 0 && (
+        <Card className="p-10 text-center text-muted-foreground">
+          Nenhum horário cadastrado. Clique em "Novo Horário" para começar.
+        </Card>
+      )}
+
+      {slots.length > 0 && view === "grade" && (
+        <WeeklyGrid slots={slots} profileMap={profileMap} onEdit={openEdit} />
+      )}
+
+      {slots.length > 0 && view === "lista" && DIAS.map((diaNome, diaIdx) => {
         const list = grouped[diaIdx] || [];
         if (!list.length) return null;
         return (
@@ -208,7 +379,7 @@ function HorariosTab() {
                     {s.observacoes && <div className="text-xs text-muted-foreground mt-1">{s.observacoes}</div>}
                   </div>
                   <Switch checked={s.ativo} onCheckedChange={(v) => toggleAtivo.mutate({ id: s.id, ativo: v })} />
-                  <Button variant="ghost" size="icon" onClick={() => { setEditing(s); setDialogOpen(true); }}>
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
                     <Pencil className="w-4 h-4" />
                   </Button>
                 </div>
@@ -217,12 +388,6 @@ function HorariosTab() {
           </Card>
         );
       })}
-
-      {slots.length === 0 && (
-        <Card className="p-10 text-center text-muted-foreground">
-          Nenhum horário cadastrado. Clique em "Novo Horário" para começar.
-        </Card>
-      )}
 
       {dialogOpen && (
         <SlotDialog
