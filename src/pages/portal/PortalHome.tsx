@@ -156,7 +156,8 @@ export default function PortalHome() {
   const usado = cicloAtivo?.creditos_usados ?? 0;
   const saldo = Math.max(0, contratado - usado);
   const total = contratado;
-  const pct = contratado > 0 ? Math.min(100, (saldo / contratado) * 100) : 0;
+  const pctRestante = total > 0 ? Math.round((saldo / total) * 100) : 0;
+  const corBarra = pctRestante > 30 ? "bg-emerald-500" : pctRestante > 10 ? "bg-warning" : "bg-destructive";
 
   const dataRenovacao = planoAtivo?.proxima_renovacao ?? cicloAtivo?.data_fim ?? null;
   const diasRenovacao = dataRenovacao
@@ -256,8 +257,8 @@ export default function PortalHome() {
             </p>
             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${pct >= 100 ? "bg-emerald-500" : "bg-primary"}`}
-                style={{ width: `${Math.min(pct, 100)}%` }}
+                className={`h-full rounded-full transition-all ${corBarra}`}
+                style={{ width: `${Math.min(pctRestante, 100)}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">

@@ -234,7 +234,7 @@ export default function PortalPlano() {
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">Trancar plano</p>
               <p className="text-xs text-muted-foreground">
-                {diasRestantes > 0 ? `${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""} disponível${diasRestantes !== 1 ? "is" : ""}` : "Limite de trancamento atingido"}
+                {diasRestantes > 0 ? `${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""} disponível${diasRestantes !== 1 ? "es" : ""}` : "Limite de trancamento atingido"}
               </p>
             </div>
             <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${aba === "trancar" ? "rotate-90" : ""}`} />
