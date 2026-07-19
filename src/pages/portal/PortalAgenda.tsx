@@ -403,6 +403,128 @@ export default function PortalAgenda() {
           ))}
         </section>
       )}
+      </>)}
+
+      {abaAgenda === "servicos" && (
+        <div className="space-y-4">
+          <SectionLabel>Seus créditos de serviço</SectionLabel>
+
+          {servicosDisponiveis.length === 0 ? (
+            <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-2">
+              <p className="text-sm font-bold text-foreground">Nenhum serviço disponível</p>
+              <p className="text-xs text-muted-foreground">
+                Seus serviços inclusos no plano aparecerão aqui quando disponíveis.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {servicosDisponiveis.map((s: any) => {
+                const saldoS = s.ilimitado ? Infinity : s.quantidade_inicial - s.quantidade_usada;
+                const temSaldo = saldoS > 0 || s.ilimitado;
+                const { icon: Icon } = iconServico(s.atividade);
+                const isSelected = servicoSelecionado === s.atividade;
+                return (
+                  <button
+                    key={s.atividade}
+                    onClick={() => setServicoSelecionado(isSelected ? null : s.atividade)}
+                    disabled={!temSaldo}
+                    className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-colors text-left ${
+                      isSelected
+                        ? "bg-primary/10 border-primary/40"
+                        : temSaldo
+                          ? "bg-card border-border hover:border-primary/20"
+                          : "bg-card border-border opacity-50 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">{s.atividade}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.ilimitado
+                          ? "Ilimitado"
+                          : `${saldoS} sessão${saldoS !== 1 ? "ões" : ""} disponível${saldoS !== 1 ? "is" : ""}`}
+                      </p>
+                    </div>
+                    {isSelected && <ChevronDown className="w-4 h-4 text-primary shrink-0" />}
+                    {!isSelected && temSaldo && <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {servicoSelecionado && (
+            <div className="space-y-3">
+              <SectionLabel>Horários disponíveis — {servicoSelecionado}</SectionLabel>
+
+              {horariosServico.length === 0 ? (
+                <div className="bg-card border border-border rounded-xl p-4 text-center">
+                  <p className="text-sm text-muted-foreground">Nenhum horário disponível no momento.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Entre em contato com a equipe FORTEM.</p>
+                </div>
+              ) : (
+                horariosServico.map((h: any) => (
+                  <div key={h.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                    <div className="min-w-[44px] text-center">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                        {h.data_especifica ? format(parseISO(h.data_especifica), "dd/MM") : DIA_ABREV[h.dia_semana]}
+                      </p>
+                      <p className="text-base font-black text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
+                        {h.horario_inicio.slice(0, 5)}
+                      </p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">{h.atividade}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {h.horario_inicio.slice(0, 5)} → {h.horario_fim.slice(0, 5)}
+                        {h.local ? ` · ${h.local}` : ""}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const quando = h.data_especifica
+                          ? format(parseISO(h.data_especifica), "dd/MM")
+                          : DIA_ABREV[h.dia_semana];
+                        window.open(
+                          `https://wa.me/5551919519640?text=${encodeURIComponent(
+                            `Olá! Quero agendar ${h.atividade} no horário ${h.horario_inicio.slice(0, 5)} de ${quando}.`
+                          )}`,
+                          "_blank"
+                        );
+                      }}
+                      className="py-2 px-3 rounded-lg bg-primary text-white text-xs font-bold"
+                    >
+                      Agendar
+                    </button>
+                  </div>
+                ))
+              )}
+
+              <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">Prefere outro horário?</p>
+                  <p className="text-xs text-muted-foreground">Fale com a equipe FORTEM pelo WhatsApp</p>
+                </div>
+                <button
+                  onClick={() =>
+                    window.open(
+                      "https://wa.me/5551919519640?text=" + encodeURIComponent("Olá! Quero agendar um serviço."),
+                      "_blank"
+                    )
+                  }
+                  className="py-2 px-3 rounded-lg bg-[#25D366] text-white text-xs font-bold"
+                >
+                  WhatsApp
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+
 
       {/* Dialog confirmar */}
       <Dialog open={!!confirmando} onOpenChange={(v) => !v && setConfirmando(null)}>
