@@ -1,27 +1,30 @@
-## Problema
+## Aluno encontrado
 
-Login falha com tela "Algo deu errado — Can't find variable: Notification" após autenticar. Os logs de rede confirmam que o `signInWithPassword` retorna 200 e o `user_roles` é carregado — o erro acontece depois, ao montar o `AppSidebar`, dentro do hook `useWhatsAppNotifications`.
+- **Nome:** Frederico Luiz Lanziotti Muller
+- **ID:** `ab510e94-1993-48b9-bd31-1aa3e0e8bfcf`
+- **Email atual (guardar para restaurar depois):** `fredmuller51@hotmail.com`
 
-## Causa raiz
+Observação: o nome no banco está como "Muller" (uma letra `l`), não "Mueller". É o único registro que bate — os demais Fredericos têm sobrenomes diferentes.
 
-`src/hooks/useWhatsAppNotifications.ts`, linha 17:
+## Migration proposta
 
-```ts
-console.log("[WhatsApp Notification] permissão:", typeof window !== "undefined" ? Notification.permission : "N/A");
+Um único UPDATE, escopado por `id` para eliminar risco de atingir outro aluno:
+
+```sql
+UPDATE public.alunos
+SET email = 'teste.frederico@fortem.app'
+WHERE id = 'ab510e94-1993-48b9-bd31-1aa3e0e8bfcf';
 ```
 
-Essa linha acessa `Notification.permission` **antes** da guarda `if (!("Notification" in window)) return` (linha 20). Em ambientes onde a Web Notifications API não existe (iOS Safari em contexto não-HTTPS, WebViews, alguns navegadores mobile), a referência a `Notification` lança `ReferenceError` e o ErrorBoundary global captura, mostrando "Algo deu errado".
+Nada mais é alterado: sem mexer em contratos, planos, `user_id`, avaliações ou qualquer outro campo. O vínculo em si acontece quando você fizer login pelo portal — a RPC `fn_portal_link_aluno` casa pelo email e preenche o `user_id` do aluno.
 
-## Correção (1 arquivo)
+## Passos para você depois da migration
 
-Em `src/hooks/useWhatsAppNotifications.ts`:
+1. Criar o usuário no painel de auth com:
+   - Email: `teste.frederico@fortem.app`
+   - Senha: `Fortem@2025`
+   - Confirmar o email (auto-confirm) para poder logar direto.
+2. Logar no `/portal/login` com essas credenciais — o `StudentPortalProvider` chama `fn_portal_link_aluno` automaticamente e vincula o `user_id` ao aluno.
+3. Para restaurar depois do teste, rodo uma migration inversa devolvendo o email para `fredmuller51@hotmail.com` (e, se quiser, limpando o `user_id` do aluno para desfazer o vínculo).
 
-1. Mover a checagem `if (typeof window === "undefined" || !("Notification" in window)) return;` para **antes** de qualquer acesso a `Notification`.
-2. Ajustar o `console.log` da permissão para só rodar após a guarda (ou remover — é log de debug).
-3. Manter o restante da lógica intacta.
-
-Nada de mudança em backend, auth, ou outros arquivos.
-
-## Risco
-
-Baixo — mudança isolada, só reordena checagens defensivas. Usuários em desktop continuam recebendo notificações normalmente; mobile/webview simplesmente pula o registro do canal (que é o comportamento já pretendido pela guarda existente).
+Me confirme para eu aplicar a migration.
