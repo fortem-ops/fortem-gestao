@@ -62,7 +62,7 @@ export function PortalLayout() {
             <img src={fortemWordmark} alt="Fortem" className="h-4 invert hidden sm:block" />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground truncate max-w-[140px]">{student?.nome}</span>
+            <span className="text-xs text-muted-foreground truncate max-w-[140px]">{student?.nome?.split(' ')[0]}</span>
             <button
               onClick={() => navigate("/portal/perfil")}
               className="rounded-full ring-1 ring-border hover:ring-primary transition"
