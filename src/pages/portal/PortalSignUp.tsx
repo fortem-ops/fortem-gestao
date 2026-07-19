@@ -41,6 +41,14 @@ export default function PortalSignUp() {
       toast.error("Erro ao criar conta", { description: error.message });
       return;
     }
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session) {
+      toast.success("Conta criada com sucesso!", { description: "Bem-vindo ao portal." });
+      navigate("/portal");
+      return;
+    }
+
     toast.success("Conta criada!", { description: "Verifique seu e-mail para confirmar e depois faça login." });
     navigate("/portal/login");
   }
