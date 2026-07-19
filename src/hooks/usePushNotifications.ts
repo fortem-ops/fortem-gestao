@@ -19,13 +19,21 @@ export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    // No iOS, Push só funciona como PWA standalone
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true;
+    const isIOS = /(iPhone|iPad|iPod)/i.test(navigator.userAgent);
+
     const supported =
-      typeof window !== "undefined" &&
       "Notification" in window &&
       "serviceWorker" in navigator &&
-      "PushManager" in window;
+      "PushManager" in window &&
+      (isStandalone || !isIOS);
+
     setIsSupported(supported);
-    if (supported) setPermission(Notification.permission);
+    if ("Notification" in window) setPermission(Notification.permission);
   }, []);
 
   useEffect(() => {
