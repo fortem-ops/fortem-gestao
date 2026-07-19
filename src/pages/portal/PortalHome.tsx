@@ -12,9 +12,7 @@ import {
   ArrowRight,
   Utensils,
   Footprints,
-  Settings,
   ChevronRight,
-  Bell,
 } from "lucide-react";
 import { differenceInCalendarDays, format, startOfWeek } from "date-fns";
 import type { ReactNode } from "react";
@@ -184,7 +182,7 @@ export default function PortalHome() {
     { label: "Agendar", icon: CalendarPlus, to: "/portal/agenda" },
     { label: "Avaliação", icon: Activity, to: "/portal/avaliacoes" },
     { label: "Clube", icon: Sparkles, to: "/portal/clube" },
-    { label: "Perfil", icon: User, to: "/portal/perfil" },
+    { label: "Meu Perfil", icon: User, to: "/portal/perfil" },
   ];
 
   if (!student) return null;
@@ -300,37 +298,6 @@ export default function PortalHome() {
         )}
       </section>
 
-      {/* Gerenciar Plano */}
-      <Link to="/portal/plano">
-        <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center">
-              <Settings className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Gerenciar Plano</p>
-              <p className="text-xs text-muted-foreground">Trancar, cancelar, upgrades e vantagens</p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </Link>
-
-      {/* Notificações */}
-      <Link to="/portal/notificacoes">
-        <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center">
-              <Bell className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Notificações</p>
-              <p className="text-xs text-muted-foreground">Gerencie seus alertas</p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </Link>
 
       {/* Treino atual */}
       {treinoAtual && (
