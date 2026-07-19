@@ -144,14 +144,15 @@ export default function PortalAssessments() {
                 Última avaliação · {format(parseISO(ultimaFuncional.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
               </p>
             </div>
-            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="bg-[#181818] border border-[#2A2A2A] rounded-2xl overflow-hidden">
               <div className="overflow-x-auto -mx-3">
                 <div className="min-w-[320px] px-3">
-                  <FuncionalV2Viewer avaliacao={rowFuncional} />
+                  <PortalFuncionalViewer avaliacao={rowFuncional} />
                 </div>
               </div>
             </div>
           </div>
+
         );
       })()}
 
