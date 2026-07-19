@@ -113,6 +113,44 @@
   .glass-card {
     @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
   }
+
+  /* ============================================================
+     Portal do Aluno — dark premium theme (isolated via data-portal)
+     ============================================================ */
+  [data-portal="true"] {
+    --background: 0 0% 8%;
+    --foreground: 0 0% 94%;
+    --card: 0 0% 11%;
+    --card-foreground: 0 0% 94%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 0 0% 94%;
+    --primary: 0 74% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 94%;
+    --muted: 0 0% 17%;
+    --muted-foreground: 0 0% 54%;
+    --accent: 0 0% 17%;
+    --accent-foreground: 0 0% 94%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 74% 51%;
+    --radius: 1rem;
+    font-family: 'Manrope', sans-serif;
+  }
+  [data-portal="true"] h1,
+  [data-portal="true"] h2,
+  [data-portal="true"] h3,
+  [data-portal="true"] h4,
+  [data-portal="true"] .font-heading {
+    font-family: 'Archivo', sans-serif;
+  }
+  [data-portal="true"] .glass-card {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: none;
+    backdrop-filter: none;
+  }
   .prio-baixa { background-color: hsl(220 9% 60% / 0.15); color: hsl(220 9% 40%); border: 1px solid hsl(220 9% 60% / 0.3); }
   .prio-media { background-color: hsl(213 94% 50% / 0.15); color: hsl(213 94% 45%); border: 1px solid hsl(213 94% 50% / 0.3); }
   .prio-alta  { background-color: hsl(28 95% 55% / 0.15);  color: hsl(28 95% 50%);  border: 1px solid hsl(28 95% 55% / 0.3); }
