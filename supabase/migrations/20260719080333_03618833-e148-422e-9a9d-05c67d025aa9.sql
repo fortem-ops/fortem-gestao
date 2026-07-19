@@ -1,0 +1,1 @@
+UPDATE public.alunos SET email = 'teste.frederico@fortem.app' WHERE id = 'ab510e94-1993-48b9-bd31-1aa3e0e8bfcf';
