@@ -1,7 +1,8 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import fortemIcon from "@/assets/fortem-icon.png";
