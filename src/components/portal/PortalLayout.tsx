@@ -21,6 +21,7 @@ export function PortalLayout() {
   const { signOut, user } = useAuth();
   const { student, loading, unlinked } = useStudentPortal();
   const navigate = useNavigate();
+  const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe } = usePushNotifications();
 
   if (loading) {
     return (
