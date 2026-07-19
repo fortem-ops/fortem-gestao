@@ -583,6 +583,7 @@ function WeeklyGrid({
         }}
       />
     </div>
+    </TooltipProvider>
   );
 }
 
