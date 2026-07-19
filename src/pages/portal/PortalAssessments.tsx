@@ -224,11 +224,12 @@ export default function PortalAssessments() {
                   <div className="border-t border-border p-3">
                     <div className="overflow-x-auto -mx-3">
                       <div className="min-w-[320px] px-3">
-                        <FuncionalV2Viewer avaliacao={a} />
+                        <PortalFuncionalViewer avaliacao={a} />
                       </div>
                     </div>
                   </div>
                 )}
+
               </div>
             );
           })}
