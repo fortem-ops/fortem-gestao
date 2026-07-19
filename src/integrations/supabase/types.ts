@@ -4453,6 +4453,134 @@ export type Database = {
           },
         ]
       }
+      treino_agendamentos: {
+        Row: {
+          aluno_id: string
+          cancelado_em: string | null
+          cancelado_por: string | null
+          ciclo_id: string | null
+          created_at: string
+          created_by: string | null
+          credito_debitado: boolean
+          credito_estornado: boolean
+          data: string
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          observacoes: string | null
+          slot_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          ciclo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credito_debitado?: boolean
+          credito_estornado?: boolean
+          data: string
+          horario_fim: string
+          horario_inicio: string
+          id?: string
+          observacoes?: string | null
+          slot_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          ciclo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credito_debitado?: boolean
+          credito_estornado?: boolean
+          data?: string
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          observacoes?: string | null
+          slot_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treino_agendamentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treino_agendamentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "treino_agendamentos_ciclo_id_fkey"
+            columns: ["ciclo_id"]
+            isOneToOne: false
+            referencedRelation: "ciclos_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treino_agendamentos_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "treino_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treino_slots: {
+        Row: {
+          ativo: boolean
+          capacidade_maxima: number
+          created_at: string
+          created_by: string | null
+          dia_semana: number
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          instrutor_id: string | null
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          capacidade_maxima?: number
+          created_at?: string
+          created_by?: string | null
+          dia_semana: number
+          horario_fim: string
+          horario_inicio: string
+          id?: string
+          instrutor_id?: string | null
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          capacidade_maxima?: number
+          created_at?: string
+          created_by?: string | null
+          dia_semana?: number
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          instrutor_id?: string | null
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       treinos: {
         Row: {
           aluno_id: string
@@ -5551,10 +5679,18 @@ export type Database = {
         Returns: Database["public"]["Enums"]["tipo_acordo_intervalo"]
       }
       fn_agendar_reavaliacoes_pendentes: { Args: never; Returns: Json }
+      fn_agendar_treino: {
+        Args: { p_data: string; p_slot_id: string }
+        Returns: Json
+      }
       fn_calcular_rescisao: { Args: { p_contrato_id: string }; Returns: Json }
       fn_call_edge_function: {
         Args: { p_body: Json; p_name: string }
         Returns: undefined
+      }
+      fn_cancelar_treino_agendamento: {
+        Args: { p_agendamento_id: string }
+        Returns: Json
       }
       fn_carteira_ativos_por_profissional: {
         Args: never
