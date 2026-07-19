@@ -21,6 +21,7 @@ const StudentProfile = lazy(() => import("./pages/StudentProfile"));
 const TaskCenter = lazy(() => import("./pages/TaskCenter"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminNotificacoesEmail = lazy(() => import("./pages/AdminNotificacoesEmail"));
+const AdminVapidSetup = lazy(() => import("./pages/AdminVapidSetup"));
 const Agenda = lazy(() => import("./pages/Agenda"));
 const AgendaTreinos = lazy(() => import("./pages/AgendaTreinos"));
 const Presencas = lazy(() => import("./pages/Presencas"));
@@ -115,6 +116,7 @@ const App = () => (
             <Route path="/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><RecoverPassword /></Suspense>} />
             <Route path="/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><ResetPassword /></Suspense>} />
             <Route path="/privacidade" element={<Suspense fallback={<RouteFallback />}><Privacidade /></Suspense>} />
+            <Route path="/admin/vapid-setup" element={<Suspense fallback={<RouteFallback />}><AdminVapidSetup /></Suspense>} />
             <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<RouteFallback />}><OAuthConsent /></Suspense>} />
 
             {/* Portal do Aluno — auth e rotas próprias */}
