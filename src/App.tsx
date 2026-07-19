@@ -127,7 +127,9 @@ const App = () => (
                 </RequireStudent>
               }
             >
-              <Route path="/portal" element={<Suspense fallback={<RouteFallback />}><PortalProfile /></Suspense>} />
+              <Route path="/portal" element={<Navigate to="/portal/home" replace />} />
+              <Route path="/portal/home" element={<Suspense fallback={<RouteFallback />}><PortalHome /></Suspense>} />
+              <Route path="/portal/perfil" element={<Suspense fallback={<RouteFallback />}><PortalProfile /></Suspense>} />
               <Route path="/portal/treinos" element={<Suspense fallback={<RouteFallback />}><PortalWorkouts /></Suspense>} />
               <Route path="/portal/avaliacoes" element={<Suspense fallback={<RouteFallback />}><PortalAssessments /></Suspense>} />
               <Route path="/portal/clube" element={<Suspense fallback={<RouteFallback />}><PortalClube /></Suspense>} />
