@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   CalendarPlus,
   Activity,
