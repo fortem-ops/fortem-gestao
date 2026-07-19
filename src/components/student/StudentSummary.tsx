@@ -575,29 +575,36 @@ export function StudentSummary({ student }: { student: Aluno }) {
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-3 space-y-2" align="start">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="dd/mm/aaaa"
+                      defaultValue={primeiroPlanoDat ? new Date(primeiroPlanoDat + "T00:00:00").toLocaleDateString("pt-BR") : ""}
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/\D/g, "").slice(0, 8);
+                        if (v.length >= 5) v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
+                        else if (v.length >= 3) v = `${v.slice(0,2)}/${v.slice(2)}`;
+                        e.target.value = v;
+                      }}
+                      onKeyDown={async (e) => {
+                        if (e.key !== "Enter") return;
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        const m = val.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                        if (!m) { toast.error("Data inválida (use dd/mm/aaaa)"); return; }
+                        const [, dd, mm, yyyy] = m;
+                        const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+                        if (isNaN(d.getTime()) || d.getDate() !== Number(dd)) { toast.error("Data inválida"); return; }
+                        await saveAlunoDesde(d);
+                      }}
+                    />
                     <CalendarComponent
                       mode="single"
                       selected={primeiroPlanoDat ? new Date(primeiroPlanoDat + "T00:00:00") : undefined}
                       defaultMonth={primeiroPlanoDat ? new Date(primeiroPlanoDat + "T00:00:00") : undefined}
-                      onSelect={async (date) => {
-                        if (!date || !primeiroPlano?.id) return;
-                        const dataInicio = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                        const { error } = await supabase
-                          .from("planos")
-                          .update({ data_inicio: dataInicio } as any)
-                          .eq("id", primeiroPlano.id);
-                        if (error) {
-                          toast.error("Erro ao atualizar Aluno desde");
-                        } else {
-                          toast.success("Data de início atualizada");
-                          queryClient.invalidateQueries({ queryKey: ["primeiro_plano_data", student.id] });
-                          queryClient.invalidateQueries({ queryKey: ["plano_resumo", student.id] });
-                          queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
-                        }
-                        setEditingAlunoDesde(false);
-                      }}
-                      className={cn("p-3 pointer-events-auto")}
+                      onSelect={async (date) => { if (date) await saveAlunoDesde(date); }}
+                      className={cn("p-0 pointer-events-auto")}
                     />
                   </PopoverContent>
                 </Popover>
