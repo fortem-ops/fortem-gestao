@@ -55,7 +55,7 @@ export default function PortalAgenda() {
     return { icon: Activity };
   };
 
-  const dias7 = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
+  const dias7 = useMemo(() => Array.from({ length: 30 }, (_, i) => addDays(new Date(), i)), []);
   const dataStr = format(diaSelecionado, "yyyy-MM-dd");
 
   const { data: cicloAtivo } = useQuery({
@@ -353,7 +353,7 @@ export default function PortalAgenda() {
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
                 ) : jaTemNoDia ? (
                   <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
-                    Você já tem um treino agendado hoje
+                    Você já tem um treino agendado neste dia
                   </div>
                 ) : semCreditos ? (
                   <Button className="w-full" disabled>

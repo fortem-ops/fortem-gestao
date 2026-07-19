@@ -73,6 +73,7 @@ const PortalWorkouts = lazy(() => import("./pages/portal/PortalWorkouts"));
 const PortalAssessments = lazy(() => import("./pages/portal/PortalAssessments"));
 const PortalClube = lazy(() => import("./pages/portal/PortalClube"));
 const PortalAgenda = lazy(() => import("./pages/portal/PortalAgenda"));
+const PortalPlano = lazy(() => import("./pages/portal/PortalPlano"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -136,6 +137,7 @@ const App = () => (
               <Route path="/portal/avaliacoes" element={<Suspense fallback={<RouteFallback />}><PortalAssessments /></Suspense>} />
               <Route path="/portal/clube" element={<Suspense fallback={<RouteFallback />}><PortalClube /></Suspense>} />
               <Route path="/portal/agenda" element={<Suspense fallback={<RouteFallback />}><PortalAgenda /></Suspense>} />
+              <Route path="/portal/plano" element={<Suspense fallback={<RouteFallback />}><PortalPlano /></Suspense>} />
             </Route>
 
             {/* Public, read-only workout view — opened by the QR code printed on the PDF. */}
