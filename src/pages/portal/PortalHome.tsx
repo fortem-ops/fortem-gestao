@@ -10,6 +10,8 @@ import {
   Sparkles,
   User,
   ArrowRight,
+  Utensils,
+  Footprints,
 } from "lucide-react";
 import { differenceInCalendarDays, format, startOfWeek } from "date-fns";
 import type { ReactNode } from "react";
