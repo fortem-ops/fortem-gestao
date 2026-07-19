@@ -101,7 +101,7 @@ export default function PortalProfile() {
         if (c.tipo_registro === "compra") slot.contratado += c.quantidade ?? 1;
         if (!!c.agenda_id || c.tipo_registro === "uso_manual") slot.usado += c.quantidade ?? 1;
       });
-      return TIPOS.map((t) => ({ ...t, ...totais[t.key] }));
+      return TIPOS.map((t) => ({ ...t, ...totais[t.key] })).filter((c) => c.contratado > 0);
     },
   });
 
