@@ -166,19 +166,20 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
-  const { data: primeiroPlanoDat } = useQuery({
+  const { data: primeiroPlano } = useQuery({
     queryKey: ["primeiro_plano_data", student.id],
     queryFn: async () => {
       const { data } = await supabase
         .from("planos")
-        .select("data_inicio")
+        .select("id, data_inicio")
         .eq("aluno_id", student.id)
         .order("data_inicio", { ascending: true })
         .limit(1)
         .maybeSingle();
-      return data?.data_inicio ?? null;
+      return data ?? null;
     },
   });
+  const primeiroPlanoDat = primeiroPlano?.data_inicio ?? null;
 
   const { data: origemLead } = useQuery({
     queryKey: ["pipeline_metadata_origem", student.id],
