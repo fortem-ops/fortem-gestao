@@ -159,7 +159,7 @@ export default function PortalHome() {
                 Créditos de Treino
               </span>
               <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
-                {String(planoAtivo!.tipo)}
+                {planoAtivo!.tipo.toUpperCase()}
                 {student.frequencia_semanal ? ` · ${student.frequencia_semanal}×` : ""}
               </span>
             </div>
