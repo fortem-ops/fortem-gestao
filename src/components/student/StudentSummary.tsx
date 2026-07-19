@@ -280,6 +280,21 @@ export function StudentSummary({ student }: { student: Aluno }) {
 
   const [editingTraj, setEditingTraj] = useState<string | null>(null);
 
+  async function saveAlunoDesde(date: Date) {
+    if (!primeiroPlano?.id) return;
+    const dataInicio = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const { error } = await supabase.from("planos").update({ data_inicio: dataInicio } as any).eq("id", primeiroPlano.id);
+    if (error) {
+      toast.error("Erro ao atualizar Aluno desde");
+    } else {
+      toast.success("Data de início atualizada");
+      queryClient.invalidateQueries({ queryKey: ["primeiro_plano_data", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["plano_resumo", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["plano_ativo", student.id] });
+    }
+    setEditingAlunoDesde(false);
+  }
+
   async function saveTrajDate(
     item: { key: string; stageId: string | null; movementId: string | null; sourceRef?: { table: string; id: string; field: string } | null },
     date: Date
