@@ -160,7 +160,7 @@ export default function PortalHome() {
               </span>
               <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
                 {String(planoAtivo!.tipo)}
-                {planoAtivo!.frequencia_semanal ? ` · ${planoAtivo!.frequencia_semanal}×` : ""}
+                {student.frequencia_semanal ? ` · ${student.frequencia_semanal}×` : ""}
               </span>
             </div>
             <div className="flex items-baseline gap-2">
