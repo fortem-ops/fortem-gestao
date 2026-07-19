@@ -1,14 +1,15 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { User, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Activity } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/portal", label: "Perfil", icon: User, end: true },
+  { to: "/portal/home", label: "Home", icon: House },
   { to: "/portal/treinos", label: "Treinos", icon: Dumbbell },
   { to: "/portal/avaliacoes", label: "Avaliações", icon: ClipboardCheck },
   { to: "/portal/clube", label: "Clube", icon: Sparkles },
@@ -22,12 +23,10 @@ export function PortalLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center animate-pulse">
-            <Activity className="w-7 h-7 text-primary-foreground" />
-          </div>
-          <p className="text-muted-foreground text-sm">Carregando portal...</p>
+      <div data-portal="true" className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <img src={fortemIcon} alt="Fortem" className="w-14 h-14 animate-pulse" />
+          <p className="text-muted-foreground text-xs tracking-wider">carregando...</p>
         </div>
       </div>
     );
@@ -35,7 +34,7 @@ export function PortalLayout() {
 
   if (unlinked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div data-portal="true" className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="glass-card max-w-md w-full p-8 text-center space-y-4 rounded-2xl">
           <img src={fortemIcon} alt="Fortem" className="mx-auto w-14 h-14" />
           <h1 className="text-xl font-heading font-bold">Conta ainda não vinculada</h1>
@@ -51,19 +50,37 @@ export function PortalLayout() {
     );
   }
 
+  const initial = student?.nome?.charAt(0) ?? "?";
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div data-portal="true" className="min-h-screen bg-background flex flex-col">
       {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
+      <header data-portal="true" className="sticky top-0 z-30 border-b border-border bg-background">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src={fortemIcon} alt="Fortem" className="w-7 h-7" />
-            <img src={fortemWordmark} alt="Fortem" className="h-4 dark:invert hidden sm:block" />
-            <span className="text-xs text-muted-foreground hidden md:inline">· Portal do Aluno</span>
+            <img src={fortemWordmark} alt="Fortem" className="h-4 invert hidden sm:block" />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground truncate max-w-[140px]">{student?.nome}</span>
-            <Button variant="ghost" size="icon" onClick={() => signOut().then(() => navigate("/portal/login"))} title="Sair">
+            <button
+              onClick={() => navigate("/portal/perfil")}
+              className="rounded-full ring-1 ring-border hover:ring-primary transition"
+              title="Perfil"
+            >
+              <Avatar className="w-8 h-8">
+                {student?.foto_url && <AvatarImage src={student.foto_url} alt={student.nome} />}
+                <AvatarFallback className="bg-secondary text-foreground text-xs font-semibold">
+                  {initial}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => signOut().then(() => navigate("/portal/login"))}
+              title="Sair"
+            >
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
@@ -71,26 +88,25 @@ export function PortalLayout() {
       </header>
 
       {/* Conteúdo */}
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 pt-4 pb-24">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 pt-4 pb-28">
         <Outlet />
       </main>
 
       {/* Bottom nav */}
-      <nav className="fixed bottom-0 inset-x-0 border-t border-border bg-background/95 backdrop-blur z-40">
+      <nav data-portal="true" className="fixed bottom-0 inset-x-0 border-t border-border bg-card z-40">
         <div className="max-w-3xl mx-auto grid grid-cols-5">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.end}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center justify-center py-2.5 gap-0.5 text-[10px] transition-colors",
+                  "flex flex-col items-center justify-center py-3 pb-6 gap-1 text-[10px] tracking-wide transition-colors",
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )
               }
             >
-              <item.icon className="w-5 h-5" />
+              <item.icon className="w-5 h-5" strokeWidth={2} />
               <span>{item.label}</span>
             </NavLink>
           ))}
