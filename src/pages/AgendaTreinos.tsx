@@ -673,13 +673,6 @@ function HorariosTab() {
   );
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  agendado: "bg-blue-500/15 text-blue-500 border-blue-500/30",
-  confirmado: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
-  cancelado: "bg-muted text-muted-foreground border-border",
-  faltou: "bg-red-500/15 text-red-500 border-red-500/30",
-  realizado: "bg-emerald-700/20 text-emerald-600 border-emerald-700/30",
-};
 
 function AgendamentosTab() {
   const [data, setData] = useState<Date>(new Date());
