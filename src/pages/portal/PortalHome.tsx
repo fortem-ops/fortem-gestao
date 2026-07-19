@@ -219,7 +219,7 @@ export default function PortalHome() {
                 className="font-semibold text-base truncate text-foreground"
                 style={{ fontFamily: "Archivo, sans-serif" }}
               >
-                {treinoAtual.descricao}
+                {treinoAtual.descricao?.trim() || "Treino Personalizado"}
               </p>
               {treinoAtual.versao && (
                 <p className="text-[11px] text-muted-foreground">Versão {treinoAtual.versao}</p>
@@ -242,7 +242,7 @@ export default function PortalHome() {
           {shortcuts.map((s) => (
             <Link to={s.to} key={s.label}>
               <div className="bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-2 min-h-[76px] justify-center">
-                <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center">
                   <s.icon className="w-[18px] h-[18px] text-primary" />
                 </div>
                 <span className="text-[11px] font-semibold text-foreground/70 text-center leading-tight">
