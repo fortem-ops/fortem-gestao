@@ -67,6 +67,7 @@ const PortalSignUp = lazy(() => import("./pages/portal/PortalSignUp"));
 const PortalRecoverPassword = lazy(() => import("./pages/portal/PortalRecoverPassword"));
 const PortalResetPassword = lazy(() => import("./pages/portal/PortalResetPassword"));
 const PortalProfile = lazy(() => import("./pages/portal/PortalProfile"));
+const PortalHome = lazy(() => import("./pages/portal/PortalHome"));
 const PortalWorkouts = lazy(() => import("./pages/portal/PortalWorkouts"));
 const PortalAssessments = lazy(() => import("./pages/portal/PortalAssessments"));
 const PortalClube = lazy(() => import("./pages/portal/PortalClube"));
