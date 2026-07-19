@@ -1,32 +1,103 @@
-## Mudanças em `src/pages/AgendaTreinos.tsx`
+## Objetivo
 
-### 1. Diálogo "Novo horário" com multi-seleção de dias
-- Substituir o `Select` de "Dia da semana" por um grupo de 7 chips toggle (Dom–Sáb) com múltipla seleção.
-- Manter os demais campos iguais (horário início/fim, capacidade, instrutor, observações).
-- Ao salvar (modo criação): fazer um `insert` em lote com um registro por dia selecionado, todos compartilhando os mesmos horários/capacidade/instrutor/observações.
-- Ao editar um slot existente: manter comportamento atual (um único dia, sem multi-seleção) — a edição continua alterando apenas aquele registro.
-- Validação: pelo menos 1 dia selecionado e `horario_fim > horario_inicio`.
-- Toast de sucesso reflete a quantidade criada (ex.: "3 horários criados").
+Duas mudanças na tela **Agenda de Treinos → aba Horários** (rota `/agenda-treinos`):
 
-### 2. Nova visualização "Grade semanal" na aba Horários
-Inspirada na referência (Tecnofit), mas adaptada ao tema dark do software:
+1. **Grade semanal sem quebra** — mostrar cada horário como uma linha única atravessando os 7 dias, no estilo da imagem de referência (uma célula por dia contendo horário + ocupação + instrutor), removendo o layout atual de altura proporcional que causa sobreposição/quebra visual.
+2. **Clique no card de horário** — abre um painel lateral (Sheet) com a lista de alunos agendados naquela data+horário e ações: **Presente**, **Falta** e **Excluir com estorno** (esta última restrita a Admin).
 
-- Um seletor no topo da aba com dois modos: **Grade semanal** (novo, padrão) e **Lista por dia** (comportamento atual, preservado).
-- Layout da grade:
-  - Coluna esquerda fixa com os rótulos de horário (slots de 30 min do menor `horario_inicio` até o maior `horario_fim` cadastrado, com fallback 06:00–22:00 se vazio).
-  - 7 colunas — uma por dia da semana (Seg–Dom, cabeçalho abreviado).
-  - Cada slot cadastrado renderiza um card na coluna do seu dia, alinhado à linha do seu `horario_inicio` e com altura proporcional à duração (30 min = 1 linha).
-  - Card mostra: horário início–fim, capacidade, nome do instrutor (se houver). Slots inativos aparecem esmaecidos.
-  - Clique no card abre o diálogo de edição.
-  - Scroll horizontal em mobile (grade não colapsa: melhor UX que espremer 7 colunas em 393 px).
-- Botões "Novo Horário" e toggle Ativo continuam disponíveis.
+Nada muda no portal do aluno nem na aba "Agendamentos".
 
-### 3. Sem mudanças em banco, portal do aluno, ou aba Agendamentos
-Toda a lógica é frontend — o schema de `treino_slots` já suporta múltiplos registros (um por dia).
+---
 
-## Detalhes técnicos
+## 1. Nova Grade Semanal (substitui `WeeklyGrid`)
 
-- Chips de dia: componentes `Toggle`/`Button` já disponíveis via shadcn.
-- Insert em lote: `supabase.from("treino_slots").insert(payloads)` onde `payloads` é um array — dispara uma única round-trip.
-- Grade: CSS grid com `grid-template-columns: 64px repeat(7, minmax(120px, 1fr))` e linhas de 32 px (30 min). Card posicionado com `gridColumn` (dia+2) e `gridRow` (linhas calculadas a partir de `horario_inicio`/`horario_fim`).
-- Helper puro para converter `HH:MM` → índice de linha, testável isoladamente.
+Layout inspirado na referência (Tecnofit), adaptado ao dark theme:
+
+```text
+              Dom 12   Seg 13   Ter 14   Qua 15   Qui 16   Sex 17   Sáb 18
+06:00 – 06:30  ·        3/8      1/8      2/8      —        4/8      ·
+06:30 – 07:00  ·        4/5      4/5      3/5      5/5      2/5      ·
+07:00 – 08:00  ·        5/5      4/6      1/5      3/6      4/5      ·
+...
+```
+
+- Navegador de semana no topo: `‹  Semana de 13 – 19 out  ›` + botão "Hoje" + Popover com calendário para pular.
+- Uma **linha por combinação única `horario_inicio–horario_fim`** presente nos slots ativos. Ordenadas por horário.
+- 8 colunas: rótulo do horário + 7 dias (Dom–Sáb) com cabeçalho mostrando dia da semana + número (destaque para "hoje").
+- Cada célula representa o slot daquele dia+horário (se existir):
+  - Ocupação `X/Y` com cor: verde se `X<Y`, âmbar se `X==Y`, cinza se sem slot.
+  - Nome curto do instrutor abaixo (truncado).
+  - `bg-primary/10 border-primary/30` para slot ativo com vagas; âmbar se cheio; muted se inativo; célula vazia (sem slot) mostra apenas ponto neutro `·`.
+- Slots inativos aparecem esmaecidos com badge "off" pequena.
+- Sem sobreposição, sem altura variável: `grid-template-rows: auto repeat(N, 44px)` — a grade não quebra nem estica.
+- Scroll horizontal em telas < 900 px (mantém as 7 colunas).
+- Botão "Novo Horário" continua no topo. Botão discreto "Editar horário" dentro do popover (item 2).
+
+Ocupação por célula = número de agendamentos daquele `slot_id` na data específica da coluna, com `status IN ('agendado','confirmado','realizado')`. Faltas e cancelamentos não contam para ocupação.
+
+## 2. Painel de alunos ao clicar em um horário
+
+Clicar em uma célula com slot abre um **Sheet lateral** (`components/ui/sheet`) com:
+
+- Cabeçalho: `Terça, 14 out · 07:00–08:00` + nome do instrutor + ocupação `4/6`.
+- Botão pequeno "Editar horário" (abre o `SlotDialog` existente).
+- Lista dos alunos daquele slot+data ordenada por status/nome, mostrando:
+  - Nome do aluno + badge de status (`agendado`, `confirmado`, `realizado`, `faltou`, `cancelado`) usando `STATUS_STYLES` existente.
+  - Ações inline para status `agendado`/`confirmado`:
+    - **Presente** → `UPDATE status='realizado'`
+    - **Falta** → `UPDATE status='faltou'`
+  - Ação **Excluir com estorno** (ícone lixeira, `text-destructive`): visível **apenas se `hasRole('admin')`**. Confirma via `AlertDialog` explicando que o crédito voltará para o aluno.
+- Se sem alunos agendados: estado vazio "Nenhum aluno agendado neste horário".
+- Refetch automático dos agendamentos e ocupação após qualquer ação.
+
+## 3. Backend: nova RPC para exclusão com estorno pelo staff
+
+A RPC atual `fn_cancelar_treino_agendamento` só funciona para o próprio aluno (usa `fn_current_aluno_id`) e depende do prazo de 1h. Precisa de uma variante para staff:
+
+```sql
+CREATE OR REPLACE FUNCTION public.fn_staff_excluir_treino_agendamento(
+  p_agendamento_id uuid,
+  p_estornar boolean DEFAULT true
+) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE _ag treino_agendamentos%ROWTYPE;
+BEGIN
+  IF NOT public.has_role(auth.uid(), 'admin') THEN
+    RETURN jsonb_build_object('ok', false, 'erro', 'sem_permissao');
+  END IF;
+
+  SELECT * INTO _ag FROM treino_agendamentos WHERE id = p_agendamento_id;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'erro', 'nao_encontrado');
+  END IF;
+
+  IF p_estornar AND _ag.credito_debitado AND _ag.ciclo_id IS NOT NULL AND NOT COALESCE(_ag.credito_estornado, false) THEN
+    UPDATE ciclos_credito
+    SET creditos_usados = GREATEST(0, creditos_usados - 1)
+    WHERE id = _ag.ciclo_id;
+  END IF;
+
+  UPDATE treino_agendamentos SET
+    status = 'cancelado',
+    cancelado_em = now(),
+    cancelado_por = 'staff',
+    credito_estornado = p_estornar
+  WHERE id = p_agendamento_id;
+
+  RETURN jsonb_build_object('ok', true, 'credito_estornado', p_estornar);
+END; $$;
+
+GRANT EXECUTE ON FUNCTION public.fn_staff_excluir_treino_agendamento(uuid, boolean) TO authenticated;
+```
+
+Presente/Falta continuam usando `UPDATE treino_agendamentos SET status=…` direto pela política RLS `staff_all_treino_agendamentos` já existente.
+
+## 4. Detalhes técnicos
+
+- Arquivo alterado: `src/pages/AgendaTreinos.tsx` — substituir componente `WeeklyGrid` e adicionar `SlotDetailSheet`.
+- Novo hook local para a semana selecionada + query única `treino_agendamentos` no range `data BETWEEN inicioSemana AND fimSemana` (uma round-trip), indexado por `slot_id + data` para calcular ocupação em O(1) por célula.
+- `useUserRoles` (já existe) para gate do botão de exclusão.
+- Migration nova apenas para a RPC acima; nada muda em `treino_slots`/`treino_agendamentos`/RLS.
+- Toasts: `toastSuccess` para cada ação; `toastError` em falha da RPC.
+- Preserva a aba "Lista por dia" e o comportamento atual da aba "Agendamentos".

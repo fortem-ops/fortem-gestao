@@ -6030,6 +6030,10 @@ export type Database = {
         Returns: string
       }
       fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
+      fn_staff_excluir_treino_agendamento: {
+        Args: { p_agendamento_id: string; p_estornar?: boolean }
+        Returns: Json
+      }
       fn_tentar_comissao_experimental: {
         Args: { _agenda: string; _aluno: string; _profissional: string }
         Returns: undefined
