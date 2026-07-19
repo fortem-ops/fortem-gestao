@@ -265,3 +265,12 @@ function MetricCard({ label, value, sub, tone }: { label: string; value: string;
     </div>
   );
 }
+
+function PortalFuncionalViewer({ avaliacao }: { avaliacao: Tables<"avaliacoes"> }) {
+  return (
+    <div className="portal-avaliacao-viewer overflow-x-auto">
+      <FuncionalV2Viewer avaliacao={avaliacao} />
+    </div>
+  );
+}
+
