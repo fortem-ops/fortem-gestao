@@ -116,7 +116,7 @@ const App = () => (
             <Route path="/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><RecoverPassword /></Suspense>} />
             <Route path="/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><ResetPassword /></Suspense>} />
             <Route path="/privacidade" element={<Suspense fallback={<RouteFallback />}><Privacidade /></Suspense>} />
-            <Route path="/admin/vapid-setup" element={<Suspense fallback={<RouteFallback />}><AdminVapidSetup /></Suspense>} />
+            
             <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<RouteFallback />}><OAuthConsent /></Suspense>} />
 
             {/* Portal do Aluno — auth e rotas próprias */}
