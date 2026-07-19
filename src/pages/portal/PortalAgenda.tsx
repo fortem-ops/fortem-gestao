@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Clock, Users, X, CheckCircle2, AlertTriangle } from "lucide-react";
+import { CalendarDays, Users, X, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +44,7 @@ export default function PortalAgenda() {
   const qc = useQueryClient();
   const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
   const [confirmando, setConfirmando] = useState<{ slot: Slot; data: string; instrutor?: string } | null>(null);
-  const [cancelando, setCancelando] = useState<Agendamento | null>(null);
+  const [cancelando, setCancelando] = useState<string | null>(null);
 
   const dias7 = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
   const dataStr = format(diaSelecionado, "yyyy-MM-dd");
@@ -290,10 +290,17 @@ export default function PortalAgenda() {
                   </div>
                 ) : lotado ? (
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
+                ) : jaTemNoDia ? (
+                  <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
+                    Você já tem um treino agendado hoje
+                  </div>
+                ) : semCreditos ? (
+                  <Button className="w-full" disabled>
+                    Sem créditos
+                  </Button>
                 ) : (
                   <Button
                     className="w-full"
-                    disabled={semCreditos || jaTemNoDia}
                     onClick={() =>
                       setConfirmando({
                         slot,
@@ -302,7 +309,7 @@ export default function PortalAgenda() {
                       })
                     }
                   >
-                    {semCreditos ? "Sem créditos" : jaTemNoDia ? "Já agendado neste dia" : "Agendar →"}
+                    Agendar →
                   </Button>
                 )}
               </div>
@@ -315,29 +322,24 @@ export default function PortalAgenda() {
       {meusAgendamentos.length > 0 && (
         <section className="space-y-3">
           <SectionLabel>Meus próximos treinos</SectionLabel>
-          {meusAgendamentos.map((a) => {
-            const dt = parseISO(a.data);
-            return (
-              <div key={a.id} className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
-                <div className="w-12 text-center">
-                  <div className="text-[10px] uppercase font-bold text-muted-foreground">{DIA_ABREV[dt.getDay()]}</div>
-                  <div className="text-xl font-black text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
-                    {dt.getDate()}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-bold flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    {a.horario_inicio.slice(0, 5)} → {a.horario_fim.slice(0, 5)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{format(dt, "dd 'de' MMMM", { locale: ptBR })}</div>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setCancelando(a)} className="text-muted-foreground hover:text-red-500">
-                  <X className="w-4 h-4" />
-                </Button>
+          {meusAgendamentos.map((ag) => (
+            <div key={ag.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+              {/* Data */}
+              <div className="text-center min-w-[40px]">
+                <p className="text-[10px] font-bold uppercase text-muted-foreground">{format(parseISO(ag.data), 'EEE', {locale: ptBR})}</p>
+                <p className="text-2xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{format(parseISO(ag.data), 'd')}</p>
               </div>
-            );
-          })}
+              {/* Info */}
+              <div className="flex-1">
+                <p className="font-bold text-sm text-foreground">{ag.horario_inicio.slice(0,5)} → {ag.horario_fim.slice(0,5)}</p>
+                <p className="text-xs text-muted-foreground">{format(parseISO(ag.data), "dd 'de' MMMM", {locale: ptBR})}</p>
+              </div>
+              {/* Botão cancelar */}
+              <button onClick={() => setCancelando(ag.id)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
         </section>
       )}
 
@@ -376,41 +378,46 @@ export default function PortalAgenda() {
       </Dialog>
 
       {/* Dialog cancelar */}
-      <Dialog open={!!cancelando} onOpenChange={(v) => !v && setCancelando(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancelar agendamento</DialogTitle>
-          </DialogHeader>
-          {cancelando && (
-            <div className="space-y-3 text-sm">
-              <p>
-                Cancelar seu treino de{" "}
-                <b>
-                  {format(parseISO(cancelando.data), "EEEE, dd/MM", { locale: ptBR })} às{" "}
-                  {cancelando.horario_inicio.slice(0, 5)}
-                </b>
-                ?
+      {cancelando && (() => {
+        const ag = meusAgendamentos.find(a => a.id === cancelando);
+        if (!ag) return null;
+        const deadline = new Date(`${ag.data}T${ag.horario_inicio}`);
+        deadline.setHours(deadline.getHours() - 1);
+        const dentroDoprazo = new Date() < deadline;
+        return (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
+            <div className="bg-card border border-border rounded-t-2xl w-full p-6 space-y-4">
+              <p className="font-black text-lg text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Cancelar treino?</p>
+              <p className="text-sm text-muted-foreground">
+                {format(parseISO(ag.data), "EEEE, dd 'de' MMMM", {locale: ptBR})} às {ag.horario_inicio.slice(0,5)}
               </p>
-              <div className="flex gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-foreground">
-                  Cancelamentos com menos de 1h de antecedência não estornam o crédito.
-                </p>
+              {!dentroDoprazo && (
+                <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 flex gap-2">
+                  <AlertCircle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+                  <p className="text-xs text-warning">
+                    O prazo de 1h já passou. O crédito <strong>não será estornado</strong>.
+                  </p>
+                </div>
+              )}
+              {dentroDoprazo && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                  <p className="text-xs text-emerald-400">✓ Crédito será estornado automaticamente.</p>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => setCancelando(null)} className="flex-1 py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">Voltar</button>
+                <button
+                  onClick={() => cancelar.mutate(cancelando)}
+                  disabled={cancelar.isPending}
+                  className="flex-1 py-3 rounded-xl bg-destructive text-white font-bold text-sm"
+                >
+                  {cancelar.isPending ? 'Cancelando...' : 'Cancelar treino'}
+                </button>
               </div>
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelando(null)}>Voltar</Button>
-            <Button
-              variant="destructive"
-              onClick={() => cancelando && cancelar.mutate(cancelando.id)}
-              disabled={cancelar.isPending}
-            >
-              Cancelar treino
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        );
+      })()}
     </div>
   );
 }
