@@ -47,6 +47,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const statusMap: Record<string, string> = { ativo: "Ativo", licenca: "Licença", encerrado: "Encerrado" };
   const queryClient = useQueryClient();
   const [editingEndDate, setEditingEndDate] = useState(false);
+  const [editingAlunoDesde, setEditingAlunoDesde] = useState(false);
   const [editingCadastro, setEditingCadastro] = useState(false);
   const [viewingAnnex, setViewingAnnex] = useState<AnnexDetail | null>(null);
 
