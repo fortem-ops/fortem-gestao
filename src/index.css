@@ -159,6 +159,26 @@
     box-shadow: none;
     backdrop-filter: none;
   }
+
+  /* Tabelas do FuncionalV2Viewer no portal — melhor contraste */
+  [data-portal="true"] .portal-avaliacao-viewer .glass-card {
+    background: hsl(0 0% 15%) !important;
+    border-color: hsl(0 0% 22%) !important;
+  }
+
+  [data-portal="true"] .portal-avaliacao-viewer table th {
+    color: hsl(0 0% 65%) !important;
+    background: hsl(0 0% 13%) !important;
+  }
+
+  [data-portal="true"] .portal-avaliacao-viewer table td {
+    color: hsl(0 0% 85%) !important;
+  }
+
+  [data-portal="true"] .portal-avaliacao-viewer table tr {
+    border-color: hsl(0 0% 20%) !important;
+  }
+
   .prio-baixa { background-color: hsl(220 9% 60% / 0.15); color: hsl(220 9% 40%); border: 1px solid hsl(220 9% 60% / 0.3); }
   .prio-media { background-color: hsl(213 94% 50% / 0.15); color: hsl(213 94% 45%); border: 1px solid hsl(213 94% 50% / 0.3); }
   .prio-alta  { background-color: hsl(28 95% 55% / 0.15);  color: hsl(28 95% 50%);  border: 1px solid hsl(28 95% 55% / 0.3); }
