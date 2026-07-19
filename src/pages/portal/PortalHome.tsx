@@ -184,7 +184,7 @@ export default function PortalHome() {
     { label: "Agendar", icon: CalendarPlus, to: "/portal/agenda" },
     { label: "Avaliação", icon: Activity, to: "/portal/avaliacoes" },
     { label: "Clube", icon: Sparkles, to: "/portal/clube" },
-    { label: "Perfil", icon: User, to: "/portal/perfil" },
+    { label: "Meu Perfil", icon: User, to: "/portal/perfil" },
   ];
 
   if (!student) return null;
