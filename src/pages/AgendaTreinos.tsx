@@ -188,107 +188,372 @@ function SlotDialog({
   );
 }
 
-const ROW_HEIGHT = 32;
-const SLOT_MIN = 30;
+const STATUS_STYLES: Record<string, string> = {
+  agendado: "bg-blue-500/15 text-blue-500 border-blue-500/30",
+  confirmado: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+  cancelado: "bg-muted text-muted-foreground border-border",
+  faltou: "bg-red-500/15 text-red-500 border-red-500/30",
+  realizado: "bg-emerald-700/20 text-emerald-600 border-emerald-700/30",
+};
+
+const OCUPACAO_ATIVOS = new Set(["agendado", "confirmado", "realizado"]);
+
+type AgendamentoRow = {
+  id: string;
+  slot_id: string;
+  data: string;
+  status: string;
+  horario_inicio: string;
+  aluno_id: string;
+  alunos: { id: string; nome: string } | null;
+};
+
+type SelectedCell = {
+  slot: Slot;
+  data: Date;
+} | null;
+
+function SlotDetailSheet({
+  selected,
+  onClose,
+  agendamentos,
+  profileMap,
+  isAdmin,
+  onEdit,
+  onRefetch,
+}: {
+  selected: SelectedCell;
+  onClose: () => void;
+  agendamentos: AgendamentoRow[];
+  profileMap: Record<string, string>;
+  isAdmin: boolean;
+  onEdit: (s: Slot) => void;
+  onRefetch: () => void;
+}) {
+  const dataStr = selected ? format(selected.data, "yyyy-MM-dd") : "";
+  const listaBase = useMemo(
+    () => (selected ? agendamentos.filter((a) => a.slot_id === selected.slot.id && a.data === dataStr) : []),
+    [agendamentos, selected, dataStr],
+  );
+  const ativos = listaBase.filter((a) => OCUPACAO_ATIVOS.has(a.status));
+
+  const updateStatus = useSupabaseMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase.from("treino_agendamentos").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    successMessage: "Status atualizado",
+    onSuccess: () => onRefetch(),
+  });
+
+  const excluirComEstorno = useSupabaseMutation({
+    mutationFn: async ({ id, estornar }: { id: string; estornar: boolean }) => {
+      const { data, error } = await supabase.rpc("fn_staff_excluir_treino_agendamento", {
+        p_agendamento_id: id,
+        p_estornar: estornar,
+      });
+      if (error) throw error;
+      const res = data as { ok: boolean; erro?: string; credito_estornado?: boolean };
+      if (!res.ok) throw new Error(res.erro || "Falha ao excluir");
+      return res;
+    },
+    onSuccess: (res) => {
+      toastSuccess(res.credito_estornado ? "Agendamento excluído e crédito estornado" : "Agendamento excluído");
+      onRefetch();
+    },
+    onError: (e: Error) => toastError(e.message),
+  });
+
+  if (!selected) return null;
+
+  const ordered = [...listaBase].sort((a, b) => {
+    const pa = OCUPACAO_ATIVOS.has(a.status) ? 0 : 1;
+    const pb = OCUPACAO_ATIVOS.has(b.status) ? 0 : 1;
+    if (pa !== pb) return pa - pb;
+    return (a.alunos?.nome ?? "").localeCompare(b.alunos?.nome ?? "");
+  });
+
+  return (
+    <Sheet open={!!selected} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="text-left">
+            {format(selected.data, "EEEE, d 'de' MMM", { locale: ptBR })}
+          </SheetTitle>
+          <div className="text-sm text-muted-foreground text-left flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-foreground">
+              {selected.slot.horario_inicio.slice(0, 5)} – {selected.slot.horario_fim.slice(0, 5)}
+            </span>
+            {selected.slot.instrutor_id && (
+              <>· <span>{profileMap[selected.slot.instrutor_id] ?? "—"}</span></>
+            )}
+            <Badge variant="outline" className="ml-auto">
+              <Users className="w-3 h-3 mr-1" />
+              {ativos.length}/{selected.slot.capacidade_maxima}
+            </Badge>
+          </div>
+        </SheetHeader>
+
+        <div className="mt-3 flex justify-end">
+          <Button variant="ghost" size="sm" onClick={() => onEdit(selected.slot)}>
+            <Pencil className="w-3.5 h-3.5 mr-1" /> Editar horário
+          </Button>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {ordered.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">Nenhum aluno agendado neste horário.</p>
+          ) : (
+            ordered.map((a) => {
+              const podeMarcar = ["agendado", "confirmado"].includes(a.status);
+              return (
+                <div key={a.id} className="flex items-center gap-2 p-2.5 rounded-lg border">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{a.alunos?.nome ?? "—"}</div>
+                    <Badge variant="outline" className={cn("border text-[10px] mt-0.5", STATUS_STYLES[a.status])}>
+                      {a.status}
+                    </Badge>
+                  </div>
+                  {podeMarcar && (
+                    <>
+                      <Button size="sm" variant="outline"
+                        onClick={() => updateStatus.mutate({ id: a.id, status: "realizado" })}>
+                        Presente
+                      </Button>
+                      <Button size="sm" variant="outline"
+                        onClick={() => updateStatus.mutate({ id: a.id, status: "faltou" })}>
+                        Falta
+                      </Button>
+                    </>
+                  )}
+                  {isAdmin && a.status !== "cancelado" && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir agendamento?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação cancela o agendamento de <strong>{a.alunos?.nome}</strong> e estorna o crédito para o ciclo do aluno. Não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => excluirComEstorno.mutate({ id: a.id, estornar: true })}
+                          >
+                            Excluir com estorno
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 function WeeklyGrid({
   slots,
   profileMap,
   onEdit,
+  isAdmin,
 }: {
   slots: Slot[];
   profileMap: Record<string, string>;
   onEdit: (s: Slot) => void;
+  isAdmin: boolean;
 }) {
-  const { startMin, endMin, rows } = useMemo(() => {
-    if (!slots.length) {
-      return { startMin: 6 * 60, endMin: 22 * 60, rows: ((22 - 6) * 60) / SLOT_MIN };
-    }
-    let min = Infinity;
-    let max = -Infinity;
+  const qc = useQueryClient();
+  const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const [selected, setSelected] = useState<SelectedCell>(null);
+
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+  const weekStartStr = format(weekStart, "yyyy-MM-dd");
+  const weekEndStr = format(addDays(weekStart, 6), "yyyy-MM-dd");
+
+  // Uma linha por combinação única horario_inicio-horario_fim (apenas slots ativos + selecionados)
+  const rows = useMemo(() => {
+    const map = new Map<string, { horario_inicio: string; horario_fim: string }>();
     for (const s of slots) {
-      min = Math.min(min, toMinutes(s.horario_inicio));
-      max = Math.max(max, toMinutes(s.horario_fim));
+      const key = `${s.horario_inicio}-${s.horario_fim}`;
+      if (!map.has(key)) map.set(key, { horario_inicio: s.horario_inicio, horario_fim: s.horario_fim });
     }
-    const start = Math.floor(min / SLOT_MIN) * SLOT_MIN;
-    const end = Math.ceil(max / SLOT_MIN) * SLOT_MIN;
-    return { startMin: start, endMin: end, rows: (end - start) / SLOT_MIN };
+    return Array.from(map.entries())
+      .map(([key, v]) => ({ key, ...v }))
+      .sort((a, b) => toMinutes(a.horario_inicio) - toMinutes(b.horario_inicio));
   }, [slots]);
 
-  const timeLabels = useMemo(() => {
-    const out: string[] = [];
-    for (let m = startMin; m < endMin; m += SLOT_MIN) {
-      const h = Math.floor(m / 60).toString().padStart(2, "0");
-      const mm = (m % 60).toString().padStart(2, "0");
-      out.push(`${h}:${mm}`);
+  // Índice: (dia_semana + horario_inicio + horario_fim) -> slot
+  const slotIndex = useMemo(() => {
+    const m = new Map<string, Slot>();
+    for (const s of slots) {
+      m.set(`${s.dia_semana}|${s.horario_inicio}|${s.horario_fim}`, s);
     }
-    return out;
-  }, [startMin, endMin]);
+    return m;
+  }, [slots]);
+
+  const { data: agendamentos = [], refetch: refetchAg } = useQuery({
+    queryKey: ["treino-agendamentos-semana", weekStartStr, weekEndStr],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("treino_agendamentos")
+        .select("id, slot_id, data, status, horario_inicio, aluno_id, alunos:aluno_id(id, nome)")
+        .gte("data", weekStartStr)
+        .lte("data", weekEndStr);
+      if (error) throw error;
+      return (data ?? []) as AgendamentoRow[];
+    },
+  });
+
+  // ocupação por (slot_id + data)
+  const ocupacao = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of agendamentos) {
+      if (!OCUPACAO_ATIVOS.has(a.status)) continue;
+      const k = `${a.slot_id}|${a.data}`;
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  }, [agendamentos]);
+
+  const today = new Date();
+  const rangeLabel = `${format(weekStart, "d MMM", { locale: ptBR })} – ${format(addDays(weekStart, 6), "d MMM", { locale: ptBR })}`;
 
   return (
-    <Card className="p-3 overflow-x-auto">
-      <div
-        className="grid min-w-[820px] relative"
-        style={{
-          gridTemplateColumns: `64px repeat(7, minmax(110px, 1fr))`,
-          gridTemplateRows: `32px repeat(${rows}, ${ROW_HEIGHT}px)`,
-        }}
-      >
-        <div className="border-b border-border" />
-        {DIAS_CURTOS.map((d, i) => (
-          <div key={`h-${i}`} className="border-b border-border text-center text-xs font-semibold uppercase text-muted-foreground py-1.5">
-            {d}
-          </div>
-        ))}
-
-        {timeLabels.map((label, idx) => (
-          <div key={`t-${idx}`} className="contents">
-            <div
-              className="text-[11px] text-muted-foreground pr-2 text-right -translate-y-1.5"
-              style={{ gridColumn: 1, gridRow: idx + 2 }}
-            >
-              {label}
-            </div>
-            {DIAS_CURTOS.map((_, di) => (
-              <div
-                key={`c-${idx}-${di}`}
-                className={cn("border-t border-border/40", idx % 2 === 0 && "bg-muted/20")}
-                style={{ gridColumn: di + 2, gridRow: idx + 2 }}
-              />
-            ))}
-          </div>
-        ))}
-
-        {slots.map((s) => {
-          const startRow = (toMinutes(s.horario_inicio) - startMin) / SLOT_MIN + 2;
-          const span = Math.max(1, (toMinutes(s.horario_fim) - toMinutes(s.horario_inicio)) / SLOT_MIN);
-          return (
-            <button
-              key={s.id}
-              onClick={() => onEdit(s)}
-              className={cn(
-                "m-0.5 rounded-md border text-left px-2 py-1 overflow-hidden transition-colors z-10",
-                "bg-primary/15 border-primary/40 hover:bg-primary/25",
-                !s.ativo && "opacity-40 bg-muted border-border",
-              )}
-              style={{ gridColumn: s.dia_semana + 2, gridRow: `${startRow} / span ${span}` }}
-            >
-              <div className="text-[11px] font-semibold text-primary leading-tight">
-                {s.horario_inicio.slice(0, 5)}–{s.horario_fim.slice(0, 5)}
-              </div>
-              <div className="text-[10px] text-muted-foreground leading-tight flex items-center gap-1">
-                <Users className="w-2.5 h-2.5" />{s.capacidade_maxima}
-              </div>
-              {s.instrutor_id && span >= 2 && (
-                <div className="text-[10px] text-muted-foreground truncate leading-tight">
-                  {profileMap[s.instrutor_id] ?? "—"}
-                </div>
-              )}
-            </button>
-          );
-        })}
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, -1))} aria-label="Semana anterior">
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))} aria-label="Próxima semana">
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }))}>
+          Hoje
+        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm">
+              <CalendarIcon className="w-4 h-4 mr-2" />
+              {rangeLabel}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={weekStart}
+              onSelect={(d) => d && setWeekStart(startOfWeek(d, { weekStartsOn: 0 }))}
+              className="p-3 pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
-    </Card>
+
+      <Card className="p-3 overflow-x-auto">
+        <div
+          className="grid min-w-[820px]"
+          style={{
+            gridTemplateColumns: `72px repeat(7, minmax(96px, 1fr))`,
+          }}
+        >
+          {/* Cabeçalho */}
+          <div className="border-b border-border" />
+          {weekDays.map((d, i) => {
+            const isToday = isSameDay(d, today);
+            return (
+              <div
+                key={`h-${i}`}
+                className={cn(
+                  "border-b border-border text-center py-1.5 text-xs",
+                  isToday && "bg-primary/10",
+                )}
+              >
+                <div className={cn("font-bold text-sm", isToday && "text-primary")}>{format(d, "d")}</div>
+                <div className="uppercase text-[10px] text-muted-foreground tracking-wider">{DIAS_CURTOS[i]}</div>
+              </div>
+            );
+          })}
+
+          {/* Linhas */}
+          {rows.length === 0 && (
+            <div className="col-span-8 py-10 text-center text-sm text-muted-foreground">
+              Nenhum horário cadastrado.
+            </div>
+          )}
+          {rows.map((row) => (
+            <div key={row.key} className="contents">
+              <div className="border-t border-border/60 text-[11px] text-muted-foreground py-2 pr-2 text-right leading-tight">
+                <div className="font-medium text-foreground">{row.horario_inicio.slice(0, 5)}</div>
+                <div>{row.horario_fim.slice(0, 5)}</div>
+              </div>
+              {weekDays.map((d, di) => {
+                const dia = d.getDay();
+                const slot = slotIndex.get(`${dia}|${row.horario_inicio}|${row.horario_fim}`);
+                if (!slot) {
+                  return (
+                    <div key={`c-${row.key}-${di}`} className="border-t border-border/60 flex items-center justify-center text-muted-foreground/30">
+                      ·
+                    </div>
+                  );
+                }
+                const dataStr = format(d, "yyyy-MM-dd");
+                const ocup = ocupacao.get(`${slot.id}|${dataStr}`) ?? 0;
+                const cheio = ocup >= slot.capacidade_maxima;
+                const inativo = !slot.ativo;
+                return (
+                  <button
+                    key={`c-${row.key}-${di}`}
+                    onClick={() => setSelected({ slot, data: d })}
+                    className={cn(
+                      "border-t border-border/60 m-0.5 rounded-md px-2 py-1.5 text-left transition-colors border",
+                      inativo && "opacity-40 bg-muted border-border",
+                      !inativo && !cheio && "bg-primary/10 border-primary/30 hover:bg-primary/20",
+                      !inativo && cheio && "bg-amber-500/15 border-amber-500/40 hover:bg-amber-500/25",
+                    )}
+                  >
+                    <div className="flex items-center gap-1 text-[11px] font-semibold">
+                      <Users className="w-3 h-3" />
+                      <span className={cn(cheio ? "text-amber-500" : "text-primary")}>
+                        {ocup}/{slot.capacidade_maxima}
+                      </span>
+                    </div>
+                    {slot.instrutor_id && (
+                      <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
+                        {profileMap[slot.instrutor_id] ?? "—"}
+                      </div>
+                    )}
+                    {inativo && <div className="text-[9px] uppercase text-muted-foreground">off</div>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <SlotDetailSheet
+        selected={selected}
+        onClose={() => setSelected(null)}
+        agendamentos={agendamentos}
+        profileMap={profileMap}
+        isAdmin={isAdmin}
+        onEdit={(s) => { setSelected(null); onEdit(s); }}
+        onRefetch={() => {
+          refetchAg();
+          qc.invalidateQueries({ queryKey: ["treino-agendamentos-dia"] });
+        }}
+      />
+    </div>
   );
 }
 
@@ -296,6 +561,8 @@ function HorariosTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Slot | null>(null);
   const [view, setView] = useState<"grade" | "lista">("grade");
+  const { data: roles } = useUserRoles();
+  const isAdmin = !!roles?.isAdmin;
 
   const { data: slots = [], refetch } = useQuery({
     queryKey: ["treino-slots-admin"],
@@ -360,7 +627,7 @@ function HorariosTab() {
       )}
 
       {slots.length > 0 && view === "grade" && (
-        <WeeklyGrid slots={slots} profileMap={profileMap} onEdit={openEdit} />
+        <WeeklyGrid slots={slots} profileMap={profileMap} onEdit={openEdit} isAdmin={isAdmin} />
       )}
 
       {slots.length > 0 && view === "lista" && DIAS.map((diaNome, diaIdx) => {
