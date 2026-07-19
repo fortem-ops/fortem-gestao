@@ -143,6 +143,37 @@ export default function PortalAgenda() {
     },
   });
 
+  // Créditos de serviço (exceto Treino)
+  const { data: servicosDisponiveis = [] } = useQuery({
+    queryKey: ["portal-agenda-servicos-creditos", student?.id],
+    enabled: !!student && abaAgenda === "servicos",
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("creditos_aluno" as any)
+        .select("atividade, quantidade_inicial, quantidade_usada, ilimitado")
+        .eq("aluno_id", student!.id)
+        .eq("ativo", true)
+        .neq("atividade", "Treino");
+      return (data as any[]) || [];
+    },
+  });
+
+  // Horários da agenda_servicos para o serviço selecionado
+  const { data: horariosServico = [] } = useQuery({
+    queryKey: ["portal-agenda-horarios-servico", servicoSelecionado],
+    enabled: !!servicoSelecionado,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("agenda_servicos")
+        .select("id, atividade, horario_inicio, horario_fim, dia_semana, local, profissional_id, data_especifica")
+        .eq("atividade", servicoSelecionado!)
+        .order("dia_semana")
+        .order("horario_inicio");
+      return data || [];
+    },
+  });
+
+
   const agendar = useMutation({
     mutationFn: async ({ slotId, data }: { slotId: string; data: string }) => {
       const { data: result, error } = await supabase.rpc("fn_agendar_treino", {
