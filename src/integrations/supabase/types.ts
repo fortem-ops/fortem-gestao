@@ -4046,6 +4046,102 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_push_log: {
+        Row: {
+          aluno_id: string | null
+          body: string | null
+          enviado_em: string
+          erro_detalhe: string | null
+          gatilho: string
+          id: string
+          sucesso: boolean
+          title: string
+        }
+        Insert: {
+          aluno_id?: string | null
+          body?: string | null
+          enviado_em?: string
+          erro_detalhe?: string | null
+          gatilho: string
+          id?: string
+          sucesso?: boolean
+          title: string
+        }
+        Update: {
+          aluno_id?: string | null
+          body?: string | null
+          enviado_em?: string
+          erro_detalhe?: string | null
+          gatilho?: string
+          id?: string
+          sucesso?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_push_log_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_push_log_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      portal_push_subscriptions: {
+        Row: {
+          aluno_id: string
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+        }
+        Insert: {
+          aluno_id: string
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_push_subscriptions_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_push_subscriptions_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
