@@ -45,6 +45,15 @@ export default function PortalAgenda() {
   const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
   const [confirmando, setConfirmando] = useState<{ slot: Slot; data: string; instrutor?: string } | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
+  const [abaAgenda, setAbaAgenda] = useState<"treinos" | "servicos">("treinos");
+  const [servicoSelecionado, setServicoSelecionado] = useState<string | null>(null);
+
+  const iconServico = (atividade: string) => {
+    const a = atividade.toLowerCase();
+    if (a.includes("nutri")) return { icon: Utensils };
+    if (a.includes("reab") || a.includes("fisio")) return { icon: Footprints };
+    return { icon: Activity };
+  };
 
   const dias7 = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
   const dataStr = format(diaSelecionado, "yyyy-MM-dd");
