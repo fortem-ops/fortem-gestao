@@ -52,9 +52,13 @@ export function usePushNotifications() {
         return;
       }
 
+      const keyArray = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: keyArray.buffer.slice(
+          keyArray.byteOffset,
+          keyArray.byteOffset + keyArray.byteLength,
+        ) as ArrayBuffer,
       });
 
       const subJson = subscription.toJSON();
