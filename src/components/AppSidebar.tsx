@@ -34,6 +34,7 @@ const principalItems = [
 /* ─── Agendas ─── */
 const agendasItems = [
   { title: "Agenda de Serviços", url: "/agenda", icon: CalendarDays },
+  { title: "Agenda de Treinos", url: "/agenda-treinos", icon: Dumbbell },
   { title: "Presenças", url: "/presencas", icon: CheckSquare },
 ];
 
