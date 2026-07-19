@@ -1,7 +1,8 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut } from "lucide-react";
+import { House, Dumbbell, ClipboardCheck, Sparkles, CalendarDays, LogOut, Bell } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import fortemIcon from "@/assets/fortem-icon.png";
@@ -20,6 +21,7 @@ export function PortalLayout() {
   const { signOut, user } = useAuth();
   const { student, loading, unlinked } = useStudentPortal();
   const navigate = useNavigate();
+  const { isSupported, isSubscribed, isLoading: pushLoading, permission, subscribe } = usePushNotifications();
 
   if (loading) {
     return (
@@ -86,6 +88,23 @@ export function PortalLayout() {
           </div>
         </div>
       </header>
+
+      {/* Banner de ativação de notificações */}
+      {isSupported && !isSubscribed && permission !== "denied" && (
+        <div className="bg-primary/10 border-b border-primary/20 px-4 py-2.5 flex items-center gap-3">
+          <Bell className="w-4 h-4 text-primary shrink-0" />
+          <p className="text-xs text-foreground flex-1">
+            Ative as notificações para receber alertas de treino, renovação e mais.
+          </p>
+          <button
+            onClick={subscribe}
+            disabled={pushLoading}
+            className="text-xs font-bold text-primary whitespace-nowrap"
+          >
+            {pushLoading ? "..." : "Ativar"}
+          </button>
+        </div>
+      )}
 
       {/* Conteúdo */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 pt-4 pb-28">
