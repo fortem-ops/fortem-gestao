@@ -316,6 +316,22 @@ export default function PortalHome() {
         </div>
       </Link>
 
+      {/* Notificações */}
+      <Link to="/portal/notificacoes">
+        <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center">
+              <Bell className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Notificações</p>
+              <p className="text-xs text-muted-foreground">Gerencie seus alertas</p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </div>
+      </Link>
+
       {/* Treino atual */}
       {treinoAtual && (
         <section className="space-y-2">
