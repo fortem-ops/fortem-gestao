@@ -12,15 +12,53 @@ export default function PortalNotificacoes() {
       </div>
 
       {!isSupported ? (
-        <div className="bg-card border border-border rounded-2xl p-5 space-y-2">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-warning" />
-            <p className="font-bold text-sm text-foreground">Não suportado</p>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Seu navegador não suporta notificações push. Use Chrome no Android ou adicione o portal à tela inicial no iOS 16.4+.
-          </p>
-        </div>
+        (() => {
+          const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+          const isStandalone =
+            typeof window !== "undefined" &&
+            (window.matchMedia("(display-mode: standalone)").matches ||
+              (window.navigator as any).standalone === true);
+          if (isIOS && !isStandalone) {
+            return (
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-primary" />
+                  <p className="font-bold text-sm text-foreground">Instale o app para ativar</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  No iPhone, as notificações funcionam quando o portal está instalado na tela inicial. Siga os passos:
+                </p>
+                <ol className="space-y-3">
+                  {[
+                    "Abra este portal no Safari",
+                    "Toque no ícone de compartilhar ↑ na barra inferior",
+                    'Toque em "Adicionar à Tela de Início"',
+                    "Abra o app pelo ícone criado",
+                    "Volte nesta tela e ative as notificações",
+                  ].map((step, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shrink-0">
+                        {i + 1}
+                      </span>
+                      <p className="text-sm text-foreground">{step}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            );
+          }
+          return (
+            <div className="bg-card border border-border rounded-2xl p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-warning" />
+                <p className="font-bold text-sm text-foreground">Não suportado</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Seu navegador não suporta notificações push. Use Chrome no Android ou adicione o portal à tela inicial no iOS 16.4+.
+              </p>
+            </div>
+          );
+        })()
       ) : (
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
