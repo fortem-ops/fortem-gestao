@@ -145,6 +145,14 @@
   [data-portal="true"] .font-heading {
     font-family: 'Archivo', sans-serif;
   }
+  [data-portal="true"] p,
+  [data-portal="true"] span,
+  [data-portal="true"] a,
+  [data-portal="true"] button,
+  [data-portal="true"] li,
+  [data-portal="true"] div {
+    font-family: 'Manrope', sans-serif;
+  }
   [data-portal="true"] .glass-card {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
