@@ -113,6 +113,27 @@ export default function PortalHome() {
     },
   });
 
+  const { data: servicosPlano = [] } = useQuery({
+    queryKey: ["portal-home-servicos-plano", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("creditos_aluno" as any)
+        .select("atividade, quantidade_inicial, quantidade_usada, ilimitado")
+        .eq("aluno_id", student!.id)
+        .eq("ativo", true)
+        .neq("atividade", "Treino");
+      return (data as any[]) || [];
+    },
+  });
+
+  const iconServico = (atividade: string) => {
+    const a = atividade.toLowerCase();
+    if (a.includes("nutri")) return { icon: Utensils, label: "Nutrição" };
+    if (a.includes("reab") || a.includes("fisio")) return { icon: Footprints, label: "Reabilitação" };
+    return { icon: Activity, label: "Avaliação Funcional" };
+  };
+
   const streakSemanas = useMemo(() => {
     if (!progressoRecente.length) return 0;
     const semanas = new Set<string>();
