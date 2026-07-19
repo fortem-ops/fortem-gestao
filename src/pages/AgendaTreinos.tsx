@@ -431,42 +431,43 @@ function WeeklyGrid({
   const rangeLabel = `${format(weekStart, "d MMM", { locale: ptBR })} – ${format(addDays(weekStart, 6), "d MMM", { locale: ptBR })}`;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, -1))} aria-label="Semana anterior">
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))} aria-label="Próxima semana">
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }))}>
-          Hoje
-        </Button>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm">
-              <CalendarIcon className="w-4 h-4 mr-2" />
-              {rangeLabel}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={weekStart}
-              onSelect={(d) => d && setWeekStart(startOfWeek(d, { weekStartsOn: 0 }))}
-              className="p-3 pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
+    <TooltipProvider delayDuration={150}>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, -1))} aria-label="Semana anterior">
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))} aria-label="Próxima semana">
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }))}>
+            Hoje
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                {rangeLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={weekStart}
+                onSelect={(d) => d && setWeekStart(startOfWeek(d, { weekStartsOn: 0 }))}
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
-      <Card className="p-3 overflow-x-auto">
-        <div
-          className="grid min-w-[820px]"
-          style={{
-            gridTemplateColumns: `72px repeat(7, minmax(96px, 1fr))`,
-          }}
-        >
+        <Card className="p-3 overflow-x-auto">
+          <div
+            className="grid min-w-[820px]"
+            style={{
+              gridTemplateColumns: `72px repeat(7, minmax(96px, 1fr))`,
+            }}
+          >
           {/* Cabeçalho */}
           <div className="border-b border-border" />
           {weekDays.map((d, i) => {
