@@ -314,6 +314,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/agenda-treinos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <AgendaTreinos />
+                  </Suspense>
+                }
+              />
+              <Route
                 path="/presencas"
                 element={
                   <Suspense fallback={<RouteFallback />}>
