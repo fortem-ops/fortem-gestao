@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   CalendarPlus,
   Activity,
@@ -137,7 +136,7 @@ export default function PortalHome() {
   const streakPct = Math.min(streakSemanas / 8, 1);
 
   return (
-    <div className="space-y-5 animate-fade-in pb-32">
+    <div className="space-y-5 animate-fade-in pb-32 pt-4">
       {/* Saudação */}
       <div className="pt-2 pb-1">
         <p className="text-muted-foreground text-sm">{saudacao} 👋</p>
@@ -159,7 +158,7 @@ export default function PortalHome() {
                 Créditos de Treino
               </span>
               <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
-                {String(planoAtivo!.tipo)}
+                {planoAtivo!.tipo.toUpperCase()}
                 {student.frequencia_semanal ? ` · ${student.frequencia_semanal}×` : ""}
               </span>
             </div>
@@ -181,7 +180,12 @@ export default function PortalHome() {
                   : `Renova em ${diasRenovacao} dia${diasRenovacao === 1 ? "" : "s"}`
                 : "Renovação próxima"}
             </p>
-            <Progress value={pct} className="h-1.5" />
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${pct >= 100 ? "bg-emerald-500" : "bg-primary"}`}
+                style={{ width: `${Math.min(pct, 100)}%` }}
+              />
+            </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{usado} utilizados</span>
               <span>{saldo} restantes</span>
@@ -238,10 +242,10 @@ export default function PortalHome() {
           {shortcuts.map((s) => (
             <Link to={s.to} key={s.label}>
               <div className="bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-2 min-h-[76px] justify-center">
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                  <s.icon className="w-4 h-4 text-primary" />
+                <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+                  <s.icon className="w-[18px] h-[18px] text-primary" />
                 </div>
-                <span className="text-[10px] font-semibold text-muted-foreground text-center leading-tight">
+                <span className="text-[11px] font-semibold text-foreground/70 text-center leading-tight">
                   {s.label}
                 </span>
               </div>
