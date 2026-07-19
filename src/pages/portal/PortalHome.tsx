@@ -137,7 +137,7 @@ export default function PortalHome() {
   const streakPct = Math.min(streakSemanas / 8, 1);
 
   return (
-    <div className="space-y-5 animate-fade-in pb-32">
+    <div className="space-y-5 animate-fade-in pb-32 pt-4">
       {/* Saudação */}
       <div className="pt-2 pb-1">
         <p className="text-muted-foreground text-sm">{saudacao} 👋</p>
