@@ -1,3 +1,4 @@
 // VAPID public key for Web Push (safe to expose in client bundle).
 export const VAPID_PUBLIC_KEY =
-  "BBXRgS9DaK8zNBZqtYecJaxECHvw4oPAHnHsWFV2y5F3L-dk8IfnHIeSpazYB0w2xm-IhDoN-grSgFeXCIaifBc";
+  "BKDk8o_hh3l0NR51InW9pMmbbwVopHqgGzz_iP--Yot2I_H4JuQq6Ye5e_8kSopksqxCj7SM_xVXvb4RLsXy0N4";
+
