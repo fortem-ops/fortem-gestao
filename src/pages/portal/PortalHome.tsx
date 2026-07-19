@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   CalendarPlus,
   Activity,
@@ -22,13 +23,17 @@ function SectionLabel({ children }: { children: ReactNode }) {
   );
 }
 
+function toTitleCase(name: string) {
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+}
+
 export default function PortalHome() {
   const { student } = useStudentPortal();
   const navigate = useNavigate();
 
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
-  const primeiroNome = student?.nome?.split(" ")[0] ?? "";
+  const primeiroNome = toTitleCase(student?.nome?.split(" ")[0] ?? "");
 
   const { data: planoAtivo } = useQuery({
     queryKey: ["portal-home-plano", student?.id],
@@ -110,7 +115,8 @@ export default function PortalHome() {
   const contratado = cicloAtivo?.creditos_liberados ?? 0;
   const usado = cicloAtivo?.creditos_usados ?? 0;
   const saldo = Math.max(0, contratado - usado);
-  const pct = contratado > 0 ? Math.min(100, (usado / contratado) * 100) : 0;
+  const total = contratado;
+  const pct = contratado > 0 ? Math.min(100, (saldo / contratado) * 100) : 0;
 
   const dataRenovacao = planoAtivo?.proxima_renovacao ?? cicloAtivo?.data_fim ?? null;
   const diasRenovacao = dataRenovacao
@@ -128,14 +134,17 @@ export default function PortalHome() {
 
   const temPlano = !!planoAtivo && contratado > 0;
   const ringLen = 132;
-  const streakPct = Math.min(streakSemanas / 12, 1);
+  const streakPct = Math.min(streakSemanas / 8, 1);
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5 animate-fade-in pb-32">
       {/* Saudação */}
       <div className="pt-2 pb-1">
         <p className="text-muted-foreground text-sm">{saudacao} 👋</p>
-        <h1 className="text-2xl font-black tracking-tight text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
+        <h1
+          className="text-2xl font-black tracking-tight text-foreground"
+          style={{ fontFamily: "Archivo, sans-serif" }}
+        >
           {primeiroNome}
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">FORTEM · Portal do Aluno</p>
@@ -143,44 +152,47 @@ export default function PortalHome() {
 
       {/* Créditos de treino */}
       <section className="space-y-2">
-        <SectionLabel>Créditos de Treino</SectionLabel>
         {temPlano ? (
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/30 text-[10px] font-semibold tracking-wider uppercase">
+          <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                Créditos de Treino
+              </span>
+              <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
                 {String(planoAtivo!.tipo)}
                 {student.frequencia_semanal ? ` · ${student.frequencia_semanal}×` : ""}
               </span>
-              <p className="text-[11px] text-muted-foreground">
-                {diasRenovacao !== null
-                  ? diasRenovacao === 0
-                    ? "Renova em breve"
-                    : `Renova em ${diasRenovacao} dia${diasRenovacao === 1 ? "" : "s"}`
-                  : ""}
-              </p>
             </div>
-            <div className="flex items-end gap-2">
-              <p className="font-black text-[46px] leading-none text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
+            <div className="flex items-baseline gap-2">
+              <span
+                className="text-5xl font-black text-foreground"
+                style={{ fontFamily: "Archivo, sans-serif" }}
+              >
                 {saldo}
-              </p>
-              <p className="text-xs text-muted-foreground mb-2">créditos restantes</p>
+              </span>
+              <span className="text-base text-muted-foreground font-medium">
+                / {total} créditos
+              </span>
             </div>
-            <div className="mt-4 space-y-2">
-              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-[11px] text-muted-foreground">
-                <span>{usado} utilizados</span>
-                <span>{saldo} restantes</span>
-              </div>
+            <p className="text-xs text-muted-foreground">
+              {diasRenovacao !== null
+                ? diasRenovacao === 0
+                  ? "Renova em breve"
+                  : `Renova em ${diasRenovacao} dia${diasRenovacao === 1 ? "" : "s"}`
+                : "Renovação próxima"}
+            </p>
+            <Progress value={pct} className="h-1.5" />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{usado} utilizados</span>
+              <span>{saldo} restantes</span>
             </div>
           </div>
         ) : (
           <div className="bg-card border border-border rounded-2xl p-5">
-            <p className="font-bold text-base text-foreground mb-1" style={{ fontFamily: "Archivo, sans-serif" }}>
+            <p
+              className="font-bold text-base text-foreground mb-1"
+              style={{ fontFamily: "Archivo, sans-serif" }}
+            >
               Nenhum plano ativo
             </p>
             <p className="text-xs text-muted-foreground mb-4">
@@ -193,22 +205,28 @@ export default function PortalHome() {
         )}
       </section>
 
-      {/* Próximo treino */}
+      {/* Treino atual */}
       {treinoAtual && (
         <section className="space-y-2">
-          <SectionLabel>Próximo treino</SectionLabel>
+          <SectionLabel>Treino Atual</SectionLabel>
           <div className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-semibold text-base truncate text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
+              <p
+                className="font-semibold text-base truncate text-foreground"
+                style={{ fontFamily: "Archivo, sans-serif" }}
+              >
                 {treinoAtual.descricao}
               </p>
               {treinoAtual.versao && (
                 <p className="text-[11px] text-muted-foreground">Versão {treinoAtual.versao}</p>
               )}
             </div>
-            <Button size="sm" variant="ghost" className="text-primary" onClick={() => navigate("/portal/treinos")}>
-              Ver <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
+            <button
+              onClick={() => navigate("/portal/treinos")}
+              className="text-primary font-semibold text-sm whitespace-nowrap"
+            >
+              Ver treino →
+            </button>
           </div>
         </section>
       )}
@@ -219,8 +237,8 @@ export default function PortalHome() {
         <div className="grid grid-cols-4 gap-2">
           {shortcuts.map((s) => (
             <Link to={s.to} key={s.label}>
-              <div className="bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-2 transition hover:border-primary/60">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-2 min-h-[76px] justify-center">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
                   <s.icon className="w-4 h-4 text-primary" />
                 </div>
                 <span className="text-[10px] font-semibold text-muted-foreground text-center leading-tight">
@@ -235,10 +253,17 @@ export default function PortalHome() {
       {/* Streak */}
       <section className="space-y-2">
         <SectionLabel>Sua frequência</SectionLabel>
-        <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4">
+        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
           <div className="relative w-14 h-14 shrink-0">
             <svg className="w-14 h-14 -rotate-90" viewBox="0 0 54 54">
-              <circle cx="27" cy="27" r="21" fill="none" stroke="hsl(var(--muted))" strokeWidth="4" />
+              <circle
+                cx="27"
+                cy="27"
+                r="21"
+                fill="none"
+                stroke="hsl(var(--muted))"
+                strokeWidth="4"
+              />
               <circle
                 cx="27"
                 cy="27"
@@ -252,21 +277,27 @@ export default function PortalHome() {
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-base font-black text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
+              <span
+                className="text-base font-black text-foreground"
+                style={{ fontFamily: "Archivo, sans-serif" }}
+              >
                 {streakSemanas}
               </span>
             </div>
           </div>
-          <div className="min-w-0">
-            <p className="font-bold text-sm text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
+          <div>
+            <p
+              className="font-bold text-sm text-foreground"
+              style={{ fontFamily: "Archivo, sans-serif" }}
+            >
               {streakSemanas === 0
                 ? "Comece sua sequência!"
                 : `${streakSemanas} semana${streakSemanas > 1 ? "s" : ""} seguida${streakSemanas > 1 ? "s" : ""} 🔥`}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {streakSemanas === 0
-                ? "Agende seu primeiro treino da semana."
-                : "Você está acima da média. Continue assim!"}
+                ? "Agende seu primeiro treino."
+                : "Continue assim — você está evoluindo!"}
             </p>
           </div>
         </div>
