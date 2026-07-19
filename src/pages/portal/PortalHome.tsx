@@ -10,6 +10,8 @@ import {
   Sparkles,
   User,
   ArrowRight,
+  Utensils,
+  Footprints,
 } from "lucide-react";
 import { differenceInCalendarDays, format, startOfWeek } from "date-fns";
 import type { ReactNode } from "react";
@@ -110,6 +112,27 @@ export default function PortalHome() {
       return data;
     },
   });
+
+  const { data: servicosPlano = [] } = useQuery({
+    queryKey: ["portal-home-servicos-plano", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("creditos_aluno" as any)
+        .select("atividade, quantidade_inicial, quantidade_usada, ilimitado")
+        .eq("aluno_id", student!.id)
+        .eq("ativo", true)
+        .neq("atividade", "Treino");
+      return (data as any[]) || [];
+    },
+  });
+
+  const iconServico = (atividade: string) => {
+    const a = atividade.toLowerCase();
+    if (a.includes("nutri")) return { icon: Utensils, label: "Nutrição" };
+    if (a.includes("reab") || a.includes("fisio")) return { icon: Footprints, label: "Reabilitação" };
+    return { icon: Activity, label: "Avaliação Funcional" };
+  };
 
   const streakSemanas = useMemo(() => {
     if (!progressoRecente.length) return 0;
@@ -410,6 +433,47 @@ export default function PortalHome() {
               </div>
             </div>
           </Link>
+        </section>
+      )}
+
+      {/* Serviços do Plano */}
+      {servicosPlano.length > 0 && (
+        <section className="space-y-2">
+          <SectionLabel>Serviços do Plano</SectionLabel>
+          <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+            {servicosPlano.map((s: any) => {
+              const saldoS = s.ilimitado ? Infinity : s.quantidade_inicial - s.quantidade_usada;
+              const pctS = s.ilimitado ? 100 : Math.round((s.quantidade_usada / Math.max(s.quantidade_inicial, 1)) * 100);
+              const { icon: Icon } = iconServico(s.atividade);
+              const cor = saldoS > 0 || s.ilimitado ? "text-emerald-400" : "text-destructive";
+              const corBarra = saldoS > 0 || s.ilimitado ? "bg-emerald-500" : "bg-destructive";
+              return (
+                <div key={s.atividade} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-[#2C2C2C] flex items-center justify-center">
+                        <Icon className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <span className="text-sm font-medium text-foreground">{s.atividade}</span>
+                    </div>
+                    <span className={`text-sm font-black ${cor}`} style={{ fontFamily: "Archivo, sans-serif" }}>
+                      {s.ilimitado ? "∞" : `${s.quantidade_usada}/${s.quantidade_inicial}`}
+                    </span>
+                  </div>
+                  <div className="h-1 bg-muted rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${corBarra}`} style={{ width: `${Math.min(pctS, 100)}%` }} />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {s.ilimitado
+                      ? "Ilimitado"
+                      : saldoS > 0
+                        ? `${saldoS} disponível${saldoS > 1 ? "is" : ""}`
+                        : "Créditos esgotados"}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
     </div>
