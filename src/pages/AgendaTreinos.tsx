@@ -511,30 +511,57 @@ function WeeklyGrid({
                 const ocup = ocupacao.get(`${slot.id}|${dataStr}`) ?? 0;
                 const cheio = ocup >= slot.capacidade_maxima;
                 const inativo = !slot.ativo;
+                const agendadosDoSlot = agendamentos.filter(
+                  (a) => a.slot_id === slot.id && a.data === dataStr && OCUPACAO_ATIVOS.has(a.status)
+                );
+
                 return (
-                  <button
-                    key={`c-${row.key}-${di}`}
-                    onClick={() => setSelected({ slot, data: d })}
-                    className={cn(
-                      "border-t border-border/60 m-0.5 rounded-md px-2 py-1.5 text-left transition-colors border",
-                      inativo && "opacity-40 bg-muted border-border",
-                      !inativo && !cheio && "bg-primary/10 border-primary/30 hover:bg-primary/20",
-                      !inativo && cheio && "bg-amber-500/15 border-amber-500/40 hover:bg-amber-500/25",
-                    )}
-                  >
-                    <div className="flex items-center gap-1 text-[11px] font-semibold">
-                      <Users className="w-3 h-3" />
-                      <span className={cn(cheio ? "text-amber-500" : "text-primary")}>
-                        {ocup}/{slot.capacidade_maxima}
-                      </span>
-                    </div>
-                    {slot.instrutor_id && (
-                      <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
-                        {profileMap[slot.instrutor_id] ?? "—"}
+                  <Tooltip key={`c-${row.key}-${di}`} delayDuration={150}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setSelected({ slot, data: d })}
+                        className={cn(
+                          "border-t border-border/60 m-0.5 rounded-md px-2 py-1.5 text-left transition-colors border w-full h-full",
+                          inativo && "opacity-40 bg-muted border-border",
+                          !inativo && !cheio && "bg-primary/10 border-primary/30 hover:bg-primary/20",
+                          !inativo && cheio && "bg-amber-500/15 border-amber-500/40 hover:bg-amber-500/25",
+                        )}
+                      >
+                        <div className="flex items-center gap-1 text-[11px] font-semibold">
+                          <Users className="w-3 h-3" />
+                          <span className={cn(cheio ? "text-amber-500" : "text-primary")}>
+                            {ocup}/{slot.capacidade_maxima}
+                          </span>
+                        </div>
+                        {slot.instrutor_id && (
+                          <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
+                            {profileMap[slot.instrutor_id] ?? "—"}
+                          </div>
+                        )}
+                        {inativo && <div className="text-[9px] uppercase text-muted-foreground">off</div>}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={6} className="max-w-[220px] p-0">
+                      <div className="px-3 py-2">
+                        <div className="text-xs font-medium mb-1">
+                          {slot.horario_inicio.slice(0, 5)} – {slot.horario_fim.slice(0, 5)} · {DIAS[dia]}
+                        </div>
+                        {agendadosDoSlot.length === 0 ? (
+                          <div className="text-xs text-muted-foreground">Nenhum aluno agendado.</div>
+                        ) : (
+                          <ul className="space-y-0.5">
+                            {agendadosDoSlot.map((a) => (
+                              <li key={a.id} className="text-xs flex items-center gap-1.5">
+                                <span className={cn("w-1.5 h-1.5 rounded-full", STATUS_STYLES[a.status]?.split(" ")[1]?.replace("text-", "bg-") || "bg-primary")} />
+                                <span className="truncate">{a.alunos?.nome ?? "—"}</span>
+                                <span className="text-[10px] text-muted-foreground capitalize">{a.status}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
-                    )}
-                    {inativo && <div className="text-[9px] uppercase text-muted-foreground">off</div>}
-                  </button>
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })}
             </div>
