@@ -249,6 +249,27 @@ export default function PortalAgenda() {
         </div>
       </div>
 
+      {/* Switcher */}
+      <div className="flex gap-2 p-1 bg-muted rounded-xl">
+        <button
+          onClick={() => setAbaAgenda("treinos")}
+          className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
+            abaAgenda === "treinos" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+          }`}
+        >
+          🏋️ Treinos
+        </button>
+        <button
+          onClick={() => setAbaAgenda("servicos")}
+          className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
+            abaAgenda === "servicos" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+          }`}
+        >
+          📋 Serviços
+        </button>
+      </div>
+
+      {abaAgenda === "treinos" && (<>
       {/* Calendário semanal horizontal */}
       <section className="space-y-2">
         <SectionLabel>Próximos 7 dias</SectionLabel>
