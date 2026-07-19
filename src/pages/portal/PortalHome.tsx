@@ -180,7 +180,7 @@ export default function PortalHome() {
           </p>
           <Card className="glass-card p-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-heading font-semibold text-base truncate">{treinoAtual.nome}</p>
+              <p className="font-heading font-semibold text-base truncate">{treinoAtual.descricao}</p>
               {treinoAtual.versao && (
                 <p className="text-[11px] text-muted-foreground">Versão {treinoAtual.versao}</p>
               )}
