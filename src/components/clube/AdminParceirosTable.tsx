@@ -184,6 +184,19 @@ export function AdminParceirosTable() {
                 <Input type="email" value={form.email_login} onChange={(e) => setForm({ ...form, email_login: e.target.value })} />
               </div>
               <div>
+                <Label>Senha de acesso {form.id ? "(deixe vazio para não alterar)" : ""}</Label>
+                <Input
+                  type="password"
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  placeholder="Nova senha..."
+                  autoComplete="new-password"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  O parceiro usará este e-mail + senha em <span className="font-mono">/parceiro/login</span>
+                </p>
+              </div>
+              <div>
                 <Label>Endereço (para link do Google Maps)</Label>
                 <Input
                   value={form.endereco}
