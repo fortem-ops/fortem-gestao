@@ -1670,34 +1670,52 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          custo_max: number | null
           custo_pontos: number
+          custo_power: number | null
+          custo_pro: number | null
+          custo_start: number | null
+          custo_start_plus: number | null
           descricao: string | null
           estoque: number | null
           icone: string | null
           id: string
           nome: string
+          planos_elegiveis: string[] | null
           tipo: string
         }
         Insert: {
           ativo?: boolean
           created_at?: string
+          custo_max?: number | null
           custo_pontos: number
+          custo_power?: number | null
+          custo_pro?: number | null
+          custo_start?: number | null
+          custo_start_plus?: number | null
           descricao?: string | null
           estoque?: number | null
           icone?: string | null
           id?: string
           nome: string
+          planos_elegiveis?: string[] | null
           tipo?: string
         }
         Update: {
           ativo?: boolean
           created_at?: string
+          custo_max?: number | null
           custo_pontos?: number
+          custo_power?: number | null
+          custo_pro?: number | null
+          custo_start?: number | null
+          custo_start_plus?: number | null
           descricao?: string | null
           estoque?: number | null
           icone?: string | null
           id?: string
           nome?: string
+          planos_elegiveis?: string[] | null
           tipo?: string
         }
         Relationships: []
