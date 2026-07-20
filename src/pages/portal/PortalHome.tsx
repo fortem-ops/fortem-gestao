@@ -302,6 +302,25 @@ export default function PortalHome() {
       </section>
 
 
+      {/* Atalhos */}
+      <section className="space-y-2">
+        <SectionLabel>Atalhos</SectionLabel>
+        <div className="grid grid-cols-4 gap-2">
+          {shortcuts.map((s) => (
+            <Link to={s.to} key={s.label}>
+              <div className="bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-2 min-h-[76px] justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center">
+                  <s.icon className="w-[18px] h-[18px] text-primary" />
+                </div>
+                <span className="text-[11px] font-semibold text-foreground/70 text-center leading-tight">
+                  {s.label}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       {/* Treino atual */}
       {treinoAtual && (
         <section className="space-y-2">
@@ -327,25 +346,6 @@ export default function PortalHome() {
           </div>
         </section>
       )}
-
-      {/* Atalhos */}
-      <section className="space-y-2">
-        <SectionLabel>Atalhos</SectionLabel>
-        <div className="grid grid-cols-4 gap-2">
-          {shortcuts.map((s) => (
-            <Link to={s.to} key={s.label}>
-              <div className="bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-2 min-h-[76px] justify-center">
-                <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center">
-                  <s.icon className="w-[18px] h-[18px] text-primary" />
-                </div>
-                <span className="text-[11px] font-semibold text-foreground/70 text-center leading-tight">
-                  {s.label}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
 
       {/* Streak */}
       <section className="space-y-2">
