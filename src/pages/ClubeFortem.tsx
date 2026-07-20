@@ -329,14 +329,21 @@ function RecompensasTab() {
 
   const salvar = useMutation({
     mutationFn: async (r: any) => {
+      const payload = {
+        nome: r.nome, descricao: r.descricao, custo_pontos: r.custo_pontos,
+        tipo: r.tipo, icone: r.icone, ativo: r.ativo,
+        custo_start: r.custo_start ?? null,
+        custo_start_plus: r.custo_start_plus ?? null,
+        custo_power: r.custo_power ?? null,
+        custo_pro: r.custo_pro ?? null,
+        custo_max: r.custo_max ?? null,
+        planos_elegiveis: r.planos_elegiveis ?? ['start','start_plus','power','pro','max'],
+      };
       if (r.id) {
-        const { error } = await supabase.from("clube_recompensas").update({
-          nome: r.nome, descricao: r.descricao, custo_pontos: r.custo_pontos,
-          tipo: r.tipo, icone: r.icone, ativo: r.ativo,
-        }).eq("id", r.id);
+        const { error } = await supabase.from("clube_recompensas").update(payload).eq("id", r.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("clube_recompensas").insert(r);
+        const { error } = await supabase.from("clube_recompensas").insert(payload);
         if (error) throw error;
       }
     },
