@@ -130,6 +130,10 @@ const App = () => (
             <Route path="/portal/cadastro" element={<Suspense fallback={<RouteFallback />}><PortalSignUp /></Suspense>} />
             <Route path="/portal/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><PortalRecoverPassword /></Suspense>} />
             <Route path="/portal/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><PortalResetPassword /></Suspense>} />
+
+            {/* Portal do Parceiro — fora do ProtectedRoute e do AppLayout */}
+            <Route path="/parceiro/login" element={<Suspense fallback={<RouteFallback />}><PartnerLogin /></Suspense>} />
+            <Route path="/parceiro" element={<Suspense fallback={<RouteFallback />}><PartnerPortal /></Suspense>} />
             <Route
               element={
                 <RequireStudent>
