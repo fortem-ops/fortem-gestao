@@ -42,6 +42,7 @@ export function AdminParceirosTable() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [novaSenha, setNovaSenha] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { data, isLoading } = useQuery({
