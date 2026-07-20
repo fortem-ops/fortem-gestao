@@ -329,14 +329,21 @@ function RecompensasTab() {
 
   const salvar = useMutation({
     mutationFn: async (r: any) => {
+      const payload = {
+        nome: r.nome, descricao: r.descricao, custo_pontos: r.custo_pontos,
+        tipo: r.tipo, icone: r.icone, ativo: r.ativo,
+        custo_start: r.custo_start ?? null,
+        custo_start_plus: r.custo_start_plus ?? null,
+        custo_power: r.custo_power ?? null,
+        custo_pro: r.custo_pro ?? null,
+        custo_max: r.custo_max ?? null,
+        planos_elegiveis: r.planos_elegiveis ?? ['start','start_plus','power','pro','max'],
+      };
       if (r.id) {
-        const { error } = await supabase.from("clube_recompensas").update({
-          nome: r.nome, descricao: r.descricao, custo_pontos: r.custo_pontos,
-          tipo: r.tipo, icone: r.icone, ativo: r.ativo,
-        }).eq("id", r.id);
+        const { error } = await supabase.from("clube_recompensas").update(payload).eq("id", r.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("clube_recompensas").insert(r);
+        const { error } = await supabase.from("clube_recompensas").insert(payload);
         if (error) throw error;
       }
     },
@@ -371,6 +378,19 @@ function RecompensasTab() {
                   <Badge variant="secondary">{r.tipo}</Badge>{" "}
                   {!r.ativo && <Badge variant="destructive">inativo</Badge>}
                 </p>
+                <div className="flex gap-1 flex-wrap mt-1">
+                  {[
+                    { label: 'S', val: r.custo_start },
+                    { label: 'S+', val: r.custo_start_plus },
+                    { label: 'PW', val: r.custo_power },
+                    { label: 'PR', val: r.custo_pro },
+                    { label: 'MX', val: r.custo_max },
+                  ].filter((x) => x.val != null).map((x) => (
+                    <span key={x.label} className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
+                      {x.label}: {x.val}
+                    </span>
+                  ))}
+                </div>
               </div>
               <Button size="icon" variant="ghost" onClick={() => { setEditing(r); setOpen(true); }}><Pencil className="w-4 h-4" /></Button>
               <Button size="icon" variant="ghost" onClick={() => remover.mutate(r.id)}><Trash2 className="w-4 h-4" /></Button>
@@ -400,6 +420,64 @@ function RecompensasTab() {
                   </Select>
                 </div>
               </div>
+
+              {/* Custo por plano */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">
+                  Custo por plano (vazio = usa custo padrão)
+                </Label>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    { key: 'custo_start', label: 'Start' },
+                    { key: 'custo_start_plus', label: 'Start+' },
+                    { key: 'custo_power', label: 'Power' },
+                    { key: 'custo_pro', label: 'Pro' },
+                    { key: 'custo_max', label: 'Max' },
+                  ].map(({ key, label }) => (
+                    <div key={key}>
+                      <p className="text-[10px] text-muted-foreground mb-1">{label}</p>
+                      <Input
+                        type="number"
+                        placeholder="—"
+                        value={editing[key] ?? ""}
+                        onChange={(e) => setEditing({
+                          ...editing,
+                          [key]: e.target.value === "" ? null : parseInt(e.target.value) || 0,
+                        })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Planos elegíveis */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">
+                  Planos elegíveis
+                </Label>
+                <div className="flex gap-3 flex-wrap">
+                  {['start', 'start_plus', 'power', 'pro', 'max'].map((plano) => {
+                    const elegiveis: string[] = editing.planos_elegiveis || ['start','start_plus','power','pro','max'];
+                    const checked = elegiveis.includes(plano);
+                    return (
+                      <label key={plano} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            const next = checked
+                              ? elegiveis.filter((p) => p !== plano)
+                              : [...elegiveis, plano];
+                            setEditing({ ...editing, planos_elegiveis: next });
+                          }}
+                        />
+                        {plano.replace('_plus', '+').replace(/^\w/, (c) => c.toUpperCase())}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <Switch checked={editing.ativo} onCheckedChange={(v) => setEditing({ ...editing, ativo: v })} />
                 <span className="text-sm">Ativo</span>

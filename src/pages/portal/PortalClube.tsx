@@ -19,12 +19,41 @@ const NIVEIS = [
   { key: "elite", nome: "Elite", emoji: "🏆", min: 3000, max: Infinity },
 ];
 
+function getCustoParaPlano(recompensa: any, tipoPlano: string): number {
+  const tipo = tipoPlano.toLowerCase().replace('+', '_plus').replace(' ', '_');
+  const mapa: Record<string, string> = {
+    max: 'custo_max',
+    pro: 'custo_pro',
+    power: 'custo_power',
+    start_plus: 'custo_start_plus',
+    start: 'custo_start',
+  };
+  const campo = mapa[tipo];
+  return campo && recompensa[campo] != null ? recompensa[campo] : recompensa.custo_pontos;
+}
+
 export default function PortalClube() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
   const [rankingAberto, setRankingAberto] = useState(false);
   const [resgateConfirm, setResgateConfirm] = useState<any>(null);
   const hoje = new Date().toISOString().slice(0, 10);
+
+  const { data: planoAtivo } = useQuery({
+    queryKey: ["portal-clube-plano", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planos")
+        .select("tipo")
+        .eq("aluno_id", student!.id)
+        .eq("ativo", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data?.tipo ?? "Start";
+    },
+  });
 
   const { data: pontos } = useQuery({
     queryKey: ["portal-clube-pontos", student?.id],
@@ -118,7 +147,10 @@ export default function PortalClube() {
       return r;
     },
     onSuccess: (r) => {
-      toast.success(r.tipo === "automatico" ? "Resgate aprovado!" : "Resgate solicitado — aguarde aprovação");
+      toast.success(
+        (r.tipo === "automatico" ? "Resgate aprovado!" : "Resgate solicitado — aguarde aprovação") +
+        (r.custo ? ` (${r.custo} pts)` : "")
+      );
       setResgateConfirm(null);
       qc.invalidateQueries({ queryKey: ["portal-clube-pontos"] });
       qc.invalidateQueries({ queryKey: ["portal-clube-hist"] });
@@ -141,9 +173,16 @@ export default function PortalClube() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
-      <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-        Clube FORTEM
-      </h1>
+      <div className="flex items-center gap-2 flex-wrap">
+        <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+          Clube FORTEM
+        </h1>
+        {planoAtivo && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+            Plano {planoAtivo}
+          </span>
+        )}
+      </div>
 
       {/* Card principal — nível + saldo */}
       <Card className="glass-card p-6 bg-gradient-to-br from-primary/20 to-transparent border-primary/30">
@@ -248,19 +287,27 @@ export default function PortalClube() {
         </p>
         <div className="grid grid-cols-1 gap-3">
           {recompensas?.map((r: any) => {
-            const podeResgatar = saldo >= r.custo_pontos;
+            const custo = getCustoParaPlano(r, planoAtivo ?? "Start");
+            const podeResgatar = saldo >= custo;
             return (
               <Card key={r.id} className="glass-card p-4 flex items-center gap-3">
                 <span className="text-2xl">{r.icone}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold">{r.nome}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{r.descricao}</p>
-                  <p className="text-[11px] mt-1">
-                    <Badge variant="outline">{r.custo_pontos} pts</Badge>
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded-full">
+                      {custo} pts
+                    </span>
+                    {custo < r.custo_pontos && (
+                      <span className="text-[10px] text-emerald-400 font-semibold">
+                        ↓ Benefício {planoAtivo}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <Button size="sm" disabled={!podeResgatar} onClick={() => setResgateConfirm(r)}>
-                  {podeResgatar ? "Resgatar" : `Faltam ${r.custo_pontos - saldo}`}
+                <Button size="sm" disabled={!podeResgatar} onClick={() => setResgateConfirm({ ...r, __custo: custo })}>
+                  {podeResgatar ? "Resgatar" : `Faltam ${custo - saldo}`}
                 </Button>
               </Card>
             );
@@ -311,7 +358,7 @@ export default function PortalClube() {
           <DialogHeader><DialogTitle>Confirmar resgate</DialogTitle></DialogHeader>
           {resgateConfirm && (
             <p className="text-sm">
-              Usar <strong>{resgateConfirm.custo_pontos} pontos</strong> para resgatar{" "}
+              Usar <strong>{resgateConfirm.__custo ?? resgateConfirm.custo_pontos} pontos</strong> para resgatar{" "}
               <strong>{resgateConfirm.nome}</strong>?
             </p>
           )}
