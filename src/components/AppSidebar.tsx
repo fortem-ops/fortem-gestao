@@ -240,6 +240,9 @@ export function AppSidebar() {
               {agendasItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
+              {isCoordAdmin && knowledgeBaseItems.map((item) => (
+                <SidebarItem key={item.title} item={item} isActive={isActive} />
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
