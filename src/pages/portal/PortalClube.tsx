@@ -378,9 +378,9 @@ export default function PortalClube() {
               ];
               const minCusto = Math.min(...custos);
               return (
-                <div key={r.id} className="grid grid-cols-6 gap-0 border-b border-border last:border-0">
-                  <div className="col-span-2 px-3 py-2.5 flex items-center gap-1.5">
-                    <span className="text-sm">{r.icone}</span>
+                <div key={r.id} className="grid border-b border-border last:border-0" style={{gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr'}}>
+                  <div className="px-3 py-2.5 flex items-center gap-1.5">
+                    <span className="text-sm shrink-0">{r.icone}</span>
                     <p className="text-[11px] font-medium text-foreground leading-tight">{r.nome}</p>
                   </div>
                   {custos.map((c, i) => {
