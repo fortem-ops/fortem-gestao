@@ -266,20 +266,38 @@ export default function PortalClube() {
 
       {rankingAberto && ranking && (
         <div className="space-y-2">
-          {ranking.slice(0, 10).map((r, i) => (
-            <div key={r.aluno_id} className={`flex items-center gap-3 p-2 rounded-md text-sm ${r.aluno_id === student.id ? "bg-primary/10 border border-primary/30" : "bg-muted/30"}`}>
-              <span className="w-8 text-center">
-                {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
-              </span>
-              <span className="flex-1 truncate">{r.nome}</span>
-              <strong>{r.pontos}</strong>
-            </div>
-          ))}
+          {ranking.slice(0, 10).map((r, i) => {
+            const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
+            const isMe = r.aluno_id === student.id;
+            return isMe ? (
+              <div key={r.aluno_id} className="bg-primary/20 border border-primary/40 rounded-xl p-3 flex items-center gap-3">
+                <span className="text-lg">🥇</span>
+                <div className="flex-1">
+                  <p className="font-black text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                    {student.nome}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{pontos?.saldo ?? 0} pontos</p>
+                </div>
+                <span className="text-xs font-bold text-primary">#{posicaoRanking} este mês</span>
+              </div>
+            ) : (
+              <div key={r.aluno_id} className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
+                <span className="text-base">{medal}</span>
+                <p className="flex-1 text-sm font-semibold text-foreground truncate">{r.nome}</p>
+                <p className="text-sm font-bold text-foreground">{r.pontos} pts</p>
+              </div>
+            );
+          })}
           {posicaoRanking && posicaoRanking > 10 && (
-            <div className="flex items-center gap-3 p-2 rounded-md text-sm bg-primary/10 border border-primary/30">
-              <span className="w-8 text-center">#{posicaoRanking}</span>
-              <span className="flex-1 truncate">Você</span>
-              <strong>{ranking[posicaoRanking - 1].pontos}</strong>
+            <div className="bg-primary/20 border border-primary/40 rounded-xl p-3 flex items-center gap-3">
+              <span className="text-lg">🥇</span>
+              <div className="flex-1">
+                <p className="font-black text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                  {student.nome}
+                </p>
+                <p className="text-xs text-muted-foreground">{pontos?.saldo ?? 0} pontos</p>
+              </div>
+              <span className="text-xs font-bold text-primary">#{posicaoRanking} este mês</span>
             </div>
           )}
         </div>
