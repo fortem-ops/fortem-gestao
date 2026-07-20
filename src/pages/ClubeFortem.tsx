@@ -420,6 +420,64 @@ function RecompensasTab() {
                   </Select>
                 </div>
               </div>
+
+              {/* Custo por plano */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">
+                  Custo por plano (vazio = usa custo padrão)
+                </Label>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    { key: 'custo_start', label: 'Start' },
+                    { key: 'custo_start_plus', label: 'Start+' },
+                    { key: 'custo_power', label: 'Power' },
+                    { key: 'custo_pro', label: 'Pro' },
+                    { key: 'custo_max', label: 'Max' },
+                  ].map(({ key, label }) => (
+                    <div key={key}>
+                      <p className="text-[10px] text-muted-foreground mb-1">{label}</p>
+                      <Input
+                        type="number"
+                        placeholder="—"
+                        value={editing[key] ?? ""}
+                        onChange={(e) => setEditing({
+                          ...editing,
+                          [key]: e.target.value === "" ? null : parseInt(e.target.value) || 0,
+                        })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Planos elegíveis */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">
+                  Planos elegíveis
+                </Label>
+                <div className="flex gap-3 flex-wrap">
+                  {['start', 'start_plus', 'power', 'pro', 'max'].map((plano) => {
+                    const elegiveis: string[] = editing.planos_elegiveis || ['start','start_plus','power','pro','max'];
+                    const checked = elegiveis.includes(plano);
+                    return (
+                      <label key={plano} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            const next = checked
+                              ? elegiveis.filter((p) => p !== plano)
+                              : [...elegiveis, plano];
+                            setEditing({ ...editing, planos_elegiveis: next });
+                          }}
+                        />
+                        {plano.replace('_plus', '+').replace(/^\w/, (c) => c.toUpperCase())}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <Switch checked={editing.ativo} onCheckedChange={(v) => setEditing({ ...editing, ativo: v })} />
                 <span className="text-sm">Ativo</span>
