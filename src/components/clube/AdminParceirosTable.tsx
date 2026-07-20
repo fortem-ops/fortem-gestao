@@ -97,11 +97,24 @@ export function AdminParceirosTable() {
         ativo: form.ativo,
         modo_validacao: form.modo_validacao,
       };
-      const { error } = form.id
-        ? await supabase.from("parceiros").update(payload).eq("id", form.id)
-        : await supabase.from("parceiros").insert(payload);
-      if (error) throw error;
+      let parceiroId = form.id;
+      if (form.id) {
+        const { error } = await supabase.from("parceiros").update(payload).eq("id", form.id);
+        if (error) throw error;
+      } else {
+        const { data: inserted, error } = await supabase.from("parceiros").insert(payload).select("id").single();
+        if (error) throw error;
+        parceiroId = inserted!.id;
+      }
+      if (novaSenha && parceiroId) {
+        const { error: errSenha } = await supabase.rpc("fn_parceiro_set_senha", {
+          p_parceiro_id: parceiroId,
+          p_senha: novaSenha,
+        });
+        if (errSenha) throw errSenha;
+      }
       toast.success("Parceiro salvo");
+      setNovaSenha("");
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["clube-parceiros-admin"] });
     } catch (err: any) {
