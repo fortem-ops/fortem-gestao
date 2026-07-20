@@ -78,6 +78,7 @@ const PortalClube = lazy(() => import("./pages/portal/PortalClube"));
 const PortalAgenda = lazy(() => import("./pages/portal/PortalAgenda"));
 const PortalPlano = lazy(() => import("./pages/portal/PortalPlano"));
 const PortalNotificacoes = lazy(() => import("./pages/portal/PortalNotificacoes"));
+const PortalCarteirinha = lazy(() => import("./pages/portal/PortalCarteirinha"));
 
 // Portal do Parceiro
 const PartnerLogin = lazy(() => import("./pages/parceiro/PartnerLogin"));
@@ -152,6 +153,7 @@ const App = () => (
               <Route path="/portal/agenda" element={<Suspense fallback={<RouteFallback />}><PortalAgenda /></Suspense>} />
               <Route path="/portal/plano" element={<Suspense fallback={<RouteFallback />}><PortalPlano /></Suspense>} />
               <Route path="/portal/notificacoes" element={<Suspense fallback={<RouteFallback />}><PortalNotificacoes /></Suspense>} />
+              <Route path="/portal/carteirinha" element={<Suspense fallback={<RouteFallback />}><PortalCarteirinha /></Suspense>} />
             </Route>
 
             {/* Public, read-only workout view — opened by the QR code printed on the PDF. */}

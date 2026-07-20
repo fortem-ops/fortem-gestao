@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, CloudRain, Trophy, Gift, Copy, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, CloudRain, Trophy, Gift, Copy, ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -188,6 +189,22 @@ export default function PortalClube() {
           </span>
         )}
       </div>
+
+      {/* Acesso rápido à carteirinha */}
+      <Link to="/portal/carteirinha">
+        <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+            <span className="text-2xl">🪪</span>
+          </div>
+          <div className="flex-1">
+            <p className="font-black text-base text-foreground" style={{ fontFamily: "Archivo,sans-serif" }}>
+              Minha Carteirinha
+            </p>
+            <p className="text-xs text-muted-foreground">QR Code para parceiros FORTEM</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </div>
+      </Link>
 
       {/* Card principal — nível + saldo */}
       <Card className="glass-card p-6 bg-gradient-to-br from-primary/20 to-transparent border-primary/30">

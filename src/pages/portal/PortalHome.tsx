@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   CalendarPlus,
   Activity,
-  Sparkles,
+  CreditCard,
   User,
   ArrowRight,
   Utensils,
@@ -180,8 +180,8 @@ export default function PortalHome() {
 
   const shortcuts = [
     { label: "Agendar", icon: CalendarPlus, to: "/portal/agenda" },
+    { label: "Carteirinha", icon: CreditCard, to: "/portal/carteirinha" },
     { label: "Avaliação", icon: Activity, to: "/portal/avaliacoes" },
-    { label: "Clube", icon: Sparkles, to: "/portal/clube" },
     { label: "Meu Perfil", icon: User, to: "/portal/perfil" },
   ];
 
