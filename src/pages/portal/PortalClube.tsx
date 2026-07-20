@@ -338,6 +338,77 @@ export default function PortalClube() {
         </div>
       </section>
 
+      {/* Comparativo de planos */}
+      <section className="space-y-2">
+        <button
+          onClick={() => setShowComparativo(!showComparativo)}
+          className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-base">📊</span>
+            <p className="text-sm font-semibold text-foreground">Ver vantagens por plano</p>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showComparativo ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showComparativo && (
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            {/* Header */}
+            <div className="grid grid-cols-6 gap-0 border-b border-border">
+              <div className="col-span-2 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase">Recompensa</div>
+              {['Start', 'Start+', 'Power', 'Pro', 'Max'].map(p => (
+                <div key={p} className={`px-1 py-2 text-center text-[10px] font-bold uppercase truncate
+                  ${p.toLowerCase().replace('+','_plus') === planoAtivo?.toLowerCase().replace('+','_plus')
+                    ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {p}
+                </div>
+              ))}
+            </div>
+
+            {/* Linhas por recompensa */}
+            {recompensas?.map((r: any) => {
+              const custos = [
+                r.custo_start ?? r.custo_pontos,
+                r.custo_start_plus ?? r.custo_pontos,
+                r.custo_power ?? r.custo_pontos,
+                r.custo_pro ?? r.custo_pontos,
+                r.custo_max ?? r.custo_pontos,
+              ];
+              const minCusto = Math.min(...custos);
+              return (
+                <div key={r.id} className="grid grid-cols-6 gap-0 border-b border-border last:border-0">
+                  <div className="col-span-2 px-3 py-2.5 flex items-center gap-1.5">
+                    <span className="text-sm">{r.icone}</span>
+                    <p className="text-[11px] font-medium text-foreground leading-tight">{r.nome}</p>
+                  </div>
+                  {custos.map((c, i) => {
+                    const isUserPlan = i === ['start','start_plus','power','pro','max']
+                      .indexOf(planoAtivo?.toLowerCase().replace('+','_plus').replace(' ','_') ?? 'start');
+                    const isCheapest = c === minCusto;
+                    return (
+                      <div key={i} className={`px-1 py-2.5 text-center ${isUserPlan ? 'bg-primary/5' : ''}`}>
+                        <p className={`text-[11px] font-bold ${
+                          isUserPlan ? 'text-primary' :
+                          isCheapest ? 'text-emerald-400' :
+                          'text-foreground'
+                        }`}>{c}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            {/* Legenda */}
+            <div className="px-3 py-2 border-t border-border flex gap-3 flex-wrap">
+              <span className="text-[10px] text-primary font-semibold">● Seu plano</span>
+              <span className="text-[10px] text-emerald-400 font-semibold">● Menor custo</span>
+              <span className="text-[10px] text-muted-foreground">Valores em pontos</span>
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* Indicação */}
       {meuCodigo && (
         <Card className="glass-card p-4">
