@@ -1,0 +1,3 @@
+CREATE POLICY "Staff manage notif anexos update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'notificacao-anexos' AND (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'coordenador'))) WITH CHECK (bucket_id = 'notificacao-anexos' AND (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'coordenador')));
+
+CREATE POLICY "Staff delete notif anexos" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'notificacao-anexos' AND (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'coordenador')));
