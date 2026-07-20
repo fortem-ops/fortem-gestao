@@ -346,11 +346,27 @@ export default function PortalAgenda() {
                   />
                 </div>
 
-                {jaAgendou ? (
-                  <div className="flex items-center gap-2 text-sm text-emerald-500 font-semibold">
-                    <CheckCircle2 className="w-4 h-4" /> Agendado
-                  </div>
-                ) : lotado ? (
+                {jaAgendou ? (() => {
+                  const agNesseSlot = meusAgendamentos.find(
+                    (a: any) => a.data === dataStr && a.slot_id === slot.id
+                  );
+                  return (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-emerald-400">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Agendado</span>
+                      </div>
+                      {agNesseSlot && (
+                        <button
+                          onClick={() => setCancelando(agNesseSlot.id)}
+                          className="py-1.5 px-3 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
+                  );
+                })() : lotado ? (
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
                 ) : jaTemNoDia ? (
                   <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
@@ -379,32 +395,64 @@ export default function PortalAgenda() {
           })
         )}
       </section>
-
-      {/* Meus próximos treinos */}
-      {meusAgendamentos.length > 0 && (
-        <section className="space-y-3">
-          <SectionLabel>Meus próximos treinos</SectionLabel>
-          {meusAgendamentos.map((ag) => (
-            <div key={ag.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
-              {/* Data */}
-              <div className="text-center min-w-[40px]">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground">{format(parseISO(ag.data), 'EEE', {locale: ptBR})}</p>
-                <p className="text-2xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{format(parseISO(ag.data), 'd')}</p>
-              </div>
-              {/* Info */}
-              <div className="flex-1">
-                <p className="font-bold text-sm text-foreground">{ag.horario_inicio.slice(0,5)} → {ag.horario_fim.slice(0,5)}</p>
-                <p className="text-xs text-muted-foreground">{format(parseISO(ag.data), "dd 'de' MMMM", {locale: ptBR})}</p>
-              </div>
-              {/* Botão cancelar */}
-              <button onClick={() => setCancelando(ag.id)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </section>
-      )}
       </>)}
+
+      {abaAgenda === "agendamentos" && (
+        <div className="space-y-4">
+          <SectionLabel>Próximos agendamentos</SectionLabel>
+
+          {meusAgendamentos.length === 0 ? (
+            <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-2">
+              <p className="text-sm font-bold text-foreground">Nenhum treino agendado</p>
+              <p className="text-xs text-muted-foreground">
+                Agende seu próximo treino na aba Treinos.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {meusAgendamentos.map((ag: any) => {
+                const deadline = new Date(`${ag.data}T${ag.horario_inicio}`);
+                deadline.setHours(deadline.getHours() - 1);
+                const dentroDoPrazo = new Date() < deadline;
+                return (
+                  <div key={ag.id} className="bg-card border border-border rounded-xl p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-center min-w-[44px] shrink-0">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                          {format(parseISO(ag.data + "T12:00:00"), "EEE", { locale: ptBR })}
+                        </p>
+                        <p className="text-2xl font-black text-foreground" style={{ fontFamily: 'Archivo,sans-serif' }}>
+                          {format(parseISO(ag.data + "T12:00:00"), "d")}
+                        </p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-foreground">
+                          {ag.horario_inicio?.slice(0, 5)} → {ag.horario_fim?.slice(0, 5)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(parseISO(ag.data + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setCancelando(ag.id)}
+                        className="py-1.5 px-3 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                    {!dentroDoPrazo && (
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <AlertCircle className="w-3 h-3 text-warning shrink-0" />
+                        <p className="text-[10px] text-warning">Cancelamento fora do prazo não estorna crédito</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {abaAgenda === "servicos" && (
         <div className="space-y-4">
