@@ -354,15 +354,17 @@ export default function PortalClube() {
         {showComparativo && (
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-6 gap-0 border-b border-border">
-              <div className="col-span-2 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase">Recompensa</div>
-              {['Start', 'Start+', 'Power', 'Pro', 'Max'].map(p => (
-                <div key={p} className={`px-1 py-2 text-center text-[10px] font-bold uppercase truncate
-                  ${p.toLowerCase().replace('+','_plus') === planoAtivo?.toLowerCase().replace('+','_plus')
-                    ? 'text-primary' : 'text-muted-foreground'}`}>
-                  {p}
-                </div>
-              ))}
+            <div className="grid border-b border-border" style={{gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr'}}>
+              <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase">Recompensa</div>
+              {['Start', 'Start+', 'Power', 'Pro', 'Max'].map(p => {
+                const key = p.toLowerCase().replace('+','_plus').replace(' ','_');
+                const isUser = key === (planoAtivo?.toLowerCase().replace('+','_plus').replace(' ','_') ?? 'start');
+                return (
+                  <div key={p} className={`px-1 py-2 text-center text-[10px] font-bold uppercase ${isUser ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {p}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Linhas por recompensa */}
