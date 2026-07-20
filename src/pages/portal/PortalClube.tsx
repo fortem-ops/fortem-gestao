@@ -429,18 +429,19 @@ export default function PortalClube() {
       <section>
         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Últimas movimentações</p>
         <div className="space-y-1">
-          {historico?.length ? historico.map((h: any) => (
-            <div key={h.id} className="flex items-center justify-between text-sm py-2 border-b border-border/50">
-              <div className="min-w-0 flex-1">
-                <p className="truncate">{h.label}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {format(new Date(h.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                  {h.multiplicador_clima && " · 🌧️ 1.5×"}
+          {historico?.length ? historico.map((mov: any) => (
+            <div key={mov.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{mov.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {format(new Date(mov.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                 </p>
               </div>
-              <strong className={h.pontos_final >= 0 ? "text-primary" : "text-destructive"}>
-                {h.pontos_final >= 0 ? "+" : ""}{h.pontos_final}
-              </strong>
+              <span className={`text-sm font-black ml-3 ${mov.pontos_final > 0 ? 'text-emerald-400' : 'text-destructive'}`}
+                style={{fontFamily:'Archivo,sans-serif'}}>
+                {mov.pontos_final > 0 ? '+' : ''}{mov.pontos_final}
+                {mov.multiplicador_clima && <span className="text-[10px] ml-1">🌧️</span>}
+              </span>
             </div>
           )) : <p className="text-xs text-muted-foreground">Sem movimentações ainda.</p>}
         </div>
