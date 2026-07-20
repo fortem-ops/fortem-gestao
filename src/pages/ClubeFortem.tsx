@@ -378,7 +378,19 @@ function RecompensasTab() {
                   <Badge variant="secondary">{r.tipo}</Badge>{" "}
                   {!r.ativo && <Badge variant="destructive">inativo</Badge>}
                 </p>
-              </div>
+                <div className="flex gap-1 flex-wrap mt-1">
+                  {[
+                    { label: 'S', val: r.custo_start },
+                    { label: 'S+', val: r.custo_start_plus },
+                    { label: 'PW', val: r.custo_power },
+                    { label: 'PR', val: r.custo_pro },
+                    { label: 'MX', val: r.custo_max },
+                  ].filter((x) => x.val != null).map((x) => (
+                    <span key={x.label} className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
+                      {x.label}: {x.val}
+                    </span>
+                  ))}
+                </div>
               <Button size="icon" variant="ghost" onClick={() => { setEditing(r); setOpen(true); }}><Pencil className="w-4 h-4" /></Button>
               <Button size="icon" variant="ghost" onClick={() => remover.mutate(r.id)}><Trash2 className="w-4 h-4" /></Button>
             </CardContent>
