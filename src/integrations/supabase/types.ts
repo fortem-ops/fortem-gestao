@@ -412,6 +412,54 @@ export type Database = {
           },
         ]
       }
+      assistant_conversations: {
+        Row: {
+          aluno_id: string | null
+          created_at: string
+          escalou_em: string | null
+          escalou_para_humano: boolean
+          id: string
+          messages: Json
+          resolvido: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          aluno_id?: string | null
+          created_at?: string
+          escalou_em?: string | null
+          escalou_para_humano?: boolean
+          id?: string
+          messages?: Json
+          resolvido?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string | null
+          created_at?: string
+          escalou_em?: string | null
+          escalou_para_humano?: boolean
+          id?: string
+          messages?: Json
+          resolvido?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_conversations_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assistant_conversations_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           created_at: string
@@ -2093,6 +2141,95 @@ export type Database = {
           expires_at?: string
           id?: string
           scope?: string | null
+        }
+        Relationships: []
+      }
+      knowledge_articles: {
+        Row: {
+          aliases: string[] | null
+          ativo: boolean
+          category_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          palavras_chave: string[] | null
+          pergunta: string
+          resposta: string
+          updated_at: string
+          updated_by: string | null
+          util_nao: number
+          util_sim: number
+          visualizacoes: number
+        }
+        Insert: {
+          aliases?: string[] | null
+          ativo?: boolean
+          category_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          palavras_chave?: string[] | null
+          pergunta: string
+          resposta: string
+          updated_at?: string
+          updated_by?: string | null
+          util_nao?: number
+          util_sim?: number
+          visualizacoes?: number
+        }
+        Update: {
+          aliases?: string[] | null
+          ativo?: boolean
+          category_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          palavras_chave?: string[] | null
+          pergunta?: string
+          resposta?: string
+          updated_at?: string
+          updated_by?: string | null
+          util_nao?: number
+          util_sim?: number
+          visualizacoes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_articles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_categories: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
         }
         Relationships: []
       }
