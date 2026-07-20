@@ -40,6 +40,7 @@ const agendasItems = [
 
 const knowledgeBaseItems = [
   { title: "Base de Conhecimento", url: "/knowledge-base", icon: BookOpen },
+  { title: "Clube FORTEM", url: "/clube-fortem", icon: Star },
 ];
 
 const principalCoordItems = [
