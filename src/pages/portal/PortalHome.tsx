@@ -241,45 +241,48 @@ export default function PortalHome() {
       {/* Créditos de treino */}
       <section className="space-y-2">
         {temPlano ? (
-          <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                Créditos de Treino
-              </span>
-              <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
-                {planoAtivo!.tipo.toUpperCase()}
-                {student.frequencia_semanal ? ` · ${student.frequencia_semanal}×` : ""}
-              </span>
+          <Link to="/portal/plano">
+            <div className="bg-card border border-border rounded-2xl p-5 space-y-3 cursor-pointer">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Créditos de Treino
+                </span>
+                <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
+                  {planoAtivo!.tipo.toUpperCase()}
+                  {student.frequencia_semanal ? ` · ${student.frequencia_semanal}×` : ""}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="text-5xl font-black text-foreground"
+                  style={{ fontFamily: "Archivo, sans-serif" }}
+                >
+                  {saldo}
+                </span>
+                <span className="text-base text-muted-foreground font-medium">
+                  / {total} créditos
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {diasRenovacao !== null
+                  ? diasRenovacao === 0
+                    ? "Renova em breve"
+                    : `Renova em ${diasRenovacao} dia${diasRenovacao === 1 ? "" : "s"}`
+                  : "Renovação próxima"}
+              </p>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${corBarra}`}
+                  style={{ width: `${Math.min(pctRestante, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{usado} utilizados</span>
+                <span>{saldo} restantes</span>
+              </div>
+              <p className="text-[10px] text-primary font-semibold">Gerenciar plano →</p>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span
-                className="text-5xl font-black text-foreground"
-                style={{ fontFamily: "Archivo, sans-serif" }}
-              >
-                {saldo}
-              </span>
-              <span className="text-base text-muted-foreground font-medium">
-                / {total} créditos
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {diasRenovacao !== null
-                ? diasRenovacao === 0
-                  ? "Renova em breve"
-                  : `Renova em ${diasRenovacao} dia${diasRenovacao === 1 ? "" : "s"}`
-                : "Renovação próxima"}
-            </p>
-            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${corBarra}`}
-                style={{ width: `${Math.min(pctRestante, 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{usado} utilizados</span>
-              <span>{saldo} restantes</span>
-            </div>
-          </div>
+          </Link>
         ) : (
           <div className="bg-card border border-border rounded-2xl p-5">
             <p
