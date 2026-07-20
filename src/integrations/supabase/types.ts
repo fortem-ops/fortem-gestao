@@ -1240,6 +1240,142 @@ export type Database = {
         }
         Relationships: []
       }
+      clube_aluno_badges: {
+        Row: {
+          aluno_id: string
+          badge_id: string
+          conquistado_em: string
+          id: string
+        }
+        Insert: {
+          aluno_id: string
+          badge_id: string
+          conquistado_em?: string
+          id?: string
+        }
+        Update: {
+          aluno_id?: string
+          badge_id?: string
+          conquistado_em?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clube_aluno_badges_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_aluno_badges_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "clube_aluno_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "clube_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clube_badges: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          criterio: string
+          descricao: string
+          emoji: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          criterio: string
+          descricao: string
+          emoji?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          criterio?: string
+          descricao?: string
+          emoji?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      clube_clima_cache: {
+        Row: {
+          consultado_em: string
+          data: string
+          id: string
+          motivo: string | null
+          multiplicador_ativo: boolean
+          precipitacao_mm: number | null
+          temperatura_max: number | null
+          temperatura_min: number | null
+        }
+        Insert: {
+          consultado_em?: string
+          data: string
+          id?: string
+          motivo?: string | null
+          multiplicador_ativo?: boolean
+          precipitacao_mm?: number | null
+          temperatura_max?: number | null
+          temperatura_min?: number | null
+        }
+        Update: {
+          consultado_em?: string
+          data?: string
+          id?: string
+          motivo?: string | null
+          multiplicador_ativo?: boolean
+          precipitacao_mm?: number | null
+          temperatura_max?: number | null
+          temperatura_min?: number | null
+        }
+        Relationships: []
+      }
+      clube_config: {
+        Row: {
+          chave: string
+          descricao: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+          valor: string
+        }
+        Insert: {
+          chave: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor: string
+        }
+        Update: {
+          chave?: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: string
+        }
+        Relationships: []
+      }
       clube_fortem_membros: {
         Row: {
           aluno_desde: string
@@ -1303,6 +1439,354 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      clube_historico: {
+        Row: {
+          acao: string
+          aluno_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          motivo_manual: string | null
+          multiplicador: number
+          multiplicador_clima: boolean
+          pontos: number
+          pontos_final: number
+          referencia_id: string | null
+          referencia_tipo: string | null
+        }
+        Insert: {
+          acao: string
+          aluno_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          motivo_manual?: string | null
+          multiplicador?: number
+          multiplicador_clima?: boolean
+          pontos: number
+          pontos_final: number
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+        }
+        Update: {
+          acao?: string
+          aluno_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          motivo_manual?: string | null
+          multiplicador?: number
+          multiplicador_clima?: boolean
+          pontos?: number
+          pontos_final?: number
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clube_historico_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_historico_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      clube_indicacoes: {
+        Row: {
+          codigo: string
+          convertido_em: string | null
+          created_at: string
+          id: string
+          indicado_id: string | null
+          padrinho_id: string
+          status: string
+        }
+        Insert: {
+          codigo?: string
+          convertido_em?: string | null
+          created_at?: string
+          id?: string
+          indicado_id?: string | null
+          padrinho_id: string
+          status?: string
+        }
+        Update: {
+          codigo?: string
+          convertido_em?: string | null
+          created_at?: string
+          id?: string
+          indicado_id?: string | null
+          padrinho_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clube_indicacoes_indicado_id_fkey"
+            columns: ["indicado_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_indicacoes_indicado_id_fkey"
+            columns: ["indicado_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "clube_indicacoes_padrinho_id_fkey"
+            columns: ["padrinho_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_indicacoes_padrinho_id_fkey"
+            columns: ["padrinho_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      clube_pontos: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          id: string
+          nivel: string
+          pontos_expiram_em: string | null
+          ranking_publico: boolean
+          saldo: number
+          total_acumulado: number
+          total_resgatado: number
+          ultima_movimentacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          id?: string
+          nivel?: string
+          pontos_expiram_em?: string | null
+          ranking_publico?: boolean
+          saldo?: number
+          total_acumulado?: number
+          total_resgatado?: number
+          ultima_movimentacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          id?: string
+          nivel?: string
+          pontos_expiram_em?: string | null
+          ranking_publico?: boolean
+          saldo?: number
+          total_acumulado?: number
+          total_resgatado?: number
+          ultima_movimentacao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clube_pontos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_pontos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      clube_ranking_snapshots: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          id: string
+          periodo: string
+          pontos_periodo: number
+          posicao: number | null
+          referencia: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          id?: string
+          periodo: string
+          pontos_periodo?: number
+          posicao?: number | null
+          referencia: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          id?: string
+          periodo?: string
+          pontos_periodo?: number
+          posicao?: number | null
+          referencia?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clube_ranking_snapshots_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_ranking_snapshots_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
+      clube_recompensas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          custo_pontos: number
+          descricao: string | null
+          estoque: number | null
+          icone: string | null
+          id: string
+          nome: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          custo_pontos: number
+          descricao?: string | null
+          estoque?: number | null
+          icone?: string | null
+          id?: string
+          nome: string
+          tipo?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          custo_pontos?: number
+          descricao?: string | null
+          estoque?: number | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      clube_regras_pontuacao: {
+        Row: {
+          acao: string
+          ativo: boolean
+          created_at: string
+          id: string
+          label: string
+          pontos: number
+          unica_vez: boolean
+        }
+        Insert: {
+          acao: string
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          label: string
+          pontos?: number
+          unica_vez?: boolean
+        }
+        Update: {
+          acao?: string
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          label?: string
+          pontos?: number
+          unica_vez?: boolean
+        }
+        Relationships: []
+      }
+      clube_resgates: {
+        Row: {
+          aluno_id: string
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          id: string
+          observacoes: string | null
+          pontos_utilizados: number
+          recompensa_id: string
+          status: string
+        }
+        Insert: {
+          aluno_id: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          pontos_utilizados: number
+          recompensa_id: string
+          status?: string
+        }
+        Update: {
+          aluno_id?: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          pontos_utilizados?: number
+          recompensa_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clube_resgates_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_resgates_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "clube_resgates_recompensa_id_fkey"
+            columns: ["recompensa_id"]
+            isOneToOne: false
+            referencedRelation: "clube_recompensas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5937,6 +6421,18 @@ export type Database = {
         Args: { p_aluno_id: string; p_janela: number; p_limite: number }
         Returns: boolean
       }
+      fn_clube_adicionar_pontos: {
+        Args: {
+          p_acao: string
+          p_aluno_id: string
+          p_created_by?: string
+          p_motivo_manual?: string
+          p_pontos_manual?: number
+          p_referencia_id?: string
+          p_referencia_tipo?: string
+        }
+        Returns: Json
+      }
       fn_clube_check_divergencias: { Args: never; Returns: Json }
       fn_clube_dashboard: { Args: { _periodo_dias?: number }; Returns: Json }
       fn_clube_generate_qr_token: { Args: { _aluno_id: string }; Returns: Json }
@@ -5946,6 +6442,7 @@ export type Database = {
         Returns: undefined
       }
       fn_clube_nivel_por_plano: { Args: { _aluno_id: string }; Returns: Json }
+      fn_clube_resgatar: { Args: { p_recompensa_id: string }; Returns: Json }
       fn_clube_resync_todos: { Args: never; Returns: Json }
       fn_clube_resync_todos_safe: { Args: never; Returns: Json }
       fn_clube_sync_membro: { Args: { _aluno_id: string }; Returns: undefined }
