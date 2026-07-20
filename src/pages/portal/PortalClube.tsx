@@ -39,6 +39,22 @@ export default function PortalClube() {
   const [resgateConfirm, setResgateConfirm] = useState<any>(null);
   const hoje = new Date().toISOString().slice(0, 10);
 
+  const { data: planoAtivo } = useQuery({
+    queryKey: ["portal-clube-plano", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planos")
+        .select("tipo")
+        .eq("aluno_id", student!.id)
+        .eq("ativo", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data?.tipo ?? "Start";
+    },
+  });
+
   const { data: pontos } = useQuery({
     queryKey: ["portal-clube-pontos", student?.id],
     enabled: !!student,
