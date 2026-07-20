@@ -250,23 +250,24 @@ export default function PortalAgenda() {
       </div>
 
       {/* Switcher */}
-      <div className="flex gap-2 p-1 bg-muted rounded-xl">
-        <button
-          onClick={() => setAbaAgenda("treinos")}
-          className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
-            abaAgenda === "treinos" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-          }`}
-        >
-          🏋️ Treinos
-        </button>
-        <button
-          onClick={() => setAbaAgenda("servicos")}
-          className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
-            abaAgenda === "servicos" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-          }`}
-        >
-          📋 Serviços
-        </button>
+      <div className="flex gap-1 p-1 bg-muted rounded-xl">
+        {[
+          { key: "treinos", label: "🏋️ Treinos" },
+          { key: "servicos", label: "📋 Serviços" },
+          { key: "agendamentos", label: "📌 Meus" },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setAbaAgenda(tab.key as any)}
+            className={`flex-1 py-2 px-2 rounded-lg text-xs font-semibold transition-colors ${
+              abaAgenda === tab.key
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {abaAgenda === "treinos" && (<>
