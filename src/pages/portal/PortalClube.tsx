@@ -19,6 +19,19 @@ const NIVEIS = [
   { key: "elite", nome: "Elite", emoji: "🏆", min: 3000, max: Infinity },
 ];
 
+function getCustoParaPlano(recompensa: any, tipoPlano: string): number {
+  const tipo = tipoPlano.toLowerCase().replace('+', '_plus').replace(' ', '_');
+  const mapa: Record<string, string> = {
+    max: 'custo_max',
+    pro: 'custo_pro',
+    power: 'custo_power',
+    start_plus: 'custo_start_plus',
+    start: 'custo_start',
+  };
+  const campo = mapa[tipo];
+  return campo && recompensa[campo] != null ? recompensa[campo] : recompensa.custo_pontos;
+}
+
 export default function PortalClube() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
