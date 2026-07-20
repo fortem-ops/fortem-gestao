@@ -37,6 +37,7 @@ export default function PortalClube() {
   const qc = useQueryClient();
   const [rankingAberto, setRankingAberto] = useState(false);
   const [resgateConfirm, setResgateConfirm] = useState<any>(null);
+  const [showComparativo, setShowComparativo] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
 
   const { data: planoAtivo } = useQuery({
@@ -84,7 +85,11 @@ export default function PortalClube() {
   const { data: recompensas } = useQuery({
     queryKey: ["portal-clube-recompensas"],
     queryFn: async () => {
-      const { data } = await supabase.from("clube_recompensas").select("*").eq("ativo", true).order("custo_pontos");
+      const { data } = await supabase
+        .from("clube_recompensas")
+        .select("id, nome, descricao, custo_pontos, custo_start, custo_start_plus, custo_power, custo_pro, custo_max, tipo, icone, planos_elegiveis")
+        .eq("ativo", true)
+        .order("custo_pontos");
       return data || [];
     },
   });
@@ -261,20 +266,38 @@ export default function PortalClube() {
 
       {rankingAberto && ranking && (
         <div className="space-y-2">
-          {ranking.slice(0, 10).map((r, i) => (
-            <div key={r.aluno_id} className={`flex items-center gap-3 p-2 rounded-md text-sm ${r.aluno_id === student.id ? "bg-primary/10 border border-primary/30" : "bg-muted/30"}`}>
-              <span className="w-8 text-center">
-                {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
-              </span>
-              <span className="flex-1 truncate">{r.nome}</span>
-              <strong>{r.pontos}</strong>
-            </div>
-          ))}
+          {ranking.slice(0, 10).map((r, i) => {
+            const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
+            const isMe = r.aluno_id === student.id;
+            return isMe ? (
+              <div key={r.aluno_id} className="bg-primary/20 border border-primary/40 rounded-xl p-3 flex items-center gap-3">
+                <span className="text-lg">🥇</span>
+                <div className="flex-1">
+                  <p className="font-black text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                    {student.nome}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{pontos?.saldo ?? 0} pontos</p>
+                </div>
+                <span className="text-xs font-bold text-primary">#{posicaoRanking} este mês</span>
+              </div>
+            ) : (
+              <div key={r.aluno_id} className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
+                <span className="text-base">{medal}</span>
+                <p className="flex-1 text-sm font-semibold text-foreground truncate">{r.nome}</p>
+                <p className="text-sm font-bold text-foreground">{r.pontos} pts</p>
+              </div>
+            );
+          })}
           {posicaoRanking && posicaoRanking > 10 && (
-            <div className="flex items-center gap-3 p-2 rounded-md text-sm bg-primary/10 border border-primary/30">
-              <span className="w-8 text-center">#{posicaoRanking}</span>
-              <span className="flex-1 truncate">Você</span>
-              <strong>{ranking[posicaoRanking - 1].pontos}</strong>
+            <div className="bg-primary/20 border border-primary/40 rounded-xl p-3 flex items-center gap-3">
+              <span className="text-lg">🥇</span>
+              <div className="flex-1">
+                <p className="font-black text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                  {student.nome}
+                </p>
+                <p className="text-xs text-muted-foreground">{pontos?.saldo ?? 0} pontos</p>
+              </div>
+              <span className="text-xs font-bold text-primary">#{posicaoRanking} este mês</span>
             </div>
           )}
         </div>
@@ -315,6 +338,77 @@ export default function PortalClube() {
         </div>
       </section>
 
+      {/* Comparativo de planos */}
+      <section className="space-y-2">
+        <button
+          onClick={() => setShowComparativo(!showComparativo)}
+          className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-base">📊</span>
+            <p className="text-sm font-semibold text-foreground">Ver vantagens por plano</p>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showComparativo ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showComparativo && (
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            {/* Header */}
+            <div className="grid grid-cols-6 gap-0 border-b border-border">
+              <div className="col-span-2 px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase">Recompensa</div>
+              {['Start', 'Start+', 'Power', 'Pro', 'Max'].map(p => (
+                <div key={p} className={`px-1 py-2 text-center text-[10px] font-bold uppercase truncate
+                  ${p.toLowerCase().replace('+','_plus') === planoAtivo?.toLowerCase().replace('+','_plus')
+                    ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {p}
+                </div>
+              ))}
+            </div>
+
+            {/* Linhas por recompensa */}
+            {recompensas?.map((r: any) => {
+              const custos = [
+                r.custo_start ?? r.custo_pontos,
+                r.custo_start_plus ?? r.custo_pontos,
+                r.custo_power ?? r.custo_pontos,
+                r.custo_pro ?? r.custo_pontos,
+                r.custo_max ?? r.custo_pontos,
+              ];
+              const minCusto = Math.min(...custos);
+              return (
+                <div key={r.id} className="grid grid-cols-6 gap-0 border-b border-border last:border-0">
+                  <div className="col-span-2 px-3 py-2.5 flex items-center gap-1.5">
+                    <span className="text-sm">{r.icone}</span>
+                    <p className="text-[11px] font-medium text-foreground leading-tight">{r.nome}</p>
+                  </div>
+                  {custos.map((c, i) => {
+                    const isUserPlan = i === ['start','start_plus','power','pro','max']
+                      .indexOf(planoAtivo?.toLowerCase().replace('+','_plus').replace(' ','_') ?? 'start');
+                    const isCheapest = c === minCusto;
+                    return (
+                      <div key={i} className={`px-1 py-2.5 text-center ${isUserPlan ? 'bg-primary/5' : ''}`}>
+                        <p className={`text-[11px] font-bold ${
+                          isUserPlan ? 'text-primary' :
+                          isCheapest ? 'text-emerald-400' :
+                          'text-foreground'
+                        }`}>{c}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            {/* Legenda */}
+            <div className="px-3 py-2 border-t border-border flex gap-3 flex-wrap">
+              <span className="text-[10px] text-primary font-semibold">● Seu plano</span>
+              <span className="text-[10px] text-emerald-400 font-semibold">● Menor custo</span>
+              <span className="text-[10px] text-muted-foreground">Valores em pontos</span>
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* Indicação */}
       {meuCodigo && (
         <Card className="glass-card p-4">
@@ -335,18 +429,19 @@ export default function PortalClube() {
       <section>
         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Últimas movimentações</p>
         <div className="space-y-1">
-          {historico?.length ? historico.map((h: any) => (
-            <div key={h.id} className="flex items-center justify-between text-sm py-2 border-b border-border/50">
-              <div className="min-w-0 flex-1">
-                <p className="truncate">{h.label}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {format(new Date(h.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                  {h.multiplicador_clima && " · 🌧️ 1.5×"}
+          {historico?.length ? historico.map((mov: any) => (
+            <div key={mov.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{mov.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {format(new Date(mov.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                 </p>
               </div>
-              <strong className={h.pontos_final >= 0 ? "text-primary" : "text-destructive"}>
-                {h.pontos_final >= 0 ? "+" : ""}{h.pontos_final}
-              </strong>
+              <span className={`text-sm font-black ml-3 ${mov.pontos_final > 0 ? 'text-emerald-400' : 'text-destructive'}`}
+                style={{fontFamily:'Archivo,sans-serif'}}>
+                {mov.pontos_final > 0 ? '+' : ''}{mov.pontos_final}
+                {mov.multiplicador_clima && <span className="text-[10px] ml-1">🌧️</span>}
+              </span>
             </div>
           )) : <p className="text-xs text-muted-foreground">Sem movimentações ainda.</p>}
         </div>
