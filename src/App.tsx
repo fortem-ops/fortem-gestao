@@ -79,6 +79,10 @@ const PortalAgenda = lazy(() => import("./pages/portal/PortalAgenda"));
 const PortalPlano = lazy(() => import("./pages/portal/PortalPlano"));
 const PortalNotificacoes = lazy(() => import("./pages/portal/PortalNotificacoes"));
 
+// Portal do Parceiro
+const PartnerLogin = lazy(() => import("./pages/parceiro/PartnerLogin"));
+const PartnerPortal = lazy(() => import("./pages/parceiro/PartnerPortal"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
