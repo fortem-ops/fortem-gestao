@@ -170,9 +170,16 @@ export default function PortalClube() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
-      <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-        Clube FORTEM
-      </h1>
+      <div className="flex items-center gap-2 flex-wrap">
+        <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+          Clube FORTEM
+        </h1>
+        {planoAtivo && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+            Plano {planoAtivo}
+          </span>
+        )}
+      </div>
 
       {/* Card principal — nível + saldo */}
       <Card className="glass-card p-6 bg-gradient-to-br from-primary/20 to-transparent border-primary/30">
