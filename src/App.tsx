@@ -24,6 +24,7 @@ const AdminNotificacoesEmail = lazy(() => import("./pages/AdminNotificacoesEmail
 
 const Agenda = lazy(() => import("./pages/Agenda"));
 const AgendaTreinos = lazy(() => import("./pages/AgendaTreinos"));
+const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
 const Presencas = lazy(() => import("./pages/Presencas"));
 const CarteiraAlunos = lazy(() => import("./pages/CarteiraAlunos"));
 const ExerciseBank = lazy(() => import("./pages/ExerciseBank"));
