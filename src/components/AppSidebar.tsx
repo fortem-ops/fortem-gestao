@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen } from "lucide-react";
+import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
