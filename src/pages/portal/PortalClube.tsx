@@ -141,8 +141,8 @@ export default function PortalClube() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
-      <h1 className="font-heading font-bold text-lg flex items-center gap-2">
-        <Sparkles className="w-5 h-5 text-primary" /> Clube FORTEM
+      <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+        Clube FORTEM
       </h1>
 
       {/* Card principal — nível + saldo */}
