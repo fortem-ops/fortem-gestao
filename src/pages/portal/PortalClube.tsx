@@ -147,7 +147,10 @@ export default function PortalClube() {
       return r;
     },
     onSuccess: (r) => {
-      toast.success(r.tipo === "automatico" ? "Resgate aprovado!" : "Resgate solicitado — aguarde aprovação");
+      toast.success(
+        (r.tipo === "automatico" ? "Resgate aprovado!" : "Resgate solicitado — aguarde aprovação") +
+        (r.custo ? ` (${r.custo} pts)` : "")
+      );
       setResgateConfirm(null);
       qc.invalidateQueries({ queryKey: ["portal-clube-pontos"] });
       qc.invalidateQueries({ queryKey: ["portal-clube-hist"] });
