@@ -45,7 +45,7 @@ export default function PortalAgenda() {
   const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
   const [confirmando, setConfirmando] = useState<{ slot: Slot; data: string; instrutor?: string } | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
-  const [abaAgenda, setAbaAgenda] = useState<"treinos" | "servicos">("treinos");
+  const [abaAgenda, setAbaAgenda] = useState<"treinos" | "servicos" | "agendamentos">("treinos");
   const [servicoSelecionado, setServicoSelecionado] = useState<string | null>(null);
 
   const iconServico = (atividade: string) => {
