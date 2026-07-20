@@ -3377,6 +3377,8 @@ export type Database = {
           pontuacao_engajamento: number
           responsavel_contato: string | null
           responsavel_nome: string | null
+          senha_hash: string | null
+          ultimo_acesso: string | null
           updated_at: string
           user_id: string | null
         }
@@ -3398,6 +3400,8 @@ export type Database = {
           pontuacao_engajamento?: number
           responsavel_contato?: string | null
           responsavel_nome?: string | null
+          senha_hash?: string | null
+          ultimo_acesso?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -3419,6 +3423,8 @@ export type Database = {
           pontuacao_engajamento?: number
           responsavel_contato?: string | null
           responsavel_nome?: string | null
+          senha_hash?: string | null
+          ultimo_acesso?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -6593,6 +6599,14 @@ export type Database = {
           specialty: string
           user_id: string
         }[]
+      }
+      fn_parceiro_login: {
+        Args: { p_email: string; p_senha: string }
+        Returns: Json
+      }
+      fn_parceiro_set_senha: {
+        Args: { p_parceiro_id: string; p_senha: string }
+        Returns: undefined
       }
       fn_ponto_ajustar_jornada: {
         Args: {

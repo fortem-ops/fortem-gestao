@@ -42,6 +42,7 @@ export function AdminParceirosTable() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [novaSenha, setNovaSenha] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -55,6 +56,7 @@ export function AdminParceirosTable() {
 
   function openNew() {
     setForm(emptyForm);
+    setNovaSenha("");
     setOpen(true);
   }
 
@@ -72,6 +74,7 @@ export function AdminParceirosTable() {
       ativo: p.ativo,
       modo_validacao: p.modo_validacao,
     });
+    setNovaSenha("");
     setOpen(true);
   }
 
@@ -94,11 +97,24 @@ export function AdminParceirosTable() {
         ativo: form.ativo,
         modo_validacao: form.modo_validacao,
       };
-      const { error } = form.id
-        ? await supabase.from("parceiros").update(payload).eq("id", form.id)
-        : await supabase.from("parceiros").insert(payload);
-      if (error) throw error;
+      let parceiroId = form.id;
+      if (form.id) {
+        const { error } = await supabase.from("parceiros").update(payload).eq("id", form.id);
+        if (error) throw error;
+      } else {
+        const { data: inserted, error } = await supabase.from("parceiros").insert(payload).select("id").single();
+        if (error) throw error;
+        parceiroId = inserted!.id;
+      }
+      if (novaSenha && parceiroId) {
+        const { error: errSenha } = await supabase.rpc("fn_parceiro_set_senha", {
+          p_parceiro_id: parceiroId,
+          p_senha: novaSenha,
+        });
+        if (errSenha) throw errSenha;
+      }
       toast.success("Parceiro salvo");
+      setNovaSenha("");
       setOpen(false);
       qc.invalidateQueries({ queryKey: ["clube-parceiros-admin"] });
     } catch (err: any) {
@@ -166,6 +182,19 @@ export function AdminParceirosTable() {
               <div>
                 <Label>Email de login do parceiro</Label>
                 <Input type="email" value={form.email_login} onChange={(e) => setForm({ ...form, email_login: e.target.value })} />
+              </div>
+              <div>
+                <Label>Senha de acesso {form.id ? "(deixe vazio para não alterar)" : ""}</Label>
+                <Input
+                  type="password"
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  placeholder="Nova senha..."
+                  autoComplete="new-password"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  O parceiro usará este e-mail + senha em <span className="font-mono">/parceiro/login</span>
+                </p>
               </div>
               <div>
                 <Label>Endereço (para link do Google Maps)</Label>

@@ -79,6 +79,10 @@ const PortalAgenda = lazy(() => import("./pages/portal/PortalAgenda"));
 const PortalPlano = lazy(() => import("./pages/portal/PortalPlano"));
 const PortalNotificacoes = lazy(() => import("./pages/portal/PortalNotificacoes"));
 
+// Portal do Parceiro
+const PartnerLogin = lazy(() => import("./pages/parceiro/PartnerLogin"));
+const PartnerPortal = lazy(() => import("./pages/parceiro/PartnerPortal"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -126,6 +130,10 @@ const App = () => (
             <Route path="/portal/cadastro" element={<Suspense fallback={<RouteFallback />}><PortalSignUp /></Suspense>} />
             <Route path="/portal/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><PortalRecoverPassword /></Suspense>} />
             <Route path="/portal/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><PortalResetPassword /></Suspense>} />
+
+            {/* Portal do Parceiro — fora do ProtectedRoute e do AppLayout */}
+            <Route path="/parceiro/login" element={<Suspense fallback={<RouteFallback />}><PartnerLogin /></Suspense>} />
+            <Route path="/parceiro" element={<Suspense fallback={<RouteFallback />}><PartnerPortal /></Suspense>} />
             <Route
               element={
                 <RequireStudent>
