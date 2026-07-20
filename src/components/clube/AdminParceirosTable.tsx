@@ -56,6 +56,7 @@ export function AdminParceirosTable() {
 
   function openNew() {
     setForm(emptyForm);
+    setNovaSenha("");
     setOpen(true);
   }
 
@@ -73,6 +74,7 @@ export function AdminParceirosTable() {
       ativo: p.ativo,
       modo_validacao: p.modo_validacao,
     });
+    setNovaSenha("");
     setOpen(true);
   }
 
