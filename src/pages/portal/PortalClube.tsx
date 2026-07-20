@@ -355,7 +355,7 @@ export default function PortalClube() {
           <DialogHeader><DialogTitle>Confirmar resgate</DialogTitle></DialogHeader>
           {resgateConfirm && (
             <p className="text-sm">
-              Usar <strong>{resgateConfirm.custo_pontos} pontos</strong> para resgatar{" "}
+              Usar <strong>{resgateConfirm.__custo ?? resgateConfirm.custo_pontos} pontos</strong> para resgatar{" "}
               <strong>{resgateConfirm.nome}</strong>?
             </p>
           )}
