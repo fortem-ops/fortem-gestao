@@ -72,9 +72,7 @@ const cadastrosAdminItems = [
 ];
 
 /* ─── Comercial ─── */
-const comercialItems = [
-  { title: "Clube FORTEM", url: "/clube", icon: Sparkles },
-];
+const comercialItems = [];
 
 const comercialAdminItems = [
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
