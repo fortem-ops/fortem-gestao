@@ -391,6 +391,7 @@ function RecompensasTab() {
                     </span>
                   ))}
                 </div>
+              </div>
               <Button size="icon" variant="ghost" onClick={() => { setEditing(r); setOpen(true); }}><Pencil className="w-4 h-4" /></Button>
               <Button size="icon" variant="ghost" onClick={() => remover.mutate(r.id)}><Trash2 className="w-4 h-4" /></Button>
             </CardContent>
