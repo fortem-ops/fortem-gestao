@@ -284,19 +284,27 @@ export default function PortalClube() {
         </p>
         <div className="grid grid-cols-1 gap-3">
           {recompensas?.map((r: any) => {
-            const podeResgatar = saldo >= r.custo_pontos;
+            const custo = getCustoParaPlano(r, planoAtivo ?? "Start");
+            const podeResgatar = saldo >= custo;
             return (
               <Card key={r.id} className="glass-card p-4 flex items-center gap-3">
                 <span className="text-2xl">{r.icone}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold">{r.nome}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{r.descricao}</p>
-                  <p className="text-[11px] mt-1">
-                    <Badge variant="outline">{r.custo_pontos} pts</Badge>
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded-full">
+                      {custo} pts
+                    </span>
+                    {custo < r.custo_pontos && (
+                      <span className="text-[10px] text-emerald-400 font-semibold">
+                        ↓ Benefício {planoAtivo}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <Button size="sm" disabled={!podeResgatar} onClick={() => setResgateConfirm(r)}>
-                  {podeResgatar ? "Resgatar" : `Faltam ${r.custo_pontos - saldo}`}
+                <Button size="sm" disabled={!podeResgatar} onClick={() => setResgateConfirm({ ...r, __custo: custo })}>
+                  {podeResgatar ? "Resgatar" : `Faltam ${custo - saldo}`}
                 </Button>
               </Card>
             );
