@@ -85,7 +85,11 @@ export default function PortalClube() {
   const { data: recompensas } = useQuery({
     queryKey: ["portal-clube-recompensas"],
     queryFn: async () => {
-      const { data } = await supabase.from("clube_recompensas").select("*").eq("ativo", true).order("custo_pontos");
+      const { data } = await supabase
+        .from("clube_recompensas")
+        .select("id, nome, descricao, custo_pontos, custo_start, custo_start_plus, custo_power, custo_pro, custo_max, tipo, icone, planos_elegiveis")
+        .eq("ativo", true)
+        .order("custo_pontos");
       return data || [];
     },
   });
