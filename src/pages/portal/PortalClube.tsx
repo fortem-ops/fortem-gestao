@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, CloudRain, Trophy, Gift, Copy, ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
+import { Sparkles, CloudRain, Trophy, Gift, Copy, ChevronDown, ChevronUp, ChevronRight, HelpCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -39,6 +39,7 @@ export default function PortalClube() {
   const [rankingAberto, setRankingAberto] = useState(false);
   const [resgateConfirm, setResgateConfirm] = useState<any>(null);
   const [showComparativo, setShowComparativo] = useState(false);
+  const [showRegras, setShowRegras] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
 
   const { data: planoAtivo } = useQuery({
@@ -179,15 +180,25 @@ export default function PortalClube() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
-      <div className="flex items-center gap-2 flex-wrap">
-        <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-          Clube FORTEM
-        </h1>
-        {planoAtivo && (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-            Plano {planoAtivo}
-          </span>
-        )}
+      <div className="pt-2 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Programa de Fidelidade</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Clube FORTEM</h1>
+            {planoAtivo && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                Plano {planoAtivo}
+              </span>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={() => setShowRegras(true)}
+          aria-label="Como funciona"
+          className="w-9 h-9 shrink-0 rounded-xl bg-card border border-border flex items-center justify-center"
+        >
+          <HelpCircle className="w-4 h-4 text-muted-foreground" />
+        </button>
       </div>
 
       {/* Acesso rápido à carteirinha */}
@@ -484,6 +495,116 @@ export default function PortalClube() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Regras */}
+      {showRegras && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setShowRegras(false)}>
+          <div
+            className="bg-card border-t border-border rounded-t-3xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
+
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                Como funciona o Clube
+              </h2>
+              <button onClick={() => setShowRegras(false)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            <section className="space-y-3">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Níveis da carteirinha</p>
+              <p className="text-xs text-muted-foreground">
+                Seu nível é definido pela combinação do seu plano ativo e dos pontos acumulados — sempre prevalece o maior entre os dois.
+              </p>
+              <div className="space-y-2">
+                {[
+                  { nivel: "🥉 Bronze", cor: "text-amber-700", plano: "Start / Start+", pontos: "0 – 299 pts", desc: "Nível inicial. Acesso aos benefícios básicos dos parceiros." },
+                  { nivel: "🥈 Prata", cor: "text-slate-400", plano: "Power", pontos: "300 – 999 pts", desc: "Acesso a benefícios intermediários e desconto em recompensas." },
+                  { nivel: "🥇 Ouro", cor: "text-yellow-400", plano: "Pro", pontos: "1.000 – 2.999 pts", desc: "Acesso a benefícios premium e desconto significativo nas recompensas." },
+                  { nivel: "👑 Elite", cor: "text-primary", plano: "Max", pontos: "3.000+ pts", desc: "Nível máximo. Acesso VIP a todos os benefícios e mínimo de pontos para resgates." },
+                ].map(n => (
+                  <div key={n.nivel} className="bg-background border border-border rounded-xl p-3 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className={`text-sm font-black ${n.cor}`} style={{fontFamily:'Archivo,sans-serif'}}>{n.nivel}</p>
+                      <div className="flex gap-2">
+                        <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground">{n.plano}</span>
+                        <span className="text-[10px] bg-primary/10 px-2 py-0.5 rounded-full text-primary">{n.pontos}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{n.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+                <p className="text-xs text-foreground">
+                  💡 <strong>Exemplo:</strong> Aluno com plano Power (nível mínimo Prata) que acumula 1.200 pontos sobe automaticamente para <strong>Ouro</strong> — o maior entre os dois prevalece.
+                </p>
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Como ganhar pontos</p>
+              <div className="space-y-2">
+                {[
+                  { emoji: "🏋️", acao: "Treino realizado", pts: "10 pts", obs: "Por sessão confirmada" },
+                  { emoji: "📊", acao: "Avaliação funcional", pts: "50 pts", obs: "A cada avaliação" },
+                  { emoji: "🤝", acao: "Indicação convertida", pts: "100 pts", obs: "Quando o indicado contrata" },
+                  { emoji: "🎁", acao: "Bônus por ser indicado", pts: "50 pts", obs: "Única vez" },
+                  { emoji: "💪", acao: "Serviço contratado", pts: "30 pts", obs: "Por serviço" },
+                  { emoji: "🎂", acao: "Aniversário FORTEM", pts: "100 pts", obs: "Por ano completado" },
+                  { emoji: "🎉", acao: "Aniversário do aluno", pts: "50 pts", obs: "Uma vez por ano" },
+                  { emoji: "⭐", acao: "Avaliação no Google", pts: "50 pts", obs: "Única vez" },
+                  { emoji: "✅", acao: "Perfil completo", pts: "20 pts", obs: "Única vez" },
+                ].map(item => (
+                  <div key={item.acao} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                    <span className="text-lg shrink-0">{item.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{item.acao}</p>
+                      <p className="text-xs text-muted-foreground">{item.obs}</p>
+                    </div>
+                    <span className="text-sm font-black text-emerald-400 shrink-0" style={{fontFamily:'Archivo,sans-serif'}}>
+                      +{item.pts}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Multiplicador climático</p>
+              <div className="bg-background border border-border rounded-xl p-3 space-y-1.5">
+                <p className="text-sm font-bold text-foreground">🌧️ Dias de chuva, frio ou calor intenso</p>
+                <p className="text-xs text-muted-foreground">
+                  Em dias de clima extremo em Porto Alegre, seus pontos de treino valem <strong className="text-foreground">1,5×</strong> automaticamente. O app exibe um aviso quando o multiplicador está ativo.
+                </p>
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Validade dos pontos</p>
+              <div className="bg-background border border-border rounded-xl p-3">
+                <p className="text-xs text-muted-foreground">
+                  Seus pontos são válidos por <strong className="text-foreground">12 meses</strong> a partir da última movimentação. Em caso de cancelamento do plano, os pontos expiram imediatamente e não podem ser transferidos.
+                </p>
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Parceiros FORTEM</p>
+              <div className="bg-background border border-border rounded-xl p-3">
+                <p className="text-xs text-muted-foreground">
+                  Estabelecimentos parceiros oferecem benefícios exclusivos para membros do Clube FORTEM. Apresente sua carteirinha digital com QR Code ao fazer uso do benefício. Cada parceiro pode ter um nível mínimo exigido para acesso.
+                </p>
+              </div>
+            </section>
+
+            <div className="pb-4" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
