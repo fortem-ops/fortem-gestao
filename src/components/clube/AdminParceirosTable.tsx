@@ -73,6 +73,8 @@ export function AdminParceirosTable() {
       responsavel_contato: p.responsavel_contato || "",
       email_login: p.email_login || "",
       endereco: (p as any).endereco || "",
+      latitude: p.latitude != null ? String(p.latitude) : "",
+      longitude: p.longitude != null ? String(p.longitude) : "",
       ativo: p.ativo,
       modo_validacao: p.modo_validacao,
     });
