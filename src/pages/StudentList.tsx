@@ -190,11 +190,13 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           .in("aluno_id", part)
           .eq("ativo", true);
         if (error) {
-          console.error("Erro ao buscar planos dos alunos:", error, { chunkSize: part.length });
-          throw error;
+          console.error("[StudentList] Erro ao buscar planos dos alunos (continuando sem planos):", error, { chunkSize: part.length });
+          // Não quebra toda a query; alunos sem planos aparecerão como encerrados.
+          continue;
         }
         planos.push(...(data || []));
       }
+      console.log("[StudentList] Total planos ativos retornados:", planos.length);
       const planoIds = planos.map((p: any) => p.id);
       const consumos: any[] = [];
       for (const part of chunk(planoIds, CHUNK)) {
