@@ -17,6 +17,7 @@ import { StudentLicencas } from "./StudentLicencas";
 import { isAutoRenewPlan } from "@/lib/planTipo";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
+import { HorarioFixoManager } from "./HorarioFixoManager";
 
 import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -640,6 +641,13 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       </Dialog>
 
       <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
+
+      <HorarioFixoManager
+        alunoId={student.id}
+        planoTipo={data?.tipo ?? ""}
+        frequenciaSemanal={student.frequencia_semanal ?? 1}
+        isStaff={true}
+      />
 
       
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
