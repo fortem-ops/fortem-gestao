@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
@@ -15,7 +15,7 @@ import {
   ChevronRight,
   MessageCircle,
 } from "lucide-react";
-import { differenceInCalendarDays, format, startOfWeek } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 import type { ReactNode } from "react";
 
 function SectionLabel({ children }: { children: ReactNode }) {
