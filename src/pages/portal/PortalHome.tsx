@@ -144,6 +144,21 @@ export default function PortalHome() {
     },
   });
 
+  const { data: desafiosAtivos = [] } = useQuery({
+    queryKey: ["portal-desafios-ativos"],
+    queryFn: async () => {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const { data } = await (supabase as any)
+        .from("clube_desafios")
+        .select("*")
+        .eq("status", "ativo")
+        .lte("data_inicio", hoje)
+        .gte("data_fim", hoje)
+        .order("data_fim", { ascending: true });
+      return data || [];
+    },
+  });
+
   const iconServico = (atividade: string) => {
     const a = atividade.toLowerCase();
     if (a.includes("nutri")) return { icon: Utensils, label: "Nutrição" };
