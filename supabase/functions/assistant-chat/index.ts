@@ -1,4 +1,4 @@
-// assistant-chat v1.1 — with ANTHROPIC_API_KEY
+// assistant-chat v1.2 — fixed credits query + service credits
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -26,8 +26,18 @@ serve(async (req) => {
   const { messages, aluno_id, conversation_id } = await req.json();
   const userMessage = messages[messages.length - 1]?.content ?? "";
 
+  // Buscar contratos ativos primeiro (para IDs dos ciclos)
+  const { data: contratosAtivos } = await supabase
+    .from("contratos")
+    .select("id")
+    .eq("aluno_id", aluno_id)
+    .eq("status", "ativo");
+
+  const contratoIds = (contratosAtivos || []).map((c: any) => c.id);
+  const hoje = new Date().toISOString().slice(0, 10);
+
   // 1. Buscar dados contextuais do aluno
-  const [alunoRes, planoRes, pontosRes, agendamentosRes, avaliacaoRes] = await Promise.all([
+  const [alunoRes, planoRes, pontosRes, agendamentosRes, avaliacaoRes, cicloRes, servicosRes] = await Promise.all([
     supabase.from("alunos").select("nome, email").eq("id", aluno_id).maybeSingle(),
     supabase
       .from("planos")
@@ -42,7 +52,7 @@ serve(async (req) => {
       .from("treino_agendamentos")
       .select("data, horario_inicio, status")
       .eq("aluno_id", aluno_id)
-      .gte("data", new Date().toISOString().slice(0, 10))
+      .gte("data", hoje)
       .in("status", ["agendado", "confirmado"])
       .order("data")
       .limit(3),
@@ -54,6 +64,23 @@ serve(async (req) => {
       .order("data", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    contratoIds.length > 0
+      ? supabase
+          .from("ciclos_credito")
+          .select("creditos_liberados, creditos_usados, data_fim, status")
+          .eq("status", "ativo")
+          .gte("data_fim", hoje)
+          .in("contrato_id", contratoIds)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("creditos_aluno")
+      .select("atividade, quantidade_inicial, quantidade_usada, ilimitado")
+      .eq("aluno_id", aluno_id)
+      .eq("ativo", true)
+      .neq("atividade", "Treino"),
   ]);
 
   const aluno = alunoRes.data;
@@ -61,6 +88,17 @@ serve(async (req) => {
   const pontos = pontosRes.data;
   const agendamentos = agendamentosRes.data || [];
   const ultimaAvaliacao = avaliacaoRes.data;
+  const ciclo = cicloRes.data;
+  const creditosDisponiveis = ciclo
+    ? (ciclo.creditos_liberados - ciclo.creditos_usados)
+    : null;
+  const servicosCreditos = servicosRes.data || [];
+  const servicosStr = servicosCreditos.length > 0
+    ? servicosCreditos.map((s: any) => {
+        const saldo = s.ilimitado ? "ilimitado" : `${s.quantidade_inicial - s.quantidade_usada} disponível(is) de ${s.quantidade_inicial}`;
+        return `${s.atividade}: ${saldo}`;
+      }).join(", ")
+    : "nenhum serviço com crédito incluso";
 
   // 2. Buscar artigos relevantes da base de conhecimento
   const { data: allArticles } = await supabase
@@ -93,7 +131,6 @@ serve(async (req) => {
     .slice(0, 5);
 
   // 3. Montar contexto do aluno
-  const hoje = new Date().toISOString().slice(0, 10);
   const diasUltimaAval = ultimaAvaliacao
     ? Math.floor((Date.now() - new Date(ultimaAvaliacao.data).getTime()) / 86400000)
     : null;
@@ -103,6 +140,8 @@ DADOS DO ALUNO:
 - Nome: ${aluno?.nome ?? "—"}
 - Plano: ${plano?.tipo ?? "sem plano ativo"}
 - Vigência: ${plano?.data_inicio ?? "—"} a ${plano?.data_fim ?? "—"}
+- Créditos de treino disponíveis: ${creditosDisponiveis !== null ? `${creditosDisponiveis} créditos restantes (de ${ciclo?.creditos_liberados ?? 0} no total, ${ciclo?.creditos_usados ?? 0} utilizados)` : "informação não disponível"}
+- Serviços inclusos no plano: ${servicosStr}
 - Pontos no Clube FORTEM: ${pontos?.saldo ?? 0} (nível ${pontos?.nivel ?? "—"})
 - Próximos treinos agendados: ${
     agendamentos.length > 0
