@@ -1376,6 +1376,118 @@ export type Database = {
         }
         Relationships: []
       }
+      clube_desafios: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          id: string
+          mensagem_recompensa: string | null
+          meta_atingida: boolean
+          meta_atingida_em: string | null
+          pontos_recompensa: number | null
+          progresso_atual: number
+          recompensa_distribuida: boolean
+          recompensa_distribuida_em: string | null
+          status: string
+          tipo_meta: string
+          tipo_recompensa: string
+          titulo: string
+          updated_at: string
+          valor_meta: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_fim: string
+          data_inicio: string
+          descricao?: string | null
+          id?: string
+          mensagem_recompensa?: string | null
+          meta_atingida?: boolean
+          meta_atingida_em?: string | null
+          pontos_recompensa?: number | null
+          progresso_atual?: number
+          recompensa_distribuida?: boolean
+          recompensa_distribuida_em?: string | null
+          status?: string
+          tipo_meta: string
+          tipo_recompensa?: string
+          titulo: string
+          updated_at?: string
+          valor_meta: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          mensagem_recompensa?: string | null
+          meta_atingida?: boolean
+          meta_atingida_em?: string | null
+          pontos_recompensa?: number | null
+          progresso_atual?: number
+          recompensa_distribuida?: boolean
+          recompensa_distribuida_em?: string | null
+          status?: string
+          tipo_meta?: string
+          tipo_recompensa?: string
+          titulo?: string
+          updated_at?: string
+          valor_meta?: number
+        }
+        Relationships: []
+      }
+      clube_desafios_log: {
+        Row: {
+          aluno_id: string | null
+          created_at: string
+          desafio_id: string
+          id: string
+          pontos_recebidos: number | null
+        }
+        Insert: {
+          aluno_id?: string | null
+          created_at?: string
+          desafio_id: string
+          id?: string
+          pontos_recebidos?: number | null
+        }
+        Update: {
+          aluno_id?: string | null
+          created_at?: string
+          desafio_id?: string
+          id?: string
+          pontos_recebidos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clube_desafios_log_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clube_desafios_log_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "clube_desafios_log_desafio_id_fkey"
+            columns: ["desafio_id"]
+            isOneToOne: false
+            referencedRelation: "clube_desafios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clube_fortem_membros: {
         Row: {
           aluno_desde: string
@@ -6529,6 +6641,14 @@ export type Database = {
         Returns: string
       }
       fn_current_aluno_id: { Args: never; Returns: string }
+      fn_desafio_atualizar_progresso: {
+        Args: { p_desafio_id: string }
+        Returns: Json
+      }
+      fn_desafio_calcular_progresso: {
+        Args: { p_desafio_id: string }
+        Returns: number
+      }
       fn_detect_evasao: { Args: never; Returns: Json }
       fn_distancia_metros: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
