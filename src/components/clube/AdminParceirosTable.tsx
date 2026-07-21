@@ -98,6 +98,8 @@ export function AdminParceirosTable() {
         responsavel_contato: form.responsavel_contato || null,
         email_login: form.email_login || null,
         endereco: form.endereco || null,
+        latitude: form.latitude.trim() ? Number(form.latitude) : null,
+        longitude: form.longitude.trim() ? Number(form.longitude) : null,
         ativo: form.ativo,
         modo_validacao: form.modo_validacao,
       };
