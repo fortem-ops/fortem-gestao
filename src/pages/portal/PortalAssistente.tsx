@@ -61,8 +61,13 @@ export default function PortalAssistente() {
     }
   }
 
+  function toTitleCase(str: string): string {
+    return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
   function abrirWhatsAppComHistorico() {
-    const primeiroNome = student?.nome.split(" ")[0] ?? "Aluno";
+    const nomeFormatado = toTitleCase(student?.nome ?? "Aluno");
+    const primeiroNome = nomeFormatado.split(" ")[0];
 
     const historicoMsgs = messages
       .filter((m, i) => !(i === 0 && m.role === "assistant"))
@@ -70,7 +75,7 @@ export default function PortalAssistente() {
       .join("\n\n");
 
     const texto = encodeURIComponent(
-      `Olá! Sou ${student?.nome ?? "aluno"} e estava conversando com o Assistente FORTEM.\n\n` +
+      `Olá! Sou ${nomeFormatado} e estava conversando com o Assistente FORTEM.\n\n` +
         `📋 *Resumo da conversa:*\n\n${historicoMsgs}\n\n` +
         `Preciso de ajuda com mais detalhes. Pode me auxiliar? 😊`
     );
@@ -104,21 +109,36 @@ export default function PortalAssistente() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            {msg.role === "assistant" && (
-              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mr-2 mt-0.5">
-                <span className="text-[10px]">F</span>
+          <div key={i}>
+            <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              {msg.role === "assistant" && (
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mr-2 mt-0.5">
+                  <span className="text-[10px]">F</span>
+                </div>
+              )}
+              <div
+                className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                  msg.role === "user"
+                    ? "bg-primary text-white rounded-tr-sm"
+                    : "bg-card border border-border text-foreground rounded-tl-sm"
+                }`}
+              >
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
               </div>
-            )}
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                msg.role === "user"
-                  ? "bg-primary text-white rounded-tr-sm"
-                  : "bg-card border border-border text-foreground rounded-tl-sm"
-              }`}
-            >
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
             </div>
+            {msg.role === "assistant" &&
+              i === messages.length - 1 &&
+              !loading &&
+              (msg.content.toLowerCase().includes("whatsapp") || msg.content.toLowerCase().includes("equipe")) && (
+                <div className="flex justify-start ml-9 mt-1.5">
+                  <button
+                    onClick={abrirWhatsAppComHistorico}
+                    className="text-[11:text-[#25D366] border border-[#25D366]/30 bg-[#25D366]/5 rounded-full px-3 py-1.5 flex items-center gap-1.5"
+                  >
+                    💬 Abrir WhatsApp com histórico
+                  </button>
+                </div>
+              )}
           </div>
         ))}
 
