@@ -75,6 +75,19 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const isInativos = mode === "inativos";
   const pageTitle = isInativos ? "Alunos Inativos" : "Alunos Ativos";
 
+  // Timeout de segurança para evitar skeleton infinito caso a query trave
+  const [forceReady, setForceReady] = useState(false);
+  const forceReadyTimer = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    forceReadyTimer.current = setTimeout(() => {
+      console.warn("[StudentList] Timeout de segurança ativado após 10s — forçando renderização.");
+      setForceReady(true);
+    }, 10000);
+    return () => {
+      if (forceReadyTimer.current) clearTimeout(forceReadyTimer.current);
+    };
+  }, []);
+
   const { data: isCoordAdmin } = useQuery({
     queryKey: ["is-coord-admin", user?.id],
     queryFn: async () => {
