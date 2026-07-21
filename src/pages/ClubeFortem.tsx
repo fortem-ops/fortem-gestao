@@ -357,6 +357,7 @@ function RecompensasTab() {
         custo_power: r.custo_power ?? null,
         custo_pro: r.custo_pro ?? null,
         custo_max: r.custo_max ?? null,
+        custo_agregador: r.custo_agregador ?? null,
         planos_elegiveis: r.planos_elegiveis ?? ['start','start_plus','power','pro','max'],
       };
       if (r.id) {
