@@ -656,3 +656,249 @@ function calcInicioPeriodo(periodo: string) {
   else start = new Date(y, 0, 1);
   return start.toISOString();
 }
+
+/* ─── DESAFIOS COLETIVOS ─── */
+function DesafiosTab() {
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const emptyForm = {
+    titulo: "",
+    descricao: "",
+    tipo_meta: "treinos_realizados",
+    valor_meta: 100,
+    data_inicio: new Date().toISOString().slice(0, 10),
+    data_fim: "",
+    tipo_recompensa: "pontos",
+    pontos_recompensa: 50,
+    mensagem_recompensa: "",
+  };
+  const [form, setForm] = useState(emptyForm);
+
+  const { data: desafios = [], isLoading } = useQuery({
+    queryKey: ["clube-desafios"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("clube_desafios")
+        .select("*")
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  const criar = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await (supabase as any).from("clube_desafios").insert({
+        ...form,
+        created_by: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Desafio criado!");
+      qc.invalidateQueries({ queryKey: ["clube-desafios"] });
+      setShowForm(false);
+      setForm(emptyForm);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const atualizar = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await (supabase as any).rpc("fn_desafio_atualizar_progresso", { p_desafio_id: id });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Progresso: ${data.progresso}/${data.meta}${data.meta_atingida ? " 🎉 Meta atingida!" : ""}`);
+      qc.invalidateQueries({ queryKey: ["clube-desafios"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const encerrar = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("clube_desafios").update({ status: "encerrado", updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Desafio encerrado"); qc.invalidateQueries({ queryKey: ["clube-desafios"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const TIPO_META_LABEL: Record<string, string> = {
+    treinos_realizados: "Treinos realizados",
+    avaliacoes_funcionais: "Avaliações funcionais",
+    indicacoes_convertidas: "Indicações convertidas",
+    checkins_semana: "Check-ins na semana",
+  };
+
+  const STATUS_BADGE: Record<string, string> = {
+    ativo: "bg-emerald-500/10 text-emerald-500",
+    concluido: "bg-primary/10 text-primary",
+    encerrado: "bg-muted text-muted-foreground",
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-bold">Desafios Coletivos</h2>
+          <p className="text-sm text-muted-foreground">Metas compartilhadas por todos os alunos ativos.</p>
+        </div>
+        <Button onClick={() => setShowForm(!showForm)} size="sm">
+          <Plus className="w-4 h-4 mr-1" /> Novo desafio
+        </Button>
+      </div>
+
+      {showForm && (
+        <div className="border border-primary/30 rounded-xl p-5 bg-primary/5 space-y-4">
+          <h3 className="font-bold text-sm">Novo desafio coletivo</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <Label className="text-xs text-muted-foreground uppercase">Título *</Label>
+              <Input value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ex: 800 Treinos em Julho!" className="mt-1" />
+            </div>
+            <div className="sm:col-span-2">
+              <Label className="text-xs text-muted-foreground uppercase">Descrição</Label>
+              <textarea value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Explique o desafio para os alunos..." rows={2} className="w-full mt-1 border border-border rounded-lg px-3 py-2 text-sm bg-background resize-none" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase">Tipo de meta *</Label>
+              <select value={form.tipo_meta} onChange={e => setForm(f => ({ ...f, tipo_meta: e.target.value }))} className="w-full mt-1 border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                {Object.entries(TIPO_META_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase">Valor da meta *</Label>
+              <Input type="number" value={form.valor_meta} onChange={e => setForm(f => ({ ...f, valor_meta: parseInt(e.target.value) || 0 }))} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase">Data início *</Label>
+              <Input type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase">Data fim *</Label>
+              <Input type="date" value={form.data_fim} min={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_fim: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase">Tipo de recompensa</Label>
+              <select value={form.tipo_recompensa} onChange={e => setForm(f => ({ ...f, tipo_recompensa: e.target.value }))} className="w-full mt-1 border border-border rounded-lg px-3 py-2 text-sm bg-background">
+                <option value="pontos">Pontos para todos</option>
+                <option value="parceiro">Benefício de parceiro</option>
+                <option value="combinado">Pontos + Parceiro</option>
+              </select>
+            </div>
+            {(form.tipo_recompensa === "pontos" || form.tipo_recompensa === "combinado") && (
+              <div>
+                <Label className="text-xs text-muted-foreground uppercase">Pontos por aluno</Label>
+                <Input type="number" value={form.pontos_recompensa} onChange={e => setForm(f => ({ ...f, pontos_recompensa: parseInt(e.target.value) || 0 }))} className="mt-1" />
+              </div>
+            )}
+            {(form.tipo_recompensa === "parceiro" || form.tipo_recompensa === "combinado") && (
+              <div className="sm:col-span-2">
+                <Label className="text-xs text-muted-foreground uppercase">Mensagem do benefício</Label>
+                <textarea value={form.mensagem_recompensa} onChange={e => setForm(f => ({ ...f, mensagem_recompensa: e.target.value }))} placeholder="Ex: Ganhem 15% de desconto no Parceiro X com o código FORTEM" rows={2} className="w-full mt-1 border border-border rounded-lg px-3 py-2 text-sm bg-background resize-none" />
+              </div>
+            )}
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
+            <Button onClick={() => criar.mutate()} disabled={!form.titulo || !form.data_fim || criar.isPending}>
+              {criar.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Criar desafio"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+      ) : desafios.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p className="font-medium">Nenhum desafio criado ainda</p>
+          <p className="text-sm mt-1">Crie o primeiro desafio coletivo para engajar os alunos.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {desafios.map((d: any) => {
+            const pct = Math.min(100, Math.round((d.progresso_atual / d.valor_meta) * 100));
+            const diasRestantes = Math.max(0, Math.ceil((new Date(d.data_fim).getTime() - Date.now()) / 86400000));
+            return (
+              <div key={d.id} className={`border rounded-xl overflow-hidden ${d.meta_atingida ? 'border-primary/30 bg-primary/5' : 'border-border bg-card'}`}>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_BADGE[d.status]}`}>
+                          {d.status === 'ativo' ? 'Ativo' : d.status === 'concluido' ? '🎉 Concluído' : 'Encerrado'}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">{TIPO_META_LABEL[d.tipo_meta]}</span>
+                      </div>
+                      <p className="font-bold text-sm text-foreground">{d.titulo}</p>
+                      {d.descricao && <p className="text-xs text-muted-foreground mt-0.5">{d.descricao}</p>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-2xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{pct}%</p>
+                      <p className="text-[10px] text-muted-foreground">{d.progresso_atual}/{d.valor_meta}</p>
+                    </div>
+                  </div>
+
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${d.meta_atingida ? 'bg-emerald-500' : 'bg-primary'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground flex-wrap gap-2">
+                    <span>
+                      {new Date(d.data_inicio).toLocaleDateString('pt-BR')} → {new Date(d.data_fim).toLocaleDateString('pt-BR')}
+                      {d.status === 'ativo' && diasRestantes > 0 && ` · ${diasRestantes} dia${diasRestantes > 1 ? 's' : ''} restante${diasRestantes > 1 ? 's' : ''}`}
+                    </span>
+                    <span className="font-semibold text-primary">
+                      {d.tipo_recompensa === 'pontos' && `🎁 ${d.pontos_recompensa} pts por aluno`}
+                      {d.tipo_recompensa === 'parceiro' && `🤝 Benefício de parceiro`}
+                      {d.tipo_recompensa === 'combinado' && `🎁 ${d.pontos_recompensa} pts + parceiro`}
+                    </span>
+                  </div>
+
+                  {d.mensagem_recompensa && d.meta_atingida && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+                      <p className="text-xs text-emerald-400 font-medium">🤝 {d.mensagem_recompensa}</p>
+                    </div>
+                  )}
+                </div>
+
+                {d.status === 'ativo' && (
+                  <div className="border-t border-border px-4 py-2 flex gap-2">
+                    <button
+                      onClick={() => atualizar.mutate(d.id)}
+                      disabled={atualizar.isPending}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      {atualizar.isPending ? "Atualizando..." : "↻ Atualizar progresso"}
+                    </button>
+                    <span className="text-muted-foreground">·</span>
+                    <button
+                      onClick={() => { if (confirm("Encerrar este desafio?")) encerrar.mutate(d.id); }}
+                      className="text-xs font-semibold text-muted-foreground hover:text-destructive"
+                    >
+                      Encerrar
+                    </button>
+                  </div>
+                )}
+
+                {d.status === 'concluido' && d.recompensa_distribuida && (
+                  <div className="border-t border-border px-4 py-2">
+                    <p className="text-xs text-emerald-400 font-semibold">
+                      ✓ Recompensa distribuída em {new Date(d.recompensa_distribuida_em).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
