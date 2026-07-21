@@ -144,6 +144,21 @@ export default function PortalHome() {
     },
   });
 
+  const { data: desafiosAtivos = [] } = useQuery({
+    queryKey: ["portal-desafios-ativos"],
+    queryFn: async () => {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const { data } = await (supabase as any)
+        .from("clube_desafios")
+        .select("*")
+        .eq("status", "ativo")
+        .lte("data_inicio", hoje)
+        .gte("data_fim", hoje)
+        .order("data_fim", { ascending: true });
+      return data || [];
+    },
+  });
+
   const iconServico = (atividade: string) => {
     const a = atividade.toLowerCase();
     if (a.includes("nutri")) return { icon: Utensils, label: "Nutrição" };
@@ -488,6 +503,64 @@ export default function PortalHome() {
               </div>
             </div>
           </Link>
+        </section>
+      )}
+
+      {/* Desafios Coletivos */}
+      {desafiosAtivos.length > 0 && (
+        <section className="space-y-2">
+          <SectionLabel>Desafios Coletivos 🏆</SectionLabel>
+          {desafiosAtivos.map((d: any) => {
+            const pct = Math.min(100, Math.round((d.progresso_atual / d.valor_meta) * 100));
+            const diasRestantes = Math.max(0, Math.ceil((new Date(d.data_fim).getTime() - Date.now()) / 86400000));
+            const faltam = d.valor_meta - d.progresso_atual;
+            return (
+              <div key={d.id} className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="font-black text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{d.titulo}</p>
+                    {d.descricao && <p className="text-xs text-muted-foreground mt-0.5">{d.descricao}</p>}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xl font-black text-primary" style={{fontFamily:'Archivo,sans-serif'}}>{pct}%</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>{d.progresso_atual.toLocaleString('pt-BR')} realizados</span>
+                    <span>Meta: {d.valor_meta.toLocaleString('pt-BR')}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-muted-foreground">
+                    {faltam > 0 ? `Faltam ${faltam.toLocaleString('pt-BR')} para a meta` : "🎉 Meta atingida!"}
+                  </p>
+                  <p className="text-[11px] font-semibold text-primary">
+                    {diasRestantes > 0 ? `${diasRestantes}d restantes` : "Último dia!"}
+                  </p>
+                </div>
+
+                {d.pontos_recompensa > 0 && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl px-3 py-2 flex items-center gap-2">
+                    <span className="text-base">🎁</span>
+                    <p className="text-xs text-foreground">
+                      Ao atingir a meta, <strong>todos os alunos ativos</strong> recebem <strong>{d.pontos_recompensa} pontos</strong> no Clube FORTEM!
+                    </p>
+                  </div>
+                )}
+                {d.mensagem_recompensa && (
+                  <div className="bg-muted rounded-xl px-3 py-2">
+                    <p className="text-xs text-muted-foreground">🤝 {d.mensagem_recompensa}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </section>
       )}
 
