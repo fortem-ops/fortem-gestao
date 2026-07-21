@@ -52,7 +52,7 @@ const emptyForm = {
   data_inicio: "" as string, // YYYY-MM-DD do registro (preenchido no edit)
   validade_opcao: "30" as string, // "7" | "15" | ... | "custom" | "sem_prazo"
   validade_dias_custom: "" as string,
-  niveis_permitidos: ["start"] as NivelMembro[],
+  niveis_permitidos: ["prata"] as NivelMembro[],
   ativo: true,
 };
 
