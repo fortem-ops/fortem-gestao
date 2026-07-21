@@ -261,6 +261,15 @@ export default function PortalClube() {
             Pontos válidos até {format(new Date(pontos.pontos_expiram_em), "dd/MM/yyyy")}
           </p>
         )}
+        {isAgregador && (
+          <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">Plano Agregador</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Você tem plano <strong>Wellhub/Gympass</strong> ou <strong>Total Pass</strong> — seu nível fica fixo em Bronze,
+              pontua 50% menos e resgates custam 30% a mais. Migre para um plano Fortem para desbloquear todos os níveis.
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* Multiplicador climático */}
