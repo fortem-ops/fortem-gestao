@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -75,10 +75,29 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const isInativos = mode === "inativos";
   const pageTitle = isInativos ? "Alunos Inativos" : "Alunos Ativos";
 
+  // Timeout de segurança para evitar skeleton infinito caso a query trave
+  const [forceReady, setForceReady] = useState(false);
+  const forceReadyTimer = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    forceReadyTimer.current = setTimeout(() => {
+      console.warn("[StudentList] Timeout de segurança ativado após 10s — forçando renderização.");
+      setForceReady(true);
+    }, 10000);
+    return () => {
+      if (forceReadyTimer.current) clearTimeout(forceReadyTimer.current);
+    };
+  }, []);
+
   const { data: isCoordAdmin } = useQuery({
     queryKey: ["is-coord-admin", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      console.log("[StudentList] Verificando role do usuário:", user?.id, user?.email);
+      const { data, error } = await supabase.rpc("is_coordenador_ou_admin");
+      if (error) {
+        console.error("[StudentList] Erro ao verificar role:", error);
+        return false;
+      }
+      console.log("[StudentList] is_coordenador_ou_admin:", data);
       return !!data;
     },
     enabled: !!user,
@@ -106,14 +125,15 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const { data: debugAccess } = useQuery({
     queryKey: ["debug-alunos-access", user?.id],
     queryFn: async () => {
+      console.log("[StudentList] Iniciando diagnóstico de acesso a alunos. user:", user?.id);
       const { count, error } = await supabase
         .from("alunos")
         .select("id", { count: "exact", head: true });
 
-      console.log("Acesso a alunos - count:", count, "error:", error);
+      console.log("[StudentList] Acesso a alunos - count:", count, "error:", error);
 
       if (error) {
-        console.error("Erro ao diagnosticar acesso a alunos:", error);
+        console.error("[StudentList] Erro ao diagnosticar acesso a alunos:", error);
       }
 
       return count;
@@ -125,6 +145,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const { data: alunos = [], isLoading, error, refetch } = useQuery({
     queryKey: ["alunos_with_plans"],
     queryFn: async () => {
+      console.log("[StudentList] Iniciando fetch de alunos. user:", user?.id, "email:", user?.email);
       // Paginated fetch to bypass PostgREST 1000-row default limit
       const PAGE = 1000;
       const students: any[] = [];
@@ -134,16 +155,18 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           .select(ALUNOS_COLUMNS)
           .order("nome")
           .range(from, from + PAGE - 1);
+        console.log(`[StudentList] Página alunos from=${from}:`, { count: data?.length, error });
         if (error) {
-          console.error("Erro ao buscar alunos:", error);
+          console.error("[StudentList] Erro ao buscar alunos:", error);
           throw error;
         }
         students.push(...(data || []));
         if (!data || data.length < PAGE) break;
       }
 
+      console.log("[StudentList] Total alunos retornados:", students.length);
       if (students.length === 0) {
-        console.warn("Nenhum aluno retornado — possível problema de RLS ou conexão", {
+        console.warn("[StudentList] Nenhum aluno retornado — possível problema de RLS ou conexão", {
           debugAccess,
           userId: user?.id,
         });
@@ -167,11 +190,13 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           .in("aluno_id", part)
           .eq("ativo", true);
         if (error) {
-          console.error("Erro ao buscar planos dos alunos:", error, { chunkSize: part.length });
-          throw error;
+          console.error("[StudentList] Erro ao buscar planos dos alunos (continuando sem planos):", error, { chunkSize: part.length });
+          // Não quebra toda a query; alunos sem planos aparecerão como encerrados.
+          continue;
         }
         planos.push(...(data || []));
       }
+      console.log("[StudentList] Total planos ativos retornados:", planos.length);
       const planoIds = planos.map((p: any) => p.id);
       const consumos: any[] = [];
       for (const part of chunk(planoIds, CHUNK)) {
@@ -270,7 +295,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         bucket.servico[c.atividade] = cur;
       });
 
-      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
+      const enriched = students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
+      console.log("[StudentList] Alunos enriquecidos:", enriched.length);
+      return enriched;
     },
     retry: 2,
     retryDelay: 1000,
@@ -287,8 +314,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const debouncedSearch = useDebounce(filters.search, 250);
 
   const filtered = useMemo(() => {
+    console.log("[StudentList] Recalculando filtros. Total alunos:", alunos.length, "isInativos:", isInativos);
     const term = debouncedSearch.toLowerCase();
-    return alunos.filter((s) => {
+    let droppedReasons: Record<string, number> = {};
+    const result = alunos.filter((s) => {
       const c = s.credits;
       const matchSearch = (s.nome ?? "").toLowerCase().includes(term) ||
         (s.email?.toLowerCase().includes(term) ?? false);
@@ -380,8 +409,26 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
         checkPresenca(d.foto, !!(s as any).foto_url);
 
-      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchAvalFunc && matchServDisp && matchDate && matchDateStart && matchDados;
+      const matches = matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchAvalFunc && matchServDisp && matchDate && matchDateStart && matchDados;
+      if (!matches) {
+        if (!matchMode) droppedReasons["modo"] = (droppedReasons["modo"] || 0) + 1;
+        else if (!matchSearch) droppedReasons["search"] = (droppedReasons["search"] || 0) + 1;
+        else if (!matchStatus) droppedReasons["status"] = (droppedReasons["status"] || 0) + 1;
+        else if (!matchFreq) droppedReasons["freq"] = (droppedReasons["freq"] || 0) + 1;
+        else if (!matchSP) droppedReasons["servicosPlano"] = (droppedReasons["servicosPlano"] || 0) + 1;
+        else if (!matchSC) droppedReasons["servicosContratados"] = (droppedReasons["servicosContratados"] || 0) + 1;
+        else if (!matchProf) droppedReasons["professor"] = (droppedReasons["professor"] || 0) + 1;
+        else if (!matchTipoPlano) droppedReasons["tipoPlano"] = (droppedReasons["tipoPlano"] || 0) + 1;
+        else if (!matchVip) droppedReasons["vip"] = (droppedReasons["vip"] || 0) + 1;
+        else if (!matchAvalFunc) droppedReasons["avalFunc"] = (droppedReasons["avalFunc"] || 0) + 1;
+        else if (!matchServDisp) droppedReasons["servDisp"] = (droppedReasons["servDisp"] || 0) + 1;
+        else if (!matchDate || !matchDateStart) droppedReasons["data"] = (droppedReasons["data"] || 0) + 1;
+        else if (!matchDados) droppedReasons["dadosCadastrais"] = (droppedReasons["dadosCadastrais"] || 0) + 1;
+      }
+      return matches;
     });
+    console.log("[StudentList] Filtrado:", result.length, "Motivos de descarte:", droppedReasons);
+    return result;
   }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.ultimaAvaliacaoFuncional, filters.servicoPlanoDisponivel, filters.dataInicioDe, filters.dataInicioAte, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos, lastFuncionalMap]);
 
 
@@ -489,7 +536,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
     }
   }
 
-  if (error) {
+  const showLoading = isLoading && !forceReady;
+
+  if (error && !forceReady) {
     return (
       <div className="space-y-6 animate-fade-in">
         <h1 className="text-2xl font-heading font-bold text-foreground">{pageTitle}</h1>
@@ -582,7 +631,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
+            {showLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-border/50">
                   <td className="p-4 w-10"><Skeleton className="h-4 w-4" /></td>
@@ -726,7 +775,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {isLoading ? (
+        {showLoading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="glass-card rounded-lg p-4 space-y-2">
               <Skeleton className="h-5 w-40" />
