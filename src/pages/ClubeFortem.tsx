@@ -401,13 +401,14 @@ function RecompensasTab() {
                 </p>
                 <div className="flex gap-1 flex-wrap mt-1">
                   {[
+                    { label: 'AG', val: r.custo_agregador },
                     { label: 'S', val: r.custo_start },
                     { label: 'S+', val: r.custo_start_plus },
                     { label: 'PW', val: r.custo_power },
                     { label: 'PR', val: r.custo_pro },
                     { label: 'MX', val: r.custo_max },
                   ].filter((x) => x.val != null).map((x) => (
-                    <span key={x.label} className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
+                    <span key={x.label} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${x.label === 'AG' ? 'bg-amber-500/20 text-amber-700' : 'bg-muted'}`}>
                       {x.label}: {x.val}
                     </span>
                   ))}
