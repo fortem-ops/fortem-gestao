@@ -112,14 +112,15 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const { data: debugAccess } = useQuery({
     queryKey: ["debug-alunos-access", user?.id],
     queryFn: async () => {
+      console.log("[StudentList] Iniciando diagnóstico de acesso a alunos. user:", user?.id);
       const { count, error } = await supabase
         .from("alunos")
         .select("id", { count: "exact", head: true });
 
-      console.log("Acesso a alunos - count:", count, "error:", error);
+      console.log("[StudentList] Acesso a alunos - count:", count, "error:", error);
 
       if (error) {
-        console.error("Erro ao diagnosticar acesso a alunos:", error);
+        console.error("[StudentList] Erro ao diagnosticar acesso a alunos:", error);
       }
 
       return count;
