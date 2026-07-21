@@ -34,6 +34,8 @@ const emptyForm = {
   responsavel_contato: "",
   email_login: "",
   endereco: "",
+  latitude: "" as string,
+  longitude: "" as string,
   ativo: true,
   modo_validacao: "qr_scan" as ModoVal,
 };
@@ -71,6 +73,8 @@ export function AdminParceirosTable() {
       responsavel_contato: p.responsavel_contato || "",
       email_login: p.email_login || "",
       endereco: (p as any).endereco || "",
+      latitude: p.latitude != null ? String(p.latitude) : "",
+      longitude: p.longitude != null ? String(p.longitude) : "",
       ativo: p.ativo,
       modo_validacao: p.modo_validacao,
     });
@@ -94,6 +98,8 @@ export function AdminParceirosTable() {
         responsavel_contato: form.responsavel_contato || null,
         email_login: form.email_login || null,
         endereco: form.endereco || null,
+        latitude: form.latitude.trim() ? Number(form.latitude) : null,
+        longitude: form.longitude.trim() ? Number(form.longitude) : null,
         ativo: form.ativo,
         modo_validacao: form.modo_validacao,
       };
@@ -203,6 +209,28 @@ export function AdminParceirosTable() {
                   onChange={(e) => setForm({ ...form, endereco: e.target.value })}
                   placeholder="Av. Paulista, 1000 — São Paulo/SP"
                 />
+              </div>
+              <div>
+                <Label>Coordenadas (para distância no portal)</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    type="number"
+                    step="0.0000001"
+                    value={form.latitude}
+                    onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                    placeholder="Latitude (ex: -30.0331)"
+                  />
+                  <Input
+                    type="number"
+                    step="0.0000001"
+                    value={form.longitude}
+                    onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                    placeholder="Longitude (ex: -51.2300)"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  💡 No Google Maps, clique com o botão direito no local e copie as coordenadas.
+                </p>
               </div>
               <div>
                 <Label>Logo URL</Label>
