@@ -50,6 +50,10 @@ export default function PortalAgenda() {
   const [showHistoricoTreinos, setShowHistoricoTreinos] = useState(false);
   const [filtroTreinos, setFiltroTreinos] = useState<"todos" | "realizado" | "faltou" | "cancelado">("todos");
   const [showHistoricoServicos, setShowHistoricoServicos] = useState(false);
+  const [showAdicionarFixo, setShowAdicionarFixo] = useState(false);
+  const [horarioFixoParaRemover, setHorarioFixoParaRemover] = useState<string | null>(null);
+  const [diaFixo, setDiaFixo] = useState<number>(1);
+  const [slotFixo, setSlotFixo] = useState<string>("");
 
 
   const iconServico = (atividade: string) => {
