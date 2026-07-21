@@ -753,6 +753,136 @@ export default function PortalAgenda() {
           </div>
         );
       })()}
+
+      {/* ── HISTÓRICO DE TREINOS ── */}
+      {showHistoricoTreinos && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowHistoricoTreinos(false)}>
+          <div className="bg-card border-t border-border rounded-t-3xl w-full max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Handle */}
+            <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-2 shrink-0" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+              <div>
+                <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>🏋️ Histórico de Treinos</p>
+                {(() => {
+                  const mesAtual = format(new Date(), "yyyy-MM");
+                  const realizadosMes = historicoTreinos.filter((h: any) =>
+                    h.data.startsWith(mesAtual) && h.status === "realizado"
+                  ).length;
+                  return realizadosMes > 0 ? (
+                    <p className="text-xs text-emerald-400 font-semibold mt-0.5">
+                      {realizadosMes} treino{realizadosMes > 1 ? "s" : ""} realizado{realizadosMes > 1 ? "s" : ""} em {format(new Date(), "MMMM", {locale: ptBR})}
+                    </p>
+                  ) : null;
+                })()}
+              </div>
+              <button onClick={() => setShowHistoricoTreinos(false)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* Filtros */}
+            <div className="flex gap-2 px-5 py-3 overflow-x-auto shrink-0">
+              {[
+                { key: "todos", label: "Todos" },
+                { key: "realizado", label: "✅ Realizados" },
+                { key: "faltou", label: "❌ Faltas" },
+                { key: "cancelado", label: "🚫 Cancelados" },
+              ].map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setFiltroTreinos(f.key as any)}
+                  className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                    filtroTreinos === f.key
+                      ? "bg-primary text-white"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Lista */}
+            <div className="overflow-y-auto flex-1 px-5 pb-8 space-y-2">
+              {historicoTreinos
+                .filter((h: any) => filtroTreinos === "todos" || h.status === filtroTreinos)
+                .map((h: any) => (
+                  <div key={h.id} className="flex items-center gap-3 py-3 border-b border-border last:border-0">
+                    <div className="text-center min-w-[44px] shrink-0">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                        {format(parseISO(h.data + "T12:00:00"), "EEE", {locale: ptBR})}
+                      </p>
+                      <p className="text-lg font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                        {format(parseISO(h.data + "T12:00:00"), "d")}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground">
+                        {format(parseISO(h.data + "T12:00:00"), "MMM", {locale: ptBR})}
+                      </p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">
+                        {h.horario_inicio?.slice(0, 5)} → {h.horario_fim?.slice(0, 5)}
+                      </p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                      h.status === "realizado"
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : h.status === "faltou"
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {h.status === "realizado" ? "✅ Realizado" : h.status === "faltou" ? "❌ Falta" : "🚫 Cancelado"}
+                    </span>
+                  </div>
+                ))}
+              {historicoTreinos.filter((h: any) => filtroTreinos === "todos" || h.status === filtroTreinos).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum treino encontrado.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── HISTÓRICO DE SERVIÇOS ── */}
+      {showHistoricoServicos && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowHistoricoServicos(false)}>
+          <div className="bg-card border-t border-border rounded-t-3xl w-full max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-2 shrink-0" />
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+              <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>📋 Histórico de Serviços</p>
+              <button onClick={() => setShowHistoricoServicos(false)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-5 pb-8 space-y-2 pt-3">
+              {historicoServicos.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço registrado.</p>
+              ) : historicoServicos.map((s: any) => {
+                const { icon: Icon } = iconServico(s.tipo_servico ?? "");
+                return (
+                  <div key={s.id} className="flex items-center gap-3 py-3 border-b border-border last:border-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">{s.tipo_servico}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.data_consumo ? format(parseISO(s.data_consumo), "dd 'de' MMMM 'de' yyyy", {locale: ptBR}) : "—"}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
+                      ✅ Realizado
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
