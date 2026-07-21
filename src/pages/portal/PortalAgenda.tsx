@@ -437,61 +437,125 @@ export default function PortalAgenda() {
       </>)}
 
       {abaAgenda === "agendamentos" && (
-        <div className="space-y-4">
-          <SectionLabel>Próximos agendamentos</SectionLabel>
+        <div className="space-y-6">
 
-          {meusAgendamentos.length === 0 ? (
-            <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-2">
-              <p className="text-sm font-bold text-foreground">Nenhum treino agendado</p>
-              <p className="text-xs text-muted-foreground">
-                Agende seu próximo treino na aba Treinos.
-              </p>
+          {/* ── SEÇÃO TREINOS ── */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🏋️</span>
+              <SectionLabel>Treinos</SectionLabel>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {meusAgendamentos.map((ag: any) => {
-                const deadline = new Date(`${ag.data}T${ag.horario_inicio}`);
-                deadline.setHours(deadline.getHours() - 1);
-                const dentroDoPrazo = new Date() < deadline;
-                return (
-                  <div key={ag.id} className="bg-card border border-border rounded-xl p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="text-center min-w-[44px] shrink-0">
-                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                          {format(parseISO(ag.data + "T12:00:00"), "EEE", { locale: ptBR })}
-                        </p>
-                        <p className="text-2xl font-black text-foreground" style={{ fontFamily: 'Archivo,sans-serif' }}>
-                          {format(parseISO(ag.data + "T12:00:00"), "d")}
-                        </p>
+
+            {meusAgendamentos.length === 0 ? (
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
+                <p className="text-sm text-muted-foreground text-center">Nenhum treino agendado.</p>
+                <button
+                  onClick={() => setAbaAgenda("treinos")}
+                  className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
+                >
+                  Agendar treino →
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {meusAgendamentos.map((ag: any) => {
+                  const deadline = new Date(`${ag.data}T${ag.horario_inicio}`);
+                  deadline.setHours(deadline.getHours() - 1);
+                  const dentroDoPrazo = new Date() < deadline;
+                  return (
+                    <div key={ag.id} className="bg-card border border-border rounded-xl p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="text-center min-w-[44px] shrink-0">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                            {format(parseISO(ag.data + "T12:00:00"), "EEE", { locale: ptBR })}
+                          </p>
+                          <p className="text-2xl font-black text-foreground" style={{ fontFamily: 'Archivo,sans-serif' }}>
+                            {format(parseISO(ag.data + "T12:00:00"), "d")}
+                          </p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-foreground">
+                            {ag.horario_inicio?.slice(0, 5)} → {ag.horario_fim?.slice(0, 5)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(parseISO(ag.data + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setCancelando(ag.id)}
+                          className="py-1.5 px-3 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                        >
+                          Cancelar
+                        </button>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm text-foreground">
-                          {ag.horario_inicio?.slice(0, 5)} → {ag.horario_fim?.slice(0, 5)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(parseISO(ag.data + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setCancelando(ag.id)}
-                        className="py-1.5 px-3 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
-                      >
-                        Cancelar
-                      </button>
+                      {!dentroDoPrazo && (
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <AlertCircle className="w-3 h-3 text-warning shrink-0" />
+                          <p className="text-[10px] text-warning">Cancelamento fora do prazo não estorna crédito</p>
+                        </div>
+                      )}
                     </div>
-                    {!dentroDoPrazo && (
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <AlertCircle className="w-3 h-3 text-warning shrink-0" />
-                        <p className="text-[10px] text-warning">Cancelamento fora do prazo não estorna crédito</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Botão histórico de treinos */}
+            <button
+              onClick={() => setShowHistoricoTreinos(true)}
+              className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3"
+            >
+              <span className="text-sm font-semibold text-foreground">Ver histórico de treinos</span>
+              <div className="flex items-center gap-2">
+                {historicoTreinos.length > 0 && (
+                  <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    {historicoTreinos.length}
+                  </span>
+                )}
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </button>
+          </section>
+
+          {/* ── SEÇÃO SERVIÇOS ── */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">📋</span>
+              <SectionLabel>Serviços</SectionLabel>
             </div>
-          )}
+
+            <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Agendamentos de serviços são feitos via WhatsApp com a equipe FORTEM.
+              </p>
+              <button
+                onClick={() => setAbaAgenda("servicos")}
+                className="w-full py-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-foreground"
+              >
+                Ver serviços disponíveis →
+              </button>
+            </div>
+
+            {/* Botão histórico de serviços */}
+            <button
+              onClick={() => setShowHistoricoServicos(true)}
+              className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3"
+            >
+              <span className="text-sm font-semibold text-foreground">Ver histórico de serviços</span>
+              <div className="flex items-center gap-2">
+                {historicoServicos.length > 0 && (
+                  <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    {historicoServicos.length}
+                  </span>
+                )}
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </button>
+          </section>
+
         </div>
       )}
+
 
       {abaAgenda === "servicos" && (
         <div className="space-y-4">
