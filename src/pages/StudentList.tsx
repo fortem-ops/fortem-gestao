@@ -103,7 +103,26 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
     };
   }, [profiles]);
 
-  const { data: alunos = [], isLoading, refetch } = useQuery({
+  const { data: debugAccess } = useQuery({
+    queryKey: ["debug-alunos-access", user?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("alunos")
+        .select("id", { count: "exact", head: true });
+
+      console.log("Acesso a alunos - count:", count, "error:", error);
+
+      if (error) {
+        console.error("Erro ao diagnosticar acesso a alunos:", error);
+      }
+
+      return count;
+    },
+    enabled: !!user,
+    staleTime: 0,
+  });
+
+  const { data: alunos = [], isLoading, error, refetch } = useQuery({
     queryKey: ["alunos_with_plans"],
     queryFn: async () => {
       // Paginated fetch to bypass PostgREST 1000-row default limit
@@ -115,9 +134,20 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           .select(ALUNOS_COLUMNS)
           .order("nome")
           .range(from, from + PAGE - 1);
-        if (error) throw error;
+        if (error) {
+          console.error("Erro ao buscar alunos:", error);
+          throw error;
+        }
         students.push(...(data || []));
         if (!data || data.length < PAGE) break;
+      }
+
+      if (students.length === 0) {
+        console.warn("Nenhum aluno retornado — possível problema de RLS ou conexão", {
+          debugAccess,
+          userId: user?.id,
+        });
+        return [];
       }
 
       const ids = students.map((s) => s.id);
@@ -131,37 +161,53 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       const planos: any[] = [];
       for (const part of chunk(ids, CHUNK)) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("planos")
           .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
           .in("aluno_id", part)
           .eq("ativo", true);
+        if (error) {
+          console.error("Erro ao buscar planos dos alunos:", error, { chunkSize: part.length });
+          throw error;
+        }
         planos.push(...(data || []));
       }
       const planoIds = planos.map((p: any) => p.id);
       const consumos: any[] = [];
       for (const part of chunk(planoIds, CHUNK)) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("consumo_servicos")
           .select("aluno_id, plano_id, tipo_servico, tipo_registro, quantidade, agenda_id")
           .in("plano_id", part);
+        if (error) {
+          console.error("Erro ao buscar consumo de serviços:", error, { chunkSize: part.length });
+          throw error;
+        }
         consumos.push(...(data || []));
       }
       const creditos: any[] = [];
       for (const part of chunk(ids, CHUNK)) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("creditos_aluno" as any)
           .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
           .in("aluno_id", part)
           .eq("ativo", true);
+        if (error) {
+          console.error("Erro ao buscar créditos dos alunos:", error, { chunkSize: part.length });
+          throw error;
+        }
         creditos.push(...((data as any[]) || []));
       }
       const licencas: any[] = [];
       for (const part of chunk(ids, CHUNK)) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("aluno_licencas" as any)
           .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
           .in("aluno_id", part);
+        if (error) {
+          console.error("Erro ao buscar licenças dos alunos:", error, { chunkSize: part.length });
+          throw error;
+        }
         licencas.push(...((data as any[]) || []));
       }
 
@@ -226,6 +272,8 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
     },
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const alunoIds = useMemo(() => alunos.map((a) => a.id), [alunos]);
@@ -439,6 +487,23 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
     } finally {
       setRecalculando(false);
     }
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <h1 className="text-2xl font-heading font-bold text-foreground">{pageTitle}</h1>
+        <div className="glass-card rounded-lg p-8 text-center space-y-3">
+          <p className="text-destructive font-medium">Erro ao carregar alunos</p>
+          <p className="text-sm text-muted-foreground">
+            {(error as any)?.message || "Tente recarregar a página"}
+          </p>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" /> Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
