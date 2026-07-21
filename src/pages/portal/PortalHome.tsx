@@ -13,6 +13,7 @@ import {
   Utensils,
   Footprints,
   ChevronRight,
+  MessageCircle,
 } from "lucide-react";
 import { differenceInCalendarDays, format, startOfWeek } from "date-fns";
 import type { ReactNode } from "react";
@@ -530,6 +531,16 @@ export default function PortalHome() {
           </div>
         </section>
       )}
+
+      {/* FAB Assistente FORTEM */}
+      <Link
+        to="/portal/assistente"
+        className="fixed bottom-24 right-4 z-40 w-14 h-14 bg-primary rounded-full shadow-lg flex items-center justify-center"
+        style={{ boxShadow: "0 4px 20px rgba(231,60,62,0.4)" }}
+        aria-label="Abrir Assistente FORTEM"
+      >
+        <MessageCircle className="w-6 h-6 text-white" />
+      </Link>
     </div>
   );
 }
