@@ -283,7 +283,7 @@ export default function PortalClube() {
       </Card>
 
       {/* Multiplicador climático */}
-      {clima?.multiplicador_ativo && (
+      {clima?.multiplicador_ativo && pontos?.nivel !== 'bronze' && (
         <Card className="glass-card p-4 border-primary/50 bg-primary/10 flex items-center gap-3">
           <CloudRain className="w-6 h-6 text-primary" />
           <div>
