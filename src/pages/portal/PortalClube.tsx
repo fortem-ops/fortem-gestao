@@ -405,13 +405,14 @@ export default function PortalClube() {
         {showComparativo && (
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="grid border-b border-border" style={{gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr'}}>
+            <div className="grid border-b border-border" style={{gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr'}}>
               <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase">Recompensa</div>
-              {['Start', 'Start+', 'Power', 'Pro', 'Max'].map(p => {
+              {['Agregador', 'Start', 'Start+', 'Power', 'Pro', 'Max'].map(p => {
                 const key = p.toLowerCase().replace('+','_plus').replace(' ','_');
-                const isUser = key === (planoAtivo?.toLowerCase().replace('+','_plus').replace(' ','_') ?? 'start');
+                const userKey = isAgregador ? 'agregador' : (planoAtivo?.toLowerCase().replace('+','_plus').replace(' ','_') ?? 'start');
+                const isUser = key === userKey;
                 return (
-                  <div key={p} className={`px-1 py-2 text-center text-[10px] font-bold uppercase ${isUser ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <div key={p} className={`px-1 py-2 text-center text-[10px] font-bold uppercase ${isUser ? 'text-primary' : p === 'Agregador' ? 'text-amber-600' : 'text-muted-foreground'}`}>
                     {p}
                   </div>
                 );
@@ -420,7 +421,9 @@ export default function PortalClube() {
 
             {/* Linhas por recompensa */}
             {recompensas?.map((r: any) => {
+              const custoAg = r.custo_agregador ?? Math.round((r.custo_start ?? r.custo_pontos) * 1.3);
               const custos = [
+                custoAg,
                 r.custo_start ?? r.custo_pontos,
                 r.custo_start_plus ?? r.custo_pontos,
                 r.custo_power ?? r.custo_pontos,
@@ -428,18 +431,20 @@ export default function PortalClube() {
                 r.custo_max ?? r.custo_pontos,
               ];
               const minCusto = Math.min(...custos);
+              const userKey = isAgregador ? 'agregador' : (planoAtivo?.toLowerCase().replace('+','_plus').replace(' ','_') ?? 'start');
+              const userIdx = ['agregador','start','start_plus','power','pro','max'].indexOf(userKey);
               return (
-                <div key={r.id} className="grid border-b border-border last:border-0" style={{gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr'}}>
+                <div key={r.id} className="grid border-b border-border last:border-0" style={{gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1fr'}}>
                   <div className="px-3 py-2.5 flex items-center gap-1.5">
                     <span className="text-sm shrink-0">{r.icone}</span>
                     <p className="text-[11px] font-medium text-foreground leading-tight">{r.nome}</p>
                   </div>
                   {custos.map((c, i) => {
-                    const isUserPlan = i === ['start','start_plus','power','pro','max']
-                      .indexOf(planoAtivo?.toLowerCase().replace('+','_plus').replace(' ','_') ?? 'start');
+                    const isUserPlan = i === userIdx;
                     const isCheapest = c === minCusto;
+                    const isAgCol = i === 0;
                     return (
-                      <div key={i} className={`px-1 py-2.5 text-center ${isUserPlan ? 'bg-primary/5' : ''}`}>
+                      <div key={i} className={`px-1 py-2.5 text-center ${isUserPlan ? 'bg-primary/5' : isAgCol ? 'bg-amber-500/5' : ''}`}>
                         <p className={`text-[11px] font-bold ${
                           isUserPlan ? 'text-primary' :
                           isCheapest ? 'text-emerald-400' :
