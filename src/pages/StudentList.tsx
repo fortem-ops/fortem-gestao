@@ -631,7 +631,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
+            {showLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-border/50">
                   <td className="p-4 w-10"><Skeleton className="h-4 w-4" /></td>
@@ -775,7 +775,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {isLoading ? (
+        {showLoading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="glass-card rounded-lg p-4 space-y-2">
               <Skeleton className="h-5 w-40" />
