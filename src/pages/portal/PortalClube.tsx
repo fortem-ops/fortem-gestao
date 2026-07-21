@@ -250,15 +250,21 @@ export default function PortalClube() {
             <p className="text-[10px] text-muted-foreground">pontos</p>
           </div>
         </div>
-        {proxNivel && (
+        {proxNivel ? (
           <div className="mt-4">
             <div className="flex justify-between text-[11px] mb-1">
-              <span>Faltam <strong>{proxNivel.min - saldo}</strong> pts para {proxNivel.emoji} {proxNivel.nome}</span>
+              <span>
+                {faltamParaProximo === 0
+                  ? `✓ Próximo nível desbloqueado!`
+                  : <>Faltam <strong>{faltamParaProximo}</strong> pts para {proxNivel.emoji} {proxNivel.nome}</>}
+              </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-primary transition-all" style={{ width: `${progresso}%` }} />
             </div>
           </div>
+        ) : !isAgregador && (
+          <p className="text-xs text-emerald-400 font-semibold mt-4">👑 Nível máximo atingido!</p>
         )}
         {pontos?.pontos_expiram_em && (
           <p className="text-[11px] text-muted-foreground mt-3">
