@@ -5395,6 +5395,73 @@ export type Database = {
           },
         ]
       }
+      treino_horarios_fixos: {
+        Row: {
+          aluno_id: string
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          criado_por: string
+          dia_semana: number
+          horario_fim: string
+          horario_inicio: string
+          id: string
+          pausado_ate: string | null
+          slot_id: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          criado_por?: string
+          dia_semana: number
+          horario_fim: string
+          horario_inicio: string
+          id?: string
+          pausado_ate?: string | null
+          slot_id: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          criado_por?: string
+          dia_semana?: number
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+          pausado_ate?: string | null
+          slot_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treino_horarios_fixos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treino_horarios_fixos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "treino_horarios_fixos_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "treino_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treino_slots: {
         Row: {
           ativo: boolean
@@ -6806,6 +6873,7 @@ export type Database = {
         Args: { _ref: string }
         Returns: number
       }
+      fn_processar_horarios_fixos: { Args: never; Returns: Json }
       fn_proxima_renovacao_from: {
         Args: { _data_inicio: string }
         Returns: string
