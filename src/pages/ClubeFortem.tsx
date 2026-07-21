@@ -18,7 +18,7 @@ import { Star, CloudRain, Users, Gift, Trophy, Sparkles, Plus, Trash2, Pencil, C
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-type Aba = "dashboard" | "pontuacao" | "resgates" | "recompensas" | "parceiros" | "ranking";
+type Aba = "dashboard" | "pontuacao" | "resgates" | "recompensas" | "parceiros" | "desafios" | "ranking";
 
 export default function ClubeFortem() {
   const [aba, setAba] = useState<Aba>("dashboard");
