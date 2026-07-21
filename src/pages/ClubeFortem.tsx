@@ -62,6 +62,7 @@ export default function ClubeFortem() {
         <TabsContent value="resgates" className="pt-6"><ResgatesTab /></TabsContent>
         <TabsContent value="recompensas" className="pt-6"><RecompensasTab /></TabsContent>
         <TabsContent value="parceiros" className="pt-6"><AdminParceirosTable /></TabsContent>
+        <TabsContent value="desafios" className="pt-6"><DesafiosTab /></TabsContent>
         <TabsContent value="ranking" className="pt-6"><RankingTab /></TabsContent>
       </Tabs>
     </div>
