@@ -1025,6 +1025,114 @@ export default function PortalAgenda() {
           </div>
         </div>
       )}
+
+      {/* Bottom sheet: Adicionar horário fixo */}
+      {showAdicionarFixo && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowAdicionarFixo(false)}>
+          <div className="bg-card border-t border-border rounded-t-3xl w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
+            <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>📌 Novo Horário Fixo</p>
+
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5 font-semibold uppercase tracking-wide">Dia da semana</p>
+                <div className="flex gap-2 flex-wrap">
+                  {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((d, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setDiaFixo(i); setSlotFixo(""); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${diaFixo === i ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5 font-semibold uppercase tracking-wide">Horário</p>
+                {slotsFixo.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhum slot disponível neste dia.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {slotsFixo.map((s: any) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setSlotFixo(s.id)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${slotFixo === s.id ? "bg-primary/10 border-primary/40" : "bg-background border-border"}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${slotFixo === s.id ? "border-primary" : "border-muted-foreground"}`}>
+                          {slotFixo === s.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">{s.horario_inicio.slice(0,5)} → {s.horario_fim.slice(0,5)}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => { setShowAdicionarFixo(false); setSlotFixo(""); }} className="flex-1 py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">Cancelar</button>
+              <button
+                disabled={!slotFixo}
+                onClick={async () => {
+                  if (!slotFixo || !student) return;
+                  const slot = slotsFixo.find((s: any) => s.id === slotFixo);
+                  if (!slot) return;
+                  try {
+                    const { error } = await (supabase as any).from("treino_horarios_fixos").insert({
+                      aluno_id: student.id,
+                      slot_id: slotFixo,
+                      dia_semana: diaFixo,
+                      horario_inicio: slot.horario_inicio,
+                      horario_fim: slot.horario_fim,
+                      criado_por: "aluno",
+                    });
+                    if (error) throw error;
+                    await supabase.rpc("fn_processar_horarios_fixos");
+                    toast.success("Horário fixo configurado! Agendamentos criados para as próximas semanas.");
+                    qc.invalidateQueries({ queryKey: ["portal-horarios-fixos"] });
+                    qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
+                    setShowAdicionarFixo(false);
+                    setSlotFixo("");
+                  } catch (e: any) {
+                    toast.error(e.message);
+                  }
+                }}
+                className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm disabled:opacity-40"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog: Remover horário fixo */}
+      {horarioFixoParaRemover && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setHorarioFixoParaRemover(null)}>
+          <div className="bg-card border-t border-border rounded-t-3xl w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
+            <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Remover horário fixo?</p>
+            <p className="text-sm text-muted-foreground">Este horário não será mais reservado automaticamente nas próximas semanas. Agendamentos já criados permanecem.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setHorarioFixoParaRemover(null)} className="flex-1 py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">Cancelar</button>
+              <button
+                onClick={async () => {
+                  await (supabase as any).from("treino_horarios_fixos").update({ ativo: false }).eq("id", horarioFixoParaRemover);
+                  toast.success("Horário fixo removido.");
+                  qc.invalidateQueries({ queryKey: ["portal-horarios-fixos"] });
+                  setHorarioFixoParaRemover(null);
+                }}
+                className="flex-1 py-3 rounded-xl bg-destructive text-white font-bold text-sm"
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
 
   );
