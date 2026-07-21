@@ -17,6 +17,7 @@ import { StudentLicencas } from "./StudentLicencas";
 import { isAutoRenewPlan } from "@/lib/planTipo";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
+import { HorarioFixoManager } from "./HorarioFixoManager";
 
 import { useFormasPagamento } from "./venda/PaymentFields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
