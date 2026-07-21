@@ -113,7 +113,7 @@ export function HorarioFixoManager({ alunoId, planoTipo, frequenciaSemanal, isSt
           <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground">Exclusivo Power, Pro e Max</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Garante seu horário toda semana automaticamente, sem precisar agendar.
+          A partir do plano <strong>Power</strong>, o número de horários fixos segue sua frequência semanal contratada.
         </p>
       </div>
     );
