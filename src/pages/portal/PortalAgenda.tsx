@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Users, X, CheckCircle2, AlertCircle, Utensils, Footprints, Activity, ChevronDown, ChevronRight } from "lucide-react";
+import { CalendarDays, Users, X, CheckCircle2, AlertCircle, Utensils, Footprints, Activity, ChevronDown, ChevronRight, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
