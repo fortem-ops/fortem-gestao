@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminClubeDashboard } from "@/components/clube/AdminClubeDashboard";
 import { AdminParceirosTable } from "@/components/clube/AdminParceirosTable";
-import { Star, CloudRain, Users, Gift, Trophy, Sparkles, Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Star, CloudRain, Users, Gift, Trophy, Sparkles, Plus, Trash2, Pencil, Check, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
