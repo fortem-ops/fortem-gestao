@@ -5,34 +5,31 @@ export type NivelMembro = Database["public"]["Enums"]["clube_nivel_membro"];
 export type StatusMembro = Database["public"]["Enums"]["clube_status_membro"];
 
 export const NIVEL_LABEL: Record<NivelMembro, string> = {
-  start: "START",
-  start_plus: "START+",
-  power: "POWER",
-  pro: "PRO",
-  max: "MAX",
-  agregador: "AGREGADOR",
+  bronze: "Bronze",
+  prata: "Prata",
+  ouro: "Ouro",
+  diamante: "Diamante",
+  platina: "Platina",
 };
 
 export const NIVEL_BADGE: Record<NivelMembro, string> = {
-  start: "START MEMBER",
-  start_plus: "START+ MEMBER",
-  power: "POWER MEMBER",
-  pro: "PRO MEMBER",
-  max: "MAX MEMBER",
-  agregador: "AGREGADOR MEMBER",
+  bronze: "BRONZE MEMBER",
+  prata: "PRATA MEMBER",
+  ouro: "OURO MEMBER",
+  diamante: "DIAMANTE MEMBER",
+  platina: "PLATINA MEMBER",
 };
 
-// Paleta exata definida no plano (não-temáticas, fiel à carteirinha).
+// Paleta por nível — fiel à identidade visual das carteirinhas.
 export const NIVEL_THEME: Record<
   NivelMembro,
   { bg: string; text: string; accent: string; muted: string; metallic?: string }
 > = {
-  start: { bg: "#FFFFFF", text: "#111111", accent: "#E10600", muted: "#D9D9D9" },
-  start_plus: { bg: "#F2F2F2", text: "#111111", accent: "#E10600", muted: "#BFBFBF" },
-  power: { bg: "#6B6B6B", text: "#FFFFFF", accent: "#E10600", muted: "#111111" },
-  pro: { bg: "#000000", text: "#FFFFFF", accent: "#E10600", muted: "#8A8A8A" },
-  max: { bg: "#050505", text: "#FFFFFF", accent: "#FF2A2A", muted: "#A6A6A6", metallic: "#A6A6A6" },
-  agregador: { bg: "#1F2937", text: "#FFFFFF", accent: "#22C55E", muted: "#6B7280" },
+  bronze:   { bg: "#3B2A18", text: "#FFFFFF", accent: "#CD7F32", muted: "#8A5A2B" },
+  prata:    { bg: "#F2F2F2", text: "#111111", accent: "#E10600", muted: "#BFBFBF" },
+  ouro:     { bg: "#1A1408", text: "#FFFFFF", accent: "#F5C518", muted: "#8A7326", metallic: "#F5C518" },
+  diamante: { bg: "#0A1A26", text: "#FFFFFF", accent: "#22D3EE", muted: "#0E7490", metallic: "#67E8F9" },
+  platina:  { bg: "#050505", text: "#FFFFFF", accent: "#C084FC", muted: "#A6A6A6", metallic: "#E5E4E2" },
 };
 
 export const STATUS_LABEL: Record<StatusMembro, string> = {
@@ -51,7 +48,6 @@ export const STATUS_DOT: Record<StatusMembro, string> = {
 
 /**
  * Calcula SHA-256 do CPF (apenas dígitos) usando WebCrypto.
- * Resultado idêntico ao do Postgres `fn_clube_hash_cpf`.
  */
 export async function hashCpfClient(cpf: string): Promise<string> {
   const digits = cpf.replace(/\D/g, "");
@@ -99,12 +95,11 @@ export function distanceKm(
 }
 
 export const NIVEL_RANK: Record<NivelMembro, number> = {
-  agregador: -1,
-  start: 0,
-  start_plus: 1,
-  power: 2,
-  pro: 3,
-  max: 4,
+  bronze: -1,
+  prata: 0,
+  ouro: 1,
+  diamante: 2,
+  platina: 3,
 };
 
 export function nivelAtende(membro: NivelMembro, minimo: NivelMembro): boolean {
