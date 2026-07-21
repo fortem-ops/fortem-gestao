@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, CloudRain, Trophy, Gift, Copy, ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
+import { Sparkles, CloudRain, Trophy, Gift, Copy, ChevronDown, ChevronUp, ChevronRight, HelpCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
