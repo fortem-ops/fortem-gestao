@@ -68,7 +68,7 @@ export default function ClubeFortem() {
 }
 
 /* ─── VISÃO GERAL ─── */
-function OverviewTab() {
+function OverviewContent() {
   const hoje = new Date().toISOString().slice(0, 10);
 
   const { data: stats, isLoading } = useQuery({
