@@ -22,7 +22,7 @@ interface MembershipCardProps {
 export function MembershipCard({ membro, alunoNome, alunoEmail, categoria, contato }: MembershipCardProps) {
   const [flipped, setFlipped] = useState(false);
   const theme = NIVEL_THEME[membro.nivel_membro];
-  const isMax = membro.nivel_membro === "max";
+  const isMax = membro.nivel_membro === "platina";
   const qrFg = theme.text === "#FFFFFF" ? "#FFFFFF" : "#000000";
   const qrBg = theme.text === "#FFFFFF" ? "#111111" : "#FFFFFF";
 
