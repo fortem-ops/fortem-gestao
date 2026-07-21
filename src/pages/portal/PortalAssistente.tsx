@@ -143,12 +143,7 @@ export default function PortalAssistente() {
               <p className="text-sm font-semibold text-foreground">Conectar com a equipe</p>
               <p className="text-xs text-muted-foreground">Prefere falar diretamente com alguém da FORTEM?</p>
               <button
-                onClick={() =>
-                  window.open(
-                    `https://wa.me/555135199451?text=Olá! Preciso de ajuda. Sou aluno ${student.nome}.`,
-                    "_blank"
-                  )
-                }
+                onClick={abrirWhatsAppComHistorico}
                 className="w-full py-2.5 rounded-xl bg-[#25D366] text-white text-sm font-bold flex items-center justify-center gap-2"
               >
                 💬 Abrir WhatsApp
