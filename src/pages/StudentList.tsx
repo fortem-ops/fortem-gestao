@@ -409,8 +409,26 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         checkPresenca(d.endereco, !!((s as any).cep || (s as any).logradouro || (s as any).cidade)) &&
         checkPresenca(d.foto, !!(s as any).foto_url);
 
-      return matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchAvalFunc && matchServDisp && matchDate && matchDateStart && matchDados;
+      const matches = matchSearch && matchStatus && matchFreq && matchSP && matchSC && matchProf && matchTipoPlano && matchVip && matchAvalFunc && matchServDisp && matchDate && matchDateStart && matchDados;
+      if (!matches) {
+        if (!matchMode) droppedReasons["modo"] = (droppedReasons["modo"] || 0) + 1;
+        else if (!matchSearch) droppedReasons["search"] = (droppedReasons["search"] || 0) + 1;
+        else if (!matchStatus) droppedReasons["status"] = (droppedReasons["status"] || 0) + 1;
+        else if (!matchFreq) droppedReasons["freq"] = (droppedReasons["freq"] || 0) + 1;
+        else if (!matchSP) droppedReasons["servicosPlano"] = (droppedReasons["servicosPlano"] || 0) + 1;
+        else if (!matchSC) droppedReasons["servicosContratados"] = (droppedReasons["servicosContratados"] || 0) + 1;
+        else if (!matchProf) droppedReasons["professor"] = (droppedReasons["professor"] || 0) + 1;
+        else if (!matchTipoPlano) droppedReasons["tipoPlano"] = (droppedReasons["tipoPlano"] || 0) + 1;
+        else if (!matchVip) droppedReasons["vip"] = (droppedReasons["vip"] || 0) + 1;
+        else if (!matchAvalFunc) droppedReasons["avalFunc"] = (droppedReasons["avalFunc"] || 0) + 1;
+        else if (!matchServDisp) droppedReasons["servDisp"] = (droppedReasons["servDisp"] || 0) + 1;
+        else if (!matchDate || !matchDateStart) droppedReasons["data"] = (droppedReasons["data"] || 0) + 1;
+        else if (!matchDados) droppedReasons["dadosCadastrais"] = (droppedReasons["dadosCadastrais"] || 0) + 1;
+      }
+      return matches;
     });
+    console.log("[StudentList] Filtrado:", result.length, "Motivos de descarte:", droppedReasons);
+    return result;
   }, [alunos, debouncedSearch, filters.status, filters.frequencia, filters.servicosPlano, filters.servicosContratados, filters.professor, filters.tipoPlano, filters.vip, filters.ultimaAvaliacaoFuncional, filters.servicoPlanoDisponivel, filters.dataInicioDe, filters.dataInicioAte, filters.dataFinalDe, filters.dataFinalAte, filters.dadosCadastrais, isInativos, lastFuncionalMap]);
 
 
