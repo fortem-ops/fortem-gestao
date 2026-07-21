@@ -13,6 +13,7 @@ import {
   Utensils,
   Footprints,
   ChevronRight,
+  MessageCircle,
 } from "lucide-react";
 import { differenceInCalendarDays, format, startOfWeek } from "date-fns";
 import type { ReactNode } from "react";
