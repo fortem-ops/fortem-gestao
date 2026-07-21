@@ -517,10 +517,9 @@ export default function PortalAgenda() {
                     <p className="text-xs text-muted-foreground">
                       Garanta seu horário toda semana automaticamente, sem precisar agendar manualmente.
                     </p>
-                    <div className="space-y-1 text-xs">
-                      <p className="text-muted-foreground">🥇 <strong className="text-foreground">Power:</strong> até 2 horários fixos por semana</p>
-                      <p className="text-muted-foreground">💎 <strong className="text-foreground">Pro:</strong> até 3 horários fixos por semana</p>
-                      <p className="text-muted-foreground">👑 <strong className="text-foreground">Max:</strong> até 5 horários fixos por semana</p>
+                    <div className="bg-muted/50 rounded-xl p-3 space-y-1.5 text-xs text-muted-foreground">
+                      <p>A partir do plano <strong className="text-foreground">Power</strong>, você pode fixar horários conforme sua frequência semanal contratada.</p>
+                      <p>Exemplo: se você treina <strong className="text-foreground">3×/semana</strong>, pode fixar até <strong className="text-foreground">3 horários</strong> automaticamente.</p>
                     </div>
                     <button
                       onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero fazer upgrade do meu plano para ter horário fixo.', '_blank')}
