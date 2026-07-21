@@ -173,13 +173,13 @@ export default function PortalAgenda() {
     queryFn: async () => {
       const { data } = await supabase
         .from("planos")
-        .select("tipo, frequencia_semanal")
+        .select("tipo")
         .eq("aluno_id", student!.id)
         .eq("ativo", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      return data;
+      return data ? { tipo: data.tipo, frequencia_semanal: student?.frequencia_semanal ?? 1 } : null;
     },
   });
 
