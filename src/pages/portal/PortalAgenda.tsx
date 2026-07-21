@@ -490,6 +490,98 @@ export default function PortalAgenda() {
       {abaAgenda === "agendamentos" && (
         <div className="space-y-6">
 
+          {/* ── SEÇÃO HORÁRIO FIXO ── */}
+          {(() => {
+            const planoTipo = planoPortal?.tipo ?? "";
+            const freq = planoPortal?.frequencia_semanal ?? 1;
+            const elegivel = ["Power", "Pro", "Max"].includes(planoTipo);
+            const DIAS_LABEL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+            return (
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">📌</span>
+                  <SectionLabel>Horário Fixo</SectionLabel>
+                  {elegivel && (
+                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+                      {horariosFixos.length}/{freq} slots
+                    </span>
+                  )}
+                </div>
+
+                {!elegivel ? (
+                  <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🔒</span>
+                      <p className="text-sm font-bold text-foreground">Exclusivo Power, Pro e Max</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Garanta seu horário toda semana automaticamente, sem precisar agendar manualmente.
+                    </p>
+                    <div className="space-y-1 text-xs">
+                      <p className="text-muted-foreground">🥇 <strong className="text-foreground">Power:</strong> até 2 horários fixos por semana</p>
+                      <p className="text-muted-foreground">💎 <strong className="text-foreground">Pro:</strong> até 3 horários fixos por semana</p>
+                      <p className="text-muted-foreground">👑 <strong className="text-foreground">Max:</strong> até 5 horários fixos por semana</p>
+                    </div>
+                    <button
+                      onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero fazer upgrade do meu plano para ter horário fixo.', '_blank')}
+                      className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
+                    >
+                      🚀 Fazer upgrade e garantir meu horário →
+                    </button>
+                  </div>
+                ) : horariosFixos.length === 0 ? (
+                  <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                    <p className="text-sm text-muted-foreground text-center">
+                      Nenhum horário fixo configurado ainda.
+                    </p>
+                    <button
+                      onClick={() => setShowAdicionarFixo(true)}
+                      className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold flex items-center justify-center gap-2"
+                    >
+                      <Pin className="w-3.5 h-3.5" /> Configurar horário fixo
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {horariosFixos.map((hf: any) => {
+                      const pausado = hf.pausado_ate && new Date(hf.pausado_ate) >= new Date();
+                      return (
+                        <div key={hf.id} className={`bg-card border rounded-xl p-4 flex items-center gap-3 ${pausado ? "border-border opacity-60" : "border-primary/30"}`}>
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <Pin className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-bold text-sm text-foreground">
+                              {DIAS_LABEL[hf.dia_semana]} · {hf.horario_inicio?.slice(0, 5)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {pausado ? `Pausado até ${format(parseISO(hf.pausado_ate + "T12:00:00"), "dd/MM/yyyy")}` : "Reserva automática toda semana ✓"}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setHorarioFixoParaRemover(hf.id)}
+                            className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center"
+                          >
+                            <X className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {horariosFixos.length < freq && (
+                      <button
+                        onClick={() => setShowAdicionarFixo(true)}
+                        className="w-full py-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary flex items-center justify-center gap-2"
+                      >
+                        <Pin className="w-3.5 h-3.5" /> Adicionar horário fixo
+                      </button>
+                    )}
+                  </div>
+                )}
+              </section>
+            );
+          })()}
+
+
           {/* ── SEÇÃO TREINOS ── */}
           <section className="space-y-3">
             <div className="flex items-center gap-2">
