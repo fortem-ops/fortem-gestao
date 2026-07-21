@@ -133,7 +133,7 @@ export default function PortalAssistente() {
                 <div className="flex justify-start ml-9 mt-1.5">
                   <button
                     onClick={abrirWhatsAppComHistorico}
-                    className="text-[11:text-[#25D366] border border-[#25D366]/30 bg-[#25D366]/5 rounded-full px-3 py-1.5 flex items-center gap-1.5"
+                    className="text-[11px] text-[#25D366] border border-[#25D366]/30 bg-[#25D366]/5 rounded-full px-3 py-1.5 flex items-center gap-1.5"
                   >
                     💬 Abrir WhatsApp com histórico
                   </button>
