@@ -181,9 +181,13 @@ export default function PortalClube() {
   const nivelKey = pontos?.nivel ?? "prata";
   const nivelAtual = NIVEIS.find((n) => n.key === nivelKey) ?? NIVEIS[1];
   const isAgregador = nivelKey === "bronze";
-  const proxNivel = isAgregador ? undefined : NIVEIS.slice(1).find((n, idx, arr) => n.key === nivelAtual.key ? arr[idx + 1] : false) || NIVEIS[NIVEIS.indexOf(nivelAtual) + 1];
-  const progresso = proxNivel && proxNivel.min > nivelAtual.min
-    ? Math.min(100, ((saldo - nivelAtual.min) / (proxNivel.min - nivelAtual.min)) * 100)
+  // Próximo nível: primeiro nível (após Bronze) cujo min é maior que o saldo atual
+  const proxNivel = isAgregador
+    ? undefined
+    : NIVEIS.slice(1).find((n) => n.min > saldo);
+  const faltamParaProximo = proxNivel ? Math.max(0, proxNivel.min - saldo) : 0;
+  const progresso = proxNivel
+    ? Math.min(100, Math.round((saldo / proxNivel.min) * 100))
     : 100;
   const posMinhaMes = ranking?.findIndex((r) => r.aluno_id === student.id);
 
@@ -246,15 +250,21 @@ export default function PortalClube() {
             <p className="text-[10px] text-muted-foreground">pontos</p>
           </div>
         </div>
-        {proxNivel && (
+        {proxNivel ? (
           <div className="mt-4">
             <div className="flex justify-between text-[11px] mb-1">
-              <span>Faltam <strong>{proxNivel.min - saldo}</strong> pts para {proxNivel.emoji} {proxNivel.nome}</span>
+              <span>
+                {faltamParaProximo === 0
+                  ? `✓ Próximo nível desbloqueado!`
+                  : <>Faltam <strong>{faltamParaProximo}</strong> pts para {proxNivel.emoji} {proxNivel.nome}</>}
+              </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-primary transition-all" style={{ width: `${progresso}%` }} />
             </div>
           </div>
+        ) : !isAgregador && (
+          <p className="text-xs text-emerald-400 font-semibold mt-4">👑 Nível máximo atingido!</p>
         )}
         {pontos?.pontos_expiram_em && (
           <p className="text-[11px] text-muted-foreground mt-3">
