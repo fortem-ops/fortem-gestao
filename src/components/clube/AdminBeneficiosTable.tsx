@@ -131,7 +131,7 @@ export function AdminBeneficiosTable() {
       data_inicio: b.data_inicio,
       validade_opcao,
       validade_dias_custom,
-      niveis_permitidos: (b.niveis_permitidos?.length ? b.niveis_permitidos : ["start"]) as NivelMembro[],
+      niveis_permitidos: (b.niveis_permitidos?.length ? b.niveis_permitidos : ["prata"]) as NivelMembro[],
       ativo: b.ativo,
     });
     setOpen(true);
