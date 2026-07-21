@@ -37,7 +37,6 @@ const Notificar = lazy(() => import("./pages/Notificar"));
 const Leads = lazy(() => import("./pages/Leads"));
 const Prospects = lazy(() => import("./pages/Prospects"));
 const Clube = lazy(() => import("./pages/Clube"));
-const AdminClube = lazy(() => import("./pages/AdminClube"));
 const ClubeFortem = lazy(() => import("./pages/ClubeFortem"));
 const AdminParceiros = lazy(() => import("./pages/AdminParceiros"));
 const PartnerScannerPage = lazy(() => import("./pages/PartnerScannerPage"));
@@ -377,14 +376,6 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <Clube />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="/admin/clube"
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <AdminClube />
                   </Suspense>
                 }
               />

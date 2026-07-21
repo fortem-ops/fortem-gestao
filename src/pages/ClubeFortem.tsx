@@ -12,11 +12,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminClubeDashboard } from "@/components/clube/AdminClubeDashboard";
 import { Star, CloudRain, Users, Gift, Trophy, Sparkles, Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
+type Aba = "dashboard" | "overview" | "pontuacao" | "resgates" | "recompensas" | "ranking";
+
 export default function ClubeFortem() {
+  const [aba, setAba] = useState<Aba>("dashboard");
+
   return (
     <div className="space-y-6 animate-fade-in">
       <header>
@@ -28,8 +33,9 @@ export default function ClubeFortem() {
         </p>
       </header>
 
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)} className="w-full">
         <TabsList className="bg-secondary/50 flex-wrap h-auto">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>
           <TabsTrigger value="resgates">Resgates</TabsTrigger>
@@ -37,6 +43,15 @@ export default function ClubeFortem() {
           <TabsTrigger value="ranking">Ranking</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="dashboard" className="pt-6">
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-bold">Dashboard de Parceiros</h2>
+              <p className="text-sm text-muted-foreground">Métricas de uso dos benefícios nos últimos 30 dias.</p>
+            </div>
+            <AdminClubeDashboard />
+          </div>
+        </TabsContent>
         <TabsContent value="overview" className="pt-6"><OverviewTab /></TabsContent>
         <TabsContent value="pontuacao" className="pt-6"><PontuacaoTab /></TabsContent>
         <TabsContent value="resgates" className="pt-6"><ResgatesTab /></TabsContent>

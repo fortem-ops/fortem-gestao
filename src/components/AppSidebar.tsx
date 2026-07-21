@@ -96,9 +96,7 @@ const sistemaCoordAdminItems = [
   { title: "Administração", url: "/admin", icon: Settings },
   { title: "Notificações por Email", url: "/admin/notificacoes-email", icon: Bell },
 ];
-const sistemaAdminItems = [
-  { title: "Admin Clube", url: "/admin/clube", icon: Sparkles },
-];
+const sistemaAdminItems = [] as { title: string; url: string; icon: any }[];
 
 const sistemaCoordAdminExtraItems = [
   { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
