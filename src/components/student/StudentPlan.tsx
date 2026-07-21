@@ -641,6 +641,13 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
 
+      <HorarioFixoManager
+        alunoId={student.id}
+        planoTipo={data?.tipo ?? ""}
+        frequenciaSemanal={student.frequencia_semanal ?? 1}
+        isStaff={true}
+      />
+
       
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
 
