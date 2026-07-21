@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
@@ -15,7 +15,7 @@ import {
   ChevronRight,
   MessageCircle,
 } from "lucide-react";
-import { differenceInCalendarDays, format, startOfWeek } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 import type { ReactNode } from "react";
 
 function SectionLabel({ children }: { children: ReactNode }) {
@@ -85,19 +85,6 @@ export default function PortalHome() {
     },
   });
 
-  const { data: progressoRecente = [] } = useQuery({
-    queryKey: ["portal-home-progresso", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("student_workout_progress")
-        .select("data")
-        .eq("aluno_id", student!.id)
-        .order("data", { ascending: false })
-        .limit(200);
-      return data || [];
-    },
-  });
 
   const { data: avaliacaoResume } = useQuery({
     queryKey: ["portal-home-avaliacao", student?.id],
@@ -166,21 +153,66 @@ export default function PortalHome() {
     return { icon: Activity, label: "Avaliação Funcional" };
   };
 
-  const streakSemanas = useMemo(() => {
-    if (!progressoRecente.length) return 0;
-    const semanas = new Set<string>();
-    progressoRecente.forEach((p: any) => {
-      const ws = startOfWeek(new Date(p.data), { weekStartsOn: 1 });
-      semanas.add(format(ws, "yyyy-MM-dd"));
-    });
-    let s = 0;
-    let cursor = startOfWeek(new Date(), { weekStartsOn: 1 });
-    while (semanas.has(format(cursor, "yyyy-MM-dd"))) {
-      s += 1;
-      cursor = new Date(cursor.getTime() - 7 * 86400000);
-    }
-    return s;
-  }, [progressoRecente]);
+  const { data: streakData } = useQuery({
+    queryKey: ["portal-streak-real", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      // Buscar treinos realizados das últimas 16 semanas
+      const dataInicio = new Date();
+      dataInicio.setDate(dataInicio.getDate() - 16 * 7);
+
+      const { data } = await supabase
+        .from("treino_agendamentos")
+        .select("data")
+        .eq("aluno_id", student!.id)
+        .in("status", ["realizado", "confirmado"])
+        .gte("data", dataInicio.toISOString().slice(0, 10))
+        .order("data", { ascending: false });
+
+      if (!data || data.length === 0) return 0;
+
+      // Calcular streak de semanas consecutivas
+      // Cada semana começa na segunda-feira
+      function getWeekStart(dateStr: string): string {
+        const d = new Date(dateStr + "T12:00:00");
+        const day = d.getDay(); // 0=dom, 1=seg...
+        const diff = day === 0 ? -6 : 1 - day; // ajustar para segunda
+        d.setDate(d.getDate() + diff);
+        return d.toISOString().slice(0, 10);
+      }
+
+      // Semanas com treino (Set para deduplicar)
+      const semanasComTreino = new Set(data.map((t: any) => getWeekStart(t.data)));
+
+      // Contar semanas consecutivas a partir da semana atual
+      let streak = 0;
+      const hoje = new Date();
+      const diaAtual = hoje.getDay();
+      const diffParaSeg = diaAtual === 0 ? -6 : 1 - diaAtual;
+      const semanaAtual = new Date(hoje);
+      semanaAtual.setDate(hoje.getDate() + diffParaSeg);
+
+      for (let i = 0; i < 16; i++) {
+        const semana = new Date(semanaAtual);
+        semana.setDate(semanaAtual.getDate() - i * 7);
+        const semanaStr = semana.toISOString().slice(0, 10);
+
+        if (semanasComTreino.has(semanaStr)) {
+          streak++;
+        } else if (i === 0) {
+          // Semana atual sem treino ainda — não quebra streak, verifica a anterior
+          continue;
+        } else {
+          break;
+        }
+      }
+
+      return streak;
+    },
+  });
+
+  const streakSemanas = streakData ?? 0;
+
 
   const contratado = cicloAtivo?.creditos_liberados ?? 0;
   const usado = cicloAtivo?.creditos_usados ?? 0;
