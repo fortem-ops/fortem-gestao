@@ -177,6 +177,41 @@ export default function PortalAgenda() {
     },
   });
 
+  // Histórico de treinos (passados)
+  const { data: historicoTreinos = [] } = useQuery({
+    queryKey: ["portal-historico-treinos", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("treino_agendamentos")
+        .select("id, data, horario_inicio, horario_fim, status")
+        .eq("aluno_id", student!.id)
+        .lt("data", format(new Date(), "yyyy-MM-dd"))
+        .in("status", ["realizado", "faltou", "cancelado"])
+        .order("data", { ascending: false })
+        .limit(60);
+      return data || [];
+    },
+  });
+
+  // Agendamentos futuros de serviços (agenda_servicos com confirmação)
+  // Por enquanto, buscar de consumo_servicos para mostrar histórico real
+  const { data: historicoServicos = [] } = useQuery({
+    queryKey: ["portal-historico-servicos", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("consumo_servicos")
+        .select("id, tipo_servico, data_consumo, quantidade")
+        .eq("aluno_id", student!.id)
+        .order("data_consumo", { ascending: false })
+        .limit(30);
+      return data || [];
+    },
+  });
+
+
+
 
   const agendar = useMutation({
     mutationFn: async ({ slotId, data }: { slotId: string; data: string }) => {
