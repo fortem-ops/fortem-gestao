@@ -78,7 +78,13 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const { data: isCoordAdmin } = useQuery({
     queryKey: ["is-coord-admin", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      console.log("[StudentList] Verificando role do usuário:", user?.id, user?.email);
+      const { data, error } = await supabase.rpc("is_coordenador_ou_admin");
+      if (error) {
+        console.error("[StudentList] Erro ao verificar role:", error);
+        return false;
+      }
+      console.log("[StudentList] is_coordenador_ou_admin:", data);
       return !!data;
     },
     enabled: !!user,
