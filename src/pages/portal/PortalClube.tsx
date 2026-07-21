@@ -14,13 +14,23 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const NIVEIS = [
-  { key: "iniciante", nome: "Iniciante", emoji: "🌱", min: 0, max: 300 },
-  { key: "dedicado", nome: "Dedicado", emoji: "💪", min: 300, max: 1000 },
-  { key: "comprometido", nome: "Comprometido", emoji: "⭐", min: 1000, max: 3000 },
-  { key: "elite", nome: "Elite", emoji: "🏆", min: 3000, max: Infinity },
+  { key: "bronze",   nome: "Bronze",   emoji: "🥉", min: 0,    max: 0,     cor: "text-amber-700" },
+  { key: "prata",    nome: "Prata",    emoji: "🥈", min: 0,    max: 300,   cor: "text-slate-300" },
+  { key: "ouro",     nome: "Ouro",     emoji: "🥇", min: 300,  max: 1000,  cor: "text-yellow-400" },
+  { key: "diamante", nome: "Diamante", emoji: "💎", min: 1000, max: 3000,  cor: "text-cyan-400" },
+  { key: "platina",  nome: "Platina",  emoji: "👑", min: 3000, max: Infinity, cor: "text-purple-400" },
 ];
 
+function isAgregadorPlan(tipo?: string | null): boolean {
+  if (!tipo) return false;
+  const t = tipo.toLowerCase();
+  return t.includes("wellhub") || t.includes("gympass") || t.includes("total pass") || t.includes("totalpass");
+}
+
 function getCustoParaPlano(recompensa: any, tipoPlano: string): number {
+  if (isAgregadorPlan(tipoPlano)) {
+    return recompensa.custo_agregador ?? Math.round((recompensa.custo_start ?? recompensa.custo_pontos) * 1.3);
+  }
   const tipo = tipoPlano.toLowerCase().replace('+', '_plus').replace(' ', '_');
   const mapa: Record<string, string> = {
     max: 'custo_max',
