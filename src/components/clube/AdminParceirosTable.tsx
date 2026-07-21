@@ -34,6 +34,8 @@ const emptyForm = {
   responsavel_contato: "",
   email_login: "",
   endereco: "",
+  latitude: "" as string,
+  longitude: "" as string,
   ativo: true,
   modo_validacao: "qr_scan" as ModoVal,
 };
