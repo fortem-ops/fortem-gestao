@@ -61,6 +61,23 @@ export default function PortalAssistente() {
     }
   }
 
+  function abrirWhatsAppComHistorico() {
+    const primeiroNome = student?.nome.split(" ")[0] ?? "Aluno";
+
+    const historicoMsgs = messages
+      .filter((m, i) => !(i === 0 && m.role === "assistant"))
+      .map((m) => `${m.role === "user" ? `👤 ${primeiroNome}` : "🤖 Assistente"}: ${m.content}`)
+      .join("\n\n");
+
+    const texto = encodeURIComponent(
+      `Olá! Sou ${student?.nome ?? "aluno"} e estava conversando com o Assistente FORTEM.\n\n` +
+        `📋 *Resumo da conversa:*\n\n${historicoMsgs}\n\n` +
+        `Preciso de ajuda com mais detalhes. Pode me auxiliar? 😊`
+    );
+
+    window.open(`https://wa.me/555135199451?text=${texto}`, "_blank");
+  }
+
   if (!student) return null;
 
   return (
