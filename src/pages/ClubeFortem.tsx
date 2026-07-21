@@ -45,18 +45,22 @@ export default function ClubeFortem() {
         </TabsList>
 
         <TabsContent value="dashboard" className="pt-6">
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-bold">Dashboard de Parceiros</h2>
-              <p className="text-sm text-muted-foreground">Métricas de uso dos benefícios nos últimos 30 dias.</p>
+              <h2 className="text-base font-bold mb-1">Uso dos Parceiros</h2>
+              <p className="text-sm text-muted-foreground mb-4">Métricas dos últimos 30 dias.</p>
+              <AdminClubeDashboard />
             </div>
-            <AdminClubeDashboard />
+            <div className="border-t pt-6">
+              <h2 className="text-base font-bold mb-4">Clube FORTEM — Visão Geral</h2>
+              <OverviewContent />
+            </div>
           </div>
         </TabsContent>
-        <TabsContent value="overview" className="pt-6"><OverviewTab /></TabsContent>
         <TabsContent value="pontuacao" className="pt-6"><PontuacaoTab /></TabsContent>
         <TabsContent value="resgates" className="pt-6"><ResgatesTab /></TabsContent>
         <TabsContent value="recompensas" className="pt-6"><RecompensasTab /></TabsContent>
+        <TabsContent value="parceiros" className="pt-6"><AdminParceirosTable /></TabsContent>
         <TabsContent value="ranking" className="pt-6"><RankingTab /></TabsContent>
       </Tabs>
     </div>
