@@ -180,15 +180,25 @@ export default function PortalClube() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
-      <div className="flex items-center gap-2 flex-wrap">
-        <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-          Clube FORTEM
-        </h1>
-        {planoAtivo && (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-            Plano {planoAtivo}
-          </span>
-        )}
+      <div className="pt-2 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Programa de Fidelidade</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Clube FORTEM</h1>
+            {planoAtivo && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                Plano {planoAtivo}
+              </span>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={() => setShowRegras(true)}
+          aria-label="Como funciona"
+          className="w-9 h-9 shrink-0 rounded-xl bg-card border border-border flex items-center justify-center"
+        >
+          <HelpCircle className="w-4 h-4 text-muted-foreground" />
+        </button>
       </div>
 
       {/* Acesso rápido à carteirinha */}
