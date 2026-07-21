@@ -41,6 +41,7 @@ export default function ClubeFortem() {
           <TabsTrigger value="resgates">Resgates</TabsTrigger>
           <TabsTrigger value="recompensas">Recompensas</TabsTrigger>
           <TabsTrigger value="parceiros">Parceiros</TabsTrigger>
+          <TabsTrigger value="desafios">Desafios</TabsTrigger>
           <TabsTrigger value="ranking">Ranking</TabsTrigger>
         </TabsList>
 
