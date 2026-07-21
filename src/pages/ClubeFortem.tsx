@@ -470,6 +470,16 @@ function RecompensasTab() {
                     </div>
                   ))}
                 </div>
+                <div>
+                  <p className="text-[10px] text-amber-600 mb-1 font-semibold">Agregador (Wellhub/TotalPass) — 30% mais caro</p>
+                  <Input
+                    type="number"
+                    placeholder="—"
+                    value={editing.custo_agregador ?? ""}
+                    onChange={(e) => setEditing({ ...editing, custo_agregador: e.target.value === "" ? null : parseInt(e.target.value) || 0 })}
+                    className="border-amber-500/30"
+                  />
+                </div>
               </div>
 
               {/* Planos elegíveis */}
