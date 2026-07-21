@@ -39,6 +39,7 @@ export default function PortalClube() {
   const [rankingAberto, setRankingAberto] = useState(false);
   const [resgateConfirm, setResgateConfirm] = useState<any>(null);
   const [showComparativo, setShowComparativo] = useState(false);
+  const [showRegras, setShowRegras] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
 
   const { data: planoAtivo } = useQuery({
