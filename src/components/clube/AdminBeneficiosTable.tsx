@@ -36,7 +36,7 @@ const PERIODO_LABEL: Record<Periodicidade, string> = {
   livre: "Livre",
 };
 
-const NIVEIS: NivelMembro[] = ["agregador", "start", "start_plus", "power", "pro", "max"];
+const NIVEIS: NivelMembro[] = ["bronze", "prata", "ouro", "diamante", "platina"];
 
 const VALIDADE_PRESETS = [7, 15, 30, 60, 90, 180, 365];
 
@@ -52,7 +52,7 @@ const emptyForm = {
   data_inicio: "" as string, // YYYY-MM-DD do registro (preenchido no edit)
   validade_opcao: "30" as string, // "7" | "15" | ... | "custom" | "sem_prazo"
   validade_dias_custom: "" as string,
-  niveis_permitidos: ["start"] as NivelMembro[],
+  niveis_permitidos: ["prata"] as NivelMembro[],
   ativo: true,
 };
 
@@ -131,7 +131,7 @@ export function AdminBeneficiosTable() {
       data_inicio: b.data_inicio,
       validade_opcao,
       validade_dias_custom,
-      niveis_permitidos: (b.niveis_permitidos?.length ? b.niveis_permitidos : ["start"]) as NivelMembro[],
+      niveis_permitidos: (b.niveis_permitidos?.length ? b.niveis_permitidos : ["prata"]) as NivelMembro[],
       ativo: b.ativo,
     });
     setOpen(true);

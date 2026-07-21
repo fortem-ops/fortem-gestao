@@ -1670,6 +1670,7 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          custo_agregador: number | null
           custo_max: number | null
           custo_pontos: number
           custo_power: number | null
@@ -1687,6 +1688,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          custo_agregador?: number | null
           custo_max?: number | null
           custo_pontos: number
           custo_power?: number | null
@@ -1704,6 +1706,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          custo_agregador?: number | null
           custo_max?: number | null
           custo_pontos?: number
           custo_power?: number | null
@@ -6777,13 +6780,7 @@ export type Database = {
         | "divergencia_nivel"
         | "sincronizacao_parcial"
         | "manual"
-      clube_nivel_membro:
-        | "start"
-        | "start_plus"
-        | "power"
-        | "pro"
-        | "max"
-        | "agregador"
+      clube_nivel_membro: "bronze" | "prata" | "ouro" | "diamante" | "platina"
       clube_status_membro: "ativo" | "bloqueado" | "inadimplente" | "cancelado"
       comissao_pendencia_tipo:
         | "avaliar_experimental"
@@ -7066,14 +7063,7 @@ export const Constants = {
         "sincronizacao_parcial",
         "manual",
       ],
-      clube_nivel_membro: [
-        "start",
-        "start_plus",
-        "power",
-        "pro",
-        "max",
-        "agregador",
-      ],
+      clube_nivel_membro: ["bronze", "prata", "ouro", "diamante", "platina"],
       clube_status_membro: ["ativo", "bloqueado", "inadimplente", "cancelado"],
       comissao_pendencia_tipo: [
         "avaliar_experimental",

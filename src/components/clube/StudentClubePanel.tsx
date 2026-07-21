@@ -61,9 +61,9 @@ export function StudentClubePanel({ student }: Props) {
         contato={student.telefone}
       />
 
-      {membro.nivel_membro === "agregador" && (
+      {membro.nivel_membro === "bronze" && (
         <Card className="p-4 text-xs text-center text-muted-foreground border-dashed">
-          Alunos com plano <strong>Gympass/Wellhub</strong> ou <strong>Total Pass</strong> são membros <strong>Agregador</strong> e não recebem benefícios do Clube FORTEM.
+          Alunos com plano <strong>Gympass/Wellhub</strong> ou <strong>Total Pass</strong> são membros <strong>Bronze</strong> (agregador) e recebem benefícios reduzidos do Clube FORTEM.
         </Card>
       )}
 

@@ -357,6 +357,7 @@ function RecompensasTab() {
         custo_power: r.custo_power ?? null,
         custo_pro: r.custo_pro ?? null,
         custo_max: r.custo_max ?? null,
+        custo_agregador: r.custo_agregador ?? null,
         planos_elegiveis: r.planos_elegiveis ?? ['start','start_plus','power','pro','max'],
       };
       if (r.id) {
@@ -400,13 +401,14 @@ function RecompensasTab() {
                 </p>
                 <div className="flex gap-1 flex-wrap mt-1">
                   {[
+                    { label: 'AG', val: r.custo_agregador },
                     { label: 'S', val: r.custo_start },
                     { label: 'S+', val: r.custo_start_plus },
                     { label: 'PW', val: r.custo_power },
                     { label: 'PR', val: r.custo_pro },
                     { label: 'MX', val: r.custo_max },
                   ].filter((x) => x.val != null).map((x) => (
-                    <span key={x.label} className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
+                    <span key={x.label} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${x.label === 'AG' ? 'bg-amber-500/20 text-amber-700' : 'bg-muted'}`}>
                       {x.label}: {x.val}
                     </span>
                   ))}
@@ -467,6 +469,16 @@ function RecompensasTab() {
                       />
                     </div>
                   ))}
+                </div>
+                <div>
+                  <p className="text-[10px] text-amber-600 mb-1 font-semibold">Agregador (Wellhub/TotalPass) — 30% mais caro</p>
+                  <Input
+                    type="number"
+                    placeholder="—"
+                    value={editing.custo_agregador ?? ""}
+                    onChange={(e) => setEditing({ ...editing, custo_agregador: e.target.value === "" ? null : parseInt(e.target.value) || 0 })}
+                    className="border-amber-500/30"
+                  />
                 </div>
               </div>
 
