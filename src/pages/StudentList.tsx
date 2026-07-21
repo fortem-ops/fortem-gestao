@@ -314,8 +314,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const debouncedSearch = useDebounce(filters.search, 250);
 
   const filtered = useMemo(() => {
+    console.log("[StudentList] Recalculando filtros. Total alunos:", alunos.length, "isInativos:", isInativos);
     const term = debouncedSearch.toLowerCase();
-    return alunos.filter((s) => {
+    let droppedReasons: Record<string, number> = {};
+    const result = alunos.filter((s) => {
       const c = s.credits;
       const matchSearch = (s.nome ?? "").toLowerCase().includes(term) ||
         (s.email?.toLowerCase().includes(term) ?? false);
