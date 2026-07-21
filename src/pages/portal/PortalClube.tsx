@@ -282,8 +282,18 @@ export default function PortalClube() {
         )}
       </Card>
 
+      {pontos?.nivel === 'bronze' && (
+        <button
+          onClick={() => window.open('https://wa.me/555135199451?text=Olá! Sou aluno Wellhub/TotalPass e quero conhecer os planos FORTEM.', '_blank')}
+          className="w-full py-3 rounded-2xl bg-amber-500 text-black text-sm font-black flex items-center justify-center gap-2"
+          style={{fontFamily:'Archivo,sans-serif'}}
+        >
+          🚀 Migrar para plano FORTEM
+        </button>
+      )}
+
       {/* Multiplicador climático */}
-      {clima?.multiplicador_ativo && (
+      {clima?.multiplicador_ativo && pontos?.nivel !== 'bronze' && (
         <Card className="glass-card p-4 border-primary/50 bg-primary/10 flex items-center gap-3">
           <CloudRain className="w-6 h-6 text-primary" />
           <div>
