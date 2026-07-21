@@ -211,6 +211,28 @@ export function AdminParceirosTable() {
                 />
               </div>
               <div>
+                <Label>Coordenadas (para distância no portal)</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    type="number"
+                    step="0.0000001"
+                    value={form.latitude}
+                    onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                    placeholder="Latitude (ex: -30.0331)"
+                  />
+                  <Input
+                    type="number"
+                    step="0.0000001"
+                    value={form.longitude}
+                    onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                    placeholder="Longitude (ex: -51.2300)"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  💡 No Google Maps, clique com o botão direito no local e copie as coordenadas.
+                </p>
+              </div>
+              <div>
                 <Label>Logo URL</Label>
                 <Input value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} />
               </div>
