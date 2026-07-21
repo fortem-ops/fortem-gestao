@@ -178,9 +178,13 @@ export default function PortalClube() {
   if (!student) return null;
 
   const saldo = pontos?.saldo ?? 0;
-  const nivelAtual = NIVEIS.find((n) => n.key === (pontos?.nivel ?? "iniciante"))!;
-  const proxNivel = NIVEIS[NIVEIS.indexOf(nivelAtual) + 1];
-  const progresso = proxNivel ? Math.min(100, ((saldo - nivelAtual.min) / (proxNivel.min - nivelAtual.min)) * 100) : 100;
+  const nivelKey = pontos?.nivel ?? "prata";
+  const nivelAtual = NIVEIS.find((n) => n.key === nivelKey) ?? NIVEIS[1];
+  const isAgregador = nivelKey === "bronze";
+  const proxNivel = isAgregador ? undefined : NIVEIS.slice(1).find((n, idx, arr) => n.key === nivelAtual.key ? arr[idx + 1] : false) || NIVEIS[NIVEIS.indexOf(nivelAtual) + 1];
+  const progresso = proxNivel && proxNivel.min > nivelAtual.min
+    ? Math.min(100, ((saldo - nivelAtual.min) / (proxNivel.min - nivelAtual.min)) * 100)
+    : 100;
   const posMinhaMes = ranking?.findIndex((r) => r.aluno_id === student.id);
 
   const posicaoRanking = posMinhaMes !== undefined && posMinhaMes >= 0 ? posMinhaMes + 1 : null;
