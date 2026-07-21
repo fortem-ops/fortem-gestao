@@ -536,7 +536,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
     }
   }
 
-  if (error) {
+  const showLoading = isLoading && !forceReady;
+
+  if (error && !forceReady) {
     return (
       <div className="space-y-6 animate-fade-in">
         <h1 className="text-2xl font-heading font-bold text-foreground">{pageTitle}</h1>
