@@ -145,6 +145,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const { data: alunos = [], isLoading, error, refetch } = useQuery({
     queryKey: ["alunos_with_plans"],
     queryFn: async () => {
+      console.log("[StudentList] Iniciando fetch de alunos. user:", user?.id, "email:", user?.email);
       // Paginated fetch to bypass PostgREST 1000-row default limit
       const PAGE = 1000;
       const students: any[] = [];
@@ -154,16 +155,18 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           .select(ALUNOS_COLUMNS)
           .order("nome")
           .range(from, from + PAGE - 1);
+        console.log(`[StudentList] Página alunos from=${from}:`, { count: data?.length, error });
         if (error) {
-          console.error("Erro ao buscar alunos:", error);
+          console.error("[StudentList] Erro ao buscar alunos:", error);
           throw error;
         }
         students.push(...(data || []));
         if (!data || data.length < PAGE) break;
       }
 
+      console.log("[StudentList] Total alunos retornados:", students.length);
       if (students.length === 0) {
-        console.warn("Nenhum aluno retornado — possível problema de RLS ou conexão", {
+        console.warn("[StudentList] Nenhum aluno retornado — possível problema de RLS ou conexão", {
           debugAccess,
           userId: user?.id,
         });
