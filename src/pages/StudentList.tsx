@@ -295,7 +295,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         bucket.servico[c.atividade] = cur;
       });
 
-      return students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
+      const enriched = students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
+      console.log("[StudentList] Alunos enriquecidos:", enriched.length);
+      return enriched;
     },
     retry: 2,
     retryDelay: 1000,
