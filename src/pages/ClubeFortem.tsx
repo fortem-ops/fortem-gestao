@@ -37,10 +37,10 @@ export default function ClubeFortem() {
       <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)} className="w-full">
         <TabsList className="bg-secondary/50 flex-wrap h-auto">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>
           <TabsTrigger value="resgates">Resgates</TabsTrigger>
           <TabsTrigger value="recompensas">Recompensas</TabsTrigger>
+          <TabsTrigger value="parceiros">Parceiros</TabsTrigger>
           <TabsTrigger value="ranking">Ranking</TabsTrigger>
         </TabsList>
 
