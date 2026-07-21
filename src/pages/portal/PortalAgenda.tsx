@@ -151,6 +151,53 @@ export default function PortalAgenda() {
     },
   });
 
+  // Horários fixos do aluno
+  const { data: horariosFixos = [] } = useQuery({
+    queryKey: ["portal-horarios-fixos", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("treino_horarios_fixos")
+        .select("*, treino_slots(horario_inicio, horario_fim)")
+        .eq("aluno_id", student!.id)
+        .eq("ativo", true)
+        .order("dia_semana");
+      return data || [];
+    },
+  });
+
+  // Plano ativo (elegibilidade horário fixo)
+  const { data: planoPortal } = useQuery({
+    queryKey: ["portal-plano-horario-fixo", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planos")
+        .select("tipo, frequencia_semanal")
+        .eq("aluno_id", student!.id)
+        .eq("ativo", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  // Slots disponíveis para o dia escolhido no bottom sheet de horário fixo
+  const { data: slotsFixo = [] } = useQuery({
+    queryKey: ["portal-slots-fixo-dia", diaFixo],
+    enabled: showAdicionarFixo,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("treino_slots")
+        .select("*")
+        .eq("dia_semana", diaFixo)
+        .eq("ativo", true)
+        .order("horario_inicio");
+      return data || [];
+    },
+  });
+
   // Créditos de serviço (exceto Treino)
   const { data: servicosDisponiveis = [] } = useQuery({
     queryKey: ["portal-agenda-servicos-creditos", student?.id],
