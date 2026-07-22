@@ -14,6 +14,7 @@ import {
   Footprints,
   ChevronRight,
   MessageCircle,
+  AlertCircle,
 } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 import type { ReactNode } from "react";
