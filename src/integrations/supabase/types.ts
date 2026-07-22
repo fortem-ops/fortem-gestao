@@ -2298,6 +2298,45 @@ export type Database = {
           },
         ]
       }
+      contrato_templates: {
+        Row: {
+          ativo: boolean
+          conteudo: string
+          created_at: string
+          criado_por: string | null
+          forma_pagamento: string
+          id: string
+          nome: string
+          plano_tipo: string
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          ativo?: boolean
+          conteudo: string
+          created_at?: string
+          criado_por?: string | null
+          forma_pagamento: string
+          id?: string
+          nome: string
+          plano_tipo: string
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          ativo?: boolean
+          conteudo?: string
+          created_at?: string
+          criado_por?: string | null
+          forma_pagamento?: string
+          id?: string
+          nome?: string
+          plano_tipo?: string
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: []
+      }
       contratos: {
         Row: {
           aluno_id: string
@@ -2424,6 +2463,86 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_planos_base"
             referencedColumns: ["plano_id"]
+          },
+        ]
+      }
+      contratos_documentos: {
+        Row: {
+          aceite: boolean
+          aluno_id: string
+          assinatura: string | null
+          conteudo_gerado: string
+          contrato_id: string
+          created_at: string
+          data_aceite: string | null
+          formato_aceite: string | null
+          id: string
+          ip_aceite: string | null
+          regulamento_versao: number
+          template_id: string | null
+          template_versao: number
+          variaveis_utilizadas: Json
+        }
+        Insert: {
+          aceite?: boolean
+          aluno_id: string
+          assinatura?: string | null
+          conteudo_gerado: string
+          contrato_id: string
+          created_at?: string
+          data_aceite?: string | null
+          formato_aceite?: string | null
+          id?: string
+          ip_aceite?: string | null
+          regulamento_versao: number
+          template_id?: string | null
+          template_versao: number
+          variaveis_utilizadas?: Json
+        }
+        Update: {
+          aceite?: boolean
+          aluno_id?: string
+          assinatura?: string | null
+          conteudo_gerado?: string
+          contrato_id?: string
+          created_at?: string
+          data_aceite?: string | null
+          formato_aceite?: string | null
+          id?: string
+          ip_aceite?: string | null
+          regulamento_versao?: number
+          template_id?: string | null
+          template_versao?: number
+          variaveis_utilizadas?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_documentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_documentos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "contratos_documentos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_documentos_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contrato_templates"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5071,6 +5190,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      regulamento_interno_versoes: {
+        Row: {
+          ativo: boolean
+          conteudo: string
+          created_at: string
+          criado_por: string | null
+          id: string
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          ativo?: boolean
+          conteudo: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          ativo?: boolean
+          conteudo?: string
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: []
       }
       relatorios_alertas_config: {
         Row: {
