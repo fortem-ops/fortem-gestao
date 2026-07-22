@@ -13,6 +13,7 @@ import type { AlunoLicenca } from "@/lib/licencas";
 import { EditDadosCadastraisDialog } from "./EditDadosCadastraisDialog";
 import AnnexDetailModal, { type AnnexDetail } from "@/components/legal-annex/AnnexDetailModal";
 import ContratoDetailModal, { type ContratoDetail } from "@/components/student/ContratoDetailModal";
+import MarkPresentialSignatureDialog from "@/components/student/MarkPresentialSignatureDialog";
 import { Link } from "react-router-dom";
 
 
@@ -52,6 +53,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const [editingCadastro, setEditingCadastro] = useState(false);
   const [viewingAnnex, setViewingAnnex] = useState<AnnexDetail | null>(null);
   const [viewingContrato, setViewingContrato] = useState<ContratoDetail | null>(null);
+  const [markingPresential, setMarkingPresential] = useState(false);
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin_summary"],
@@ -999,15 +1001,26 @@ export function StudentSummary({ student }: { student: Aluno }) {
                 <FileText className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Contrato</span>
               </div>
-              {contratoDoc && (
-                <button
-                  onClick={() => setViewingContrato(contratoDoc)}
-                  className="text-muted-foreground hover:text-primary"
-                  title="Ver contrato"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {isCoordAdmin && (
+                  <button
+                    onClick={() => setMarkingPresential(true)}
+                    className="text-muted-foreground hover:text-primary"
+                    title="Marcar como assinado presencialmente"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {contratoDoc && (
+                  <button
+                    onClick={() => setViewingContrato(contratoDoc)}
+                    className="text-muted-foreground hover:text-primary"
+                    title="Ver contrato"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
             {!contratoDoc ? (
               <Badge variant="outline" className="status-info text-xs">Sem contrato</Badge>
@@ -1112,6 +1125,13 @@ export function StudentSummary({ student }: { student: Aluno }) {
 
       <AnnexDetailModal annex={viewingAnnex} open={!!viewingAnnex} onClose={() => setViewingAnnex(null)} />
       <ContratoDetailModal contrato={viewingContrato} open={!!viewingContrato} onClose={() => setViewingContrato(null)} />
+      <MarkPresentialSignatureDialog
+        open={markingPresential}
+        onOpenChange={setMarkingPresential}
+        student={student}
+        contratoDoc={contratoDoc ?? null}
+        planoTipoAtual={plano?.tipo ?? null}
+      />
 
       <EditDadosCadastraisDialog
         open={editingCadastro}
