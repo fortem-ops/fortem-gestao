@@ -506,14 +506,19 @@ export default function TemplatesContratos() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <header className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-          <FileText className="h-6 w-6 text-primary" />
-          Templates de Contratos
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Modelos versionados usados para gerar contratos de alunos. Cada plano possui variantes por forma de pagamento.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <FileText className="h-6 w-6 text-primary" />
+            Templates de Contratos
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Modelos versionados usados para gerar contratos de alunos. Cada plano possui variantes por forma de pagamento.
+          </p>
+        </div>
+        <Button onClick={() => setCriando(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Criar Novo Contrato
+        </Button>
       </header>
 
       {/* Regulamento Interno — bloco compartilhado */}
