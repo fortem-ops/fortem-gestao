@@ -31,11 +31,11 @@ function preencherMergeFields(
   values: { assinatura?: string; aceite?: string; data_aceite?: string; formato_aceite?: string; ip_aceite?: string },
 ) {
   return html
-    .replaceAll("%ASSINATURA%", values.assinatura ?? "")
-    .replaceAll("%ACEITE%", values.aceite ?? "")
-    .replaceAll("%DATA_ACEITE%", values.data_aceite ?? "")
-    .replaceAll("%FORMATO_ACEITE%", values.formato_aceite ?? "")
-    .replaceAll("%IP_ACEITE%", values.ip_aceite ?? "");
+    .replace(/%ASSINATURA%/g, values.assinatura ?? "")
+    .replace(/%ACEITE%/g, values.aceite ?? "")
+    .replace(/%DATA_ACEITE%/g, values.data_aceite ?? "")
+    .replace(/%FORMATO_ACEITE%/g, values.formato_aceite ?? "")
+    .replace(/%IP_ACEITE%/g, values.ip_aceite ?? "");
 }
 
 export default function PortalContratos() {
