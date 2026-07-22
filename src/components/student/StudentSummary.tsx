@@ -53,6 +53,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const [editingCadastro, setEditingCadastro] = useState(false);
   const [viewingAnnex, setViewingAnnex] = useState<AnnexDetail | null>(null);
   const [viewingContrato, setViewingContrato] = useState<ContratoDetail | null>(null);
+  const [markingPresential, setMarkingPresential] = useState(false);
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin_summary"],
