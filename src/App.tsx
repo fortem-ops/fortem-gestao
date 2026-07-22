@@ -158,6 +158,7 @@ const App = () => (
               <Route path="/portal/notificacoes" element={<Suspense fallback={<RouteFallback />}><PortalNotificacoes /></Suspense>} />
               <Route path="/portal/carteirinha" element={<Suspense fallback={<RouteFallback />}><PortalCarteirinha /></Suspense>} />
               <Route path="/portal/assistente" element={<Suspense fallback={<RouteFallback />}><PortalAssistente /></Suspense>} />
+              <Route path="/portal/contratos" element={<Suspense fallback={<RouteFallback />}><PortalContratos /></Suspense>} />
             </Route>
 
             {/* Public, read-only workout view — opened by the QR code printed on the PDF. */}
