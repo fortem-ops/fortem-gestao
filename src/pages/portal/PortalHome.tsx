@@ -213,6 +213,39 @@ export default function PortalHome() {
 
   const streakSemanas = streakData ?? 0;
 
+  const { data: pendenciasDocs } = useQuery({
+    queryKey: ["portal-home-pendencias", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const cpfDigits = (student?.cpf ?? "").replace(/\D/g, "");
+      const [contratoRes, anexoRes] = await Promise.all([
+        supabase
+          .from("contratos_documentos")
+          .select("id, aceite")
+          .eq("aluno_id", student!.id)
+          .eq("aceite", false)
+          .limit(1),
+        cpfDigits
+          ? supabase
+              .from("legal_annexes")
+              .select("id, signed_at")
+              .or(`aluno_id.eq.${student!.id},cpf.eq.${cpfDigits}`)
+              .not("signed_at", "is", null)
+              .limit(1)
+          : supabase
+              .from("legal_annexes")
+              .select("id, signed_at")
+              .eq("aluno_id", student!.id)
+              .not("signed_at", "is", null)
+              .limit(1),
+      ]);
+      const contratoPendente = (contratoRes.data?.length ?? 0) > 0;
+      const anexoAssinado = (anexoRes.data?.length ?? 0) > 0;
+      return { contratoPendente, anexoPendente: !anexoAssinado };
+    },
+  });
+  const temPendencia = !!pendenciasDocs && (pendenciasDocs.contratoPendente || pendenciasDocs.anexoPendente);
+
 
   const contratado = cicloAtivo?.creditos_liberados ?? 0;
   const usado = cicloAtivo?.creditos_usados ?? 0;
