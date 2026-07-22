@@ -67,9 +67,20 @@ function fmtBR(d: Date) {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
-function isPlanoTipo(v: string | null | undefined): v is PlanoTipo {
-  return !!v && (PLANOS_OPCOES as string[]).includes(v);
+function mapPlanoTipoToEnum(tipo: string | null | undefined): PlanoTipo | null {
+  if (!tipo) return null;
+  const t = tipo.trim().toLowerCase();
+  if (t === "start") return "start";
+  if (t === "start+") return "start_plus";
+  if (t === "power") return "power";
+  if (t === "pro") return "pro";
+  if (t === "max") return "max";
+  if (t === "gympass/wellhub") return "gympass";
+  if (t === "total pass") return "totalpass";
+  if (t.startsWith("vip")) return "outro";
+  return null;
 }
+
 
 function mergeAluno(html: string, student: Aluno, dataAssinatura: Date): { conteudo: string; vars: Record<string, string> } {
   const s = student as any;
@@ -104,9 +115,10 @@ function mergeAluno(html: string, student: Aluno, dataAssinatura: Date): { conte
 export function MarkPresentialSignatureDialog({ open, onOpenChange, student, contratoDoc, planoTipoAtual }: Props) {
   const qc = useQueryClient();
   const [date, setDate] = useState<Date>(new Date());
-  const [planoTipo, setPlanoTipo] = useState<PlanoTipo>(
-    isPlanoTipo(planoTipoAtual) ? planoTipoAtual : "pro",
+  const [planoTipo, setPlanoTipo] = useState<PlanoTipo | "">(
+    mapPlanoTipoToEnum(planoTipoAtual) ?? "",
   );
+
   const [forma, setForma] = useState<FormaPagamento>("cartao_recorrencia");
   const [saving, setSaving] = useState(false);
 
@@ -127,6 +139,12 @@ export function MarkPresentialSignatureDialog({ open, onOpenChange, student, con
           .eq("id", contratoDoc.id);
         if (error) throw error;
       } else {
+        if (!planoTipo) {
+          toast.error("Selecione o plano");
+          setSaving(false);
+          return;
+        }
+
         const { data: template, error: errTpl } = await db
           .from("contrato_templates")
           .select("id, conteudo, versao")
@@ -140,6 +158,7 @@ export function MarkPresentialSignatureDialog({ open, onOpenChange, student, con
           setSaving(false);
           return;
         }
+
 
         const { data: regulamento, error: errReg } = await db
           .from("regulamento_interno_versoes")
@@ -228,9 +247,9 @@ export function MarkPresentialSignatureDialog({ open, onOpenChange, student, con
             <>
               <div>
                 <Label className="text-xs">Plano</Label>
-                <Select value={planoTipo} onValueChange={(v) => setPlanoTipo(v as PlanoTipo)}>
+                <Select value={planoTipo || undefined} onValueChange={(v) => setPlanoTipo(v as PlanoTipo)}>
                   <SelectTrigger className="mt-1">
-                    <SelectValue />
+                    <SelectValue placeholder="Selecione o plano" />
                   </SelectTrigger>
                   <SelectContent>
                     {PLANOS_OPCOES.map((p) => (
@@ -241,6 +260,7 @@ export function MarkPresentialSignatureDialog({ open, onOpenChange, student, con
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label className="text-xs">Forma de pagamento</Label>
                 <Select value={forma} onValueChange={(v) => setForma(v as FormaPagamento)}>
