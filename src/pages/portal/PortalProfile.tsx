@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import {
   ChevronRight, CreditCard, Bell, Star, Trash2,
-  LogOut, Shield,
+  LogOut, Shield, FileText,
 } from "lucide-react";
 
 export default function PortalProfile() {
