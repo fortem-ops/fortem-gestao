@@ -81,6 +81,7 @@ const PortalPlano = lazy(() => import("./pages/portal/PortalPlano"));
 const PortalNotificacoes = lazy(() => import("./pages/portal/PortalNotificacoes"));
 const PortalCarteirinha = lazy(() => import("./pages/portal/PortalCarteirinha"));
 const PortalAssistente = lazy(() => import("./pages/portal/PortalAssistente"));
+const PortalContratos = lazy(() => import("./pages/portal/PortalContratos"));
 
 // Portal do Parceiro
 const PartnerLogin = lazy(() => import("./pages/parceiro/PartnerLogin"));
