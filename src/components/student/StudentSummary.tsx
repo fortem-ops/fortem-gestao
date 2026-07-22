@@ -994,12 +994,38 @@ export function StudentSummary({ student }: { student: Aluno }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Contrato */}
           <div className="glass-card rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Contrato</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Contrato</span>
+              </div>
+              {contratoDoc && (
+                <button
+                  onClick={() => setViewingContrato(contratoDoc)}
+                  className="text-muted-foreground hover:text-primary"
+                  title="Ver contrato"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            <Badge variant="outline" className="status-info text-xs">A configurar</Badge>
+            {!contratoDoc ? (
+              <Badge variant="outline" className="status-info text-xs">Sem contrato</Badge>
+            ) : contratoDoc.aceite ? (
+              <div className="space-y-1">
+                <Badge variant="outline" className="status-active text-xs">Assinado</Badge>
+                <p className="text-[10px] text-muted-foreground">
+                  Aceito em {contratoDoc.data_aceite ? new Date(contratoDoc.data_aceite).toLocaleDateString("pt-BR") : "—"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Badge variant="outline" className="status-warning text-xs">Pendente de aceite</Badge>
+                <p className="text-[10px] text-muted-foreground">Aguardando aceite do aluno no portal</p>
+              </div>
+            )}
           </div>
+
 
           {/* Termo de Aptidão Física */}
           <div className="glass-card rounded-lg p-4">
