@@ -1111,6 +1111,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
       )}
 
       <AnnexDetailModal annex={viewingAnnex} open={!!viewingAnnex} onClose={() => setViewingAnnex(null)} />
+      <ContratoDetailModal contrato={viewingContrato} open={!!viewingContrato} onClose={() => setViewingContrato(null)} />
 
       <EditDadosCadastraisDialog
         open={editingCadastro}
