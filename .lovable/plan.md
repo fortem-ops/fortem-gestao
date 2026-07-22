@@ -1,33 +1,26 @@
-## Plano: Criar usuário de teste Pro
+## Plano: Criar usuário auth e vincular à Bruna Meyer
 
 ### Objetivo
-Preparar a aluna BRUNA MEYER como usuário de teste do plano Pro, ajustando seu email e garantindo que não tenha vínculo de auth.user.
+Garantir que a aluna Bruna Meyer (email `teste.pro@fortem.app`) tenha um usuário de autenticação correspondente e que o `user_id` em `public.alunos` esteja corretamente vinculado.
 
-### Alterações no banco de dados
-1. **Atualizar email** da aluna BRUNA MEYER para `teste.pro@fortem.app`.
-2. **Garantir `user_id = NULL`** no registro dela, para que possa ser vinculada a um novo login de teste posteriormente.
-3. **Confirmar** os dados atualizados com SELECT de validação.
+### Passos
 
-### SQL a ser executado
-```sql
--- 1. Atualizar email da Bruna Meyer para email de teste
-UPDATE public.alunos 
-SET email = 'teste.pro@fortem.app'
-WHERE id = (SELECT id FROM public.alunos WHERE nome = 'BRUNA MEYER' AND status = 'ativo' LIMIT 1);
+1. **Verificar existência do usuário auth**
+   - Executar: `SELECT id, email FROM auth.users WHERE email = 'teste.pro@fortem.app';`
+   - Se já existir, prosseguir para o vínculo.
 
--- 2. Garantir user_id NULL
-UPDATE public.alunos 
-SET user_id = NULL
-WHERE nome = 'BRUNA MEYER' AND status = 'ativo';
+2. **Criar usuário auth (se não existir)**
+   - Inserir na tabela `auth.users` com o email `teste.pro@fortem.app`.
+   - Usar senha temporária segura ou deixar para reset posterior.
+   - Confirmar criação com `SELECT id, email FROM auth.users WHERE email = 'teste.pro@fortem.app';`.
 
--- 3. Confirmar
-SELECT a.id, a.nome, a.email, a.user_id, p.tipo, a.frequencia_semanal
-FROM public.alunos a
-JOIN public.planos p ON p.aluno_id = a.id AND p.ativo = true
-WHERE a.nome = 'BRUNA MEYER' AND a.status = 'ativo';
-```
+3. **Vincular `user_id` na tabela `public.alunos`**
+   - Atualizar o registro da Bruna Meyer com o `id` do usuário auth criado/encontrado.
+   - Query: `UPDATE public.alunos SET user_id = '<auth_user_id>' WHERE email = 'teste.pro@fortem.app';`
 
-### Impacto
-- Apenas o registro da aluna BRUNA MEYER será alterado.
-- Nenhuma mudança de schema será feita.
-- A confirmação final mostrará os dados atualizados.
+4. **Confirmar vínculo**
+   - Executar: `SELECT a.id, a.nome, a.email, a.user_id, p.tipo, a.frequencia_semanal FROM public.alunos a JOIN public.planos p ON p.aluno_id = a.id AND p.ativo = true WHERE a.email = 'teste.pro@fortem.app';`
+
+### Notas
+- Não serão feitas alterações em arquivos do projeto.
+- As operações serão executadas via ferramenta de query/migração do backend.
