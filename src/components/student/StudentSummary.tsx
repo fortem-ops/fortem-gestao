@@ -12,6 +12,7 @@ import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
 import { EditDadosCadastraisDialog } from "./EditDadosCadastraisDialog";
 import AnnexDetailModal, { type AnnexDetail } from "@/components/legal-annex/AnnexDetailModal";
+import ContratoDetailModal, { type ContratoDetail } from "@/components/student/ContratoDetailModal";
 import { Link } from "react-router-dom";
 
 
