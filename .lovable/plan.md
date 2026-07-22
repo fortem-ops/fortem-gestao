@@ -1,26 +1,22 @@
-## Plano: Criar usuário auth e vincular à Bruna Meyer
+## Problema
 
-### Objetivo
-Garantir que a aluna Bruna Meyer (email `teste.pro@fortem.app`) tenha um usuário de autenticação correspondente e que o `user_id` em `public.alunos` esteja corretamente vinculado.
+Ao criar um Lead (que faz `INSERT` em `alunos` sem plano), o trigger `aluno_clube_sync_ins` dispara `fn_clube_sync_membro`, que chama `fn_clube_nivel_por_plano`. Essa função ainda retorna valores antigos do enum (`'start'`, `'start_plus'`, `'power'`, `'pro'`, `'max'`, `'agregador'`), que foram removidos quando o enum `clube_nivel_membro` foi reestruturado para `bronze | prata | ouro | diamante | platina`. Resultado: `invalid input value for enum clube_nivel_membro: "start"`.
 
-### Passos
+## Correção
 
-1. **Verificar existência do usuário auth**
-   - Executar: `SELECT id, email FROM auth.users WHERE email = 'teste.pro@fortem.app';`
-   - Se já existir, prosseguir para o vínculo.
+Atualizar apenas a função `public.fn_clube_nivel_por_plano` para devolver valores válidos do enum atual, seguindo a mesma lógica já usada em `fn_sync_nivel_membro`:
 
-2. **Criar usuário auth (se não existir)**
-   - Inserir na tabela `auth.users` com o email `teste.pro@fortem.app`.
-   - Usar senha temporária segura ou deixar para reset posterior.
-   - Confirmar criação com `SELECT id, email FROM auth.users WHERE email = 'teste.pro@fortem.app';`.
+- Sem plano ativo (caso do Lead) → `bronze`
+- Plano Gympass/Wellhub/Total Pass (agregador) → `bronze`
+- Plano contém `max` → `platina`
+- Plano contém `pro` → `diamante`
+- Plano contém `power` → `ouro`
+- Demais (Start, Start+, VIP, etc.) → `prata`
 
-3. **Vincular `user_id` na tabela `public.alunos`**
-   - Atualizar o registro da Bruna Meyer com o `id` do usuário auth criado/encontrado.
-   - Query: `UPDATE public.alunos SET user_id = '<auth_user_id>' WHERE email = 'teste.pro@fortem.app';`
+Status permanece `'ativo'`.
 
-4. **Confirmar vínculo**
-   - Executar: `SELECT a.id, a.nome, a.email, a.user_id, p.tipo, a.frequencia_semanal FROM public.alunos a JOIN public.planos p ON p.aluno_id = a.id AND p.ativo = true WHERE a.email = 'teste.pro@fortem.app';`
+Nenhuma outra função, trigger, tabela ou código de frontend precisa mudar — o bug é isolado nessa função.
 
-### Notas
-- Não serão feitas alterações em arquivos do projeto.
-- As operações serão executadas via ferramenta de query/migração do backend.
+## Detalhes técnicos
+
+Migration única que faz `CREATE OR REPLACE FUNCTION public.fn_clube_nivel_por_plano(_aluno_id uuid)` mantendo assinatura, `SECURITY DEFINER` e `search_path` atuais, substituindo o `CASE` por mapeamento contra o enum novo e usando `bronze` como fallback. Após aplicar, criar um lead de teste deve funcionar sem o erro de enum.
