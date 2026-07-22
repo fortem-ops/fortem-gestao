@@ -1,6 +1,6 @@
 export type PlanoTipo = 'start' | 'start_plus' | 'power' | 'pro' | 'max' | 'corrida' | 'gympass' | 'wellhub' | 'totalpass' | 'outro';
 export type VigenciaTipo = 'mensal' | 'anual';
-export type FormaPagamento = 'cartao_recorrencia' | 'cartao_parcelado' | 'pix_automatico' | 'boleto' | 'maquina_debito' | 'maquina_credito' | 'dinheiro';
+export type FormaPagamento = 'cartao_recorrencia' | 'cartao_parcelado' | 'pix_automatico' | 'boleto' | 'maquina_debito' | 'maquina_credito' | 'dinheiro' | 'plataforma_agregadora';
 export type ContratoStatus = 'ativo' | 'suspenso' | 'cancelado' | 'inadimplente' | 'encerrado';
 export type CobrancaStatus = 'pendente' | 'pago' | 'atrasado' | 'cancelado' | 'isento';
 export type CicloStatus = 'ativo' | 'suspenso' | 'expirado' | 'cancelado';
@@ -120,6 +120,7 @@ export const FORMA_PAGAMENTO_LABELS: Record<FormaPagamento, string> = {
   maquina_debito: 'Máquina Débito',
   maquina_credito: 'Máquina Crédito 1x',
   dinheiro: 'Dinheiro',
+  plataforma_agregadora: 'Plataforma Agregadora (Wellhub/Totalpass)',
 };
 
 export const STATUS_CONTRATO_LABELS: Record<ContratoStatus, string> = {
