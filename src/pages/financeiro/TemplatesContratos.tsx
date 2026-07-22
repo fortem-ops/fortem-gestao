@@ -492,6 +492,7 @@ export default function TemplatesContratos() {
   const [historico, setHistorico] = useState<ContratoTemplate | null>(null);
   const [editandoReg, setEditandoReg] = useState(false);
   const [historicoReg, setHistoricoReg] = useState(false);
+  const [criando, setCriando] = useState(false);
 
   const porPlano = useMemo(() => {
     const map = new Map<PlanoTipo, ContratoTemplate[]>();
