@@ -375,6 +375,23 @@ export function StudentSummary({ student }: { student: Aluno }) {
   });
 
 
+  const { data: contratoDoc } = useQuery({
+    queryKey: ["contrato_documento_aluno", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contratos_documentos")
+        .select("id, conteudo_gerado, aceite, data_aceite, formato_aceite, ip_aceite, created_at")
+        .eq("aluno_id", student.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return (data as ContratoDetail | null) ?? null;
+    },
+  });
+
+
+
+
   const { data: inadimplenciasAluno = [] } = useQuery({
     queryKey: ["inadimplencias-aluno", student.id],
     queryFn: async () => {
