@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FileText, History, Pencil, ScrollText, Info } from 'lucide-react';
+import { FileText, History, Pencil, ScrollText, Info, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,12 +15,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   useContratoTemplates,
   useRegulamentoInternoAtivo,
   useHistoricoTemplate,
   useHistoricoRegulamento,
   useSalvarContratoTemplate,
   useSalvarRegulamentoInterno,
+  useCriarContratoTemplate,
 } from '@/hooks/useContratoTemplates';
 import {
   PLANO_LABELS, FORMA_PAGAMENTO_LABELS, type PlanoTipo, type FormaPagamento,
@@ -120,6 +124,151 @@ function EditorTemplate({ open, onOpenChange, template }: EditorTemplateProps) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSalvar} disabled={salvar.isPending || !nome.trim() || !conteudo.trim()}>
             {salvar.isPending ? 'Salvando…' : 'Salvar nova versão'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ─────────────────────── Criar Novo Template ─────────────────────── */
+
+const FORMAS_TEMPLATE: FormaPagamento[] = ['cartao_recorrencia', 'cartao_parcelado'];
+const PLANOS_TEMPLATE: PlanoTipo[] = [
+  'start', 'start_plus', 'power', 'pro', 'max',
+  'corrida', 'gympass', 'wellhub', 'totalpass', 'outro',
+];
+
+interface CriarTemplateDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  existentes: ContratoTemplate[];
+}
+
+function CriarTemplateDialog({ open, onOpenChange, existentes }: CriarTemplateDialogProps) {
+  const [planoTipo, setPlanoTipo] = useState<PlanoTipo | ''>('');
+  const [formaPagamento, setFormaPagamento] = useState<FormaPagamento | ''>('');
+  const [nome, setNome] = useState('');
+  const [conteudo, setConteudo] = useState('');
+  const criar = useCriarContratoTemplate();
+
+  useEffect(() => {
+    if (open) {
+      setPlanoTipo('');
+      setFormaPagamento('');
+      setNome('');
+      setConteudo('');
+    }
+  }, [open]);
+
+  const duplicado = useMemo(() => {
+    if (!planoTipo || !formaPagamento) return false;
+    return existentes.some(
+      (t) => t.plano_tipo === planoTipo && t.forma_pagamento === formaPagamento && t.ativo,
+    );
+  }, [planoTipo, formaPagamento, existentes]);
+
+  const podeSalvar =
+    !!planoTipo && !!formaPagamento && !duplicado && nome.trim() !== '' && conteudo.trim() !== '';
+
+  const handleCriar = async () => {
+    if (!planoTipo || !formaPagamento) return;
+    await criar.mutateAsync({
+      plano_tipo: planoTipo,
+      forma_pagamento: formaPagamento,
+      nome,
+      conteudo,
+    });
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Criar novo template de contrato</DialogTitle>
+          <DialogDescription>
+            Selecione o plano e a forma de pagamento. Só é possível criar um template ativo por combinação.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-3 py-2 md:grid-cols-2">
+          <div>
+            <Label>Plano</Label>
+            <Select value={planoTipo} onValueChange={(v) => setPlanoTipo(v as PlanoTipo)}>
+              <SelectTrigger><SelectValue placeholder="Selecione o plano" /></SelectTrigger>
+              <SelectContent>
+                {PLANOS_TEMPLATE.map((p) => (
+                  <SelectItem key={p} value={p}>{PLANO_LABELS[p]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Forma de pagamento</Label>
+            <Select value={formaPagamento} onValueChange={(v) => setFormaPagamento(v as FormaPagamento)}>
+              <SelectTrigger><SelectValue placeholder="Selecione a forma" /></SelectTrigger>
+              <SelectContent>
+                {FORMAS_TEMPLATE.map((f) => (
+                  <SelectItem key={f} value={f}>{FORMA_PAGAMENTO_LABELS[f]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {duplicado && (
+          <Alert variant="destructive">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Já existe um template ativo para <b>{PLANO_LABELS[planoTipo as PlanoTipo]} · {FORMA_PAGAMENTO_LABELS[formaPagamento as FormaPagamento]}</b>.
+              Para alterá-lo, use <b>Editar</b> na lista principal (isso cria uma nova versão preservando a atual).
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid gap-3 py-2">
+          <div>
+            <Label htmlFor="novo-nome">Nome</Label>
+            <Input
+              id="novo-nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex: Contrato Pro — Cartão Recorrência"
+            />
+          </div>
+        </div>
+
+        <Tabs defaultValue="editar" className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="w-fit">
+            <TabsTrigger value="editar">Editar</TabsTrigger>
+            <TabsTrigger value="preview">Pré-visualizar</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="editar" className="flex-1 overflow-auto mt-2">
+            <Textarea
+              value={conteudo}
+              onChange={(e) => setConteudo(e.target.value)}
+              className="font-mono text-xs min-h-[420px] h-[52vh]"
+              placeholder="HTML do contrato com merge fields — ex: %NOME%, %CPF%, %VALOR_FINAL_CONTRATO%"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Merge fields disponíveis: %NOME%, %CPF%, %RG%, %EMAIL%, %TELEFONE%, %ENDERECO%, %PLANO%, %FREQUENCIA%, %VALOR_BASE%, %VALOR_FINAL_CONTRATO%, %VALOR_MENSAL%, %FORMA_PAGAMENTO%, %PARCELAS%, %DATA_INICIO%, %DATA_FIM%, %DIA%, %MES%, %ANO%, %DATA_HOJE%, %CIDADE%, %ESTADO%.
+            </p>
+          </TabsContent>
+
+          <TabsContent value="preview" className="flex-1 overflow-auto mt-2">
+            <div
+              className="prose prose-sm dark:prose-invert max-w-none border rounded-md p-4 bg-background min-h-[420px]"
+              dangerouslySetInnerHTML={{ __html: aplicarMergeFieldsExemplo(conteudo) }}
+            />
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleCriar} disabled={!podeSalvar || criar.isPending}>
+            {criar.isPending ? 'Criando…' : 'Criar template'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -343,6 +492,7 @@ export default function TemplatesContratos() {
   const [historico, setHistorico] = useState<ContratoTemplate | null>(null);
   const [editandoReg, setEditandoReg] = useState(false);
   const [historicoReg, setHistoricoReg] = useState(false);
+  const [criando, setCriando] = useState(false);
 
   const porPlano = useMemo(() => {
     const map = new Map<PlanoTipo, ContratoTemplate[]>();
@@ -356,14 +506,19 @@ export default function TemplatesContratos() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <header className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
-          <FileText className="h-6 w-6 text-primary" />
-          Templates de Contratos
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Modelos versionados usados para gerar contratos de alunos. Cada plano possui variantes por forma de pagamento.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <FileText className="h-6 w-6 text-primary" />
+            Templates de Contratos
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Modelos versionados usados para gerar contratos de alunos. Cada plano possui variantes por forma de pagamento.
+          </p>
+        </div>
+        <Button onClick={() => setCriando(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Criar Novo Contrato
+        </Button>
       </header>
 
       {/* Regulamento Interno — bloco compartilhado */}
@@ -469,6 +624,11 @@ export default function TemplatesContratos() {
         atual={regulamento ?? null}
       />
       <HistoricoRegulamentoDialog open={historicoReg} onOpenChange={setHistoricoReg} />
+      <CriarTemplateDialog
+        open={criando}
+        onOpenChange={setCriando}
+        existentes={templates ?? []}
+      />
     </div>
   );
 }

@@ -132,6 +132,31 @@ export function useSalvarContratoTemplate() {
   });
 }
 
+export function useCriarContratoTemplate() {
+  return useSupabaseMutation<ContratoTemplate, SalvarTemplateInput>({
+    mutationFn: async ({ plano_tipo, forma_pagamento, nome, conteudo }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data, error } = await db
+        .from('contrato_templates')
+        .insert({
+          plano_tipo,
+          forma_pagamento,
+          nome,
+          conteudo,
+          versao: 1,
+          ativo: true,
+          criado_por: userData.user?.id ?? null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as ContratoTemplate;
+    },
+    successMessage: 'Template criado',
+    invalidates: [['contrato_templates']],
+  });
+}
+
 export function useSalvarRegulamentoInterno() {
   return useSupabaseMutation<RegulamentoInternoVersao, { conteudo: string }>({
     mutationFn: async ({ conteudo }) => {
