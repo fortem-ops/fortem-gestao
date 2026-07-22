@@ -1125,6 +1125,13 @@ export function StudentSummary({ student }: { student: Aluno }) {
 
       <AnnexDetailModal annex={viewingAnnex} open={!!viewingAnnex} onClose={() => setViewingAnnex(null)} />
       <ContratoDetailModal contrato={viewingContrato} open={!!viewingContrato} onClose={() => setViewingContrato(null)} />
+      <MarkPresentialSignatureDialog
+        open={markingPresential}
+        onOpenChange={setMarkingPresential}
+        student={student}
+        contratoDoc={contratoDoc ?? null}
+        planoTipoAtual={plano?.tipo ?? null}
+      />
 
       <EditDadosCadastraisDialog
         open={editingCadastro}
