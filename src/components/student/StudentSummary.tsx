@@ -12,6 +12,7 @@ import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
 import { EditDadosCadastraisDialog } from "./EditDadosCadastraisDialog";
 import AnnexDetailModal, { type AnnexDetail } from "@/components/legal-annex/AnnexDetailModal";
+import ContratoDetailModal, { type ContratoDetail } from "@/components/student/ContratoDetailModal";
 import { Link } from "react-router-dom";
 
 
@@ -50,6 +51,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const [editingAlunoDesde, setEditingAlunoDesde] = useState(false);
   const [editingCadastro, setEditingCadastro] = useState(false);
   const [viewingAnnex, setViewingAnnex] = useState<AnnexDetail | null>(null);
+  const [viewingContrato, setViewingContrato] = useState<ContratoDetail | null>(null);
 
   const { data: isCoordAdmin = false } = useQuery({
     queryKey: ["is_coord_admin_summary"],
@@ -371,6 +373,23 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
     enabled: !!cpfDigits,
   });
+
+
+  const { data: contratoDoc } = useQuery({
+    queryKey: ["contrato_documento_aluno", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("contratos_documentos")
+        .select("id, conteudo_gerado, aceite, data_aceite, formato_aceite, ip_aceite, created_at")
+        .eq("aluno_id", student.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return (data as ContratoDetail | null) ?? null;
+    },
+  });
+
+
 
 
   const { data: inadimplenciasAluno = [] } = useQuery({
@@ -975,12 +994,38 @@ export function StudentSummary({ student }: { student: Aluno }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Contrato */}
           <div className="glass-card rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Contrato</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Contrato</span>
+              </div>
+              {contratoDoc && (
+                <button
+                  onClick={() => setViewingContrato(contratoDoc)}
+                  className="text-muted-foreground hover:text-primary"
+                  title="Ver contrato"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            <Badge variant="outline" className="status-info text-xs">A configurar</Badge>
+            {!contratoDoc ? (
+              <Badge variant="outline" className="status-info text-xs">Sem contrato</Badge>
+            ) : contratoDoc.aceite ? (
+              <div className="space-y-1">
+                <Badge variant="outline" className="status-active text-xs">Assinado</Badge>
+                <p className="text-[10px] text-muted-foreground">
+                  Aceito em {contratoDoc.data_aceite ? new Date(contratoDoc.data_aceite).toLocaleDateString("pt-BR") : "—"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Badge variant="outline" className="status-warning text-xs">Pendente de aceite</Badge>
+                <p className="text-[10px] text-muted-foreground">Aguardando aceite do aluno no portal</p>
+              </div>
+            )}
           </div>
+
 
           {/* Termo de Aptidão Física */}
           <div className="glass-card rounded-lg p-4">
@@ -1066,6 +1111,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
       )}
 
       <AnnexDetailModal annex={viewingAnnex} open={!!viewingAnnex} onClose={() => setViewingAnnex(null)} />
+      <ContratoDetailModal contrato={viewingContrato} open={!!viewingContrato} onClose={() => setViewingContrato(null)} />
 
       <EditDadosCadastraisDialog
         open={editingCadastro}
