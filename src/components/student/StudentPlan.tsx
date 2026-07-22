@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban, ShoppingCart, Edit3 } from "lucide-react";
+import { Activity, Utensils, Footprints, Calendar, DollarSign, Clock, Pencil, Check, X, Plus, History, Trash2, RefreshCw, Ban, ShoppingCart, Edit3, Pin } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
@@ -642,12 +642,20 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
       <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
 
-      <HorarioFixoManager
-        alunoId={student.id}
-        planoTipo={data?.tipo ?? ""}
-        frequenciaSemanal={student.frequencia_semanal ?? 1}
-        isStaff={true}
-      />
+      {/* Horário Fixo */}
+      {data && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+            <Pin className="w-4 h-4" /> Horário Fixo
+          </h3>
+          <HorarioFixoManager
+            alunoId={student.id}
+            planoTipo={data.tipo ?? ""}
+            frequenciaSemanal={student.frequencia_semanal ?? 1}
+            isStaff={true}
+          />
+        </div>
+      )}
 
       
       <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
