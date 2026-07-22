@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import {
   ChevronRight, CreditCard, Bell, Star, Trash2,
-  LogOut, Shield,
+  LogOut, Shield, FileText,
 } from "lucide-react";
 
 export default function PortalProfile() {
@@ -126,6 +126,17 @@ export default function PortalProfile() {
             <div className="flex-1">
               <p className="text-sm font-semibold text-foreground">Gerenciar Plano</p>
               <p className="text-xs text-muted-foreground">Trancar, cancelar, upgrades</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </Link>
+
+          <Link to="/portal/contratos" className="flex items-center gap-3 px-4 py-3.5">
+            <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
+              <FileText className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">Meus Contratos</p>
+              <p className="text-xs text-muted-foreground">Contrato e Anexo I</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </Link>

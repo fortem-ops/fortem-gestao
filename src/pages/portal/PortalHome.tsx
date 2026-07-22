@@ -14,6 +14,7 @@ import {
   Footprints,
   ChevronRight,
   MessageCircle,
+  AlertCircle,
 } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 import type { ReactNode } from "react";
@@ -213,6 +214,39 @@ export default function PortalHome() {
 
   const streakSemanas = streakData ?? 0;
 
+  const { data: pendenciasDocs } = useQuery({
+    queryKey: ["portal-home-pendencias", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const cpfDigits = (student?.cpf ?? "").replace(/\D/g, "");
+      const [contratoRes, anexoRes] = await Promise.all([
+        supabase
+          .from("contratos_documentos")
+          .select("id, aceite")
+          .eq("aluno_id", student!.id)
+          .eq("aceite", false)
+          .limit(1),
+        cpfDigits
+          ? supabase
+              .from("legal_annexes")
+              .select("id, signed_at")
+              .or(`aluno_id.eq.${student!.id},cpf.eq.${cpfDigits}`)
+              .not("signed_at", "is", null)
+              .limit(1)
+          : supabase
+              .from("legal_annexes")
+              .select("id, signed_at")
+              .eq("aluno_id", student!.id)
+              .not("signed_at", "is", null)
+              .limit(1),
+      ]);
+      const contratoPendente = (contratoRes.data?.length ?? 0) > 0;
+      const anexoAssinado = (anexoRes.data?.length ?? 0) > 0;
+      return { contratoPendente, anexoPendente: !anexoAssinado };
+    },
+  });
+  const temPendencia = !!pendenciasDocs && (pendenciasDocs.contratoPendente || pendenciasDocs.anexoPendente);
+
 
   const contratado = cicloAtivo?.creditos_liberados ?? 0;
   const usado = cicloAtivo?.creditos_usados ?? 0;
@@ -285,6 +319,28 @@ export default function PortalHome() {
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">FORTEM · Portal do Aluno</p>
       </div>
+
+      {temPendencia && (
+        <Link
+          to="/portal/contratos"
+          className="flex items-center gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4"
+        >
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-5 h-5 text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-amber-100">Documentos pendentes de aceite</p>
+            <p className="text-xs text-amber-100/70">
+              {pendenciasDocs?.contratoPendente && pendenciasDocs?.anexoPendente
+                ? "Contrato e Anexo I aguardando sua assinatura"
+                : pendenciasDocs?.contratoPendente
+                ? "Seu contrato aguarda aceite"
+                : "Anexo I aguarda sua assinatura"}
+            </p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-amber-300 shrink-0" />
+        </Link>
+      )}
 
       {/* Créditos de treino */}
       <section className="space-y-2">
