@@ -82,6 +82,7 @@ const comercialAdminItems = [
 /* ─── Financeiro ─── */
 const financeiroItems = [
   { title: "Contratos", url: "/financeiro/contratos", icon: FileSignature },
+  { title: "Templates de Contratos", url: "/financeiro/templates-contratos", icon: FileText },
   { title: "Cartões de Crédito", url: "/financeiro/cartoes", icon: CreditCard },
   { title: "Adquirente", url: "/financeiro/adquirente", icon: Percent },
 ];
