@@ -624,6 +624,11 @@ export default function TemplatesContratos() {
         atual={regulamento ?? null}
       />
       <HistoricoRegulamentoDialog open={historicoReg} onOpenChange={setHistoricoReg} />
+      <CriarTemplateDialog
+        open={criando}
+        onOpenChange={setCriando}
+        existentes={templates ?? []}
+      />
     </div>
   );
 }
