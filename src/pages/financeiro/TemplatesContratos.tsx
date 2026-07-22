@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FileText, History, Pencil, ScrollText, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -45,7 +45,7 @@ function EditorTemplate({ open, onOpenChange, template }: EditorTemplateProps) {
   const [conteudo, setConteudo] = useState('');
   const salvar = useSalvarContratoTemplate();
 
-  useMemo(() => {
+  useEffect(() => {
     if (template) {
       setNome(template.nome);
       setConteudo(template.conteudo ?? '');
@@ -139,7 +139,7 @@ function EditorRegulamento({ open, onOpenChange, atual }: EditorRegulamentoProps
   const [conteudo, setConteudo] = useState('');
   const salvar = useSalvarRegulamentoInterno();
 
-  useMemo(() => {
+  useEffect(() => {
     if (atual) setConteudo(atual.conteudo ?? '');
     else setConteudo('');
   }, [atual]);
