@@ -320,6 +320,28 @@ export default function PortalHome() {
         <p className="text-xs text-muted-foreground mt-0.5">FORTEM · Portal do Aluno</p>
       </div>
 
+      {temPendencia && (
+        <Link
+          to="/portal/contratos"
+          className="flex items-center gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4"
+        >
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-5 h-5 text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-amber-100">Documentos pendentes de aceite</p>
+            <p className="text-xs text-amber-100/70">
+              {pendenciasDocs?.contratoPendente && pendenciasDocs?.anexoPendente
+                ? "Contrato e Anexo I aguardando sua assinatura"
+                : pendenciasDocs?.contratoPendente
+                ? "Seu contrato aguarda aceite"
+                : "Anexo I aguarda sua assinatura"}
+            </p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-amber-300 shrink-0" />
+        </Link>
+      )}
+
       {/* Créditos de treino */}
       <section className="space-y-2">
         {temPlano ? (
