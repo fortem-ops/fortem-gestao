@@ -693,6 +693,51 @@ export default function PortalHome() {
         return (
           <>
 
+      {/* Serviços do Plano e Avulsos */}
+      {(() => {
+        // Serviços inclusos no plano: derivados de planos.servicos + consumo_servicos
+        // (mesma fonte de verdade usada em StudentPlan/ContratoFinanceiro).
+        const parseServiceCount = (servicos: string[] | null | undefined, tipo: string): number => {
+          if (!servicos) return 0;
+          for (const s of servicos) {
+            const m = s.match(/^(\d+)\s+(.+)$/);
+            if (m && m[2] === tipo) return parseInt(m[1]);
+          }
+          return 0;
+        };
+        const buildIncluso = (tipo: string) => {
+          const base = parseServiceCount((planoAtivo as any)?.servicos, tipo);
+          const comprado = (consumosPlano as any[])
+            .filter((c) => c.tipo_servico === tipo && c.tipo_registro === "compra")
+            .reduce((sum, c) => sum + (c.quantidade ?? 1), 0);
+          const usado = (consumosPlano as any[])
+            .filter((c) => c.tipo_servico === tipo && (!!c.agenda_id || c.tipo_registro === "uso_manual"))
+            .length;
+          const total = base + comprado;
+          return { total, usado };
+        };
+        const doPlano = [
+          { atividade: "Avaliação Funcional", ...buildIncluso("Avaliação Funcional") },
+          { atividade: "Consultas Nutrição", ...buildIncluso("Consultas Nutrição") },
+          { atividade: "Consultas Reabilitação", ...buildIncluso("Consultas Reabilitação") },
+        ]
+          .filter((s) => s.total > 0)
+          .map((s, i) => ({
+            id: `plano-${i}-${s.atividade}`,
+            atividade: s.atividade,
+            quantidade_inicial: s.total,
+            quantidade_usada: s.usado,
+            ilimitado: false,
+            origem_tipo: "plano",
+          }));
+        const doAvulso = creditosAll.filter((c: any) => c.origem_tipo === "servico");
+        const vendasMap = new Map((vendasAvulso as any[]).map((v) => [v.id, v]));
+
+        if (doPlano.length === 0 && doAvulso.length === 0) return null;
+
+        return (
+          <>
+
             {/* Incluso no seu Plano */}
             {doPlano.length > 0 && (
               <section className="space-y-2">
