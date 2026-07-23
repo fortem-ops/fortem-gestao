@@ -45,13 +45,26 @@ export default function PortalHome() {
     queryFn: async () => {
       const { data } = await supabase
         .from("planos")
-        .select("id, tipo, data_inicio, data_fim, proxima_renovacao")
+        .select("id, tipo, data_inicio, data_fim, proxima_renovacao, servicos")
         .eq("aluno_id", student!.id)
         .eq("ativo", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       return data;
+    },
+  });
+
+  const { data: consumosPlano = [] } = useQuery({
+    queryKey: ["portal-home-consumos", student?.id, planoAtivo?.id],
+    enabled: !!student && !!planoAtivo?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("consumo_servicos")
+        .select("tipo_servico, tipo_registro, quantidade, agenda_id")
+        .eq("aluno_id", student!.id)
+        .eq("plano_id", planoAtivo!.id);
+      return (data as any[]) || [];
     },
   });
 
