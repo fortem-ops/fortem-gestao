@@ -452,6 +452,13 @@ export default function PortalAgenda() {
             const pct = Math.min(100, (ocupadas / slot.capacidade_maxima) * 100);
             const instrutorNome = slot.instrutor_id ? instrutores[slot.instrutor_id] : null;
             const semCreditos = saldo <= 0;
+            const ehHoje = isSameDay(diaSelecionado, new Date());
+            const slotPassou = ehHoje && (() => {
+              const [hh, mm] = slot.horario_inicio.split(":").map(Number);
+              const inicio = new Date();
+              inicio.setHours(hh, mm, 0, 0);
+              return inicio.getTime() <= Date.now();
+            })();
 
             return (
               <div key={slot.id} className="bg-card border border-border rounded-2xl p-4 space-y-3">
