@@ -677,27 +677,6 @@ export default function PortalHome() {
 
         const saldoDe = (c: any) => (c.ilimitado ? Infinity : (c.quantidade_inicial - c.quantidade_usada));
 
-        // Resumo por atividade
-        const atividades = Array.from(new Set(creditosAll.map((c: any) => c.atividade)));
-        const resumo = atividades.map((atv) => {
-          const doGrupo = creditosAll.filter((c: any) => c.atividade === atv);
-          const temPlano = doGrupo.some((c: any) => c.origem_tipo === "plano");
-          const temAvulso = doGrupo.some((c: any) => c.origem_tipo === "servico");
-          const ilimitado = doGrupo.some((c: any) => c.ilimitado);
-          const saldoTotal = ilimitado
-            ? Infinity
-            : doGrupo.reduce((acc: number, c: any) => acc + Math.max(saldoDe(c), 0), 0);
-          let tag: { label: string; className: string };
-          if (temPlano && temAvulso) {
-            tag = { label: "Plano+Avulso", className: "bg-primary/15 text-primary border-primary/30" };
-          } else if (temPlano) {
-            tag = { label: "Plano", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" };
-          } else {
-            tag = { label: "Avulso", className: "bg-amber-500/15 text-amber-400 border-amber-500/30" };
-          }
-          return { atividade: atv, saldoTotal, ilimitado, tag };
-        });
-
         return (
           <>
             {/* Resumo Rápido */}
