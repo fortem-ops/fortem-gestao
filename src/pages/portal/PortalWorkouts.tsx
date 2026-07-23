@@ -264,16 +264,14 @@ export default function PortalWorkouts() {
   if (concluido) {
     // Após concluir, total de sessões agora é totalSessoes + 1
     const novaTotalSessoes = totalSessoes + 1;
-    const novaSessaoAtual = novaTotalSessoes + 1;
-    const novoVarIdx = Math.floor((novaSessaoAtual - 1) / semanas) % numVariacoes;
+    const novoVarIdx = novaTotalSessoes % numVariacoes; // próxima variação na rotação
     const novaVariacao = `T${novoVarIdx + 1}`;
     const novoTreinoIdx = novoVarIdx;
     const novoTreino = conteudo?.treinos?.[novoTreinoIdx];
 
-    // Quantas vezes a nova variação já foi feita
-    const sessoesDaNovaVariacao = sessoes.filter((s: any) => s.variacao === novaVariacao).length;
-    const vezNaNovaVariacao = sessoesDaNovaVariacao + (novaVariacao === variacaoExibida ? 1 : 0) + 1;
-    const isMesmaVariacao = novaVariacao === variacaoExibida;
+    // Ciclo atual (1-based)
+    const cicloAtual = Math.floor(novaTotalSessoes / numVariacoes) + 1;
+    const cicloTotal = semanas;
 
     return (
       <div className="space-y-5 pb-32 animate-fade-in px-1 pt-4">
@@ -296,11 +294,9 @@ export default function PortalWorkouts() {
             <div className="flex items-center justify-between">
               <p className="font-black text-lg text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
                 {novaVariacao}
-                {isMesmaVariacao && (
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({vezNaNovaVariacao}ª de {semanas})
-                  </span>
-                )}
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  · ciclo {Math.min(cicloAtual, cicloTotal)} de {cicloTotal}
+                </span>
               </p>
               <span className="text-xs text-muted-foreground">{novoTreino.nome}</span>
             </div>
