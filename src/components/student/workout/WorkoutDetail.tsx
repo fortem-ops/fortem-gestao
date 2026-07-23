@@ -262,6 +262,12 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     const appUrl = treino?.id
       ? `${window.location.origin}/treino/${treino.id}`
       : `${window.location.origin}/alunos/${alunoId}`;
+    if (treino?.id && weeksCount !== undefined) {
+      await supabase
+        .from("treinos")
+        .update({ semanas: weeksCount } as never)
+        .eq("id", treino.id);
+    }
     await exportWorkoutPDF({
       student: aluno as Parameters<typeof exportWorkoutPDF>[0]["student"],
       descricao: descricao || "PLANILHA DE TREINO",
