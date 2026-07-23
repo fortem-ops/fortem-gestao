@@ -1,1 +1,4 @@
 project_id = "dmudgqedzeosfpehpgep"
+
+[functions.agenda-ics]
+verify_jwt = false
