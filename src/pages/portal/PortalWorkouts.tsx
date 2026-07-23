@@ -266,8 +266,17 @@ export default function PortalWorkouts() {
   );
 }
 
+interface TreinoHistoricoItem {
+  id: string;
+  descricao: string | null;
+  versao: number | null;
+  status: string | null;
+  data_inicio: string | null;
+  created_at: string;
+}
+
 function TreinoHistorico({ alunoId, atualId }: { alunoId: string; atualId: string }) {
-  const { data: historico = [], isLoading } = useQuery({
+  const { data: historico = [], isLoading } = useQuery<TreinoHistoricoItem[]>({
     queryKey: ["portal-treinos-historico", alunoId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -278,7 +287,7 @@ function TreinoHistorico({ alunoId, atualId }: { alunoId: string; atualId: strin
         .order("created_at", { ascending: false })
         .limit(10);
       if (error) throw error;
-      return data || [];
+      return (data || []) as TreinoHistoricoItem[];
     },
   });
 
@@ -296,7 +305,7 @@ function TreinoHistorico({ alunoId, atualId }: { alunoId: string; atualId: strin
         </p>
       </div>
       <div className="space-y-2">
-        {historico.map((t: any) => (
+        {historico.map((t) => (
           <Card
             key={t.id}
             className="bg-card border border-border rounded-2xl p-3 flex items-center gap-3"
