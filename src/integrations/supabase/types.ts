@@ -5547,6 +5547,65 @@ export type Database = {
           },
         ]
       }
+      treino_cargas: {
+        Row: {
+          aluno_id: string
+          exercicio_nome: string
+          id: string
+          kg: string | null
+          sessao_id: string | null
+          treino_id: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          exercicio_nome: string
+          id?: string
+          kg?: string | null
+          sessao_id?: string | null
+          treino_id: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          exercicio_nome?: string
+          id?: string
+          kg?: string | null
+          sessao_id?: string | null
+          treino_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treino_cargas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treino_cargas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "treino_cargas_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "treino_sessoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treino_cargas_treino_id_fkey"
+            columns: ["treino_id"]
+            isOneToOne: false
+            referencedRelation: "treinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treino_horarios_fixos: {
         Row: {
           aluno_id: string
@@ -5614,6 +5673,80 @@ export type Database = {
           },
         ]
       }
+      treino_sessoes: {
+        Row: {
+          agendamento_id: string | null
+          aluno_id: string
+          concluido_em: string | null
+          created_at: string
+          data: string
+          foi_troca: boolean
+          id: string
+          observacoes: string | null
+          treino_id: string
+          updated_at: string
+          variacao: string
+          variacao_original: string | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          aluno_id: string
+          concluido_em?: string | null
+          created_at?: string
+          data?: string
+          foi_troca?: boolean
+          id?: string
+          observacoes?: string | null
+          treino_id: string
+          updated_at?: string
+          variacao: string
+          variacao_original?: string | null
+        }
+        Update: {
+          agendamento_id?: string | null
+          aluno_id?: string
+          concluido_em?: string | null
+          created_at?: string
+          data?: string
+          foi_troca?: boolean
+          id?: string
+          observacoes?: string | null
+          treino_id?: string
+          updated_at?: string
+          variacao?: string
+          variacao_original?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treino_sessoes_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "treino_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treino_sessoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treino_sessoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "treino_sessoes_treino_id_fkey"
+            columns: ["treino_id"]
+            isOneToOne: false
+            referencedRelation: "treinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treino_slots: {
         Row: {
           ativo: boolean
@@ -5665,6 +5798,7 @@ export type Database = {
           data_inicio: string | null
           descricao: string
           id: string
+          semanas: number
           status: string
           template_fase: string | null
           updated_at: string
@@ -5678,6 +5812,7 @@ export type Database = {
           data_inicio?: string | null
           descricao: string
           id?: string
+          semanas?: number
           status?: string
           template_fase?: string | null
           updated_at?: string
@@ -5691,6 +5826,7 @@ export type Database = {
           data_inicio?: string | null
           descricao?: string
           id?: string
+          semanas?: number
           status?: string
           template_fase?: string | null
           updated_at?: string
@@ -7046,6 +7182,22 @@ export type Database = {
       fn_tentar_comissao_experimental: {
         Args: { _agenda: string; _aluno: string; _profissional: string }
         Returns: undefined
+      }
+      fn_treino_concluir_sessao: {
+        Args: {
+          p_agendamento_id?: string
+          p_aluno_id: string
+          p_foi_troca?: boolean
+          p_observacoes?: string
+          p_treino_id: string
+          p_variacao: string
+          p_variacao_original?: string
+        }
+        Returns: Json
+      }
+      fn_treino_variacao_atual: {
+        Args: { p_aluno_id: string; p_treino_id: string }
+        Returns: Json
       }
       fn_user_can_see_notificacao: {
         Args: { _notif_id: string; _user_id: string }
