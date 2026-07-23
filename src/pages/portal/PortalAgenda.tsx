@@ -291,6 +291,7 @@ export default function PortalAgenda() {
         sem_vagas: "Não há vagas disponíveis neste horário.",
         ja_agendado_neste_dia: "Você já tem um treino agendado neste dia.",
         data_passada: "Não é possível agendar para datas passadas.",
+        horario_passado: "Esse horário já passou. Escolha outro horário disponível.",
         dia_invalido: "Dia inválido para este horário.",
       };
       toast.error(msgs[e.message] || "Erro ao agendar. Tente novamente.");
