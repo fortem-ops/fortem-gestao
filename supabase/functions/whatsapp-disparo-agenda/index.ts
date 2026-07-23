@@ -125,6 +125,7 @@ async function buildContext(agendaId: string) {
     '%COMO_CONHECEU%': anamnese?.como_conheceu ?? '—',
     '%QUEIXA%': anamnese?.queixa ?? anamnese?.limitacoes ?? '—',
     '%ULTIMA_AVALIACAO%': formatDateBR(ultimaAvaliacao?.data_avaliacao ?? null) || 'Nenhuma',
+    '%PROTOCOLO%': agenda.protocolo ?? '—',
   };
 
   return {
