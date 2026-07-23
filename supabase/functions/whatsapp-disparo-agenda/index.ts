@@ -125,6 +125,7 @@ async function buildContext(agendaId: string) {
     '%COMO_CONHECEU%': anamnese?.como_conheceu ?? '—',
     '%QUEIXA%': anamnese?.queixa ?? anamnese?.limitacoes ?? '—',
     '%ULTIMA_AVALIACAO%': formatDateBR(ultimaAvaliacao?.data_avaliacao ?? null) || 'Nenhuma',
+    '%PROTOCOLO%': agenda.protocolo ?? '—',
   };
 
   return {
@@ -240,7 +241,7 @@ function buildTemplatePayload(
         p('%NOME_ALUNO%'),
         p('%DATA_NASCIMENTO%'),
         p('%ULTIMA_AVALIACAO%'),
-        p('%OBJETIVO%'),
+        p('%PROTOCOLO%'),
       ]}],
     };
   }
@@ -409,6 +410,67 @@ Deno.serve(async (req) => {
             status: 'sent',
             enviado_por: null, // disparo automático, sem funcionário específico
           });
+        }
+      }
+
+      // Enviar cópia para o consultor se existir
+      const consultorUserId = (ctx.agenda as any).consultor_id;
+      if (send.ok && consultorUserId && cfg.destinatario === 'profissional') {
+        const { data: consultorProfile } = await admin
+          .from('profiles')
+          .select('phone, full_name')
+          .eq('user_id', consultorUserId)
+          .maybeSingle();
+
+        const consultorTel = normalizarTelefone((consultorProfile as any)?.phone);
+
+        if (consultorTel && consultorTel !== destinoTelefone) {
+          const consultorPayload = templatePayload
+            ? { ...templatePayload, to: consultorTel }
+            : null;
+
+          const sendConsultor = consultorPayload
+            ? await callSendWhatsApp(consultorPayload)
+            : await sendWhatsAppText(consultorTel, mensagem);
+
+          await admin.from('whatsapp_disparos_log').insert({
+            config_id: cfg.id,
+            agenda_id: agendaId,
+            aluno_id: ctx.agenda.aluno_id ?? null,
+            destinatario_telefone: consultorTel,
+            destinatario_nome: (consultorProfile as any)?.full_name ?? 'Consultor',
+            mensagem_enviada: mensagem,
+            status: sendConsultor.ok ? 'enviado' : 'erro',
+            erro_detalhe: sendConsultor.ok ? null : JSON.stringify({ error: sendConsultor.error }),
+          });
+
+          if (sendConsultor.ok) {
+            const nowIso = new Date().toISOString();
+            const { data: conv } = await admin
+              .from('whatsapp_conversas')
+              .upsert(
+                {
+                  telefone: consultorTel,
+                  nome_contato: (consultorProfile as any)?.full_name ?? 'Consultor',
+                  ultima_mensagem: mensagem.substring(0, 100),
+                  ultima_mensagem_at: nowIso,
+                },
+                { onConflict: 'telefone', ignoreDuplicates: false },
+              )
+              .select('id')
+              .single();
+
+            if (conv?.id) {
+              await admin.from('whatsapp_mensagens').insert({
+                conversa_id: conv.id,
+                direcao: 'enviada',
+                tipo: 'text',
+                conteudo: mensagem,
+                status: 'sent',
+                enviado_por: null,
+              });
+            }
+          }
         }
       }
 

@@ -1,0 +1,2 @@
+ALTER TABLE public.agenda_servicos ADD COLUMN IF NOT EXISTS protocolo text DEFAULT NULL;
+COMMENT ON COLUMN public.agenda_servicos.protocolo IS 'Protocolo da avaliação funcional: Saúde, Corredores, etc.';

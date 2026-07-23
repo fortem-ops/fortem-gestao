@@ -100,6 +100,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [alunoId, setAlunoId] = useState("");
   const [alunoSearch, setAlunoSearch] = useState("");
   const [creditoOrigem, setCreditoOrigem] = useState<"" | "plano" | "servico">("");
+  const [protocolo, setProtocolo] = useState("");
 
   const isEditing = !!editEvent;
 
@@ -119,6 +120,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
       setObservacoes(editEvent.observacoes || "");
       setAlunoId(editEvent.aluno_id || "");
       setAlunoSearch("");
+      setProtocolo(editEvent.protocolo || "");
     } else if (prefill) {
       const h = String(prefill.hour).padStart(2, "0");
       const hEnd = String(Math.min(prefill.hour + 1, 21)).padStart(2, "0");
@@ -351,7 +353,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         horario_inicio: horarioInicio,
         horario_fim: horarioFim,
         profissional_id: profissionalId || user?.id,
-        consultor_id: atividade === "Treino Experimental" ? (consultorId || null) : null,
+        consultor_id: ["Treino Experimental", "Avaliação Funcional"].includes(atividade) ? (consultorId || null) : null,
+        protocolo: atividade === "Avaliação Funcional" ? (protocolo || null) : null,
         observacoes: observacoes || null,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
         aluno_id: alunoId || null,
@@ -425,6 +428,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setAlunoId("");
     setAlunoSearch("");
     setCreditoOrigem("");
+    setProtocolo("");
   };
 
   const canSubmit = atividade && local && horarioInicio && horarioFim &&
@@ -596,7 +600,20 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             </Select>
           </div>
 
-          {atividade === "Treino Experimental" && (
+          {atividade === "Avaliação Funcional" && (
+            <div className="space-y-2">
+              <Label>Protocolo</Label>
+              <Select value={protocolo} onValueChange={setProtocolo}>
+                <SelectTrigger><SelectValue placeholder="Selecione o protocolo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Saúde">Saúde</SelectItem>
+                  <SelectItem value="Corredores">Corredores</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {["Treino Experimental", "Avaliação Funcional"].includes(atividade) && (
             <div className="space-y-2">
               <Label>Consultor</Label>
               <Select value={consultorId} onValueChange={setConsultorId}>
