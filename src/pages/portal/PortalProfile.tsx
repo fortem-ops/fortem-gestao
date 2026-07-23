@@ -6,12 +6,54 @@ import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import {
   ChevronRight, CreditCard, Bell, Star, Trash2,
-  LogOut, Shield, FileText,
+  LogOut, Shield, FileText, CalendarPlus, Copy, Check,
 } from "lucide-react";
+import { useState } from "react";
 
 export default function PortalProfile() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
+  const [copied, setCopied] = useState(false);
+
+  const { data: calendarToken } = useQuery({
+    queryKey: ["portal-calendar-token", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data: existing } = await (supabase as any)
+        .from("aluno_calendar_tokens")
+        .select("token")
+        .eq("aluno_id", student!.id)
+        .maybeSingle();
+      if (existing?.token) return existing.token as string;
+      const newToken = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "");
+      const { data, error } = await (supabase as any)
+        .from("aluno_calendar_tokens")
+        .insert({ aluno_id: student!.id, token: newToken })
+        .select("token")
+        .single();
+      if (error) throw error;
+      return data.token as string;
+    },
+  });
+
+  const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+  const feedHttpUrl = supabaseUrl && calendarToken
+    ? `${supabaseUrl}/functions/v1/agenda-ics?token=${calendarToken}`
+    : "";
+  const feedWebcalUrl = feedHttpUrl.replace(/^https?:\/\//, "webcal://");
+
+  const copyFeed = async () => {
+    if (!feedWebcalUrl) return;
+    try {
+      await navigator.clipboard.writeText(feedWebcalUrl);
+      setCopied(true);
+      toast.success("Link copiado");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -165,6 +207,50 @@ export default function PortalProfile() {
           </Link>
         </div>
       </section>
+
+      {/* ── SINCRONIZAR CALENDÁRIO ── */}
+      <section className="space-y-2">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Sincronizar com meu calendário</p>
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
+              <CalendarPlus className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">Assine sua agenda Fortem</p>
+              <p className="text-xs text-muted-foreground">Seus treinos e serviços aparecem automaticamente no seu calendário.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 bg-[#0F0F0F] border border-border rounded-lg px-3 py-2">
+            <p className="text-[11px] text-muted-foreground truncate flex-1 font-mono">
+              {feedWebcalUrl || "Gerando link…"}
+            </p>
+            <button
+              onClick={copyFeed}
+              disabled={!feedWebcalUrl}
+              className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 disabled:opacity-40"
+              aria-label="Copiar link"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-primary" />}
+            </button>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <div className="text-[11px] text-muted-foreground leading-relaxed">
+              <p className="font-semibold text-foreground mb-0.5">Google Calendar</p>
+              <p>Abra <span className="font-mono text-foreground">calendar.google.com</span> no computador → <span className="text-foreground">Outras agendas (+)</span> → <span className="text-foreground">Por URL</span> → cole o link.</p>
+            </div>
+            <div className="text-[11px] text-muted-foreground leading-relaxed">
+              <p className="font-semibold text-foreground mb-0.5">iPhone</p>
+              <p>Copie o link, abra <span className="text-foreground">Ajustes → Calendário → Contas → Adicionar Conta → Outra → Calendário por Assinatura</span> → cole o link.</p>
+            </div>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground">O link é pessoal — não compartilhe. A atualização no calendário pode levar algumas horas.</p>
+        </div>
+      </section>
+
 
       {/* ── CARTEIRA ── */}
       <section className="space-y-2">
