@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Users, X, CheckCircle2, AlertCircle, Utensils, Footprints, Activity, ChevronDown, ChevronRight, Pin } from "lucide-react";
+import { CalendarDays, Users, X, CheckCircle2, AlertCircle, Utensils, Footprints, Activity, ChevronDown, ChevronRight, Pin, CalendarPlus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +54,8 @@ export default function PortalAgenda() {
   const [horarioFixoParaRemover, setHorarioFixoParaRemover] = useState<string | null>(null);
   const [diaFixo, setDiaFixo] = useState<number>(1);
   const [slotFixo, setSlotFixo] = useState<string>("");
+  const [calCopied, setCalCopied] = useState(false);
+
 
 
   const iconServico = (atividade: string) => {
@@ -141,6 +143,46 @@ export default function PortalAgenda() {
       return (data || []) as Agendamento[];
     },
   });
+
+  // Feed ICS pessoal (webcal)
+  const { data: calendarToken } = useQuery({
+    queryKey: ["portal-calendar-token", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data: existing } = await (supabase as any)
+        .from("aluno_calendar_tokens")
+        .select("token")
+        .eq("aluno_id", student!.id)
+        .maybeSingle();
+      if (existing?.token) return existing.token as string;
+      const newToken = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "");
+      const { data, error } = await (supabase as any)
+        .from("aluno_calendar_tokens")
+        .insert({ aluno_id: student!.id, token: newToken })
+        .select("token")
+        .single();
+      if (error) throw error;
+      return data.token as string;
+    },
+  });
+
+  const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+  const feedHttpsUrl = supabaseUrl && calendarToken
+    ? `${supabaseUrl}/functions/v1/agenda-ics?token=${calendarToken}`
+    : "";
+  const feedWebcalUrl = feedHttpsUrl.replace(/^https?:\/\//, "webcal://");
+
+  const copyFeed = async () => {
+    if (!feedHttpsUrl) return;
+    try {
+      await navigator.clipboard.writeText(feedHttpsUrl);
+      setCalCopied(true);
+      toast.success("Link copiado");
+      setTimeout(() => setCalCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
 
   // Dias que têm slots ativos (bolinha vermelha)
   const { data: diasComSlots = new Set<number>() } = useQuery({
@@ -291,6 +333,7 @@ export default function PortalAgenda() {
         sem_vagas: "Não há vagas disponíveis neste horário.",
         ja_agendado_neste_dia: "Você já tem um treino agendado neste dia.",
         data_passada: "Não é possível agendar para datas passadas.",
+        horario_passado: "Esse horário já passou. Escolha outro horário disponível.",
         dia_invalido: "Dia inválido para este horário.",
       };
       toast.error(msgs[e.message] || "Erro ao agendar. Tente novamente.");
@@ -409,6 +452,13 @@ export default function PortalAgenda() {
             const pct = Math.min(100, (ocupadas / slot.capacidade_maxima) * 100);
             const instrutorNome = slot.instrutor_id ? instrutores[slot.instrutor_id] : null;
             const semCreditos = saldo <= 0;
+            const ehHoje = isSameDay(diaSelecionado, new Date());
+            const slotPassou = ehHoje && (() => {
+              const [hh, mm] = slot.horario_inicio.split(":").map(Number);
+              const inicio = new Date();
+              inicio.setHours(hh, mm, 0, 0);
+              return inicio.getTime() <= Date.now();
+            })();
 
             return (
               <div key={slot.id} className="bg-card border border-border rounded-2xl p-4 space-y-3">
@@ -458,6 +508,10 @@ export default function PortalAgenda() {
                   );
                 })() : lotado ? (
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
+                ) : slotPassou ? (
+                  <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
+                    Horário encerrado
+                  </div>
                 ) : jaTemNoDia ? (
                   <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
                     Você já tem um treino agendado neste dia
@@ -489,6 +543,59 @@ export default function PortalAgenda() {
 
       {abaAgenda === "agendamentos" && (
         <div className="space-y-6">
+
+          {/* ── SINCRONIZAR CALENDÁRIO ── */}
+          <section className="space-y-2">
+            <SectionLabel>Sincronizar com meu calendário</SectionLabel>
+            <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
+                  <CalendarPlus className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Assine sua agenda Fortem</p>
+                  <p className="text-xs text-muted-foreground">Seus treinos e serviços aparecem automaticamente no seu calendário.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-[#0F0F0F] border border-border rounded-lg px-3 py-2">
+                <p className="text-[11px] text-muted-foreground truncate flex-1 font-mono">
+                  {feedHttpsUrl || "Gerando link…"}
+                </p>
+                <button
+                  onClick={copyFeed}
+                  disabled={!feedHttpsUrl}
+                  className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 disabled:opacity-40"
+                  aria-label="Copiar link"
+                >
+                  {calCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-primary" />}
+                </button>
+              </div>
+
+              {feedWebcalUrl && (
+                <a
+                  href={feedWebcalUrl}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary/30 text-xs font-bold text-primary"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" /> Abrir no Calendário do iPhone
+                </a>
+              )}
+
+              <div className="space-y-2 pt-1">
+                <div className="text-[11px] text-muted-foreground leading-relaxed">
+                  <p className="font-semibold text-foreground mb-0.5">Google Calendar</p>
+                  <p>Abra <span className="font-mono text-foreground">calendar.google.com</span> no computador → <span className="text-foreground">Outras agendas (+)</span> → <span className="text-foreground">Por URL</span> → cole o link.</p>
+                </div>
+                <div className="text-[11px] text-muted-foreground leading-relaxed">
+                  <p className="font-semibold text-foreground mb-0.5">iPhone</p>
+                  <p>Toque em <span className="text-foreground">Abrir no Calendário do iPhone</span>, ou copie o link e cole em <span className="text-foreground">Ajustes → Calendário → Contas → Adicionar Conta → Outra → Calendário por Assinatura</span>.</p>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-muted-foreground">O link é pessoal — não compartilhe. A atualização no calendário pode levar algumas horas.</p>
+            </div>
+          </section>
+
 
           {/* ── SEÇÃO HORÁRIO FIXO ── */}
           {(() => {
