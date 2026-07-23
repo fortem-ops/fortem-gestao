@@ -13,46 +13,8 @@ import {
 export default function PortalProfile() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
-  const [copied, setCopied] = useState(false);
 
-  const { data: calendarToken } = useQuery({
-    queryKey: ["portal-calendar-token", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const { data: existing } = await (supabase as any)
-        .from("aluno_calendar_tokens")
-        .select("token")
-        .eq("aluno_id", student!.id)
-        .maybeSingle();
-      if (existing?.token) return existing.token as string;
-      const newToken = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "");
-      const { data, error } = await (supabase as any)
-        .from("aluno_calendar_tokens")
-        .insert({ aluno_id: student!.id, token: newToken })
-        .select("token")
-        .single();
-      if (error) throw error;
-      return data.token as string;
-    },
-  });
 
-  const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
-  const feedHttpUrl = supabaseUrl && calendarToken
-    ? `${supabaseUrl}/functions/v1/agenda-ics?token=${calendarToken}`
-    : "";
-  const feedWebcalUrl = feedHttpUrl.replace(/^https?:\/\//, "webcal://");
-
-  const copyFeed = async () => {
-    if (!feedWebcalUrl) return;
-    try {
-      await navigator.clipboard.writeText(feedWebcalUrl);
-      setCopied(true);
-      toast.success("Link copiado");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Não foi possível copiar");
-    }
-  };
 
 
   const handleSignOut = async () => {
