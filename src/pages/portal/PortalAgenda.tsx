@@ -508,6 +508,10 @@ export default function PortalAgenda() {
                   );
                 })() : lotado ? (
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
+                ) : slotPassou ? (
+                  <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
+                    Horário encerrado
+                  </div>
                 ) : jaTemNoDia ? (
                   <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
                     Você já tem um treino agendado neste dia
