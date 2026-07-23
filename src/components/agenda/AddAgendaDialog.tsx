@@ -120,6 +120,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
       setObservacoes(editEvent.observacoes || "");
       setAlunoId(editEvent.aluno_id || "");
       setAlunoSearch("");
+      setProtocolo(editEvent.protocolo || "");
     } else if (prefill) {
       const h = String(prefill.hour).padStart(2, "0");
       const hEnd = String(Math.min(prefill.hour + 1, 21)).padStart(2, "0");
