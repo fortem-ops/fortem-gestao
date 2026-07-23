@@ -122,13 +122,14 @@ export default function PortalWorkouts() {
         .eq("treino_id", treino!.id);
       return data || [];
     },
-    onSuccess: (data: any[]) => {
-      // Popular estado de cargas com valores salvos
-      const initial: Record<string, string> = {};
-      data.forEach((c: any) => { initial[c.exercicio_nome] = c.kg || ""; });
-      setCargas(prev => ({ ...initial, ...prev }));
-    },
   });
+
+  // Popular estado de cargas com valores salvos
+  useEffect(() => {
+    const initial: Record<string, string> = {};
+    cargasSalvas.forEach((c: any) => { initial[c.exercicio_nome] = c.kg || ""; });
+    setCargas(prev => ({ ...initial, ...prev }));
+  }, [cargasSalvas]);
 
   // Calcular dados derivados
   const workout = useMemo((): WorkoutData | null => {
