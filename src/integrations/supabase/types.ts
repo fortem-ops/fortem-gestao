@@ -191,6 +191,7 @@ export type Database = {
           local: string
           observacoes: string | null
           profissional_id: string
+          protocolo: string | null
           tipo: string
           updated_at: string
         }
@@ -208,6 +209,7 @@ export type Database = {
           local: string
           observacoes?: string | null
           profissional_id: string
+          protocolo?: string | null
           tipo?: string
           updated_at?: string
         }
@@ -225,6 +227,7 @@ export type Database = {
           local?: string
           observacoes?: string | null
           profissional_id?: string
+          protocolo?: string | null
           tipo?: string
           updated_at?: string
         }
