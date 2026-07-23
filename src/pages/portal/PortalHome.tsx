@@ -679,35 +679,6 @@ export default function PortalHome() {
 
         return (
           <>
-            {/* Resumo Rápido */}
-            <section className="space-y-2">
-              <SectionLabel>Resumo Rápido</SectionLabel>
-              <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-                {resumo.map((r) => {
-                  const { icon: Icon } = iconServico(r.atividade);
-                  const esgotado = !r.ilimitado && r.saldoTotal <= 0;
-                  return (
-                    <div key={r.atividade} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
-                          <Icon className="w-3.5 h-3.5 text-primary" />
-                        </div>
-                        <span className="text-sm font-medium text-foreground truncate">{r.atividade}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${r.tag.className}`}>
-                          {r.tag.label}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-sm font-black ${esgotado ? "text-destructive" : "text-emerald-400"}`}
-                        style={{ fontFamily: "Archivo, sans-serif" }}
-                      >
-                        {r.ilimitado ? "∞" : esgotado ? "Esgotado" : r.saldoTotal}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
 
             {/* Incluso no seu Plano */}
             {doPlano.length > 0 && (
