@@ -76,7 +76,7 @@ export default function PortalHome() {
     queryFn: async () => {
       const { data } = await supabase
         .from("treinos")
-        .select("id, descricao, versao, status")
+        .select("id, descricao, versao, status, template_fase")
         .eq("aluno_id", student!.id)
         .eq("status", "atual")
         .order("created_at", { ascending: false })
