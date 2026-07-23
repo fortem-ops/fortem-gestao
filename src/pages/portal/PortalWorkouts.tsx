@@ -102,9 +102,10 @@ export default function PortalWorkouts() {
       toast.success("Treino concluído! 💪");
       refetch();
     },
-    onError: (e: any) => {
-      if (e.message?.includes("duplicate")) toast.info("Você já marcou este treino hoje.");
-      else toast.error(e.message || "Erro ao marcar");
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("duplicate")) toast.info("Você já marcou este treino hoje.");
+      else toast.error(msg || "Erro ao marcar");
     },
   });
 
