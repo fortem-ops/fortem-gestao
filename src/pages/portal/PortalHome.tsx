@@ -677,58 +677,8 @@ export default function PortalHome() {
 
         const saldoDe = (c: any) => (c.ilimitado ? Infinity : (c.quantidade_inicial - c.quantidade_usada));
 
-        // Resumo por atividade
-        const atividades = Array.from(new Set(creditosAll.map((c: any) => c.atividade)));
-        const resumo = atividades.map((atv) => {
-          const doGrupo = creditosAll.filter((c: any) => c.atividade === atv);
-          const temPlano = doGrupo.some((c: any) => c.origem_tipo === "plano");
-          const temAvulso = doGrupo.some((c: any) => c.origem_tipo === "servico");
-          const ilimitado = doGrupo.some((c: any) => c.ilimitado);
-          const saldoTotal = ilimitado
-            ? Infinity
-            : doGrupo.reduce((acc: number, c: any) => acc + Math.max(saldoDe(c), 0), 0);
-          let tag: { label: string; className: string };
-          if (temPlano && temAvulso) {
-            tag = { label: "Plano+Avulso", className: "bg-primary/15 text-primary border-primary/30" };
-          } else if (temPlano) {
-            tag = { label: "Plano", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" };
-          } else {
-            tag = { label: "Avulso", className: "bg-amber-500/15 text-amber-400 border-amber-500/30" };
-          }
-          return { atividade: atv, saldoTotal, ilimitado, tag };
-        });
-
         return (
           <>
-            {/* Resumo Rápido */}
-            <section className="space-y-2">
-              <SectionLabel>Resumo Rápido</SectionLabel>
-              <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-                {resumo.map((r) => {
-                  const { icon: Icon } = iconServico(r.atividade);
-                  const esgotado = !r.ilimitado && r.saldoTotal <= 0;
-                  return (
-                    <div key={r.atividade} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
-                          <Icon className="w-3.5 h-3.5 text-primary" />
-                        </div>
-                        <span className="text-sm font-medium text-foreground truncate">{r.atividade}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${r.tag.className}`}>
-                          {r.tag.label}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-sm font-black ${esgotado ? "text-destructive" : "text-emerald-400"}`}
-                        style={{ fontFamily: "Archivo, sans-serif" }}
-                      >
-                        {r.ilimitado ? "∞" : esgotado ? "Esgotado" : r.saldoTotal}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
 
             {/* Incluso no seu Plano */}
             {doPlano.length > 0 && (
@@ -771,7 +721,35 @@ export default function PortalHome() {
               </section>
             )}
 
+            {/* Banner de upgrade */}
+            {["Start", "Start+"].includes(planoAtivo?.tipo ?? "") && (
+              <section className="space-y-2">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🚀</span>
+                    <p className="text-sm font-bold text-foreground">Turbine seu plano 🚀</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    No Power, Pro ou Max você já sai com Avaliação Funcional, Nutrição e Reabilitação incluídas no plano — sem precisar contratar à parte.
+                  </p>
+                  <button
+                    onClick={() =>
+                      window.open(
+                        "https://wa.me/555135199451?text=" +
+                          encodeURIComponent("Olá! Quero saber mais sobre fazer upgrade do meu plano."),
+                        "_blank"
+                      )
+                    }
+                    className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
+                  >
+                    Conhecer planos superiores →
+                  </button>
+                </div>
+              </section>
+            )}
+
             {/* Serviços Contratados à Parte */}
+
             {doAvulso.length > 0 && (
               <section className="space-y-2">
                 <SectionLabel>Serviços Contratados à Parte</SectionLabel>
