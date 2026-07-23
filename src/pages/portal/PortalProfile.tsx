@@ -6,9 +6,9 @@ import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import {
   ChevronRight, CreditCard, Bell, Star, Trash2,
-  LogOut, Shield, FileText, CalendarPlus, Copy, Check,
+  LogOut, Shield, FileText,
 } from "lucide-react";
-import { useState } from "react";
+
 
 export default function PortalProfile() {
   const { student } = useStudentPortal();
