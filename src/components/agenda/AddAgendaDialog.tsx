@@ -600,7 +600,20 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             </Select>
           </div>
 
-          {atividade === "Treino Experimental" && (
+          {atividade === "Avaliação Funcional" && (
+            <div className="space-y-2">
+              <Label>Protocolo</Label>
+              <Select value={protocolo} onValueChange={setProtocolo}>
+                <SelectTrigger><SelectValue placeholder="Selecione o protocolo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Saúde">Saúde</SelectItem>
+                  <SelectItem value="Corredores">Corredores</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {["Treino Experimental", "Avaliação Funcional"].includes(atividade) && (
             <div className="space-y-2">
               <Label>Consultor</Label>
               <Select value={consultorId} onValueChange={setConsultorId}>
