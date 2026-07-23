@@ -14,6 +14,7 @@ export function WorkoutExerciseItem({ exercise, onClick, completed, onToggle }: 
 
   return (
     <div
+      data-testid="exercise-item"
       className={cn(
         "group flex items-center gap-3 p-3 rounded-xl border transition-colors",
         completed
