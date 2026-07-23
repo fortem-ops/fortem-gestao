@@ -65,9 +65,12 @@ export default function PortalPagamentos() {
 
   if (!student) return null;
 
-  const totalParcelas = contrato?.parcelas ?? cobrancas.length;
+  const totalParcelas = cobrancas.length > 0 ? cobrancas.length : (contrato?.parcelas ?? 1);
   const pagas = cobrancas.filter((c: any) => c.status === "pago").length;
-  const atrasadas = cobrancas.filter((c: any) => c.status === "atrasado");
+  const atrasadas = cobrancas.filter((c: any) =>
+    c.status === "atrasado" ||
+    (c.status === "pendente" && new Date(c.data_vencimento) < hoje)
+  );
   const hoje = new Date();
 
   const proximaCobranca = cobrancas.find((c: any) =>
@@ -183,8 +186,9 @@ export default function PortalPagamentos() {
               const { icon: Icon, cor, bg } = statusInfo(c.status);
               const numParcela = c.numero_ciclo ?? (idx + 1);
               const isPaga = c.status === "pago";
-              const isFutura = c.status === "pendente" && new Date(c.data_vencimento) > hoje;
-              const isAtrasada = c.status === "atrasado";
+              const isAtrasada = c.status === "atrasado" ||
+                (c.status === "pendente" && new Date(c.data_vencimento) < hoje);
+              const isFutura = c.status === "pendente" && new Date(c.data_vencimento) >= hoje;
 
               return (
                 <div key={c.id} className={`flex items-center gap-3 px-4 py-3.5 ${isAtrasada ? "bg-destructive/5" : ""}`}>
