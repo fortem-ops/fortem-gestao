@@ -23,6 +23,42 @@ function catLabel(cat: string): string {
   return map[cat] ?? cat;
 }
 
+// Helper: dividir exercícios em blocos usando a marcação blocoStart
+function dividirEmBlocos(exercicios: any[]): { label: string; items: any[] }[] {
+  if (exercicios.length === 0) return [];
+
+  const blocos: { label: string; items: any[] }[] = [];
+  let blocoAtual: any[] = [];
+  let letraIdx = 0;
+  const letras = ["A", "B", "C", "D", "E"];
+
+  exercicios.forEach((ex, i) => {
+    if (i > 0 && ex.blocoStart) {
+      if (blocoAtual.length > 0) {
+        blocos.push({ label: letras[letraIdx] ?? String(letraIdx + 1), items: blocoAtual });
+        letraIdx++;
+        blocoAtual = [];
+      }
+    }
+    blocoAtual.push(ex);
+  });
+
+  if (blocoAtual.length > 0) {
+    blocos.push({ label: letras[letraIdx] ?? String(letraIdx + 1), items: blocoAtual });
+  }
+
+  // Fallback: se não há blocoStart definido, dividir em A (0-1) e B (2+)
+  if (blocos.length === 1 && exercicios.length > 2) {
+    return [
+      { label: "A", items: exercicios.slice(0, 2) },
+      { label: "B", items: exercicios.slice(2) },
+    ];
+  }
+
+  return blocos;
+}
+
+
 export default function PortalWorkouts() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
