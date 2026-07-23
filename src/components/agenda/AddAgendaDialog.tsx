@@ -428,6 +428,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setAlunoId("");
     setAlunoSearch("");
     setCreditoOrigem("");
+    setProtocolo("");
   };
 
   const canSubmit = atividade && local && horarioInicio && horarioFim &&
