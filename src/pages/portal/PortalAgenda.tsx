@@ -55,6 +55,8 @@ export default function PortalAgenda() {
   const [diaFixo, setDiaFixo] = useState<number>(1);
   const [slotFixo, setSlotFixo] = useState<string>("");
   const [calCopied, setCalCopied] = useState(false);
+  const [calendarioAberto, setCalendarioAberto] = useState(false);
+  const [horarioFixoAberto, setHorarioFixoAberto] = useState(false);
 
 
 
