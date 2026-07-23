@@ -548,53 +548,75 @@ export default function PortalAgenda() {
 
           {/* ── SINCRONIZAR CALENDÁRIO ── */}
           <section className="space-y-2">
-            <SectionLabel>Sincronizar com meu calendário</SectionLabel>
-            <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
-                  <CalendarPlus className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">Assine sua agenda Fortem</p>
-                  <p className="text-xs text-muted-foreground">Seus treinos e serviços aparecem automaticamente no seu calendário.</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 bg-[#0F0F0F] border border-border rounded-lg px-3 py-2">
-                <p className="text-[11px] text-muted-foreground truncate flex-1 font-mono">
-                  {feedHttpsUrl || "Gerando link…"}
-                </p>
-                <button
-                  onClick={copyFeed}
-                  disabled={!feedHttpsUrl}
-                  className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 disabled:opacity-40"
-                  aria-label="Copiar link"
-                >
-                  {calCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-primary" />}
-                </button>
-              </div>
-
-              {feedWebcalUrl && (
-                <a
-                  href={feedWebcalUrl}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary/30 text-xs font-bold text-primary"
-                >
-                  <CalendarPlus className="w-3.5 h-3.5" /> Abrir no Calendário do iPhone
-                </a>
+            <div
+              className={cn(
+                "bg-card border rounded-2xl overflow-hidden transition-colors cursor-pointer",
+                calendarioAberto ? "border-border" : "border-border hover:border-primary/30"
               )}
-
-              <div className="space-y-2 pt-1">
-                <div className="text-[11px] text-muted-foreground leading-relaxed">
-                  <p className="font-semibold text-foreground mb-0.5">Google Calendar</p>
-                  <p>Abra <span className="font-mono text-foreground">calendar.google.com</span> no computador → <span className="text-foreground">Outras agendas (+)</span> → <span className="text-foreground">Por URL</span> → cole o link.</p>
+            >
+              <button
+                onClick={() => setCalendarioAberto((v) => !v)}
+                className="w-full flex items-center justify-between gap-3 p-4 text-left"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
+                    <CalendarPlus className="w-4 h-4 text-primary" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground truncate">
+                    Vincule seus treinos à sua agenda pessoal do celular
+                  </p>
                 </div>
-                <div className="text-[11px] text-muted-foreground leading-relaxed">
-                  <p className="font-semibold text-foreground mb-0.5">iPhone</p>
-                  <p>Toque em <span className="text-foreground">Abrir no Calendário do iPhone</span>, ou copie o link e cole em <span className="text-foreground">Ajustes → Calendário → Contas → Adicionar Conta → Outra → Calendário por Assinatura</span>.</p>
-                </div>
-              </div>
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 text-muted-foreground shrink-0 transition-transform",
+                    calendarioAberto && "rotate-180"
+                  )}
+                />
+              </button>
 
-              <p className="text-[10px] text-muted-foreground">O link é pessoal — não compartilhe. A atualização no calendário pode levar algumas horas.</p>
+              {calendarioAberto && (
+                <div className="px-4 pb-4 space-y-3 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground pt-3">
+                    Seus treinos e serviços aparecem automaticamente no seu calendário.
+                  </p>
+
+                  <div className="flex items-center gap-2 bg-[#0F0F0F] border border-border rounded-lg px-3 py-2">
+                    <p className="text-[11px] text-muted-foreground truncate flex-1 font-mono">
+                      {feedHttpsUrl || "Gerando link…"}
+                    </p>
+                    <button
+                      onClick={copyFeed}
+                      disabled={!feedHttpsUrl}
+                      className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 disabled:opacity-40"
+                      aria-label="Copiar link"
+                    >
+                      {calCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-primary" />}
+                    </button>
+                  </div>
+
+                  {feedWebcalUrl && (
+                    <a
+                      href={feedWebcalUrl}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary/30 text-xs font-bold text-primary"
+                    >
+                      <CalendarPlus className="w-3.5 h-3.5" /> Abrir no Calendário do iPhone
+                    </a>
+                  )}
+
+                  <div className="space-y-2 pt-1">
+                    <div className="text-[11px] text-muted-foreground leading-relaxed">
+                      <p className="font-semibold text-foreground mb-0.5">Google Calendar</p>
+                      <p>Abra <span className="font-mono text-foreground">calendar.google.com</span> no computador → <span className="text-foreground">Outras agendas (+)</span> → <span className="text-foreground">Por URL</span> → cole o link.</p>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground leading-relaxed">
+                      <p className="font-semibold text-foreground mb-0.5">iPhone</p>
+                      <p>Toque em <span className="text-foreground">Abrir no Calendário do iPhone</span>, ou copie o link e cole em <span className="text-foreground">Ajustes → Calendário → Contas → Adicionar Conta → Outra → Calendário por Assinatura</span>.</p>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-muted-foreground">O link é pessoal — não compartilhe. A atualização no calendário pode levar algumas horas.</p>
+                </div>
+              )}
             </div>
           </section>
 
