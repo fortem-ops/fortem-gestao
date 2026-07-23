@@ -682,16 +682,6 @@ export default function PortalHome() {
         </section>
       )}
 
-      {/* Serviços do Plano e Avulsos */}
-      {creditosAll.length > 0 && (() => {
-        const doPlano = creditosAll.filter((c: any) => c.origem_tipo === "plano");
-        const doAvulso = creditosAll.filter((c: any) => c.origem_tipo === "servico");
-        const vendasMap = new Map((vendasAvulso as any[]).map((v) => [v.id, v]));
-
-        const saldoDe = (c: any) => (c.ilimitado ? Infinity : (c.quantidade_inicial - c.quantidade_usada));
-
-        return (
-          <>
 
       {/* Serviços do Plano e Avulsos */}
       {(() => {
