@@ -150,9 +150,9 @@ export default function PortalWorkouts() {
   const semanas = (treino as any)?.semanas ?? 4;
   const totalSessoes = sessoes.length;
   const sessaoAtual = totalSessoes + 1;
-  const variacaoIdx = Math.floor((sessaoAtual - 1) / semanas) % numVariacoes;
+  const variacaoIdx = totalSessoes % numVariacoes; // rotação simples: T1→T2→T3→T4→T1→...
   const variacaoAtual = `T${variacaoIdx + 1}`;
-  const totalSessoesPrevistas = numVariacoes * semanas;
+  const totalSessoesPrevistas = numVariacoes * semanas; // 4 × 5 = 20 sessões
   const variacaoExibida = variacaoSelecionada ?? variacaoAtual;
   const treinoIdx = parseInt(variacaoExibida.replace("T", "")) - 1;
   const treinoAtual = conteudo?.treinos?.[treinoIdx];
