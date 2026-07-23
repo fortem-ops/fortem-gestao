@@ -54,6 +54,8 @@ export default function PortalAgenda() {
   const [horarioFixoParaRemover, setHorarioFixoParaRemover] = useState<string | null>(null);
   const [diaFixo, setDiaFixo] = useState<number>(1);
   const [slotFixo, setSlotFixo] = useState<string>("");
+  const [calCopied, setCalCopied] = useState(false);
+
 
 
   const iconServico = (atividade: string) => {
