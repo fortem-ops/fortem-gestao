@@ -114,15 +114,15 @@ export default function PortalAgenda() {
     },
   });
 
-  // Vagas ocupadas no dia
+  // Vagas ocupadas no dia (só cancelado libera a vaga)
   const { data: agendamentosDia = [] } = useQuery({
     queryKey: ["portal-vagas-dia", dataStr],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("treino_agendamentos")
-        .select("slot_id, aluno_id, status")
+        .select("id, slot_id, aluno_id, status")
         .eq("data", dataStr)
-        .in("status", ["agendado", "confirmado"]);
+        .in("status", ["agendado", "confirmado", "realizado", "faltou"]);
       if (error) throw error;
       return data || [];
     },
@@ -448,7 +448,9 @@ export default function PortalAgenda() {
         ) : (
           slots.map((slot) => {
             const ocupadas = agendamentosDia.filter((a) => a.slot_id === slot.id).length;
-            const jaAgendou = agendamentosDia.some((a) => a.slot_id === slot.id && a.aluno_id === student?.id);
+            const meuAgendamentoNesteSlot = agendamentosDia.find(
+              (a) => a.slot_id === slot.id && a.aluno_id === student?.id
+            );
             const jaTemNoDia = meusAgendamentos.some((a) => a.data === dataStr);
             const lotado = ocupadas >= slot.capacidade_maxima;
             const pct = Math.min(100, (ocupadas / slot.capacidade_maxima) * 100);
@@ -488,24 +490,36 @@ export default function PortalAgenda() {
                   />
                 </div>
 
-                {jaAgendou ? (() => {
-                  const agNesseSlot = meusAgendamentos.find(
-                    (a: any) => a.data === dataStr && a.slot_id === slot.id
-                  );
+                {meuAgendamentoNesteSlot ? (() => {
+                  const status = meuAgendamentoNesteSlot.status;
+                  if (status === "realizado") {
+                    return (
+                      <div className="flex items-center gap-2 text-emerald-400">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Realizado ✓</span>
+                      </div>
+                    );
+                  }
+                  if (status === "faltou") {
+                    return (
+                      <div className="flex items-center gap-2 text-destructive">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="text-sm font-semibold">Falta registrada</span>
+                      </div>
+                    );
+                  }
                   return (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-emerald-400">
                         <CheckCircle2 className="w-4 h-4" />
                         <span className="text-sm font-semibold">Agendado</span>
                       </div>
-                      {agNesseSlot && (
-                        <button
-                          onClick={() => setCancelando(agNesseSlot.id)}
-                          className="py-1.5 px-3 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setCancelando(meuAgendamentoNesteSlot.id)}
+                        className="py-1.5 px-3 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                      >
+                        Cancelar
+                      </button>
                     </div>
                   );
                 })() : lotado ? (
