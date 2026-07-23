@@ -707,10 +707,11 @@ export default function PortalHome() {
           return { total, usado };
         };
         const doPlano = [
-          { atividade: "Avaliação Funcional", ...buildIncluso("Avaliação Funcional") },
-          { atividade: "Consultas Nutrição", ...buildIncluso("Consultas Nutrição") },
-          { atividade: "Consultas Reabilitação", ...buildIncluso("Consultas Reabilitação") },
+          { tipo: "Avaliação Funcional", label: "Avaliação Funcional" },
+          { tipo: "Consultas Nutrição", label: "Nutrição" },
+          { tipo: "Consultas Reabilitação", label: "Reabilitação" },
         ]
+          .map((cfg) => ({ atividade: cfg.label, ...buildIncluso(cfg.tipo) }))
           .filter((s) => s.total > 0)
           .map((s, i) => ({
             id: `plano-${i}-${s.atividade}`,
