@@ -352,7 +352,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         tipo,
         horario_inicio: horarioInicio,
         horario_fim: horarioFim,
-        profissional_id: profissionalId || user?.id,
+        profissional_id: profissionalId || (atividade === "Avaliação Funcional" ? null : user?.id),
         consultor_id: ["Treino Experimental", "Avaliação Funcional"].includes(atividade) ? (consultorId || null) : null,
         protocolo: atividade === "Avaliação Funcional" ? (protocolo || null) : null,
         observacoes: observacoes || null,
