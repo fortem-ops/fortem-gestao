@@ -262,10 +262,19 @@ export default function PortalWorkouts() {
 
   // ── TELA DE PARABÉNS ─────────────────────────────────────────
   if (concluido) {
-    // Calcular próxima variação
-    const proxIdx = Math.floor(sessaoAtual / semanas) % numVariacoes;
-    const proxVariacao = `T${proxIdx + 1}`;
-    const proxTreino = conteudo?.treinos?.[proxIdx];
+    // Após concluir, total de sessões agora é totalSessoes + 1
+    const novaTotalSessoes = totalSessoes + 1;
+    const novaSessaoAtual = novaTotalSessoes + 1;
+    const novoVarIdx = Math.floor((novaSessaoAtual - 1) / semanas) % numVariacoes;
+    const novaVariacao = `T${novoVarIdx + 1}`;
+    const novoTreinoIdx = novoVarIdx;
+    const novoTreino = conteudo?.treinos?.[novoTreinoIdx];
+
+    // Quantas vezes a nova variação já foi feita
+    const sessoesDaNovaVariacao = sessoes.filter((s: any) => s.variacao === novaVariacao).length;
+    const vezNaNovaVariacao = sessoesDaNovaVariacao + (novaVariacao === variacaoExibida ? 1 : 0) + 1;
+    const isMesmaVariacao = novaVariacao === variacaoExibida;
+
     return (
       <div className="space-y-5 pb-32 animate-fade-in px-1 pt-4">
         <div className="bg-card border border-primary/30 rounded-2xl p-6 text-center space-y-3">
@@ -274,31 +283,46 @@ export default function PortalWorkouts() {
             {variacaoExibida} concluído!
           </p>
           <p className="text-sm text-muted-foreground">
-            Sessão {sessaoAtual} de {totalSessoesPrevistas} · Presença confirmada
+            Sessão {novaTotalSessoes} de {totalSessoesPrevistas} · Presença confirmada ✓
           </p>
+          {foiTrocado && (
+            <p className="text-xs text-warning">↕ Realizado fora de ordem (original: {variacaoAtual})</p>
+          )}
         </div>
-        {proxTreino && (
+
+        {novoTreino && (
           <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Próximo treino</p>
-            <p className="font-bold text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{proxVariacao} — {proxTreino.nome}</p>
-            <div className="flex flex-wrap gap-1">
-              {(proxTreino.exercicios ?? []).slice(0, 3).map((ex: any, i: number) => (
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Próxima sessão</p>
+            <div className="flex items-center justify-between">
+              <p className="font-black text-lg text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                {novaVariacao}
+                {isMesmaVariacao && (
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    ({vezNaNovaVariacao}ª de {semanas})
+                  </span>
+                )}
+              </p>
+              <span className="text-xs text-muted-foreground">{novoTreino.nome}</span>
+            </div>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {(novoTreino.exercicios ?? []).slice(0, 4).map((ex: any, i: number) => (
                 <span key={i} className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
                   {cleanName(ex.exercicio)}
                 </span>
               ))}
-              {(proxTreino.exercicios ?? []).length > 3 && (
-                <span className="text-[10px] text-muted-foreground">+{(proxTreino.exercicios ?? []).length - 3} mais</span>
+              {(novoTreino.exercicios ?? []).length > 4 && (
+                <span className="text-[10px] text-muted-foreground">+{(novoTreino.exercicios ?? []).length - 4}</span>
               )}
             </div>
           </div>
         )}
+
         <button
           onClick={() => setConcluido(false)}
-          className="w-full py-3 rounded-2xl bg-primary text-white font-bold text-sm"
+          className="w-full py-3.5 rounded-2xl bg-primary text-white font-bold text-sm"
           style={{fontFamily:'Archivo,sans-serif'}}
         >
-          Ver detalhes do próximo treino →
+          Ver treino completo →
         </button>
       </div>
     );
