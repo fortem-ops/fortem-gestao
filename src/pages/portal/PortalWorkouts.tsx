@@ -1,93 +1,106 @@
 import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Dumbbell, CheckCircle2, Play, Calendar } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Dumbbell, CheckCircle2, Calendar, Play, ChevronLeft, History } from "lucide-react";
 import { toast } from "sonner";
-import { formatDistanceToNow, startOfWeek, endOfWeek, format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import type { Tables, Json } from "@/integrations/supabase/types";
-import { isPersonalizadoContent } from "@/components/student/workout/personalizadoTypes";
-import type { WorkoutExercise } from "@/components/student/workout/workoutTemplates";
+import { usePortalWorkout } from "@/hooks/usePortalWorkout";
+import { WorkoutDayFilter } from "@/components/portal/WorkoutDayFilter";
+import { WorkoutBlockCard } from "@/components/portal/WorkoutBlockCard";
+import { WorkoutWeeklyProgress } from "@/components/portal/WorkoutWeeklyProgress";
+import { WorkoutScheduleCard } from "@/components/portal/WorkoutScheduleCard";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
+import type { WorkoutExercise } from "@/components/student/workout/workoutTemplates";
+import { cn } from "@/lib/utils";
 
-interface WorkoutData {
-  aquecimento: WorkoutExercise[];
-  treinos: { nome: string; exercicios: WorkoutExercise[] }[];
+const DAY_MAP: Record<number, string> = {
+  1: "T1",
+  2: "T2",
+  3: "T3",
+  4: "T4",
+  5: "T1",
+  6: "T2",
+  0: "T3",
+};
+
+function exerciseKey(ex: WorkoutExercise, index: number): string {
+  return `${ex.ordem}-${ex.exercicio}-${index}`;
 }
 
-function flatFromTreino(treino: Tables<"treinos">): WorkoutData {
-  const c = treino.conteudo as Json | null;
-  if (c && isPersonalizadoContent(c)) {
-    return { aquecimento: c.aquecimento, treinos: c.treinos };
-  }
-  return (c as unknown as WorkoutData) || { aquecimento: [], treinos: [] };
+function filterByDay<T extends WorkoutExercise>(exercises: T[], day: string | null): T[] {
+  if (!day) return exercises;
+  return exercises.filter((ex) => {
+    if (!ex.dias || ex.dias.length === 0) return true;
+    return ex.dias.includes(day);
+  });
 }
 
 export default function PortalWorkouts() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [exModal, setExModal] = useState<WorkoutExercise | null>(null);
+  const [completed, setCompleted] = useState<Set<string>>(new Set());
 
-  const { data: treinos = [] } = useQuery({
-    queryKey: ["portal-treinos", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      await (supabase.rpc as unknown as (n: string) => Promise<unknown>)("ativar_treinos_agendados");
-      const { data } = await supabase
-        .from("treinos")
-        .select("*")
-        .eq("aluno_id", student!.id)
-        .order("created_at", { ascending: false });
-      return (data || []) as Tables<"treinos">[];
-    },
-  });
+  const {
+    treino,
+    workout,
+    isLoadingTreino,
+    progresso,
+    agendamentos,
+    refetch,
+  } = usePortalWorkout(student?.id);
 
-  const atual = treinos.find((t) => t.status === "atual") || treinos.find((t) => t.status === "arquivado");
-  const historico = treinos.filter((t) => t.id !== atual?.id);
+  const hoje = format(new Date(), "yyyy-MM-dd");
+  const diaSugerido = DAY_MAP[new Date().getDay()] ?? "T1";
 
-  // Progresso desta semana
-  const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
-  const weekEnd = useMemo(() => endOfWeek(new Date(), { weekStartsOn: 1 }), []);
-
-  const { data: progresso = [] } = useQuery({
-    queryKey: ["portal-progress", student?.id, weekStart.toISOString()],
-    enabled: !!student,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("student_workout_progress")
-        .select("*")
-        .eq("aluno_id", student!.id)
-        .gte("data", format(weekStart, "yyyy-MM-dd"))
-        .lte("data", format(weekEnd, "yyyy-MM-dd"));
-      return data || [];
-    },
-  });
-
-  const concluidoHoje = progresso.some(
-    (p: any) => p.treino_id === atual?.id && p.data === format(new Date(), "yyyy-MM-dd"),
-  );
   const meta = student?.frequencia_semanal || 3;
   const feitos = progresso.length;
+  const concluidoHoje = progresso.some((p) => p.treino_id === treino?.id && p.data === hoje);
+
+  const aquecimento = useMemo(
+    () => filterByDay(workout?.aquecimento || [], selectedDay),
+    [workout?.aquecimento, selectedDay]
+  );
+
+  const treinos = useMemo(
+    () =>
+      (workout?.treinos || []).map((t) => ({
+        ...t,
+        exercicios: filterByDay(t.exercicios, selectedDay),
+      })),
+    [workout?.treinos, selectedDay]
+  );
+
+  const hasDias = useMemo(() => {
+    const all = [
+      ...(workout?.aquecimento || []),
+      ...(workout?.treinos || []).flatMap((t) => t.exercicios),
+    ];
+    return all.some((ex) => ex.dias && ex.dias.length > 0);
+  }, [workout]);
 
   const marcar = useMutation({
     mutationFn: async () => {
-      if (!atual || !student) return;
+      if (!treino || !student) return;
       const { error } = await supabase.from("student_workout_progress").insert({
         aluno_id: student.id,
-        treino_id: atual.id,
-        data: format(new Date(), "yyyy-MM-dd"),
+        treino_id: treino.id,
+        data: hoje,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["portal-progress", student?.id] });
+      qc.invalidateQueries({ queryKey: ["portal-streak-real", student?.id] });
       toast.success("Treino concluído! 💪");
+      refetch();
     },
     onError: (e: any) => {
       if (e.message?.includes("duplicate")) toast.info("Você já marcou este treino hoje.");
@@ -95,130 +108,221 @@ export default function PortalWorkouts() {
     },
   });
 
-  const data = atual ? flatFromTreino(atual) : null;
+  const toggleCompleted = (key: string) => {
+    setCompleted((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  if (!student) return null;
+
+  if (isLoadingTreino) {
+    return (
+      <div className="space-y-4 animate-fade-in">
+        <div className="h-8 w-40 bg-muted rounded-lg animate-pulse" />
+        <div className="h-32 bg-muted rounded-2xl animate-pulse" />
+        <div className="h-64 bg-muted rounded-2xl animate-pulse" />
+      </div>
+    );
+  }
+
+  if (!treino || !workout) {
+    return (
+      <div className="space-y-5 animate-fade-in pb-28">
+        <div>
+          <h1
+            className="text-2xl font-black tracking-tight text-foreground"
+            style={{ fontFamily: "Archivo, sans-serif" }}
+          >
+            Treinos
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">FORTEM · Portal do Aluno</p>
+        </div>
+
+        <Card className="bg-card border border-border rounded-2xl p-8 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#2C2C2C] flex items-center justify-center mx-auto mb-4">
+            <Dumbbell className="w-7 h-7 text-primary" />
+          </div>
+          <p className="font-bold text-base text-foreground mb-1">Nenhum treino prescrito</p>
+          <p className="text-sm text-muted-foreground">
+            Fale com seu professor para liberar seu treino personalizado.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  const totalExercicios =
+    aquecimento.length + treinos.reduce((acc, t) => acc + t.exercicios.length, 0);
+  const concluidosCount = completed.size;
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      {/* Progresso semanal */}
-      <Card className="glass-card p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Esta semana</p>
-            <p className="text-lg font-heading font-bold">
-              {feitos} <span className="text-sm text-muted-foreground font-normal">de {meta} treinos</span>
+    <div className="space-y-5 animate-fade-in pb-28">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1
+            className="text-2xl font-black tracking-tight text-foreground"
+            style={{ fontFamily: "Archivo, sans-serif" }}
+          >
+            Treino Atual
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">FORTEM · Portal do Aluno</p>
+        </div>
+        <Badge
+          variant="outline"
+          className="text-[10px] border-primary/30 text-primary bg-primary/10 px-2 py-0.5 rounded-full shrink-0"
+        >
+          v{treino.versao}
+        </Badge>
+      </div>
+
+      {/* Info do treino */}
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p
+              className="font-bold text-base text-foreground truncate"
+              style={{ fontFamily: "Archivo, sans-serif" }}
+            >
+              {treino.descricao?.trim() || "Treino Personalizado"}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {totalExercicios} exercícios · {concluidosCount}/{totalExercicios} concluídos
             </p>
           </div>
-          <Calendar className="w-6 h-6 text-primary" />
+          <Button
+            size="sm"
+            disabled={concluidoHoje || marcar.isPending}
+            onClick={() => marcar.mutate()}
+            className={cn(
+              "shrink-0 rounded-full",
+              concluidoHoje && "bg-emerald-500/80 hover:bg-emerald-500/80"
+            )}
+          >
+            <CheckCircle2 className="w-4 h-4 mr-1" />
+            {concluidoHoje ? "Concluído hoje" : "Marcar concluído"}
+          </Button>
         </div>
-        <Progress value={Math.min(100, (feitos / meta) * 100)} className="h-2" />
-      </Card>
+      </div>
 
-      {!atual ? (
-        <Card className="glass-card p-8 text-center text-sm text-muted-foreground">
-          Nenhum treino prescrito ainda. Fale com seu professor.
-        </Card>
-      ) : (
-        <>
-          {/* Treino atual */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-heading font-semibold flex items-center gap-2">
-                <Dumbbell className="w-4 h-4 text-primary" /> Treino atual
-              </h2>
-              <Button
-                size="sm"
-                disabled={concluidoHoje || marcar.isPending}
-                onClick={() => marcar.mutate()}
-                className={concluidoHoje ? "bg-success/80" : ""}
-              >
-                <CheckCircle2 className="w-4 h-4 mr-1" />
-                {concluidoHoje ? "Concluído hoje" : "Marcar concluído"}
-              </Button>
-            </div>
-
-            <Card className="glass-card p-4">
-              <div className="mb-3">
-                <p className="font-semibold">{atual.descricao}</p>
-                <p className="text-xs text-muted-foreground">v{atual.versao}</p>
-              </div>
-
-              {data?.aquecimento && data.aquecimento.length > 0 && (
-                <ExerciseGroup title="Aquecimento" exercicios={data.aquecimento} onPick={setExModal} />
-              )}
-              {data?.treinos.map((t, i) => (
-                <ExerciseGroup key={i} title={t.nome} exercicios={t.exercicios} onPick={setExModal} />
-              ))}
-            </Card>
-          </section>
-
-          {/* Histórico */}
-          {historico.length > 0 && (
-            <section className="space-y-2">
-              <h2 className="font-heading font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                Histórico
-              </h2>
-              <div className="space-y-2">
-                {historico.map((t) => (
-                  <Card key={t.id} className="glass-card p-3 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
-                      <Dumbbell className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{t.descricao}</p>
-                      <p className="text-xs text-muted-foreground">
-                        v{t.versao} · {formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: ptBR })}
-                      </p>
-                    </div>
-                    {t.status === "aguardando" ? (
-                      <Badge variant="outline" className="text-[10px] border-info/40 text-info bg-info/10">
-                        Aguardando{(t as { data_inicio?: string | null }).data_inicio ? ` — ${new Date((t as { data_inicio: string }).data_inicio + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px]">Arquivado</Badge>
-                    )}
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
-        </>
+      {/* Filtro de dia */}
+      {hasDias && (
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Filtrar dia
+          </p>
+          <WorkoutDayFilter value={selectedDay} onChange={setSelectedDay} />
+        </div>
       )}
 
+      {!selectedDay && hasDias && (
+        <p className="text-[11px] text-muted-foreground -mt-3">
+          Sugestão de hoje: <span className="text-primary font-semibold">{diaSugerido}</span>
+        </p>
+      )}
+
+      {/* Progresso semanal */}
+      <WorkoutWeeklyProgress feitos={feitos} meta={meta} />
+
+      {/* Próximos agendamentos */}
+      <WorkoutScheduleCard agendamentos={agendamentos} />
+
+      {/* Aquecimento */}
+      {aquecimento.length > 0 && (
+        <WorkoutBlockCard
+          title="Aquecimento"
+          subtitle="Liberação, mobilidade e ativação"
+          exercises={aquecimento}
+          onPick={setExModal}
+          completedIds={completed}
+          onToggle={toggleCompleted}
+        />
+      )}
+
+      {/* Blocos de treino */}
+      {treinos.map((t, i) => (
+        <WorkoutBlockCard
+          key={i}
+          title={t.nome || `Treino ${i + 1}`}
+          exercises={t.exercicios}
+          onPick={setExModal}
+          completedIds={completed}
+          onToggle={toggleCompleted}
+          defaultOpen={i === 0}
+        />
+      ))}
+
+      {/* Histórico */}
+      <TreinoHistorico alunoId={student.id} atualId={treino.id} />
+
+      {/* Modal de exercício */}
       <ExerciseModal exercise={exModal} onClose={() => setExModal(null)} />
     </div>
   );
 }
 
-function ExerciseGroup({
-  title,
-  exercicios,
-  onPick,
-}: {
-  title: string;
-  exercicios: WorkoutExercise[];
-  onPick: (e: WorkoutExercise) => void;
-}) {
-  if (!exercicios || exercicios.length === 0) return null;
+function TreinoHistorico({ alunoId, atualId }: { alunoId: string; atualId: string }) {
+  const { data: historico = [], isLoading } = useQuery({
+    queryKey: ["portal-treinos-historico", alunoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("treinos")
+        .select("id, descricao, versao, status, data_inicio, created_at")
+        .eq("aluno_id", alunoId)
+        .neq("id", atualId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  if (isLoading || historico.length === 0) return null;
+
   return (
-    <div className="mb-4 last:mb-0">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">{title}</p>
-      <div className="space-y-1.5">
-        {exercicios.map((ex, i) => (
-          <button
-            key={i}
-            onClick={() => onPick(ex)}
-            className="w-full text-left flex items-center gap-3 p-2.5 rounded-lg border border-border bg-card hover:border-primary/40 transition-colors"
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <History className="w-4 h-4 text-primary" />
+        <p
+          className="text-sm font-bold text-foreground"
+          style={{ fontFamily: "Archivo, sans-serif" }}
+        >
+          Histórico
+        </p>
+      </div>
+      <div className="space-y-2">
+        {historico.map((t: any) => (
+          <Card
+            key={t.id}
+            className="bg-card border border-border rounded-2xl p-3 flex items-center gap-3"
           >
-            <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
-              <Play className="w-3.5 h-3.5 text-primary" />
+            <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{ex.exercicio || "—"}</p>
+              <p className="text-sm font-semibold truncate text-foreground">
+                {t.descricao || "Treino"}
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                {ex.categoria}{ex.subcategoria ? ` · ${ex.subcategoria}` : ""} · {ex.series}x{ex.repeticoes}
+                v{t.versao} · {formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: ptBR })}
               </p>
             </div>
-          </button>
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[10px] px-2 py-0.5 rounded-full",
+                t.status === "aguardando"
+                  ? "border-info/40 text-info bg-info/10"
+                  : "border-muted-foreground/30 text-muted-foreground bg-muted/30"
+              )}
+            >
+              {t.status === "aguardando" ? "Aguardando" : "Arquivado"}
+            </Badge>
+          </Card>
         ))}
       </div>
     </div>
@@ -227,16 +331,23 @@ function ExerciseGroup({
 
 function ExerciseModal({ exercise, onClose }: { exercise: WorkoutExercise | null; onClose: () => void }) {
   const embed = exercise?.video_url ? getYouTubeEmbedUrl(exercise.video_url) : null;
+  const hasVideo = !!exercise?.video_url;
+
   return (
     <Dialog open={!!exercise} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg bg-card border-border">
         <DialogHeader>
-          <DialogTitle>{exercise?.exercicio || "Exercício"}</DialogTitle>
+          <DialogTitle
+            className="text-lg font-bold"
+            style={{ fontFamily: "Archivo, sans-serif" }}
+          >
+            {exercise?.exercicio || "Exercício"}
+          </DialogTitle>
         </DialogHeader>
         {exercise && (
           <div className="space-y-4">
             {embed ? (
-              <div className="aspect-video w-full rounded-lg overflow-hidden bg-black">
+              <div className="aspect-video w-full rounded-xl overflow-hidden bg-black">
                 <iframe
                   src={embed}
                   title={exercise.exercicio}
@@ -245,28 +356,38 @@ function ExerciseModal({ exercise, onClose }: { exercise: WorkoutExercise | null
                   className="w-full h-full"
                 />
               </div>
-            ) : exercise.video_url ? (
-              <video src={exercise.video_url} controls className="w-full rounded-lg bg-black" />
+            ) : hasVideo ? (
+              <div className="aspect-video w-full rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                <video src={exercise.video_url!} controls className="w-full h-full" />
+              </div>
             ) : (
-              <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center text-sm text-muted-foreground">
+              <div className="aspect-video w-full rounded-xl bg-[#2C2C2C] flex flex-col items-center justify-center text-sm text-muted-foreground gap-2">
+                <Play className="w-8 h-8 opacity-40" />
                 Sem vídeo demonstrativo
               </div>
             )}
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Séries</p>
-                <p className="font-semibold">{exercise.series || "—"}</p>
+              <div className="bg-[#1A1A1A] rounded-xl p-3 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Séries</p>
+                <p className="font-bold text-foreground">{exercise.series || "—"}</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase">Repetições</p>
-                <p className="font-semibold">{exercise.repeticoes || "—"}</p>
+              <div className="bg-[#1A1A1A] rounded-xl p-3 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Repetições</p>
+                <p className="font-bold text-foreground">{exercise.repeticoes || "—"}</p>
               </div>
-              <div className="col-span-2">
-                <p className="text-xs text-muted-foreground uppercase">Categoria</p>
-                <p className="font-semibold">
-                  {exercise.categoria}{exercise.subcategoria ? ` · ${exercise.subcategoria}` : ""}
+              <div className="col-span-2 bg-[#1A1A1A] rounded-xl p-3 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Categoria</p>
+                <p className="font-bold text-foreground">
+                  {exercise.categoria}
+                  {exercise.subcategoria ? ` · ${exercise.subcategoria}` : ""}
                 </p>
               </div>
+              {exercise.kg && (
+                <div className="col-span-2 bg-[#1A1A1A] rounded-xl p-3 border border-border">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Carga</p>
+                  <p className="font-bold text-foreground">{exercise.kg}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
