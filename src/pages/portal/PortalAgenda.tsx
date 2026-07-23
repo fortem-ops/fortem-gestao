@@ -144,6 +144,46 @@ export default function PortalAgenda() {
     },
   });
 
+  // Feed ICS pessoal (webcal)
+  const { data: calendarToken } = useQuery({
+    queryKey: ["portal-calendar-token", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data: existing } = await (supabase as any)
+        .from("aluno_calendar_tokens")
+        .select("token")
+        .eq("aluno_id", student!.id)
+        .maybeSingle();
+      if (existing?.token) return existing.token as string;
+      const newToken = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "");
+      const { data, error } = await (supabase as any)
+        .from("aluno_calendar_tokens")
+        .insert({ aluno_id: student!.id, token: newToken })
+        .select("token")
+        .single();
+      if (error) throw error;
+      return data.token as string;
+    },
+  });
+
+  const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+  const feedHttpsUrl = supabaseUrl && calendarToken
+    ? `${supabaseUrl}/functions/v1/agenda-ics?token=${calendarToken}`
+    : "";
+  const feedWebcalUrl = feedHttpsUrl.replace(/^https?:\/\//, "webcal://");
+
+  const copyFeed = async () => {
+    if (!feedHttpsUrl) return;
+    try {
+      await navigator.clipboard.writeText(feedHttpsUrl);
+      setCalCopied(true);
+      toast.success("Link copiado");
+      setTimeout(() => setCalCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
   // Dias que têm slots ativos (bolinha vermelha)
   const { data: diasComSlots = new Set<number>() } = useQuery({
     queryKey: ["portal-dias-com-slots"],
