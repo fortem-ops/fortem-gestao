@@ -1,71 +1,40 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
 import {
-  Dumbbell, Play, CheckCircle2, RefreshCw, History,
-  ChevronDown, ChevronUp, X, Loader2, Calendar
+  Play, CheckCircle2, ChevronDown, ChevronUp, History,
+  AlertCircle, Loader2, RefreshCw, X
 } from "lucide-react";
-import { getYouTubeEmbedUrl } from "@/lib/youtube";
-import type { WorkoutExercise } from "@/components/student/workout/workoutTemplates";
 
-// ── Tipos ──────────────────────────────────────────────────────────────
-interface WorkoutData {
-  aquecimento: WorkoutExercise[];
-  treinos: { nome: string; exercicios: WorkoutExercise[] }[];
+// Helper: limpar nome do exercício (remove prefixos numéricos)
+function cleanName(name: string): string {
+  return (name ?? "").replace(/^\s*\d+\s*[-–—.)]\s*/, "").trim();
 }
 
-// ── Helper: calcular variação atual ───────────────────────────────────
-function calcVariacaoAtual(
-  totalSessoes: number,
-  numVariacoes: number,
-  semanas: number
-): { variacaoIdx: number; variacaoLabel: string; sessoesNestaVariacao: number; sessoesRestantes: number } {
-  // Cada variação se repete `semanas` vezes
-  // Progresso linear: T1(semanas vezes) → T2(semanas vezes) → ...
-  const cicloTotal = numVariacoes * semanas;
-  const posNoCiclo = totalSessoes % cicloTotal;
-  const variacaoIdx = Math.floor(posNoCiclo / semanas);
-  const sessoesNestaVariacao = posNoCiclo % semanas;
-  const sessoesRestantes = semanas - sessoesNestaVariacao;
-
-  return {
-    variacaoIdx,
-    variacaoLabel: `T${variacaoIdx + 1}`,
-    sessoesNestaVariacao,
-    sessoesRestantes,
+// Helper: label da categoria do aquecimento
+function catLabel(cat: string): string {
+  const map: Record<string, string> = {
+    LIB: "Liberação", MOB: "Mobilidade", ATI: "Ativação", PREV: "Preventivo"
   };
+  return map[cat] ?? cat;
 }
 
-// ── Helper: filtrar aquecimento pelo dia ──────────────────────────────
-function filterAquecimento(exercises: WorkoutExercise[], dia: string): WorkoutExercise[] {
-  return exercises.filter(ex => !ex.dias || ex.dias.length === 0 || ex.dias.includes(dia));
-}
-
-// ── Componente principal ───────────────────────────────────────────────
 export default function PortalWorkouts() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
 
-  const [expandedBloco, setExpandedBloco] = useState<string | null>("aquecimento");
-  const [exModal, setExModal] = useState<WorkoutExercise | null>(null);
-  const [showTrocar, setShowTrocar] = useState(false);
-  const [showHistorico, setShowHistorico] = useState(false);
-  const [showConcluir, setShowConcluir] = useState(false);
-  const [cargas, setCargas] = useState<Record<string, string>>({});
-  const [variacaoTrocada, setVariacaoTrocada] = useState<string | null>(null);
-
-  // Query: treino ativo
-  const { data: treino, isLoading: loadingTreino } = useQuery({
+  // ── Queries ──────────────────────────────────────────────────
+  const { data: treino, isLoading: treinoLoading } = useQuery({
     queryKey: ["portal-treino-ativo", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data } = await supabase
         .from("treinos")
-        .select("id, descricao, versao, conteudo, semanas, status")
+        .select("id, descricao, versao, semanas, conteudo, status, template_fase")
         .eq("aluno_id", student!.id)
         .eq("status", "atual")
         .order("created_at", { ascending: false })
@@ -75,26 +44,6 @@ export default function PortalWorkouts() {
     },
   });
 
-  // Query: agendamento de hoje
-  const { data: agendamentoHoje } = useQuery({
-    queryKey: ["portal-agendamento-hoje", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const hoje = format(new Date(), "yyyy-MM-dd");
-      const { data } = await supabase
-        .from("treino_agendamentos")
-        .select("id, horario_inicio, horario_fim, status")
-        .eq("aluno_id", student!.id)
-        .eq("data", hoje)
-        .in("status", ["agendado", "confirmado", "realizado"])
-        .order("horario_inicio")
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-  });
-
-  // Query: sessões realizadas deste treino
   const { data: sessoes = [] } = useQuery({
     queryKey: ["portal-treino-sessoes", student?.id, treino?.id],
     enabled: !!student && !!treino?.id,
@@ -105,13 +54,12 @@ export default function PortalWorkouts() {
         .eq("aluno_id", student!.id)
         .eq("treino_id", treino!.id)
         .not("concluido_em", "is", null)
-        .order("concluido_em", { ascending: false });
+        .order("data", { ascending: true });
       return data || [];
     },
   });
 
-  // Query: cargas salvas
-  const { data: cargasSalvas = [] } = useQuery({
+  const { data: cargas = [] } = useQuery({
     queryKey: ["portal-treino-cargas", student?.id, treino?.id],
     enabled: !!student && !!treino?.id,
     queryFn: async () => {
@@ -124,572 +72,484 @@ export default function PortalWorkouts() {
     },
   });
 
-  // Popular estado de cargas com valores salvos
-  useEffect(() => {
-    const initial: Record<string, string> = {};
-    cargasSalvas.forEach((c: any) => { initial[c.exercicio_nome] = c.kg || ""; });
-    setCargas(prev => ({ ...initial, ...prev }));
-  }, [cargasSalvas]);
-
-  // Calcular dados derivados
-  const workout = useMemo((): WorkoutData | null => {
-    if (!treino?.conteudo) return null;
-    return treino.conteudo as unknown as WorkoutData;
-  }, [treino]);
-
-  const numVariacoes = workout?.treinos.length ?? 4;
-  const semanas = (treino as any)?.semanas ?? 4;
-  const totalSessoes = sessoes.length;
-
-  const { variacaoIdx, variacaoLabel, sessoesNestaVariacao, sessoesRestantes } = useMemo(
-    () => calcVariacaoAtual(totalSessoes, numVariacoes, semanas),
-    [totalSessoes, numVariacoes, semanas]
-  );
-
-  const variacaoAtual = variacaoTrocada ?? variacaoLabel;
-  const isTrocada = !!variacaoTrocada && variacaoTrocada !== variacaoLabel;
-
-  // Treino do dia filtrado
-  const treinoIdx = parseInt(variacaoAtual.replace("T", "")) - 1;
-  const treinoHoje = workout?.treinos[treinoIdx] ?? workout?.treinos[0];
-  const aquecimentoHoje = useMemo(
-    () => filterAquecimento(workout?.aquecimento || [], variacaoAtual),
-    [workout?.aquecimento, variacaoAtual]
-  );
-
-  // Verificar se já fez treino hoje
-  const hoje = format(new Date(), "yyyy-MM-dd");
-  const jaConcluiuHoje = sessoes.some((s: any) => s.data === hoje);
-
-  // Mutation: salvar carga
-  const salvarCarga = useMutation({
-    mutationFn: async ({ exercicio, kg }: { exercicio: string; kg: string }) => {
-      const { error } = await (supabase as any)
-        .from("treino_cargas")
-        .upsert({
-          aluno_id: student!.id,
-          treino_id: treino!.id,
-          exercicio_nome: exercicio,
-          kg,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "aluno_id,treino_id,exercicio_nome" });
-      if (error) throw error;
+  const { data: agendamentoHoje } = useQuery({
+    queryKey: ["portal-treino-agendamento-hoje", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const hoje = format(new Date(), "yyyy-MM-dd");
+      const { data } = await supabase
+        .from("treino_agendamentos")
+        .select("id, horario_inicio, horario_fim, status")
+        .eq("aluno_id", student!.id)
+        .eq("data", hoje)
+        .in("status", ["agendado", "confirmado"])
+        .limit(1)
+        .maybeSingle();
+      return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["portal-treino-cargas"] }),
   });
 
-  // Mutation: concluir treino
-  const concluir = useMutation({
-    mutationFn: async () => {
-      if (!student || !treino) throw new Error("Dados inválidos");
+  // ── Estado local ─────────────────────────────────────────────
+  const [variacaoSelecionada, setVariacaoSelecionada] = useState<string | null>(null);
+  const [mostrarTrocar, setMostrarTrocar] = useState(false);
+  const [mostrarHistorico, setMostrarHistorico] = useState(false);
+  const [cargasEditaveis, setCargasEditaveis] = useState<Record<string, string>>({});
+  const [concluindo, setConcluindo] = useState(false);
+  const [concluido, setConcluido] = useState(false);
 
-      // Salvar todas as cargas alteradas
-      const cargasEntries = Object.entries(cargas).filter(([, v]) => v);
-      await Promise.all(
-        cargasEntries.map(([exercicio, kg]) =>
-          (supabase as any).from("treino_cargas").upsert({
-            aluno_id: student.id,
-            treino_id: treino.id,
-            exercicio_nome: exercicio,
-            kg,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "aluno_id,treino_id,exercicio_nome" })
-        )
-      );
+  // Popular cargas ao carregar
+  useEffect(() => {
+    if (cargas.length > 0) {
+      const mapa: Record<string, string> = {};
+      cargas.forEach((c: any) => { mapa[c.exercicio_nome] = c.kg ?? ""; });
+      setCargasEditaveis(mapa);
+    }
+  }, [cargas]);
+
+  if (!student) return null;
+
+  // ── Cálculos de progressão ───────────────────────────────────
+  const conteudo = (treino?.conteudo as any) ?? null;
+  const numVariacoes = conteudo?.treinos?.length ?? 4;
+  const semanas = (treino as any)?.semanas ?? 4;
+  const totalSessoes = sessoes.length;
+  const sessaoAtual = totalSessoes + 1;
+  const variacaoIdx = Math.floor((sessaoAtual - 1) / semanas) % numVariacoes;
+  const variacaoAtual = `T${variacaoIdx + 1}`;
+  const totalSessoesPrevistas = numVariacoes * semanas;
+  const variacaoExibida = variacaoSelecionada ?? variacaoAtual;
+  const treinoIdx = parseInt(variacaoExibida.replace("T", "")) - 1;
+  const treinoAtual = conteudo?.treinos?.[treinoIdx];
+  const foiTrocado = variacaoSelecionada !== null && variacaoSelecionada !== variacaoAtual;
+
+  // Aquecimento filtrado para a variação atual
+  const aquecimentoFiltrado = (conteudo?.aquecimento ?? []).filter(
+    (ex: any) => !ex.dias || ex.dias.length === 0 || ex.dias.includes(variacaoExibida)
+  );
+
+  // Blocos do treino atual
+  const exercicios = treinoAtual?.exercicios ?? [];
+  const blocoA = exercicios.slice(0, 2);
+  const blocoB = exercicios.slice(2);
+
+  // Progresso por variação para o histórico
+  const progressoPorVariacao = Array.from({ length: numVariacoes }, (_, i) => {
+    const v = `T${i + 1}`;
+    const realizados = sessoes.filter((s: any) => s.variacao === v);
+    return { variacao: v, realizados, total: semanas };
+  });
+
+  // ── Salvar carga individual ──────────────────────────────────
+  async function salvarCarga(exercicioNome: string, kg: string) {
+    if (!treino || !student) return;
+    await (supabase as any).from("treino_cargas").upsert({
+      aluno_id: student.id,
+      treino_id: treino.id,
+      exercicio_nome: exercicioNome,
+      kg,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "aluno_id,treino_id,exercicio_nome" });
+  }
+
+  // ── Concluir treino ──────────────────────────────────────────
+  async function handleConcluir() {
+    if (!treino || !student) return;
+    if (!agendamentoHoje) {
+      toast.error("Você precisa ter um treino agendado para hoje para concluir.");
+      return;
+    }
+    setConcluindo(true);
+    try {
+      // Salvar todas as cargas editadas
+      const promises = Object.entries(cargasEditaveis)
+        .filter(([, kg]) => kg !== "")
+        .map(([nome, kg]) => salvarCarga(nome, kg));
+      await Promise.all(promises);
 
       // Registrar sessão
       const { error } = await (supabase as any).from("treino_sessoes").insert({
         aluno_id: student.id,
         treino_id: treino.id,
-        variacao: variacaoAtual,
-        variacao_original: isTrocada ? variacaoLabel : null,
-        foi_troca: isTrocada,
-        agendamento_id: agendamentoHoje?.id ?? null,
-        data: hoje,
+        variacao: variacaoExibida,
+        variacao_original: foiTrocado ? variacaoAtual : null,
+        foi_troca: foiTrocado,
+        agendamento_id: agendamentoHoje.id,
+        data: format(new Date(), "yyyy-MM-dd"),
         concluido_em: new Date().toISOString(),
       });
       if (error) throw error;
 
-      // Confirmar presença no agendamento se existir
-      if (agendamentoHoje?.id && agendamentoHoje.status !== "realizado") {
-        await supabase
-          .from("treino_agendamentos")
-          .update({ status: "realizado", updated_at: new Date().toISOString() })
-          .eq("id", agendamentoHoje.id);
-      }
-    },
-    onSuccess: () => {
-      toast.success("Treino concluído! 💪 Continue assim!");
-      setShowConcluir(false);
-      setVariacaoTrocada(null);
+      // Confirmar presença no agendamento
+      await supabase.from("treino_agendamentos")
+        .update({ status: "realizado", updated_at: new Date().toISOString() })
+        .eq("id", agendamentoHoje.id);
+
+      // Invalidar queries
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
-      qc.invalidateQueries({ queryKey: ["portal-agendamento-hoje"] });
+      qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
       qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
-    },
-    onError: (e: any) => toast.error(e.message || "Erro ao concluir treino"),
-  });
+      qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
 
-  if (!student) return null;
+      setVariacaoSelecionada(null);
+      setConcluido(true);
+      toast.success(`${variacaoExibida} concluído! ${foiTrocado ? "(troca registrada)" : ""}`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao concluir treino.");
+    } finally {
+      setConcluindo(false);
+    }
+  }
 
-  if (loadingTreino) {
+  // ── LOADING ──────────────────────────────────────────────────
+  if (treinoLoading) {
     return (
-      <div className="space-y-4 pb-28 animate-fade-in">
-        <div className="h-8 w-48 bg-muted rounded-lg animate-pulse" />
-        <div className="h-32 bg-muted rounded-2xl animate-pulse" />
-        <div className="h-64 bg-muted rounded-2xl animate-pulse" />
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  if (!treino || !workout) {
+  if (!treino || !conteudo) {
     return (
-      <div className="space-y-5 pb-28 animate-fade-in">
-        <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Meu Treino</h1>
-        <div className="bg-card border border-border rounded-2xl p-8 text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-[#2C2C2C] flex items-center justify-center mx-auto">
-            <Dumbbell className="w-7 h-7 text-primary" />
+      <div className="space-y-4 pb-32 animate-fade-in px-1 pt-4">
+        <div className="bg-card border border-border rounded-2xl p-6 text-center space-y-3">
+          <p className="text-2xl">🏋️</p>
+          <p className="font-bold text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+            Nenhum treino ativo
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Seu professor ainda não prescreveu um treino. Em breve ele estará disponível aqui!
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── TELA DE PARABÉNS ─────────────────────────────────────────
+  if (concluido) {
+    // Calcular próxima variação
+    const proxIdx = Math.floor(sessaoAtual / semanas) % numVariacoes;
+    const proxVariacao = `T${proxIdx + 1}`;
+    const proxTreino = conteudo?.treinos?.[proxIdx];
+    return (
+      <div className="space-y-5 pb-32 animate-fade-in px-1 pt-4">
+        <div className="bg-card border border-primary/30 rounded-2xl p-6 text-center space-y-3">
+          <p className="text-4xl">🎉</p>
+          <p className="font-black text-xl text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+            {variacaoExibida} concluído!
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Sessão {sessaoAtual} de {totalSessoesPrevistas} · Presença confirmada
+          </p>
+        </div>
+        {proxTreino && (
+          <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Próximo treino</p>
+            <p className="font-bold text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{proxVariacao} — {proxTreino.nome}</p>
+            <div className="flex flex-wrap gap-1">
+              {(proxTreino.exercicios ?? []).slice(0, 3).map((ex: any, i: number) => (
+                <span key={i} className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
+                  {cleanName(ex.exercicio)}
+                </span>
+              ))}
+              {(proxTreino.exercicios ?? []).length > 3 && (
+                <span className="text-[10px] text-muted-foreground">+{(proxTreino.exercicios ?? []).length - 3} mais</span>
+              )}
+            </div>
           </div>
-          <p className="font-bold text-sm text-foreground">Nenhum treino prescrito</p>
-          <p className="text-xs text-muted-foreground">Fale com seu professor para liberar seu treino personalizado.</p>
-        </div>
+        )}
+        <button
+          onClick={() => setConcluido(false)}
+          className="w-full py-3 rounded-2xl bg-primary text-white font-bold text-sm"
+          style={{fontFamily:'Archivo,sans-serif'}}
+        >
+          Ver detalhes do próximo treino →
+        </button>
       </div>
     );
   }
 
+  // ── TELA PRINCIPAL ───────────────────────────────────────────
   return (
-    <div className="space-y-4 pb-32 animate-fade-in">
+    <div className="space-y-4 pb-32 animate-fade-in px-1 pt-2">
 
-      {/* ── HEADER ── */}
-      <div className="pt-2 flex items-center justify-between">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Treino Personalizado</p>
-          <h1 className="text-xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-            {variacaoAtual}
-            {isTrocada && <span className="text-xs font-normal text-warning ml-2">(trocado)</span>}
-          </h1>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowHistorico(true)}
-            className="w-9 h-9 rounded-xl bg-card border border-border flex items-center justify-center"
-          >
-            <History className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button
-            onClick={() => setShowTrocar(true)}
-            className="w-9 h-9 rounded-xl bg-card border border-border flex items-center justify-center"
-            title="Trocar treino do dia"
-          >
-            <RefreshCw className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
-      </div>
-
-      {/* ── CARD DE STATUS ── */}
+      {/* Header do treino */}
       <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-              {treino.descricao?.trim() || "Treino Personalizado"}
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Treino do dia</p>
+            <p className="text-2xl font-black text-foreground mt-0.5" style={{fontFamily:'Archivo,sans-serif'}}>
+              {variacaoExibida}
+              {foiTrocado && (
+                <span className="text-sm font-normal text-warning ml-2">⚠ trocado</span>
+              )}
             </p>
-            <p className="text-xs text-muted-foreground">v{treino.versao}</p>
+            <p className="text-xs text-muted-foreground">
+              Sessão {sessaoAtual} de {totalSessoesPrevistas}
+              {foiTrocado && ` · original: ${variacaoAtual}`}
+            </p>
           </div>
-          {agendamentoHoje && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">
-              <Calendar className="w-3 h-3" />
-              {agendamentoHoje.horario_inicio?.slice(0,5)}
+          <div className="text-right">
+            <div className="text-2xl font-black text-primary" style={{fontFamily:'Archivo,sans-serif'}}>
+              {Math.round((totalSessoes / totalSessoesPrevistas) * 100)}%
             </div>
-          )}
-        </div>
-
-        {/* Progresso desta variação */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>{variacaoAtual} — {sessoesNestaVariacao} de {semanas} sessões</span>
-            <span>{sessoesRestantes} restante{sessoesRestantes !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full"
-              style={{ width: `${(sessoesNestaVariacao / semanas) * 100}%` }}
-            />
+            <p className="text-[10px] text-muted-foreground">concluído</p>
           </div>
         </div>
 
-        {/* Botão concluir */}
-        {jaConcluiuHoje ? (
-          <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
-            <CheckCircle2 className="w-4 h-4" />
-            Treino concluído hoje!
+        {/* Barra de progresso geral */}
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full"
+            style={{ width: `${Math.min(100, (totalSessoes / totalSessoesPrevistas) * 100)}%` }}
+          />
+        </div>
+
+        {/* Botão trocar treino */}
+        {!agendamentoHoje && (
+          <div className="flex items-center gap-2 bg-warning/10 border border-warning/20 rounded-xl p-2.5">
+            <AlertCircle className="w-4 h-4 text-warning shrink-0" />
+            <p className="text-xs text-warning">Você precisa ter um treino agendado para hoje para concluir.</p>
           </div>
-        ) : (
+        )}
+
+        <div className="flex gap-2">
           <button
-            onClick={() => setShowConcluir(true)}
-            className="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm flex items-center justify-center gap-2"
-            style={{fontFamily:'Archivo,sans-serif'}}
+            onClick={() => setMostrarTrocar(!mostrarTrocar)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted text-xs font-semibold text-foreground"
           >
-            <CheckCircle2 className="w-4 h-4" />
-            Concluir treino
+            <RefreshCw className="w-3.5 h-3.5" />
+            Trocar treino
+            {mostrarTrocar ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
+          <button
+            onClick={() => setMostrarHistorico(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted text-xs font-semibold text-foreground"
+          >
+            <History className="w-3.5 h-3.5" />
+            Histórico
+          </button>
+        </div>
+
+        {/* Seletor de variação */}
+        {mostrarTrocar && (
+          <div className="grid grid-cols-4 gap-2 pt-1">
+            {Array.from({ length: numVariacoes }, (_, i) => {
+              const v = `T${i + 1}`;
+              const isAtual = v === variacaoAtual;
+              const isSelecionado = v === variacaoExibida;
+              const qtdRealizados = sessoes.filter((s: any) => s.variacao === v).length;
+              return (
+                <button
+                  key={v}
+                  onClick={() => { setVariacaoSelecionada(v === variacaoAtual ? null : v); setMostrarTrocar(false); }}
+                  className={`flex flex-col items-center py-2 rounded-xl border text-center transition-colors ${
+                    isSelecionado
+                      ? "bg-primary border-primary text-white"
+                      : "bg-card border-border text-foreground"
+                  }`}
+                >
+                  <span className="text-sm font-black" style={{fontFamily:'Archivo,sans-serif'}}>{v}</span>
+                  <span className="text-[9px] mt-0.5 opacity-70">{qtdRealizados}/{semanas}</span>
+                  {isAtual && <span className="text-[8px] font-bold opacity-70">hoje</span>}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* ── AQUECIMENTO ── */}
-      {aquecimentoHoje.length > 0 && (
-        <BlocoCard
-          titulo="Aquecimento"
-          subtitulo={`${aquecimentoHoje.length} exercícios · ${variacaoAtual}`}
-          exercicios={aquecimentoHoje}
-          cargas={cargas}
-          onCargaChange={(nome, kg) => setCargas(prev => ({ ...prev, [nome]: kg }))}
-          onCargaBlur={(nome, kg) => salvarCarga.mutate({ exercicio: nome, kg })}
-          onExercicioClick={setExModal}
-          expanded={expandedBloco === "aquecimento"}
-          onToggle={() => setExpandedBloco(expandedBloco === "aquecimento" ? null : "aquecimento")}
-          isAquecimento
-        />
-      )}
-
-      {/* ── BLOCOS DO TREINO ── */}
-      {treinoHoje && (
-        <TreinoBlocos
-          treino={treinoHoje}
-          cargas={cargas}
-          onCargaChange={(nome, kg) => setCargas(prev => ({ ...prev, [nome]: kg }))}
-          onCargaBlur={(nome, kg) => salvarCarga.mutate({ exercicio: nome, kg })}
-          onExercicioClick={setExModal}
-          expandedBloco={expandedBloco}
-          onToggleBloco={setExpandedBloco}
-        />
-      )}
-
-      {/* ── MODAL: EXERCÍCIO ── */}
-      {exModal && (
-        <ExerciseModal exercise={exModal} onClose={() => setExModal(null)} />
-      )}
-
-      {/* ── BOTTOM SHEET: TROCAR TREINO ── */}
-      {showTrocar && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowTrocar(false)}>
-          <div className="bg-card border-t border-border rounded-t-3xl w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
-            <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-              Trocar treino do dia
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Selecione outra variação. O treino será registrado com a variação escolhida e a sequência continuará normalmente.
-            </p>
-            <div className="grid grid-cols-4 gap-2">
-              {workout.treinos.map((_, i) => {
-                const label = `T${i + 1}`;
-                const isAtual = label === variacaoLabel;
-                const isSelecionado = label === (variacaoTrocada ?? variacaoLabel);
-                return (
-                  <button
-                    key={label}
-                    onClick={() => { setVariacaoTrocada(label === variacaoLabel ? null : label); setShowTrocar(false); }}
-                    className={`py-3 rounded-xl font-bold text-sm transition-colors ${
-                      isSelecionado
-                        ? "bg-primary text-white"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    {label}
-                    {isAtual && <span className="block text-[9px] font-normal opacity-70">sugerido</span>}
-                  </button>
-                );
-              })}
-            </div>
-            <button onClick={() => setShowTrocar(false)} className="w-full py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── BOTTOM SHEET: CONCLUIR ── */}
-      {showConcluir && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowConcluir(false)}>
-          <div className="bg-card border-t border-border rounded-t-3xl w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
-            <p className="font-black text-lg text-foreground text-center" style={{fontFamily:'Archivo,sans-serif'}}>
-              Concluir {variacaoAtual}?
-            </p>
-            {isTrocada && (
-              <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 text-xs text-warning text-center">
-                Você está concluindo {variacaoAtual} (trocado de {variacaoLabel})
+      {/* AQUECIMENTO */}
+      {aquecimentoFiltrado.length > 0 && (
+        <section className="space-y-2">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground px-1">
+            Aquecimento
+          </p>
+          {(["LIB", "MOB", "ATI", "PREV"] as const).map(cat => {
+            const items = aquecimentoFiltrado.filter((ex: any) => ex.categoria === cat);
+            if (items.length === 0) return null;
+            return (
+              <div key={cat} className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="px-4 py-2 bg-muted/30 border-b border-border">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                    {catLabel(cat)}
+                  </p>
+                </div>
+                {items.map((ex: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{cleanName(ex.exercicio)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {ex.subcategoria && `${ex.subcategoria} · `}
+                        {ex.series}×{ex.repeticoes}
+                      </p>
+                    </div>
+                    {ex.video_url && (
+                      <a
+                        href={ex.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"
+                      >
+                        <Play className="w-3.5 h-3.5 text-primary" />
+                      </a>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
-            <p className="text-xs text-muted-foreground text-center">
-              Suas cargas serão salvas e a presença confirmada automaticamente.
-            </p>
-            {agendamentoHoje && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-xs text-emerald-400 text-center">
-                ✓ Presença confirmada no agendamento das {agendamentoHoje.horario_inicio?.slice(0,5)}
-              </div>
-            )}
-            <div className="flex gap-3">
-              <button onClick={() => setShowConcluir(false)} className="flex-1 py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">
-                Cancelar
-              </button>
-              <button
-                onClick={() => concluir.mutate()}
-                disabled={concluir.isPending}
-                className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {concluir.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar 💪"}
-              </button>
-            </div>
-          </div>
-        </div>
+            );
+          })}
+        </section>
       )}
 
-      {/* ── BOTTOM SHEET: HISTÓRICO ── */}
-      {showHistorico && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowHistorico(false)}>
-          <div className="bg-card border-t border-border rounded-t-3xl w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-2 shrink-0" />
-            <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
-              <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Histórico de Treinos</p>
-              <button onClick={() => setShowHistorico(false)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
-            </div>
+      {/* TREINO PRINCIPAL — em blocos */}
+      {treinoAtual && (
+        <section className="space-y-2">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground px-1">
+            {treinoAtual.nome ?? variacaoExibida} — Força
+          </p>
 
-            {/* Grade por variação */}
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-              {workout.treinos.map((_, i) => {
-                const label = `T${i + 1}`;
-                const sessoesVariacao = sessoes.filter((s: any) => s.variacao === label);
-                const pct = Math.round((sessoesVariacao.length / semanas) * 100);
+          {[
+            { label: "A", items: blocoA },
+            { label: "B", items: blocoB },
+          ].filter(b => b.items.length > 0).map(bloco => (
+            <div key={bloco.label} className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-2 bg-muted/30 border-b border-border">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Bloco {bloco.label}
+                </p>
+              </div>
+              {bloco.items.map((ex: any, i: number) => {
+                const nome = cleanName(ex.exercicio);
+                const cargaAtual = cargasEditaveis[nome] ?? cargasEditaveis[ex.exercicio] ?? "";
                 return (
-                  <div key={label} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-black ${label === variacaoLabel ? "text-primary" : "text-foreground"}`} style={{fontFamily:'Archivo,sans-serif'}}>{label}</span>
-                        {label === variacaoLabel && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">Atual</span>}
+                  <div key={i} className="px-4 py-3.5 border-b border-border last:border-0">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">
+                            {ex.categoria}
+                          </span>
+                          <p className="text-sm font-bold text-foreground truncate">{nome}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {ex.series} séries × {ex.repeticoes} reps
+                        </p>
                       </div>
-                      <span className="text-xs text-muted-foreground">{sessoesVariacao.length}/{semanas}</span>
+                      {ex.video_url && (
+                        <a
+                          href={ex.video_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"
+                        >
+                          <Play className="w-3.5 h-3.5 text-primary" />
+                        </a>
+                      )}
                     </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${label === variacaoLabel ? "bg-primary" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {Array.from({ length: semanas }).map((_, j) => {
-                        const sessao = sessoesVariacao[j];
-                        return (
-                          <div
-                            key={j}
-                            className={`flex-1 min-w-[60px] py-2 px-1 rounded-xl border text-center ${
-                              sessao
-                                ? "bg-emerald-500/10 border-emerald-500/20"
-                                : label === variacaoLabel && j === sessoesVariacao.length
-                                ? "bg-primary/10 border-primary/30"
-                                : "bg-muted/30 border-border"
-                            }`}
-                          >
-                            {sessao ? (
-                              <>
-                                <p className="text-[10px] font-bold text-emerald-400">✓</p>
-                                <p className="text-[9px] text-muted-foreground">{format(parseISO(sessao.data + "T12:00:00"), "dd/MM", {locale: ptBR})}</p>
-                                {sessao.foi_troca && <p className="text-[8px] text-warning">↕ {sessao.variacao_original}</p>}
-                              </>
-                            ) : (
-                              <p className="text-[10px] text-muted-foreground">{label === variacaoLabel && j === sessoesVariacao.length ? "→" : "○"}</p>
-                            )}
-                          </div>
-                        );
-                      })}
+                    {/* Campo de carga */}
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground font-semibold w-8">KG</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={cargaAtual}
+                        onChange={e => setCargasEditaveis(prev => ({ ...prev, [nome]: e.target.value }))}
+                        onBlur={e => salvarCarga(nome, e.target.value)}
+                        placeholder="— kg"
+                        className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                      />
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-}
-
-// ── Componente: BlocoCard ─────────────────────────────────────────────
-function BlocoCard({
-  titulo, subtitulo, exercicios, cargas, onCargaChange, onCargaBlur, onExercicioClick, expanded, onToggle, isAquecimento = false
-}: {
-  titulo: string; subtitulo?: string;
-  exercicios: WorkoutExercise[];
-  cargas: Record<string, string>;
-  onCargaChange: (nome: string, kg: string) => void;
-  onCargaBlur: (nome: string, kg: string) => void;
-  onExercicioClick: (ex: WorkoutExercise) => void;
-  expanded: boolean; onToggle: () => void;
-  isAquecimento?: boolean;
-}) {
-  return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden">
-      <button className="w-full flex items-center gap-3 px-4 py-3.5 text-left" onClick={onToggle}>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isAquecimento ? "bg-amber-500/10" : "bg-primary/10"}`}>
-          <Dumbbell className={`w-4 h-4 ${isAquecimento ? "text-amber-400" : "text-primary"}`} />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-bold text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{titulo}</p>
-          {subtitulo && <p className="text-[11px] text-muted-foreground">{subtitulo}</p>}
-        </div>
-        {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
-      </button>
-      {expanded && (
-        <div className="border-t border-border divide-y divide-border">
-          {exercicios.map((ex, idx) => (
-            <ExercicioRow
-              key={idx}
-              ex={ex}
-              carga={cargas[ex.exercicio] || ""}
-              onCargaChange={(kg) => onCargaChange(ex.exercicio, kg)}
-              onCargaBlur={(kg) => onCargaBlur(ex.exercicio, kg)}
-              onClick={() => onExercicioClick(ex)}
-              isAquecimento={isAquecimento}
-            />
           ))}
-        </div>
+        </section>
       )}
-    </div>
-  );
-}
 
-// ── Componente: TreinoBlocos ──────────────────────────────────────────
-function TreinoBlocos({ treino, cargas, onCargaChange, onCargaBlur, onExercicioClick, expandedBloco, onToggleBloco }: {
-  treino: { nome: string; exercicios: WorkoutExercise[] };
-  cargas: Record<string, string>;
-  onCargaChange: (nome: string, kg: string) => void;
-  onCargaBlur: (nome: string, kg: string) => void;
-  onExercicioClick: (ex: WorkoutExercise) => void;
-  expandedBloco: string | null;
-  onToggleBloco: (key: string | null) => void;
-}) {
-  // Dividir em blocos A e B (0-1 = A, 2+ = B)
-  const blocoA = treino.exercicios.slice(0, 2);
-  const blocoB = treino.exercicios.slice(2);
-
-  return (
-    <div className="space-y-3">
-      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{treino.nome}</p>
-      {blocoA.length > 0 && (
-        <BlocoCard
-          titulo="Bloco A"
-          subtitulo={`${blocoA.length} exercícios`}
-          exercicios={blocoA}
-          cargas={cargas}
-          onCargaChange={onCargaChange}
-          onCargaBlur={onCargaBlur}
-          onExercicioClick={onExercicioClick}
-          expanded={expandedBloco === "blocoA"}
-          onToggle={() => onToggleBloco(expandedBloco === "blocoA" ? null : "blocoA")}
-        />
-      )}
-      {blocoB.length > 0 && (
-        <BlocoCard
-          titulo="Bloco B"
-          subtitulo={`${blocoB.length} exercícios`}
-          exercicios={blocoB}
-          cargas={cargas}
-          onCargaChange={onCargaChange}
-          onCargaBlur={onCargaBlur}
-          onExercicioClick={onExercicioClick}
-          expanded={expandedBloco === "blocoB"}
-          onToggle={() => onToggleBloco(expandedBloco === "blocoB" ? null : "blocoB")}
-        />
-      )}
-    </div>
-  );
-}
-
-// ── Componente: ExercicioRow ──────────────────────────────────────────
-function ExercicioRow({ ex, carga, onCargaChange, onCargaBlur, onClick, isAquecimento }: {
-  ex: WorkoutExercise;
-  carga: string;
-  onCargaChange: (kg: string) => void;
-  onCargaBlur: (kg: string) => void;
-  onClick: () => void;
-  isAquecimento?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <button
-        onClick={onClick}
-        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${ex.video_url ? "bg-primary/10" : "bg-muted"}`}
-      >
-        <Play className={`w-4 h-4 ${ex.video_url ? "text-primary" : "text-muted-foreground"}`} />
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground truncate">{ex.exercicio}</p>
-        <p className="text-[11px] text-muted-foreground">
-          {ex.categoria && `${ex.categoria} · `}{ex.series}×{ex.repeticoes}
-        </p>
+      {/* Botão concluir */}
+      <div className="pt-2">
+        <button
+          onClick={handleConcluir}
+          disabled={concluindo || !agendamentoHoje}
+          className="w-full py-4 rounded-2xl bg-primary text-white font-black text-base flex items-center justify-center gap-3 disabled:opacity-40 transition-opacity"
+          style={{fontFamily:'Archivo,sans-serif'}}
+        >
+          {concluindo
+            ? <><Loader2 className="w-5 h-5 animate-spin" /> Concluindo...</>
+            : <><CheckCircle2 className="w-5 h-5" /> Concluir {variacaoExibida}</>
+          }
+        </button>
+        {!agendamentoHoje && (
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            Agende um treino para hoje na aba Agenda para liberar este botão.
+          </p>
+        )}
       </div>
-      {!isAquecimento && (
-        <div className="shrink-0">
-          <input
-            type="text"
-            value={carga}
-            onChange={e => onCargaChange(e.target.value)}
-            onBlur={e => onCargaBlur(e.target.value)}
-            placeholder="kg"
-            className="w-14 text-center text-xs font-bold bg-muted border border-border rounded-lg px-1 py-1.5 text-foreground focus:outline-none focus:border-primary/50"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
 
-// ── Componente: ExerciseModal ─────────────────────────────────────────
-function ExerciseModal({ exercise, onClose }: { exercise: WorkoutExercise; onClose: () => void }) {
-  const embed = exercise.video_url ? getYouTubeEmbedUrl(exercise.video_url) : null;
+      {/* Bottom sheet: Histórico */}
+      {mostrarHistorico && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setMostrarHistorico(false)}>
+          <div className="bg-card border-t border-border rounded-t-3xl w-full max-h-[80vh] overflow-y-auto p-6 space-y-5" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
+            <div className="flex items-center justify-between">
+              <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                Histórico de Treinos
+              </p>
+              <button onClick={() => setMostrarHistorico(false)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={onClose}>
-      <div className="bg-card border-t border-border rounded-t-3xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 mb-4" />
-        <div className="px-5 pb-8 space-y-4">
-          <div className="flex items-start justify-between gap-3">
-            <p className="font-black text-lg text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{exercise.exercicio}</p>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </div>
+            {progressoPorVariacao.map(({ variacao, realizados, total }) => (
+              <div key={variacao} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-sm text-foreground">{variacao}</p>
+                  <p className="text-xs text-muted-foreground">{realizados.length}/{total} realizados</p>
+                </div>
+                {/* Grade de sessões */}
+                <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(total, 8)}, 1fr)` }}>
+                  {Array.from({ length: total }, (_, i) => {
+                    const sessao = realizados[i];
+                    const foiTroca = sessao?.foi_troca;
+                    return (
+                      <div
+                        key={i}
+                        title={sessao ? format(parseISO(sessao.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR }) : ""}
+                        className={`h-8 rounded-lg flex items-center justify-center text-[10px] font-bold border transition-colors ${
+                          sessao
+                            ? foiTroca
+                              ? "bg-warning/20 border-warning/30 text-warning"
+                              : "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                            : "bg-muted border-border text-muted-foreground"
+                        }`}
+                      >
+                        {sessao
+                          ? format(parseISO(sessao.data + "T12:00:00"), "dd/MM", { locale: ptBR })
+                          : "—"
+                        }
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Indicador de troca */}
+                {realizados.some((s: any) => s.foi_troca) && (
+                  <p className="text-[10px] text-warning">
+                    ⚠ Sessões em amarelo foram realizadas fora da ordem original.
+                  </p>
+                )}
+              </div>
+            ))}
 
-          {embed ? (
-            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black">
-              <iframe src={embed} title={exercise.exercicio} allowFullScreen className="w-full h-full" />
-            </div>
-          ) : exercise.video_url ? (
-            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black">
-              <video src={exercise.video_url} controls className="w-full h-full" />
-            </div>
-          ) : (
-            <div className="aspect-video w-full rounded-2xl bg-muted flex flex-col items-center justify-center gap-2">
-              <Play className="w-8 h-8 text-muted-foreground opacity-40" />
-              <p className="text-xs text-muted-foreground">Sem vídeo disponível</p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-muted rounded-xl p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Séries</p>
-              <p className="text-lg font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{exercise.series || "—"}</p>
-            </div>
-            <div className="bg-muted rounded-xl p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Reps</p>
-              <p className="text-lg font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>{exercise.repeticoes || "—"}</p>
-            </div>
-            <div className="bg-muted rounded-xl p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cat.</p>
-              <p className="text-sm font-bold text-foreground">{exercise.categoria || "—"}</p>
+            <div className="flex gap-3 text-[10px] text-muted-foreground pt-1">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-500/20 border border-emerald-500/30 inline-block"></span> Realizado</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-warning/20 border border-warning/30 inline-block"></span> Troca</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-muted border border-border inline-block"></span> Pendente</span>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
