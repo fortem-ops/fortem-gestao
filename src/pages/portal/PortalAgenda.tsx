@@ -281,7 +281,7 @@ export default function PortalAgenda() {
         .from("treino_agendamentos")
         .select("id, data, horario_inicio, horario_fim, status")
         .eq("aluno_id", student!.id)
-        .lt("data", format(new Date(), "yyyy-MM-dd"))
+        .lte("data", format(new Date(), "yyyy-MM-dd"))
         .in("status", ["realizado", "faltou", "cancelado"])
         .order("data", { ascending: false })
         .limit(60);
