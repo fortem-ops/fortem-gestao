@@ -65,13 +65,13 @@ export default function PortalPagamentos() {
 
   if (!student) return null;
 
+  const hoje = new Date();
   const totalParcelas = cobrancas.length > 0 ? cobrancas.length : (contrato?.parcelas ?? 1);
   const pagas = cobrancas.filter((c: any) => c.status === "pago").length;
   const atrasadas = cobrancas.filter((c: any) =>
     c.status === "atrasado" ||
     (c.status === "pendente" && new Date(c.data_vencimento) < hoje)
   );
-  const hoje = new Date();
 
   const proximaCobranca = cobrancas.find((c: any) =>
     c.status === "pendente" && new Date(c.data_vencimento) >= hoje
