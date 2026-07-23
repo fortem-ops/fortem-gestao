@@ -76,7 +76,7 @@ export default function PortalHome() {
     queryFn: async () => {
       const { data } = await supabase
         .from("treinos")
-        .select("id, descricao, versao, status")
+        .select("id, descricao, versao, status, template_fase")
         .eq("aluno_id", student!.id)
         .eq("status", "atual")
         .order("created_at", { ascending: false })
@@ -432,14 +432,14 @@ export default function PortalHome() {
           <div className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p
-                className="font-semibold text-base truncate text-foreground"
+                className="font-bold text-base text-foreground"
                 style={{ fontFamily: "Archivo, sans-serif" }}
               >
-                {treinoAtual.descricao?.trim() || "Treino Personalizado"}
+                Confira seu próximo treino →
               </p>
-              {treinoAtual.versao && (
-                <p className="text-[11px] text-muted-foreground">Versão {treinoAtual.versao}</p>
-              )}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {treinoAtual.template_fase ? treinoAtual.template_fase : "Treino personalizado"}
+              </p>
             </div>
             <button
               onClick={() => navigate("/portal/treinos")}
