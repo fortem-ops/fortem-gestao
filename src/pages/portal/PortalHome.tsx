@@ -103,17 +103,34 @@ export default function PortalHome() {
     },
   });
 
-  const { data: servicosPlano = [] } = useQuery({
-    queryKey: ["portal-home-servicos-plano", student?.id],
+  const { data: creditosAll = [] } = useQuery({
+    queryKey: ["portal-home-creditos-all", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data } = await supabase
         .from("creditos_aluno" as any)
-        .select("atividade, quantidade_inicial, quantidade_usada, ilimitado")
+        .select("id, atividade, quantidade_inicial, quantidade_usada, ilimitado, origem_tipo, origem_id, created_at")
         .eq("aluno_id", student!.id)
         .eq("ativo", true)
-        .neq("atividade", "Treino");
+        .neq("atividade", "Treino")
+        .order("created_at", { ascending: false });
       return (data as any[]) || [];
+    },
+  });
+
+  const avulsoIds = creditosAll
+    .filter((c: any) => c.origem_tipo === "servico" && c.origem_id)
+    .map((c: any) => c.origem_id);
+
+  const { data: vendasAvulso = [] } = useQuery({
+    queryKey: ["portal-home-vendas-avulso", student?.id, avulsoIds.sort().join(",")],
+    enabled: !!student && avulsoIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("vendas")
+        .select("id, nome_snapshot, data_venda")
+        .in("id", avulsoIds);
+      return data || [];
     },
   });
 
@@ -652,46 +669,168 @@ export default function PortalHome() {
         </section>
       )}
 
-      {/* Serviços do Plano */}
-      {servicosPlano.length > 0 && (
-        <section className="space-y-2">
-          <SectionLabel>Serviços do Plano</SectionLabel>
-          <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-            {servicosPlano.map((s: any) => {
-              const saldoS = s.ilimitado ? Infinity : s.quantidade_inicial - s.quantidade_usada;
-              const pctS = s.ilimitado ? 100 : Math.round((s.quantidade_usada / Math.max(s.quantidade_inicial, 1)) * 100);
-              const { icon: Icon } = iconServico(s.atividade);
-              const cor = saldoS > 0 || s.ilimitado ? "text-emerald-400" : "text-destructive";
-              const corBarra = saldoS > 0 || s.ilimitado ? "bg-emerald-500" : "bg-destructive";
-              return (
-                <div key={s.atividade} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-[#2C2C2C] flex items-center justify-center">
-                        <Icon className="w-3.5 h-3.5 text-primary" />
+      {/* Serviços do Plano e Avulsos */}
+      {creditosAll.length > 0 && (() => {
+        const doPlano = creditosAll.filter((c: any) => c.origem_tipo === "plano");
+        const doAvulso = creditosAll.filter((c: any) => c.origem_tipo === "servico");
+        const vendasMap = new Map((vendasAvulso as any[]).map((v) => [v.id, v]));
+
+        const saldoDe = (c: any) => (c.ilimitado ? Infinity : (c.quantidade_inicial - c.quantidade_usada));
+
+        // Resumo por atividade
+        const atividades = Array.from(new Set(creditosAll.map((c: any) => c.atividade)));
+        const resumo = atividades.map((atv) => {
+          const doGrupo = creditosAll.filter((c: any) => c.atividade === atv);
+          const temPlano = doGrupo.some((c: any) => c.origem_tipo === "plano");
+          const temAvulso = doGrupo.some((c: any) => c.origem_tipo === "servico");
+          const ilimitado = doGrupo.some((c: any) => c.ilimitado);
+          const saldoTotal = ilimitado
+            ? Infinity
+            : doGrupo.reduce((acc: number, c: any) => acc + Math.max(saldoDe(c), 0), 0);
+          let tag: { label: string; className: string };
+          if (temPlano && temAvulso) {
+            tag = { label: "Plano+Avulso", className: "bg-primary/15 text-primary border-primary/30" };
+          } else if (temPlano) {
+            tag = { label: "Plano", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" };
+          } else {
+            tag = { label: "Avulso", className: "bg-amber-500/15 text-amber-400 border-amber-500/30" };
+          }
+          return { atividade: atv, saldoTotal, ilimitado, tag };
+        });
+
+        return (
+          <>
+            {/* Resumo Rápido */}
+            <section className="space-y-2">
+              <SectionLabel>Resumo Rápido</SectionLabel>
+              <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                {resumo.map((r) => {
+                  const { icon: Icon } = iconServico(r.atividade);
+                  const esgotado = !r.ilimitado && r.saldoTotal <= 0;
+                  return (
+                    <div key={r.atividade} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
+                          <Icon className="w-3.5 h-3.5 text-primary" />
+                        </div>
+                        <span className="text-sm font-medium text-foreground truncate">{r.atividade}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${r.tag.className}`}>
+                          {r.tag.label}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium text-foreground">{s.atividade}</span>
+                      <span
+                        className={`text-sm font-black ${esgotado ? "text-destructive" : "text-emerald-400"}`}
+                        style={{ fontFamily: "Archivo, sans-serif" }}
+                      >
+                        {r.ilimitado ? "∞" : esgotado ? "Esgotado" : r.saldoTotal}
+                      </span>
                     </div>
-                    <span className={`text-sm font-black ${cor}`} style={{ fontFamily: "Archivo, sans-serif" }}>
-                      {s.ilimitado ? "∞" : `${s.quantidade_usada}/${s.quantidade_inicial}`}
-                    </span>
-                  </div>
-                  <div className="h-1 bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${corBarra}`} style={{ width: `${Math.min(pctS, 100)}%` }} />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    {s.ilimitado
-                      ? "Ilimitado"
-                      : saldoS > 0
-                        ? `${saldoS} disponível${saldoS > 1 ? "is" : ""}`
-                        : "Créditos esgotados"}
-                  </p>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Incluso no seu Plano */}
+            {doPlano.length > 0 && (
+              <section className="space-y-2">
+                <SectionLabel>Incluso no seu Plano</SectionLabel>
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                  {doPlano.map((s: any) => {
+                    const saldoS = s.ilimitado ? Infinity : s.quantidade_inicial - s.quantidade_usada;
+                    const pctS = s.ilimitado ? 100 : Math.round((s.quantidade_usada / Math.max(s.quantidade_inicial, 1)) * 100);
+                    const { icon: Icon } = iconServico(s.atividade);
+                    const cor = saldoS > 0 || s.ilimitado ? "text-emerald-400" : "text-destructive";
+                    const corBarra = saldoS > 0 || s.ilimitado ? "bg-emerald-500" : "bg-destructive";
+                    return (
+                      <div key={s.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-[#2C2C2C] flex items-center justify-center">
+                              <Icon className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <span className="text-sm font-medium text-foreground">{s.atividade}</span>
+                          </div>
+                          <span className={`text-sm font-black ${cor}`} style={{ fontFamily: "Archivo, sans-serif" }}>
+                            {s.ilimitado ? "∞" : `${s.quantidade_usada}/${s.quantidade_inicial}`}
+                          </span>
+                        </div>
+                        <div className="h-1 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${corBarra}`} style={{ width: `${Math.min(pctS, 100)}%` }} />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          {s.ilimitado
+                            ? "Ilimitado"
+                            : saldoS > 0
+                              ? `${saldoS} disponível${saldoS > 1 ? "is" : ""}`
+                              : "Créditos esgotados"}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+              </section>
+            )}
+
+            {/* Serviços Contratados à Parte */}
+            {doAvulso.length > 0 && (
+              <section className="space-y-2">
+                <SectionLabel>Serviços Contratados à Parte</SectionLabel>
+                <div className="space-y-3">
+                  {doAvulso.map((s: any) => {
+                    const saldoS = s.ilimitado ? Infinity : s.quantidade_inicial - s.quantidade_usada;
+                    const pctS = s.ilimitado ? 100 : Math.round((s.quantidade_usada / Math.max(s.quantidade_inicial, 1)) * 100);
+                    const { icon: Icon } = iconServico(s.atividade);
+                    const cor = saldoS > 0 || s.ilimitado ? "text-emerald-400" : "text-destructive";
+                    const corBarra = saldoS > 0 || s.ilimitado ? "bg-emerald-500" : "bg-destructive";
+                    const venda = s.origem_id ? vendasMap.get(s.origem_id) : null;
+                    const nome = venda?.nome_snapshot || s.atividade;
+                    const dataCompra = venda?.data_venda
+                      ? new Date(venda.data_venda + "T12:00:00").toLocaleDateString("pt-BR")
+                      : null;
+                    return (
+                      <div key={s.id} className="bg-card border border-border rounded-2xl p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
+                              <Icon className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate" style={{ fontFamily: "Archivo, sans-serif" }}>
+                                {nome}
+                              </p>
+                              {dataCompra && (
+                                <p className="text-[10px] text-muted-foreground">Comprado em {dataCompra}</p>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-sm font-black ${cor}`} style={{ fontFamily: "Archivo, sans-serif" }}>
+                            {s.ilimitado ? "∞" : `${s.quantidade_usada}/${s.quantidade_inicial}`}
+                          </span>
+                        </div>
+                        <div className="h-1 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${corBarra}`} style={{ width: `${Math.min(pctS, 100)}%` }} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] text-muted-foreground">
+                            {s.ilimitado
+                              ? "Ilimitado"
+                              : saldoS > 0
+                                ? `${saldoS} disponível${saldoS > 1 ? "is" : ""}`
+                                : "Créditos esgotados"}
+                          </p>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded border bg-amber-500/15 text-amber-400 border-amber-500/30">
+                            Avulso
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </>
+        );
+      })()}
 
       {/* FAB Assistente FORTEM */}
       <Link
