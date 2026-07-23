@@ -272,6 +272,42 @@ export type Database = {
           },
         ]
       }
+      aluno_calendar_tokens: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          id?: string
+          token: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aluno_calendar_tokens_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aluno_calendar_tokens_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       aluno_licencas: {
         Row: {
           aluno_id: string
