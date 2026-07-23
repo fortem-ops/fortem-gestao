@@ -114,15 +114,15 @@ export default function PortalAgenda() {
     },
   });
 
-  // Vagas ocupadas no dia
+  // Vagas ocupadas no dia (só cancelado libera a vaga)
   const { data: agendamentosDia = [] } = useQuery({
     queryKey: ["portal-vagas-dia", dataStr],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("treino_agendamentos")
-        .select("slot_id, aluno_id, status")
+        .select("id, slot_id, aluno_id, status")
         .eq("data", dataStr)
-        .in("status", ["agendado", "confirmado"]);
+        .in("status", ["agendado", "confirmado", "realizado", "faltou"]);
       if (error) throw error;
       return data || [];
     },
