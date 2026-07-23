@@ -103,17 +103,34 @@ export default function PortalHome() {
     },
   });
 
-  const { data: servicosPlano = [] } = useQuery({
-    queryKey: ["portal-home-servicos-plano", student?.id],
+  const { data: creditosAll = [] } = useQuery({
+    queryKey: ["portal-home-creditos-all", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data } = await supabase
         .from("creditos_aluno" as any)
-        .select("atividade, quantidade_inicial, quantidade_usada, ilimitado")
+        .select("id, atividade, quantidade_inicial, quantidade_usada, ilimitado, origem_tipo, origem_id, created_at")
         .eq("aluno_id", student!.id)
         .eq("ativo", true)
-        .neq("atividade", "Treino");
+        .neq("atividade", "Treino")
+        .order("created_at", { ascending: false });
       return (data as any[]) || [];
+    },
+  });
+
+  const avulsoIds = creditosAll
+    .filter((c: any) => c.origem_tipo === "servico" && c.origem_id)
+    .map((c: any) => c.origem_id);
+
+  const { data: vendasAvulso = [] } = useQuery({
+    queryKey: ["portal-home-vendas-avulso", student?.id, avulsoIds.sort().join(",")],
+    enabled: !!student && avulsoIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("vendas")
+        .select("id, nome_snapshot, data_venda")
+        .in("id", avulsoIds);
+      return data || [];
     },
   });
 
