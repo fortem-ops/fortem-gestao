@@ -55,6 +55,8 @@ export default function PortalAgenda() {
   const [diaFixo, setDiaFixo] = useState<number>(1);
   const [slotFixo, setSlotFixo] = useState<string>("");
   const [calCopied, setCalCopied] = useState(false);
+  const [calendarioAberto, setCalendarioAberto] = useState(false);
+  const [horarioFixoAberto, setHorarioFixoAberto] = useState(false);
 
 
 
@@ -279,7 +281,7 @@ export default function PortalAgenda() {
         .from("treino_agendamentos")
         .select("id, data, horario_inicio, horario_fim, status")
         .eq("aluno_id", student!.id)
-        .lt("data", format(new Date(), "yyyy-MM-dd"))
+        .lte("data", format(new Date(), "yyyy-MM-dd"))
         .in("status", ["realizado", "faltou", "cancelado"])
         .order("data", { ascending: false })
         .limit(60);
@@ -546,53 +548,75 @@ export default function PortalAgenda() {
 
           {/* ── SINCRONIZAR CALENDÁRIO ── */}
           <section className="space-y-2">
-            <SectionLabel>Sincronizar com meu calendário</SectionLabel>
-            <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
-                  <CalendarPlus className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">Assine sua agenda Fortem</p>
-                  <p className="text-xs text-muted-foreground">Seus treinos e serviços aparecem automaticamente no seu calendário.</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 bg-[#0F0F0F] border border-border rounded-lg px-3 py-2">
-                <p className="text-[11px] text-muted-foreground truncate flex-1 font-mono">
-                  {feedHttpsUrl || "Gerando link…"}
-                </p>
-                <button
-                  onClick={copyFeed}
-                  disabled={!feedHttpsUrl}
-                  className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 disabled:opacity-40"
-                  aria-label="Copiar link"
-                >
-                  {calCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-primary" />}
-                </button>
-              </div>
-
-              {feedWebcalUrl && (
-                <a
-                  href={feedWebcalUrl}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary/30 text-xs font-bold text-primary"
-                >
-                  <CalendarPlus className="w-3.5 h-3.5" /> Abrir no Calendário do iPhone
-                </a>
+            <div
+              className={cn(
+                "bg-card border rounded-2xl overflow-hidden transition-colors cursor-pointer",
+                calendarioAberto ? "border-border" : "border-border hover:border-primary/30"
               )}
-
-              <div className="space-y-2 pt-1">
-                <div className="text-[11px] text-muted-foreground leading-relaxed">
-                  <p className="font-semibold text-foreground mb-0.5">Google Calendar</p>
-                  <p>Abra <span className="font-mono text-foreground">calendar.google.com</span> no computador → <span className="text-foreground">Outras agendas (+)</span> → <span className="text-foreground">Por URL</span> → cole o link.</p>
+            >
+              <button
+                onClick={() => setCalendarioAberto((v) => !v)}
+                className="w-full flex items-center justify-between gap-3 p-4 text-left"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
+                    <CalendarPlus className="w-4 h-4 text-primary" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground truncate">
+                    Vincule seus treinos à sua agenda pessoal do celular
+                  </p>
                 </div>
-                <div className="text-[11px] text-muted-foreground leading-relaxed">
-                  <p className="font-semibold text-foreground mb-0.5">iPhone</p>
-                  <p>Toque em <span className="text-foreground">Abrir no Calendário do iPhone</span>, ou copie o link e cole em <span className="text-foreground">Ajustes → Calendário → Contas → Adicionar Conta → Outra → Calendário por Assinatura</span>.</p>
-                </div>
-              </div>
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 text-muted-foreground shrink-0 transition-transform",
+                    calendarioAberto && "rotate-180"
+                  )}
+                />
+              </button>
 
-              <p className="text-[10px] text-muted-foreground">O link é pessoal — não compartilhe. A atualização no calendário pode levar algumas horas.</p>
+              {calendarioAberto && (
+                <div className="px-4 pb-4 space-y-3 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground pt-3">
+                    Seus treinos e serviços aparecem automaticamente no seu calendário.
+                  </p>
+
+                  <div className="flex items-center gap-2 bg-[#0F0F0F] border border-border rounded-lg px-3 py-2">
+                    <p className="text-[11px] text-muted-foreground truncate flex-1 font-mono">
+                      {feedHttpsUrl || "Gerando link…"}
+                    </p>
+                    <button
+                      onClick={copyFeed}
+                      disabled={!feedHttpsUrl}
+                      className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 disabled:opacity-40"
+                      aria-label="Copiar link"
+                    >
+                      {calCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-primary" />}
+                    </button>
+                  </div>
+
+                  {feedWebcalUrl && (
+                    <a
+                      href={feedWebcalUrl}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-primary/30 text-xs font-bold text-primary"
+                    >
+                      <CalendarPlus className="w-3.5 h-3.5" /> Abrir no Calendário do iPhone
+                    </a>
+                  )}
+
+                  <div className="space-y-2 pt-1">
+                    <div className="text-[11px] text-muted-foreground leading-relaxed">
+                      <p className="font-semibold text-foreground mb-0.5">Google Calendar</p>
+                      <p>Abra <span className="font-mono text-foreground">calendar.google.com</span> no computador → <span className="text-foreground">Outras agendas (+)</span> → <span className="text-foreground">Por URL</span> → cole o link.</p>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground leading-relaxed">
+                      <p className="font-semibold text-foreground mb-0.5">iPhone</p>
+                      <p>Toque em <span className="text-foreground">Abrir no Calendário do iPhone</span>, ou copie o link e cole em <span className="text-foreground">Ajustes → Calendário → Contas → Adicionar Conta → Outra → Calendário por Assinatura</span>.</p>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-muted-foreground">O link é pessoal — não compartilhe. A atualização no calendário pode levar algumas horas.</p>
+                </div>
+              )}
             </div>
           </section>
 
@@ -604,85 +628,109 @@ export default function PortalAgenda() {
             const elegivel = ["Power", "Pro", "Max"].includes(planoTipo);
             const DIAS_LABEL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
             return (
-              <section className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">📌</span>
-                  <SectionLabel>Horário Fixo</SectionLabel>
-                  {elegivel && (
-                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
-                      {horariosFixos.length}/{freq} slots
-                    </span>
+              <section className="space-y-2">
+                <div
+                  className={cn(
+                    "bg-card border rounded-2xl overflow-hidden transition-colors",
+                    horarioFixoAberto ? "border-border" : "border-border hover:border-primary/30"
                   )}
-                </div>
+                >
+                  <button
+                    onClick={() => setHorarioFixoAberto((v) => !v)}
+                    className="w-full flex items-center justify-between gap-3 p-4 text-left cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
+                        <Pin className="w-4 h-4 text-primary" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground truncate">Horário Fixo</p>
+                      {elegivel && (
+                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold shrink-0">
+                          {horariosFixos.length}/{freq} slots
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 text-muted-foreground shrink-0 transition-transform",
+                        horarioFixoAberto && "rotate-180"
+                      )}
+                    />
+                  </button>
 
-                {!elegivel ? (
-                  <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">🔒</span>
-                      <p className="text-sm font-bold text-foreground">Exclusivo Power, Pro e Max</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Garanta seu horário toda semana automaticamente, sem precisar agendar manualmente.
-                    </p>
-                    <div className="bg-muted/50 rounded-xl p-3 space-y-1.5 text-xs text-muted-foreground">
-                      <p>A partir do plano <strong className="text-foreground">Power</strong>, você pode fixar horários conforme sua frequência semanal contratada.</p>
-                      <p>Exemplo: se você treina <strong className="text-foreground">3×/semana</strong>, pode fixar até <strong className="text-foreground">3 horários</strong> automaticamente.</p>
-                    </div>
-                    <button
-                      onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero fazer upgrade do meu plano para ter horário fixo.', '_blank')}
-                      className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
-                    >
-                      🚀 Fazer upgrade e garantir meu horário →
-                    </button>
-                  </div>
-                ) : horariosFixos.length === 0 ? (
-                  <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-                    <p className="text-sm text-muted-foreground text-center">
-                      Nenhum horário fixo configurado ainda.
-                    </p>
-                    <button
-                      onClick={() => setShowAdicionarFixo(true)}
-                      className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold flex items-center justify-center gap-2"
-                    >
-                      <Pin className="w-3.5 h-3.5" /> Configurar horário fixo
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {horariosFixos.map((hf: any) => {
-                      const pausado = hf.pausado_ate && new Date(hf.pausado_ate) >= new Date();
-                      return (
-                        <div key={hf.id} className={`bg-card border rounded-xl p-4 flex items-center gap-3 ${pausado ? "border-border opacity-60" : "border-primary/30"}`}>
-                          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                            <Pin className="w-4 h-4 text-primary" />
+                  {horarioFixoAberto && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-border/50">
+                      {!elegivel ? (
+                        <div className="pt-3 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">🔒</span>
+                            <p className="text-sm font-bold text-foreground">Exclusivo Power, Pro e Max</p>
                           </div>
-                          <div className="flex-1">
-                            <p className="font-bold text-sm text-foreground">
-                              {DIAS_LABEL[hf.dia_semana]} · {hf.horario_inicio?.slice(0, 5)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {pausado ? `Pausado até ${format(parseISO(hf.pausado_ate + "T12:00:00"), "dd/MM/yyyy")}` : "Reserva automática toda semana ✓"}
-                            </p>
+                          <p className="text-xs text-muted-foreground">
+                            Garanta seu horário toda semana automaticamente, sem precisar agendar manualmente.
+                          </p>
+                          <div className="bg-muted/50 rounded-xl p-3 space-y-1.5 text-xs text-muted-foreground">
+                            <p>A partir do plano <strong className="text-foreground">Power</strong>, você pode fixar horários conforme sua frequência semanal contratada.</p>
+                            <p>Exemplo: se você treina <strong className="text-foreground">3×/semana</strong>, pode fixar até <strong className="text-foreground">3 horários</strong> automaticamente.</p>
                           </div>
                           <button
-                            onClick={() => setHorarioFixoParaRemover(hf.id)}
-                            className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center"
+                            onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero fazer upgrade do meu plano para ter horário fixo.', '_blank')}
+                            className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
                           >
-                            <X className="w-3.5 h-3.5 text-muted-foreground" />
+                            🚀 Fazer upgrade e garantir meu horário →
                           </button>
                         </div>
-                      );
-                    })}
-                    {horariosFixos.length < freq && (
-                      <button
-                        onClick={() => setShowAdicionarFixo(true)}
-                        className="w-full py-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary flex items-center justify-center gap-2"
-                      >
-                        <Pin className="w-3.5 h-3.5" /> Adicionar horário fixo
-                      </button>
-                    )}
-                  </div>
-                )}
+                      ) : horariosFixos.length === 0 ? (
+                        <div className="pt-3 space-y-3">
+                          <p className="text-sm text-muted-foreground text-center">
+                            Nenhum horário fixo configurado ainda.
+                          </p>
+                          <button
+                            onClick={() => setShowAdicionarFixo(true)}
+                            className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold flex items-center justify-center gap-2"
+                          >
+                            <Pin className="w-3.5 h-3.5" /> Configurar horário fixo
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="pt-3 space-y-2">
+                          {horariosFixos.map((hf: any) => {
+                            const pausado = hf.pausado_ate && new Date(hf.pausado_ate) >= new Date();
+                            return (
+                              <div key={hf.id} className={`bg-card border rounded-xl p-4 flex items-center gap-3 ${pausado ? "border-border opacity-60" : "border-primary/30"}`}>
+                                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                  <Pin className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-bold text-sm text-foreground">
+                                    {DIAS_LABEL[hf.dia_semana]} · {hf.horario_inicio?.slice(0, 5)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {pausado ? `Pausado até ${format(parseISO(hf.pausado_ate + "T12:00:00"), "dd/MM/yyyy")}` : "Reserva automática toda semana ✓"}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => setHorarioFixoParaRemover(hf.id)}
+                                  className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center"
+                                >
+                                  <X className="w-3.5 h-3.5 text-muted-foreground" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                          {horariosFixos.length < freq && (
+                            <button
+                              onClick={() => setShowAdicionarFixo(true)}
+                              className="w-full py-3 rounded-xl border border-dashed border-primary/30 text-xs font-semibold text-primary flex items-center justify-center gap-2"
+                            >
+                              <Pin className="w-3.5 h-3.5" /> Adicionar horário fixo
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </section>
             );
           })()}
