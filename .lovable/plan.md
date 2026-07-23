@@ -1,160 +1,65 @@
-# Plano: Módulo de Treinos no Portal do Aluno
+# Diagnóstico — Créditos do plano não aparecem em `PortalHome`
 
-## 1. Estrutura atual do banco (confirmada)
+Investigação apenas — nenhuma alteração feita. Respondendo às 3 perguntas:
 
-As queries revelaram que o modelo de treinos é **centralizado em JSONB**, sem tabela normalizada de exercícios por treino.
+## 1. De onde a página interna busca os números
 
-### Tabelas existentes
+Arquivo: `src/components/student/StudentPlan.tsx` (é o componente que renderiza "Créditos de Serviços" no perfil/financeiro do aluno — `ContratoFinanceiro.tsx` também consulta `ciclos_credito`, mas só pra créditos de treino do ciclo, não pra Nutrição/Reabilitação/Aval. Funcional).
 
-| Tabela | Função |
-|--------|--------|
-| `treinos` | Treino do aluno. Colunas principais: `id`, `aluno_id`, `descricao`, `versao`, `status` (`atual`/`aguardando`/`arquivado`), `conteudo` (jsonb), `data_inicio`, `template_fase`, `autor_id`, `created_at` |
-| `student_workout_progress` | Histórico de conclusão. Colunas: `id`, `aluno_id`, `treino_id`, `data`, `concluido_em` |
-| `treino_slots` | Slots de agenda de treino. Colunas: `id`, `dia_semana`, `horario_inicio`, `horario_fim`, `capacidade_maxima`, `instrutor_id`, `ativo` |
-| `treino_agendamentos` | Agendamentos de treino. Colunas: `id`, `aluno_id`, `slot_id`, `data`, `horario_inicio`, `horario_fim`, `status`, `credito_debitado`, `cancelado_em`, `observacoes` |
-| `treino_horarios_fixos` | Horários fixos para alunos Power/Pro/Max |
-| `banco_treinos_escolhas` | Escolhas de exercícios do banco de treinos |
-| `banco_treinos_personalizados` | Templates personalizados do banco de treinos |
-| `exercicio_categorias` | Taxonomia de categorias/subcategorias |
-| `exercicios_personalizados` | Exercícios customizados do banco |
+Query (linhas ~106-176): lê `planos` do aluno + `consumo_servicos` do plano, e **calcula** os créditos a partir do array `planos.servicos` (texto tipo `"2 Consultas Nutrição"`), sem tocar em `creditos_aluno`:
 
-### Formato do JSONB em `treinos.conteudo`
-
-A estrutura real (exemplo do treino da Bruna Meyer) segue este padrão:
-
-```text
-{
-  "__personalizado": true,
-  "aquecimento": [
-    {
-      "ordem": 1,
-      "exercicio": "Fáscia plantar com bolinha",
-      "categoria": "LIB",
-      "subcategoria": "Pé/Tornozelo",
-      "series": 1,
-      "repeticoes": "60\"",
-      "dias": ["T1", "T2", "T3", "T4"],
-      "video_url": "https://..."
-    }
-  ],
-  "treinos": [
-    {
-      "nome": "Treino A",
-      "exercicios": [
-        { ...mesmo shape... }
-      ]
-    }
-  ],
-  "estrutura": {
-    "aquecimento": { "LIB": [...], "MOB": [...], "ATI": [...], "PREV": [...] },
-    "treinos": { ... }
-  }
-}
+```
+base     = parseServiceCount(plano.servicos, "Consultas Nutrição")   // ex.: 2
+comprado = count(consumo_servicos.tipo_registro='compra')
+usado    = count(consumo_servicos com agenda_id OR tipo_registro='uso_manual')
+total    = base + comprado
 ```
 
-Observações importantes:
-- Não existe tabela `treino_exercicios`; os exercícios vivem dentro do JSONB.
-- O campo `ativo` não existe mais em `treinos`; o status é controlado pela coluna `status` (`atual`, `aguardando`, `arquivado`).
-- Exercícios podem ter `exercicio_id` nulo quando são livres/personalizados.
-- A propriedade `dias` indica em quais dias da semana (T1-T4) o exercício deve aparecer.
+Ou seja, a fonte de verdade para "1/2 usados" que aparece na tela interna é `planos.servicos` (JSON de texto) + `consumo_servicos` — **não** `creditos_aluno`.
 
-## 2. Objetivo do módulo no portal
+## 2. Existe linha `creditos_aluno` com `origem_tipo='plano'` para Bruna?
 
-Criar uma experiência no `/portal/treinos` onde o aluno possa:
+`aluno_id` da Bruna: `b7f99527-9f4a-448b-9cca-78017bbc0cb2` (`teste.pro@fortem.app`).
 
-1. Visualizar o **treino atual** com aquecimento e blocos de exercícios.
-2. Filtrar exercícios por **dia da semana** (T1, T2, T3, T4) quando o treino tiver dias definidos.
-3. Ver vídeos demonstrativos dos exercícios em modal.
-4. Marcar o treino como **concluído** (registrando em `student_workout_progress`).
-5. Acompanhar o **histórico de treinos** e o **progresso semanal**.
-6. Integrar com **agenda de treinos** e **horários fixos** já existentes.
+Resultado da consulta em `creditos_aluno`:
 
-## 3. Fases de implementação
+| origem_tipo | atividade | ativo | inicial | usada |
+|---|---|---|---|---|
+| servico     | Nutrição  | true  | 4       | 1     |
 
-### Fase 1 — Refatorar leitura do treino atual
+Ou seja: **nenhuma linha com `origem_tipo='plano'`**. Existe apenas 1 crédito avulso ("servico") de Nutrição, comprado à parte. Nada de plano.
 
-- Reutilizar a função `flatFromTreino` já existente em `src/pages/portal/PortalWorkouts.tsx`.
-- Garantir compatibilidade com o shape `__personalizado: true` e com o shape legado `WorkoutData`.
-- Adicionar filtro por dia da semana (T1-T4) quando `dias` estiver presente nos exercícios.
+Cross-check com o restante dos dados dela:
+- `planos`: 1 registro Pro ativo, `servicos = {"2 Avaliação Funcional","2 Consultas Nutrição","2 Consultas Reabilitação"}`, vigência 12/01/2026–12/01/2027.
+- `consumo_servicos`: 1 Aval. Funcional + 2 Consultas Nutrição, todos `tipo_registro='uso_manual'`. É daí que sai o "1/2" e "2/2" que aparece internamente.
 
-### Fase 2 — Melhorar UI/UX do portal
+Isso confirma: as linhas de `creditos_aluno` origem_tipo='plano' para serviços inclusos **nunca foram criadas** para ela.
 
-- Aplicar o tema Carbon já existente no portal (`bg-[#141414]`, primária `#E73C3E`).
-- Criar cards expansíveis por bloco (Aquecimento, Treino A, Treino B, etc.).
-- Adicionar indicador de exercício concluído por série (opcional, local state).
-- Exibir badge de "Treino de hoje" baseado no dia da semana/agendamento.
+## 3. Existe trigger/função que deveria popular essas linhas?
 
-### Fase 3 — Integrar progresso e agenda
+Sim, existe uma trigger em `planos` (`trg_sync_creditos_on_plano_change` → `fn_sync_creditos_on_plano_change`), **mas ela só desativa créditos quando o plano é desativado — nunca cria linha nenhuma.**
 
-- Reutilizar a tabela `student_workout_progress` para marcação de concluído.
-- Exibir contador semanal (`feitos / meta`) já implementado em `PortalWorkouts.tsx`.
-- Integrar com `treino_agendamentos` para mostrar próximos agendamentos confirmados.
-- Para alunos Power/Pro/Max, exibir horários fixos de `treino_horarios_fixos`.
+O único lugar do banco que insere `creditos_aluno` com `origem_tipo='plano'` é `fn_processar_venda` (trigger em `vendas`), e mesmo assim ela cria **apenas 1 linha por venda de plano, com `atividade='Treino'`** — usa `planos_catalogo.quantidade_creditos`. Não cria linhas separadas para Avaliação Funcional / Nutrição / Reabilitação. Esses serviços vivem exclusivamente no array `planos.servicos` + `consumo_servicos`.
 
-### Fase 4 — Vídeos e detalhes do exercício
+Ou seja: **o modelo atual nunca materializa serviços inclusos no plano em `creditos_aluno`**, para nenhum aluno — não é um problema específico da Bruna nem de contratos migrados. É consequência de dois modelos paralelos:
 
-- Reutilizar o modal de exercício já existente (`ExerciseModal` em `PortalWorkouts.tsx`).
-- Garantir que `getYouTubeEmbedUrl` suporte shorts e URLs normais.
-- Exibir categoria, subcategoria, séries, repetições e carga quando disponível.
+- **Modelo A (interno / StudentPlan / ContratoFinanceiro):** `planos.servicos` (texto) + `consumo_servicos`.
+- **Modelo B (Portal / `PortalHome` seção "Incluso no seu Plano"):** `creditos_aluno` com `origem_tipo='plano'`.
 
-### Fase 5 — Histórico e troca de treino
+O Portal foi escrito assumindo o Modelo B, que ninguém popula para serviços de plano — só para Treino (via venda) e para serviços avulsos.
 
-- Listar treinos arquivados/aguardando (já feito parcialmente).
-- Permitir visualização de treinos passados sem permitir edição.
-- Sincronizar com a RPC `ativar_treinos_agendados` para promover treinos agendados.
+Adicional: o plano da Bruna aparentemente nem passou pelo `fn_processar_venda` (não há sequer a linha `Treino` origem_tipo='plano'), então provavelmente foi criado manualmente/importado direto na tabela `planos`. Isso reforça que o problema é do modelo, mas há também um caso à parte de "planos que nunca geraram nenhum crédito porque não vieram por venda".
 
-## 4. Detalhes técnicos
+---
 
-### Queries principais
+## Como quer seguir?
 
-1. Buscar treino atual do aluno:
-```sql
-SELECT * FROM treinos
-WHERE aluno_id = :aluno_id
-  AND status = 'atual'
-ORDER BY created_at DESC
-LIMIT 1;
-```
+Três caminhos possíveis para o fix (só pra alinhar antes de eu escrever o plano de implementação):
 
-2. Buscar progresso da semana:
-```sql
-SELECT * FROM student_workout_progress
-WHERE aluno_id = :aluno_id
-  AND data >= :week_start
-  AND data <= :week_end;
-```
+**(a) Ajustar o Portal para ler o mesmo modelo do interno.** Trocar a query da seção "Incluso no seu Plano" em `PortalHome.tsx` para ler `planos.servicos` + `consumo_servicos` (igual `StudentPlan`). Mudança só de front, zero migração. Rápido e resolve todos os alunos, inclusive os já existentes. Deixa de fora quem só usa `creditos_aluno` como fonte, mas nesse ponto ninguém usa esse modelo para serviços de plano.
 
-3. Buscar agendamentos futuros:
-```sql
-SELECT * FROM treino_agendamentos
-WHERE aluno_id = :aluno_id
-  AND data >= CURRENT_DATE
-  AND status IN ('confirmado', 'realizado')
-ORDER BY data, horario_inicio;
-```
+**(b) Popular `creditos_aluno` retroativamente + criar trigger em `planos`.** Backfill de linhas `origem_tipo='plano'` para cada item em `planos.servicos` de todos os planos ativos, com `quantidade_usada` derivada de `consumo_servicos`. Mais uma trigger `AFTER INSERT/UPDATE` em `planos` para manter sincronizado dali pra frente. Manteria o Portal como está, mas duplica fonte de verdade (risco de drift entre `creditos_aluno.quantidade_usada` e `consumo_servicos`).
 
-### Componentes a criar/alterar
+**(c) Híbrido:** só backfill + trigger, mas fazendo `creditos_aluno` uma view materializada / apontar Portal para uma view que UNION `creditos_aluno` (avulsos) + derivado de `planos.servicos` (inclusos). Mais correto conceitualmente, mais trabalho.
 
-- `src/pages/portal/PortalWorkouts.tsx` — página principal do módulo.
-- `src/components/portal/WorkoutDayFilter.tsx` — filtro por dia T1-T4.
-- `src/components/portal/WorkoutBlockCard.tsx` — card de bloco de exercícios.
-- `src/components/portal/WorkoutExerciseItem.tsx` — item de exercício com vídeo.
-- `src/components/portal/WorkoutWeeklyProgress.tsx` — progresso semanal.
-- `src/components/portal/WorkoutScheduleCard.tsx` — próximos agendamentos.
-
-### API/hooks
-
-- Criar `src/hooks/usePortalWorkout.ts` para centralizar query do treino + progresso.
-- Criar `src/hooks/useTreinoAgendamentos.ts` para próximos agendamentos.
-- Reutilizar `usePushNotifications` para lembrete de treino (futuro).
-
-### Riscos e considerações
-
-- O JSONB pode ter shapes diferentes (`__personalizado` vs legado). Normalização futura pode ser necessária.
-- Exercícios sem `exercicio_id` não linkam com o banco; vídeo e nome vêm do próprio JSON.
-- O filtro por dia (`dias`) nem sempre estará presente; UI deve lidar com ausência.
-- Marcação de conclusão deve respeitar duplicatas (constraint `duplicate` já tratada).
-
-## 5. Próximos passos
-
-Aguardar aprovação para iniciar a implementação na página `PortalWorkouts.tsx` e componentes auxiliares.
+Minha recomendação é **(a)** — é o caminho de menor risco e alinha as duas telas na mesma fonte de verdade que já é usada em toda a operação hoje (venda, agenda, consumo manual). Me diz qual seguir que eu já monto o plano de implementação.

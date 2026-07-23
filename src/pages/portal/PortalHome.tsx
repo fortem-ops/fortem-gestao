@@ -45,13 +45,26 @@ export default function PortalHome() {
     queryFn: async () => {
       const { data } = await supabase
         .from("planos")
-        .select("id, tipo, data_inicio, data_fim, proxima_renovacao")
+        .select("id, tipo, data_inicio, data_fim, proxima_renovacao, servicos")
         .eq("aluno_id", student!.id)
         .eq("ativo", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       return data;
+    },
+  });
+
+  const { data: consumosPlano = [] } = useQuery({
+    queryKey: ["portal-home-consumos", student?.id, planoAtivo?.id],
+    enabled: !!student && !!planoAtivo?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("consumo_servicos")
+        .select("tipo_servico, tipo_registro, quantidade, agenda_id")
+        .eq("aluno_id", student!.id)
+        .eq("plano_id", planoAtivo!.id);
+      return (data as any[]) || [];
     },
   });
 
@@ -669,13 +682,48 @@ export default function PortalHome() {
         </section>
       )}
 
+
       {/* Serviços do Plano e Avulsos */}
-      {creditosAll.length > 0 && (() => {
-        const doPlano = creditosAll.filter((c: any) => c.origem_tipo === "plano");
+      {(() => {
+        // Serviços inclusos no plano: derivados de planos.servicos + consumo_servicos
+        // (mesma fonte de verdade usada em StudentPlan/ContratoFinanceiro).
+        const parseServiceCount = (servicos: string[] | null | undefined, tipo: string): number => {
+          if (!servicos) return 0;
+          for (const s of servicos) {
+            const m = s.match(/^(\d+)\s+(.+)$/);
+            if (m && m[2] === tipo) return parseInt(m[1]);
+          }
+          return 0;
+        };
+        const buildIncluso = (tipo: string) => {
+          const base = parseServiceCount((planoAtivo as any)?.servicos, tipo);
+          const comprado = (consumosPlano as any[])
+            .filter((c) => c.tipo_servico === tipo && c.tipo_registro === "compra")
+            .reduce((sum, c) => sum + (c.quantidade ?? 1), 0);
+          const usado = (consumosPlano as any[])
+            .filter((c) => c.tipo_servico === tipo && (!!c.agenda_id || c.tipo_registro === "uso_manual"))
+            .length;
+          const total = base + comprado;
+          return { total, usado };
+        };
+        const doPlano = [
+          { atividade: "Avaliação Funcional", ...buildIncluso("Avaliação Funcional") },
+          { atividade: "Consultas Nutrição", ...buildIncluso("Consultas Nutrição") },
+          { atividade: "Consultas Reabilitação", ...buildIncluso("Consultas Reabilitação") },
+        ]
+          .filter((s) => s.total > 0)
+          .map((s, i) => ({
+            id: `plano-${i}-${s.atividade}`,
+            atividade: s.atividade,
+            quantidade_inicial: s.total,
+            quantidade_usada: s.usado,
+            ilimitado: false,
+            origem_tipo: "plano",
+          }));
         const doAvulso = creditosAll.filter((c: any) => c.origem_tipo === "servico");
         const vendasMap = new Map((vendasAvulso as any[]).map((v) => [v.id, v]));
 
-        const saldoDe = (c: any) => (c.ilimitado ? Infinity : (c.quantidade_inicial - c.quantidade_usada));
+        if (doPlano.length === 0 && doAvulso.length === 0) return null;
 
         return (
           <>
