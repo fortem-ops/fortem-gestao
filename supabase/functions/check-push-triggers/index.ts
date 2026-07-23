@@ -116,6 +116,33 @@ serve(async (req) => {
     });
   }
 
+  // 4b. Cobrança em atraso — notificar aluno
+  const { data: cobrancasAtrasadas } = await supabase
+    .from("cobrancas" as any)
+    .select("id, aluno_id, valor, data_vencimento")
+    .eq("status", "atrasado")
+    .gte("data_vencimento", new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
+
+  for (const c of (cobrancasAtrasadas as any[]) ?? []) {
+    if (!c.aluno_id) continue;
+    const { data: jaEnviou } = await supabase
+      .from("portal_push_log")
+      .select("id")
+      .eq("aluno_id", c.aluno_id)
+      .eq("gatilho", "cobranca_atrasada")
+      .gte("enviado_em", hojeStr)
+      .limit(1);
+    if (jaEnviou && jaEnviou.length > 0) continue;
+    await sendPush(supabaseUrl, serviceKey, {
+      aluno_id: c.aluno_id,
+      title: "Cobrança em atraso ⚠️",
+      body: `Sua parcela de R$ ${Number(c.valor).toFixed(2).replace(".", ",")} está em atraso. Fale com a equipe FORTEM para regularizar.`,
+      url: "/portal/pagamentos",
+      gatilho: "cobranca_atrasada",
+    });
+  }
+
+
   // 4) Aniversário FORTEM
   const { data: planosAniv } = await supabase
     .from("planos")

@@ -141,7 +141,19 @@ export default function PortalProfile() {
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
           </Link>
 
+          <Link to="/portal/pagamentos" className="flex items-center gap-3 px-4 py-3.5">
+            <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
+              <CreditCard className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">Pagamentos</p>
+              <p className="text-xs text-muted-foreground">Histórico de cobranças</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </Link>
+
           <Link to="/portal/notificacoes" className="flex items-center gap-3 px-4 py-3.5">
+
             <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
               <Bell className="w-4 h-4 text-muted-foreground" />
             </div>
