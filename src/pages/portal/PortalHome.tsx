@@ -721,7 +721,35 @@ export default function PortalHome() {
               </section>
             )}
 
+            {/* Banner de upgrade */}
+            {["Start", "Start+"].includes(planoAtivo?.tipo ?? "") && (
+              <section className="space-y-2">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🚀</span>
+                    <p className="text-sm font-bold text-foreground">Turbine seu plano 🚀</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    No Power, Pro ou Max você já sai com Avaliação Funcional, Nutrição e Reabilitação incluídas no plano — sem precisar contratar à parte.
+                  </p>
+                  <button
+                    onClick={() =>
+                      window.open(
+                        "https://wa.me/555135199451?text=" +
+                          encodeURIComponent("Olá! Quero saber mais sobre fazer upgrade do meu plano."),
+                        "_blank"
+                      )
+                    }
+                    className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
+                  >
+                    Conhecer planos superiores →
+                  </button>
+                </div>
+              </section>
+            )}
+
             {/* Serviços Contratados à Parte */}
+
             {doAvulso.length > 0 && (
               <section className="space-y-2">
                 <SectionLabel>Serviços Contratados à Parte</SectionLabel>
