@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CreditCard, Star, StarOff, Lock, ChevronDown, ChevronUp,
-  Smartphone, Link2, Building2,
+  Smartphone, Link2, Building2, Plus, Copy, Check,
 } from "lucide-react";
+import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -250,6 +251,10 @@ function CartaoRow({
 export function CartoesSection({ student }: Props) {
   const qc = useQueryClient();
   const [toDeactivate, setToDeactivate] = useState<Cartao | null>(null);
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const [linkGerado, setLinkGerado] = useState<string | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const [gerandoLink, setGerandoLink] = useState(false);
 
   const { data: cartoes = [], isLoading } = useQuery({
     queryKey: ["cartoes-salvos-aluno", student.id],
@@ -263,6 +268,34 @@ export function CartoesSection({ student }: Props) {
       return (data ?? []) as unknown as Cartao[];
     },
   });
+
+  async function gerarLink() {
+    setGerandoLink(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("links_cartao")
+        .insert({ aluno_id: student.id })
+        .select("token")
+        .single();
+      if (error) throw error;
+      const url = `${window.location.origin}/cartao/${data.token}`;
+      setLinkGerado(url);
+      setLinkCopiado(false);
+    } catch (e: any) {
+      toast.error("Falha ao gerar link: " + e.message);
+    } finally {
+      setGerandoLink(false);
+    }
+  }
+
+  async function copiarLink() {
+    if (!linkGerado) return;
+    await navigator.clipboard.writeText(linkGerado);
+    setLinkCopiado(true);
+    toast.success("Link copiado!");
+    setTimeout(() => setLinkCopiado(false), 2500);
+  }
+
 
   async function definirPadrao(c: Cartao) {
     await supabase
@@ -307,10 +340,32 @@ export function CartoesSection({ student }: Props) {
               <CreditCard className="h-5 w-5 text-primary" />
               <CardTitle className="text-base">Cartões de Crédito</CardTitle>
             </div>
-            <span className="text-xs text-muted-foreground">
-              {ativos} ativo{ativos !== 1 ? "s" : ""} · {cartoes.length} cadastrado{cartoes.length !== 1 ? "s" : ""}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {ativos} ativo{ativos !== 1 ? "s" : ""} · {cartoes.length} cadastrado{cartoes.length !== 1 ? "s" : ""}
+              </span>
+              <Button size="sm" variant="outline" onClick={() => setDialogAberto(true)} className="gap-1">
+                <Plus className="h-3.5 w-3.5" /> Cadastrar cartão
+              </Button>
+              <Button size="sm" variant="outline" onClick={gerarLink} disabled={gerandoLink} className="gap-1">
+                <Link2 className="h-3.5 w-3.5" /> {gerandoLink ? "Gerando..." : "Enviar link"}
+              </Button>
+            </div>
           </div>
+          {linkGerado && (
+            <div className="mt-3 flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+              <code className="flex-1 text-xs font-mono truncate">{linkGerado}</code>
+              <Button size="sm" variant="ghost" onClick={copiarLink} className="h-7 gap-1">
+                {linkCopiado ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                {linkCopiado ? "Copiado" : "Copiar"}
+              </Button>
+            </div>
+          )}
+          {linkGerado && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Válido por 48h. Envie por WhatsApp ou e-mail para o aluno concluir o cadastro.
+            </p>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -377,6 +432,15 @@ export function CartoesSection({ student }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CadastrarCartaoDialog
+        open={dialogAberto}
+        onOpenChange={setDialogAberto}
+        alunoId={student.id}
+        alunoNome={student.nome}
+        origem="recepcao"
+        onSuccess={() => qc.invalidateQueries({ queryKey: ["cartoes-salvos-aluno", student.id] })}
+      />
     </>
   );
 }

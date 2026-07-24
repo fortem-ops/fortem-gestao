@@ -173,55 +173,6 @@ export default function PortalProfile() {
 
 
 
-      {/* ── CARTEIRA ── */}
-      <section className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Carteira</p>
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {cartoes.length === 0 ? (
-            <div className="px-4 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
-                  <CreditCard className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Nenhum cartão salvo</p>
-                  <p className="text-xs text-muted-foreground">Cartões são adicionados ao realizar um pagamento</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {cartoes.map((c: any) => (
-                <div key={c.id} className="flex items-center gap-3 px-4 py-3.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
-                    <CreditCard className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground capitalize">{c.brand} •••• {c.last4}</p>
-                      {c.is_default && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">Padrão</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{String(c.expiration_month).padStart(2,"0")}/{c.expiration_year} · {c.holder_name}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    {!c.is_default && (
-                      <button onClick={() => definirPadrao.mutate(c.id)} className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center">
-                        <Star className="w-3.5 h-3.5 text-muted-foreground" />
-                      </button>
-                    )}
-                    <button onClick={() => removerCartao.mutate(c.id)} className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center">
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <p className="text-[10px] text-muted-foreground px-1">Não armazenamos o número do cartão — apenas um token seguro via Rede.</p>
-      </section>
 
       {/* ── SAIR ── */}
       <section>

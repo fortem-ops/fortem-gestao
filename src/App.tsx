@@ -73,6 +73,7 @@ const PortalRecoverPassword = lazy(() => import("./pages/portal/PortalRecoverPas
 const PortalResetPassword = lazy(() => import("./pages/portal/PortalResetPassword"));
 const PortalProfile = lazy(() => import("./pages/portal/PortalProfile"));
 const PortalPagamentos = lazy(() => import("./pages/portal/PortalPagamentos"));
+const CadastrarCartaoPublico = lazy(() => import("./pages/CadastrarCartaoPublico"));
 const PortalHome = lazy(() => import("./pages/portal/PortalHome"));
 const PortalWorkouts = lazy(() => import("./pages/portal/PortalWorkouts"));
 const PortalAssessments = lazy(() => import("./pages/portal/PortalAssessments"));
@@ -186,6 +187,14 @@ const App = () => (
               element={
                 <Suspense fallback={<RouteFallback />}>
                   <LegalAnnexFlow documentType="experimental" />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/cartao/:token"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <CadastrarCartaoPublico />
                 </Suspense>
               }
             />

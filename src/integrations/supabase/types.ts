@@ -3122,6 +3122,58 @@ export type Database = {
           },
         ]
       }
+      links_cartao: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          token: string
+          usado: boolean
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+          usado?: boolean
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+          usado?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "links_cartao_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "links_cartao_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "links_cartao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notificacao_categorias_custom: {
         Row: {
           ativo: boolean

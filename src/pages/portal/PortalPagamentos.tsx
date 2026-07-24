@@ -1,10 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, CreditCard, Loader2, AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, CreditCard, Loader2, AlertCircle, CheckCircle2, Clock, XCircle, Plus, Star, Trash2 } from "lucide-react";
+import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
 
 function statusInfo(status: string) {
   switch (status) {
@@ -33,6 +36,41 @@ function formaLabel(forma: string) {
 export default function PortalPagamentos() {
   const { student } = useStudentPortal();
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [cadastroAberto, setCadastroAberto] = useState(false);
+
+  const { data: cartoes = [] } = useQuery({
+    queryKey: ["portal-cartoes", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("cartoes_salvos").select("*")
+        .eq("aluno_id", student!.id).eq("ativo", true)
+        .order("is_default", { ascending: false });
+      return data || [];
+    },
+  });
+
+  const removerCartao = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("cartoes_salvos")
+        .update({ ativo: false, is_default: false }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Cartão removido"); qc.invalidateQueries({ queryKey: ["portal-cartoes"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const definirPadrao = useMutation({
+    mutationFn: async (id: string) => {
+      await (supabase as any).from("cartoes_salvos").update({ is_default: false }).eq("aluno_id", student!.id);
+      const { error } = await (supabase as any).from("cartoes_salvos").update({ is_default: true }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Cartão padrão atualizado"); qc.invalidateQueries({ queryKey: ["portal-cartoes"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
 
   const { data: contrato } = useQuery({
     queryKey: ["portal-contrato-pagamentos", student?.id],
@@ -225,10 +263,82 @@ export default function PortalPagamentos() {
         )}
       </section>
 
+      {/* ── CARTEIRA ── */}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Meus cartões</p>
+          <button
+            onClick={() => setCadastroAberto(true)}
+            className="flex items-center gap-1 text-xs font-bold text-primary"
+          >
+            <Plus className="w-3.5 h-3.5" /> Adicionar
+          </button>
+        </div>
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          {cartoes.length === 0 ? (
+            <button
+              onClick={() => setCadastroAberto(true)}
+              className="w-full px-4 py-4 flex items-center gap-3 text-left"
+            >
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Plus className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Cadastrar cartão</p>
+                <p className="text-xs text-muted-foreground">Para cobranças futuras e renovação automática</p>
+              </div>
+            </button>
+          ) : (
+            <div className="divide-y divide-border">
+              {cartoes.map((c: any) => (
+                <div key={c.id} className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-foreground capitalize">{c.brand} •••• {c.last4}</p>
+                      {c.is_default && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">Padrão</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {String(c.expiration_month).padStart(2,"0")}/{c.expiration_year} · {c.holder_name}
+                    </p>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {!c.is_default && (
+                      <button onClick={() => definirPadrao.mutate(c.id)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                        <Star className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                    )}
+                    <button onClick={() => removerCartao.mutate(c.id)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <p className="text-[10px] text-muted-foreground px-1">
+          Não armazenamos o número do cartão — apenas um token seguro via Rede.
+        </p>
+      </section>
+
       <p className="text-[10px] text-muted-foreground text-center px-4">
         Notas fiscais são enviadas automaticamente para o seu e-mail cadastrado.
         Dúvidas? Fale com a equipe FORTEM.
       </p>
+
+      <CadastrarCartaoDialog
+        open={cadastroAberto}
+        onOpenChange={setCadastroAberto}
+        alunoId={student.id}
+        alunoNome={student.nome}
+        origem="portal_aluno"
+        onSuccess={() => qc.invalidateQueries({ queryKey: ["portal-cartoes"] })}
+      />
     </div>
   );
 }
