@@ -2,3 +2,6 @@ project_id = "dmudgqedzeosfpehpgep"
 
 [functions.agenda-ics]
 verify_jwt = false
+
+[functions.rede-salvar-cartao]
+verify_jwt = false
