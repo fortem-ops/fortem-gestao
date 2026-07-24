@@ -80,7 +80,7 @@ function cargoFromAppRole(role: string | null): string {
 async function buildContext(agendaId: string) {
   const { data: agenda } = await admin
     .from('agenda_servicos')
-    .select('*')
+    .select('id, atividade, profissional_id, consultor_id, aluno_id, data_especifica, dia_semana, horario_inicio, horario_fim, local, tipo, protocolo, observacoes')
     .eq('id', agendaId)
     .maybeSingle();
   if (!agenda) return null;
@@ -126,6 +126,7 @@ async function buildContext(agendaId: string) {
     '%QUEIXA%': anamnese?.queixa ?? anamnese?.limitacoes ?? '—',
     '%ULTIMA_AVALIACAO%': formatDateBR(ultimaAvaliacao?.data_avaliacao ?? null) || 'Nenhuma',
     '%PROTOCOLO%': agenda.protocolo ?? '—',
+    '%OBSERVACOES%': (agenda as any).observacoes ?? '—',
   };
 
   return {
@@ -226,6 +227,7 @@ function buildTemplatePayload(
         p('%LIMITACOES%'),
         p('%ATIVIDADE_FISICA%'),
         p('%OBJETIVO%'),
+        p('%OBSERVACOES%'),
       ]}],
     };
   }
@@ -242,6 +244,7 @@ function buildTemplatePayload(
         p('%DATA_NASCIMENTO%'),
         p('%ULTIMA_AVALIACAO%'),
         p('%PROTOCOLO%'),
+        p('%OBSERVACOES%'),
       ]}],
     };
   }
@@ -256,6 +259,7 @@ function buildTemplatePayload(
         p('%NOME_ALUNO%'),
         p('%DATA_NASCIMENTO%'),
         p('%QUEIXA%'),
+        p('%OBSERVACOES%'),
       ]}],
     };
   }
@@ -269,6 +273,7 @@ function buildTemplatePayload(
         p('%NOME_PROFISSIONAL%'),
         p('%NOME_ALUNO%'),
         p('%DATA_NASCIMENTO%'),
+        p('%OBSERVACOES%'),
       ]}],
     };
   }
