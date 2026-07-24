@@ -340,10 +340,32 @@ export function CartoesSection({ student }: Props) {
               <CreditCard className="h-5 w-5 text-primary" />
               <CardTitle className="text-base">Cartões de Crédito</CardTitle>
             </div>
-            <span className="text-xs text-muted-foreground">
-              {ativos} ativo{ativos !== 1 ? "s" : ""} · {cartoes.length} cadastrado{cartoes.length !== 1 ? "s" : ""}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {ativos} ativo{ativos !== 1 ? "s" : ""} · {cartoes.length} cadastrado{cartoes.length !== 1 ? "s" : ""}
+              </span>
+              <Button size="sm" variant="outline" onClick={() => setDialogAberto(true)} className="gap-1">
+                <Plus className="h-3.5 w-3.5" /> Cadastrar cartão
+              </Button>
+              <Button size="sm" variant="outline" onClick={gerarLink} disabled={gerandoLink} className="gap-1">
+                <Link2 className="h-3.5 w-3.5" /> {gerandoLink ? "Gerando..." : "Enviar link"}
+              </Button>
+            </div>
           </div>
+          {linkGerado && (
+            <div className="mt-3 flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+              <code className="flex-1 text-xs font-mono truncate">{linkGerado}</code>
+              <Button size="sm" variant="ghost" onClick={copiarLink} className="h-7 gap-1">
+                {linkCopiado ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                {linkCopiado ? "Copiado" : "Copiar"}
+              </Button>
+            </div>
+          )}
+          {linkGerado && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Válido por 48h. Envie por WhatsApp ou e-mail para o aluno concluir o cadastro.
+            </p>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
