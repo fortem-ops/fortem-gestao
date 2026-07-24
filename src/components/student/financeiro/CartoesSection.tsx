@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CreditCard, Star, StarOff, Lock, ChevronDown, ChevronUp,
-  Smartphone, Link2, Building2,
+  Smartphone, Link2, Building2, Plus, Copy, Check,
 } from "lucide-react";
+import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
