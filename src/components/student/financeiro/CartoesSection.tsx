@@ -251,6 +251,10 @@ function CartaoRow({
 export function CartoesSection({ student }: Props) {
   const qc = useQueryClient();
   const [toDeactivate, setToDeactivate] = useState<Cartao | null>(null);
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const [linkGerado, setLinkGerado] = useState<string | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const [gerandoLink, setGerandoLink] = useState(false);
 
   const { data: cartoes = [], isLoading } = useQuery({
     queryKey: ["cartoes-salvos-aluno", student.id],
@@ -264,6 +268,34 @@ export function CartoesSection({ student }: Props) {
       return (data ?? []) as unknown as Cartao[];
     },
   });
+
+  async function gerarLink() {
+    setGerandoLink(true);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("links_cartao")
+        .insert({ aluno_id: student.id })
+        .select("token")
+        .single();
+      if (error) throw error;
+      const url = `${window.location.origin}/cartao/${data.token}`;
+      setLinkGerado(url);
+      setLinkCopiado(false);
+    } catch (e: any) {
+      toast.error("Falha ao gerar link: " + e.message);
+    } finally {
+      setGerandoLink(false);
+    }
+  }
+
+  async function copiarLink() {
+    if (!linkGerado) return;
+    await navigator.clipboard.writeText(linkGerado);
+    setLinkCopiado(true);
+    toast.success("Link copiado!");
+    setTimeout(() => setLinkCopiado(false), 2500);
+  }
+
 
   async function definirPadrao(c: Cartao) {
     await supabase
