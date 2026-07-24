@@ -577,7 +577,7 @@ export default function PortalAgenda() {
                     <CalendarPlus className="w-4 h-4 text-primary" />
                   </div>
                   <p className="text-sm font-semibold text-foreground truncate">
-                    Vincule seus treinos à sua agenda pessoal do celular
+                    Vincule seus treinos à sua agenda do celular
                   </p>
                 </div>
                 <ChevronDown
