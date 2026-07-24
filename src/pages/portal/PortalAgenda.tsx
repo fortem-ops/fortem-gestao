@@ -1283,14 +1283,21 @@ export default function PortalAgenda() {
           <div className="bg-card border-t border-border rounded-t-3xl w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
             <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Remover horário fixo?</p>
-            <p className="text-sm text-muted-foreground">Este horário não será mais reservado automaticamente nas próximas semanas. Agendamentos já criados permanecem.</p>
+            <p className="text-sm text-muted-foreground">Este horário não será mais reservado automaticamente, e os agendamentos futuros criados por ele serão cancelados.</p>
             <div className="flex gap-3">
               <button onClick={() => setHorarioFixoParaRemover(null)} className="flex-1 py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">Cancelar</button>
               <button
                 onClick={async () => {
-                  await (supabase as any).from("treino_horarios_fixos").update({ ativo: false }).eq("id", horarioFixoParaRemover);
-                  toast.success("Horário fixo removido.");
+                  const { data, error } = await (supabase as any).rpc("fn_excluir_horario_fixo", { p_horario_fixo_id: horarioFixoParaRemover });
+                  if (error || !data?.ok) {
+                    toast.error("Não foi possível remover o horário fixo.");
+                  } else {
+                    const n = data.cancelados ?? 0;
+                    toast.success(n > 0 ? `Horário fixo removido. ${n} agendamento${n > 1 ? "s" : ""} futuro${n > 1 ? "s" : ""} cancelado${n > 1 ? "s" : ""}.` : "Horário fixo removido.");
+                  }
                   qc.invalidateQueries({ queryKey: ["portal-horarios-fixos"] });
+                  qc.invalidateQueries({ queryKey: ["agendamentos-dia"] });
+                  qc.invalidateQueries({ queryKey: ["historicoTreinos"] });
                   setHorarioFixoParaRemover(null);
                 }}
                 className="flex-1 py-3 rounded-xl bg-destructive text-white font-bold text-sm"
