@@ -1,0 +1,2 @@
+ALTER TABLE public.treino_horarios_fixos DROP CONSTRAINT IF EXISTS treino_horarios_fixos_aluno_id_dia_semana_key;
+CREATE UNIQUE INDEX IF NOT EXISTS treino_horarios_fixos_aluno_dia_ativo_idx ON public.treino_horarios_fixos (aluno_id, dia_semana) WHERE ativo = true;
