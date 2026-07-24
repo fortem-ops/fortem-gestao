@@ -190,6 +190,14 @@ const App = () => (
                 </Suspense>
               }
             />
+            <Route
+              path="/cartao/:token"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <CadastrarCartaoPublico />
+                </Suspense>
+              }
+            />
             {/* Painel autônomo do parceiro — protegido por auth, mas sem AppLayout (UX kiosk). */}
             <Route
               path="/parceiros/scanner"

@@ -1,10 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, CreditCard, Loader2, AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, CreditCard, Loader2, AlertCircle, CheckCircle2, Clock, XCircle, Plus, Star, Trash2 } from "lucide-react";
+import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
 
 function statusInfo(status: string) {
   switch (status) {
