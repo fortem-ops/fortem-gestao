@@ -7045,6 +7045,10 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      fn_excluir_horario_fixo: {
+        Args: { p_horario_fixo_id: string }
+        Returns: Json
+      }
       fn_gerar_comissao: {
         Args: {
           _aluno: string
