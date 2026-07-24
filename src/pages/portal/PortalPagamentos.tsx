@@ -36,6 +36,41 @@ function formaLabel(forma: string) {
 export default function PortalPagamentos() {
   const { student } = useStudentPortal();
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [cadastroAberto, setCadastroAberto] = useState(false);
+
+  const { data: cartoes = [] } = useQuery({
+    queryKey: ["portal-cartoes", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("cartoes_salvos").select("*")
+        .eq("aluno_id", student!.id).eq("ativo", true)
+        .order("is_default", { ascending: false });
+      return data || [];
+    },
+  });
+
+  const removerCartao = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("cartoes_salvos")
+        .update({ ativo: false, is_default: false }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Cartão removido"); qc.invalidateQueries({ queryKey: ["portal-cartoes"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const definirPadrao = useMutation({
+    mutationFn: async (id: string) => {
+      await (supabase as any).from("cartoes_salvos").update({ is_default: false }).eq("aluno_id", student!.id);
+      const { error } = await (supabase as any).from("cartoes_salvos").update({ is_default: true }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Cartão padrão atualizado"); qc.invalidateQueries({ queryKey: ["portal-cartoes"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
 
   const { data: contrato } = useQuery({
     queryKey: ["portal-contrato-pagamentos", student?.id],
