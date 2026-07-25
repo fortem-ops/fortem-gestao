@@ -28,7 +28,18 @@ import {
   trainingMax,
   acessorioKg,
   roundToNearest2_5,
+  LEVANTAMENTO_EXERCICIO_BASE,
 } from "@/lib/wendler531";
+import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
+import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { CATEGORY_LABELS } from "@/components/student/workout/workoutTemplates";
+import { SUBCATEGORIA_TO_CODE } from "@/lib/exerciseMapping";
+import {
+  SelectGroup,
+  SelectLabel,
+} from "@/components/ui/select";
+import { PlayCircle } from "lucide-react";
+
 
 interface Props {
   alunoId: string;
@@ -61,6 +72,12 @@ export function Prescricao531Editor({
     () => levantamentosDisponiveis(data.frequencia),
     [data.frequencia],
   );
+  const { categories } = useExerciseCategories();
+  const forcaCategories = useMemo(
+    () => categories.filter((c) => c.name === "Força"),
+    [categories],
+  );
+
 
   // ── Autosave (debounce 800ms) ─────────────────────────────────
   const saveDraft = useCallback(async (next: Wendler531Conteudo) => {
@@ -206,13 +223,17 @@ export function Prescricao531Editor({
       }
       const novo: Acessorio531 = {
         vinculado_a: primeiro,
+        categoria: "",
         exercicio: "",
+        exercicio_id: null,
+        video_url: null,
         semanas: [
           { semana: 1, series: 3, reps: "10", percentual: 50 },
           { semana: 2, series: 3, reps: "10", percentual: 55 },
           { semana: 3, series: 3, reps: "10", percentual: 60 },
         ],
       };
+
       const dias = prev.dias.map((d, i) =>
         i === idx ? { ...d, acessorios: [...d.acessorios, novo] } : d,
       );
@@ -270,7 +291,7 @@ export function Prescricao531Editor({
 
   const addAuxiliar = (idx: number) =>
     setData((prev) => {
-      const novo: Auxiliar531 = { exercicio: "", series: 3, reps: "10", kg: "" };
+      const novo: Auxiliar531 = { categoria: "", exercicio: "", exercicio_id: null, video_url: null, series: 3, reps: "10", kg: "" };
       const dias = prev.dias.map((d, i) =>
         i === idx ? { ...d, auxiliares: [...d.auxiliares, novo] } : d,
       );

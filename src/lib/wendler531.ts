@@ -14,6 +14,11 @@
  * - Acessórios só existem para semanas 1-3 (semana 4 = deload).
  */
 
+import type {
+  AquecimentoBloco,
+  PersonalizadoAquecimentoEx,
+} from "@/components/student/workout/personalizadoTypes";
+
 export type Levantamento531 =
   | "Agachamento"
   | "Terra"
@@ -27,6 +32,48 @@ export const LEVANTAMENTOS_BASE: Levantamento531[] = [
   "Supino",
   "Remada Curvada",
 ];
+
+/**
+ * Exercício do Banco vinculado FIXAMENTE a cada levantamento principal.
+ * Herdamos nome de exibição e vídeo — sem seletor no editor.
+ * IDs conferidos em `exercicios_personalizados`.
+ */
+export const LEVANTAMENTO_EXERCICIO_BASE: Record<
+  Levantamento531,
+  { categoria: string; exercicio_id: string; nome: string; video_url: string | null }
+> = {
+  Agachamento: {
+    categoria: "DJS",
+    exercicio_id: "0c0bdc0c-0df0-4999-bbe7-0c85471d4b34",
+    nome: "Agachamento com Barra nas Costas",
+    video_url: "https://youtube.com/shorts/LGnX-Tit8NY",
+  },
+  Terra: {
+    categoria: "DQ",
+    exercicio_id: "64cf35a1-03b0-4b89-b46f-3a893dbf65cc",
+    nome: "Levantamento Terra com Barra Reta",
+    video_url:
+      "https://www.youtube.com/watch?v=H6QBUUGcOo8&list=PLiJxKiFjIcoGNnq88E0EIVBJp22EZ1eTn&index=1",
+  },
+  Supino: {
+    categoria: "EH",
+    exercicio_id: "2f8139b2-d0cc-4f34-8b2c-396b5e0a039f",
+    nome: "Supino",
+    video_url: "https://www.youtube.com/watch?v=Eas2ERzSBTs",
+  },
+  "Remada Curvada": {
+    categoria: "PH",
+    exercicio_id: "a12123f6-cd05-4cc9-a3d1-b77fa0d180d0",
+    nome: "Remada Curvada com Barra",
+    video_url: "https://www.youtube.com/watch?v=Jz4SXmEn_iw",
+  },
+  Press: {
+    categoria: "EV",
+    exercicio_id: "304266f3-1a23-435b-9d21-703d00b0db8b",
+    nome: "Press com Barra (SM)",
+    video_url: "https://youtube.com/shorts/G9O1KSUUY7Q",
+  },
+};
 
 export interface DiaLevantamento531 {
   levantamento: Levantamento531;
@@ -42,16 +89,24 @@ export interface AcessorioSemana531 {
 
 export interface Acessorio531 {
   vinculado_a: Levantamento531; // um dos levantamentos principais do MESMO dia
+  /** Padrão de movimento (código curto tipo "DJS" ou subcategoria custom). */
+  categoria: string;
   exercicio: string;
+  exercicio_id?: string | null;
+  video_url?: string | null;
   semanas: AcessorioSemana531[]; // 3 entradas (semanas 1..3)
 }
 
 export interface Auxiliar531 {
+  categoria: string;
   exercicio: string;
+  exercicio_id?: string | null;
+  video_url?: string | null;
   series: number;
   reps: string;
   kg?: string; // livre / opcional — não calculado
 }
+
 
 export interface Dia531 {
   ordem: number; // 1..N
@@ -64,8 +119,11 @@ export interface Wendler531Conteudo {
   variante: "531";
   frequencia: 2 | 3 | 4 | 5;
   percentual_training_max: number; // ex.: 90
+  /** Bloco global de Aquecimento (idêntico ao Personalizado). */
+  aquecimento?: Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
   dias: Dia531[];
 }
+
 
 export function isWendler531(c: unknown): c is Wendler531Conteudo {
   return (
@@ -174,6 +232,7 @@ export function emptyWendler531(frequencia: 2 | 3 | 4 | 5 = 4, pctTM = 90): Wend
     variante: "531",
     frequencia,
     percentual_training_max: pctTM,
+    aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
     dias: Array.from({ length: frequencia }, (_, i) => ({
       ordem: i + 1,
       levantamentos: [],
@@ -182,6 +241,7 @@ export function emptyWendler531(frequencia: 2 | 3 | 4 | 5 = 4, pctTM = 90): Wend
     })),
   };
 }
+
 
 /** Retorna a lista de levantamentos permitidos para uma dada frequência (Press só em 5x). */
 export function levantamentosDisponiveis(frequencia: 2 | 3 | 4 | 5): Levantamento531[] {
