@@ -220,7 +220,16 @@ export function Prescricao531Editor({
           d.acessorios = d.acessorios.filter((a) => a.vinculado_a !== "Press");
         }
       }
-      return { ...prev, frequencia: freq, dias };
+      // Poda dias do aquecimento global para T1..T{freq}
+      const validos = new Set(Array.from({ length: freq }, (_, i) => `T${i + 1}`));
+      const aq = ensureAquecimento(prev.aquecimento);
+      const aquecimentoPodado = Object.fromEntries(
+        (Object.keys(aq) as AquecimentoBloco[]).map((k) => [
+          k,
+          aq[k].map((ex) => ({ ...ex, dias: ex.dias.filter((d) => validos.has(d)) })),
+        ]),
+      ) as Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
+      return { ...prev, frequencia: freq, dias, aquecimento: aquecimentoPodado };
     });
   };
 
@@ -397,14 +406,34 @@ export function Prescricao531Editor({
   const addAquecimento = (bloco: AquecimentoBloco) =>
     setData((prev) => {
       const aq = ensureAquecimento(prev.aquecimento);
+      const diasDefault = Array.from({ length: prev.frequencia }, (_, i) => `T${i + 1}`);
       return {
         ...prev,
         aquecimento: {
           ...aq,
           [bloco]: [
             ...aq[bloco],
-            { exercicio: "", repeticoes: "10", dias: ["T1", "T2", "T3", "T4"] },
+            { exercicio: "", repeticoes: "10", dias: diasDefault },
           ],
+        },
+      };
+    });
+
+  const toggleDiaAquecimento = (bloco: AquecimentoBloco, i: number, dia: string) =>
+    setData((prev) => {
+      const aq = ensureAquecimento(prev.aquecimento);
+      return {
+        ...prev,
+        aquecimento: {
+          ...aq,
+          [bloco]: aq[bloco].map((ex, idx) => {
+            if (idx !== i) return ex;
+            const has = ex.dias.includes(dia);
+            return {
+              ...ex,
+              dias: has ? ex.dias.filter((d) => d !== dia) : [...ex.dias, dia],
+            };
+          }),
         },
       };
     });
@@ -632,7 +661,7 @@ export function Prescricao531Editor({
                               />
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Label className="text-[10px] text-muted-foreground">Reps</Label>
                             <Input
                               value={ex.repeticoes}
@@ -640,6 +669,27 @@ export function Prescricao531Editor({
                               className="h-6 w-24 text-xs"
                               placeholder='10 ou 60"'
                             />
+                            <Label className="text-[10px] text-muted-foreground ml-2">Dias</Label>
+                            <div className="flex gap-1">
+                              {Array.from({ length: data.frequencia }, (_, di) => `T${di + 1}`).map((d) => {
+                                const on = ex.dias.includes(d);
+                                return (
+                                  <button
+                                    key={d}
+                                    type="button"
+                                    onClick={() => toggleDiaAquecimento(b.key, i, d)}
+                                    className={
+                                      "h-6 px-2 rounded text-[10px] font-semibold border transition-colors " +
+                                      (on
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : "bg-card text-muted-foreground border-border hover:border-primary/40")
+                                    }
+                                  >
+                                    {d}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                         <Button
