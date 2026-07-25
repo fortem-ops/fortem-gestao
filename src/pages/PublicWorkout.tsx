@@ -379,6 +379,50 @@ function Wendler531Public({
       </header>
 
       <main className="max-w-4xl mx-auto p-4 space-y-6 pb-12">
+        {/* Aquecimento global */}
+        {data.aquecimento && (["LIB", "MOB", "ATI", "PREV"] as const).some(
+          (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+        ) && (
+          <section className="space-y-2">
+            <h2 className="text-xs font-heading font-bold uppercase tracking-wider text-primary">
+              AQUECIMENTO
+            </h2>
+            <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
+              {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
+                const items = data.aquecimento?.[k] ?? [];
+                if (!items.length) return null;
+                return (
+                  <div key={k} className="px-3 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {k}
+                    </p>
+                    <ul className="space-y-0.5">
+                      {items.map((ex, i) => (
+                        <li key={i} className="text-xs flex items-center justify-between gap-2">
+                          <span className="truncate">{ex.exercicio || "—"}</span>
+                          <span className="flex items-center gap-2 shrink-0">
+                            <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                            {ex.video_url && (
+                              <a
+                                href={ex.video_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary"
+                              >
+                                <PlayCircle className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {data.dias.map((dia) => {
           const nomeDia = dia.levantamentos.map((l) => l.levantamento).join(" + ") || "—";
           return (
