@@ -126,7 +126,7 @@ export function Prescricao531Editor({
     () => levantamentosDisponiveis(data.frequencia),
     [data.frequencia],
   );
-  const { categories } = useExerciseCategories();
+  const { categories, grupoSubcategorias } = useExerciseCategories();
   const forcaCategories = useMemo(
     () => categories.filter((c) => c.name === "Força"),
     [categories],
