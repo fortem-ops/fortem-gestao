@@ -614,3 +614,153 @@ export default function PortalWorkouts() {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// Portal 5-3-1: visualização simplificada por dia × semana
+// ─────────────────────────────────────────────────────────────
+
+import {
+  computeWave as compute531Wave,
+  trainingMax as tm531,
+  acessorioKg as accKg531,
+  roundToNearest2_5 as round531,
+  type Wendler531Conteudo,
+} from "@/lib/wendler531";
+
+function Portal531View({ treino }: { treino: any }) {
+  const data = (treino?.conteudo ?? null) as Wendler531Conteudo | null;
+  const [semanaAtiva, setSemanaAtiva] = useState<1 | 2 | 3 | 4>(1);
+
+  if (!data) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        Treino indisponível.
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 space-y-5 max-w-3xl mx-auto pb-16">
+      <header className="space-y-1">
+        <h1 className="text-lg font-bold">5-3-1 · Onda de 4 semanas</h1>
+        <p className="text-xs text-muted-foreground">
+          Frequência {data.frequencia}x · Training Max {data.percentual_training_max}%
+        </p>
+      </header>
+
+      {/* Seletor de semana */}
+      <div className="grid grid-cols-4 gap-1 p-1 bg-muted rounded-lg">
+        {([1, 2, 3, 4] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSemanaAtiva(s)}
+            className={`text-xs font-semibold py-2 rounded-md transition-colors ${
+              semanaAtiva === s
+                ? "bg-background shadow"
+                : "text-muted-foreground"
+            }`}
+          >
+            Sem {s}
+            {s === 4 && <span className="block text-[9px] opacity-70">deload</span>}
+          </button>
+        ))}
+      </div>
+
+      {data.dias.map((dia) => {
+        const nome = dia.levantamentos.map((l) => l.levantamento).join(" + ") || "—";
+        return (
+          <section key={dia.ordem} className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Treino {dia.ordem}
+              </p>
+              <p className="text-sm font-semibold">{nome}</p>
+            </div>
+            <div className="p-3 space-y-3">
+              {dia.levantamentos.map((lev) => {
+                const wave = compute531Wave(lev.rm_1, data.percentual_training_max);
+                const semana = wave.find((w) => w.semana === semanaAtiva)!;
+                const tm = round531(tm531(lev.rm_1, data.percentual_training_max));
+                return (
+                  <div key={lev.levantamento} className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold">{lev.levantamento}</span>
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        TM {tm}kg
+                      </span>
+                    </div>
+                    <ul className="space-y-1">
+                      {semana.series.map((s, i) => (
+                        <li
+                          key={i}
+                          className={`flex justify-between text-xs tabular-nums ${
+                            s.tipo === "aquecimento"
+                              ? "text-muted-foreground"
+                              : "font-semibold"
+                          }`}
+                        >
+                          <span>{s.tipo === "aquecimento" ? "Aquec." : "Trabalho"} · {s.reps} × {s.pct}%</span>
+                          <span>{s.kg}kg</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+
+              {/* Acessórios (só semanas 1-3) */}
+              {semanaAtiva !== 4 && dia.acessorios.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    Acessórios
+                  </p>
+                  <ul className="space-y-1">
+                    {dia.acessorios.map((acc, idx) => {
+                      const rmVinc =
+                        dia.levantamentos.find((l) => l.levantamento === acc.vinculado_a)?.rm_1 ?? 0;
+                      const s = acc.semanas.find((x) => x.semana === semanaAtiva);
+                      if (!s) return null;
+                      const kg = accKg531(rmVinc, data.percentual_training_max, s.percentual);
+                      return (
+                        <li
+                          key={idx}
+                          className="flex justify-between text-xs border-l-2 border-primary/50 pl-2"
+                        >
+                          <span className="truncate">
+                            {acc.exercicio || "—"}
+                            <span className="text-muted-foreground"> · {s.series}×{s.reps} · {s.percentual}%</span>
+                          </span>
+                          <span className="tabular-nums font-medium">{kg}kg</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* Auxiliares */}
+              {dia.auxiliares.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    Auxiliares
+                  </p>
+                  <ul className="space-y-1">
+                    {dia.auxiliares.map((aux, i) => (
+                      <li key={i} className="flex justify-between text-xs">
+                        <span className="truncate">
+                          {aux.exercicio || "—"}
+                          <span className="text-muted-foreground"> · {aux.series}×{aux.reps}</span>
+                        </span>
+                        <span className="tabular-nums">{aux.kg || "—"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
