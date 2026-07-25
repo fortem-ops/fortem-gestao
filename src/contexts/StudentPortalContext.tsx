@@ -7,7 +7,6 @@ import type { Tables } from "@/integrations/supabase/types";
 interface StudentPortalContextType {
   student: Tables<"alunos"> | null;
   loading: boolean;
-  /** True quando o usuário está logado mas não está vinculado a nenhum aluno. */
   unlinked: boolean;
   refetch: () => void;
 }
@@ -16,20 +15,25 @@ const StudentPortalContext = createContext<StudentPortalContextType | undefined>
 
 export function StudentPortalProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
-  const [linkAttempted, setLinkAttempted] = useState(false);
+  const [linkDone, setLinkDone] = useState(false);
 
-  // Tenta vincular automaticamente no primeiro acesso por sessão.
+  // Chama o RPC e só libera a query quando ele terminar (await real).
   useEffect(() => {
-    if (!user || linkAttempted) return;
-    setLinkAttempted(true);
-    supabase.rpc("fn_portal_link_aluno").then(() => {
-      // Independente do resultado, deixa a query abaixo descobrir o estado real.
-    });
-  }, [user, linkAttempted]);
+    if (!user || linkDone) return;
+    void (async () => {
+      try {
+        await supabase.rpc("fn_portal_link_aluno");
+      } catch {
+        // em caso de erro, libera mesmo assim para não travar
+      } finally {
+        setLinkDone(true);
+      }
+    })();
+  }, [user, linkDone]);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["portal-student", user?.id, linkAttempted],
-    enabled: !!user && linkAttempted,
+    queryKey: ["portal-student", user?.id],
+    enabled: !!user && linkDone,  // só roda APÓS o RPC concluir
     queryFn: async () => {
       const { data, error } = await supabase
         .from("alunos")
@@ -44,11 +48,11 @@ export function StudentPortalProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StudentPortalContextType>(
     () => ({
       student: data ?? null,
-      loading: authLoading || isLoading || !linkAttempted,
-      unlinked: !!user && linkAttempted && !isLoading && !data,
+      loading: authLoading || !linkDone || isLoading,
+      unlinked: !!user && linkDone && !isLoading && !data,
       refetch: () => { void refetch(); },
     }),
-    [data, authLoading, isLoading, linkAttempted, user, refetch],
+    [data, authLoading, linkDone, isLoading, user, refetch],
   );
 
   return <StudentPortalContext.Provider value={value}>{children}</StudentPortalContext.Provider>;
