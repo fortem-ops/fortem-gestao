@@ -34,6 +34,7 @@ interface TreinoRow {
   conteudo: Json | null;
   aluno_id: string;
   created_at: string;
+  template_fase: string | null;
 }
 
 interface AlunoRow {
@@ -75,7 +76,7 @@ export default function PublicWorkout() {
       try {
         const { data: t, error: tErr } = await supabase
           .from("treinos")
-          .select("id, descricao, versao, status, conteudo, aluno_id, created_at")
+          .select("id, descricao, versao, status, conteudo, aluno_id, created_at, template_fase")
           .eq("id", id)
           .maybeSingle();
         if (tErr) throw tErr;
