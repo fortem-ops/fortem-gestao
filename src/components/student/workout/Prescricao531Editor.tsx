@@ -927,17 +927,36 @@ export function Prescricao531Editor({
               {dia.auxiliares.map((aux, idxAux) => (
                 <div
                   key={idxAux}
-                  className="grid grid-cols-[1fr_80px_80px_100px_auto] gap-2 items-end"
+                  className="grid grid-cols-[160px_1fr_70px_80px_90px_auto] gap-2 items-end"
                 >
                   <div>
-                    <Label className="text-xs">Exercício</Label>
-                    <Input
-                      className="h-8"
-                      value={aux.exercicio}
-                      onChange={(e) =>
-                        updateAuxiliar(idxDia, idxAux, { exercicio: e.target.value })
+                    <Label className="text-xs">Categoria</Label>
+                    <CategoriaSelectForca
+                      value={aux.categoria}
+                      groups={forcaCategories}
+                      onChange={(v) =>
+                        updateAuxiliar(idxDia, idxAux, {
+                          categoria: v,
+                          exercicio: "",
+                          exercicio_id: null,
+                          video_url: null,
+                        })
                       }
                     />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Exercício</Label>
+                    <div className="border border-input rounded-md">
+                      <ExerciseSelector
+                        categoria={aux.categoria || "DJS"}
+                        value={aux.exercicio}
+                        disabled={!aux.categoria}
+                        placeholder={aux.categoria ? "Buscar exercício..." : "Escolha a categoria"}
+                        onChange={(val, video) =>
+                          updateAuxiliar(idxDia, idxAux, { exercicio: val, video_url: video })
+                        }
+                      />
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs">Séries</Label>
@@ -963,7 +982,7 @@ export function Prescricao531Editor({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Kg (opcional)</Label>
+                    <Label className="text-xs">Kg</Label>
                     <Input
                       className="h-8"
                       value={aux.kg ?? ""}
