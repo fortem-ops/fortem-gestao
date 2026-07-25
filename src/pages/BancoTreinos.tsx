@@ -820,6 +820,8 @@ export default function BancoTreinos() {
     | { mode: "new"; variante: "corrida"; templateFase: string; seed: PersonalizadoConteudo }
     | { mode: "edit"; id: string; nome: string; conteudo: PersonalizadoConteudo }
   >(null);
+  const [select531Open, setSelect531Open] = useState(false);
+  const [editor531, setEditor531] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
