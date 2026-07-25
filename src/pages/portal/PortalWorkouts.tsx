@@ -809,8 +809,13 @@ function Portal531View({ treino }: { treino: any }) {
                   <ul className="space-y-1">
                     {dia.auxiliares.map((aux, i) => (
                       <li key={i} className="flex justify-between text-xs">
-                        <span className="truncate">
+                        <span className="truncate flex items-center gap-1">
                           {aux.exercicio || "—"}
+                          {aux.video_url && (
+                            <a href={aux.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                              <PlayCircle className="w-3 h-3" />
+                            </a>
+                          )}
                           <span className="text-muted-foreground"> · {aux.series}×{aux.reps}</span>
                         </span>
                         <span className="tabular-nums">{aux.kg || "—"}</span>
