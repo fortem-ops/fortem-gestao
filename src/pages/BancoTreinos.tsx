@@ -1165,7 +1165,17 @@ export default function BancoTreinos() {
 
       <div className="space-y-8">
         {PHASE_GROUPS.map(group => {
-          const items = WORKOUT_TEMPLATES.filter(group.filter);
+          let items = WORKOUT_TEMPLATES.filter(group.filter);
+          if (group.label === "Métodos") {
+            // 5-3-1 é per-aluno e não vive em WORKOUT_TEMPLATES.
+            const synthetic531: WorkoutTemplate = {
+              fase: "5-3-1",
+              frequencia: "2-5x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531];
+          }
           if (items.length === 0) return null;
           return (
             <section key={group.label}>
@@ -1174,7 +1184,8 @@ export default function BancoTreinos() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(template => {
-                  const isUnderConstruction = ["Planilha 5RM", "5-3-1", "M102"].includes(template.fase);
+                  const isUnderConstruction = ["Planilha 5RM", "M102"].includes(template.fase);
+                  const is531 = template.fase === "5-3-1";
                   return (
                   <Card
                     key={template.fase}
