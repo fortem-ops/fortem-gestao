@@ -519,7 +519,14 @@ function Wendler531Public({
                           className="grid grid-cols-[1fr_1fr_40px_80px_50px_60px] gap-2 px-3 py-1.5 text-xs tabular-nums items-center"
                         >
                           <span className="text-muted-foreground truncate">{acc.vinculado_a}</span>
-                          <span className="truncate">{acc.exercicio || "—"}</span>
+                          <span className="truncate flex items-center gap-1">
+                            {acc.exercicio || "—"}
+                            {acc.video_url && (
+                              <a href={acc.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                                <PlayCircle className="w-3 h-3" />
+                              </a>
+                            )}
+                          </span>
                           <span className="text-center">{s.semana}</span>
                           <span className="text-center">{s.series}×{s.reps}</span>
                           <span className="text-right">{s.percentual}%</span>
