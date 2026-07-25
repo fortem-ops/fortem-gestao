@@ -1,65 +1,128 @@
-# Diagnóstico — Créditos do plano não aparecem em `PortalHome`
 
-Investigação apenas — nenhuma alteração feita. Respondendo às 3 perguntas:
+# Método 5-3-1 (Wendler) — Prescrição por aluno
 
-## 1. De onde a página interna busca os números
+Substitui o stub estático de 5-3-1 no Banco de Treinos por um construtor real, por aluno, que grava na tabela `treinos` existente (mesmo mecanismo de status `rascunho`/`atual` já usado pelo Personalizado). Nenhum trigger novo, nenhuma tabela nova, nenhum disparo de WhatsApp.
 
-Arquivo: `src/components/student/StudentPlan.tsx` (é o componente que renderiza "Créditos de Serviços" no perfil/financeiro do aluno — `ContratoFinanceiro.tsx` também consulta `ciclos_credito`, mas só pra créditos de treino do ciclo, não pra Nutrição/Reabilitação/Aval. Funcional).
+## Estrutura de dados (JSONB em `treinos.conteudo`)
 
-Query (linhas ~106-176): lê `planos` do aluno + `consumo_servicos` do plano, e **calcula** os créditos a partir do array `planos.servicos` (texto tipo `"2 Consultas Nutrição"`), sem tocar em `creditos_aluno`:
+Novo tipo dedicado — **não** reaproveita `WorkoutExercise`. Arquivo: `src/lib/wendler531.ts`.
 
+```ts
+type Levantamento = "Agachamento" | "Terra" | "Supino" | "Remada Curvada" | "Press";
+
+interface Acessorio531 {
+  vinculado_a: Levantamento;      // um dos levantamentos principais do MESMO dia
+  exercicio: string;
+  // por semana (1..3). Semana 4 não tem acessório.
+  semanas: Array<{
+    semana: 1 | 2 | 3;
+    series: number;
+    reps: string;                 // texto livre (10, 8-10, AMRAP etc)
+    percentual: number;           // % sobre TM do levantamento vinculado
+  }>;
+}
+
+interface Auxiliar531 {
+  exercicio: string;
+  series: number;
+  reps: string;
+  kg?: string;                    // livre / opcional
+}
+
+interface DiaLevantamento531 {
+  levantamento: Levantamento;
+  rm_1: number;                   // 1RM digitado pelo prof (kg)
+}
+
+interface Dia531 {
+  ordem: number;                  // 1..N
+  levantamentos: DiaLevantamento531[];   // 1+ por dia
+  acessorios: Acessorio531[];
+  auxiliares: Auxiliar531[];
+}
+
+export interface Wendler531Conteudo {
+  variante: "531";                 // discriminador
+  frequencia: 2 | 3 | 4 | 5;
+  percentual_training_max: number; // ex 90
+  dias: Dia531[];
+}
 ```
-base     = parseServiceCount(plano.servicos, "Consultas Nutrição")   // ex.: 2
-comprado = count(consumo_servicos.tipo_registro='compra')
-usado    = count(consumo_servicos com agenda_id OR tipo_registro='uso_manual')
-total    = base + comprado
+
+Helper puro no mesmo arquivo:
+- `roundToNearest2_5(kg)` → `Math.round(kg / 2.5) * 2.5`
+- `trainingMax(rm1, pctTM)`
+- `WAVE`: tabela fixa das 4 semanas (aquecimento 40/50/60 5×5×5 + trabalho por semana com % e rótulos AMRAP `5+/3+/1+`, semana 4 deload)
+- `computeWave(rm1, pctTM)` → `Array<{ semana: 1|2|3|4, series: Array<{ pct, reps, kg }> }>` já com kg arredondado e aquecimento sempre incluído.
+
+## Fluxo do professor
+
+1. Card **5-3-1** no Banco de Treinos abre um **selector de aluno** (dialog simples com busca em `alunos`).
+2. Depois de escolhido o aluno, abre `Prescricao531Editor` em tela cheia (mesmo padrão do `PersonalizadoEditor`).
+3. Passos internos do editor:
+   - Frequência semanal (2/3/4/5) → gera N dias vazios.
+   - % Training Max (input numérico, default 90).
+   - Para cada dia: adicionar levantamentos principais (multi-select dos 5, sem restrição de layout). Press só aparece quando frequência = 5.
+   - Cada levantamento adicionado tem input de **1RM**; abaixo aparece automaticamente a tabela de 4 semanas calculada (%, reps, kg), incluindo aquecimento.
+   - Acessórios do dia: escolher levantamento vinculado + exercício + para semanas 1/2/3 (séries, reps, %). KG calculado no ato usando TM do vinculado.
+   - Auxiliares do dia: exercício + séries + reps + kg livre. Iguais nas 4 semanas.
+4. **Autosave** com debounce de 800ms em `treinos` (status `rascunho`) — cria a linha na primeira mudança relevante e depois faz `update`.
+5. Botão **Concluir prescrição**: arquiva treino `atual` anterior do aluno (mesma lógica do `PersonalizadoEditor`) e promove o rascunho para `status = 'atual'`, `template_fase = '5-3-1'`, `semanas = 4`, `data_inicio = hoje`, incrementando `versao`.
+
+## Arquivos alterados
+
+### Novos
+- `src/lib/wendler531.ts` — types + calc helpers puros.
+- `src/components/student/workout/Prescricao531Editor.tsx` — construtor completo (autosave + concluir).
+- `src/components/student/workout/Select531AlunoDialog.tsx` — seletor de aluno para iniciar a prescrição (busca simples reaproveitando query de `alunos`).
+
+### Editados
+- `src/pages/BancoTreinos.tsx`:
+  - remove `"5-3-1"` de `isUnderConstruction`;
+  - o card 5-3-1 continua na seção Métodos, mas passa a ser renderizado a partir de uma entrada sintética local (já que será removido de `WORKOUT_TEMPLATES`);
+  - `onClick` no card 5-3-1 abre o `Select531AlunoDialog`; ao escolher aluno, monta a tela do `Prescricao531Editor`.
+- `src/components/student/workout/workoutTemplates.ts`: remove a entrada estática `fase: "5-3-1"` (Treinos 1–4 com reps "5/3/1").
+- `src/pages/PublicWorkout.tsx`: quando `template_fase === '5-3-1'`, renderiza layout dedicado (ver abaixo) usando os mesmos tokens/tipografia atuais; caso contrário mantém o render existente.
+- `src/pages/portal/PortalWorkouts.tsx`: guarda de segurança — quando `template_fase === '5-3-1'` (ou `conteudo.variante === '531'`), renderiza uma versão simplificada por dia (levantamento → tabela de 4 semanas + acessórios + auxiliares), reusando os helpers de `wendler531.ts`. Sem editar cargas nem sessões (o mecanismo de `treino_sessoes`/`treino_cargas` não se aplica a 5-3-1 nesta primeira versão).
+
+## Layout PublicWorkout (novo, dedicado)
+
+Mesmo header/cores/tipografia atuais. Uma `<section>` por dia:
+
+```text
+TREINO 1 — Agachamento + Supino
+┌────────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
+│ Agachamento    │ Semana 1     │ Semana 2     │ Semana 3     │ Semana 4     │
+│ TM 90kg        │ 5×40  5×50   │ 5×40  5×50   │ 5×40  5×50   │ 5×40  5×50   │
+│                │ 5×60  5×65   │ 5×60  5×70   │ 5×60  5×75   │ 5×60  5×60   │
+│                │ 5×75  5+×85  │ 5×80  3+×90  │ 3×85  1+×95  │ 5×60  5+×60  │
+└────────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
+(mesmo bloco repetido lado a lado / abaixo para cada levantamento do dia)
+
+ACESSÓRIOS
+| Vinculado    | Exercício      | Sem | Séries×Reps | %   | Kg  |
+| Agachamento  | Leg Press      | 1   | 4×10        | 60  | 54  |
+| ...
+(sem linhas para Semana 4)
+
+AUXILIARES
+| Exercício    | Séries×Reps | Kg     |
 ```
 
-Ou seja, a fonte de verdade para "1/2 usados" que aparece na tela interna é `planos.servicos` (JSON de texto) + `consumo_servicos` — **não** `creditos_aluno`.
+Tabelas são divs com grid do Tailwind (não `<table>`), respeitando responsividade mobile já usada em PublicWorkout.
 
-## 2. Existe linha `creditos_aluno` com `origem_tipo='plano'` para Bruna?
+## Persistência — tabela `treinos` (colunas já existentes)
 
-`aluno_id` da Bruna: `b7f99527-9f4a-448b-9cca-78017bbc0cb2` (`teste.pro@fortem.app`).
+Campos preenchidos: `aluno_id`, `autor_id`, `descricao` (ex.: "5-3-1 — Onda 4 semanas"), `conteudo` (`Wendler531Conteudo`), `status` (`rascunho` → `atual`), `versao`, `template_fase = '5-3-1'`, `semanas = 4`, `data_inicio` (na conclusão).
 
-Resultado da consulta em `creditos_aluno`:
+## Verificação
 
-| origem_tipo | atividade | ativo | inicial | usada |
-|---|---|---|---|---|
-| servico     | Nutrição  | true  | 4       | 1     |
+- `tsgo` sem erros novos.
+- Abrir `/banco-treinos`, clicar 5-3-1, selecionar aluno teste, gerar prescrição, concluir; abrir `/treino/:id` público e ver o layout novo; abrir `/portal/treinos` como o aluno e confirmar que não quebra e mostra a versão simplificada.
 
-Ou seja: **nenhuma linha com `origem_tipo='plano'`**. Existe apenas 1 crédito avulso ("servico") de Nutrição, comprado à parte. Nada de plano.
+## Fora do escopo (confirmado)
 
-Cross-check com o restante dos dados dela:
-- `planos`: 1 registro Pro ativo, `servicos = {"2 Avaliação Funcional","2 Consultas Nutrição","2 Consultas Reabilitação"}`, vigência 12/01/2026–12/01/2027.
-- `consumo_servicos`: 1 Aval. Funcional + 2 Consultas Nutrição, todos `tipo_registro='uso_manual'`. É daí que sai o "1/2" e "2/2" que aparece internamente.
-
-Isso confirma: as linhas de `creditos_aluno` origem_tipo='plano' para serviços inclusos **nunca foram criadas** para ela.
-
-## 3. Existe trigger/função que deveria popular essas linhas?
-
-Sim, existe uma trigger em `planos` (`trg_sync_creditos_on_plano_change` → `fn_sync_creditos_on_plano_change`), **mas ela só desativa créditos quando o plano é desativado — nunca cria linha nenhuma.**
-
-O único lugar do banco que insere `creditos_aluno` com `origem_tipo='plano'` é `fn_processar_venda` (trigger em `vendas`), e mesmo assim ela cria **apenas 1 linha por venda de plano, com `atividade='Treino'`** — usa `planos_catalogo.quantidade_creditos`. Não cria linhas separadas para Avaliação Funcional / Nutrição / Reabilitação. Esses serviços vivem exclusivamente no array `planos.servicos` + `consumo_servicos`.
-
-Ou seja: **o modelo atual nunca materializa serviços inclusos no plano em `creditos_aluno`**, para nenhum aluno — não é um problema específico da Bruna nem de contratos migrados. É consequência de dois modelos paralelos:
-
-- **Modelo A (interno / StudentPlan / ContratoFinanceiro):** `planos.servicos` (texto) + `consumo_servicos`.
-- **Modelo B (Portal / `PortalHome` seção "Incluso no seu Plano"):** `creditos_aluno` com `origem_tipo='plano'`.
-
-O Portal foi escrito assumindo o Modelo B, que ninguém popula para serviços de plano — só para Treino (via venda) e para serviços avulsos.
-
-Adicional: o plano da Bruna aparentemente nem passou pelo `fn_processar_venda` (não há sequer a linha `Treino` origem_tipo='plano'), então provavelmente foi criado manualmente/importado direto na tabela `planos`. Isso reforça que o problema é do modelo, mas há também um caso à parte de "planos que nunca geraram nenhum crédito porque não vieram por venda".
-
----
-
-## Como quer seguir?
-
-Três caminhos possíveis para o fix (só pra alinhar antes de eu escrever o plano de implementação):
-
-**(a) Ajustar o Portal para ler o mesmo modelo do interno.** Trocar a query da seção "Incluso no seu Plano" em `PortalHome.tsx` para ler `planos.servicos` + `consumo_servicos` (igual `StudentPlan`). Mudança só de front, zero migração. Rápido e resolve todos os alunos, inclusive os já existentes. Deixa de fora quem só usa `creditos_aluno` como fonte, mas nesse ponto ninguém usa esse modelo para serviços de plano.
-
-**(b) Popular `creditos_aluno` retroativamente + criar trigger em `planos`.** Backfill de linhas `origem_tipo='plano'` para cada item em `planos.servicos` de todos os planos ativos, com `quantidade_usada` derivada de `consumo_servicos`. Mais uma trigger `AFTER INSERT/UPDATE` em `planos` para manter sincronizado dali pra frente. Manteria o Portal como está, mas duplica fonte de verdade (risco de drift entre `creditos_aluno.quantidade_usada` e `consumo_servicos`).
-
-**(c) Híbrido:** só backfill + trigger, mas fazendo `creditos_aluno` uma view materializada / apontar Portal para uma view que UNION `creditos_aluno` (avulsos) + derivado de `planos.servicos` (inclusos). Mais correto conceitualmente, mais trabalho.
-
-Minha recomendação é **(a)** — é o caminho de menor risco e alinha as duas telas na mesma fonte de verdade que já é usada em toda a operação hoje (venda, agenda, consumo manual). Me diz qual seguir que eu já monto o plano de implementação.
+- Nada de WhatsApp.
+- Nada de tabelas relacionais novas.
+- Nada de alteração em Fases, Personalizado, Personalizado 2, Planilha 5RM, M102 ou Corrida.
+- Sem sistema paralelo de status.
