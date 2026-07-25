@@ -465,6 +465,21 @@ export function Prescricao531Editor({
       };
     });
 
+  // ── Exportar PDF / Imprimir ──────────────────────────────────
+  const handleExport = async (mode: "download" | "print") => {
+    try {
+      const { data: aluno } = await supabase
+        .from("alunos")
+        .select("*")
+        .eq("id", alunoId)
+        .maybeSingle();
+      const student = (aluno ?? { id: alunoId, nome: alunoNome }) as Tables<"alunos">;
+      await exportWendler531PDF({ student, data, print: mode === "print" });
+    } catch (e) {
+      toast.error("Erro ao gerar PDF: " + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
   // ── Concluir prescrição ──────────────────────────────────────
   const handlePublish = async () => {
     if (!user) return;
