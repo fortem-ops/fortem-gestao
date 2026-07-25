@@ -378,6 +378,56 @@ export function Prescricao531Editor({
       return { ...prev, dias };
     });
 
+  // ── Aquecimento (bloco global) ────────────────────────────────
+  const ensureAquecimento = (
+    aq: Wendler531Conteudo["aquecimento"] | undefined,
+  ): Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]> => ({
+    LIB: aq?.LIB ?? [],
+    MOB: aq?.MOB ?? [],
+    ATI: aq?.ATI ?? [],
+    PREV: aq?.PREV ?? [],
+  });
+
+  const addAquecimento = (bloco: AquecimentoBloco) =>
+    setData((prev) => {
+      const aq = ensureAquecimento(prev.aquecimento);
+      return {
+        ...prev,
+        aquecimento: {
+          ...aq,
+          [bloco]: [
+            ...aq[bloco],
+            { exercicio: "", repeticoes: "10", dias: ["T1", "T2", "T3", "T4"] },
+          ],
+        },
+      };
+    });
+
+  const removeAquecimento = (bloco: AquecimentoBloco, i: number) =>
+    setData((prev) => {
+      const aq = ensureAquecimento(prev.aquecimento);
+      return {
+        ...prev,
+        aquecimento: { ...aq, [bloco]: aq[bloco].filter((_, idx) => idx !== i) },
+      };
+    });
+
+  const updateAquecimento = (
+    bloco: AquecimentoBloco,
+    i: number,
+    patch: Partial<PersonalizadoAquecimentoEx>,
+  ) =>
+    setData((prev) => {
+      const aq = ensureAquecimento(prev.aquecimento);
+      return {
+        ...prev,
+        aquecimento: {
+          ...aq,
+          [bloco]: aq[bloco].map((ex, idx) => (idx === i ? { ...ex, ...patch } : ex)),
+        },
+      };
+    });
+
   // ── Concluir prescrição ──────────────────────────────────────
   const handlePublish = async () => {
     if (!user) return;
