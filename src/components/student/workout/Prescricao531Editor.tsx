@@ -217,13 +217,17 @@ export function Prescricao531Editor({
       }
       const novo: Acessorio531 = {
         vinculado_a: primeiro,
+        categoria: "",
         exercicio: "",
+        exercicio_id: null,
+        video_url: null,
         semanas: [
           { semana: 1, series: 3, reps: "10", percentual: 50 },
           { semana: 2, series: 3, reps: "10", percentual: 55 },
           { semana: 3, series: 3, reps: "10", percentual: 60 },
         ],
       };
+
       const dias = prev.dias.map((d, i) =>
         i === idx ? { ...d, acessorios: [...d.acessorios, novo] } : d,
       );
