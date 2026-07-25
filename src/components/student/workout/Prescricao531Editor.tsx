@@ -13,7 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles, PlayCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles, PlayCircle, FileDown, Printer } from "lucide-react";
+import { exportWendler531PDF } from "./exportWendler531PDF";
+import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 import {
@@ -463,6 +465,21 @@ export function Prescricao531Editor({
       };
     });
 
+  // ── Exportar PDF / Imprimir ──────────────────────────────────
+  const handleExport = async (mode: "download" | "print") => {
+    try {
+      const { data: aluno } = await supabase
+        .from("alunos")
+        .select("*")
+        .eq("id", alunoId)
+        .maybeSingle();
+      const student = (aluno ?? { id: alunoId, nome: alunoNome }) as Tables<"alunos">;
+      await exportWendler531PDF({ student, data, print: mode === "print" });
+    } catch (e) {
+      toast.error("Erro ao gerar PDF: " + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
   // ── Concluir prescrição ──────────────────────────────────────
   const handlePublish = async () => {
     if (!user) return;
@@ -550,6 +567,12 @@ export function Prescricao531Editor({
               {savingLabel}
             </span>
           )}
+          <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
+            <FileDown className="w-3 h-3 mr-1" /> PDF
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => handleExport("print")}>
+            <Printer className="w-3 h-3 mr-1" /> Imprimir
+          </Button>
           <Button onClick={handlePublish} disabled={publishing}>
             {publishing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
             Concluir prescrição
