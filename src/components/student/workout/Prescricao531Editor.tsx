@@ -562,6 +562,98 @@ export function Prescricao531Editor({
         </CardContent>
       </Card>
 
+      {/* Aquecimento global (aplicado antes de qualquer dia) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Aquecimento (global)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {AQUECIMENTO_BLOCOS.map((b) => {
+            const items = ensureAquecimento(data.aquecimento)[b.key];
+            const subs = grupoSubcategorias[AQUECIMENTO_GRUPO_MAP[b.key]] || [];
+            return (
+              <div key={b.key} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] font-bold">{b.key}</Badge>
+                  <span className="text-xs font-semibold text-muted-foreground">{b.label}</span>
+                  <Button size="sm" variant="ghost" className="h-6 ml-auto" onClick={() => addAquecimento(b.key)}>
+                    <Plus className="w-3 h-3 mr-1" /> Exercício
+                  </Button>
+                </div>
+                {items.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground italic">Nenhum exercício neste bloco.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {items.map((ex, i) => (
+                      <div key={i} className="flex items-start gap-2 p-2 rounded border border-border/50 bg-card/50">
+                        <span className="text-[10px] text-muted-foreground mt-2 w-4">{i + 1}</span>
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={ex.subcategoria ?? ""}
+                              onValueChange={(val) =>
+                                updateAquecimento(b.key, i, {
+                                  subcategoria: val,
+                                  exercicio: "",
+                                  exercicio_id: null,
+                                  video_url: null,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="h-7 text-xs w-[180px] shrink-0">
+                                <SelectValue placeholder="Subcategoria..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subs.map((sub) => (
+                                  <SelectItem key={sub} value={sub} className="text-xs">{sub}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="flex-1 min-w-0">
+                              <ExerciseSelector
+                                categoria={b.key}
+                                subcategoria={ex.subcategoria}
+                                value={ex.exercicio}
+                                disabled={!ex.subcategoria}
+                                placeholder={
+                                  ex.subcategoria
+                                    ? `Buscar em ${ex.subcategoria}...`
+                                    : "Selecione a subcategoria primeiro"
+                                }
+                                onChange={(val, video) =>
+                                  updateAquecimento(b.key, i, { exercicio: val, video_url: video })
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-[10px] text-muted-foreground">Reps</Label>
+                            <Input
+                              value={ex.repeticoes}
+                              onChange={(e) => updateAquecimento(b.key, i, { repeticoes: e.target.value })}
+                              className="h-6 w-24 text-xs"
+                              placeholder='10 ou 60"'
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => removeAquecimento(b.key, i)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
       {/* Dias */}
       {data.dias.map((dia, idxDia) => (
         <Card key={dia.ordem}>
