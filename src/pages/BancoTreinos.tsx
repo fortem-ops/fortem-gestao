@@ -17,6 +17,8 @@ import { getYouTubeEmbedUrl } from "@/lib/youtube";
 import { toast } from "sonner";
 import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
 import { emptyPersonalizado, type PersonalizadoConteudo } from "@/components/student/workout/personalizadoTypes";
+import { Prescricao531Editor } from "@/components/student/workout/Prescricao531Editor";
+import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 
 interface GroupSelection { grupo: string; subcategoria: string }
 interface BankExercise {

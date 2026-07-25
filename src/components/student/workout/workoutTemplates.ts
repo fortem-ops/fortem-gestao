@@ -350,33 +350,6 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
     ],
   },
   {
-    fase: "5-3-1",
-    frequencia: "4x",
-    aquecimento: fase1Aquecimento,
-    treinos: [
-      { nome: "Treino 1 — Press", tipo: "forca", exercicios: [
-        { ordem: 1, categoria: "EV", exercicio: "", series: 3, repeticoes: "5/3/1" },
-        { ordem: 2, categoria: "PH", exercicio: "", series: 5, repeticoes: "10" },
-        { ordem: 3, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
-      ]},
-      { nome: "Treino 2 — Agachamento", tipo: "forca", exercicios: [
-        { ordem: 1, categoria: "DJS", exercicio: "", series: 3, repeticoes: "5/3/1" },
-        { ordem: 2, categoria: "EP", exercicio: "", series: 5, repeticoes: "10" },
-        { ordem: 3, categoria: "AF", exercicio: "", series: 3, repeticoes: '30"' },
-      ]},
-      { nome: "Treino 3 — Supino", tipo: "forca", exercicios: [
-        { ordem: 1, categoria: "EH", exercicio: "", series: 3, repeticoes: "5/3/1" },
-        { ordem: 2, categoria: "PV", exercicio: "", series: 5, repeticoes: "10" },
-        { ordem: 3, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
-      ]},
-      { nome: "Treino 4 — Levantamento Terra", tipo: "forca", exercicios: [
-        { ordem: 1, categoria: "DQ", exercicio: "", series: 3, repeticoes: "5/3/1" },
-        { ordem: 2, categoria: "DJA", exercicio: "", series: 5, repeticoes: "10" },
-        { ordem: 3, categoria: "AR", exercicio: "", series: 3, repeticoes: "10" },
-      ]},
-    ],
-  },
-  {
     fase: "M102",
     frequencia: "3x",
     aquecimento: fase1Aquecimento,
