@@ -442,14 +442,30 @@ function Wendler531Public({
                     key={lev.levantamento}
                     className="rounded-xl border border-border overflow-hidden"
                   >
-                    <div className="px-3 py-2 bg-muted flex items-center justify-between">
-                      <span className="text-[11px] font-bold tracking-wider text-foreground">
-                        {lev.levantamento.toUpperCase()}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                    <div className="px-3 py-2 bg-muted flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[11px] font-bold tracking-wider text-foreground shrink-0">
+                          {lev.levantamento.toUpperCase()}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].nome}
+                        </span>
+                        {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url && (
+                          <a
+                            href={LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary shrink-0"
+                          >
+                            <PlayCircle className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
                         1RM {lev.rm_1}kg · TM {tm}kg
                       </span>
                     </div>
+
                     <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border">
                       {wave.map((sem) => (
                         <div key={sem.semana} className="p-2">
