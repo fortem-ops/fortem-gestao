@@ -18,6 +18,7 @@ import { ptBR } from "date-fns/locale";
 import { formatBRL, type Frequencia } from "@/lib/vendas";
 import { calcularTotaisVenda, type TipoCobranca } from "@/lib/vendas-calc";
 import { cn } from "@/lib/utils";
+import { gerarDocumentoContrato } from "@/lib/contratosDocumentos";
 import { PaymentFields } from "./PaymentFields";
 import { TipoCobrancaSection } from "./TipoCobrancaSection";
 import { PagamentoStep, type Modalidade, type Canal } from "./PagamentoStep";
@@ -505,6 +506,26 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           recorrencia: tipoCobranca === "recorrencia",
           modo: planoVigente ? modoContrato : "substituir",
         });
+      }
+
+      // Gerar documento de contrato automaticamente
+      if (vendaIns?.plano_id) {
+        const { data: contratoVinc } = await (supabase as any)
+          .from('contratos')
+          .select('id')
+          .eq('plano_id', vendaIns.plano_id)
+          .eq('status', 'ativo')
+          .maybeSingle();
+
+        if (contratoVinc?.id) {
+          await gerarDocumentoContrato({
+            alunoId,
+            contratoId: contratoVinc.id,
+            planoNome: planoSelecionado.nome,
+            tipoCobranca: tipoCobranca!,
+            valorFinal: totaisPlano!.total,
+          });
+        }
       }
 
 
