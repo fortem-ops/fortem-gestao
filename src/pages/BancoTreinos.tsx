@@ -1353,6 +1353,12 @@ export default function BancoTreinos() {
       </div>
 
       {renderVideoModal()}
+      <Select531AlunoDialog
+        open={select531Open}
+        onOpenChange={setSelect531Open}
+        title="Escolha o aluno para prescrever 5-3-1"
+        onSelect={(a) => setEditor531({ alunoId: a.id, alunoNome: a.nome })}
+      />
     </div>
   );
 }
