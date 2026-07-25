@@ -783,8 +783,13 @@ function Portal531View({ treino }: { treino: any }) {
                           key={idx}
                           className="flex justify-between text-xs border-l-2 border-primary/50 pl-2"
                         >
-                          <span className="truncate">
+                          <span className="truncate flex items-center gap-1">
                             {acc.exercicio || "—"}
+                            {acc.video_url && (
+                              <a href={acc.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                                <PlayCircle className="w-3 h-3" />
+                              </a>
+                            )}
                             <span className="text-muted-foreground"> · {s.series}×{s.reps} · {s.percentual}%</span>
                           </span>
                           <span className="tabular-nums font-medium">{kg}kg</span>
