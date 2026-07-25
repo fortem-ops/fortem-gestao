@@ -558,7 +558,14 @@ function Wendler531Public({
                         key={i}
                         className="grid grid-cols-[1fr_80px_80px_80px] gap-2 px-3 py-1.5 text-xs tabular-nums items-center"
                       >
-                        <span className="truncate">{aux.exercicio || "—"}</span>
+                        <span className="truncate flex items-center gap-1">
+                          {aux.exercicio || "—"}
+                          {aux.video_url && (
+                            <a href={aux.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                              <PlayCircle className="w-3 h-3" />
+                            </a>
+                          )}
+                        </span>
                         <span className="text-center">{aux.series}</span>
                         <span className="text-center">{aux.reps}</span>
                         <span className="text-right">{aux.kg || "—"}</span>
