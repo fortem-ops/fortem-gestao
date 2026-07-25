@@ -74,8 +74,8 @@ export default function PortalHome() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ciclos_credito")
-        .select("creditos_liberados, creditos_usados, data_inicio, data_fim, status")
-        .eq("aluno_id", student!.id)
+        .select("creditos_liberados, creditos_usados, data_inicio, data_fim, status, contratos!inner(aluno_id)")
+        .eq("contratos.aluno_id", student!.id)
         .eq("status", "ativo")
         .order("data_inicio", { ascending: false })
         .limit(1)
