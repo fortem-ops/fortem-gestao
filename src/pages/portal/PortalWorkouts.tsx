@@ -667,6 +667,47 @@ function Portal531View({ treino }: { treino: any }) {
         ))}
       </div>
 
+      {/* Aquecimento global */}
+      {data.aquecimento && (["LIB", "MOB", "ATI", "PREV"] as const).some(
+        (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+      ) && (
+        <section className="rounded-xl border border-border overflow-hidden">
+          <div className="px-3 py-2 bg-muted/60">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Aquecimento
+            </p>
+          </div>
+          <div className="p-3 space-y-2">
+            {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
+              const items = data.aquecimento?.[k] ?? [];
+              if (!items.length) return null;
+              return (
+                <div key={k}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    {k}
+                  </p>
+                  <ul className="space-y-1">
+                    {items.map((ex, i) => (
+                      <li key={i} className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2">
+                        <span className="truncate flex items-center gap-1">
+                          {ex.exercicio || "—"}
+                          {ex.video_url && (
+                            <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                              <PlayCircle className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </span>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {data.dias.map((dia) => {
         const nome = dia.levantamentos.map((l) => l.levantamento).join(" + ") || "—";
         return (
