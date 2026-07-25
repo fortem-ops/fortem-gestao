@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 import {
@@ -30,15 +30,69 @@ import {
   roundToNearest2_5,
   LEVANTAMENTO_EXERCICIO_BASE,
 } from "@/lib/wendler531";
+import type {
+  AquecimentoBloco,
+  PersonalizadoAquecimentoEx,
+} from "@/components/student/workout/personalizadoTypes";
 import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
-import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { useExerciseCategories, type ExerciseCategory } from "@/hooks/useExerciseCategories";
 import { CATEGORY_LABELS } from "@/components/student/workout/workoutTemplates";
 import { SUBCATEGORIA_TO_CODE } from "@/lib/exerciseMapping";
 import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-import { PlayCircle } from "lucide-react";
+
+const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
+  { key: "LIB", label: "Liberação (LIB)" },
+  { key: "MOB", label: "Mobilidade (MOB)" },
+  { key: "ATI", label: "Ativação (ATI)" },
+  { key: "PREV", label: "Preventivo (PREV)" },
+];
+
+const AQUECIMENTO_GRUPO_MAP: Record<AquecimentoBloco, string> = {
+  LIB: "Liberação Miofascial",
+  MOB: "Mobilidade Articular",
+  ATI: "Ativação Muscular",
+  PREV: "Preventivo",
+};
+
+function CategoriaSelectForca({
+  value,
+  onChange,
+  groups,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  groups: ExerciseCategory[];
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-8 text-xs">
+        <SelectValue placeholder="Categoria" />
+      </SelectTrigger>
+      <SelectContent className="max-h-80">
+        {groups.map((g) => (
+          <SelectGroup key={g.name}>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {g.name}
+            </SelectLabel>
+            {g.subcategories.map((sub) => {
+              const code = SUBCATEGORIA_TO_CODE[sub];
+              const itemValue = code ?? sub;
+              const display = code ? `${code} — ${CATEGORY_LABELS[code] ?? sub}` : sub;
+              return (
+                <SelectItem key={itemValue} value={itemValue} className="text-xs">
+                  {display}
+                </SelectItem>
+              );
+            })}
+          </SelectGroup>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 
 interface Props {
@@ -72,7 +126,7 @@ export function Prescricao531Editor({
     () => levantamentosDisponiveis(data.frequencia),
     [data.frequencia],
   );
-  const { categories } = useExerciseCategories();
+  const { categories, grupoSubcategorias } = useExerciseCategories();
   const forcaCategories = useMemo(
     () => categories.filter((c) => c.name === "Força"),
     [categories],
@@ -324,6 +378,56 @@ export function Prescricao531Editor({
       return { ...prev, dias };
     });
 
+  // ── Aquecimento (bloco global) ────────────────────────────────
+  const ensureAquecimento = (
+    aq: Wendler531Conteudo["aquecimento"] | undefined,
+  ): Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]> => ({
+    LIB: aq?.LIB ?? [],
+    MOB: aq?.MOB ?? [],
+    ATI: aq?.ATI ?? [],
+    PREV: aq?.PREV ?? [],
+  });
+
+  const addAquecimento = (bloco: AquecimentoBloco) =>
+    setData((prev) => {
+      const aq = ensureAquecimento(prev.aquecimento);
+      return {
+        ...prev,
+        aquecimento: {
+          ...aq,
+          [bloco]: [
+            ...aq[bloco],
+            { exercicio: "", repeticoes: "10", dias: ["T1", "T2", "T3", "T4"] },
+          ],
+        },
+      };
+    });
+
+  const removeAquecimento = (bloco: AquecimentoBloco, i: number) =>
+    setData((prev) => {
+      const aq = ensureAquecimento(prev.aquecimento);
+      return {
+        ...prev,
+        aquecimento: { ...aq, [bloco]: aq[bloco].filter((_, idx) => idx !== i) },
+      };
+    });
+
+  const updateAquecimento = (
+    bloco: AquecimentoBloco,
+    i: number,
+    patch: Partial<PersonalizadoAquecimentoEx>,
+  ) =>
+    setData((prev) => {
+      const aq = ensureAquecimento(prev.aquecimento);
+      return {
+        ...prev,
+        aquecimento: {
+          ...aq,
+          [bloco]: aq[bloco].map((ex, idx) => (idx === i ? { ...ex, ...patch } : ex)),
+        },
+      };
+    });
+
   // ── Concluir prescrição ──────────────────────────────────────
   const handlePublish = async () => {
     if (!user) return;
@@ -458,6 +562,98 @@ export function Prescricao531Editor({
         </CardContent>
       </Card>
 
+      {/* Aquecimento global (aplicado antes de qualquer dia) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Aquecimento (global)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {AQUECIMENTO_BLOCOS.map((b) => {
+            const items = ensureAquecimento(data.aquecimento)[b.key];
+            const subs = grupoSubcategorias[AQUECIMENTO_GRUPO_MAP[b.key]] || [];
+            return (
+              <div key={b.key} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] font-bold">{b.key}</Badge>
+                  <span className="text-xs font-semibold text-muted-foreground">{b.label}</span>
+                  <Button size="sm" variant="ghost" className="h-6 ml-auto" onClick={() => addAquecimento(b.key)}>
+                    <Plus className="w-3 h-3 mr-1" /> Exercício
+                  </Button>
+                </div>
+                {items.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground italic">Nenhum exercício neste bloco.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {items.map((ex, i) => (
+                      <div key={i} className="flex items-start gap-2 p-2 rounded border border-border/50 bg-card/50">
+                        <span className="text-[10px] text-muted-foreground mt-2 w-4">{i + 1}</span>
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={ex.subcategoria ?? ""}
+                              onValueChange={(val) =>
+                                updateAquecimento(b.key, i, {
+                                  subcategoria: val,
+                                  exercicio: "",
+                                  exercicio_id: null,
+                                  video_url: null,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="h-7 text-xs w-[180px] shrink-0">
+                                <SelectValue placeholder="Subcategoria..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subs.map((sub) => (
+                                  <SelectItem key={sub} value={sub} className="text-xs">{sub}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="flex-1 min-w-0">
+                              <ExerciseSelector
+                                categoria={b.key}
+                                subcategoria={ex.subcategoria}
+                                value={ex.exercicio}
+                                disabled={!ex.subcategoria}
+                                placeholder={
+                                  ex.subcategoria
+                                    ? `Buscar em ${ex.subcategoria}...`
+                                    : "Selecione a subcategoria primeiro"
+                                }
+                                onChange={(val, video) =>
+                                  updateAquecimento(b.key, i, { exercicio: val, video_url: video })
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-[10px] text-muted-foreground">Reps</Label>
+                            <Input
+                              value={ex.repeticoes}
+                              onChange={(e) => updateAquecimento(b.key, i, { repeticoes: e.target.value })}
+                              className="h-6 w-24 text-xs"
+                              placeholder='10 ou 60"'
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => removeAquecimento(b.key, i)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
       {/* Dias */}
       {data.dias.map((dia, idxDia) => (
         <Card key={dia.ordem}>
@@ -496,8 +692,23 @@ export function Prescricao531Editor({
               return (
                 <div key={lev.levantamento} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <Badge>{lev.levantamento}</Badge>
+                      <span className="text-xs font-medium text-foreground">
+                        {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].nome}
+                      </span>
+                      {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url && (
+                        <a
+                          href={LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                          aria-label={`Vídeo de ${LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].nome}`}
+                        >
+                          <PlayCircle className="w-3.5 h-3.5" />
+                          Vídeo
+                        </a>
+                      )}
                       <div className="flex items-center gap-2">
                         <Label className="text-xs">1RM (kg)</Label>
                         <Input
@@ -524,6 +735,7 @@ export function Prescricao531Editor({
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+
 
                   {lev.rm_1 > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -579,7 +791,7 @@ export function Prescricao531Editor({
                   dia.levantamentos.find((l) => l.levantamento === acc.vinculado_a)?.rm_1 ?? 0;
                 return (
                   <div key={idxAcc} className="border rounded-md p-3 space-y-2">
-                    <div className="grid grid-cols-1 md:grid-cols-[160px_1fr_auto] gap-2 items-end">
+                    <div className="grid grid-cols-1 md:grid-cols-[140px_180px_1fr_auto] gap-2 items-end">
                       <div>
                         <Label className="text-xs">Vinculado a</Label>
                         <Select
@@ -601,14 +813,33 @@ export function Prescricao531Editor({
                         </Select>
                       </div>
                       <div>
-                        <Label className="text-xs">Exercício</Label>
-                        <Input
-                          className="h-8"
-                          value={acc.exercicio}
-                          onChange={(e) =>
-                            updateAcessorio(idxDia, idxAcc, { exercicio: e.target.value })
+                        <Label className="text-xs">Categoria</Label>
+                        <CategoriaSelectForca
+                          value={acc.categoria}
+                          groups={forcaCategories}
+                          onChange={(v) =>
+                            updateAcessorio(idxDia, idxAcc, {
+                              categoria: v,
+                              exercicio: "",
+                              exercicio_id: null,
+                              video_url: null,
+                            })
                           }
                         />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Exercício</Label>
+                        <div className="border border-input rounded-md">
+                          <ExerciseSelector
+                            categoria={acc.categoria || "DJS"}
+                            value={acc.exercicio}
+                            disabled={!acc.categoria}
+                            placeholder={acc.categoria ? "Buscar exercício..." : "Escolha a categoria"}
+                            onChange={(val, video) =>
+                              updateAcessorio(idxDia, idxAcc, { exercicio: val, video_url: video })
+                            }
+                          />
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -619,6 +850,7 @@ export function Prescricao531Editor({
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
+
 
                     <div className="grid grid-cols-3 gap-2">
                       {acc.semanas.map((s) => {
@@ -695,17 +927,36 @@ export function Prescricao531Editor({
               {dia.auxiliares.map((aux, idxAux) => (
                 <div
                   key={idxAux}
-                  className="grid grid-cols-[1fr_80px_80px_100px_auto] gap-2 items-end"
+                  className="grid grid-cols-[160px_1fr_70px_80px_90px_auto] gap-2 items-end"
                 >
                   <div>
-                    <Label className="text-xs">Exercício</Label>
-                    <Input
-                      className="h-8"
-                      value={aux.exercicio}
-                      onChange={(e) =>
-                        updateAuxiliar(idxDia, idxAux, { exercicio: e.target.value })
+                    <Label className="text-xs">Categoria</Label>
+                    <CategoriaSelectForca
+                      value={aux.categoria}
+                      groups={forcaCategories}
+                      onChange={(v) =>
+                        updateAuxiliar(idxDia, idxAux, {
+                          categoria: v,
+                          exercicio: "",
+                          exercicio_id: null,
+                          video_url: null,
+                        })
                       }
                     />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Exercício</Label>
+                    <div className="border border-input rounded-md">
+                      <ExerciseSelector
+                        categoria={aux.categoria || "DJS"}
+                        value={aux.exercicio}
+                        disabled={!aux.categoria}
+                        placeholder={aux.categoria ? "Buscar exercício..." : "Escolha a categoria"}
+                        onChange={(val, video) =>
+                          updateAuxiliar(idxDia, idxAux, { exercicio: val, video_url: video })
+                        }
+                      />
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs">Séries</Label>
@@ -731,7 +982,7 @@ export function Prescricao531Editor({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Kg (opcional)</Label>
+                    <Label className="text-xs">Kg</Label>
                     <Input
                       className="h-8"
                       value={aux.kg ?? ""}

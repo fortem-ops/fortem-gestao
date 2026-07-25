@@ -10,11 +10,12 @@ import {
   trainingMax as tm531,
   acessorioKg as accKg531,
   roundToNearest2_5 as round531,
+  LEVANTAMENTO_EXERCICIO_BASE,
   type Wendler531Conteudo,
 } from "@/lib/wendler531";
 import {
   Play, CheckCircle2, ChevronDown, ChevronUp, History,
-  AlertCircle, Loader2, RefreshCw, X
+  AlertCircle, Loader2, RefreshCw, X, PlayCircle
 } from "lucide-react";
 
 // Helper: limpar nome do exercício (remove prefixos numéricos)
@@ -666,6 +667,47 @@ function Portal531View({ treino }: { treino: any }) {
         ))}
       </div>
 
+      {/* Aquecimento global */}
+      {data.aquecimento && (["LIB", "MOB", "ATI", "PREV"] as const).some(
+        (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+      ) && (
+        <section className="rounded-xl border border-border overflow-hidden">
+          <div className="px-3 py-2 bg-muted/60">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Aquecimento
+            </p>
+          </div>
+          <div className="p-3 space-y-2">
+            {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
+              const items = data.aquecimento?.[k] ?? [];
+              if (!items.length) return null;
+              return (
+                <div key={k}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    {k}
+                  </p>
+                  <ul className="space-y-1">
+                    {items.map((ex, i) => (
+                      <li key={i} className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2">
+                        <span className="truncate flex items-center gap-1">
+                          {ex.exercicio || "—"}
+                          {ex.video_url && (
+                            <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                              <PlayCircle className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </span>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {data.dias.map((dia) => {
         const nome = dia.levantamentos.map((l) => l.levantamento).join(" + ") || "—";
         return (
@@ -684,7 +726,22 @@ function Portal531View({ treino }: { treino: any }) {
                 return (
                   <div key={lev.levantamento} className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold">{lev.levantamento}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-semibold shrink-0">{lev.levantamento}</span>
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].nome}
+                        </span>
+                        {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url && (
+                          <a
+                            href={LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary shrink-0"
+                          >
+                            <PlayCircle className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
                       <span className="text-[11px] text-muted-foreground tabular-nums">
                         TM {tm}kg
                       </span>
@@ -726,8 +783,13 @@ function Portal531View({ treino }: { treino: any }) {
                           key={idx}
                           className="flex justify-between text-xs border-l-2 border-primary/50 pl-2"
                         >
-                          <span className="truncate">
+                          <span className="truncate flex items-center gap-1">
                             {acc.exercicio || "—"}
+                            {acc.video_url && (
+                              <a href={acc.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                                <PlayCircle className="w-3 h-3" />
+                              </a>
+                            )}
                             <span className="text-muted-foreground"> · {s.series}×{s.reps} · {s.percentual}%</span>
                           </span>
                           <span className="tabular-nums font-medium">{kg}kg</span>
@@ -747,8 +809,13 @@ function Portal531View({ treino }: { treino: any }) {
                   <ul className="space-y-1">
                     {dia.auxiliares.map((aux, i) => (
                       <li key={i} className="flex justify-between text-xs">
-                        <span className="truncate">
+                        <span className="truncate flex items-center gap-1">
                           {aux.exercicio || "—"}
+                          {aux.video_url && (
+                            <a href={aux.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                              <PlayCircle className="w-3 h-3" />
+                            </a>
+                          )}
                           <span className="text-muted-foreground"> · {aux.series}×{aux.reps}</span>
                         </span>
                         <span className="tabular-nums">{aux.kg || "—"}</span>
