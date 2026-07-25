@@ -77,7 +77,18 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
   // 5-3-1 (Wendler) usa shape próprio (aquecimento como objeto LIB/MOB/ATI/PREV,
   // levantamentos por dia, training max %). Delegamos ao editor dedicado —
   // renderizar no visualizador legado quebrava com "aquecimento.forEach is not a function".
-  if (treino?.conteudo && isWendler531(treino.conteudo)) {
+  // Also detecta 5-3-1 legado sem `variante` gravada — via `template_fase`
+  // ou pelo shape de `aquecimento` (objeto {LIB,MOB,ATI,PREV} em vez de array).
+  // Sem esse fallback, o render abaixo tenta `data.aquecimento.forEach` e quebra.
+  const aqShape = treino?.conteudo && typeof treino.conteudo === "object"
+    ? (treino.conteudo as { aquecimento?: unknown }).aquecimento
+    : undefined;
+  const aqIsObject = aqShape !== null && typeof aqShape === "object" && !Array.isArray(aqShape);
+  const is531 =
+    (treino?.conteudo && isWendler531(treino.conteudo)) ||
+    treino?.template_fase === "5-3-1" ||
+    (aqIsObject && !isPersonalizadoContent(treino?.conteudo));
+  if (treino && is531) {
     return (
       <Prescricao531Editor
         alunoId={alunoId}
