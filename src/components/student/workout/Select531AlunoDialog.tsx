@@ -85,9 +85,6 @@ export function Select531AlunoDialog({ open, onOpenChange, onSelect, title = "Es
                   >
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{a.nome}</span>
-                      {a.plano_nome && (
-                        <span className="text-xs text-muted-foreground">{a.plano_nome}</span>
-                      )}
                     </div>
                   </Button>
                 </li>
