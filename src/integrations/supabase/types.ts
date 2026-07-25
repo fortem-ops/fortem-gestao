@@ -7250,7 +7250,7 @@ export type Database = {
       }
       fn_portal_link_aluno: { Args: never; Returns: Json }
       fn_processar_comissao_carteira: {
-        Args: { _ref: string }
+        Args: { _ref?: string }
         Returns: number
       }
       fn_processar_horarios_fixos: { Args: never; Returns: Json }
