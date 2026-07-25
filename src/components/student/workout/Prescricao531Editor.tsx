@@ -220,7 +220,16 @@ export function Prescricao531Editor({
           d.acessorios = d.acessorios.filter((a) => a.vinculado_a !== "Press");
         }
       }
-      return { ...prev, frequencia: freq, dias };
+      // Poda dias do aquecimento global para T1..T{freq}
+      const validos = new Set(Array.from({ length: freq }, (_, i) => `T${i + 1}`));
+      const aq = ensureAquecimento(prev.aquecimento);
+      const aquecimentoPodado = Object.fromEntries(
+        (Object.keys(aq) as AquecimentoBloco[]).map((k) => [
+          k,
+          aq[k].map((ex) => ({ ...ex, dias: ex.dias.filter((d) => validos.has(d)) })),
+        ]),
+      ) as Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
+      return { ...prev, frequencia: freq, dias, aquecimento: aquecimentoPodado };
     });
   };
 
