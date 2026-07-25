@@ -6,6 +6,13 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
+  computeWave as compute531Wave,
+  trainingMax as tm531,
+  acessorioKg as accKg531,
+  roundToNearest2_5 as round531,
+  type Wendler531Conteudo,
+} from "@/lib/wendler531";
+import {
   Play, CheckCircle2, ChevronDown, ChevronUp, History,
   AlertCircle, Loader2, RefreshCw, X
 } from "lucide-react";
@@ -619,13 +626,6 @@ export default function PortalWorkouts() {
 // Portal 5-3-1: visualização simplificada por dia × semana
 // ─────────────────────────────────────────────────────────────
 
-import {
-  computeWave as compute531Wave,
-  trainingMax as tm531,
-  acessorioKg as accKg531,
-  roundToNearest2_5 as round531,
-  type Wendler531Conteudo,
-} from "@/lib/wendler531";
 
 function Portal531View({ treino }: { treino: any }) {
   const data = (treino?.conteudo ?? null) as Wendler531Conteudo | null;
