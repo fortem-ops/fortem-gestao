@@ -232,6 +232,7 @@ export function emptyWendler531(frequencia: 2 | 3 | 4 | 5 = 4, pctTM = 90): Wend
     variante: "531",
     frequencia,
     percentual_training_max: pctTM,
+    aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
     dias: Array.from({ length: frequencia }, (_, i) => ({
       ordem: i + 1,
       levantamentos: [],
@@ -240,6 +241,7 @@ export function emptyWendler531(frequencia: 2 | 3 | 4 | 5 = 4, pctTM = 90): Wend
     })),
   };
 }
+
 
 /** Retorna a lista de levantamentos permitidos para uma dada frequência (Press só em 5x). */
 export function levantamentosDisponiveis(frequencia: 2 | 3 | 4 | 5): Levantamento531[] {
