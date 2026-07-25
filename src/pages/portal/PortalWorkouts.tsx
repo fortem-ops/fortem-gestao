@@ -10,11 +10,12 @@ import {
   trainingMax as tm531,
   acessorioKg as accKg531,
   roundToNearest2_5 as round531,
+  LEVANTAMENTO_EXERCICIO_BASE,
   type Wendler531Conteudo,
 } from "@/lib/wendler531";
 import {
   Play, CheckCircle2, ChevronDown, ChevronUp, History,
-  AlertCircle, Loader2, RefreshCw, X
+  AlertCircle, Loader2, RefreshCw, X, PlayCircle
 } from "lucide-react";
 
 // Helper: limpar nome do exercício (remove prefixos numéricos)
