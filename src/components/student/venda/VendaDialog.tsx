@@ -508,6 +508,26 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         });
       }
 
+      // Gerar documento de contrato automaticamente
+      if (vendaIns?.plano_id) {
+        const { data: contratoVinc } = await (supabase as any)
+          .from('contratos')
+          .select('id')
+          .eq('plano_id', vendaIns.plano_id)
+          .eq('status', 'ativo')
+          .maybeSingle();
+
+        if (contratoVinc?.id) {
+          await gerarDocumentoContrato({
+            alunoId,
+            contratoId: contratoVinc.id,
+            planoNome: planoSelecionado.nome,
+            tipoCobranca: tipoCobranca!,
+            valorFinal: totaisPlano!.total,
+          });
+        }
+      }
+
 
 
       const periodoPlano = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
