@@ -12,6 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  isWendler531,
+  computeWave,
+  trainingMax,
+  acessorioKg,
+  roundToNearest2_5,
+  type Wendler531Conteudo,
+} from "@/lib/wendler531";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
@@ -26,6 +34,7 @@ interface TreinoRow {
   conteudo: Json | null;
   aluno_id: string;
   created_at: string;
+  template_fase: string | null;
 }
 
 interface AlunoRow {
@@ -67,7 +76,7 @@ export default function PublicWorkout() {
       try {
         const { data: t, error: tErr } = await supabase
           .from("treinos")
-          .select("id, descricao, versao, status, conteudo, aluno_id, created_at")
+          .select("id, descricao, versao, status, conteudo, aluno_id, created_at, template_fase")
           .eq("id", id)
           .maybeSingle();
         if (tErr) throw tErr;
@@ -97,10 +106,18 @@ export default function PublicWorkout() {
     };
   }, [id]);
 
+  const is531 =
+    treino?.template_fase === "5-3-1" || isWendler531(treino?.conteudo ?? null);
+
   const data = useMemo<WorkoutData | null>(() => {
-    if (!treino?.conteudo) return null;
+    if (!treino?.conteudo || is531) return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino]);
+  }, [treino, is531]);
+
+  const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
+    if (!treino?.conteudo || !is531) return null;
+    return treino.conteudo as unknown as Wendler531Conteudo;
+  }, [treino, is531]);
 
   const openVideo = (url: string, title: string) => {
     if (isYouTubeUrl(url)) {
@@ -120,7 +137,7 @@ export default function PublicWorkout() {
     );
   }
 
-  if (error || !treino || !data) {
+  if (error || !treino || (!data && !wendlerData)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3 max-w-sm">
@@ -131,6 +148,16 @@ export default function PublicWorkout() {
           <p className="text-sm text-muted-foreground">{error || "Não foi possível carregar este treino."}</p>
         </div>
       </div>
+    );
+  }
+
+  if (wendlerData) {
+    return (
+      <Wendler531Public
+        treino={treino}
+        aluno={aluno}
+        data={wendlerData}
+      />
     );
   }
 
@@ -308,6 +335,180 @@ export default function PublicWorkout() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Layout dedicado 5-3-1 (Wendler) — 4 semanas × N dias
+// ─────────────────────────────────────────────────────────────
+
+function Wendler531Public({
+  treino,
+  aluno,
+  data,
+}: {
+  treino: TreinoRow;
+  aluno: AlunoRow | null;
+  data: Wendler531Conteudo;
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-sm leading-tight truncate">
+                5-3-1 · {treino.descricao || "Prescrição"}
+              </h1>
+              {aluno && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {aluno.nome} · v{treino.versao} · TM {data.percentual_training_max}%
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+            Somente leitura
+          </span>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-4 space-y-6 pb-12">
+        {data.dias.map((dia) => {
+          const nomeDia = dia.levantamentos.map((l) => l.levantamento).join(" + ") || "—";
+          return (
+            <section key={dia.ordem} className="space-y-3">
+              <h2 className="text-xs font-heading font-bold uppercase tracking-wider text-destructive">
+                TREINO {dia.ordem} — {nomeDia}
+              </h2>
+
+              {/* Levantamentos principais */}
+              {dia.levantamentos.map((lev) => {
+                const wave = computeWave(lev.rm_1, data.percentual_training_max);
+                const tm = roundToNearest2_5(
+                  trainingMax(lev.rm_1, data.percentual_training_max),
+                );
+                return (
+                  <div
+                    key={lev.levantamento}
+                    className="rounded-xl border border-border overflow-hidden"
+                  >
+                    <div className="px-3 py-2 bg-muted flex items-center justify-between">
+                      <span className="text-[11px] font-bold tracking-wider text-foreground">
+                        {lev.levantamento.toUpperCase()}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        1RM {lev.rm_1}kg · TM {tm}kg
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border">
+                      {wave.map((sem) => (
+                        <div key={sem.semana} className="p-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                            Semana {sem.semana}
+                            {sem.semana === 4 && " · Deload"}
+                          </p>
+                          <ul className="space-y-0.5">
+                            {sem.series.map((s, i) => (
+                              <li
+                                key={i}
+                                className={`text-[11px] tabular-nums flex justify-between ${
+                                  s.tipo === "aquecimento"
+                                    ? "text-muted-foreground"
+                                    : "font-semibold"
+                                }`}
+                              >
+                                <span>{s.reps} × {s.pct}%</span>
+                                <span>{s.kg}kg</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Acessórios */}
+              {dia.acessorios.length > 0 && (
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <div className="px-3 py-2 bg-accent/50 text-[11px] font-bold tracking-wider text-accent-foreground">
+                    ACESSÓRIOS
+                  </div>
+                  <div className="divide-y divide-border">
+                    <div className="grid grid-cols-[1fr_1fr_40px_80px_50px_60px] gap-2 px-3 py-1.5 text-[10px] uppercase text-muted-foreground">
+                      <span>Vinc.</span>
+                      <span>Exercício</span>
+                      <span className="text-center">Sem</span>
+                      <span className="text-center">Séries×Reps</span>
+                      <span className="text-right">%</span>
+                      <span className="text-right">Kg</span>
+                    </div>
+                    {dia.acessorios.flatMap((acc, idx) => {
+                      const rmVinc =
+                        dia.levantamentos.find((l) => l.levantamento === acc.vinculado_a)?.rm_1 ?? 0;
+                      return acc.semanas.map((s) => (
+                        <div
+                          key={`${idx}-${s.semana}`}
+                          className="grid grid-cols-[1fr_1fr_40px_80px_50px_60px] gap-2 px-3 py-1.5 text-xs tabular-nums items-center"
+                        >
+                          <span className="text-muted-foreground truncate">{acc.vinculado_a}</span>
+                          <span className="truncate">{acc.exercicio || "—"}</span>
+                          <span className="text-center">{s.semana}</span>
+                          <span className="text-center">{s.series}×{s.reps}</span>
+                          <span className="text-right">{s.percentual}%</span>
+                          <span className="text-right font-semibold">
+                            {acessorioKg(rmVinc, data.percentual_training_max, s.percentual)}kg
+                          </span>
+                        </div>
+                      ));
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Auxiliares */}
+              {dia.auxiliares.length > 0 && (
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <div className="px-3 py-2 bg-muted/60 text-[11px] font-bold tracking-wider text-foreground">
+                    AUXILIARES
+                  </div>
+                  <div className="divide-y divide-border">
+                    <div className="grid grid-cols-[1fr_80px_80px_80px] gap-2 px-3 py-1.5 text-[10px] uppercase text-muted-foreground">
+                      <span>Exercício</span>
+                      <span className="text-center">Séries</span>
+                      <span className="text-center">Reps</span>
+                      <span className="text-right">Kg</span>
+                    </div>
+                    {dia.auxiliares.map((aux, i) => (
+                      <div
+                        key={i}
+                        className="grid grid-cols-[1fr_80px_80px_80px] gap-2 px-3 py-1.5 text-xs tabular-nums items-center"
+                      >
+                        <span className="truncate">{aux.exercicio || "—"}</span>
+                        <span className="text-center">{aux.series}</span>
+                        <span className="text-center">{aux.reps}</span>
+                        <span className="text-right">{aux.kg || "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          );
+        })}
+
+        <footer className="pt-4 text-center">
+          <p className="text-[10px] text-muted-foreground">
+            Fortem Gestão Técnica · 5-3-1 (Wendler) · Onda de 4 semanas
+          </p>
+        </footer>
+      </main>
     </div>
   );
 }

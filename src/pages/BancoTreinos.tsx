@@ -17,6 +17,8 @@ import { getYouTubeEmbedUrl } from "@/lib/youtube";
 import { toast } from "sonner";
 import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
 import { emptyPersonalizado, type PersonalizadoConteudo } from "@/components/student/workout/personalizadoTypes";
+import { Prescricao531Editor } from "@/components/student/workout/Prescricao531Editor";
+import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 
 interface GroupSelection { grupo: string; subcategoria: string }
 interface BankExercise {
@@ -818,6 +820,8 @@ export default function BancoTreinos() {
     | { mode: "new"; variante: "corrida"; templateFase: string; seed: PersonalizadoConteudo }
     | { mode: "edit"; id: string; nome: string; conteudo: PersonalizadoConteudo }
   >(null);
+  const [select531Open, setSelect531Open] = useState(false);
+  const [editor531, setEditor531] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
@@ -1089,6 +1093,16 @@ export default function BancoTreinos() {
     </Dialog>
   );
 
+  if (editor531) {
+    return (
+      <Prescricao531Editor
+        alunoId={editor531.alunoId}
+        alunoNome={editor531.alunoNome}
+        onBack={() => setEditor531(null)}
+      />
+    );
+  }
+
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
@@ -1161,7 +1175,17 @@ export default function BancoTreinos() {
 
       <div className="space-y-8">
         {PHASE_GROUPS.map(group => {
-          const items = WORKOUT_TEMPLATES.filter(group.filter);
+          let items = WORKOUT_TEMPLATES.filter(group.filter);
+          if (group.label === "Métodos") {
+            // 5-3-1 é per-aluno e não vive em WORKOUT_TEMPLATES.
+            const synthetic531: WorkoutTemplate = {
+              fase: "5-3-1",
+              frequencia: "2-5x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531];
+          }
           if (items.length === 0) return null;
           return (
             <section key={group.label}>
@@ -1170,7 +1194,8 @@ export default function BancoTreinos() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(template => {
-                  const isUnderConstruction = ["Planilha 5RM", "5-3-1", "M102"].includes(template.fase);
+                  const isUnderConstruction = ["Planilha 5RM", "M102"].includes(template.fase);
+                  const is531 = template.fase === "5-3-1";
                   return (
                   <Card
                     key={template.fase}
@@ -1182,6 +1207,10 @@ export default function BancoTreinos() {
                     onClick={() => {
                       if (isUnderConstruction) {
                         toast.info("Em Construção", { description: "Este modelo ainda não está disponível." });
+                        return;
+                      }
+                      if (is531) {
+                        setSelect531Open(true);
                         return;
                       }
                       if (template.fase === "Personalizado") {
@@ -1218,7 +1247,7 @@ export default function BancoTreinos() {
                         <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                           {isUnderConstruction
                             ? <Construction className="h-5 w-5 text-warning" />
-                            : template.fase === "Personalizado"
+                            : (template.fase === "Personalizado" || is531)
                               ? <Sparkles className="h-5 w-5 text-primary" />
                               : <Dumbbell className="h-5 w-5 text-primary" />}
                         </div>
@@ -1233,12 +1262,18 @@ export default function BancoTreinos() {
                       <CardTitle className="text-lg mt-3">{template.fase}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>{template.treinos.length} treinos</span>
-                        <span>
-                          {template.treinos.reduce((acc, t) => acc + t.exercicios.length, 0)} exercícios
-                        </span>
-                      </div>
+                      {is531 ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 4 semanas · carga em % do 1RM
+                        </p>
+                      ) : (
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>{template.treinos.length} treinos</span>
+                          <span>
+                            {template.treinos.reduce((acc, t) => acc + t.exercicios.length, 0)} exercícios
+                          </span>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                   );
@@ -1318,6 +1353,12 @@ export default function BancoTreinos() {
       </div>
 
       {renderVideoModal()}
+      <Select531AlunoDialog
+        open={select531Open}
+        onOpenChange={setSelect531Open}
+        title="Escolha o aluno para prescrever 5-3-1"
+        onSelect={(a) => setEditor531({ alunoId: a.id, alunoNome: a.nome })}
+      />
     </div>
   );
 }
