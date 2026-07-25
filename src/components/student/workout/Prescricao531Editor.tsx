@@ -791,7 +791,7 @@ export function Prescricao531Editor({
                   dia.levantamentos.find((l) => l.levantamento === acc.vinculado_a)?.rm_1 ?? 0;
                 return (
                   <div key={idxAcc} className="border rounded-md p-3 space-y-2">
-                    <div className="grid grid-cols-1 md:grid-cols-[160px_1fr_auto] gap-2 items-end">
+                    <div className="grid grid-cols-1 md:grid-cols-[140px_180px_1fr_auto] gap-2 items-end">
                       <div>
                         <Label className="text-xs">Vinculado a</Label>
                         <Select
@@ -813,14 +813,33 @@ export function Prescricao531Editor({
                         </Select>
                       </div>
                       <div>
-                        <Label className="text-xs">Exercício</Label>
-                        <Input
-                          className="h-8"
-                          value={acc.exercicio}
-                          onChange={(e) =>
-                            updateAcessorio(idxDia, idxAcc, { exercicio: e.target.value })
+                        <Label className="text-xs">Categoria</Label>
+                        <CategoriaSelectForca
+                          value={acc.categoria}
+                          groups={forcaCategories}
+                          onChange={(v) =>
+                            updateAcessorio(idxDia, idxAcc, {
+                              categoria: v,
+                              exercicio: "",
+                              exercicio_id: null,
+                              video_url: null,
+                            })
                           }
                         />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Exercício</Label>
+                        <div className="border border-input rounded-md">
+                          <ExerciseSelector
+                            categoria={acc.categoria || "DJS"}
+                            value={acc.exercicio}
+                            disabled={!acc.categoria}
+                            placeholder={acc.categoria ? "Buscar exercício..." : "Escolha a categoria"}
+                            onChange={(val, video) =>
+                              updateAcessorio(idxDia, idxAcc, { exercicio: val, video_url: video })
+                            }
+                          />
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -831,6 +850,7 @@ export function Prescricao531Editor({
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
+
 
                     <div className="grid grid-cols-3 gap-2">
                       {acc.semanas.map((s) => {
