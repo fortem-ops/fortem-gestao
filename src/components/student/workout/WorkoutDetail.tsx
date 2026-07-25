@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
 import { PersonalizadoEditor } from "./PersonalizadoEditor";
 import { isPersonalizadoContent } from "./personalizadoTypes";
+import { Prescricao531Editor } from "./Prescricao531Editor";
+import { isWendler531, type Wendler531Conteudo } from "@/lib/wendler531";
 import { PrescribeOptionsDialog, toISODate, type PrescribeChoice } from "./PrescribeOptionsDialog";
 import {
   Dialog,
@@ -71,6 +73,22 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
       />
     );
   }
+
+  // 5-3-1 (Wendler) usa shape próprio (aquecimento como objeto LIB/MOB/ATI/PREV,
+  // levantamentos por dia, training max %). Delegamos ao editor dedicado —
+  // renderizar no visualizador legado quebrava com "aquecimento.forEach is not a function".
+  if (treino?.conteudo && isWendler531(treino.conteudo)) {
+    return (
+      <Prescricao531Editor
+        alunoId={alunoId}
+        alunoNome={student?.nome ?? ""}
+        initialTreinoId={treino.id}
+        initial={treino.conteudo as unknown as Wendler531Conteudo}
+        onBack={onBack}
+      />
+    );
+  }
+
 
   const initialData: WorkoutData = treino?.conteudo
     ? (treino.conteudo as unknown as WorkoutData)
