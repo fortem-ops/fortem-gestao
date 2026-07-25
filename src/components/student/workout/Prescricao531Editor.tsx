@@ -692,8 +692,23 @@ export function Prescricao531Editor({
               return (
                 <div key={lev.levantamento} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <Badge>{lev.levantamento}</Badge>
+                      <span className="text-xs font-medium text-foreground">
+                        {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].nome}
+                      </span>
+                      {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url && (
+                        <a
+                          href={LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                          aria-label={`Vídeo de ${LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].nome}`}
+                        >
+                          <PlayCircle className="w-3.5 h-3.5" />
+                          Vídeo
+                        </a>
+                      )}
                       <div className="flex items-center gap-2">
                         <Label className="text-xs">1RM (kg)</Label>
                         <Input
@@ -720,6 +735,7 @@ export function Prescricao531Editor({
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+
 
                   {lev.rm_1 > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
