@@ -34,41 +34,36 @@ const RED_TINT: [number, number, number] = [254, 226, 226];
 
 const CHECK = "•DOT•";
 
-const AQ_LABEL: Record<AquecimentoBloco, string> = {
-  LIB: "LIBERAÇÃO",
-  MOB: "MOBILIDADE",
-  ATI: "ATIVAÇÃO",
-  PREV: "PREVENTIVOS",
-};
-
 const cleanName = (s?: string | null) =>
   (s ?? "").replace(/^\s*\d+\s*[-–—.)]\s*/, "").trim();
+
+// Intensidade → cor de fundo para linhas da onda 5-3-1.
+const AQUEC_TINT: [number, number, number] = [220, 240, 220];   // verde bem claro
+const TRAB_TINT: [number, number, number] = [253, 214, 214];    // vermelho/salmão claro-médio
+const AMRAP_TINT: [number, number, number] = [248, 160, 160];   // vermelho mais saturado
 
 function drawHeader(
   doc: jsPDF,
   student: Tables<"alunos">,
-  subtitle: string,
   mainX: number,
   mainW: number,
   margin: number,
 ): number {
-  const headerH = 20;
+  // Nome do aluno — topo ESQUERDO, bold, maiúsculo.
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...INK);
+  doc.text(student.nome.toUpperCase(), mainX, margin + 7);
+
+  // Logo — topo DIREITO.
   try {
     const LOGO_H = 8;
     const LOGO_RATIO = 1920 / 357;
-    doc.addImage(fortemLogo, "PNG", mainX, margin + 1, LOGO_H * LOGO_RATIO, LOGO_H);
+    const LOGO_W = LOGO_H * LOGO_RATIO;
+    doc.addImage(fortemLogo, "PNG", mainX + mainW - LOGO_W, margin + 1, LOGO_W, LOGO_H);
   } catch {
     // ignore
   }
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(...INK_MUTED);
-  doc.text("ALUNO", mainX + mainW, margin + 4, { align: "right" });
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(...INK);
-  doc.text(student.nome.toUpperCase(), mainX + mainW, margin + 9, { align: "right" });
 
   const today = new Date().toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -78,13 +73,13 @@ function drawHeader(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(...INK_SOFT);
-  doc.text(`${subtitle}  ·  ${today}`, mainX + mainW, margin + 14, { align: "right" });
+  doc.text(today, mainX + mainW, margin + 13, { align: "right" });
 
   doc.setDrawColor(...RED);
   doc.setLineWidth(0.4);
-  doc.line(mainX, margin + headerH, mainX + mainW, margin + headerH);
+  doc.line(mainX, margin + 16, mainX + mainW, margin + 16);
 
-  return margin + headerH + 3;
+  return margin + 16 + 3;
 }
 
 function sectionBar(
@@ -95,7 +90,7 @@ function sectionBar(
   y: number,
   w: number,
 ): number {
-  const H = 6.2;
+  const H = 6.4;
   doc.setFillColor(...RED);
   doc.rect(x, y, w, H, "F");
   doc.setFont("helvetica", "bold");
@@ -110,6 +105,68 @@ function sectionBar(
   return y + H + 1.2;
 }
 
+function drawFrequenciaColumn(
+  doc: jsPDF,
+  freqX: number,
+  freqColW: number,
+  freqTopY: number,
+  freqBottomY: number,
+  activeT: number,
+  weeks: number,
+): void {
+  const freqHeaderH = 10;
+  doc.setFillColor(...RED);
+  doc.rect(freqX, freqTopY, freqColW, freqHeaderH, "F");
+  doc.setTextColor(...WHITE);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.text("FREQUÊNCIA", freqX + freqColW / 2, freqTopY + 4.2, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5.8);
+  doc.text(
+    `${weeks} ${weeks === 1 ? "SEMANA" : "SEMANAS"}`,
+    freqX + freqColW / 2,
+    freqTopY + 7.6,
+    { align: "center" },
+  );
+
+  const slotCount = weeks * activeT;
+  const slotsTop = freqTopY + freqHeaderH + 1;
+  const slotsAvailH = freqBottomY - slotsTop;
+  const slotH = slotsAvailH / slotCount;
+
+  for (let i = 0; i < slotCount; i++) {
+    const sy = slotsTop + i * slotH;
+    const week = Math.floor(i / activeT) + 1;
+    const tNum = (i % activeT) + 1;
+
+    if (week % 2 === 0) {
+      doc.setFillColor(...RED_TINT);
+      doc.rect(freqX, sy, freqColW, slotH, "F");
+    }
+    doc.setDrawColor(...RULE);
+    doc.setLineWidth(0.15);
+    doc.rect(freqX, sy, freqColW, slotH);
+
+    if (tNum === 1) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(5.5);
+      doc.setTextColor(...RED);
+      doc.text(`SEM ${week}`, freqX + freqColW - 1.5, sy + 2.2, { align: "right" });
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...INK);
+    doc.text(`T${tNum}`, freqX + 2, sy + slotH / 2 + 1.2);
+
+    doc.setDrawColor(...INK_MUTED);
+    doc.setLineWidth(0.1);
+    const lineY = sy + slotH - 1.5;
+    doc.line(freqX + 7, lineY, freqX + freqColW - 1.5, lineY);
+  }
+}
+
 export async function exportWendler531PDF({
   student,
   data,
@@ -119,254 +176,310 @@ export async function exportWendler531PDF({
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 10;
+  const gutter = 4;
+  const freqColW = 22;
   const mainX = margin;
-  const mainW = pageW - margin * 2;
+  const mainW = pageW - margin * 2 - freqColW - gutter;
+  const freqX = mainX + mainW + gutter;
   const bottomY = pageH - margin;
 
   const freq = data.frequencia;
   const diasHeader = Array.from({ length: freq }, (_, i) => `T${i + 1}`);
 
-  let y = drawHeader(doc, student, "5-3-1 · ONDA DE 4 SEMANAS", mainX, mainW, margin);
+  // Cabeçalho + coluna FREQUÊNCIA (semanas fixas = 4 no 5-3-1)
+  let y = drawHeader(doc, student, mainX, mainW, margin);
+  drawFrequenciaColumn(doc, freqX, freqColW, margin, bottomY, freq, 4);
+
+  // Barra de seção principal
+  y = sectionBar(doc, "Prescrição 5-3-1", `TM ${data.percentual_training_max}% · 4 semanas`, mainX, y, mainW);
 
   // ============================================================
-  // AQUECIMENTO
+  // AQUECIMENTO — tabela única com célula mesclada de grupo
   // ============================================================
   const aq = data.aquecimento;
   const aqBlocos: AquecimentoBloco[] = ["LIB", "MOB", "ATI", "PREV"];
-  const hasAq = aq && aqBlocos.some((k) => (aq[k]?.length ?? 0) > 0);
+  const gruposAtivos = aq
+    ? aqBlocos.filter((k) => (aq[k]?.length ?? 0) > 0)
+    : [];
 
-  if (hasAq && aq) {
-    y = sectionBar(doc, "Aquecimento", undefined, mainX, y, mainW);
+  if (aq && gruposAtivos.length > 0) {
+    // Monta lista plana de linhas + índices onde inicia cada grupo (para desenhar rowSpan).
+    type AqRow = { grupo: AquecimentoBloco; ex: PersonalizadoAquecimentoEx };
+    const rows: AqRow[] = [];
+    const grupoStart: { grupo: AquecimentoBloco; startIdx: number; count: number }[] = [];
+    gruposAtivos.forEach((g) => {
+      const items = aq[g]!;
+      grupoStart.push({ grupo: g, startIdx: rows.length, count: items.length });
+      items.forEach((ex) => rows.push({ grupo: g, ex }));
+    });
 
-    aqBlocos
-      .filter((k) => (aq[k]?.length ?? 0) > 0)
-      .forEach((k) => {
-        const items = aq[k]!;
-        const BADGE_H = 4.8;
-        const badgeW = 15;
-        doc.setFillColor(...INK);
-        doc.rect(mainX, y, badgeW, BADGE_H, "F");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.setTextColor(...WHITE);
-        doc.text(k, mainX + badgeW / 2, y + BADGE_H / 2 + 0.9, { align: "center" });
-        doc.setTextColor(...INK);
-        doc.setFontSize(8);
-        doc.text(AQ_LABEL[k], mainX + badgeW + 2, y + BADGE_H / 2 + 0.9);
-        y += BADGE_H + 0.6;
-
-        const head = [
-          [
-            { content: "#", styles: { halign: "center" as const } },
-            { content: "EXERCÍCIO", styles: { halign: "left" as const } },
-            ...diasHeader.map((d) => ({ content: d, styles: { halign: "center" as const } })),
-            { content: "REP", styles: { halign: "right" as const } },
-          ],
-        ];
-
-        const body = items.map((ex: PersonalizadoAquecimentoEx, i) => {
-          const row: (string)[] = [
-            String(i + 1),
-            cleanName(ex.exercicio) || "—",
-          ];
-          diasHeader.forEach((d) => {
-            row.push(ex.dias?.includes(d) ? CHECK : "");
-          });
-          row.push(String(ex.repeticoes ?? ""));
-          return row;
-        });
-
-        const wNum = 6, wT = 8, wRep = 14;
-        const wEx = mainW - (wNum + wT * freq + wRep);
-        const colStyles: Record<number, Record<string, unknown>> = {
-          0: { cellWidth: wNum, halign: "center", textColor: INK_SOFT, fontStyle: "bold" },
-          1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
-        };
-        for (let i = 0; i < freq; i++) {
-          colStyles[2 + i] = { cellWidth: wT, halign: "center" };
-        }
-        colStyles[2 + freq] = { cellWidth: wRep, halign: "right", fontStyle: "bold", textColor: INK_SOFT };
-
-        autoTable(doc, {
-          startY: y,
-          margin: { left: mainX, right: pageW - (mainX + mainW) },
-          tableWidth: mainW,
-          theme: "plain",
-          head,
-          body,
+    const body = rows.map((r, idx) => {
+      const info = grupoStart.find((gs) => gs.startIdx === idx);
+      const cells: (string | { content: string; rowSpan?: number; styles?: Record<string, unknown> })[] = [];
+      if (info) {
+        // Letras empilhadas do grupo (ex.: "L\nI\nB").
+        const stacked = info.grupo.split("").join("\n");
+        cells.push({
+          content: stacked,
+          rowSpan: info.count,
           styles: {
-            fontSize: 8,
-            cellPadding: { top: 1.2, bottom: 1.2, left: 1.1, right: 1.1 },
-            textColor: INK,
-            lineColor: RULE,
-            lineWidth: 0,
-            overflow: "ellipsize",
-          },
-          headStyles: {
-            fillColor: WHITE,
-            textColor: INK,
+            valign: "middle",
+            halign: "center",
             fontStyle: "bold",
-            fontSize: 6.8,
-            lineWidth: { bottom: 0.26 },
-            lineColor: INK,
-          },
-          alternateRowStyles: { fillColor: SURFACE },
-          columnStyles: colStyles,
-          didParseCell: (hd) => {
-            if (hd.section === "body" && hd.column.index >= 2 && hd.column.index < 2 + freq) {
-              if (hd.cell.text?.[0] === CHECK) hd.cell.text = [""];
-            }
-          },
-          didDrawCell: (hd) => {
-            if (hd.column.index >= 2 && hd.column.index < 2 + freq) {
-              if (hd.column.index > 2) {
-                const x = hd.cell.x;
-                doc.setDrawColor(...RULE);
-                doc.setLineWidth(0.15);
-                doc.line(x, hd.cell.y + 0.4, x, hd.cell.y + hd.cell.height - 0.4);
-              }
-              if (hd.section === "body") {
-                const ex = items[hd.row.index];
-                const tKey = `T${hd.column.index - 2 + 1}`;
-                if (ex?.dias?.includes(tKey)) {
-                  const cx = hd.cell.x + hd.cell.width / 2;
-                  const cy = hd.cell.y + hd.cell.height / 2;
-                  doc.setFillColor(...RED_SOFT);
-                  doc.circle(cx, cy, 1.0, "F");
-                }
-              }
-            }
+            fillColor: INK,
+            textColor: WHITE,
+            fontSize: 9,
+            cellPadding: { top: 1, bottom: 1, left: 0.5, right: 0.5 },
           },
         });
-        y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 1.4;
+      }
+      cells.push(cleanName(r.ex.exercicio) || "—");
+      diasHeader.forEach((d) => {
+        cells.push(r.ex.dias?.includes(d) ? CHECK : "");
       });
+      cells.push(String(r.ex.repeticoes ?? ""));
+      cells.push(""); // KG sempre vazio no aquecimento
+      return cells;
+    });
 
-    y += 1;
+    const wGrupo = 9;
+    const wT = 8;
+    const wRep = 14;
+    const wKg = 16;
+    const wEx = mainW - (wGrupo + wT * freq + wRep + wKg);
+
+    const colStyles: Record<number, Record<string, unknown>> = {
+      0: { cellWidth: wGrupo, halign: "center", valign: "middle" },
+      1: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
+    };
+    for (let i = 0; i < freq; i++) {
+      colStyles[2 + i] = { cellWidth: wT, halign: "center" };
+    }
+    colStyles[2 + freq] = { cellWidth: wRep, halign: "right", fontStyle: "bold", textColor: INK_SOFT };
+    colStyles[3 + freq] = { cellWidth: wKg, halign: "right", textColor: INK_MUTED };
+
+    const head = [[
+      { content: "", styles: { halign: "center" as const } },
+      { content: "EXERCÍCIOS", styles: { halign: "left" as const } },
+      ...diasHeader.map((d) => ({ content: d, styles: { halign: "center" as const } })),
+      { content: "REP.", styles: { halign: "right" as const } },
+      { content: "KG", styles: { halign: "right" as const } },
+    ]];
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: mainX, right: pageW - (mainX + mainW) },
+      tableWidth: mainW,
+      theme: "plain",
+      head,
+      body,
+      styles: {
+        fontSize: 8,
+        cellPadding: { top: 1.2, bottom: 1.2, left: 1.1, right: 1.1 },
+        textColor: INK,
+        lineColor: RULE,
+        lineWidth: { bottom: 0.08 } as unknown as number,
+        overflow: "ellipsize",
+      },
+      headStyles: {
+        fillColor: WHITE,
+        textColor: INK,
+        fontStyle: "bold",
+        fontSize: 6.8,
+        lineWidth: { bottom: 0.26 } as unknown as number,
+        lineColor: INK,
+      },
+      columnStyles: colStyles,
+      didParseCell: (hd) => {
+        if (hd.section === "body" && hd.column.index >= 2 && hd.column.index < 2 + freq) {
+          if (hd.cell.text?.[0] === CHECK) hd.cell.text = [""];
+        }
+      },
+      didDrawCell: (hd) => {
+        if (hd.section === "body" && hd.column.index >= 2 && hd.column.index < 2 + freq) {
+          const row = rows[hd.row.index];
+          const tKey = `T${hd.column.index - 2 + 1}`;
+          if (row?.ex.dias?.includes(tKey)) {
+            const cx = hd.cell.x + hd.cell.width / 2;
+            const cy = hd.cell.y + hd.cell.height / 2;
+            doc.setFillColor(...RED_SOFT);
+            doc.circle(cx, cy, 1.0, "F");
+          }
+          if (hd.column.index > 2) {
+            const x = hd.cell.x;
+            doc.setDrawColor(...RULE);
+            doc.setLineWidth(0.15);
+            doc.line(x, hd.cell.y + 0.4, x, hd.cell.y + hd.cell.height - 0.4);
+          }
+        }
+      },
+    });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2;
   }
 
   // ============================================================
-  // DIAS — força (levantamentos + ondas)
+  // FORÇA — tabela unificada, todos os levantamentos lado a lado
   // ============================================================
+  const allLifts = data.dias.flatMap((d) => d.levantamentos);
   const ensureSpace = (needed: number) => {
     if (y + needed > bottomY) {
       doc.addPage();
-      y = drawHeader(doc, student, "5-3-1 · ONDA DE 4 SEMANAS", mainX, mainW, margin);
+      y = drawHeader(doc, student, mainX, mainW, margin);
+      drawFrequenciaColumn(doc, freqX, freqColW, margin, bottomY, freq, 4);
     }
   };
 
-  const diaTitulo = (d: typeof data.dias[number]) => {
-    const nomes = d.levantamentos.map((l) => l.levantamento.toUpperCase()).join(" + ");
-    return `TREINO ${d.ordem}${nomes ? " · " + nomes : ""}`;
-  };
+  if (allLifts.length > 0) {
+    ensureSpace(30);
 
-  data.dias.forEach((dia) => {
-    ensureSpace(20);
-    y = sectionBar(doc, diaTitulo(dia), undefined, mainX, y, mainW);
+    const nLifts = allLifts.length;
+    const wPctLabel = 16;
+    const perLift = (mainW - wPctLabel) / nLifts;
+    const wReps = perLift * 0.42;
+    const wKg = perLift - wReps;
 
-    if (dia.levantamentos.length === 0) {
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(8);
-      doc.setTextColor(...INK_MUTED);
-      doc.text("Sem levantamentos principais neste dia.", mainX + 1, y + 3);
-      y += 6;
-      return;
-    }
+    // Waves para cada levantamento (4 semanas × 6 séries).
+    const waves = allLifts.map((l) => computeWave(l.rm_1, data.percentual_training_max));
 
-    dia.levantamentos.forEach((lev) => {
-      const base = LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento];
-      const tm = roundToNearest2_5(trainingMax(lev.rm_1, data.percentual_training_max));
+    type Cell = string | { content: string; colSpan?: number; rowSpan?: number; styles?: Record<string, unknown> };
+    const body: Cell[][] = [];
 
-      ensureSpace(10);
-      // Cabeçalho do levantamento
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(...INK);
-      doc.text(`${lev.levantamento.toUpperCase()} — ${base?.nome ?? ""}`, mainX, y + 3);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(...RED_SOFT);
-      doc.text(`TM: ${tm}kg  ·  1RM: ${lev.rm_1}kg`, mainX + mainW, y + 3, { align: "right" });
-      y += 5;
+    // --- Header 1: barra vermelha com nome de cada levantamento (colSpan=2 por lift) ---
+    body.push([
+      { content: "", styles: { fillColor: RED } },
+      ...allLifts.flatMap((l) => [
+        {
+          content: l.levantamento.toUpperCase(),
+          colSpan: 2,
+          styles: {
+            fillColor: RED,
+            textColor: WHITE,
+            fontStyle: "bold",
+            halign: "center" as const,
+            fontSize: 8.5,
+          },
+        },
+      ] as Cell[]),
+    ]);
 
-      const wave = computeWave(lev.rm_1, data.percentual_training_max);
-      // Tabela: linhas = séries, agrupadas por semana via coluna SEMANA.
-      const body: (string | { content: string; colSpan?: number; styles?: Record<string, unknown> })[][] = [];
-      wave.forEach((sem) => {
+    // --- Header 2: 1RM ---
+    body.push([
+      { content: "1RM", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "left", fontSize: 7 } },
+      ...allLifts.flatMap((l) => [
+        {
+          content: `${l.rm_1} kg`,
+          colSpan: 2,
+          styles: { fillColor: SURFACE, halign: "center" as const, fontSize: 8, fontStyle: "bold" },
+        },
+      ] as Cell[]),
+    ]);
+
+    // --- Header 3: TM ---
+    body.push([
+      { content: "TM", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "left", fontSize: 7, textColor: RED } },
+      ...allLifts.flatMap((l) => [
+        {
+          content: `${roundToNearest2_5(trainingMax(l.rm_1, data.percentual_training_max))} kg`,
+          colSpan: 2,
+          styles: { fillColor: SURFACE, halign: "center" as const, fontSize: 8, fontStyle: "bold", textColor: RED },
+        },
+      ] as Cell[]),
+    ]);
+
+    // Para cada semana: barra preta + sub-header REPS/KG + 6 linhas de dados
+    for (let semanaIdx = 0; semanaIdx < 4; semanaIdx++) {
+      const isDeload = semanaIdx === 3;
+      const label = isDeload ? "SEMANA 4 · DELOAD" : `SEMANA ${semanaIdx + 1}`;
+      body.push([
+        {
+          content: label,
+          colSpan: 1 + nLifts * 2,
+          styles: {
+            fillColor: INK,
+            textColor: WHITE,
+            fontStyle: "bold",
+            halign: "left" as const,
+            fontSize: 8,
+          },
+        },
+      ]);
+      body.push([
+        { content: "%", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "center", fontSize: 6.6 } },
+        ...allLifts.flatMap(() => [
+          { content: "REPS", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "center" as const, fontSize: 6.6 } },
+          { content: "KG", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "center" as const, fontSize: 6.6 } },
+        ] as Cell[]),
+      ]);
+
+      const numSeries = waves[0]?.[semanaIdx]?.series.length ?? 6;
+      for (let sIdx = 0; sIdx < numSeries; sIdx++) {
+        const ref = waves[0][semanaIdx].series[sIdx];
+        const isLast = sIdx === numSeries - 1;
+        let tint: [number, number, number];
+        if (isDeload) tint = AQUEC_TINT;
+        else if (ref.tipo === "aquecimento") tint = AQUEC_TINT;
+        else if (isLast) tint = AMRAP_TINT;
+        else tint = TRAB_TINT;
+
         body.push([
           {
-            content: sem.semana === 4 ? "SEMANA 4 · DELOAD" : `SEMANA ${sem.semana}`,
-            colSpan: 4,
-            styles: {
-              fillColor: RED_TINT,
-              textColor: RED,
-              fontStyle: "bold",
-              halign: "left",
-              fontSize: 7.2,
-            },
+            content: `${ref.pct}%`,
+            styles: { fillColor: tint, fontStyle: "bold", halign: "center", fontSize: 7.5, textColor: INK },
           },
+          ...allLifts.flatMap((_, liftIdx) => {
+            const s = waves[liftIdx][semanaIdx].series[sIdx];
+            return [
+              {
+                content: s?.reps ?? "",
+                styles: { fillColor: tint, halign: "center" as const, fontSize: 8, fontStyle: "bold" },
+              },
+              {
+                content: s ? `${s.kg}` : "",
+                styles: { fillColor: tint, halign: "center" as const, fontSize: 8, fontStyle: "bold" },
+              },
+            ] as Cell[];
+          }),
         ]);
-        sem.series.forEach((s) => {
-          body.push([
-            s.tipo === "aquecimento" ? "aquec." : "trab.",
-            `${s.pct}%`,
-            s.reps,
-            `${s.kg}kg`,
-          ]);
-        });
-      });
+      }
+    }
 
-      ensureSpace(Math.min(60, body.length * 4 + 6));
-      autoTable(doc, {
-        startY: y,
-        margin: { left: mainX, right: pageW - (mainX + mainW) },
-        tableWidth: mainW,
-        theme: "plain",
-        head: [[
-          { content: "TIPO", styles: { halign: "left" as const } },
-          { content: "%", styles: { halign: "center" as const } },
-          { content: "REPS", styles: { halign: "center" as const } },
-          { content: "KG", styles: { halign: "right" as const } },
-        ]],
-        body,
-        styles: {
-          fontSize: 8,
-          cellPadding: { top: 1.0, bottom: 1.0, left: 1.4, right: 1.4 },
-          textColor: INK,
-          lineColor: RULE,
-          lineWidth: 0,
-        },
-        headStyles: {
-          fillColor: WHITE,
-          textColor: INK,
-          fontStyle: "bold",
-          fontSize: 6.8,
-          lineWidth: { bottom: 0.26 },
-          lineColor: INK,
-        },
-        columnStyles: {
-          0: { cellWidth: 30, textColor: INK_SOFT, fontStyle: "bold" },
-          1: { cellWidth: 22, halign: "center" },
-          2: { cellWidth: 30, halign: "center", fontStyle: "bold" },
-          3: { halign: "right", fontStyle: "bold" },
-        },
-        didParseCell: (hd) => {
-          if (hd.section === "body") {
-            hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.08, left: 0 } as unknown as number;
-            hd.cell.styles.lineColor = RULE;
-          }
-        },
-      });
-      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2.4;
+    const forcaColStyles: Record<number, Record<string, unknown>> = {
+      0: { cellWidth: wPctLabel },
+    };
+    for (let i = 0; i < nLifts; i++) {
+      forcaColStyles[1 + i * 2] = { cellWidth: wReps };
+      forcaColStyles[2 + i * 2] = { cellWidth: wKg };
+    }
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: mainX, right: pageW - (mainX + mainW) },
+      tableWidth: mainW,
+      theme: "plain",
+      body,
+      styles: {
+        fontSize: 8,
+        cellPadding: { top: 1.1, bottom: 1.1, left: 1.2, right: 1.2 },
+        textColor: INK,
+        lineColor: RULE,
+        lineWidth: 0.05,
+        overflow: "ellipsize",
+      },
+      columnStyles: forcaColStyles,
     });
-
-    y += 1.4;
-  });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2;
+  }
 
   // ============================================================
   // PÁGINA 2 — ACESSÓRIOS + AUXILIARES
   // ============================================================
   doc.addPage();
-  y = drawHeader(doc, student, "5-3-1 · ACESSÓRIOS & AUXILIARES", mainX, mainW, margin);
+  y = drawHeader(doc, student, mainX, mainW, margin);
+
+  const diaTitulo = (d: typeof data.dias[number]) => {
+    const nomes = d.levantamentos.map((l) => l.levantamento.toUpperCase()).join(" + ");
+    return `TREINO ${d.ordem}${nomes ? " · " + nomes : ""}`;
+  };
 
   data.dias.forEach((dia) => {
     ensureSpace(20);
