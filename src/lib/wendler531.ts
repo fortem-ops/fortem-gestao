@@ -119,8 +119,11 @@ export interface Wendler531Conteudo {
   variante: "531";
   frequencia: 2 | 3 | 4 | 5;
   percentual_training_max: number; // ex.: 90
+  /** Bloco global de Aquecimento (idêntico ao Personalizado). */
+  aquecimento?: Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
   dias: Dia531[];
 }
+
 
 export function isWendler531(c: unknown): c is Wendler531Conteudo {
   return (
