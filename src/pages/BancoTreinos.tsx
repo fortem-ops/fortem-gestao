@@ -1199,6 +1199,10 @@ export default function BancoTreinos() {
                         toast.info("Em Construção", { description: "Este modelo ainda não está disponível." });
                         return;
                       }
+                      if (is531) {
+                        setSelect531Open(true);
+                        return;
+                      }
                       if (template.fase === "Personalizado") {
                         setPersonalizadoOpen({ mode: "new", variante: "personalizado" });
                       } else if (template.fase.startsWith("Corrida")) {
@@ -1233,7 +1237,7 @@ export default function BancoTreinos() {
                         <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                           {isUnderConstruction
                             ? <Construction className="h-5 w-5 text-warning" />
-                            : template.fase === "Personalizado"
+                            : (template.fase === "Personalizado" || is531)
                               ? <Sparkles className="h-5 w-5 text-primary" />
                               : <Dumbbell className="h-5 w-5 text-primary" />}
                         </div>
@@ -1248,12 +1252,18 @@ export default function BancoTreinos() {
                       <CardTitle className="text-lg mt-3">{template.fase}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>{template.treinos.length} treinos</span>
-                        <span>
-                          {template.treinos.reduce((acc, t) => acc + t.exercicios.length, 0)} exercícios
-                        </span>
-                      </div>
+                      {is531 ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 4 semanas · carga em % do 1RM
+                        </p>
+                      ) : (
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>{template.treinos.length} treinos</span>
+                          <span>
+                            {template.treinos.reduce((acc, t) => acc + t.exercicios.length, 0)} exercícios
+                          </span>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                   );
