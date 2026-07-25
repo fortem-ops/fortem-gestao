@@ -18,6 +18,7 @@ import { ptBR } from "date-fns/locale";
 import { formatBRL, type Frequencia } from "@/lib/vendas";
 import { calcularTotaisVenda, type TipoCobranca } from "@/lib/vendas-calc";
 import { cn } from "@/lib/utils";
+import { gerarDocumentoContrato } from "@/lib/contratosDocumentos";
 import { PaymentFields } from "./PaymentFields";
 import { TipoCobrancaSection } from "./TipoCobrancaSection";
 import { PagamentoStep, type Modalidade, type Canal } from "./PagamentoStep";
