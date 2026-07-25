@@ -1,0 +1,2 @@
+ALTER TABLE public.treinos DROP CONSTRAINT IF EXISTS treinos_status_check;
+ALTER TABLE public.treinos ADD CONSTRAINT treinos_status_check CHECK (status = ANY (ARRAY['atual'::text, 'arquivado'::text, 'aguardando'::text, 'rascunho'::text]));
