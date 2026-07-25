@@ -34,7 +34,7 @@ export function Select531AlunoDialog({ open, onOpenChange, onSelect, title = "Es
     queryFn: async () => {
       let query = supabase
         .from("alunos")
-        .select("id, nome, plano_nome")
+        .select("id, nome")
         .order("nome", { ascending: true })
         .limit(30);
       if (debounced.trim()) {
