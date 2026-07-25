@@ -726,7 +726,22 @@ function Portal531View({ treino }: { treino: any }) {
                 return (
                   <div key={lev.levantamento} className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold">{lev.levantamento}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-semibold shrink-0">{lev.levantamento}</span>
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].nome}
+                        </span>
+                        {LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url && (
+                          <a
+                            href={LEVANTAMENTO_EXERCICIO_BASE[lev.levantamento].video_url!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary shrink-0"
+                          >
+                            <PlayCircle className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
                       <span className="text-[11px] text-muted-foreground tabular-nums">
                         TM {tm}kg
                       </span>
