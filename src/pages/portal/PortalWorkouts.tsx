@@ -144,6 +144,14 @@ export default function PortalWorkouts() {
 
   if (!student) return null;
 
+  // ── 5-3-1 (Wendler): renderização dedicada ─────────────────
+  if (
+    treino &&
+    ((treino as any).template_fase === "5-3-1" || (treino.conteudo as any)?.variante === "531")
+  ) {
+    return <Portal531View treino={treino} />;
+  }
+
   // ── Cálculos de progressão ───────────────────────────────────
   const conteudo = (treino?.conteudo as any) ?? null;
   const numVariacoes = conteudo?.treinos?.length ?? 4;
