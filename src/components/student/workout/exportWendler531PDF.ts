@@ -474,7 +474,12 @@ export async function exportWendler531PDF({
   // PÁGINA 2 — ACESSÓRIOS + AUXILIARES
   // ============================================================
   doc.addPage();
-  y = drawHeader(doc, student, "5-3-1 · ACESSÓRIOS & AUXILIARES", mainX, mainW, margin);
+  y = drawHeader(doc, student, mainX, mainW, margin);
+
+  const diaTitulo = (d: typeof data.dias[number]) => {
+    const nomes = d.levantamentos.map((l) => l.levantamento.toUpperCase()).join(" + ");
+    return `TREINO ${d.ordem}${nomes ? " · " + nomes : ""}`;
+  };
 
   data.dias.forEach((dia) => {
     ensureSpace(20);
