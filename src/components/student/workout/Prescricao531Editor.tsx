@@ -730,8 +730,6 @@ export function Prescricao531Editor({
                 </div>
               ))}
             </div>
-            {/* Auxiliar row shim to keep TS happy with unused imports */}
-            {false && <span>{JSON.stringify({} as Auxiliar531)}</span>}
           </CardContent>
         </Card>
       ))}
