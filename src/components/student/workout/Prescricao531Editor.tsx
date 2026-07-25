@@ -177,9 +177,15 @@ export function Prescricao531Editor({
       setTimeout(() => setSavingLabel(""), 1500);
     } catch (e) {
       setSavingLabel("");
-      toast.error(
-        "Erro ao salvar: " + (e instanceof Error ? e.message : String(e)),
-      );
+      console.error("[5-3-1 autosave] erro completo:", e);
+      const err = e as { message?: string; details?: string; hint?: string; code?: string } | null;
+      let msg = "";
+      if (e instanceof Error) msg = e.message;
+      else if (err?.message) msg = [err.message, err.details, err.hint, err.code].filter(Boolean).join(" | ");
+      else {
+        try { msg = JSON.stringify(e); } catch { msg = String(e); }
+      }
+      toast.error("Erro ao salvar: " + (msg || "desconhecido"));
     }
   }, [alunoId, treinoId, user]);
 
