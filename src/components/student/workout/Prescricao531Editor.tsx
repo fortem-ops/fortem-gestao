@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 import {
@@ -30,15 +30,69 @@ import {
   roundToNearest2_5,
   LEVANTAMENTO_EXERCICIO_BASE,
 } from "@/lib/wendler531";
+import type {
+  AquecimentoBloco,
+  PersonalizadoAquecimentoEx,
+} from "@/components/student/workout/personalizadoTypes";
 import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
-import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { useExerciseCategories, type ExerciseCategory } from "@/hooks/useExerciseCategories";
 import { CATEGORY_LABELS } from "@/components/student/workout/workoutTemplates";
 import { SUBCATEGORIA_TO_CODE } from "@/lib/exerciseMapping";
 import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-import { PlayCircle } from "lucide-react";
+
+const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
+  { key: "LIB", label: "Liberação (LIB)" },
+  { key: "MOB", label: "Mobilidade (MOB)" },
+  { key: "ATI", label: "Ativação (ATI)" },
+  { key: "PREV", label: "Preventivo (PREV)" },
+];
+
+const AQUECIMENTO_GRUPO_MAP: Record<AquecimentoBloco, string> = {
+  LIB: "Liberação Miofascial",
+  MOB: "Mobilidade Articular",
+  ATI: "Ativação Muscular",
+  PREV: "Preventivo",
+};
+
+function CategoriaSelectForca({
+  value,
+  onChange,
+  groups,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  groups: ExerciseCategory[];
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-8 text-xs">
+        <SelectValue placeholder="Categoria" />
+      </SelectTrigger>
+      <SelectContent className="max-h-80">
+        {groups.map((g) => (
+          <SelectGroup key={g.name}>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {g.name}
+            </SelectLabel>
+            {g.subcategories.map((sub) => {
+              const code = SUBCATEGORIA_TO_CODE[sub];
+              const itemValue = code ?? sub;
+              const display = code ? `${code} — ${CATEGORY_LABELS[code] ?? sub}` : sub;
+              return (
+                <SelectItem key={itemValue} value={itemValue} className="text-xs">
+                  {display}
+                </SelectItem>
+              );
+            })}
+          </SelectGroup>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 
 interface Props {
