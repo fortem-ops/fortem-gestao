@@ -106,10 +106,18 @@ export default function PublicWorkout() {
     };
   }, [id]);
 
+  const is531 =
+    treino?.template_fase === "5-3-1" || isWendler531(treino?.conteudo ?? null);
+
   const data = useMemo<WorkoutData | null>(() => {
-    if (!treino?.conteudo) return null;
+    if (!treino?.conteudo || is531) return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino]);
+  }, [treino, is531]);
+
+  const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
+    if (!treino?.conteudo || !is531) return null;
+    return treino.conteudo as unknown as Wendler531Conteudo;
+  }, [treino, is531]);
 
   const openVideo = (url: string, title: string) => {
     if (isYouTubeUrl(url)) {
@@ -129,7 +137,7 @@ export default function PublicWorkout() {
     );
   }
 
-  if (error || !treino || !data) {
+  if (error || !treino || (!data && !wendlerData)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3 max-w-sm">
@@ -140,6 +148,16 @@ export default function PublicWorkout() {
           <p className="text-sm text-muted-foreground">{error || "Não foi possível carregar este treino."}</p>
         </div>
       </div>
+    );
+  }
+
+  if (wendlerData) {
+    return (
+      <Wendler531Public
+        treino={treino}
+        aluno={aluno}
+        data={wendlerData}
+      />
     );
   }
 
