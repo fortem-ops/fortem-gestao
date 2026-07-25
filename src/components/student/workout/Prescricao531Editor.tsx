@@ -72,6 +72,12 @@ export function Prescricao531Editor({
     () => levantamentosDisponiveis(data.frequencia),
     [data.frequencia],
   );
+  const { categories } = useExerciseCategories();
+  const forcaCategories = useMemo(
+    () => categories.filter((c) => c.name === "Força"),
+    [categories],
+  );
+
 
   // ── Autosave (debounce 800ms) ─────────────────────────────────
   const saveDraft = useCallback(async (next: Wendler531Conteudo) => {
