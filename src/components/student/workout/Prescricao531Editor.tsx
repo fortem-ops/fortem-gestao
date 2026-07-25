@@ -28,7 +28,18 @@ import {
   trainingMax,
   acessorioKg,
   roundToNearest2_5,
+  LEVANTAMENTO_EXERCICIO_BASE,
 } from "@/lib/wendler531";
+import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
+import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { CATEGORY_LABELS } from "@/components/student/workout/workoutTemplates";
+import { SUBCATEGORIA_TO_CODE } from "@/lib/exerciseMapping";
+import {
+  SelectGroup,
+  SelectLabel,
+} from "@/components/ui/select";
+import { PlayCircle } from "lucide-react";
+
 
 interface Props {
   alunoId: string;
