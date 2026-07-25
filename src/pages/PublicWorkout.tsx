@@ -12,6 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  isWendler531,
+  computeWave,
+  trainingMax,
+  acessorioKg,
+  roundToNearest2_5,
+  type Wendler531Conteudo,
+} from "@/lib/wendler531";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
