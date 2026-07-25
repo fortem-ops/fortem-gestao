@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
 import { PersonalizadoEditor } from "./PersonalizadoEditor";
 import { isPersonalizadoContent } from "./personalizadoTypes";
+import { Prescricao531Editor } from "./Prescricao531Editor";
+import { isWendler531, type Wendler531Conteudo } from "@/lib/wendler531";
 import { PrescribeOptionsDialog, toISODate, type PrescribeChoice } from "./PrescribeOptionsDialog";
 import {
   Dialog,
