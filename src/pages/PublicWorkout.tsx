@@ -18,6 +18,7 @@ import {
   trainingMax,
   acessorioKg,
   roundToNearest2_5,
+  LEVANTAMENTO_EXERCICIO_BASE,
   type Wendler531Conteudo,
 } from "@/lib/wendler531";
 
