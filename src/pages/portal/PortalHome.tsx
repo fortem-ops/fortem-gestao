@@ -75,6 +75,7 @@ export default function PortalHome() {
       const { data } = await supabase
         .from("ciclos_credito")
         .select("creditos_liberados, creditos_usados, data_inicio, data_fim, status")
+        .eq("aluno_id", student!.id)
         .eq("status", "ativo")
         .order("data_inicio", { ascending: false })
         .limit(1)
@@ -299,7 +300,7 @@ export default function PortalHome() {
 
   if (!student) return null;
 
-  const temPlano = !!planoAtivo && contratado > 0;
+  const temPlano = !!planoAtivo;
   const ringLen = 132;
   const streakPct = Math.min(streakSemanas / 8, 1);
 
