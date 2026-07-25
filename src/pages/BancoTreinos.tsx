@@ -1093,6 +1093,16 @@ export default function BancoTreinos() {
     </Dialog>
   );
 
+  if (editor531) {
+    return (
+      <Prescricao531Editor
+        alunoId={editor531.alunoId}
+        alunoNome={editor531.alunoNome}
+        onBack={() => setEditor531(null)}
+      />
+    );
+  }
+
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
