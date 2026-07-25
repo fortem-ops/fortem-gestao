@@ -24,6 +24,15 @@ function flatFromTreino(treino: Tables<"treinos">): WorkoutData {
   if (c && isPersonalizadoContent(c)) {
     return flattenPersonalizado(c.estrutura);
   }
+  // 5-3-1 (Wendler) — shape próprio (aquecimento como objeto LIB/MOB/ATI/PREV,
+  // dias/levantamentos). Não cabe em `WorkoutData`; devolvemos vazio para não
+  // quebrar consumidores que iterem `.aquecimento` como array.
+  const isW531 =
+    c && typeof c === "object" && !Array.isArray(c) &&
+    (c as { variante?: unknown }).variante === "531";
+  if (isW531 || (treino as { template_fase?: string | null }).template_fase === "5-3-1") {
+    return { aquecimento: [], treinos: [] };
+  }
   return (c as unknown as WorkoutData) || { aquecimento: [], treinos: [] };
 }
 
