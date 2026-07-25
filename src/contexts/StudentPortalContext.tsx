@@ -20,11 +20,15 @@ export function StudentPortalProvider({ children }: { children: ReactNode }) {
   // Chama o RPC e só libera a query quando ele terminar (await real).
   useEffect(() => {
     if (!user || linkDone) return;
-    supabase.rpc("fn_portal_link_aluno").then(() => {
-      setLinkDone(true);
-    }).catch(() => {
-      setLinkDone(true); // em caso de erro, libera mesmo assim para não travar
-    });
+    void (async () => {
+      try {
+        await supabase.rpc("fn_portal_link_aluno");
+      } catch {
+        // em caso de erro, libera mesmo assim para não travar
+      } finally {
+        setLinkDone(true);
+      }
+    })();
   }, [user, linkDone]);
 
   const { data, isLoading, refetch } = useQuery({
