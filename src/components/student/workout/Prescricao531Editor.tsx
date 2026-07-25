@@ -285,7 +285,7 @@ export function Prescricao531Editor({
 
   const addAuxiliar = (idx: number) =>
     setData((prev) => {
-      const novo: Auxiliar531 = { exercicio: "", series: 3, reps: "10", kg: "" };
+      const novo: Auxiliar531 = { categoria: "", exercicio: "", exercicio_id: null, video_url: null, series: 3, reps: "10", kg: "" };
       const dias = prev.dias.map((d, i) =>
         i === idx ? { ...d, auxiliares: [...d.auxiliares, novo] } : d,
       );
