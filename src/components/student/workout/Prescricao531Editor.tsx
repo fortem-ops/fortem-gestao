@@ -406,14 +406,34 @@ export function Prescricao531Editor({
   const addAquecimento = (bloco: AquecimentoBloco) =>
     setData((prev) => {
       const aq = ensureAquecimento(prev.aquecimento);
+      const diasDefault = Array.from({ length: prev.frequencia }, (_, i) => `T${i + 1}`);
       return {
         ...prev,
         aquecimento: {
           ...aq,
           [bloco]: [
             ...aq[bloco],
-            { exercicio: "", repeticoes: "10", dias: ["T1", "T2", "T3", "T4"] },
+            { exercicio: "", repeticoes: "10", dias: diasDefault },
           ],
+        },
+      };
+    });
+
+  const toggleDiaAquecimento = (bloco: AquecimentoBloco, i: number, dia: string) =>
+    setData((prev) => {
+      const aq = ensureAquecimento(prev.aquecimento);
+      return {
+        ...prev,
+        aquecimento: {
+          ...aq,
+          [bloco]: aq[bloco].map((ex, idx) => {
+            if (idx !== i) return ex;
+            const has = ex.dias.includes(dia);
+            return {
+              ...ex,
+              dias: has ? ex.dias.filter((d) => d !== dia) : [...ex.dias, dia],
+            };
+          }),
         },
       };
     });
