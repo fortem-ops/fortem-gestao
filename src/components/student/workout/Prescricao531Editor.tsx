@@ -114,6 +114,7 @@ export function Prescricao531Editor({
   onBack,
   initialTreinoId,
   initial,
+  onSaved,
 }: Props) {
   const { user } = useAuth();
   const [data, setData] = useState<Wendler531Conteudo>(
