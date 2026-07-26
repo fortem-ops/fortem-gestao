@@ -246,22 +246,14 @@ export default function PortalWorkouts() {
       await Promise.all(promises);
 
       // Registrar sessão
-      const { error } = await (supabase as any).from("treino_sessoes").insert({
-        aluno_id: student.id,
-        treino_id: treino.id,
+      await registrarSessaoConcluida({
+        alunoId: student.id,
+        treinoId: treino.id,
         variacao: variacaoExibida,
-        variacao_original: foiTrocado ? variacaoAtual : null,
-        foi_troca: foiTrocado,
-        agendamento_id: agendamentoHoje.id,
-        data: format(new Date(), "yyyy-MM-dd"),
-        concluido_em: new Date().toISOString(),
+        variacaoOriginal: foiTrocado ? variacaoAtual : null,
+        foiTroca: foiTrocado,
+        agendamentoId: agendamentoHoje.id,
       });
-      if (error) throw error;
-
-      // Confirmar presença no agendamento
-      await supabase.from("treino_agendamentos")
-        .update({ status: "realizado", updated_at: new Date().toISOString() })
-        .eq("id", agendamentoHoje.id);
 
       // Invalidar queries
       qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
