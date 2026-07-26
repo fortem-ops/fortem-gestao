@@ -228,6 +228,28 @@ export async function exportWendler531PDF({
     drawFrequenciaColumn(doc, freqX, freqColW, margin, bottomY, freq, 4);
 
     // ============================================================
+    // OBSERVAÇÕES — título + linhas em branco pra anotação manual
+    // ============================================================
+    {
+      const OBS_TITLE_FONT = Math.max(6.4, 8.4 * S);
+      const OBS_LINE_GAP = Math.max(3.0, 4.4 * S);
+      const OBS_LINES = 3;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(OBS_TITLE_FONT);
+      doc.setTextColor(...INK);
+      doc.text("OBSERVAÇÕES", mainX, y + OBS_TITLE_FONT * 0.35);
+      let lineY = y + OBS_TITLE_FONT * 0.35 + OBS_LINE_GAP;
+      doc.setDrawColor(...INK_MUTED);
+      doc.setLineWidth(0.15);
+      for (let i = 0; i < OBS_LINES; i++) {
+        doc.line(mainX, lineY, mainX + mainW, lineY);
+        lineY += OBS_LINE_GAP;
+      }
+      y = lineY - OBS_LINE_GAP + Math.max(1.2, 2.0 * S);
+    }
+
+
+    // ============================================================
     // AQUECIMENTO — barra vermelha "AQUECIMENTO" + sub-blocos
     // ============================================================
     if (aq && gruposAtivos.length > 0) {
