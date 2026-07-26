@@ -272,12 +272,10 @@ export async function exportWendler531PDF({
       gruposAtivos.forEach((g) => {
         const items = aq[g]!;
 
-        // Sub-barra escura full-width com badge + nome completo.
+        // Sub-barra preta full-width — sigla + nome completo, tudo branco.
         const badgeW = 12;
         doc.setFillColor(...INK);
         doc.rect(mainX, y, mainW, AQ_SUBBAR_H, "F");
-        doc.setFillColor(...RED);
-        doc.rect(mainX, y, badgeW, AQ_SUBBAR_H, "F");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(AQ_BADGE_FONT);
         doc.setTextColor(...WHITE);
@@ -286,6 +284,7 @@ export async function exportWendler531PDF({
         doc.setTextColor(...WHITE);
         doc.text(AQ_LABELS[g], mainX + badgeW + 2, y + AQ_SUBBAR_H / 2 + 0.9);
         y += AQ_SUBBAR_H + 0.3;
+
 
         const body = items.map((ex: PersonalizadoAquecimentoEx) => {
           const cells: (string | { content: string })[] = [cleanName(ex.exercicio) || "—"];
