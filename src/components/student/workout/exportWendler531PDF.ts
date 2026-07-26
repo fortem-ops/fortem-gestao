@@ -549,6 +549,18 @@ export async function exportWendler531PDF({
           minCellHeight: 0,
         },
         columnStyles: forcaColStyles,
+        didDrawCell: (hd) => {
+          // Divisórias verticais grossas entre levantamentos, valem para
+          // todas as linhas — incluindo cabeçalhos com colSpan (que aparecem
+          // apenas na coluna 0). Desenhamos ao longo de toda a altura da linha.
+          if (hd.column.index !== 0) return;
+          doc.setDrawColor(...INK);
+          doc.setLineWidth(0.5);
+          for (let k = 1; k < nLifts; k++) {
+            const lineX = mainX + wPctLabel + k * (wReps + wKg);
+            doc.line(lineX, hd.cell.y, lineX, hd.cell.y + hd.cell.height);
+          }
+        },
       });
       y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2;
     }
