@@ -228,6 +228,28 @@ export async function exportWendler531PDF({
     drawFrequenciaColumn(doc, freqX, freqColW, margin, bottomY, freq, 4);
 
     // ============================================================
+    // OBSERVAÇÕES — título + linhas em branco pra anotação manual
+    // ============================================================
+    {
+      const OBS_TITLE_FONT = Math.max(6.4, 8.4 * S);
+      const OBS_LINE_GAP = Math.max(3.0, 4.4 * S);
+      const OBS_LINES = 3;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(OBS_TITLE_FONT);
+      doc.setTextColor(...INK);
+      doc.text("OBSERVAÇÕES", mainX, y + OBS_TITLE_FONT * 0.35);
+      let lineY = y + OBS_TITLE_FONT * 0.35 + OBS_LINE_GAP;
+      doc.setDrawColor(...INK_MUTED);
+      doc.setLineWidth(0.15);
+      for (let i = 0; i < OBS_LINES; i++) {
+        doc.line(mainX, lineY, mainX + mainW, lineY);
+        lineY += OBS_LINE_GAP;
+      }
+      y = lineY - OBS_LINE_GAP + Math.max(1.2, 2.0 * S);
+    }
+
+
+    // ============================================================
     // AQUECIMENTO — barra vermelha "AQUECIMENTO" + sub-blocos
     // ============================================================
     if (aq && gruposAtivos.length > 0) {
@@ -250,12 +272,10 @@ export async function exportWendler531PDF({
       gruposAtivos.forEach((g) => {
         const items = aq[g]!;
 
-        // Sub-barra escura full-width com badge + nome completo.
+        // Sub-barra preta full-width — sigla + nome completo, tudo branco.
         const badgeW = 12;
         doc.setFillColor(...INK);
         doc.rect(mainX, y, mainW, AQ_SUBBAR_H, "F");
-        doc.setFillColor(...RED);
-        doc.rect(mainX, y, badgeW, AQ_SUBBAR_H, "F");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(AQ_BADGE_FONT);
         doc.setTextColor(...WHITE);
@@ -264,6 +284,7 @@ export async function exportWendler531PDF({
         doc.setTextColor(...WHITE);
         doc.text(AQ_LABELS[g], mainX + badgeW + 2, y + AQ_SUBBAR_H / 2 + 0.9);
         y += AQ_SUBBAR_H + 0.3;
+
 
         const body = items.map((ex: PersonalizadoAquecimentoEx) => {
           const cells: (string | { content: string })[] = [cleanName(ex.exercicio) || "—"];
@@ -396,6 +417,46 @@ export async function exportWendler531PDF({
         ] as Cell[]),
       ]);
 
+      // Bloco AQUECIMENTO compartilhado (uma vez só, aplica-se às 4 semanas).
+      const warmupRef = waves[0]?.[0]?.series.filter((s) => s.tipo === "aquecimento") ?? [];
+      if (warmupRef.length > 0) {
+        body.push([
+          {
+            content: "AQUECIMENTO",
+            colSpan: 1 + nLifts * 2,
+            styles: {
+              fillColor: SURFACE,
+              textColor: INK,
+              fontStyle: "bold",
+              halign: "left" as const,
+              fontSize: Math.max(5.4, 7 * S),
+            },
+          },
+        ]);
+        body.push([
+          { content: "%", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "center", fontSize: Math.max(5.0, 6.6 * S) } },
+          ...allLifts.flatMap(() => [
+            { content: "REPS", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "center" as const, fontSize: Math.max(5.0, 6.6 * S) } },
+            { content: "KG", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "center" as const, fontSize: Math.max(5.0, 6.6 * S) } },
+          ] as Cell[]),
+        ]);
+        warmupRef.forEach((ref, sIdx) => {
+          body.push([
+            {
+              content: `${ref.pct}%`,
+              styles: { fillColor: AQUEC_TINT, fontStyle: "bold", halign: "center", fontSize: Math.max(5.4, 7.5 * S), textColor: INK },
+            },
+            ...allLifts.flatMap((_, liftIdx) => {
+              const s = waves[liftIdx][0].series.filter((x) => x.tipo === "aquecimento")[sIdx];
+              return [
+                { content: s?.reps ?? "", styles: { fillColor: AQUEC_TINT, halign: "center" as const, fontSize: FORCA_ROW_FONT, fontStyle: "bold" } },
+                { content: s ? `${s.kg}` : "", styles: { fillColor: AQUEC_TINT, halign: "center" as const, fontSize: FORCA_ROW_FONT, fontStyle: "bold" } },
+              ] as Cell[];
+            }),
+          ]);
+        });
+      }
+
       for (let semanaIdx = 0; semanaIdx < 4; semanaIdx++) {
         const isDeload = semanaIdx === 3;
         const label = isDeload ? "SEMANA 4 · DELOAD" : `SEMANA ${semanaIdx + 1}`;
@@ -412,23 +473,23 @@ export async function exportWendler531PDF({
             },
           },
         ]);
-        body.push([
-          { content: "%", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "center", fontSize: Math.max(5.0, 6.6 * S) } },
-          ...allLifts.flatMap(() => [
-            { content: "REPS", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "center" as const, fontSize: Math.max(5.0, 6.6 * S) } },
-            { content: "KG", styles: { fillColor: SURFACE, fontStyle: "bold", halign: "center" as const, fontSize: Math.max(5.0, 6.6 * S) } },
-          ] as Cell[]),
-        ]);
 
-        const numSeries = waves[0]?.[semanaIdx]?.series.length ?? 6;
-        for (let sIdx = 0; sIdx < numSeries; sIdx++) {
-          const ref = waves[0][semanaIdx].series[sIdx];
-          const isLast = sIdx === numSeries - 1;
-          let tint: [number, number, number];
-          if (isDeload) tint = AQUEC_TINT;
-          else if (ref.tipo === "aquecimento") tint = AQUEC_TINT;
-          else if (isLast) tint = AMRAP_TINT;
-          else tint = TRAB_TINT;
+        // Índices das séries de TRABALHO desta semana (pula as compartilhadas 40/50/60).
+        // - Weeks 1-3: filtra tipo === "trabalho".
+        // - Deload: DELOAD é tudo "trabalho"; pula as 3 primeiras (que batem com 40/50/60).
+        const refSeries = waves[0][semanaIdx].series;
+        const workIdx: number[] = isDeload
+          ? refSeries.map((_, i) => i).filter((i) => i >= warmupRef.length)
+          : refSeries.map((s, i) => (s.tipo === "trabalho" ? i : -1)).filter((i) => i >= 0);
+
+        workIdx.forEach((sIdx, rowIdx) => {
+          const ref = refSeries[sIdx];
+          const isLast = rowIdx === workIdx.length - 1;
+          const tint: [number, number, number] = isDeload
+            ? AQUEC_TINT
+            : isLast
+              ? AMRAP_TINT
+              : TRAB_TINT;
 
           body.push([
             {
@@ -438,19 +499,14 @@ export async function exportWendler531PDF({
             ...allLifts.flatMap((_, liftIdx) => {
               const s = waves[liftIdx][semanaIdx].series[sIdx];
               return [
-                {
-                  content: s?.reps ?? "",
-                  styles: { fillColor: tint, halign: "center" as const, fontSize: FORCA_ROW_FONT, fontStyle: "bold" },
-                },
-                {
-                  content: s ? `${s.kg}` : "",
-                  styles: { fillColor: tint, halign: "center" as const, fontSize: FORCA_ROW_FONT, fontStyle: "bold" },
-                },
+                { content: s?.reps ?? "", styles: { fillColor: tint, halign: "center" as const, fontSize: FORCA_ROW_FONT, fontStyle: "bold" } },
+                { content: s ? `${s.kg}` : "", styles: { fillColor: tint, halign: "center" as const, fontSize: FORCA_ROW_FONT, fontStyle: "bold" } },
               ] as Cell[];
             }),
           ]);
-        }
+        });
       }
+
 
       const forcaColStyles: Record<number, Record<string, unknown>> = {
         0: { cellWidth: wPctLabel },
