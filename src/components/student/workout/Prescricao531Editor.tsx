@@ -103,6 +103,7 @@ interface Props {
   onBack: () => void;
   initialTreinoId?: string;
   initial?: Wendler531Conteudo;
+  onSaved?: () => void;
 }
 
 const FREQ_OPTIONS: Array<2 | 3 | 4 | 5> = [2, 3, 4, 5];
