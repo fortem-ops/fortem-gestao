@@ -89,7 +89,7 @@ export const FASE_INICIAL_GROUPS: { label: string; fases: string[] }[] = [
   {
     label: "Métodos",
     fases: WORKOUT_TEMPLATES.filter((t) =>
-      ["Personalizado", "Personalizado 2", "5-3-1", "M102"].includes(t.fase),
+      ["Personalizado", "Personalizado 2", "Planilha 5RM", "5-3-1", "M102"].includes(t.fase),
     ).map((t) => t.fase),
   },
   { label: "Corrida", fases: WORKOUT_TEMPLATES.filter((t) => t.fase.startsWith("Corrida")).map((t) => t.fase) },
