@@ -314,7 +314,23 @@ export function PrescricaoM102Editor({
     }
   };
 
+  // ── Exportar PDF / Imprimir ────────────────────────────────
+  const handleExport = async (mode: "download" | "print") => {
+    try {
+      const { data: aluno } = await supabase
+        .from("alunos")
+        .select("*")
+        .eq("id", alunoId)
+        .maybeSingle();
+      const student = (aluno ?? { id: alunoId, nome: alunoNome }) as Tables<"alunos">;
+      await exportM102PDF({ student, data, print: mode === "print" });
+    } catch (e) {
+      toast.error("Erro ao gerar PDF: " + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
   // ── Preview ao vivo por slot ────────────────────────────────
+
   const renderPreviewSlot = (slot: M102Slot) => {
     const done = sessionCounts[slot];
     const pairDone = sessionCounts[pairOf(slot)];
