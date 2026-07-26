@@ -440,11 +440,11 @@ export async function exportWendler531PDF({
             content: "AQUECIMENTO",
             colSpan: 1 + nLifts * 2,
             styles: {
-              fillColor: SURFACE,
-              textColor: INK,
+              fillColor: INK,
+              textColor: WHITE,
               fontStyle: "bold",
               halign: "left" as const,
-              fontSize: Math.max(5.4, 7 * S),
+              fontSize: Math.max(5.8, 8 * S),
             },
           },
         ]);
