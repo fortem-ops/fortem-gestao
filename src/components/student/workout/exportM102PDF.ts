@@ -55,7 +55,7 @@ const LIFT_SLOTS: Record<M102Levantamento, { A: M102Slot; B: M102Slot }> = {
   Remada: { A: "T2", B: "T4" },
 };
 
-const LIFT_ORDER: M102Levantamento[] = ["Terra", "Agachamento", "Remada", "Supino"];
+const LIFT_ORDER: M102Levantamento[] = ["Terra", "Supino", "Agachamento", "Remada"];
 
 const drawHeader = (
   doc: jsPDF,
