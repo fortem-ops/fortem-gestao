@@ -255,39 +255,52 @@ export async function exportWendler531PDF({
     if (aq && gruposAtivos.length > 0) {
       y = sectionBar(doc, "Aquecimento", undefined, mainX, y, mainW, Math.max(5.2, 6.4 * S));
 
+      const wNum = Math.max(5, 6.4 * S);
+      const wCat = Math.max(10, 13 * S);
       const wT = Math.max(6, 8 * S);
       const wRep = Math.max(10, 14 * S);
       const wKg = Math.max(12, 16 * S);
-      const wEx = mainW - (wT * freq + wRep + wKg);
+      const wEx = mainW - (wNum + wCat + wT * freq + wRep + wKg);
 
       const colStyles: Record<number, Record<string, unknown>> = {
-        0: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
+        0: { cellWidth: wNum, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+        1: { cellWidth: wCat, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+        2: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
       };
       for (let i = 0; i < freq; i++) {
-        colStyles[1 + i] = { cellWidth: wT, halign: "center" };
+        colStyles[3 + i] = { cellWidth: wT, halign: "center" };
       }
-      colStyles[1 + freq] = { cellWidth: wRep, halign: "right", fontStyle: "bold", textColor: INK_SOFT };
-      colStyles[2 + freq] = { cellWidth: wKg, halign: "right", textColor: INK_MUTED };
+      colStyles[3 + freq] = { cellWidth: wRep, halign: "right", fontStyle: "bold", textColor: INK_SOFT };
+      colStyles[4 + freq] = { cellWidth: wKg, halign: "right", textColor: INK_MUTED };
 
       gruposAtivos.forEach((g) => {
         const items = aq[g]!;
 
-        // Sub-barra preta full-width — sigla + nome completo, tudo branco.
+        // Sub-barra: badge preto (sigla) + faixa branca (nome completo).
         const badgeW = 12;
         doc.setFillColor(...INK);
-        doc.rect(mainX, y, mainW, AQ_SUBBAR_H, "F");
+        doc.rect(mainX, y, badgeW, AQ_SUBBAR_H, "F");
+        doc.setFillColor(...WHITE);
+        doc.rect(mainX + badgeW, y, mainW - badgeW, AQ_SUBBAR_H, "F");
+        doc.setDrawColor(...INK);
+        doc.setLineWidth(0.2);
+        doc.line(mainX, y + AQ_SUBBAR_H, mainX + mainW, y + AQ_SUBBAR_H);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(AQ_BADGE_FONT);
         doc.setTextColor(...WHITE);
         doc.text(g, mainX + badgeW / 2, y + AQ_SUBBAR_H / 2 + 0.9, { align: "center" });
         doc.setFontSize(AQ_LABEL_FONT);
-        doc.setTextColor(...WHITE);
+        doc.setTextColor(...INK);
         doc.text(AQ_LABELS[g], mainX + badgeW + 2, y + AQ_SUBBAR_H / 2 + 0.9);
         y += AQ_SUBBAR_H + 0.3;
 
 
-        const body = items.map((ex: PersonalizadoAquecimentoEx) => {
-          const cells: (string | { content: string })[] = [cleanName(ex.exercicio) || "—"];
+        const body = items.map((ex: PersonalizadoAquecimentoEx, idx) => {
+          const cells: (string | { content: string })[] = [
+            String(idx + 1),
+            (ex.subcategoria || "").toUpperCase(),
+            cleanName(ex.exercicio) || "—",
+          ];
           diasHeader.forEach((d) => cells.push(ex.dias?.includes(d) ? CHECK : ""));
           cells.push(String(ex.repeticoes ?? ""));
           cells.push("");
@@ -295,6 +308,8 @@ export async function exportWendler531PDF({
         });
 
         const head = [[
+          { content: "#", styles: { halign: "center" as const } },
+          { content: "CAT", styles: { halign: "center" as const } },
           { content: "EXERCÍCIOS", styles: { halign: "left" as const } },
           ...diasHeader.map((d) => ({ content: d, styles: { halign: "center" as const } })),
           { content: "REP.", styles: { halign: "right" as const } },
@@ -335,22 +350,22 @@ export async function exportWendler531PDF({
               // Divisória mais grossa/escura entre exercícios.
               hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.25, left: 0 } as unknown as number;
               hd.cell.styles.lineColor = INK_SOFT;
-              if (hd.column.index >= 1 && hd.column.index < 1 + freq) {
+              if (hd.column.index >= 3 && hd.column.index < 3 + freq) {
                 if (hd.cell.text?.[0] === CHECK) hd.cell.text = [""];
               }
             }
           },
           didDrawCell: (hd) => {
-            if (hd.section === "body" && hd.column.index >= 1 && hd.column.index < 1 + freq) {
+            if (hd.section === "body" && hd.column.index >= 3 && hd.column.index < 3 + freq) {
               const row = items[hd.row.index];
-              const tKey = `T${hd.column.index - 1 + 1}`;
+              const tKey = `T${hd.column.index - 3 + 1}`;
               if (row?.dias?.includes(tKey)) {
                 const cx = hd.cell.x + hd.cell.width / 2;
                 const cy = hd.cell.y + hd.cell.height / 2;
                 doc.setFillColor(...RED_SOFT);
                 doc.circle(cx, cy, Math.max(0.7, ROW_FONT * 0.13), "F");
               }
-              if (hd.column.index > 1) {
+              if (hd.column.index > 3) {
                 const x = hd.cell.x;
                 doc.setDrawColor(...RULE);
                 doc.setLineWidth(0.12);
@@ -425,11 +440,11 @@ export async function exportWendler531PDF({
             content: "AQUECIMENTO",
             colSpan: 1 + nLifts * 2,
             styles: {
-              fillColor: SURFACE,
-              textColor: INK,
+              fillColor: INK,
+              textColor: WHITE,
               fontStyle: "bold",
               halign: "left" as const,
-              fontSize: Math.max(5.4, 7 * S),
+              fontSize: Math.max(5.8, 8 * S),
             },
           },
         ]);
@@ -534,6 +549,18 @@ export async function exportWendler531PDF({
           minCellHeight: 0,
         },
         columnStyles: forcaColStyles,
+        didDrawCell: (hd) => {
+          // Divisórias verticais grossas entre levantamentos, valem para
+          // todas as linhas — incluindo cabeçalhos com colSpan (que aparecem
+          // apenas na coluna 0). Desenhamos ao longo de toda a altura da linha.
+          if (hd.column.index !== 0) return;
+          doc.setDrawColor(...INK);
+          doc.setLineWidth(0.5);
+          for (let k = 1; k < nLifts; k++) {
+            const lineX = mainX + wPctLabel + k * (wReps + wKg);
+            doc.line(lineX, hd.cell.y, lineX, hd.cell.y + hd.cell.height);
+          }
+        },
       });
       y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2;
     }
