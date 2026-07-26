@@ -76,6 +76,28 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
     );
   }
 
+  // M102 usa shape próprio (rm/treinos[ordem,acessorios]/aquecimento objeto).
+  // Precisa vir ANTES do fallback do 5-3-1 porque ambos têm `aquecimento` como objeto.
+  const conteudoObj = treino?.conteudo && typeof treino.conteudo === "object"
+    ? (treino.conteudo as { variante?: unknown; rm?: unknown })
+    : undefined;
+  const isM102 =
+    treino?.template_fase === "M102" ||
+    conteudoObj?.variante === "M102" ||
+    (conteudoObj?.rm !== undefined && conteudoObj?.rm !== null && typeof conteudoObj.rm === "object");
+  if (treino && isM102) {
+    return (
+      <PrescricaoM102Editor
+        alunoId={alunoId}
+        alunoNome={student?.nome ?? ""}
+        initialTreinoId={treino.id}
+        initial={treino.conteudo as unknown as M102Conteudo}
+        onBack={onBack}
+        onSaved={onSaved}
+      />
+    );
+  }
+
   // 5-3-1 (Wendler) usa shape próprio (aquecimento como objeto LIB/MOB/ATI/PREV,
   // levantamentos por dia, training max %). Delegamos ao editor dedicado —
   // renderizar no visualizador legado quebrava com "aquecimento.forEach is not a function".
