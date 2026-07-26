@@ -21,6 +21,18 @@ import {
   LEVANTAMENTO_EXERCICIO_BASE,
   type Wendler531Conteudo,
 } from "@/lib/wendler531";
+import {
+  isM102,
+  slotStatus,
+  testSession,
+  rmForLevantamento,
+  kgFor,
+  pairOf,
+  M102_SLOT_LEVANTAMENTOS,
+  M102_LEV_BASE,
+  type M102Conteudo,
+  type M102Slot,
+} from "@/lib/m102";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];

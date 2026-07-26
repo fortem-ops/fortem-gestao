@@ -14,6 +14,18 @@ import {
   type Wendler531Conteudo,
 } from "@/lib/wendler531";
 import {
+  isM102,
+  slotStatus,
+  testSession,
+  rmForLevantamento,
+  kgFor,
+  pairOf,
+  M102_SLOT_LEVANTAMENTOS,
+  M102_LEV_BASE,
+  type M102Conteudo,
+  type M102Slot,
+} from "@/lib/m102";
+import {
   Play, CheckCircle2, ChevronDown, ChevronUp, History,
   AlertCircle, Loader2, RefreshCw, X, PlayCircle
 } from "lucide-react";
@@ -158,6 +170,14 @@ export default function PortalWorkouts() {
     ((treino as any).template_fase === "5-3-1" || (treino.conteudo as any)?.variante === "531")
   ) {
     return <Portal531View treino={treino} />;
+  }
+
+  // ── M102: renderização dedicada ─────────────────────────────
+  if (
+    treino &&
+    ((treino as any).template_fase === "M102" || isM102(treino.conteudo))
+  ) {
+    return <PortalM102View treino={treino} sessoes={sessoes} />;
   }
 
   // ── Cálculos de progressão ───────────────────────────────────
