@@ -55,7 +55,7 @@ const DAY_OPTIONS = ["T1", "T2", "T3", "T4"] as const;
 
 const PHASE_GROUPS = [
   { label: "Fases", filter: (t: WorkoutTemplate) => /^Fase \d/.test(t.fase) },
-  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "Planilha 5RM", "5-3-1"].includes(t.fase) },
+  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "5-3-1"].includes(t.fase) },
   { label: "Corrida", filter: (t: WorkoutTemplate) => t.fase.startsWith("Corrida") },
 ];
 
@@ -1213,7 +1213,7 @@ export default function BancoTreinos() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(template => {
-                  const isUnderConstruction = ["Planilha 5RM"].includes(template.fase);
+                  const isUnderConstruction = false;
                   const is531 = template.fase === "5-3-1";
                   const isM102Sintetico = template.fase === "M102";
                   const isDinamicoPorAluno = is531 || isM102Sintetico;
