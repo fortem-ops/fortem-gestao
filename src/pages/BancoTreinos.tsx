@@ -1213,7 +1213,7 @@ export default function BancoTreinos() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(template => {
-                  const isUnderConstruction = ["Planilha 5RM"].includes(template.fase);
+                  const isUnderConstruction = false;
                   const is531 = template.fase === "5-3-1";
                   const isM102Sintetico = template.fase === "M102";
                   const isDinamicoPorAluno = is531 || isM102Sintetico;
