@@ -585,11 +585,8 @@ export async function exportWendler531PDF({
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 10;
-  const gutter = 4;
-  const freqColW = 22;
   const mainX = margin;
-  const mainW = pageW - margin * 2 - freqColW - gutter;
-  const freqX = mainX + mainW + gutter;
+  const mainW = pageW - margin * 2;
   const bottomY = pageH - margin;
 
   doc.addPage();
@@ -599,7 +596,6 @@ export async function exportWendler531PDF({
     if (y + needed > bottomY) {
       doc.addPage();
       y = drawHeader(doc, student, mainX, mainW, margin);
-      drawFrequenciaColumn(doc, freqX, freqColW, margin, bottomY, data.frequencia, 4);
     }
   };
 
