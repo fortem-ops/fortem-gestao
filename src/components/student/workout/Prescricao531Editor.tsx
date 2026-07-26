@@ -531,6 +531,7 @@ export function Prescricao531Editor({
       if (error) throw error;
 
       toast.success("Prescrição 5-3-1 enviada ao aluno.");
+      onSaved?.();
       onBack();
     } catch (e) {
       toast.error(
