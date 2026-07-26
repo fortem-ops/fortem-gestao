@@ -54,7 +54,7 @@ interface Props {
 
 const PHASE_GROUPS = [
   { label: "Fases", filter: (t: WorkoutTemplate) => /^Fase \d/.test(t.fase) },
-  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "Planilha 5RM", "5-3-1", "M102"].includes(t.fase) },
+  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "5-3-1", "M102"].includes(t.fase) },
   { label: "Corrida", filter: (t: WorkoutTemplate) => t.fase.startsWith("Corrida") },
 ];
 
