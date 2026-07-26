@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles, PlayCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles, PlayCircle, FileDown, Printer } from "lucide-react";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 import {
