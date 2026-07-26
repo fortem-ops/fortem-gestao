@@ -379,7 +379,7 @@ export async function exportM102PDF({
   }
 
   // ============================================================
-  // PÁGINA 2 — TABELAS DE PERIODIZAÇÃO POR LEVANTAMENTO
+  // PÁGINA 2 — TABELAS DE PERIODIZAÇÃO POR LEVANTAMENTO (auto-fit)
   // ============================================================
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -388,188 +388,205 @@ export async function exportM102PDF({
   const mainW = pageW - margin * 2;
   const bottomY = pageH - margin;
 
-  doc.addPage();
-  let y = drawHeader(doc, student, mainX, mainW, margin);
-
-  const ensureSpace = (needed: number) => {
-    if (y + needed > bottomY) {
-      doc.addPage();
-      y = drawHeader(doc, student, mainX, mainW, margin);
-    }
-  };
-
   const sched = schedule11(data.percentualInicial);
+  const P2_MAX_ATTEMPTS = 16;
+  let p2Scale = 1.0;
 
-  // Layout de colunas: SEM | (SET#1..SET#5, INT, KG)×2
-  const wSem = 14;
-  const slotAreaW = (mainW - wSem) / 2;
-  const wSet = slotAreaW * 0.11;
-  const wInt = slotAreaW * 0.22;
-  const wKg = slotAreaW - wSet * 5 - wInt;
-  const P2_ROW = 6.6;
-  const P2_HEAD = 6.0;
-  const P2_PAD = 0.9;
+  for (let attempt = 0; attempt < P2_MAX_ATTEMPTS; attempt++) {
+    const pagesBefore = doc.getNumberOfPages();
+    doc.addPage();
+    let y = margin;
 
-  LIFT_ORDER.forEach((lev) => {
-    const rm = rmForLevantamento(data.rm, lev);
-    const slots = LIFT_SLOTS[lev];
-    const nomeBanco = M102_LEV_BASE[lev].nome;
+    const S2 = p2Scale;
+    const P2_ROW = Math.max(4.2, 6.6 * S2);
+    const P2_HEAD = Math.max(4.0, 6.0 * S2);
+    const P2_PAD = Math.max(0.35, 0.9 * S2);
+    const SECTION_H = Math.max(4.6, 6.4 * S2);
+    const GAP_AFTER = Math.max(1.2, 3 * S2);
 
-    ensureSpace(80);
-    y = sectionBar(
-      doc,
-      `${lev.toUpperCase()} · ${cleanName(nomeBanco).toUpperCase()}  ·  1RM ${rm} KG`,
-      undefined,
-      mainX,
-      y,
-      mainW,
-    );
+    const wSem = Math.max(9, 14 * S2);
+    const slotAreaW = (mainW - wSem) / 2;
+    const wSet = slotAreaW * 0.11;
+    const wInt = slotAreaW * 0.22;
+    const wKg = slotAreaW - wSet * 5 - wInt;
 
-    type Cell =
-      | string
-      | { content: string; colSpan?: number; rowSpan?: number; styles?: Record<string, unknown> };
+    let overflowed = false;
 
-    const slotHeaderStyle = {
-      fillColor: INK,
-      textColor: WHITE,
-      fontStyle: "bold" as const,
-      halign: "center" as const,
-      fontSize: P2_HEAD + 0.4,
-    };
-    const subHeaderStyle = {
-      fillColor: SURFACE,
-      textColor: INK,
-      fontStyle: "bold" as const,
-      halign: "center" as const,
-      fontSize: P2_HEAD - 0.4,
-    };
+    for (const lev of LIFT_ORDER) {
+      const rm = rmForLevantamento(data.rm, lev);
+      const slots = LIFT_SLOTS[lev];
+      const nomeBanco = M102_LEV_BASE[lev].nome;
 
-    const body: Cell[][] = [];
-    body.push([
-      { content: "", styles: { fillColor: WHITE } },
-      { content: `TREINO #${slots.A.slice(1)} (A)`, colSpan: 7, styles: slotHeaderStyle },
-      { content: `TREINO #${slots.B.slice(1)} (B)`, colSpan: 7, styles: slotHeaderStyle },
-    ]);
-    body.push([
-      { content: "SEM", styles: subHeaderStyle },
-      ...(["SET#1", "SET#2", "SET#3", "SET#4", "SET#5", "INTENS.", "KG"].flatMap((h) => [
-        { content: h, styles: subHeaderStyle },
-      ]) as Cell[]),
-      ...(["SET#1", "SET#2", "SET#3", "SET#4", "SET#5", "INTENS.", "KG"].flatMap((h) => [
-        { content: h, styles: subHeaderStyle },
-      ]) as Cell[]),
-    ]);
+      y = sectionBar(
+        doc,
+        `${lev.toUpperCase()} · ${cleanName(nomeBanco).toUpperCase()}  ·  1RM ${rm} KG`,
+        undefined,
+        mainX,
+        y,
+        mainW,
+        SECTION_H,
+      );
 
-    // Linhas por semana
-    sched.forEach((s, i) => {
-      const kg = kgFor(rm, s.pct);
-      const setCells = (reps: number): Cell[] => {
-        const arr: Cell[] = [];
-        for (let k = 0; k < 5; k++) {
+      type Cell =
+        | string
+        | { content: string; colSpan?: number; rowSpan?: number; styles?: Record<string, unknown> };
+
+      const slotHeaderStyle = {
+        fillColor: INK,
+        textColor: WHITE,
+        fontStyle: "bold" as const,
+        halign: "center" as const,
+        fontSize: P2_HEAD + 0.4,
+      };
+      const subHeaderStyle = {
+        fillColor: SURFACE,
+        textColor: INK,
+        fontStyle: "bold" as const,
+        halign: "center" as const,
+        fontSize: P2_HEAD - 0.4,
+      };
+
+      const body: Cell[][] = [];
+      body.push([
+        { content: "", styles: { fillColor: WHITE } },
+        { content: `TREINO #${slots.A.slice(1)} (A)`, colSpan: 7, styles: slotHeaderStyle },
+        { content: `TREINO #${slots.B.slice(1)} (B)`, colSpan: 7, styles: slotHeaderStyle },
+      ]);
+      body.push([
+        { content: "SEM", styles: subHeaderStyle },
+        ...(["SET#1", "SET#2", "SET#3", "SET#4", "SET#5", "INTENS.", "KG"].flatMap((h) => [
+          { content: h, styles: subHeaderStyle },
+        ]) as Cell[]),
+        ...(["SET#1", "SET#2", "SET#3", "SET#4", "SET#5", "INTENS.", "KG"].flatMap((h) => [
+          { content: h, styles: subHeaderStyle },
+        ]) as Cell[]),
+      ]);
+
+      sched.forEach((s, i) => {
+        const kg = kgFor(rm, s.pct);
+        const setCells = (reps: number): Cell[] => {
+          const arr: Cell[] = [];
+          for (let k = 0; k < 5; k++) {
+            arr.push({
+              content: k < s.series ? String(reps) : "-",
+              styles: {
+                halign: "center" as const,
+                fontSize: P2_ROW,
+                textColor: k < s.series ? INK : INK_MUTED,
+              },
+            });
+          }
           arr.push({
-            content: k < s.series ? String(reps) : "-",
+            content: `${s.pct}%`,
+            styles: { halign: "center" as const, fontSize: P2_ROW, fontStyle: "bold", textColor: RED },
+          });
+          arr.push({
+            content: kg > 0 ? `${kg}` : "—",
+            styles: { halign: "center" as const, fontSize: P2_ROW, fontStyle: "bold" },
+          });
+          return arr;
+        };
+        body.push([
+          {
+            content: `SEM ${i + 1}`,
             styles: {
+              fillColor: SURFACE,
+              fontStyle: "bold" as const,
               halign: "center" as const,
               fontSize: P2_ROW,
-              textColor: k < s.series ? INK : INK_MUTED,
             },
-          });
-        }
-        arr.push({
-          content: `${s.pct}%`,
-          styles: { halign: "center" as const, fontSize: P2_ROW, fontStyle: "bold", textColor: RED },
-        });
-        arr.push({
-          content: kg > 0 ? `${kg}` : "—",
-          styles: { halign: "center" as const, fontSize: P2_ROW, fontStyle: "bold" },
-        });
-        return arr;
-      };
+          },
+          ...setCells(s.repsA),
+          ...setCells(s.repsB),
+        ]);
+      });
+
+      const test = testSession(rm);
+      const testInline = test.map((t) => `${t.reps}×${t.pct}% (${t.kg}kg)`).join("   ·   ");
       body.push([
         {
-          content: `SEM ${i + 1}`,
+          content: "SEM 12 · TESTE MÁX",
           styles: {
-            fillColor: SURFACE,
+            fillColor: INK,
+            textColor: WHITE,
             fontStyle: "bold" as const,
             halign: "center" as const,
             fontSize: P2_ROW,
           },
         },
-        ...setCells(s.repsA),
-        ...setCells(s.repsB),
+        {
+          content: testInline,
+          colSpan: 14,
+          styles: {
+            fillColor: SURFACE,
+            textColor: INK,
+            fontStyle: "bold" as const,
+            halign: "center" as const,
+            fontSize: P2_ROW,
+          },
+        },
       ]);
-    });
 
-    // Linha SEM 12 · TESTE MÁX (compartilhada entre slots A e B).
-    const test = testSession(rm);
-    const testInline = test.map((t) => `${t.reps}×${t.pct}% (${t.kg}kg)`).join("   ·   ");
-    body.push([
-      {
-        content: "SEM 12 · TESTE MÁX",
+      const colStyles: Record<number, Record<string, unknown>> = {
+        0: { cellWidth: wSem },
+      };
+      for (let side = 0; side < 2; side++) {
+        const off = 1 + side * 7;
+        for (let k = 0; k < 5; k++) colStyles[off + k] = { cellWidth: wSet };
+        colStyles[off + 5] = { cellWidth: wInt };
+        colStyles[off + 6] = { cellWidth: wKg };
+      }
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: mainX, right: pageW - (mainX + mainW) },
+        tableWidth: mainW,
+        theme: "plain",
+        pageBreak: "avoid",
+        rowPageBreak: "avoid",
+        body,
         styles: {
-          fillColor: INK,
-          textColor: WHITE,
-          fontStyle: "bold" as const,
-          halign: "center" as const,
           fontSize: P2_ROW,
-        },
-      },
-      {
-        content: testInline,
-        colSpan: 14,
-        styles: {
-          fillColor: SURFACE,
+          cellPadding: { top: P2_PAD, bottom: P2_PAD, left: 0.6, right: 0.6 },
           textColor: INK,
-          fontStyle: "bold" as const,
-          halign: "center" as const,
-          fontSize: P2_ROW,
+          lineColor: RULE,
+          lineWidth: 0.05,
+          overflow: "ellipsize",
+          minCellHeight: 0,
         },
-      },
-    ]);
+        columnStyles: colStyles,
+        didParseCell: (hd) => {
+          if (hd.section === "body") {
+            hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.1, left: 0 } as unknown as number;
+            hd.cell.styles.lineColor = RULE;
+          }
+        },
+        didDrawCell: (hd) => {
+          if (hd.column.index !== 0) return;
+          doc.setDrawColor(...INK);
+          doc.setLineWidth(0.5);
+          const lineX = mainX + wSem + (wSet * 5 + wInt + wKg);
+          doc.line(lineX, hd.cell.y, lineX, hd.cell.y + hd.cell.height);
+        },
+      });
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + GAP_AFTER;
 
-    const colStyles: Record<number, Record<string, unknown>> = {
-      0: { cellWidth: wSem },
-    };
-    for (let side = 0; side < 2; side++) {
-      const off = 1 + side * 7;
-      for (let k = 0; k < 5; k++) colStyles[off + k] = { cellWidth: wSet };
-      colStyles[off + 5] = { cellWidth: wInt };
-      colStyles[off + 6] = { cellWidth: wKg };
+      if (doc.getNumberOfPages() > pagesBefore + 1 || y > bottomY) {
+        overflowed = true;
+        break;
+      }
     }
 
-    autoTable(doc, {
-      startY: y,
-      margin: { left: mainX, right: pageW - (mainX + mainW) },
-      tableWidth: mainW,
-      theme: "plain",
-      body,
-      styles: {
-        fontSize: P2_ROW,
-        cellPadding: { top: P2_PAD, bottom: P2_PAD, left: 0.6, right: 0.6 },
-        textColor: INK,
-        lineColor: RULE,
-        lineWidth: 0.05,
-        overflow: "ellipsize",
-        minCellHeight: 0,
-      },
-      columnStyles: colStyles,
-      didParseCell: (hd) => {
-        if (hd.section === "body") {
-          hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.1, left: 0 } as unknown as number;
-          hd.cell.styles.lineColor = RULE;
-        }
-      },
-      didDrawCell: (hd) => {
-        // Divisória vertical grossa entre os dois slots (na fronteira).
-        if (hd.column.index !== 0) return;
-        doc.setDrawColor(...INK);
-        doc.setLineWidth(0.5);
-        const lineX = mainX + wSem + (wSet * 5 + wInt + wKg);
-        doc.line(lineX, hd.cell.y, lineX, hd.cell.y + hd.cell.height);
-      },
-    });
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 3;
-  });
+    if (!overflowed && doc.getNumberOfPages() === pagesBefore + 1) break;
+
+    // Desfaz páginas geradas nesta tentativa e tenta com escala menor.
+    while (doc.getNumberOfPages() > pagesBefore) {
+      doc.deletePage(doc.getNumberOfPages());
+    }
+    p2Scale *= 0.92;
+  }
+
+
 
   const safeName = student.nome.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const filename = `treino-m102-${safeName}.pdf`;
