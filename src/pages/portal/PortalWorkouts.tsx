@@ -177,7 +177,15 @@ export default function PortalWorkouts() {
     treino &&
     ((treino as any).template_fase === "M102" || isM102(treino.conteudo))
   ) {
-    return <PortalM102View treino={treino} sessoes={sessoes} />;
+    return (
+      <PortalM102View
+        treino={treino}
+        sessoes={sessoes}
+        student={student}
+        agendamentoHoje={agendamentoHoje ?? null}
+        qc={qc}
+      />
+    );
   }
 
   // ── Cálculos de progressão ───────────────────────────────────
