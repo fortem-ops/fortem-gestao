@@ -192,7 +192,7 @@ export function Prescricao531Editor({
       }
       toast.error("Erro ao salvar: " + (msg || "desconhecido"));
     }
-  }, [alunoId, treinoId, user]);
+  }, [alunoId, treinoId, user, onSaved]);
 
   useEffect(() => {
     if (skipNextSave.current) {
