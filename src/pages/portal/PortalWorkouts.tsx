@@ -851,3 +851,203 @@ function Portal531View({ treino }: { treino: any }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// Portal M102: 4 slots com prescrição da sessão atual (ao vivo)
+// ─────────────────────────────────────────────────────────────
+
+function PortalM102View({
+  treino,
+  sessoes,
+}: {
+  treino: any;
+  sessoes: Array<{ variacao: string; concluido_em: string | null }>;
+}) {
+  const data = (treino?.conteudo ?? null) as M102Conteudo | null;
+
+  if (!data) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        Treino indisponível.
+      </div>
+    );
+  }
+
+  const counts: Record<M102Slot, number> = { T1: 0, T2: 0, T3: 0, T4: 0 };
+  sessoes.forEach((s) => {
+    if (
+      (s.variacao === "T1" || s.variacao === "T2" || s.variacao === "T3" || s.variacao === "T4") &&
+      s.concluido_em
+    ) {
+      counts[s.variacao as M102Slot]++;
+    }
+  });
+
+  const slots: M102Slot[] = ["T1", "T2", "T3", "T4"];
+
+  return (
+    <div className="p-4 space-y-5 max-w-3xl mx-auto pb-16">
+      <header className="space-y-1">
+        <h1 className="text-lg font-bold">M102 · 11 semanas + teste</h1>
+        <p className="text-xs text-muted-foreground">
+          % Inicial {data.percentualInicial}% · 4 treinos fixos
+        </p>
+      </header>
+
+      {data.aquecimento && (["LIB", "MOB", "ATI", "PREV"] as const).some(
+        (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+      ) && (
+        <section className="rounded-xl border border-border overflow-hidden">
+          <div className="px-3 py-2 bg-muted/60">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Aquecimento
+            </p>
+          </div>
+          <div className="p-3 space-y-2">
+            {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
+              const items = data.aquecimento?.[k] ?? [];
+              if (!items.length) return null;
+              return (
+                <div key={k}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    {k}
+                  </p>
+                  <ul className="space-y-1">
+                    {items.map((ex, i) => (
+                      <li key={i} className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2">
+                        <span className="truncate flex items-center gap-1">
+                          {ex.exercicio || "—"}
+                          {ex.video_url && (
+                            <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                              <PlayCircle className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </span>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {slots.map((slot) => {
+        const done = counts[slot];
+        const pairDone = counts[pairOf(slot)];
+        const st = slotStatus(data.percentualInicial, done, pairDone);
+        const lifts = M102_SLOT_LEVANTAMENTOS[slot];
+        const treinoDia = data.treinos.find((t) => `T${t.ordem}` === slot);
+        return (
+          <section key={slot} className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {slot} · Treino
+                </p>
+                <p className="text-sm font-semibold">
+                  {lifts.map((l) => l.levantamento).join(" + ")}
+                </p>
+              </div>
+              <span className="text-[11px] text-muted-foreground tabular-nums">{done}/11</span>
+            </div>
+            <div className="p-3 space-y-3">
+              {st.phase === "concluded" && (
+                <p className="text-xs text-success text-center py-2 italic">
+                  Programa concluído neste par — procure o professor.
+                </p>
+              )}
+              {st.phase === "waitingPair" && (
+                <p className="text-xs text-muted-foreground text-center py-2 italic">
+                  Aguardando slot par ({pairOf(slot)}) completar 11 sessões ({st.pairDone}/11) para liberar o teste.
+                </p>
+              )}
+              {st.phase === "readyForTest" && (
+                <div className="border rounded-lg p-3 space-y-2 bg-warning/5 border-warning/40">
+                  <p className="text-xs font-bold uppercase tracking-wider text-warning">
+                    🎯 Sessão de teste disponível
+                  </p>
+                  {lifts.map(({ levantamento }) => {
+                    const rm = rmForLevantamento(data.rm, levantamento);
+                    const base = M102_LEV_BASE[levantamento];
+                    return (
+                      <div key={levantamento} className="text-xs">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold">{levantamento}</span>
+                          <span className="text-muted-foreground truncate">{base.nome}</span>
+                        </div>
+                        <ul className="space-y-0.5 pl-2">
+                          {testSession(rm).map((s, i) => (
+                            <li key={i} className="flex justify-between tabular-nums">
+                              <span className="text-muted-foreground">{s.reps} × {s.pct}%</span>
+                              <span className="font-medium">{s.kg} kg</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {st.phase === "regular" && (
+                <div className="border rounded-lg p-3 space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Tier {st.next.tier} · Semana {st.next.semanaNoTier} · {st.next.pct}%
+                  </p>
+                  {lifts.map(({ levantamento, slotAB }) => {
+                    const rm = rmForLevantamento(data.rm, levantamento);
+                    const reps = slotAB === "A" ? st.next.repsA : st.next.repsB;
+                    const kg = kgFor(rm, st.next.pct);
+                    const base = M102_LEV_BASE[levantamento];
+                    return (
+                      <div key={levantamento} className="flex items-center justify-between text-xs gap-2">
+                        <span className="truncate flex items-center gap-1 min-w-0">
+                          <span className="font-semibold shrink-0">{levantamento}</span>
+                          <span className="text-muted-foreground truncate">{base.nome}</span>
+                          {base.video_url && (
+                            <a href={base.video_url} target="_blank" rel="noopener noreferrer" className="text-primary shrink-0">
+                              <PlayCircle className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </span>
+                        <span className="tabular-nums text-muted-foreground shrink-0">
+                          {st.next.series} × {reps} · <span className="font-semibold text-foreground">{kg} kg</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {treinoDia && treinoDia.acessorios.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    Acessórios
+                  </p>
+                  <ul className="space-y-1">
+                    {treinoDia.acessorios.map((acc, i) => (
+                      <li key={i} className="flex justify-between text-xs border-l-2 border-primary/50 pl-2 gap-2">
+                        <span className="truncate flex items-center gap-1">
+                          {acc.exercicio || "—"}
+                          {acc.video_url && (
+                            <a href={acc.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                              <PlayCircle className="w-3 h-3" />
+                            </a>
+                          )}
+                          <span className="text-muted-foreground"> · {acc.series} × {acc.reps}</span>
+                        </span>
+                        <span className="tabular-nums">{acc.kg || "—"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
