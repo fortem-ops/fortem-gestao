@@ -255,39 +255,52 @@ export async function exportWendler531PDF({
     if (aq && gruposAtivos.length > 0) {
       y = sectionBar(doc, "Aquecimento", undefined, mainX, y, mainW, Math.max(5.2, 6.4 * S));
 
+      const wNum = Math.max(5, 6.4 * S);
+      const wCat = Math.max(10, 13 * S);
       const wT = Math.max(6, 8 * S);
       const wRep = Math.max(10, 14 * S);
       const wKg = Math.max(12, 16 * S);
-      const wEx = mainW - (wT * freq + wRep + wKg);
+      const wEx = mainW - (wNum + wCat + wT * freq + wRep + wKg);
 
       const colStyles: Record<number, Record<string, unknown>> = {
-        0: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
+        0: { cellWidth: wNum, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+        1: { cellWidth: wCat, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+        2: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
       };
       for (let i = 0; i < freq; i++) {
-        colStyles[1 + i] = { cellWidth: wT, halign: "center" };
+        colStyles[3 + i] = { cellWidth: wT, halign: "center" };
       }
-      colStyles[1 + freq] = { cellWidth: wRep, halign: "right", fontStyle: "bold", textColor: INK_SOFT };
-      colStyles[2 + freq] = { cellWidth: wKg, halign: "right", textColor: INK_MUTED };
+      colStyles[3 + freq] = { cellWidth: wRep, halign: "right", fontStyle: "bold", textColor: INK_SOFT };
+      colStyles[4 + freq] = { cellWidth: wKg, halign: "right", textColor: INK_MUTED };
 
       gruposAtivos.forEach((g) => {
         const items = aq[g]!;
 
-        // Sub-barra preta full-width — sigla + nome completo, tudo branco.
+        // Sub-barra: badge preto (sigla) + faixa branca (nome completo).
         const badgeW = 12;
         doc.setFillColor(...INK);
-        doc.rect(mainX, y, mainW, AQ_SUBBAR_H, "F");
+        doc.rect(mainX, y, badgeW, AQ_SUBBAR_H, "F");
+        doc.setFillColor(...WHITE);
+        doc.rect(mainX + badgeW, y, mainW - badgeW, AQ_SUBBAR_H, "F");
+        doc.setDrawColor(...INK);
+        doc.setLineWidth(0.2);
+        doc.line(mainX, y + AQ_SUBBAR_H, mainX + mainW, y + AQ_SUBBAR_H);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(AQ_BADGE_FONT);
         doc.setTextColor(...WHITE);
         doc.text(g, mainX + badgeW / 2, y + AQ_SUBBAR_H / 2 + 0.9, { align: "center" });
         doc.setFontSize(AQ_LABEL_FONT);
-        doc.setTextColor(...WHITE);
+        doc.setTextColor(...INK);
         doc.text(AQ_LABELS[g], mainX + badgeW + 2, y + AQ_SUBBAR_H / 2 + 0.9);
         y += AQ_SUBBAR_H + 0.3;
 
 
-        const body = items.map((ex: PersonalizadoAquecimentoEx) => {
-          const cells: (string | { content: string })[] = [cleanName(ex.exercicio) || "—"];
+        const body = items.map((ex: PersonalizadoAquecimentoEx, idx) => {
+          const cells: (string | { content: string })[] = [
+            String(idx + 1),
+            (ex.subcategoria || "").toUpperCase(),
+            cleanName(ex.exercicio) || "—",
+          ];
           diasHeader.forEach((d) => cells.push(ex.dias?.includes(d) ? CHECK : ""));
           cells.push(String(ex.repeticoes ?? ""));
           cells.push("");
@@ -295,6 +308,8 @@ export async function exportWendler531PDF({
         });
 
         const head = [[
+          { content: "#", styles: { halign: "center" as const } },
+          { content: "CAT", styles: { halign: "center" as const } },
           { content: "EXERCÍCIOS", styles: { halign: "left" as const } },
           ...diasHeader.map((d) => ({ content: d, styles: { halign: "center" as const } })),
           { content: "REP.", styles: { halign: "right" as const } },
