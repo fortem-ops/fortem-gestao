@@ -21,6 +21,18 @@ import {
   LEVANTAMENTO_EXERCICIO_BASE,
   type Wendler531Conteudo,
 } from "@/lib/wendler531";
+import {
+  isM102,
+  slotStatus,
+  testSession,
+  rmForLevantamento,
+  kgFor,
+  pairOf,
+  M102_SLOT_LEVANTAMENTOS,
+  M102_LEV_BASE,
+  type M102Conteudo,
+  type M102Slot,
+} from "@/lib/m102";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
@@ -109,16 +121,23 @@ export default function PublicWorkout() {
 
   const is531 =
     treino?.template_fase === "5-3-1" || isWendler531(treino?.conteudo ?? null);
+  const isM102Treino =
+    treino?.template_fase === "M102" || isM102(treino?.conteudo ?? null);
 
   const data = useMemo<WorkoutData | null>(() => {
-    if (!treino?.conteudo || is531) return null;
+    if (!treino?.conteudo || is531 || isM102Treino) return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531]);
+  }, [treino, is531, isM102Treino]);
 
   const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
     if (!treino?.conteudo || !is531) return null;
     return treino.conteudo as unknown as Wendler531Conteudo;
   }, [treino, is531]);
+
+  const m102Data = useMemo<M102Conteudo | null>(() => {
+    if (!treino?.conteudo || !isM102Treino) return null;
+    return treino.conteudo as unknown as M102Conteudo;
+  }, [treino, isM102Treino]);
 
   const openVideo = (url: string, title: string) => {
     if (isYouTubeUrl(url)) {
@@ -138,7 +157,7 @@ export default function PublicWorkout() {
     );
   }
 
-  if (error || !treino || (!data && !wendlerData)) {
+  if (error || !treino || (!data && !wendlerData && !m102Data)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3 max-w-sm">
@@ -160,6 +179,10 @@ export default function PublicWorkout() {
         data={wendlerData}
       />
     );
+  }
+
+  if (m102Data) {
+    return <M102Public treino={treino} aluno={aluno} data={m102Data} />;
   }
 
   // Group warm-up by category
@@ -583,6 +606,142 @@ function Wendler531Public({
             Fortem Gestão Técnica · 5-3-1 (Wendler) · Onda de 4 semanas
           </p>
         </footer>
+      </main>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// M102 · visão pública somente leitura
+// ─────────────────────────────────────────────────────────────
+
+function M102Public({
+  treino,
+  aluno,
+  data,
+}: {
+  treino: TreinoRow;
+  aluno: AlunoRow | null;
+  data: M102Conteudo;
+}) {
+  const slots: M102Slot[] = ["T1", "T2", "T3", "T4"];
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-sm leading-tight truncate">
+                M102 · {treino.descricao || "Prescrição"}
+              </h1>
+              {aluno && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {aluno.nome} · v{treino.versao} · % Inicial {data.percentualInicial}%
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+            Somente leitura
+          </span>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-4 space-y-6 pb-12">
+        <section className="rounded-xl border border-border p-4">
+          <h2 className="text-xs font-heading font-bold uppercase tracking-wider text-primary mb-2">
+            1RM de referência
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div><span className="text-muted-foreground">Terra:</span> <span className="font-semibold tabular-nums">{data.rm.terra} kg</span></div>
+            <div><span className="text-muted-foreground">Agach.:</span> <span className="font-semibold tabular-nums">{data.rm.agachamento} kg</span></div>
+            <div><span className="text-muted-foreground">Remada:</span> <span className="font-semibold tabular-nums">{data.rm.remada} kg</span></div>
+            <div><span className="text-muted-foreground">Supino:</span> <span className="font-semibold tabular-nums">{data.rm.supino} kg</span></div>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-3 italic">
+            A prescrição de cada sessão (tier, %, reps, kg) é calculada ao vivo no portal do aluno conforme as sessões concluídas.
+          </p>
+        </section>
+
+        {data.aquecimento && (["LIB", "MOB", "ATI", "PREV"] as const).some(
+          (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+        ) && (
+          <section className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Aquecimento
+              </p>
+            </div>
+            <div className="p-3 space-y-2">
+              {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
+                const items = data.aquecimento?.[k] ?? [];
+                if (!items.length) return null;
+                return (
+                  <div key={k}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {k}
+                    </p>
+                    <ul className="space-y-1">
+                      {items.map((ex, i) => (
+                        <li key={i} className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2">
+                          <span className="truncate">{ex.exercicio || "—"}</span>
+                          <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {slots.map((slot) => {
+          const lifts = M102_SLOT_LEVANTAMENTOS[slot];
+          const treinoDia = data.treinos.find((t) => `T${t.ordem}` === slot);
+          return (
+            <section key={slot} className="rounded-xl border border-border overflow-hidden">
+              <div className="px-3 py-2 bg-muted/60">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {slot} · Treino
+                </p>
+                <p className="text-sm font-semibold">
+                  {lifts.map((l) => l.levantamento).join(" + ")}
+                </p>
+              </div>
+              <div className="p-3 space-y-2 text-xs">
+                {lifts.map(({ levantamento }) => {
+                  const rm = rmForLevantamento(data.rm, levantamento);
+                  const base = M102_LEV_BASE[levantamento];
+                  return (
+                    <div key={levantamento} className="flex justify-between items-center border-l-2 border-primary/50 pl-2">
+                      <span className="truncate"><span className="font-semibold">{levantamento}</span> <span className="text-muted-foreground">· {base.nome}</span></span>
+                      <span className="text-muted-foreground tabular-nums">1RM {rm} kg</span>
+                    </div>
+                  );
+                })}
+                {treinoDia && treinoDia.acessorios.length > 0 && (
+                  <div className="pt-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      Acessórios
+                    </p>
+                    <ul className="space-y-1">
+                      {treinoDia.acessorios.map((acc, i) => (
+                        <li key={i} className="flex justify-between border-l-2 border-primary/30 pl-2 gap-2">
+                          <span className="truncate">{acc.exercicio || "—"} <span className="text-muted-foreground">· {acc.series} × {acc.reps}</span></span>
+                          <span className="tabular-nums">{acc.kg || "—"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        })}
       </main>
     </div>
   );

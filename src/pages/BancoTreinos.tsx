@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
 import { emptyPersonalizado, type PersonalizadoConteudo } from "@/components/student/workout/personalizadoTypes";
 import { Prescricao531Editor } from "@/components/student/workout/Prescricao531Editor";
+import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM102Editor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 
 interface GroupSelection { grupo: string; subcategoria: string }
@@ -54,7 +55,7 @@ const DAY_OPTIONS = ["T1", "T2", "T3", "T4"] as const;
 
 const PHASE_GROUPS = [
   { label: "Fases", filter: (t: WorkoutTemplate) => /^Fase \d/.test(t.fase) },
-  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "Planilha 5RM", "5-3-1", "M102"].includes(t.fase) },
+  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "Planilha 5RM", "5-3-1"].includes(t.fase) },
   { label: "Corrida", filter: (t: WorkoutTemplate) => t.fase.startsWith("Corrida") },
 ];
 
@@ -822,6 +823,8 @@ export default function BancoTreinos() {
   >(null);
   const [select531Open, setSelect531Open] = useState(false);
   const [editor531, setEditor531] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [selectM102Open, setSelectM102Open] = useState(false);
+  const [editorM102, setEditorM102] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
@@ -1103,6 +1106,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editorM102) {
+    return (
+      <PrescricaoM102Editor
+        alunoId={editorM102.alunoId}
+        alunoNome={editorM102.alunoNome}
+        onBack={() => setEditorM102(null)}
+      />
+    );
+  }
+
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
@@ -1177,14 +1190,20 @@ export default function BancoTreinos() {
         {PHASE_GROUPS.map(group => {
           let items = WORKOUT_TEMPLATES.filter(group.filter);
           if (group.label === "Métodos") {
-            // 5-3-1 é per-aluno e não vive em WORKOUT_TEMPLATES.
+            // 5-3-1 e M102 são per-aluno e não vivem em WORKOUT_TEMPLATES.
             const synthetic531: WorkoutTemplate = {
               fase: "5-3-1",
               frequencia: "2-5x",
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531];
+            const syntheticM102: WorkoutTemplate = {
+              fase: "M102",
+              frequencia: "4x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102];
           }
           if (items.length === 0) return null;
           return (
@@ -1194,8 +1213,10 @@ export default function BancoTreinos() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(template => {
-                  const isUnderConstruction = ["Planilha 5RM", "M102"].includes(template.fase);
+                  const isUnderConstruction = ["Planilha 5RM"].includes(template.fase);
                   const is531 = template.fase === "5-3-1";
+                  const isM102Sintetico = template.fase === "M102";
+                  const isDinamicoPorAluno = is531 || isM102Sintetico;
                   return (
                   <Card
                     key={template.fase}
@@ -1211,6 +1232,10 @@ export default function BancoTreinos() {
                       }
                       if (is531) {
                         setSelect531Open(true);
+                        return;
+                      }
+                      if (isM102Sintetico) {
+                        setSelectM102Open(true);
                         return;
                       }
                       if (template.fase === "Personalizado") {
@@ -1247,7 +1272,7 @@ export default function BancoTreinos() {
                         <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                           {isUnderConstruction
                             ? <Construction className="h-5 w-5 text-warning" />
-                            : (template.fase === "Personalizado" || is531)
+                            : (template.fase === "Personalizado" || isDinamicoPorAluno)
                               ? <Sparkles className="h-5 w-5 text-primary" />
                               : <Dumbbell className="h-5 w-5 text-primary" />}
                         </div>
@@ -1265,6 +1290,10 @@ export default function BancoTreinos() {
                       {is531 ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 4 semanas · carga em % do 1RM
+                        </p>
+                      ) : isM102Sintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 11 semanas + teste · carga por tier em % do 1RM
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -1358,6 +1387,12 @@ export default function BancoTreinos() {
         onOpenChange={setSelect531Open}
         title="Escolha o aluno para prescrever 5-3-1"
         onSelect={(a) => setEditor531({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={selectM102Open}
+        onOpenChange={setSelectM102Open}
+        title="Escolha o aluno para prescrever M102"
+        onSelect={(a) => setEditorM102({ alunoId: a.id, alunoNome: a.nome })}
       />
     </div>
   );

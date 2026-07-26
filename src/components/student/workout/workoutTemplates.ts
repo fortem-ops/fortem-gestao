@@ -349,34 +349,8 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
       ]},
     ],
   },
-  {
-    fase: "M102",
-    frequencia: "3x",
-    aquecimento: fase1Aquecimento,
-    treinos: [
-      { nome: "Treino A", tipo: "forca", exercicios: [
-        { ordem: 1, categoria: "DJS", exercicio: "", series: 4, repeticoes: "8" },
-        { ordem: 2, categoria: "PH", exercicio: "", series: 4, repeticoes: "8" },
-        { ordem: 3, categoria: "EP", exercicio: "", series: 3, repeticoes: "12" },
-        { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
-        { ordem: 5, categoria: "AH", exercicio: "", series: 3, repeticoes: "20" },
-      ]},
-      { nome: "Treino B", tipo: "forca", exercicios: [
-        { ordem: 1, categoria: "DQ", exercicio: "", series: 4, repeticoes: "8" },
-        { ordem: 2, categoria: "EH", exercicio: "", series: 4, repeticoes: "8" },
-        { ordem: 3, categoria: "DJA", exercicio: "", series: 3, repeticoes: "10" },
-        { ordem: 4, categoria: "PV", exercicio: "", series: 3, repeticoes: "10" },
-        { ordem: 5, categoria: "AF", exercicio: "", series: 3, repeticoes: '30"' },
-      ]},
-      { nome: "Treino C", tipo: "forca", exercicios: [
-        { ordem: 1, categoria: "DJS", exercicio: "", series: 3, repeticoes: "10" },
-        { ordem: 2, categoria: "PH", exercicio: "", series: 3, repeticoes: "10" },
-        { ordem: 3, categoria: "DQ", exercicio: "", series: 3, repeticoes: "12" },
-        { ordem: 4, categoria: "EV", exercicio: "", series: 3, repeticoes: "10" },
-        { ordem: 5, categoria: "AR", exercicio: "", series: 3, repeticoes: "10" },
-      ]},
-    ],
-  },
+  // M102 removido daqui — agora é construído dinamicamente por aluno via
+  // `PrescricaoM102Editor` e injetado sinteticamente em BancoTreinos.
   {
     fase: "Corrida - Fase 1",
     frequencia: "3x",
