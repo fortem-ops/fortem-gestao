@@ -410,6 +410,12 @@ export function PrescricaoM102Editor({
               {savingLabel}
             </span>
           )}
+          <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
+            <FileDown className="w-3 h-3 mr-1" /> PDF
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => handleExport("print")}>
+            <Printer className="w-3 h-3 mr-1" /> Imprimir
+          </Button>
           <Button onClick={handlePublish} disabled={publishing}>
             {publishing ? (
               <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -420,6 +426,8 @@ export function PrescricaoM102Editor({
           </Button>
         </div>
       </div>
+
+
 
       {/* Configuração */}
       <Card>
