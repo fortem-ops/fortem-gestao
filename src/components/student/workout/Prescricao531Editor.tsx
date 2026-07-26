@@ -103,6 +103,7 @@ interface Props {
   onBack: () => void;
   initialTreinoId?: string;
   initial?: Wendler531Conteudo;
+  onSaved?: () => void;
 }
 
 const FREQ_OPTIONS: Array<2 | 3 | 4 | 5> = [2, 3, 4, 5];
@@ -113,6 +114,7 @@ export function Prescricao531Editor({
   onBack,
   initialTreinoId,
   initial,
+  onSaved,
 }: Props) {
   const { user } = useAuth();
   const [data, setData] = useState<Wendler531Conteudo>(
@@ -176,6 +178,7 @@ export function Prescricao531Editor({
       }
       setSavingLabel("Rascunho salvo");
       setDirty(false);
+      onSaved?.();
       setTimeout(() => setSavingLabel(""), 1500);
     } catch (e) {
       setSavingLabel("");
@@ -189,7 +192,7 @@ export function Prescricao531Editor({
       }
       toast.error("Erro ao salvar: " + (msg || "desconhecido"));
     }
-  }, [alunoId, treinoId, user]);
+  }, [alunoId, treinoId, user, onSaved]);
 
   useEffect(() => {
     if (skipNextSave.current) {
@@ -528,6 +531,7 @@ export function Prescricao531Editor({
       if (error) throw error;
 
       toast.success("Prescrição 5-3-1 enviada ao aluno.");
+      onSaved?.();
       onBack();
     } catch (e) {
       toast.error(

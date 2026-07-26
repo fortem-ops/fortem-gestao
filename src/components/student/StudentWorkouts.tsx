@@ -170,7 +170,11 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
                 student={{ id: student.id, nome: student.nome }}
                 treino={viewing}
                 onBack={() => setViewing(null)}
-                onSaved={() => refetch()}
+                onSaved={async () => {
+                  const { data: fresh } = await refetch();
+                  const updated = fresh?.find((t) => t.id === viewing.id);
+                  if (updated) setViewing(updated);
+                }}
               />
             </Suspense>
           )}
