@@ -856,13 +856,74 @@ function Portal531View({ treino }: { treino: any }) {
 // Portal M102: 4 slots com prescrição da sessão atual (ao vivo)
 // ─────────────────────────────────────────────────────────────
 
+// Helper compartilhado: registra a sessão em treino_sessoes + marca
+// o agendamento como realizado. Mesma lógica usada em handleConcluir.
+async function registrarSessaoConcluida(params: {
+  alunoId: string;
+  treinoId: string;
+  variacao: string;
+  variacaoOriginal?: string | null;
+  foiTroca?: boolean;
+  agendamentoId: string;
+}) {
+  const { error } = await (supabase as any).from("treino_sessoes").insert({
+    aluno_id: params.alunoId,
+    treino_id: params.treinoId,
+    variacao: params.variacao,
+    variacao_original: params.variacaoOriginal ?? null,
+    foi_troca: params.foiTroca ?? false,
+    agendamento_id: params.agendamentoId,
+    data: format(new Date(), "yyyy-MM-dd"),
+    concluido_em: new Date().toISOString(),
+  });
+  if (error) throw error;
+
+  await supabase.from("treino_agendamentos")
+    .update({ status: "realizado", updated_at: new Date().toISOString() })
+    .eq("id", params.agendamentoId);
+}
+
 function PortalM102View({
   treino,
   sessoes,
+  student,
+  agendamentoHoje,
+  qc,
 }: {
   treino: any;
   sessoes: Array<{ variacao: string; concluido_em: string | null }>;
+  student: { id: string } | null;
+  agendamentoHoje: { id: string } | null;
+  qc: ReturnType<typeof useQueryClient>;
 }) {
+  const [concluindoSlot, setConcluindoSlot] = useState<M102Slot | null>(null);
+
+  async function handleConcluirSlot(slot: M102Slot) {
+    if (!student || !treino?.id) return;
+    if (!agendamentoHoje) {
+      toast.error("Você precisa ter um treino agendado para hoje para concluir.");
+      return;
+    }
+    setConcluindoSlot(slot);
+    try {
+      await registrarSessaoConcluida({
+        alunoId: student.id,
+        treinoId: treino.id,
+        variacao: slot,
+        agendamentoId: agendamentoHoje.id,
+      });
+      qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
+      qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
+      qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
+      qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
+      toast.success(`${slot} concluído!`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao concluir sessão.");
+    } finally {
+      setConcluindoSlot(null);
+    }
+  }
+
   const data = (treino?.conteudo ?? null) as M102Conteudo | null;
 
   if (!data) {
