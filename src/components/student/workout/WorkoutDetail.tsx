@@ -13,6 +13,8 @@ import { PersonalizadoEditor } from "./PersonalizadoEditor";
 import { isPersonalizadoContent } from "./personalizadoTypes";
 import { Prescricao531Editor } from "./Prescricao531Editor";
 import { isWendler531, type Wendler531Conteudo } from "@/lib/wendler531";
+import { PrescricaoM102Editor } from "./PrescricaoM102Editor";
+import type { M102Conteudo } from "@/lib/m102";
 import { PrescribeOptionsDialog, toISODate, type PrescribeChoice } from "./PrescribeOptionsDialog";
 import {
   Dialog,
@@ -68,6 +70,28 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
         alunoId={alunoId}
         alunoNome={student?.nome}
         treinoId={treino.id}
+        onBack={onBack}
+        onSaved={onSaved}
+      />
+    );
+  }
+
+  // M102 usa shape próprio (rm/treinos[ordem,acessorios]/aquecimento objeto).
+  // Precisa vir ANTES do fallback do 5-3-1 porque ambos têm `aquecimento` como objeto.
+  const conteudoObj = treino?.conteudo && typeof treino.conteudo === "object"
+    ? (treino.conteudo as { variante?: unknown; rm?: unknown })
+    : undefined;
+  const isM102 =
+    treino?.template_fase === "M102" ||
+    conteudoObj?.variante === "M102" ||
+    (conteudoObj?.rm !== undefined && conteudoObj?.rm !== null && typeof conteudoObj.rm === "object");
+  if (treino && isM102) {
+    return (
+      <PrescricaoM102Editor
+        alunoId={alunoId}
+        alunoNome={student?.nome ?? ""}
+        initialTreinoId={treino.id}
+        initial={treino.conteudo as unknown as M102Conteudo}
         onBack={onBack}
         onSaved={onSaved}
       />
