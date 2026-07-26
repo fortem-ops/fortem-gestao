@@ -1,7 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Tables } from "@/integrations/supabase/types";
-import fortemLogo from "@/assets/fortem-logo-pdf.png";
 import {
   type Wendler531Conteudo,
   computeWave,
@@ -13,28 +12,28 @@ import type {
   AquecimentoBloco,
   PersonalizadoAquecimentoEx,
 } from "./personalizadoTypes";
+import {
+  INK,
+  INK_SOFT,
+  INK_MUTED,
+  RULE,
+  SURFACE,
+  WHITE,
+  RED,
+  RED_SOFT,
+  RED_TINT,
+  CHECK,
+  cleanName,
+  drawWorkoutHeader,
+  sectionBar,
+  drawObservacoes,
+} from "./pdfShared";
 
 interface ExportArgs {
   student: Tables<"alunos">;
   data: Wendler531Conteudo;
   print?: boolean;
 }
-
-// Palette — mirrors exportWorkoutPDF.ts.
-const INK: [number, number, number] = [24, 24, 27];
-const INK_SOFT: [number, number, number] = [82, 82, 91];
-const INK_MUTED: [number, number, number] = [161, 161, 170];
-const RULE: [number, number, number] = [113, 113, 122];
-const SURFACE: [number, number, number] = [212, 212, 216];
-const WHITE: [number, number, number] = [255, 255, 255];
-const RED: [number, number, number] = [185, 28, 28];
-const RED_SOFT: [number, number, number] = [220, 38, 38];
-const RED_TINT: [number, number, number] = [254, 226, 226];
-
-const CHECK = "•DOT•";
-
-const cleanName = (s?: string | null) =>
-  (s ?? "").replace(/^\s*\d+\s*[-–—.)]\s*/, "").trim();
 
 const AQUEC_TINT: [number, number, number] = [220, 240, 220];
 const TRAB_TINT: [number, number, number] = [253, 214, 214];
@@ -47,73 +46,15 @@ const AQ_LABELS: Record<AquecimentoBloco, string> = {
   PREV: "PREVENTIVOS",
 };
 
-function drawHeader(
+const drawHeader = (
   doc: jsPDF,
   student: Tables<"alunos">,
   mainX: number,
   mainW: number,
   margin: number,
-): number {
-  // Logo — topo ESQUERDO.
-  try {
-    const LOGO_H = 8;
-    const LOGO_RATIO = 1920 / 357;
-    const LOGO_W = LOGO_H * LOGO_RATIO;
-    doc.addImage(fortemLogo, "PNG", mainX, margin + 1, LOGO_W, LOGO_H);
-  } catch {
-    // ignore
-  }
+) => drawWorkoutHeader(doc, student, mainX, mainW, margin, "TREINO 5-3-1");
 
-  // Bloco do aluno — topo DIREITO.
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(...INK_MUTED);
-  doc.text("ALUNO", mainX + mainW, margin + 4, { align: "right" });
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(...INK);
-  doc.text(student.nome.toUpperCase(), mainX + mainW, margin + 9, { align: "right" });
-
-  const today = new Date().toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(...INK_SOFT);
-  doc.text(`TREINO 5-3-1  ·  ${today}`, mainX + mainW, margin + 14, { align: "right" });
-
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(0.4);
-  doc.line(mainX, margin + 20, mainX + mainW, margin + 20);
-
-  return margin + 20 + 3;
-}
-
-function sectionBar(
-  doc: jsPDF,
-  label: string,
-  meta: string | undefined,
-  x: number,
-  y: number,
-  w: number,
-  h = 6.4,
-): number {
-  doc.setFillColor(...RED);
-  doc.rect(x, y, w, h, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(...WHITE);
-  doc.text(label.toUpperCase(), x + 2.4, y + h / 2 + 1.1);
-  if (meta) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.text(meta, x + w - 2, y + h / 2 + 1.1, { align: "right" });
-  }
-  return y + h + 1.2;
-}
 
 function drawFrequenciaColumn(
   doc: jsPDF,
