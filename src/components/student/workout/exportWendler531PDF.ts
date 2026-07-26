@@ -256,15 +256,23 @@ export async function exportWendler531PDF({
       y = sectionBar(doc, "Aquecimento", undefined, mainX, y, mainW, Math.max(5.2, 6.4 * S));
 
       const wNum = Math.max(5, 6.4 * S);
-      const wCat = Math.max(10, 13 * S);
+      const wCat = Math.max(18, 22 * S);
       const wT = Math.max(6, 8 * S);
       const wRep = Math.max(10, 14 * S);
       const wKg = Math.max(12, 16 * S);
       const wEx = mainW - (wNum + wCat + wT * freq + wRep + wKg);
+      const catFont = Math.max(4.6, ROW_FONT - 1.2);
 
       const colStyles: Record<number, Record<string, unknown>> = {
         0: { cellWidth: wNum, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
-        1: { cellWidth: wCat, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+        1: {
+          cellWidth: wCat,
+          halign: "center",
+          fontStyle: "bold",
+          textColor: INK_SOFT,
+          overflow: "linebreak",
+          fontSize: catFont,
+        },
         2: { cellWidth: wEx, overflow: "ellipsize", fontStyle: "bold" },
       };
       for (let i = 0; i < freq; i++) {
@@ -577,11 +585,8 @@ export async function exportWendler531PDF({
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 10;
-  const gutter = 4;
-  const freqColW = 22;
   const mainX = margin;
-  const mainW = pageW - margin * 2 - freqColW - gutter;
-  const freqX = mainX + mainW + gutter;
+  const mainW = pageW - margin * 2;
   const bottomY = pageH - margin;
 
   doc.addPage();
@@ -591,7 +596,6 @@ export async function exportWendler531PDF({
     if (y + needed > bottomY) {
       doc.addPage();
       y = drawHeader(doc, student, mainX, mainW, margin);
-      drawFrequenciaColumn(doc, freqX, freqColW, margin, bottomY, data.frequencia, 4);
     }
   };
 
@@ -705,7 +709,9 @@ export async function exportWendler531PDF({
       doc.text("AUXILIARES", mainX, y + 3);
       y += 4.6;
 
-      const body = dia.auxiliares.map((a) => [
+      const body = dia.auxiliares.map((a, idx) => [
+        String(idx + 1),
+        (a.categoria || "").toUpperCase(),
         cleanName(a.exercicio) || "—",
         String(a.series ?? ""),
         a.reps ?? "",
@@ -719,6 +725,8 @@ export async function exportWendler531PDF({
         tableWidth: mainW,
         theme: "plain",
         head: [[
+          { content: "#", styles: { halign: "center" as const } },
+          { content: "CAT", styles: { halign: "center" as const } },
           { content: "EXERCÍCIO", styles: { halign: "left" as const } },
           { content: "SÉRIES", styles: { halign: "center" as const } },
           { content: "REPS", styles: { halign: "center" as const } },
@@ -741,10 +749,12 @@ export async function exportWendler531PDF({
           lineColor: INK,
         },
         columnStyles: {
-          0: { fontStyle: "bold" },
-          1: { cellWidth: 20, halign: "center" },
-          2: { cellWidth: 26, halign: "center" },
-          3: { cellWidth: 26, halign: "right", fontStyle: "bold" },
+          0: { cellWidth: 10, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+          1: { cellWidth: 26, halign: "center", fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak", fontSize: 7 },
+          2: { fontStyle: "bold" },
+          3: { cellWidth: 20, halign: "center" },
+          4: { cellWidth: 26, halign: "center" },
+          5: { cellWidth: 26, halign: "right", fontStyle: "bold" },
         },
         didParseCell: (hd) => {
           if (hd.section === "body") {
