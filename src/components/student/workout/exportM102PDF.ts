@@ -247,29 +247,69 @@ export async function exportM102PDF({
       y = sectionBar(doc, titulo, undefined, mainX, y, mainW, Math.max(5.0, 6.0 * S));
 
       const wNum2 = Math.max(6, 8 * S);
+      const wCat2 = Math.max(14, 18 * S);
       const wSer = Math.max(14, 20 * S);
       const wRep2 = Math.max(16, 22 * S);
       const wKg2 = Math.max(16, 22 * S);
-      const wEx2 = mainW - (wNum2 + wSer + wRep2 + wKg2);
+      const wEx2 = mainW - (wNum2 + wCat2 + wSer + wRep2 + wKg2);
+      const catFont2 = Math.max(4.6, ROW_FONT - 1.2);
 
+      const head = [[
+        { content: "#", styles: { halign: "center" as const } },
+        { content: "CAT", styles: { halign: "center" as const } },
+        { content: "EXERCÍCIO", styles: { halign: "left" as const } },
+        { content: "SÉRIES", styles: { halign: "center" as const } },
+        { content: "REP.", styles: { halign: "center" as const } },
+        { content: "KG", styles: { halign: "right" as const } },
+      ]];
+
+      const commonColStyles: Record<number, Record<string, unknown>> = {
+        0: { cellWidth: wNum2, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+        1: {
+          cellWidth: wCat2,
+          halign: "center",
+          fontStyle: "bold",
+          textColor: INK_SOFT,
+          overflow: "linebreak",
+          fontSize: catFont2,
+        },
+        2: { cellWidth: wEx2, fontStyle: "bold" },
+        3: { cellWidth: wSer, halign: "center" },
+        4: { cellWidth: wRep2, halign: "center" },
+        5: { cellWidth: wKg2, halign: "right", fontStyle: "bold" },
+      };
+
+      const commonStyles = {
+        fontSize: ROW_FONT,
+        cellPadding: { top: ROW_PAD, bottom: ROW_PAD, left: SIDE_PAD, right: SIDE_PAD },
+        textColor: INK,
+        lineColor: INK,
+        lineWidth: 0,
+        overflow: "ellipsize" as const,
+        minCellHeight: 0,
+      };
+      const commonHeadStyles = {
+        fillColor: WHITE,
+        textColor: INK,
+        fontStyle: "bold" as const,
+        fontSize: HEAD_FONT,
+        cellPadding: { top: HEAD_PAD, bottom: HEAD_PAD, left: SIDE_PAD, right: SIDE_PAD },
+        lineWidth: { bottom: 0.3 } as unknown as number,
+        lineColor: INK,
+      };
+
+      // Bloco 1: levantamentos básicos
       const baseRows = M102_SLOT_LEVANTAMENTOS[slot].map((b, idx) => {
         const info = M102_LEV_BASE[b.levantamento];
         return [
           String(idx + 1),
+          info.categoria,
           `${b.levantamento.toUpperCase()} — ${cleanName(info.nome)}`,
           "PLANILHA",
           "PLANILHA",
           "PLANILHA",
         ];
       });
-      const accRows = tr.acessorios.map((a, idx) => [
-        String(baseRows.length + idx + 1),
-        cleanName(a.exercicio) || "—",
-        String(a.series ?? ""),
-        a.reps ?? "",
-        a.kg ?? "",
-      ]);
-      const body = [...baseRows, ...accRows];
 
       autoTable(doc, {
         startY: y,
@@ -278,53 +318,60 @@ export async function exportM102PDF({
         theme: "plain",
         pageBreak: "avoid",
         rowPageBreak: "avoid",
-        head: [[
-          { content: "#", styles: { halign: "center" as const } },
-          { content: "EXERCÍCIO", styles: { halign: "left" as const } },
-          { content: "SÉRIES", styles: { halign: "center" as const } },
-          { content: "REP.", styles: { halign: "center" as const } },
-          { content: "KG", styles: { halign: "right" as const } },
-        ]],
-        body,
-        styles: {
-          fontSize: ROW_FONT,
-          cellPadding: { top: ROW_PAD, bottom: ROW_PAD, left: SIDE_PAD, right: SIDE_PAD },
-          textColor: INK,
-          lineColor: INK,
-          lineWidth: 0,
-          overflow: "ellipsize",
-          minCellHeight: 0,
-        },
-        headStyles: {
-          fillColor: WHITE,
-          textColor: INK,
-          fontStyle: "bold",
-          fontSize: HEAD_FONT,
-          cellPadding: { top: HEAD_PAD, bottom: HEAD_PAD, left: SIDE_PAD, right: SIDE_PAD },
-          lineWidth: { bottom: 0.3 } as unknown as number,
-          lineColor: INK,
-        },
+        head,
+        body: baseRows,
+        styles: commonStyles,
+        headStyles: commonHeadStyles,
         alternateRowStyles: { fillColor: SURFACE },
-        columnStyles: {
-          0: { cellWidth: wNum2, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
-          1: { cellWidth: wEx2, fontStyle: "bold" },
-          2: { cellWidth: wSer, halign: "center" },
-          3: { cellWidth: wRep2, halign: "center" },
-          4: { cellWidth: wKg2, halign: "right", fontStyle: "bold" },
-        },
+        columnStyles: commonColStyles,
         didParseCell: (hd) => {
           if (hd.section === "body") {
             hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.2, left: 0 } as unknown as number;
             hd.cell.styles.lineColor = INK_SOFT;
-            // Marca linhas de levantamento base com destaque em cinza claro para "PLANILHA".
-            if (hd.row.index < baseRows.length && hd.column.index >= 2) {
+            if (hd.column.index >= 3) {
               hd.cell.styles.textColor = INK_MUTED;
               hd.cell.styles.fontStyle = "italic";
             }
           }
         },
       });
-      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 1.4;
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 0.8;
+
+      // Bloco 2: acessórios (renumerados)
+      if (tr.acessorios.length > 0) {
+        const accRows = tr.acessorios.map((a, idx) => [
+          String(idx + 1),
+          (a.categoria || "").toUpperCase(),
+          cleanName(a.exercicio) || "—",
+          String(a.series ?? ""),
+          a.reps ?? "",
+          a.kg ?? "",
+        ]);
+
+        autoTable(doc, {
+          startY: y,
+          margin: { left: mainX, right: pageW - (mainX + mainW) },
+          tableWidth: mainW,
+          theme: "plain",
+          pageBreak: "avoid",
+          rowPageBreak: "avoid",
+          head,
+          body: accRows,
+          styles: commonStyles,
+          headStyles: commonHeadStyles,
+          alternateRowStyles: { fillColor: SURFACE },
+          columnStyles: commonColStyles,
+          didParseCell: (hd) => {
+            if (hd.section === "body") {
+              hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.2, left: 0 } as unknown as number;
+              hd.cell.styles.lineColor = INK_SOFT;
+            }
+          },
+        });
+        y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 1.4;
+      } else {
+        y += 0.6;
+      }
     });
 
     if (doc.getNumberOfPages() === 1) break;
