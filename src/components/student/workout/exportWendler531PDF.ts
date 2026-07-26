@@ -709,7 +709,9 @@ export async function exportWendler531PDF({
       doc.text("AUXILIARES", mainX, y + 3);
       y += 4.6;
 
-      const body = dia.auxiliares.map((a) => [
+      const body = dia.auxiliares.map((a, idx) => [
+        String(idx + 1),
+        (a.categoria || "").toUpperCase(),
         cleanName(a.exercicio) || "—",
         String(a.series ?? ""),
         a.reps ?? "",
@@ -723,6 +725,8 @@ export async function exportWendler531PDF({
         tableWidth: mainW,
         theme: "plain",
         head: [[
+          { content: "#", styles: { halign: "center" as const } },
+          { content: "CAT", styles: { halign: "center" as const } },
           { content: "EXERCÍCIO", styles: { halign: "left" as const } },
           { content: "SÉRIES", styles: { halign: "center" as const } },
           { content: "REPS", styles: { halign: "center" as const } },
@@ -745,10 +749,12 @@ export async function exportWendler531PDF({
           lineColor: INK,
         },
         columnStyles: {
-          0: { fontStyle: "bold" },
-          1: { cellWidth: 20, halign: "center" },
-          2: { cellWidth: 26, halign: "center" },
-          3: { cellWidth: 26, halign: "right", fontStyle: "bold" },
+          0: { cellWidth: 10, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+          1: { cellWidth: 26, halign: "center", fontStyle: "bold", textColor: INK_SOFT, overflow: "linebreak", fontSize: 7 },
+          2: { fontStyle: "bold" },
+          3: { cellWidth: 20, halign: "center" },
+          4: { cellWidth: 26, halign: "center" },
+          5: { cellWidth: 26, halign: "right", fontStyle: "bold" },
         },
         didParseCell: (hd) => {
           if (hd.section === "body") {
