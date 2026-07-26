@@ -178,6 +178,7 @@ export function Prescricao531Editor({
       }
       setSavingLabel("Rascunho salvo");
       setDirty(false);
+      onSaved?.();
       setTimeout(() => setSavingLabel(""), 1500);
     } catch (e) {
       setSavingLabel("");
