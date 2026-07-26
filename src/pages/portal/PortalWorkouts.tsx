@@ -1105,6 +1105,27 @@ function PortalM102View({
                   </ul>
                 </div>
               )}
+
+              {(st.phase === "regular" || st.phase === "readyForTest") && (
+                <div className="pt-1 space-y-1">
+                  <button
+                    onClick={() => handleConcluirSlot(slot)}
+                    disabled={concluindoSlot !== null || !agendamentoHoje}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {concluindoSlot === slot ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Concluindo…</>
+                    ) : (
+                      <><CheckCircle2 className="w-4 h-4" /> Concluir esta sessão ({slot})</>
+                    )}
+                  </button>
+                  {!agendamentoHoje && (
+                    <p className="text-[10px] text-warning text-center">
+                      Precisa de um treino agendado para hoje para concluir.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </section>
         );
