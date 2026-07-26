@@ -1012,7 +1012,9 @@ function PortalM102View({
                   {lifts.map((l) => l.levantamento).join(" + ")}
                 </p>
               </div>
-              <span className="text-[11px] text-muted-foreground tabular-nums">{done}/11</span>
+              <span className="text-[11px] text-muted-foreground tabular-nums">
+                {st.phase === "concluded" ? "11/11 + teste" : `${Math.min(done, 11)}/11`}
+              </span>
             </div>
             <div className="p-3 space-y-3">
               {st.phase === "concluded" && (
@@ -1116,7 +1118,7 @@ function PortalM102View({
                     {concluindoSlot === slot ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Concluindo…</>
                     ) : (
-                      <><CheckCircle2 className="w-4 h-4" /> Concluir esta sessão ({slot})</>
+                      <><CheckCircle2 className="w-4 h-4" /> {st.phase === "readyForTest" ? `Concluir teste (${slot})` : `Concluir esta sessão (${slot})`}</>
                     )}
                   </button>
                   {!agendamentoHoje && (
