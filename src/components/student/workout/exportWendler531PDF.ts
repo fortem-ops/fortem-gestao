@@ -350,22 +350,22 @@ export async function exportWendler531PDF({
               // Divisória mais grossa/escura entre exercícios.
               hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.25, left: 0 } as unknown as number;
               hd.cell.styles.lineColor = INK_SOFT;
-              if (hd.column.index >= 1 && hd.column.index < 1 + freq) {
+              if (hd.column.index >= 3 && hd.column.index < 3 + freq) {
                 if (hd.cell.text?.[0] === CHECK) hd.cell.text = [""];
               }
             }
           },
           didDrawCell: (hd) => {
-            if (hd.section === "body" && hd.column.index >= 1 && hd.column.index < 1 + freq) {
+            if (hd.section === "body" && hd.column.index >= 3 && hd.column.index < 3 + freq) {
               const row = items[hd.row.index];
-              const tKey = `T${hd.column.index - 1 + 1}`;
+              const tKey = `T${hd.column.index - 3 + 1}`;
               if (row?.dias?.includes(tKey)) {
                 const cx = hd.cell.x + hd.cell.width / 2;
                 const cy = hd.cell.y + hd.cell.height / 2;
                 doc.setFillColor(...RED_SOFT);
                 doc.circle(cx, cy, Math.max(0.7, ROW_FONT * 0.13), "F");
               }
-              if (hd.column.index > 1) {
+              if (hd.column.index > 3) {
                 const x = hd.cell.x;
                 doc.setDrawColor(...RULE);
                 doc.setLineWidth(0.12);
