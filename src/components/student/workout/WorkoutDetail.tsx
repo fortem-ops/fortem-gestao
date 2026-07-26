@@ -96,6 +96,7 @@ export function WorkoutDetail({ treino, templateData, fase, alunoId, student, on
         initialTreinoId={treino.id}
         initial={treino.conteudo as unknown as Wendler531Conteudo}
         onBack={onBack}
+        onSaved={onSaved}
       />
     );
   }
