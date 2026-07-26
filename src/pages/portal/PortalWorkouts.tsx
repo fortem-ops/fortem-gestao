@@ -1118,7 +1118,7 @@ function PortalM102View({
                     {concluindoSlot === slot ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Concluindo…</>
                     ) : (
-                      <><CheckCircle2 className="w-4 h-4" /> Concluir esta sessão ({slot})</>
+                      <><CheckCircle2 className="w-4 h-4" /> {st.phase === "readyForTest" ? `Concluir teste (${slot})` : `Concluir esta sessão (${slot})`}</>
                     )}
                   </button>
                   {!agendamentoHoje && (
