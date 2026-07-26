@@ -40,6 +40,9 @@ import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector"
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { CATEGORY_LABELS } from "@/components/student/workout/workoutTemplates";
 import { SUBCATEGORIA_TO_CODE } from "@/lib/exerciseMapping";
+import { exportM102PDF } from "./exportM102PDF";
+import type { Tables } from "@/integrations/supabase/types";
+
 
 const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
   { key: "LIB", label: "Liberação (LIB)" },
