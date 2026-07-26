@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles, PlayCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, CheckCircle2, Sparkles, PlayCircle, FileDown, Printer } from "lucide-react";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 import {
@@ -40,6 +40,9 @@ import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector"
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { CATEGORY_LABELS } from "@/components/student/workout/workoutTemplates";
 import { SUBCATEGORIA_TO_CODE } from "@/lib/exerciseMapping";
+import { exportM102PDF } from "./exportM102PDF";
+import type { Tables } from "@/integrations/supabase/types";
+
 
 const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
   { key: "LIB", label: "Liberação (LIB)" },
@@ -311,7 +314,23 @@ export function PrescricaoM102Editor({
     }
   };
 
+  // ── Exportar PDF / Imprimir ────────────────────────────────
+  const handleExport = async (mode: "download" | "print") => {
+    try {
+      const { data: aluno } = await supabase
+        .from("alunos")
+        .select("*")
+        .eq("id", alunoId)
+        .maybeSingle();
+      const student = (aluno ?? { id: alunoId, nome: alunoNome }) as Tables<"alunos">;
+      await exportM102PDF({ student, data, print: mode === "print" });
+    } catch (e) {
+      toast.error("Erro ao gerar PDF: " + (e instanceof Error ? e.message : String(e)));
+    }
+  };
+
   // ── Preview ao vivo por slot ────────────────────────────────
+
   const renderPreviewSlot = (slot: M102Slot) => {
     const done = sessionCounts[slot];
     const pairDone = sessionCounts[pairOf(slot)];
@@ -407,6 +426,12 @@ export function PrescricaoM102Editor({
               {savingLabel}
             </span>
           )}
+          <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
+            <FileDown className="w-3 h-3 mr-1" /> PDF
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => handleExport("print")}>
+            <Printer className="w-3 h-3 mr-1" /> Imprimir
+          </Button>
           <Button onClick={handlePublish} disabled={publishing}>
             {publishing ? (
               <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -417,6 +442,8 @@ export function PrescricaoM102Editor({
           </Button>
         </div>
       </div>
+
+
 
       {/* Configuração */}
       <Card>
