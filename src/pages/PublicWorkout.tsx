@@ -121,16 +121,23 @@ export default function PublicWorkout() {
 
   const is531 =
     treino?.template_fase === "5-3-1" || isWendler531(treino?.conteudo ?? null);
+  const isM102Treino =
+    treino?.template_fase === "M102" || isM102(treino?.conteudo ?? null);
 
   const data = useMemo<WorkoutData | null>(() => {
-    if (!treino?.conteudo || is531) return null;
+    if (!treino?.conteudo || is531 || isM102Treino) return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531]);
+  }, [treino, is531, isM102Treino]);
 
   const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
     if (!treino?.conteudo || !is531) return null;
     return treino.conteudo as unknown as Wendler531Conteudo;
   }, [treino, is531]);
+
+  const m102Data = useMemo<M102Conteudo | null>(() => {
+    if (!treino?.conteudo || !isM102Treino) return null;
+    return treino.conteudo as unknown as M102Conteudo;
+  }, [treino, isM102Treino]);
 
   const openVideo = (url: string, title: string) => {
     if (isYouTubeUrl(url)) {
@@ -150,7 +157,7 @@ export default function PublicWorkout() {
     );
   }
 
-  if (error || !treino || (!data && !wendlerData)) {
+  if (error || !treino || (!data && !wendlerData && !m102Data)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3 max-w-sm">
@@ -172,6 +179,10 @@ export default function PublicWorkout() {
         data={wendlerData}
       />
     );
+  }
+
+  if (m102Data) {
+    return <M102Public treino={treino} aluno={aluno} data={m102Data} />;
   }
 
   // Group warm-up by category
