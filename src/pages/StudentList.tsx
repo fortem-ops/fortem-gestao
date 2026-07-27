@@ -215,18 +215,20 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         })
       );
       const creditos: any[] = [];
-      for (const part of chunk(ids, CHUNK)) {
-        const { data, error } = await supabase
-          .from("creditos_aluno" as any)
-          .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
-          .in("aluno_id", part)
-          .eq("ativo", true);
-        if (error) {
-          console.error("Erro ao buscar créditos dos alunos:", error, { chunkSize: part.length });
-          throw error;
-        }
-        creditos.push(...((data as any[]) || []));
-      }
+      await Promise.all(
+        chunk(ids, CHUNK).map(async (part) => {
+          const { data, error } = await supabase
+            .from("creditos_aluno" as any)
+            .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
+            .in("aluno_id", part)
+            .eq("ativo", true);
+          if (error) {
+            console.error("Erro ao buscar créditos dos alunos:", error, { chunkSize: part.length });
+            throw error;
+          }
+          creditos.push(...((data as any[]) || []));
+        })
+      );
       const licencas: any[] = [];
       for (const part of chunk(ids, CHUNK)) {
         const { data, error } = await supabase
