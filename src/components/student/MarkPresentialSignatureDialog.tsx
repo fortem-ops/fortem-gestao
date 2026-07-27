@@ -82,7 +82,7 @@ function mapPlanoTipoToEnum(tipo: string | null | undefined): PlanoTipo | null {
 }
 
 
-function mergeAluno(html: string, student: Aluno, dataAssinatura: Date): { conteudo: string; vars: Record<string, string> } {
+function mergeAluno(html: string, student: Aluno, dataAssinatura: Date, cpfCompleto: string): { conteudo: string; vars: Record<string, string> } {
   const s = student as any;
   const endereco = [s.logradouro, s.numero].filter(Boolean).join(", ");
   const dataNasc = s.data_nascimento
@@ -93,7 +93,7 @@ function mergeAluno(html: string, student: Aluno, dataAssinatura: Date): { conte
     : "";
   const vars: Record<string, string> = {
     NOME: s.nome ?? "",
-    CPF: s.cpf ?? "",
+    CPF: cpfCompleto,
     RG: s.rg ?? "",
     EMAIL: s.email ?? "",
     DATA_NASCIMENTO: dataNasc,
