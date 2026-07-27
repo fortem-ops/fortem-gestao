@@ -61,11 +61,13 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
       setDescricao(existing.descricao || "");
       setData(existing.data_limite ? new Date(existing.data_limite + "T00:00:00") : new Date());
       setPrioridade((existing.prioridade as any) || "media");
+      setTipoAtividade(((existing as any).tipo_atividade as TipoAtividade) || "tarefa");
     } else {
       setTitulo("");
       setDescricao("");
       setData(new Date());
       setPrioridade("media");
+      setTipoAtividade("tarefa");
     }
   }, [existing, open]);
 
