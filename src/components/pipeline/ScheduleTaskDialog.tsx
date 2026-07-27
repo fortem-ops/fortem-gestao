@@ -35,6 +35,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
   const [descricao, setDescricao] = useState("");
   const [data, setData] = useState<Date | undefined>(new Date());
   const [prioridade, setPrioridade] = useState<"alta" | "media" | "baixa">("media");
+  const [tipoAtividade, setTipoAtividade] = useState<TipoAtividade>("tarefa");
   const [saving, setSaving] = useState(false);
 
   const { data: existing } = useQuery({
