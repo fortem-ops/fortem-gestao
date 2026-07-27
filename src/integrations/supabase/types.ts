@@ -7283,6 +7283,7 @@ export type Database = {
       }
       fn_reveal_annex_cpf: { Args: { p_annex_id: string }; Returns: string }
       fn_reveal_cpf: { Args: { p_aluno_id: string }; Returns: string }
+      fn_reveal_cpf_service: { Args: { p_aluno_id: string }; Returns: string }
       fn_reveal_profile_cpf: { Args: { p_user_id: string }; Returns: string }
       fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
       fn_staff_excluir_treino_agendamento: {
