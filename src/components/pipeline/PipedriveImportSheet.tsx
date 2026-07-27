@@ -68,13 +68,27 @@ export function PipedriveImportSheet({ open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("pipeline_stages")
-        .select("id, name, funnel, position")
+        .select("id, name, funnel_id, position")
         .order("position");
       return data || [];
     },
     staleTime: 5 * 60_000,
     enabled: open,
   });
+
+  const funnelsQ = useQuery({
+    queryKey: ["pipeline-funnels-all-import"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("pipeline_funnels")
+        .select("id,slug,label,position,is_active")
+        .order("position");
+      return (data || []) as { id: string; slug: string; label: string; position: number; is_active: boolean }[];
+    },
+    enabled: open,
+    staleTime: 5 * 60_000,
+  });
+
 
   const existingMapping = useQuery({
     queryKey: ["pipedrive-stage-mapping"],
