@@ -80,9 +80,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const forceReadyTimer = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     forceReadyTimer.current = setTimeout(() => {
-      console.warn("[StudentList] Timeout de segurança ativado após 10s — forçando renderização.");
+      console.warn("[StudentList] Timeout de segurança ativado após 20s — forçando renderização.");
       setForceReady(true);
-    }, 10000);
+    }, 20000);
     return () => {
       if (forceReadyTimer.current) clearTimeout(forceReadyTimer.current);
     };
@@ -183,58 +183,66 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const CHUNK = 300;
 
       const planos: any[] = [];
-      for (const part of chunk(ids, CHUNK)) {
-        const { data, error } = await supabase
-          .from("planos")
-          .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
-          .in("aluno_id", part)
-          .eq("ativo", true);
-        if (error) {
-          console.error("[StudentList] Erro ao buscar planos dos alunos (continuando sem planos):", error, { chunkSize: part.length });
-          // Não quebra toda a query; alunos sem planos aparecerão como encerrados.
-          continue;
-        }
-        planos.push(...(data || []));
-      }
+      await Promise.all(
+        chunk(ids, CHUNK).map(async (part) => {
+          const { data, error } = await supabase
+            .from("planos")
+            .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
+            .in("aluno_id", part)
+            .eq("ativo", true);
+          if (error) {
+            console.error("[StudentList] Erro ao buscar planos dos alunos (continuando sem planos):", error, { chunkSize: part.length });
+            // Não quebra toda a query; alunos sem planos aparecerão como encerrados.
+            return;
+          }
+          planos.push(...(data || []));
+        })
+      );
       console.log("[StudentList] Total planos ativos retornados:", planos.length);
       const planoIds = planos.map((p: any) => p.id);
       const consumos: any[] = [];
-      for (const part of chunk(planoIds, CHUNK)) {
-        const { data, error } = await supabase
-          .from("consumo_servicos")
-          .select("aluno_id, plano_id, tipo_servico, tipo_registro, quantidade, agenda_id")
-          .in("plano_id", part);
-        if (error) {
-          console.error("Erro ao buscar consumo de serviços:", error, { chunkSize: part.length });
-          throw error;
-        }
-        consumos.push(...(data || []));
-      }
+      await Promise.all(
+        chunk(planoIds, CHUNK).map(async (part) => {
+          const { data, error } = await supabase
+            .from("consumo_servicos")
+            .select("aluno_id, plano_id, tipo_servico, tipo_registro, quantidade, agenda_id")
+            .in("plano_id", part);
+          if (error) {
+            console.error("Erro ao buscar consumo de serviços:", error, { chunkSize: part.length });
+            throw error;
+          }
+          consumos.push(...(data || []));
+        })
+      );
       const creditos: any[] = [];
-      for (const part of chunk(ids, CHUNK)) {
-        const { data, error } = await supabase
-          .from("creditos_aluno" as any)
-          .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
-          .in("aluno_id", part)
-          .eq("ativo", true);
-        if (error) {
-          console.error("Erro ao buscar créditos dos alunos:", error, { chunkSize: part.length });
-          throw error;
-        }
-        creditos.push(...((data as any[]) || []));
-      }
+      await Promise.all(
+        chunk(ids, CHUNK).map(async (part) => {
+          const { data, error } = await supabase
+            .from("creditos_aluno" as any)
+            .select("aluno_id, origem_tipo, atividade, quantidade_inicial, quantidade_usada, ilimitado")
+            .in("aluno_id", part)
+            .eq("ativo", true);
+          if (error) {
+            console.error("Erro ao buscar créditos dos alunos:", error, { chunkSize: part.length });
+            throw error;
+          }
+          creditos.push(...((data as any[]) || []));
+        })
+      );
       const licencas: any[] = [];
-      for (const part of chunk(ids, CHUNK)) {
-        const { data, error } = await supabase
-          .from("aluno_licencas" as any)
-          .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
-          .in("aluno_id", part);
-        if (error) {
-          console.error("Erro ao buscar licenças dos alunos:", error, { chunkSize: part.length });
-          throw error;
-        }
-        licencas.push(...((data as any[]) || []));
-      }
+      await Promise.all(
+        chunk(ids, CHUNK).map(async (part) => {
+          const { data, error } = await supabase
+            .from("aluno_licencas" as any)
+            .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
+            .in("aluno_id", part);
+          if (error) {
+            console.error("Erro ao buscar licenças dos alunos:", error, { chunkSize: part.length });
+            throw error;
+          }
+          licencas.push(...((data as any[]) || []));
+        })
+      );
 
       const licencasMap: Record<string, AlunoLicenca[]> = {};
       ((licencas as unknown as AlunoLicenca[]) || []).forEach((l) => {
