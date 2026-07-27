@@ -1,5 +1,6 @@
-// Validação e checagem de unicidade de CPF para todos os fluxos de cadastro/edição de alunos.
+// Validação e checagem de unicidade de CPF (agora via cpf_hash).
 import { supabase } from "@/integrations/supabase/client";
+import { hashCpfClient } from "@/lib/clube";
 
 export function normalizeCpf(cpf: string | null | undefined): string {
   return (cpf ?? "").replace(/\D/g, "");
@@ -24,7 +25,7 @@ export interface ExistingAlunoByCpf {
 }
 
 /**
- * Busca aluno existente com o mesmo CPF (ignorando máscara).
+ * Busca aluno existente com o mesmo CPF (via cpf_hash).
  * `excludeId` permite ignorar o próprio aluno durante edição.
  */
 export async function findAlunoByCpf(
@@ -33,13 +34,11 @@ export async function findAlunoByCpf(
 ): Promise<ExistingAlunoByCpf | null> {
   const digits = normalizeCpf(cpf);
   if (digits.length !== 11) return null;
-  // Match com ou sem máscara — compara dígitos puros.
-  const masked =
-    digits.slice(0, 3) + "." + digits.slice(3, 6) + "." + digits.slice(6, 9) + "-" + digits.slice(9);
+  const hash = await hashCpfClient(digits);
   let q = supabase
     .from("alunos")
     .select("id, nome")
-    .in("cpf", [digits, masked])
+    .eq("cpf_hash", hash)
     .limit(1);
   if (excludeId) q = q.neq("id", excludeId);
   const { data } = await q;
@@ -55,10 +54,7 @@ export function translateCpfDbError(error: unknown): string | null {
   if (!error || typeof error !== "object") return null;
   const msg = String((error as any).message ?? "");
   const code = String((error as any).code ?? "");
-  if (code === "23505" && msg.includes("alunos_cpf_unique_idx")) {
-    return "CPF já cadastrado no sistema.";
-  }
-  if (msg.includes("alunos_cpf_unique_idx")) {
+  if (code === "23505" && (msg.includes("cpf_hash") || msg.includes("alunos_cpf"))) {
     return "CPF já cadastrado no sistema.";
   }
   return null;
