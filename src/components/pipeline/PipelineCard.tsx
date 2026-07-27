@@ -102,7 +102,9 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
         className={cn(
           "group relative rounded-lg border border-border bg-card p-3 cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors overflow-hidden",
           isDragging && "opacity-50 shadow-xl ring-2 ring-primary/50",
+          overdue && !isDragging && "ring-1 ring-destructive/60 border-destructive/40",
         )}
+      
       >
         {/* Dot temperatura no topo direito */}
         <TooltipProvider delayDuration={200}>
