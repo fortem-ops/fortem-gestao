@@ -269,10 +269,14 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
               const temp = computeTemperature(last);
               const tipo = (r.next_task?.tipo_atividade as TipoAtividade) || "tarefa";
               const NextIcon = r.next_task ? (ATIVIDADE_CONFIG[tipo]?.icon || Bell) : null;
+              const diasNaEtapa = r.last_moved_at
+                ? Math.floor((Date.now() - new Date(r.last_moved_at).getTime()) / 86400000)
+                : null;
+              const overdue = diasNaEtapa != null && isStageOverdue(diasNaEtapa, r.stage_sla_dias);
               return (
                 <TableRow
                   key={r.id}
-                  className="cursor-pointer"
+                  className={cn("cursor-pointer", overdue && "bg-destructive/5 hover:bg-destructive/10")}
                   onClick={() => { setDrawerStudent(r); setDrawerOpen(true); }}
                 >
                   <TableCell>
@@ -283,12 +287,26 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
                   </TableCell>
                   <TableCell className="font-medium text-foreground">{r.nome}</TableCell>
                   <TableCell>
-                    {r.current_stage_name && (
-                      <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px]", colors.bg, colors.border, colors.text)}>
-                        <span className={cn("w-1.5 h-1.5 rounded-full", colors.dot)} />
-                        {r.current_stage_name}
-                      </span>
-                    )}
+                    <div className="inline-flex items-center gap-1.5">
+                      {r.current_stage_name && (
+                        <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px]", colors.bg, colors.border, colors.text)}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", colors.dot)} />
+                          {r.current_stage_name}
+                        </span>
+                      )}
+                      {overdue && (
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Nesta etapa há {diasNaEtapa}d (SLA: {r.stage_sla_dias}d)
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{r.responsavel_nome || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums text-emerald-300">
