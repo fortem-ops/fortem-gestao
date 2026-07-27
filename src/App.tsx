@@ -521,7 +521,7 @@ const App = () => (
                 <Route path="planos" element={<Suspense fallback={<RouteFallback />}><RelatoriosPlanos /></Suspense>} />
                 <Route path="cancelamentos" element={<Suspense fallback={<RouteFallback />}><RelatoriosCancelamentos /></Suspense>} />
                 <Route path="servicos" element={<Suspense fallback={<RouteFallback />}><RelatoriosServicos /></Suspense>} />
-                <Route path="crm" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="CRM" /></Suspense>} />
+                <Route path="crm" element={<Suspense fallback={<RouteFallback />}><RelatoriosCRM /></Suspense>} />
                 <Route path="tecnicos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Técnicos" /></Suspense>} />
                 <Route path="equipe" element={<Suspense fallback={<RouteFallback />}><RelatoriosEquipe /></Suspense>} />
               </Route>
