@@ -590,7 +590,7 @@ export async function loadImportContext(status: ImportStatus): Promise<ImportCon
   if (!user) throw new Error("Você precisa estar logado.");
 
   const [{ data: existing }, { data: roles }] = await Promise.all([
-    supabase.from("alunos").select("email, telefone, cpf, nome"),
+    supabase.from("alunos").select("email, telefone, cpf_hash, nome"),
     supabase.from("user_roles").select("user_id, role").in("role", ["professor", "coordenador", "admin"]),
   ]);
 
