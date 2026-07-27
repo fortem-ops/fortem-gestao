@@ -183,19 +183,21 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const CHUNK = 300;
 
       const planos: any[] = [];
-      for (const part of chunk(ids, CHUNK)) {
-        const { data, error } = await supabase
-          .from("planos")
-          .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
-          .in("aluno_id", part)
-          .eq("ativo", true);
-        if (error) {
-          console.error("[StudentList] Erro ao buscar planos dos alunos (continuando sem planos):", error, { chunkSize: part.length });
-          // Não quebra toda a query; alunos sem planos aparecerão como encerrados.
-          continue;
-        }
-        planos.push(...(data || []));
-      }
+      await Promise.all(
+        chunk(ids, CHUNK).map(async (part) => {
+          const { data, error } = await supabase
+            .from("planos")
+            .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
+            .in("aluno_id", part)
+            .eq("ativo", true);
+          if (error) {
+            console.error("[StudentList] Erro ao buscar planos dos alunos (continuando sem planos):", error, { chunkSize: part.length });
+            // Não quebra toda a query; alunos sem planos aparecerão como encerrados.
+            return;
+          }
+          planos.push(...(data || []));
+        })
+      );
       console.log("[StudentList] Total planos ativos retornados:", planos.length);
       const planoIds = planos.map((p: any) => p.id);
       const consumos: any[] = [];
