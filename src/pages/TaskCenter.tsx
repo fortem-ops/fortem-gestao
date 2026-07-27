@@ -226,6 +226,17 @@ function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => v
         </DialogHeader>
         <div className="space-y-4">
           <div>
+            <Label>Tipo de atividade</Label>
+            <AtividadeTipoSelector
+              value={tipoAtividade}
+              onChange={(t) => {
+                setTipoAtividade(t);
+                if (!titulo.trim()) setTitulo(ATIVIDADE_CONFIG[t].defaultTitle);
+              }}
+              className="mt-1"
+            />
+          </div>
+          <div>
             <Label>Título</Label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} />
           </div>
