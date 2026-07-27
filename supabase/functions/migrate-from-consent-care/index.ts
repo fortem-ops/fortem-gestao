@@ -133,10 +133,18 @@ Deno.serve(async (req) => {
       } else {
         for (const r of rows) {
           try {
+            const cpfDigits = String(r.cpf ?? "").replace(/\D/g, "");
+            const cpfHashBuf = await crypto.subtle.digest(
+              "SHA-256",
+              new TextEncoder().encode(cpfDigits),
+            );
+            const cpfHash = Array.from(new Uint8Array(cpfHashBuf))
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join("");
             const { data: existing } = await admin
               .from("legal_annexes")
               .select("id")
-              .eq("cpf", r.cpf)
+              .eq("cpf_hash", cpfHash)
               .eq("signed_at", r.signed_at)
               .maybeSingle();
             if (existing) {
