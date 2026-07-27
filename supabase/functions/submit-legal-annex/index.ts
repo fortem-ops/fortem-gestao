@@ -153,10 +153,11 @@ Deno.serve(async (req) => {
     const documentType = body.document_type === "experimental" ? "experimental" : "anexo";
 
     // Upsert by CPF + document_type
+    const cpfHash = await sha256Hex(cpfDigits);
     const { data: existing } = await supabaseAdmin
       .from("legal_annexes")
       .select("id, email")
-      .eq("cpf", cpfDigits)
+      .eq("cpf_hash", cpfHash)
       .eq("document_type", documentType)
       .order("signed_at", { ascending: false })
       .limit(1)
