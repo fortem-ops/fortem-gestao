@@ -89,6 +89,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
           descricao: descricao.trim() || null,
           data_limite,
           prioridade,
+          tipo_atividade: tipoAtividade,
         }).eq("id", existing.id);
         if (error) throw error;
         toast.success("Tarefa reagendada");
@@ -101,6 +102,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
           criado_por_id: user.id,
           data_limite,
           prioridade,
+          tipo_atividade: tipoAtividade,
           status: "pendente",
         });
         if (error) throw error;
