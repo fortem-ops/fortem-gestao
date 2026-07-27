@@ -21,6 +21,7 @@ interface Stage {
   color: string;
   is_active: boolean;
   funnel_id: string;
+  sla_dias: number | null;
 }
 
 const COLOR_KEYS = Object.keys(STAGE_COLORS);
