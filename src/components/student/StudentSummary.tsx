@@ -931,7 +931,12 @@ export function StudentSummary({ student }: { student: Aluno }) {
               <FileText className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">CPF</span>
             </div>
-            <p className="text-sm font-semibold text-foreground font-mono">{(student as any).cpf || "Não informado"}</p>
+            <CpfRevealField
+              alunoId={student.id}
+              cpfUltimos3={cpfUltimos3}
+              isCoordAdmin={isCoordAdmin}
+              isAdmin={isAdmin}
+            />
           </div>
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
