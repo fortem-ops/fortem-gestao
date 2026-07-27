@@ -20,6 +20,7 @@ interface Stage {
   color: string;
   funnel_id: string;
   probabilidade: number | null;
+  sla_dias: number | null;
 }
 
 interface PipelineKanbanProps {
@@ -103,7 +104,7 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel_id,probabilidade")
+        .select("id,name,position,color,funnel_id,probabilidade,sla_dias")
         .eq("is_active", true)
         .eq("funnel_id", funnelId)
         .order("position") as any);
@@ -118,7 +119,7 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel_id,probabilidade")
+        .select("id,name,position,color,funnel_id,probabilidade,sla_dias")
         .eq("is_active", true)
         .order("position") as any);
       if (error) throw error;
@@ -126,6 +127,12 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
     },
     staleTime: 5 * 60_000,
   });
+
+  const slaByStageId = useMemo(() => {
+    const m: Record<string, number | null> = {};
+    allStages.forEach((s) => { m[s.id] = s.sla_dias; });
+    return m;
+  }, [allStages]);
 
   const { data: funnels = [] } = usePipelineFunnels({ includeInactive: true });
   const funnelSlugById = useMemo(() => {
@@ -207,8 +214,8 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
   }, [metadata]);
 
   const filtered = useMemo(
-    () => filterPipelineAlunos(alunos as any[], filters, metaMap, lastMovesMap, user?.id),
-    [alunos, filters, metaMap, lastMovesMap, user],
+    () => filterPipelineAlunos(alunos as any[], filters, metaMap, lastMovesMap, user?.id, slaByStageId),
+    [alunos, filters, metaMap, lastMovesMap, user, slaByStageId],
   );
 
   const byStage = useMemo(() => {
@@ -228,6 +235,7 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
         current_stage_name: stage?.name,
         current_stage_probabilidade: stage?.probabilidade ?? null,
         current_funnel: stage ? (funnelSlugById[stage.funnel_id] || funnelSlug) : funnelSlug,
+        stage_sla_dias: stage?.sla_dias ?? null,
         meta: metaMap[a.id],
         last_moved_at: lastMovesMap[a.id],
         next_task: nextTasksMap[a.id] || null,

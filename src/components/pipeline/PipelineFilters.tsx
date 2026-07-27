@@ -3,10 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Flame, AlarmClock, CalendarRange, User, Users } from "lucide-react";
+import { Search, Flame, AlarmClock, CalendarRange, User, Users, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type QuickFilter = "todos" | "meus" | "quentes" | "parados" | "semana";
+export type QuickFilter = "todos" | "meus" | "quentes" | "parados" | "semana" | "atrasados";
 
 export interface PipelineFiltersValue {
   search: string;
@@ -25,6 +25,7 @@ const QUICK_OPTIONS: { id: QuickFilter; label: string; icon: any }[] = [
   { id: "meus", label: "Meus leads", icon: User },
   { id: "quentes", label: "Quentes", icon: Flame },
   { id: "parados", label: "Parados", icon: AlarmClock },
+  { id: "atrasados", label: "Atrasados", icon: AlertTriangle },
   { id: "semana", label: "Esta semana", icon: CalendarRange },
 ];
 

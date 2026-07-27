@@ -3982,6 +3982,7 @@ export type Database = {
           name: string
           position: number
           probabilidade: number | null
+          sla_dias: number | null
         }
         Insert: {
           color?: string
@@ -3992,6 +3993,7 @@ export type Database = {
           name: string
           position: number
           probabilidade?: number | null
+          sla_dias?: number | null
         }
         Update: {
           color?: string
@@ -4002,6 +4004,7 @@ export type Database = {
           name?: string
           position?: number
           probabilidade?: number | null
+          sla_dias?: number | null
         }
         Relationships: [
           {

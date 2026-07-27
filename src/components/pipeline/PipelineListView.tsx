@@ -6,11 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowDown, ArrowUp, ArrowUpDown, Bell } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Bell, AlertTriangle } from "lucide-react";
 import {
   stageColor, formatCurrencyBRL, formatDaysAgo, formatNextAction,
   computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL, ATIVIDADE_CONFIG,
-  filterPipelineAlunos, usePipelineFunnels, type TipoAtividade,
+  filterPipelineAlunos, usePipelineFunnels, isStageOverdue, type TipoAtividade,
 } from "@/lib/pipeline";
 import { PipelineLeadDrawer } from "./PipelineLeadDrawer";
 import type { PipelineCardData } from "./PipelineCard";
@@ -24,6 +24,7 @@ interface Stage {
   color: string;
   funnel_id: string;
   probabilidade: number | null;
+  sla_dias: number | null;
 }
 
 interface Props {
@@ -49,7 +50,7 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel_id,probabilidade")
+        .select("id,name,position,color,funnel_id,probabilidade,sla_dias")
         .eq("is_active", true)
         .eq("funnel_id", funnelId)
         .order("position") as any);
@@ -64,7 +65,7 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel_id,probabilidade")
+        .select("id,name,position,color,funnel_id,probabilidade,sla_dias")
         .eq("is_active", true)
         .order("position") as any);
       if (error) throw error;
@@ -72,6 +73,12 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
     },
     staleTime: 5 * 60_000,
   });
+
+  const slaByStageId = useMemo(() => {
+    const m: Record<string, number | null> = {};
+    allStages.forEach((s) => { m[s.id] = s.sla_dias; });
+    return m;
+  }, [allStages]);
 
   const { data: funnels = [] } = usePipelineFunnels({ includeInactive: true });
   const funnelSlugById = useMemo(() => {
@@ -161,7 +168,7 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
   const rows: PipelineCardData[] = useMemo(() => {
     const stageIds = new Set(stages.map((s) => s.id));
     const inFunnel = (alunos as any[]).filter((a) => a.current_pipeline_stage_id && stageIds.has(a.current_pipeline_stage_id));
-    const filtered = filterPipelineAlunos(inFunnel, filters, metaMap, lastMovesMap, user?.id);
+    const filtered = filterPipelineAlunos(inFunnel, filters, metaMap, lastMovesMap, user?.id, slaByStageId);
     return filtered.map((a: any) => {
       const stage = stageById[a.current_pipeline_stage_id];
       return {
@@ -174,12 +181,13 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
         current_stage_name: stage?.name,
         current_stage_probabilidade: stage?.probabilidade ?? null,
         current_funnel: stage ? (funnelSlugById[stage.funnel_id] || funnelSlug) : funnelSlug,
+        stage_sla_dias: stage?.sla_dias ?? null,
         meta: metaMap[a.id],
         last_moved_at: lastMovesMap[a.id],
         next_task: nextTasksMap[a.id] || null,
       };
     });
-  }, [alunos, stages, stageById, filters, metaMap, lastMovesMap, profilesMap, nextTasksMap, funnelSlugById, funnelSlug, user]);
+  }, [alunos, stages, stageById, filters, metaMap, lastMovesMap, profilesMap, nextTasksMap, funnelSlugById, funnelSlug, user, slaByStageId]);
 
   const sorted = useMemo(() => {
     const dir = sortDir === "asc" ? 1 : -1;
@@ -261,10 +269,14 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
               const temp = computeTemperature(last);
               const tipo = (r.next_task?.tipo_atividade as TipoAtividade) || "tarefa";
               const NextIcon = r.next_task ? (ATIVIDADE_CONFIG[tipo]?.icon || Bell) : null;
+              const diasNaEtapa = r.last_moved_at
+                ? Math.floor((Date.now() - new Date(r.last_moved_at).getTime()) / 86400000)
+                : null;
+              const overdue = diasNaEtapa != null && isStageOverdue(diasNaEtapa, r.stage_sla_dias);
               return (
                 <TableRow
                   key={r.id}
-                  className="cursor-pointer"
+                  className={cn("cursor-pointer", overdue && "bg-destructive/5 hover:bg-destructive/10")}
                   onClick={() => { setDrawerStudent(r); setDrawerOpen(true); }}
                 >
                   <TableCell>
@@ -275,12 +287,26 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
                   </TableCell>
                   <TableCell className="font-medium text-foreground">{r.nome}</TableCell>
                   <TableCell>
-                    {r.current_stage_name && (
-                      <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px]", colors.bg, colors.border, colors.text)}>
-                        <span className={cn("w-1.5 h-1.5 rounded-full", colors.dot)} />
-                        {r.current_stage_name}
-                      </span>
-                    )}
+                    <div className="inline-flex items-center gap-1.5">
+                      {r.current_stage_name && (
+                        <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px]", colors.bg, colors.border, colors.text)}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", colors.dot)} />
+                          {r.current_stage_name}
+                        </span>
+                      )}
+                      {overdue && (
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Nesta etapa há {diasNaEtapa}d (SLA: {r.stage_sla_dias}d)
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{r.responsavel_nome || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums text-emerald-300">

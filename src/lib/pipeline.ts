@@ -213,14 +213,22 @@ export interface PipelineFilterInput {
   search: string;
   professorId: string | null;
   origem: string | null;
-  quick: "todos" | "meus" | "quentes" | "parados" | "semana";
+  quick: "todos" | "meus" | "quentes" | "parados" | "semana" | "atrasados";
 }
-export function filterPipelineAlunos<T extends { id: string; nome: string; responsavel_id?: string | null; telefone?: string | null; email?: string | null }>(
+
+/** Retorna true se o lead está atrasado na etapa (dias corridos > SLA). Null/undefined SLA = sem alerta. */
+export function isStageOverdue(diasNaEtapa: number, slaDias: number | null | undefined): boolean {
+  if (slaDias == null) return false;
+  return diasNaEtapa > slaDias;
+}
+
+export function filterPipelineAlunos<T extends { id: string; nome: string; responsavel_id?: string | null; telefone?: string | null; email?: string | null; current_pipeline_stage_id?: string | null }>(
   alunos: T[],
   filters: PipelineFilterInput,
   metaMap: Record<string, any>,
   lastMovesMap: Record<string, string | undefined>,
   currentUserId: string | null | undefined,
+  slaByStageId?: Record<string, number | null>,
 ): T[] {
   const term = (filters.search || "").trim().toLowerCase();
   const termDigits = term.replace(/\D/g, "");
@@ -251,6 +259,15 @@ export function filterPipelineAlunos<T extends { id: string; nome: string; respo
     }
     if (filters.quick === "semana") {
       if (!isThisWeek(lastMovesMap[a.id])) return false;
+    }
+    if (filters.quick === "atrasados") {
+      const stageId = a.current_pipeline_stage_id;
+      const sla = stageId && slaByStageId ? slaByStageId[stageId] : null;
+      if (sla == null) return false;
+      const lm = lastMovesMap[a.id];
+      if (!lm) return false;
+      const dias = Math.floor((Date.now() - new Date(lm).getTime()) / 86400000);
+      if (!isStageOverdue(dias, sla)) return false;
     }
     return true;
   });

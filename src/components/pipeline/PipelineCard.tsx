@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { User, Clock, CalendarPlus, CheckCircle2, XCircle, RefreshCw, Bell, Ban } from "lucide-react";
+import { User, Clock, CalendarPlus, CheckCircle2, XCircle, RefreshCw, Bell, Ban, AlertTriangle } from "lucide-react";
 import {
   formatDaysAgo, type NextTaskInfo, type Funnel,
   PLANO_BADGE_CLASSES, computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL,
   formatCurrencyBRL, formatNextAction, ATIVIDADE_CONFIG, type TipoAtividade,
+  isStageOverdue,
 } from "@/lib/pipeline";
 import { ScheduleTaskDialog } from "./ScheduleTaskDialog";
 import { ConvertToAlunoDialog } from "./ConvertToAlunoDialog";
@@ -27,6 +28,7 @@ export interface PipelineCardData {
   current_stage_name?: string;
   current_stage_probabilidade?: number | null;
   current_funnel?: Funnel;
+  stage_sla_dias?: number | null;
   meta?: {
     plano_interesse?: string | null;
     temperatura_lead?: string | null;
@@ -77,6 +79,13 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
 
   const valor = Number(student.meta?.valor_estimado_plano || 0);
 
+  // SLA / atraso na etapa atual
+  const diasNaEtapa = student.last_moved_at
+    ? Math.floor((Date.now() - new Date(student.last_moved_at).getTime()) / 86400000)
+    : null;
+  const overdue = diasNaEtapa != null && isStageOverdue(diasNaEtapa, student.stage_sla_dias);
+
+
   return (
     <>
       <div
@@ -93,7 +102,9 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
         className={cn(
           "group relative rounded-lg border border-border bg-card p-3 cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors overflow-hidden",
           isDragging && "opacity-50 shadow-xl ring-2 ring-primary/50",
+          overdue && !isDragging && "ring-1 ring-destructive/60 border-destructive/40",
         )}
+      
       >
         {/* Dot temperatura no topo direito */}
         <TooltipProvider delayDuration={200}>
@@ -111,7 +122,21 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
             <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground truncate">{student.nome}</p>
+            <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
+              {overdue && (
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      Nesta etapa há {diasNaEtapa}d (SLA: {student.stage_sla_dias}d)
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <span className="truncate">{student.nome}</span>
+            </p>
             {student.responsavel_nome && (
               <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
                 <User className="w-3 h-3" /> {student.responsavel_nome}
