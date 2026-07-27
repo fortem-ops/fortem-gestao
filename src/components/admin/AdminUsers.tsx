@@ -275,7 +275,7 @@ export function AdminUsers() {
       email: emailByUserId.get(p.user_id) || "",
       phone: p.phone || "",
       specialty: p.specialty || "",
-      cpf: p.cpf ? maskCPF(p.cpf) : "",
+      cpf: "",
       pis_pasep: p.pis_pasep ? maskPIS(p.pis_pasep) : "",
       changePassword: false,
       password: "",
