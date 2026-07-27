@@ -80,9 +80,9 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
   const forceReadyTimer = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     forceReadyTimer.current = setTimeout(() => {
-      console.warn("[StudentList] Timeout de segurança ativado após 10s — forçando renderização.");
+      console.warn("[StudentList] Timeout de segurança ativado após 20s — forçando renderização.");
       setForceReady(true);
-    }, 10000);
+    }, 20000);
     return () => {
       if (forceReadyTimer.current) clearTimeout(forceReadyTimer.current);
     };
