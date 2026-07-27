@@ -16,6 +16,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 import { RescheduleDialog } from "@/components/tasks/RescheduleDialog";
 import { getTaskActionTarget } from "@/lib/taskAction";
+import { AtividadeTipoSelector } from "@/components/pipeline/AtividadeTipoSelector";
+import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -32,6 +34,7 @@ interface TaskRow {
   data_limite: string | null;
   automatica: boolean;
   tipo_auto: string | null;
+  tipo_atividade: string | null;
   aluno_id: string | null;
   responsavel_id: string;
   responsavel_nome?: string;
@@ -134,6 +137,15 @@ function TaskList({
                   Automática
                 </Badge>
               )}
+              {task.tipo_atividade && task.tipo_atividade !== "tarefa" && ATIVIDADE_CONFIG[task.tipo_atividade as TipoAtividade] && (() => {
+                const cfg = ATIVIDADE_CONFIG[task.tipo_atividade as TipoAtividade];
+                const Icon = cfg.icon;
+                return (
+                  <Badge variant="outline" className="text-[10px] shrink-0 gap-1">
+                    <Icon className="w-3 h-3" /> {cfg.label}
+                  </Badge>
+                );
+              })()}
               <Badge
                 variant="outline"
                 className={`text-xs shrink-0 ${priorityClass[task.prioridade] || ""}`}
@@ -157,6 +169,7 @@ function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => v
   const [prioridade, setPrioridade] = useState("media");
   const [dataLimite, setDataLimite] = useState("");
   const [responsavelId, setResponsavelId] = useState<string>(defaultResponsavelId || "");
+  const [tipoAtividade, setTipoAtividade] = useState<TipoAtividade>("tarefa");
 
   useEffect(() => {
     setResponsavelId(defaultResponsavelId || "");
@@ -182,6 +195,7 @@ function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => v
         data_limite: dataLimite || null,
         responsavel_id: responsavelId || user!.id,
         criado_por_id: user!.id,
+        tipo_atividade: tipoAtividade,
       });
       if (error) throw error;
     },
@@ -193,6 +207,7 @@ function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => v
       setPrioridade("media");
       setDataLimite("");
       setResponsavelId("");
+      setTipoAtividade("tarefa");
       onCreated();
     },
     onError: () => toast.error("Erro ao criar tarefa"),
@@ -210,6 +225,17 @@ function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => v
           <DialogTitle>Nova Tarefa</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div>
+            <Label>Tipo de atividade</Label>
+            <AtividadeTipoSelector
+              value={tipoAtividade}
+              onChange={(t) => {
+                setTipoAtividade(t);
+                if (!titulo.trim()) setTitulo(ATIVIDADE_CONFIG[t].defaultTitle);
+              }}
+              className="mt-1"
+            />
+          </div>
           <div>
             <Label>Título</Label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} />

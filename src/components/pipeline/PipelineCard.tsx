@@ -10,7 +10,7 @@ import { User, Clock, CalendarPlus, CheckCircle2, XCircle, RefreshCw, Bell, Ban 
 import {
   formatDaysAgo, type NextTaskInfo, type Funnel,
   PLANO_BADGE_CLASSES, computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL,
-  formatCurrencyBRL, formatNextAction,
+  formatCurrencyBRL, formatNextAction, ATIVIDADE_CONFIG, type TipoAtividade,
 } from "@/lib/pipeline";
 import { ScheduleTaskDialog } from "./ScheduleTaskDialog";
 import { ConvertToAlunoDialog } from "./ConvertToAlunoDialog";
@@ -158,14 +158,18 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
         )}
 
         {/* Próxima ação */}
-        {student.next_task && (
-          <div className="mt-2 flex items-center gap-1.5 rounded-md bg-muted/40 px-2 py-1">
-            <Bell className="w-3 h-3 text-primary shrink-0" />
-            <span className="text-[10.5px] text-foreground/90 truncate">
-              {formatNextAction(student.next_task.titulo, student.next_task.data_limite)}
-            </span>
-          </div>
-        )}
+        {student.next_task && (() => {
+          const tipo = (student.next_task.tipo_atividade as TipoAtividade) || "tarefa";
+          const Icon = ATIVIDADE_CONFIG[tipo]?.icon || Bell;
+          return (
+            <div className="mt-2 flex items-center gap-1.5 rounded-md bg-muted/40 px-2 py-1">
+              <Icon className="w-3 h-3 text-primary shrink-0" />
+              <span className="text-[10.5px] text-foreground/90 truncate">
+                {formatNextAction(student.next_task.titulo, student.next_task.data_limite)}
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Motivo de perda */}
         {isLostCard && student.motivo_perda && (

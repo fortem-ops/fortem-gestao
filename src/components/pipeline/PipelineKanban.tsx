@@ -187,14 +187,14 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
     queryFn: async () => {
       const { data } = await supabase
         .from("tarefas")
-        .select("id,aluno_id,titulo,data_limite")
+        .select("id,aluno_id,titulo,data_limite,tipo_atividade")
         .eq("status", "pendente")
         .not("aluno_id", "is", null)
         .order("data_limite", { ascending: true, nullsFirst: false })
         .limit(2000);
-      const map: Record<string, { id: string; titulo: string; data_limite: string | null }> = {};
+      const map: Record<string, { id: string; titulo: string; data_limite: string | null; tipo_atividade: string | null }> = {};
       (data || []).forEach((t: any) => {
-        if (!map[t.aluno_id]) map[t.aluno_id] = { id: t.id, titulo: t.titulo, data_limite: t.data_limite };
+        if (!map[t.aluno_id]) map[t.aluno_id] = { id: t.id, titulo: t.titulo, data_limite: t.data_limite, tipo_atividade: t.tipo_atividade };
       });
       return map;
     },

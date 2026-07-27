@@ -15,6 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { AtividadeTipoSelector } from "./AtividadeTipoSelector";
+import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
 
 const QUICK_TITLES = ["Ligar", "WhatsApp", "Confirmar avaliação", "Encerrar atendimento", "Follow-up", "Enviar proposta"];
 
@@ -33,6 +35,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
   const [descricao, setDescricao] = useState("");
   const [data, setData] = useState<Date | undefined>(new Date());
   const [prioridade, setPrioridade] = useState<"alta" | "media" | "baixa">("media");
+  const [tipoAtividade, setTipoAtividade] = useState<TipoAtividade>("tarefa");
   const [saving, setSaving] = useState(false);
 
   const { data: existing } = useQuery({
@@ -41,7 +44,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
     queryFn: async () => {
       const { data } = await supabase
         .from("tarefas")
-        .select("id,titulo,data_limite,prioridade,descricao")
+        .select("id,titulo,data_limite,prioridade,descricao,tipo_atividade")
         .eq("aluno_id", alunoId)
         .eq("status", "pendente")
         .order("data_limite", { ascending: true, nullsFirst: false })
@@ -58,11 +61,13 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
       setDescricao(existing.descricao || "");
       setData(existing.data_limite ? new Date(existing.data_limite + "T00:00:00") : new Date());
       setPrioridade((existing.prioridade as any) || "media");
+      setTipoAtividade(((existing as any).tipo_atividade as TipoAtividade) || "tarefa");
     } else {
       setTitulo("");
       setDescricao("");
       setData(new Date());
       setPrioridade("media");
+      setTipoAtividade("tarefa");
     }
   }, [existing, open]);
 
@@ -84,6 +89,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
           descricao: descricao.trim() || null,
           data_limite,
           prioridade,
+          tipo_atividade: tipoAtividade,
         }).eq("id", existing.id);
         if (error) throw error;
         toast.success("Tarefa reagendada");
@@ -96,6 +102,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
           criado_por_id: user.id,
           data_limite,
           prioridade,
+          tipo_atividade: tipoAtividade,
           status: "pendente",
         });
         if (error) throw error;
@@ -134,6 +141,17 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
         </DialogHeader>
 
         <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Tipo de atividade</Label>
+            <AtividadeTipoSelector
+              value={tipoAtividade}
+              onChange={(t) => {
+                setTipoAtividade(t);
+                if (!titulo.trim()) setTitulo(ATIVIDADE_CONFIG[t].defaultTitle);
+              }}
+              className="mt-1"
+            />
+          </div>
           <div>
             <Label className="text-xs">Título</Label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="O que fazer?" />
