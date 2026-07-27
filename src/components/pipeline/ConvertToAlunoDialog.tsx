@@ -65,12 +65,12 @@ export function ConvertToAlunoDialog({
     (async () => {
       const { data } = await supabase
         .from("alunos")
-        .select("cpf,email,cep,logradouro,numero,complemento,bairro,cidade,uf" as any)
+        .select("email,cep,logradouro,numero,complemento,bairro,cidade,uf" as any)
         .eq("id", alunoId)
         .maybeSingle();
       if (data) {
         const a: any = data;
-        setCpf(a.cpf || "");
+        setCpf("");
         setEmail(a.email || "");
         setCep(a.cep || "");
         setLogradouro(a.logradouro || "");
@@ -117,7 +117,6 @@ export function ConvertToAlunoDialog({
       const { error: e1 } = await supabase
         .from("alunos")
         .update({
-          cpf: normalizeCpf(cpf),
           email: email.trim(),
           cep: cep.trim() || null,
           logradouro: logradouro.trim() || null,
@@ -130,6 +129,12 @@ export function ConvertToAlunoDialog({
         } as any)
         .eq("id", alunoId);
       if (e1) { setBusy(false); return toast.error(translateCpfDbError(e1) ?? e1.message); }
+
+      const { error: eCpf } = await supabase.rpc("fn_update_cpf" as any, {
+        p_aluno_id: alunoId,
+        p_novo_cpf: normalizeCpf(cpf),
+      } as any);
+      if (eCpf) { setBusy(false); return toast.error(translateCpfDbError(eCpf) ?? eCpf.message); }
     } else {
       // Renovação: cria plano
       const inicio = new Date(dataInicio);

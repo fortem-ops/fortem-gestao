@@ -82,7 +82,7 @@ function mapPlanoTipoToEnum(tipo: string | null | undefined): PlanoTipo | null {
 }
 
 
-function mergeAluno(html: string, student: Aluno, dataAssinatura: Date): { conteudo: string; vars: Record<string, string> } {
+function mergeAluno(html: string, student: Aluno, dataAssinatura: Date, cpfCompleto: string): { conteudo: string; vars: Record<string, string> } {
   const s = student as any;
   const endereco = [s.logradouro, s.numero].filter(Boolean).join(", ");
   const dataNasc = s.data_nascimento
@@ -93,7 +93,7 @@ function mergeAluno(html: string, student: Aluno, dataAssinatura: Date): { conte
     : "";
   const vars: Record<string, string> = {
     NOME: s.nome ?? "",
-    CPF: s.cpf ?? "",
+    CPF: cpfCompleto,
     RG: s.rg ?? "",
     EMAIL: s.email ?? "",
     DATA_NASCIMENTO: dataNasc,
@@ -181,7 +181,16 @@ export function MarkPresentialSignatureDialog({ open, onOpenChange, student, con
           return;
         }
 
-        const { conteudo, vars } = mergeAluno(template.conteudo, student, date);
+        let cpfCompleto = "";
+        try {
+          const { data: cpfRpc, error: cpfErr } = await db.rpc("fn_reveal_cpf", { p_aluno_id: student.id });
+          if (cpfErr) throw cpfErr;
+          cpfCompleto = typeof cpfRpc === "string" ? cpfRpc : "";
+        } catch (revealErr) {
+          console.error("[MarkPresentialSignature] fn_reveal_cpf falhou:", revealErr);
+        }
+
+        const { conteudo, vars } = mergeAluno(template.conteudo, student, date, cpfCompleto);
 
         const { error: errIns } = await db.from("contratos_documentos").insert({
           contrato_id: contrato.id,
