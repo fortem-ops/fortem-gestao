@@ -187,7 +187,7 @@ const AnexosJuridicos = () => {
                         {isExp ? "Experimental" : "Anexo"}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm font-mono text-muted-foreground tabular-nums">{doc.cpf}</td>
+                    <td className="px-5 py-4 text-sm font-mono text-muted-foreground tabular-nums">{doc.cpf_ultimos3 ? `•••.•••.**${doc.cpf_ultimos3}` : "—"}</td>
                     <td className="px-5 py-4 text-sm text-muted-foreground">{new Date(doc.signed_at).toLocaleDateString("pt-BR")}</td>
                     <td className="px-5 py-4 text-sm text-muted-foreground">{doc.medical_status === "ok" ? "OK" : "Restrição"}</td>
                     <td className="px-5 py-4 text-sm text-muted-foreground">{isExp ? "—" : doc.image_usage ? "Sim" : "Não"}</td>
