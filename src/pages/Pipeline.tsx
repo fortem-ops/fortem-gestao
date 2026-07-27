@@ -4,14 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Settings2, ChevronDown, ChevronRight, RefreshCw, Plug } from "lucide-react";
+import { Settings2, ChevronDown, ChevronRight, RefreshCw, Plug, LayoutGrid, List } from "lucide-react";
 import { PipelineKanban } from "@/components/pipeline/PipelineKanban";
+import { PipelineListView } from "@/components/pipeline/PipelineListView";
 import { PipelineFilters, type PipelineFiltersValue } from "@/components/pipeline/PipelineFilters";
 import { ManageStagesDialog } from "@/components/pipeline/ManageStagesDialog";
 import { PipedriveImportSheet } from "@/components/pipeline/PipedriveImportSheet";
 import { usePipelineFunnels } from "@/lib/pipeline";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+const VIEW_STORAGE_KEY = "fortem_pipeline_view";
+type ViewMode = "kanban" | "lista";
 
 export default function Pipeline() {
   const { user } = useAuth();
@@ -21,6 +25,15 @@ export default function Pipeline() {
   const [manageOpen, setManageOpen] = useState(false);
   const [pipedriveOpen, setPipedriveOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === "undefined") return "kanban";
+    const v = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    return v === "lista" ? "lista" : "kanban";
+  });
+
+  useEffect(() => {
+    try { window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode); } catch {}
+  }, [viewMode]);
 
   const { data: funnels = [], isLoading: funnelsLoading } = usePipelineFunnels();
 
