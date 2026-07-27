@@ -20,6 +20,7 @@ interface Stage {
   color: string;
   funnel_id: string;
   probabilidade: number | null;
+  sla_dias: number | null;
 }
 
 interface PipelineKanbanProps {
