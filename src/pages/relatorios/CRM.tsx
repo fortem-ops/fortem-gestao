@@ -20,6 +20,9 @@ type Relatorio = {
   ciclo_vendas_dias: number | null;
   motivos_perda: MotivoRow[];
   tendencia_mensal: TendRow[];
+  convertidos_periodo: number | null;
+  perdidos_periodo: number | null;
+  taxa_ganho_pct: number | null;
 };
 
 const fmtMes = (d: string) =>
