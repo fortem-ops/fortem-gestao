@@ -20,6 +20,9 @@ type Relatorio = {
   ciclo_vendas_dias: number | null;
   motivos_perda: MotivoRow[];
   tendencia_mensal: TendRow[];
+  convertidos_periodo: number | null;
+  perdidos_periodo: number | null;
+  taxa_ganho_pct: number | null;
 };
 
 const fmtMes = (d: string) =>
@@ -70,11 +73,10 @@ export default function RelatoriosCRM() {
 
   const stats = useMemo(() => {
     const primeira = funil[0];
-    const ultima = funil[funil.length - 1];
     const perdidos = motivos.reduce((s, m) => s + Number(m.quantidade ?? 0), 0);
     return {
       leads: Number(primeira?.entradas ?? 0),
-      conversao: ultima?.conversao_pct ?? null,
+      taxaGanho: rel?.taxa_ganho_pct ?? null,
       ciclo: rel?.ciclo_vendas_dias ?? null,
       perdidos,
     };
@@ -124,10 +126,11 @@ export default function RelatoriosCRM() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard label="Leads no funil" value={stats.leads} icon={Users2} />
         <KpiCard
-          label="Taxa de conversão"
-          value={stats.conversao == null ? "—" : `${Number(stats.conversao).toFixed(1)}%`}
+          label="Taxa de ganho"
+          value={stats.taxaGanho == null ? "—" : `${Number(stats.taxaGanho).toFixed(1)}%`}
           icon={TrendingUp}
           tone="success"
+          hint="Ganhos ÷ (ganhos + perdas) no período"
         />
         <KpiCard
           label="Ciclo de vendas médio"
@@ -141,6 +144,11 @@ export default function RelatoriosCRM() {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-base">Funil de conversão</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Entradas = alunos que passaram por cada etapa no período. Como o funil não é sempre
+            linear (leads podem pular etapas ou retroceder), os números não são necessariamente
+            decrescentes.
+          </p>
         </CardHeader>
         <CardContent className="space-y-2">
           {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
