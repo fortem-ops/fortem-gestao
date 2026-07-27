@@ -98,10 +98,10 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, cpf, pis_pasep")
+        .select("full_name, pis_pasep")
         .eq("user_id", targetId!)
         .single();
-      return data as { full_name: string; cpf: string | null; pis_pasep: string | null } | null;
+      return data as { full_name: string; pis_pasep: string | null } | null;
     },
   });
   const meuNome = perfil?.full_name ?? "Eu";
