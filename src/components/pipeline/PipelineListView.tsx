@@ -6,11 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowDown, ArrowUp, ArrowUpDown, Bell } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Bell, AlertTriangle } from "lucide-react";
 import {
   stageColor, formatCurrencyBRL, formatDaysAgo, formatNextAction,
   computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL, ATIVIDADE_CONFIG,
-  filterPipelineAlunos, usePipelineFunnels, type TipoAtividade,
+  filterPipelineAlunos, usePipelineFunnels, isStageOverdue, type TipoAtividade,
 } from "@/lib/pipeline";
 import { PipelineLeadDrawer } from "./PipelineLeadDrawer";
 import type { PipelineCardData } from "./PipelineCard";
