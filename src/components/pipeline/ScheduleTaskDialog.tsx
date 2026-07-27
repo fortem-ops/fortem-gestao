@@ -15,6 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { AtividadeTipoSelector } from "./AtividadeTipoSelector";
+import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
 
 const QUICK_TITLES = ["Ligar", "WhatsApp", "Confirmar avaliação", "Encerrar atendimento", "Follow-up", "Enviar proposta"];
 
