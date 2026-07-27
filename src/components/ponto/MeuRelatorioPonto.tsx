@@ -404,16 +404,21 @@ export function MeuRelatorioPonto({ userId }: { userId?: string }) {
                 <ExportarRelatorioMenu
                   onCSV={() => handleExportDiario("csv")}
                   onXLSX={() => handleExportDiario("xlsx")}
-                  onPDF={() =>
+                  onPDF={async () => {
+                    let cpfFull: string | null = null;
+                    if (targetId) {
+                      const { data, error } = await supabase.rpc("fn_reveal_profile_cpf", { p_user_id: targetId });
+                      if (!error && typeof data === "string") cpfFull = data;
+                    }
                     gerarEspelhoPonto({
                       colaborador: meuNome,
-                      cpf: perfil?.cpf ?? null,
+                      cpf: cpfFull,
                       pisPasep: perfil?.pis_pasep ?? null,
                       periodoInicio: inicio,
                       periodoFim: fim,
                       jornadas: jornadasFiltradas as any,
-                    })
-                  }
+                    });
+                  }}
                   disabled={!jornadasFiltradas.length}
                 />
               </div>
