@@ -195,6 +195,7 @@ function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => v
         data_limite: dataLimite || null,
         responsavel_id: responsavelId || user!.id,
         criado_por_id: user!.id,
+        tipo_atividade: tipoAtividade,
       });
       if (error) throw error;
     },
@@ -206,6 +207,7 @@ function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => v
       setPrioridade("media");
       setDataLimite("");
       setResponsavelId("");
+      setTipoAtividade("tarefa");
       onCreated();
     },
     onError: () => toast.error("Erro ao criar tarefa"),
