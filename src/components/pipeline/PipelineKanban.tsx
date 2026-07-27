@@ -214,8 +214,8 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
   }, [metadata]);
 
   const filtered = useMemo(
-    () => filterPipelineAlunos(alunos as any[], filters, metaMap, lastMovesMap, user?.id),
-    [alunos, filters, metaMap, lastMovesMap, user],
+    () => filterPipelineAlunos(alunos as any[], filters, metaMap, lastMovesMap, user?.id, slaByStageId),
+    [alunos, filters, metaMap, lastMovesMap, user, slaByStageId],
   );
 
   const byStage = useMemo(() => {
@@ -235,6 +235,7 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
         current_stage_name: stage?.name,
         current_stage_probabilidade: stage?.probabilidade ?? null,
         current_funnel: stage ? (funnelSlugById[stage.funnel_id] || funnelSlug) : funnelSlug,
+        stage_sla_dias: stage?.sla_dias ?? null,
         meta: metaMap[a.id],
         last_moved_at: lastMovesMap[a.id],
         next_task: nextTasksMap[a.id] || null,
