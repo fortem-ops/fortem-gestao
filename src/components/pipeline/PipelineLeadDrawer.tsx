@@ -121,7 +121,7 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
   const stagesByFunnel = useMemo(() => {
     const curStage = stages.find((s) => s.name === student?.current_stage_name);
     if (!curStage) return [];
-    return stages.filter((s) => s.funnel === curStage.funnel).sort((a, b) => a.position - b.position);
+    return stages.filter((s) => s.funnel_id === curStage.funnel_id).sort((a, b) => a.position - b.position);
   }, [stages, student]);
 
   const nextStage = useMemo(() => {
