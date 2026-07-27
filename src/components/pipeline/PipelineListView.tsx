@@ -168,7 +168,7 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
   const rows: PipelineCardData[] = useMemo(() => {
     const stageIds = new Set(stages.map((s) => s.id));
     const inFunnel = (alunos as any[]).filter((a) => a.current_pipeline_stage_id && stageIds.has(a.current_pipeline_stage_id));
-    const filtered = filterPipelineAlunos(inFunnel, filters, metaMap, lastMovesMap, user?.id);
+    const filtered = filterPipelineAlunos(inFunnel, filters, metaMap, lastMovesMap, user?.id, slaByStageId);
     return filtered.map((a: any) => {
       const stage = stageById[a.current_pipeline_stage_id];
       return {
@@ -181,12 +181,13 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
         current_stage_name: stage?.name,
         current_stage_probabilidade: stage?.probabilidade ?? null,
         current_funnel: stage ? (funnelSlugById[stage.funnel_id] || funnelSlug) : funnelSlug,
+        stage_sla_dias: stage?.sla_dias ?? null,
         meta: metaMap[a.id],
         last_moved_at: lastMovesMap[a.id],
         next_task: nextTasksMap[a.id] || null,
       };
     });
-  }, [alunos, stages, stageById, filters, metaMap, lastMovesMap, profilesMap, nextTasksMap, funnelSlugById, funnelSlug, user]);
+  }, [alunos, stages, stageById, filters, metaMap, lastMovesMap, profilesMap, nextTasksMap, funnelSlugById, funnelSlug, user, slaByStageId]);
 
   const sorted = useMemo(() => {
     const dir = sortDir === "asc" ? 1 : -1;
