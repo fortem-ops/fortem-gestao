@@ -230,17 +230,19 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         })
       );
       const licencas: any[] = [];
-      for (const part of chunk(ids, CHUNK)) {
-        const { data, error } = await supabase
-          .from("aluno_licencas" as any)
-          .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
-          .in("aluno_id", part);
-        if (error) {
-          console.error("Erro ao buscar licenças dos alunos:", error, { chunkSize: part.length });
-          throw error;
-        }
-        licencas.push(...((data as any[]) || []));
-      }
+      await Promise.all(
+        chunk(ids, CHUNK).map(async (part) => {
+          const { data, error } = await supabase
+            .from("aluno_licencas" as any)
+            .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
+            .in("aluno_id", part);
+          if (error) {
+            console.error("Erro ao buscar licenças dos alunos:", error, { chunkSize: part.length });
+            throw error;
+          }
+          licencas.push(...((data as any[]) || []));
+        })
+      );
 
       const licencasMap: Record<string, AlunoLicenca[]> = {};
       ((licencas as unknown as AlunoLicenca[]) || []).forEach((l) => {
