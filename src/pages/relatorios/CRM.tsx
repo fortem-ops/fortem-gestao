@@ -126,10 +126,11 @@ export default function RelatoriosCRM() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard label="Leads no funil" value={stats.leads} icon={Users2} />
         <KpiCard
-          label="Taxa de conversão"
-          value={stats.conversao == null ? "—" : `${Number(stats.conversao).toFixed(1)}%`}
+          label="Taxa de ganho"
+          value={stats.taxaGanho == null ? "—" : `${Number(stats.taxaGanho).toFixed(1)}%`}
           icon={TrendingUp}
           tone="success"
+          hint="Ganhos ÷ (ganhos + perdas) no período"
         />
         <KpiCard
           label="Ciclo de vendas médio"
