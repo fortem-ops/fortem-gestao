@@ -417,25 +417,27 @@ export type ImportStatus = "ativo" | "encerrado" | "lead";
 export interface ImportContext {
   status: ImportStatus;
   currentUserId: string;
-  existing: { email: string | null; telefone: string | null; cpf: string | null; nome: string | null }[];
+  existing: { email: string | null; telefone: string | null; cpf_hash: string | null; nome: string | null }[];
   professorMap: Record<string, string>;
 }
 
-export function validateRows(rows: Record<string, string>[], ctx: ImportContext): ValidatedRow[] {
+export async function validateRows(rows: Record<string, string>[], ctx: ImportContext): Promise<ValidatedRow[]> {
+  const { hashCpfClient } = await import("@/lib/clube");
   const existingEmails = new Set(
     ctx.existing.map((a) => (a.email || "").trim().toLowerCase()).filter(Boolean)
   );
   const existingPhones = new Set(
     ctx.existing.map((a) => normalizePhone(a.telefone)).filter((p) => p.length >= 8)
   );
-  const existingCpfMap = new Map<string, string>();
+  const existingCpfHashMap = new Map<string, string>();
   ctx.existing.forEach((a) => {
-    const d = (a.cpf || "").replace(/\D/g, "");
-    if (d.length === 11) existingCpfMap.set(d, a.nome || "(sem nome)");
+    if (a.cpf_hash) existingCpfHashMap.set(a.cpf_hash, a.nome || "(sem nome)");
   });
   const seenCpfsInBatch = new Map<string, number>();
 
-  return rows.map((raw, i) => {
+  const out: ValidatedRow[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const raw = rows[i];
     const errors: string[] = [];
     const warnings: string[] = [];
     const result = rowSchema.safeParse(raw);
@@ -457,7 +459,8 @@ export function validateRows(rows: Record<string, string>[], ctx: ImportContext)
       }
       const cpfDigits = (parsed.cpf || "").replace(/\D/g, "");
       if (cpfDigits.length === 11) {
-        const existingNome = existingCpfMap.get(cpfDigits);
+        const hash = await hashCpfClient(cpfDigits);
+        const existingNome = existingCpfHashMap.get(hash);
         if (existingNome) {
           errors.push(`CPF já cadastrado para ${existingNome}.`);
         } else if (seenCpfsInBatch.has(cpfDigits)) {
@@ -467,9 +470,11 @@ export function validateRows(rows: Record<string, string>[], ctx: ImportContext)
         }
       }
     }
-    return { index: i + 1, raw, parsed, errors, warnings };
-  });
+    out.push({ index: i + 1, raw, parsed, errors, warnings });
+  }
+  return out;
 }
+
 
 export interface ImportResult {
   success: number;
@@ -511,7 +516,6 @@ export async function importStudents(
           frequencia_semanal:
             typeof p.frequencia_semanal === "number" ? p.frequencia_semanal : null,
           observacoes: p.observacoes || null,
-          cpf: p.cpf ? p.cpf.replace(/\D/g, "") : null,
           rg: p.rg || null,
           cep: p.cep ? p.cep.replace(/\D/g, "") : null,
           logradouro: p.logradouro || null,
@@ -526,6 +530,16 @@ export async function importStudents(
         .select("id")
         .single();
       if (error) throw error;
+
+      const cpfDigits = p.cpf ? p.cpf.replace(/\D/g, "") : "";
+      if (cpfDigits.length === 11 && aluno) {
+        const { error: cpfErr } = await supabase.rpc("fn_update_cpf", {
+          p_aluno_id: aluno.id,
+          p_novo_cpf: cpfDigits,
+        });
+        if (cpfErr) console.error("Erro ao gravar CPF (fn_update_cpf):", cpfErr);
+      }
+
 
       if (p.plano_tipo) {
         const plan = getPlanDetails(p.plano_tipo, p.plano_consultas || undefined);
@@ -576,7 +590,7 @@ export async function loadImportContext(status: ImportStatus): Promise<ImportCon
   if (!user) throw new Error("Você precisa estar logado.");
 
   const [{ data: existing }, { data: roles }] = await Promise.all([
-    supabase.from("alunos").select("email, telefone, cpf, nome"),
+    supabase.from("alunos").select("email, telefone, cpf_hash, nome"),
     supabase.from("user_roles").select("user_id, role").in("role", ["professor", "coordenador", "admin"]),
   ]);
 
