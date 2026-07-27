@@ -19,11 +19,14 @@ Deno.serve(async (req) => {
 
     const { data: aluno } = await sup
       .from("alunos")
-      .select("nome, cpf")
+      .select("nome")
       .eq("id", rec.aluno_id)
       .maybeSingle();
     if (!aluno) return jsonResponse({ error: "Aluno não encontrado" }, 404);
-    const cpf = onlyDigits(aluno.cpf);
+    const { data: cpfRevealed, error: cpfErr } = await sup.rpc("fn_reveal_cpf_service", { p_aluno_id: rec.aluno_id });
+    if (cpfErr) return jsonResponse({ error: `Falha ao obter CPF: ${cpfErr.message}` }, 500);
+    const cpf = onlyDigits(cpfRevealed);
+    if (cpf.length !== 11) return jsonResponse({ error: "Aluno sem CPF válido" }, 400);
 
     const payload = {
       idRec,
