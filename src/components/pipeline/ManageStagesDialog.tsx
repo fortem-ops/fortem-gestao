@@ -64,7 +64,7 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,is_active,funnel_id")
+        .select("id,name,position,color,is_active,funnel_id,sla_dias")
         .order("position") as any);
       if (error) throw error;
       return (data || []) as Stage[];
