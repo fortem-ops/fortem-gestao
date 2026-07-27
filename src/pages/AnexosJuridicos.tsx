@@ -56,9 +56,26 @@ const AnexosJuridicos = () => {
 
   const { data: annexes = [], isLoading, refetch } = useQuery({ queryKey: ["legal_annexes"], queryFn: fetchAnnexes });
 
-  const { data: alunosByCpf } = useQuery({
-    queryKey: ["alunos_by_cpf_all"],
-    queryFn: fetchAlunosByCpf,
+  const { data: alunosByCpfHash } = useQuery<Map<string, { id: string; nome: string }>>({
+    queryKey: ["alunos_by_cpf_hash_all"],
+    queryFn: fetchAlunosByCpfHash,
+  });
+
+  const { data: annexHashes } = useQuery<Map<string, string>>({
+    queryKey: ["legal_annex_cpf_hashes", annexes.map((a) => a.id).join(",")],
+    enabled: annexes.length > 0,
+    queryFn: async () => {
+      const map = new Map<string, string>();
+      await Promise.all(
+        annexes.map(async (a: any) => {
+          const digits = (a.cpf_hash as string | null) || null;
+          if (digits) { map.set(a.id, digits); return; }
+          const raw = (a.cpf || "").replace(/\D/g, "");
+          if (raw.length === 11) map.set(a.id, await hashCpfClient(raw));
+        }),
+      );
+      return map;
+    },
   });
 
   const handleImport = async () => {
