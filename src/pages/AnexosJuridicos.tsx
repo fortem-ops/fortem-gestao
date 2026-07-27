@@ -12,6 +12,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { hashCpfClient } from "@/lib/clube";
 
 type MedicalType = "ok" | "restricao";
 type DocType = "anexo" | "experimental";
