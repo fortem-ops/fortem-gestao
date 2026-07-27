@@ -65,18 +65,12 @@ export default function PortalContratos() {
     queryKey: ["portal-legal-annex", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      const cpfDigits = (student?.cpf ?? "").replace(/\D/g, "");
-      let query = supabase
+      const query = supabase
         .from("legal_annexes")
         .select("id, signed_at")
+        .eq("aluno_id", student!.id)
         .order("signed_at", { ascending: false, nullsFirst: false })
         .limit(1);
-
-      if (cpfDigits) {
-        query = query.or(`aluno_id.eq.${student!.id},cpf.eq.${cpfDigits}`);
-      } else {
-        query = query.eq("aluno_id", student!.id);
-      }
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
       return (data as LegalAnnexRow | null) ?? null;
