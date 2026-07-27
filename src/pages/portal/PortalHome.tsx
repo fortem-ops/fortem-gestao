@@ -249,7 +249,7 @@ export default function PortalHome() {
     queryKey: ["portal-home-pendencias", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      const cpfDigits = (student?.cpf ?? "").replace(/\D/g, "");
+      const cpfHash = (student as any)?.cpf_hash ?? "";
       const [contratoRes, anexoRes] = await Promise.all([
         supabase
           .from("contratos_documentos")
