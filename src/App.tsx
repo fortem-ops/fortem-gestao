@@ -61,6 +61,7 @@ const RelatoriosPlanos = lazy(() => import("./pages/relatorios/Planos"));
 const RelatoriosCancelamentos = lazy(() => import("./pages/relatorios/Cancelamentos"));
 const RelatoriosServicos = lazy(() => import("./pages/relatorios/Servicos"));
 const RelatoriosEmBreve = lazy(() => import("./pages/relatorios/EmBreve"));
+const RelatoriosCRM = lazy(() => import("./pages/relatorios/CRM"));
 const RelatoriosEquipe = lazy(() => import("./pages/relatorios/Equipe"));
 const WhatsApp = lazy(() => import("./pages/WhatsApp"));
 const Privacidade = lazy(() => import("./pages/Privacidade"));
