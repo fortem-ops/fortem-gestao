@@ -73,11 +73,10 @@ export default function RelatoriosCRM() {
 
   const stats = useMemo(() => {
     const primeira = funil[0];
-    const ultima = funil[funil.length - 1];
     const perdidos = motivos.reduce((s, m) => s + Number(m.quantidade ?? 0), 0);
     return {
       leads: Number(primeira?.entradas ?? 0),
-      conversao: ultima?.conversao_pct ?? null,
+      taxaGanho: rel?.taxa_ganho_pct ?? null,
       ciclo: rel?.ciclo_vendas_dias ?? null,
       perdidos,
     };
