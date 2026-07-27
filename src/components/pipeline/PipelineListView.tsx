@@ -50,7 +50,7 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel_id,probabilidade")
+        .select("id,name,position,color,funnel_id,probabilidade,sla_dias")
         .eq("is_active", true)
         .eq("funnel_id", funnelId)
         .order("position") as any);
@@ -65,7 +65,7 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel_id,probabilidade")
+        .select("id,name,position,color,funnel_id,probabilidade,sla_dias")
         .eq("is_active", true)
         .order("position") as any);
       if (error) throw error;
@@ -73,6 +73,12 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
     },
     staleTime: 5 * 60_000,
   });
+
+  const slaByStageId = useMemo(() => {
+    const m: Record<string, number | null> = {};
+    allStages.forEach((s) => { m[s.id] = s.sla_dias; });
+    return m;
+  }, [allStages]);
 
   const { data: funnels = [] } = usePipelineFunnels({ includeInactive: true });
   const funnelSlugById = useMemo(() => {
