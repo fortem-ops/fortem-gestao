@@ -137,6 +137,15 @@ function TaskList({
                   Automática
                 </Badge>
               )}
+              {task.tipo_atividade && task.tipo_atividade !== "tarefa" && ATIVIDADE_CONFIG[task.tipo_atividade as TipoAtividade] && (() => {
+                const cfg = ATIVIDADE_CONFIG[task.tipo_atividade as TipoAtividade];
+                const Icon = cfg.icon;
+                return (
+                  <Badge variant="outline" className="text-[10px] shrink-0 gap-1">
+                    <Icon className="w-3 h-3" /> {cfg.label}
+                  </Badge>
+                );
+              })()}
               <Badge
                 variant="outline"
                 className={`text-xs shrink-0 ${priorityClass[task.prioridade] || ""}`}
