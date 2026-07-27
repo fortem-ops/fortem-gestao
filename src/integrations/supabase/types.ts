@@ -360,8 +360,9 @@ export type Database = {
           cep: string | null
           cidade: string | null
           complemento: string | null
-          cpf: string | null
+          cpf_encrypted: string | null
           cpf_hash: string | null
+          cpf_ultimos3: string | null
           created_at: string
           current_pipeline_stage_id: string | null
           data_nascimento: string | null
@@ -389,8 +390,9 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           complemento?: string | null
-          cpf?: string | null
+          cpf_encrypted?: string | null
           cpf_hash?: string | null
+          cpf_ultimos3?: string | null
           created_at?: string
           current_pipeline_stage_id?: string | null
           data_nascimento?: string | null
@@ -418,8 +420,9 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           complemento?: string | null
-          cpf?: string | null
+          cpf_encrypted?: string | null
           cpf_hash?: string | null
+          cpf_ultimos3?: string | null
           created_at?: string
           current_pipeline_stage_id?: string | null
           data_nascimento?: string | null
@@ -7266,6 +7269,7 @@ export type Database = {
         Args: { _aluno_id: string; _fallback: string }
         Returns: string
       }
+      fn_reveal_cpf: { Args: { p_aluno_id: string }; Returns: string }
       fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
       fn_staff_excluir_treino_agendamento: {
         Args: { p_agendamento_id: string; p_estornar?: boolean }
@@ -7290,6 +7294,10 @@ export type Database = {
       fn_treino_variacao_atual: {
         Args: { p_aluno_id: string; p_treino_id: string }
         Returns: Json
+      }
+      fn_update_cpf: {
+        Args: { p_aluno_id: string; p_novo_cpf: string }
+        Returns: undefined
       }
       fn_user_can_see_notificacao: {
         Args: { _notif_id: string; _user_id: string }
