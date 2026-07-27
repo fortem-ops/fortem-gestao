@@ -26,7 +26,7 @@ import { waMeLink } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 import type { PipelineCardData } from "./PipelineCard";
 
-interface Stage { id: string; name: string; position: number; funnel: string; probabilidade: number | null }
+interface Stage { id: string; name: string; position: number; funnel_id: string; probabilidade: number | null }
 
 interface Props {
   open: boolean;
