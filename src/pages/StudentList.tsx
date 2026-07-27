@@ -30,7 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
 
 const ALUNOS_COLUMNS =
-  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id, cpf, rg, data_nascimento, cep, logradouro, cidade";
+  "id, nome, email, telefone, status, frequencia_semanal, responsavel_id, foto_url, user_id, current_pipeline_stage_id, cpf_ultimos3, rg, data_nascimento, cep, logradouro, cidade";
 
 function parseServiceCount(servicos: string[] | null, tipoServico: string): number {
   if (!servicos) return 0;
