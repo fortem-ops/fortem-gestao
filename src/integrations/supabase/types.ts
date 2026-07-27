@@ -3796,6 +3796,42 @@ export type Database = {
           },
         ]
       }
+      pipeline_funnels: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          label: string
+          position: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          label: string
+          position?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          label?: string
+          position?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pipeline_metadata: {
         Row: {
           aluno_id: string
@@ -3940,7 +3976,7 @@ export type Database = {
         Row: {
           color: string
           created_at: string
-          funnel: Database["public"]["Enums"]["pipeline_funnel"]
+          funnel_id: string
           id: string
           is_active: boolean
           name: string
@@ -3950,7 +3986,7 @@ export type Database = {
         Insert: {
           color?: string
           created_at?: string
-          funnel?: Database["public"]["Enums"]["pipeline_funnel"]
+          funnel_id: string
           id?: string
           is_active?: boolean
           name: string
@@ -3960,14 +3996,22 @@ export type Database = {
         Update: {
           color?: string
           created_at?: string
-          funnel?: Database["public"]["Enums"]["pipeline_funnel"]
+          funnel_id?: string
           id?: string
           is_active?: boolean
           name?: string
           position?: number
           probabilidade?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stages_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_funnels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pix_cobrancas: {
         Row: {
@@ -6662,7 +6706,7 @@ export type Database = {
           aluno_status: string | null
           from_stage: string | null
           from_stage_id: string | null
-          funnel: Database["public"]["Enums"]["pipeline_funnel"] | null
+          funnel: string | null
           moved_at: string | null
           moved_by_user_id: string | null
           movement_id: string | null

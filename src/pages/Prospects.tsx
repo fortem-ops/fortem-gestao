@@ -176,11 +176,11 @@ export default function Prospects() {
     queryFn: async () => {
       const inicioMes = startOfMonth(new Date()).toISOString();
       const fimMes = endOfMonth(new Date()).toISOString();
-      const { data: stagesAll } = await supabase
+      const { data: stagesAll } = await (supabase as any)
         .from("pipeline_stages")
-        .select("id,name,funnel");
+        .select("id,name,funnel_id,pipeline_funnels(slug)");
       const alunoAtivoId = stagesAll?.find((s: any) => s.name === "Aluno ativo")?.id;
-      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.funnel === "prospects").map((s: any) => s.id);
+      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.pipeline_funnels?.slug === "prospects").map((s: any) => s.id);
       if (!alunoAtivoId || !prospectFunnelIds.length) return 0;
       const { data: movs } = await supabase
         .from("pipeline_movements")
@@ -200,11 +200,11 @@ export default function Prospects() {
     queryKey: ["prospect-aluno-conversions-12m"],
     queryFn: async () => {
       const since = startOfMonth(subMonths(new Date(), 11)).toISOString();
-      const { data: stagesAll } = await supabase
+      const { data: stagesAll } = await (supabase as any)
         .from("pipeline_stages")
-        .select("id,name,funnel");
+        .select("id,name,funnel_id,pipeline_funnels(slug)");
       const alunoAtivoId = stagesAll?.find((s: any) => s.name === "Aluno ativo")?.id;
-      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.funnel === "prospects").map((s: any) => s.id);
+      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.pipeline_funnels?.slug === "prospects").map((s: any) => s.id);
       if (!alunoAtivoId) return [];
       const { data: movs } = await supabase
         .from("pipeline_movements")
@@ -239,11 +239,11 @@ export default function Prospects() {
     queryKey: ["prospects-origem-conversao-6m"],
     queryFn: async () => {
       const since = startOfMonth(subMonths(new Date(), 5));
-      const { data: stagesAll } = await supabase
+      const { data: stagesAll } = await (supabase as any)
         .from("pipeline_stages")
-        .select("id,name,funnel");
+        .select("id,name,funnel_id,pipeline_funnels(slug)");
       const alunoAtivoId = stagesAll?.find((s: any) => s.name === "Aluno ativo")?.id;
-      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.funnel === "prospects").map((s: any) => s.id);
+      const prospectFunnelIds = (stagesAll || []).filter((s: any) => s.pipeline_funnels?.slug === "prospects").map((s: any) => s.id);
       if (!alunoAtivoId || !prospectFunnelIds.length) return [];
       const { data: movs } = await supabase
         .from("pipeline_movements")

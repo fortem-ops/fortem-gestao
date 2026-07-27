@@ -68,13 +68,27 @@ export function PipedriveImportSheet({ open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("pipeline_stages")
-        .select("id, name, funnel, position")
+        .select("id, name, funnel_id, position")
         .order("position");
       return data || [];
     },
     staleTime: 5 * 60_000,
     enabled: open,
   });
+
+  const funnelsQ = useQuery({
+    queryKey: ["pipeline-funnels-all-import"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("pipeline_funnels")
+        .select("id,slug,label,position,is_active")
+        .order("position");
+      return (data || []) as { id: string; slug: string; label: string; position: number; is_active: boolean }[];
+    },
+    enabled: open,
+    staleTime: 5 * 60_000,
+  });
+
 
   const existingMapping = useQuery({
     queryKey: ["pipedrive-stage-mapping"],
@@ -124,14 +138,17 @@ export function PipedriveImportSheet({ open, onOpenChange }: Props) {
   const selectableVisible = visibleItems.filter((i) => !i.alreadyImported);
 
   const fortemStagesByFunnel = useMemo(() => {
-    const grouped: Record<string, { id: string; name: string }[]> = { prospects: [], aluno: [], inativo: [] };
+    // key = funnel_id
+    const grouped: Record<string, { id: string; name: string }[]> = {};
     (stages.data || []).forEach((s: any) => {
-      const f = s.funnel || "prospects";
+      const f = s.funnel_id;
+      if (!f) return;
       if (!grouped[f]) grouped[f] = [];
       grouped[f].push({ id: s.id, name: s.name });
     });
     return grouped;
   }, [stages.data]);
+
 
   async function handleFetch() {
     setLoadingList(true);
@@ -369,11 +386,11 @@ export function PipedriveImportSheet({ open, onOpenChange }: Props) {
                       <SelectTrigger className="w-[280px]"><SelectValue placeholder="Não mapeado (Novo lead)" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value={UNMAPPED}>Não mapeado · cai em "Novo lead"</SelectItem>
-                        {(["prospects", "aluno", "inativo"] as const).map((funnel) => (
-                          fortemStagesByFunnel[funnel]?.length ? (
-                            <SelectGroup key={funnel}>
-                              <SelectLabel className="capitalize">{funnel}</SelectLabel>
-                              {fortemStagesByFunnel[funnel].map((st) => (
+                        {(funnelsQ.data || []).map((funnel) => (
+                          fortemStagesByFunnel[funnel.id]?.length ? (
+                            <SelectGroup key={funnel.id}>
+                              <SelectLabel>{funnel.label}</SelectLabel>
+                              {fortemStagesByFunnel[funnel.id].map((st) => (
                                 <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
                               ))}
                             </SelectGroup>

@@ -1,12 +1,50 @@
 // Pipeline helpers: stage colors, wa.me links, formatters.
 
-export type Funnel = "prospects" | "aluno" | "inativo";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-export const FUNNELS: { id: Funnel; label: string; description: string }[] = [
-  { id: "prospects", label: "Prospects", description: "Do lead à conversão" },
-  { id: "aluno", label: "Aluno", description: "Ativo, risco e renovação" },
-  { id: "inativo", label: "Inativo", description: "Alunos inativos" },
-];
+/** Slug do funil (dinâmico agora — vinha do enum "prospects" | "aluno" | "inativo"). */
+export type Funnel = string;
+
+export interface PipelineFunnelRow {
+  id: string;
+  slug: string;
+  label: string;
+  description: string | null;
+  position: number;
+  is_system: boolean;
+  is_active: boolean;
+}
+
+/** Hook central: carrega funis ativos ordenados. Substitui a antiga constante FUNNELS. */
+export function usePipelineFunnels(opts?: { includeInactive?: boolean }) {
+  const includeInactive = !!opts?.includeInactive;
+  return useQuery<PipelineFunnelRow[]>({
+    queryKey: ["pipeline-funnels", includeInactive ? "all" : "active"],
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("pipeline_funnels")
+        .select("id,slug,label,description,position,is_system,is_active")
+        .order("position");
+      if (!includeInactive) q = q.eq("is_active", true);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data || []) as PipelineFunnelRow[];
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Gera um slug simples a partir de um label (remove acentos, espaços, símbolos). */
+export function slugifyFunnel(label: string): string {
+  return label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40) || "funil";
+}
 
 export const STAGE_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
   blue:    { bg: "bg-blue-500/10",    border: "border-blue-500/30",    text: "text-blue-300",    dot: "bg-blue-500" },

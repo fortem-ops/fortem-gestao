@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PipelineCard, type PipelineCardData } from "./PipelineCard";
 import { PipelineLeadDrawer } from "./PipelineLeadDrawer";
 import { MarkLostDialog } from "./MarkLostDialog";
-import { stageColor, type Funnel, isLostStage, formatCurrencyBRL, computeTemperature } from "@/lib/pipeline";
+import { stageColor, isLostStage, formatCurrencyBRL, computeTemperature, usePipelineFunnels } from "@/lib/pipeline";
 import type { PipelineFiltersValue } from "./PipelineFilters";
 import { cn } from "@/lib/utils";
 
@@ -18,12 +18,13 @@ interface Stage {
   name: string;
   position: number;
   color: string;
-  funnel: Funnel;
+  funnel_id: string;
   probabilidade: number | null;
 }
 
 interface PipelineKanbanProps {
-  funnel: Funnel;
+  funnelId: string;
+  funnelSlug: string;
   filters: PipelineFiltersValue;
 }
 
@@ -87,7 +88,7 @@ function DroppableColumn(props: { stage: Stage; students: PipelineCardData[]; to
   return <StageColumn {...props} isOver={isOver} setRef={setNodeRef} />;
 }
 
-export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
+export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanbanProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeStudent, setActiveStudent] = useState<PipelineCardData | null>(null);
@@ -98,13 +99,13 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const { data: stages = [] } = useQuery<Stage[]>({
-    queryKey: ["pipeline-stages", funnel],
+    queryKey: ["pipeline-stages", funnelId],
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel,probabilidade")
+        .select("id,name,position,color,funnel_id,probabilidade")
         .eq("is_active", true)
-        .eq("funnel", funnel)
+        .eq("funnel_id", funnelId)
         .order("position") as any);
       if (error) throw error;
       return (data || []) as Stage[];
@@ -117,7 +118,7 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,funnel,probabilidade")
+        .select("id,name,position,color,funnel_id,probabilidade")
         .eq("is_active", true)
         .order("position") as any);
       if (error) throw error;
@@ -125,6 +126,13 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
     },
     staleTime: 5 * 60_000,
   });
+
+  const { data: funnels = [] } = usePipelineFunnels({ includeInactive: true });
+  const funnelSlugById = useMemo(() => {
+    const m: Record<string, string> = {};
+    funnels.forEach((f) => { m[f.id] = f.slug; });
+    return m;
+  }, [funnels]);
 
   const { data: alunos = [], isLoading } = useQuery({
     queryKey: ["pipeline-alunos"],
@@ -213,7 +221,6 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
         const meta = metaMap[a.id];
         if (!meta || meta.origem_lead !== filters.origem) return false;
       }
-      // Quick filters
       if (filters.quick === "meus") {
         if (!user || a.responsavel_id !== user.id) return false;
       }
@@ -248,14 +255,14 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
         motivo_perda: a.motivo_perda,
         current_stage_name: stage?.name,
         current_stage_probabilidade: stage?.probabilidade ?? null,
-        current_funnel: stage?.funnel,
+        current_funnel: stage ? (funnelSlugById[stage.funnel_id] || funnelSlug) : funnelSlug,
         meta: metaMap[a.id],
         last_moved_at: lastMovesMap[a.id],
         next_task: nextTasksMap[a.id] || null,
       });
     });
     return map;
-  }, [stages, filtered, profilesMap, metaMap, lastMovesMap, nextTasksMap]);
+  }, [stages, filtered, profilesMap, metaMap, lastMovesMap, nextTasksMap, funnelSlugById, funnelSlug]);
 
   const totaisPorStage = useMemo(() => {
     const m: Record<string, number> = {};
@@ -291,13 +298,11 @@ export function PipelineKanban({ funnel, filters }: PipelineKanbanProps) {
 
     const student = findStudent(alunoId);
 
-    // Se destino é "perdido" → abrir modal de motivo obrigatório (não move ainda)
     if (isLostStage(targetStage.name) && student) {
       setPendingLost({ aluno: student, destinoStage: targetStage.name });
       return;
     }
 
-    // Optimistic update
     queryClient.setQueryData(["pipeline-alunos"], (old: any) =>
       (old || []).map((a: any) => (a.id === alunoId ? { ...a, current_pipeline_stage_id: toStageId } : a))
     );
