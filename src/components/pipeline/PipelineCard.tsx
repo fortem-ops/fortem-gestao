@@ -79,6 +79,13 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
 
   const valor = Number(student.meta?.valor_estimado_plano || 0);
 
+  // SLA / atraso na etapa atual
+  const diasNaEtapa = student.last_moved_at
+    ? Math.floor((Date.now() - new Date(student.last_moved_at).getTime()) / 86400000)
+    : null;
+  const overdue = diasNaEtapa != null && isStageOverdue(diasNaEtapa, student.stage_sla_dias);
+
+
   return (
     <>
       <div
