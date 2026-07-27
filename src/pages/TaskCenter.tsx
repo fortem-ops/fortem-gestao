@@ -16,6 +16,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 import { RescheduleDialog } from "@/components/tasks/RescheduleDialog";
 import { getTaskActionTarget } from "@/lib/taskAction";
+import { AtividadeTipoSelector } from "@/components/pipeline/AtividadeTipoSelector";
+import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
