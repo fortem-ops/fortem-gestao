@@ -386,11 +386,11 @@ export function PipedriveImportSheet({ open, onOpenChange }: Props) {
                       <SelectTrigger className="w-[280px]"><SelectValue placeholder="Não mapeado (Novo lead)" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value={UNMAPPED}>Não mapeado · cai em "Novo lead"</SelectItem>
-                        {(["prospects", "aluno", "inativo"] as const).map((funnel) => (
-                          fortemStagesByFunnel[funnel]?.length ? (
-                            <SelectGroup key={funnel}>
-                              <SelectLabel className="capitalize">{funnel}</SelectLabel>
-                              {fortemStagesByFunnel[funnel].map((st) => (
+                        {(funnelsQ.data || []).map((funnel) => (
+                          fortemStagesByFunnel[funnel.id]?.length ? (
+                            <SelectGroup key={funnel.id}>
+                              <SelectLabel>{funnel.label}</SelectLabel>
+                              {fortemStagesByFunnel[funnel.id].map((st) => (
                                 <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
                               ))}
                             </SelectGroup>
