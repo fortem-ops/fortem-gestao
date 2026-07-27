@@ -122,7 +122,21 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
             <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground truncate">{student.nome}</p>
+            <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
+              {overdue && (
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      Nesta etapa há {diasNaEtapa}d (SLA: {student.stage_sla_dias}d)
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <span className="truncate">{student.nome}</span>
+            </p>
             {student.responsavel_nome && (
               <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
                 <User className="w-3 h-3" /> {student.responsavel_nome}
