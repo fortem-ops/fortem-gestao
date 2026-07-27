@@ -198,7 +198,8 @@ const AnexosJuridicos = () => {
                     <td className="px-5 py-4 text-sm text-muted-foreground">{isExp ? "—" : doc.image_usage ? "Sim" : "Não"}</td>
                     <td className="px-5 py-4 text-sm">
                       {(() => {
-                        const match = alunosByCpf?.get((doc.cpf || "").replace(/\D/g, ""));
+                        const hash = annexHashes?.get(doc.id);
+                        const match = hash ? alunosByCpfHash?.get(hash) : undefined;
                         if (!match) return <span className="text-muted-foreground/60 text-xs">—</span>;
                         return (
                           <Link to={`/alunos/${match.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
