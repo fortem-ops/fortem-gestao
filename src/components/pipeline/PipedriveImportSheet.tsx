@@ -138,14 +138,17 @@ export function PipedriveImportSheet({ open, onOpenChange }: Props) {
   const selectableVisible = visibleItems.filter((i) => !i.alreadyImported);
 
   const fortemStagesByFunnel = useMemo(() => {
-    const grouped: Record<string, { id: string; name: string }[]> = { prospects: [], aluno: [], inativo: [] };
+    // key = funnel_id
+    const grouped: Record<string, { id: string; name: string }[]> = {};
     (stages.data || []).forEach((s: any) => {
-      const f = s.funnel || "prospects";
+      const f = s.funnel_id;
+      if (!f) return;
       if (!grouped[f]) grouped[f] = [];
       grouped[f].push({ id: s.id, name: s.name });
     });
     return grouped;
   }, [stages.data]);
+
 
   async function handleFetch() {
     setLoadingList(true);
