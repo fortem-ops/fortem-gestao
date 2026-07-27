@@ -85,7 +85,7 @@ export function PipelineListView({ funnelId, funnelSlug, filters }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("alunos")
-        .select("id,nome,foto_url,responsavel_id,current_pipeline_stage_id,motivo_perda")
+        .select("id,nome,foto_url,responsavel_id,current_pipeline_stage_id,motivo_perda,telefone,email")
         .not("current_pipeline_stage_id", "is", null);
       if (error) throw error;
       return data || [];
