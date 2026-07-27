@@ -25,7 +25,7 @@ interface AnnexRow extends AnnexDetail {
 const fetchAnnexes = async (): Promise<AnnexRow[]> => {
   const { data, error } = await supabase
     .from("legal_annexes")
-    .select("id, nome, cpf, cpf_hash, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone, aluno_id, aluno:alunos(id, nome)")
+    .select("id, nome, cpf_ultimos3, cpf_hash, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone, aluno_id, aluno:alunos(id, nome)")
     .order("signed_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as AnnexRow[];
