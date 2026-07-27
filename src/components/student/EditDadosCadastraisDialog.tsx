@@ -9,26 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchCep, formatCep } from "@/lib/viacep";
 import { SEXO_OPTIONS } from "@/lib/leads";
-import {
-  normalizeCpf,
-  isValidCpfDigits,
-  findAlunoByCpf,
-  duplicateCpfMessage,
-  translateCpfDbError,
-} from "@/lib/cpfValidation";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   alunoId: string;
-}
-
-function formatCPF(v: string) {
-  const d = v.replace(/\D/g, "").slice(0, 11);
-  return d
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
 export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props) {
@@ -38,7 +23,6 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
     nome: "",
     data_nascimento: "",
     sexo: "",
-    cpf: "",
     rg: "",
     telefone: "",
     email: "",
@@ -56,7 +40,7 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
     (async () => {
       const { data } = await supabase
         .from("alunos")
-        .select("nome,data_nascimento,sexo,cpf,rg,telefone,email,cep,logradouro,numero,complemento,bairro,cidade,uf" as any)
+        .select("nome,data_nascimento,sexo,rg,telefone,email,cep,logradouro,numero,complemento,bairro,cidade,uf" as any)
         .eq("id", alunoId)
         .maybeSingle();
       if (data) {
@@ -65,7 +49,6 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
           nome: a.nome || "",
           data_nascimento: a.data_nascimento || "",
           sexo: a.sexo || "",
-          cpf: a.cpf || "",
           rg: a.rg || "",
           telefone: a.telefone || "",
           email: a.email || "",
@@ -100,12 +83,6 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
 
   async function save() {
     if (!form.nome.trim()) return toast.error("Nome é obrigatório");
-    const cpfTrim = form.cpf.trim();
-    if (cpfTrim) {
-      if (!isValidCpfDigits(cpfTrim)) return toast.error("CPF inválido. Confira os dígitos.");
-      const dup = await findAlunoByCpf(cpfTrim, alunoId);
-      if (dup) return toast.error(duplicateCpfMessage(dup));
-    }
     setBusy(true);
     const { error } = await supabase
       .from("alunos")
@@ -113,7 +90,6 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
         nome: form.nome.trim(),
         data_nascimento: form.data_nascimento || null,
         sexo: form.sexo || null,
-        cpf: cpfTrim ? normalizeCpf(cpfTrim) : null,
         rg: form.rg.trim() || null,
         telefone: form.telefone.trim() || null,
         email: form.email.trim() || null,
@@ -127,9 +103,7 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
       } as any)
       .eq("id", alunoId);
     setBusy(false);
-    if (error) {
-      return toast.error(translateCpfDbError(error) ?? error.message);
-    }
+    if (error) return toast.error(error.message);
     toast.success("Dados cadastrais atualizados");
     qc.invalidateQueries({ queryKey: ["aluno", alunoId] });
     qc.invalidateQueries({ queryKey: ["student", alunoId] });
@@ -169,11 +143,7 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label className="text-xs">CPF</Label>
-              <Input value={form.cpf} onChange={(e) => set("cpf", formatCPF(e.target.value))} placeholder="000.000.000-00" />
-            </div>
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">RG</Label>
               <Input value={form.rg} onChange={(e) => set("rg", e.target.value)} placeholder="00.000.000-0" />
@@ -183,6 +153,10 @@ export function EditDadosCadastraisDialog({ open, onOpenChange, alunoId }: Props
               <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
             </div>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            O CPF é gerenciado com sigilo — use o botão "Revelar" ao lado do CPF na ficha do aluno para visualizar ou editar (requer permissão).
+          </p>
 
           <div className="pt-2 border-t border-border space-y-3">
             <p className="text-xs font-medium uppercase text-muted-foreground">Endereço</p>
