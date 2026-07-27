@@ -98,7 +98,7 @@ const AnexosJuridicos = () => {
   };
 
   const filtered = useMemo(() => annexes.filter((d) => {
-    if (search && !d.nome.toLowerCase().includes(search.toLowerCase()) && !d.cpf.includes(search)) return false;
+    if (search && !d.nome.toLowerCase().includes(search.toLowerCase()) && !(d.cpf_ultimos3 || "").includes(search.replace(/\D/g, ""))) return false;
     if (medicalFilter !== "all" && d.medical_status !== medicalFilter) return false;
     if (docFilter !== "all" && d.document_type !== docFilter) return false;
     if (imageFilter !== "all" && d.image_usage !== (imageFilter === "true")) return false;
