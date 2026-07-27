@@ -9,7 +9,8 @@ import { PipelineKanban } from "@/components/pipeline/PipelineKanban";
 import { PipelineFilters, type PipelineFiltersValue } from "@/components/pipeline/PipelineFilters";
 import { ManageStagesDialog } from "@/components/pipeline/ManageStagesDialog";
 import { PipedriveImportSheet } from "@/components/pipeline/PipedriveImportSheet";
-import { FUNNELS, type Funnel } from "@/lib/pipeline";
+import { usePipelineFunnels } from "@/lib/pipeline";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export default function Pipeline() {
@@ -19,7 +20,9 @@ export default function Pipeline() {
   const [scanning, setScanning] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [pipedriveOpen, setPipedriveOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<Funnel, boolean>>({ prospects: false, aluno: false, inativo: false });
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const { data: funnels = [], isLoading: funnelsLoading } = usePipelineFunnels();
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -75,7 +78,7 @@ export default function Pipeline() {
               </Button>
               <Button variant="outline" size="sm" onClick={() => setManageOpen(true)} className="gap-2">
                 <Settings2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Gerenciar etapas</span>
+                <span className="hidden sm:inline">Gerenciar funis e etapas</span>
               </Button>
             </>
           )}
@@ -85,25 +88,29 @@ export default function Pipeline() {
       <PipelineFilters value={filters} onChange={setFilters} />
 
       <div className="space-y-6">
-        {FUNNELS.map((f) => (
-          <section key={f.id} className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setCollapsed((c) => ({ ...c, [f.id]: !c[f.id] }))}
-              className="w-full flex items-center gap-2 text-left group"
-            >
-              {collapsed[f.id]
-                ? <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-              <h2 className="text-sm font-heading font-semibold uppercase tracking-wider text-foreground">{f.label}</h2>
-              <span className="text-xs text-muted-foreground">· {f.description}</span>
-              <div className="flex-1 h-px bg-border ml-2" />
-            </button>
-            <div className={cn(collapsed[f.id] && "hidden")}>
-              <PipelineKanban funnel={f.id} filters={filters} />
-            </div>
-          </section>
-        ))}
+        {funnelsLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : (
+          funnels.map((f) => (
+            <section key={f.id} className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setCollapsed((c) => ({ ...c, [f.id]: !c[f.id] }))}
+                className="w-full flex items-center gap-2 text-left group"
+              >
+                {collapsed[f.id]
+                  ? <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                <h2 className="text-sm font-heading font-semibold uppercase tracking-wider text-foreground">{f.label}</h2>
+                {f.description && <span className="text-xs text-muted-foreground">· {f.description}</span>}
+                <div className="flex-1 h-px bg-border ml-2" />
+              </button>
+              <div className={cn(collapsed[f.id] && "hidden")}>
+                <PipelineKanban funnelId={f.id} funnelSlug={f.slug} filters={filters} />
+              </div>
+            </section>
+          ))
+        )}
       </div>
 
       <ManageStagesDialog open={manageOpen} onOpenChange={setManageOpen} />
