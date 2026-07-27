@@ -4,14 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Settings2, ChevronDown, ChevronRight, RefreshCw, Plug } from "lucide-react";
+import { Settings2, ChevronDown, ChevronRight, RefreshCw, Plug, LayoutGrid, List } from "lucide-react";
 import { PipelineKanban } from "@/components/pipeline/PipelineKanban";
+import { PipelineListView } from "@/components/pipeline/PipelineListView";
 import { PipelineFilters, type PipelineFiltersValue } from "@/components/pipeline/PipelineFilters";
 import { ManageStagesDialog } from "@/components/pipeline/ManageStagesDialog";
 import { PipedriveImportSheet } from "@/components/pipeline/PipedriveImportSheet";
 import { usePipelineFunnels } from "@/lib/pipeline";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+const VIEW_STORAGE_KEY = "fortem_pipeline_view";
+type ViewMode = "kanban" | "lista";
 
 export default function Pipeline() {
   const { user } = useAuth();
@@ -21,6 +25,15 @@ export default function Pipeline() {
   const [manageOpen, setManageOpen] = useState(false);
   const [pipedriveOpen, setPipedriveOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === "undefined") return "kanban";
+    const v = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    return v === "lista" ? "lista" : "kanban";
+  });
+
+  useEffect(() => {
+    try { window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode); } catch {}
+  }, [viewMode]);
 
   const { data: funnels = [], isLoading: funnelsLoading } = usePipelineFunnels();
 
@@ -66,6 +79,34 @@ export default function Pipeline() {
           <p className="text-sm text-muted-foreground mt-1">CRM Fortem — jornada do lead ao aluno ativo</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex rounded-md border border-border bg-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode("kanban")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "kanban" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
+              )}
+              title="Visualização Kanban"
+              aria-pressed={viewMode === "kanban"}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span className="hidden sm:inline">Kanban</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("lista")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors border-l border-border",
+                viewMode === "lista" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
+              )}
+              title="Visualização em lista"
+              aria-pressed={viewMode === "lista"}
+            >
+              <List className="w-4 h-4" />
+              <span className="hidden sm:inline">Lista</span>
+            </button>
+          </div>
           <Button variant="outline" size="sm" onClick={runEvasaoScan} disabled={scanning} className="gap-2">
             <RefreshCw className={`w-4 h-4 ${scanning ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">{scanning ? "Recalculando..." : "Recalcular status"}</span>
@@ -106,7 +147,9 @@ export default function Pipeline() {
                 <div className="flex-1 h-px bg-border ml-2" />
               </button>
               <div className={cn(collapsed[f.id] && "hidden")}>
-                <PipelineKanban funnelId={f.id} funnelSlug={f.slug} filters={filters} />
+                {viewMode === "kanban"
+                  ? <PipelineKanban funnelId={f.id} funnelSlug={f.slug} filters={filters} />
+                  : <PipelineListView funnelId={f.id} funnelSlug={f.slug} filters={filters} />}
               </div>
             </section>
           ))

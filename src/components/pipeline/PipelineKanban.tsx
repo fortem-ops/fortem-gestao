@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PipelineCard, type PipelineCardData } from "./PipelineCard";
 import { PipelineLeadDrawer } from "./PipelineLeadDrawer";
 import { MarkLostDialog } from "./MarkLostDialog";
-import { stageColor, isLostStage, formatCurrencyBRL, computeTemperature, usePipelineFunnels } from "@/lib/pipeline";
+import { stageColor, isLostStage, formatCurrencyBRL, usePipelineFunnels, filterPipelineAlunos } from "@/lib/pipeline";
 import type { PipelineFiltersValue } from "./PipelineFilters";
 import { cn } from "@/lib/utils";
 
@@ -206,38 +206,10 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
     return m;
   }, [metadata]);
 
-  function isThisWeek(d?: string | null) {
-    if (!d) return false;
-    const dt = new Date(d).getTime();
-    return Date.now() - dt <= 7 * 86400000;
-  }
-
-  const filtered = useMemo(() => {
-    const term = (filters.search || "").trim().toLowerCase();
-    return alunos.filter((a: any) => {
-      if (term && !a.nome.toLowerCase().includes(term)) return false;
-      if (filters.professorId && a.responsavel_id !== filters.professorId) return false;
-      if (filters.origem) {
-        const meta = metaMap[a.id];
-        if (!meta || meta.origem_lead !== filters.origem) return false;
-      }
-      if (filters.quick === "meus") {
-        if (!user || a.responsavel_id !== user.id) return false;
-      }
-      if (filters.quick === "quentes" || filters.quick === "parados") {
-        const meta = metaMap[a.id];
-        const cands = [meta?.last_contact_at, meta?.updated_at, lastMovesMap[a.id]].filter(Boolean) as string[];
-        const last = cands.length ? new Date(Math.max(...cands.map((d) => new Date(d).getTime()))).toISOString() : null;
-        const t = computeTemperature(last);
-        if (filters.quick === "quentes" && t !== "quente") return false;
-        if (filters.quick === "parados" && t !== "parado") return false;
-      }
-      if (filters.quick === "semana") {
-        if (!isThisWeek(lastMovesMap[a.id])) return false;
-      }
-      return true;
-    });
-  }, [alunos, filters, metaMap, lastMovesMap, user]);
+  const filtered = useMemo(
+    () => filterPipelineAlunos(alunos as any[], filters, metaMap, lastMovesMap, user?.id),
+    [alunos, filters, metaMap, lastMovesMap, user],
+  );
 
   const byStage = useMemo(() => {
     const map: Record<string, PipelineCardData[]> = {};

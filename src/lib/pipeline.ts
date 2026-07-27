@@ -207,3 +207,44 @@ export function formatDaysAgo(date: string | Date): string {
   if (days === 1) return "1 dia";
   return `${days} dias`;
 }
+
+/** Filtro compartilhado Kanban/Lista para alunos do pipeline. */
+export interface PipelineFilterInput {
+  search: string;
+  professorId: string | null;
+  origem: string | null;
+  quick: "todos" | "meus" | "quentes" | "parados" | "semana";
+}
+export function filterPipelineAlunos<T extends { id: string; nome: string; responsavel_id?: string | null }>(
+  alunos: T[],
+  filters: PipelineFilterInput,
+  metaMap: Record<string, any>,
+  lastMovesMap: Record<string, string | undefined>,
+  currentUserId: string | null | undefined,
+): T[] {
+  const term = (filters.search || "").trim().toLowerCase();
+  const isThisWeek = (d?: string | null) => !!d && Date.now() - new Date(d).getTime() <= 7 * 86400000;
+  return alunos.filter((a) => {
+    if (term && !a.nome.toLowerCase().includes(term)) return false;
+    if (filters.professorId && a.responsavel_id !== filters.professorId) return false;
+    if (filters.origem) {
+      const meta = metaMap[a.id];
+      if (!meta || meta.origem_lead !== filters.origem) return false;
+    }
+    if (filters.quick === "meus") {
+      if (!currentUserId || a.responsavel_id !== currentUserId) return false;
+    }
+    if (filters.quick === "quentes" || filters.quick === "parados") {
+      const meta = metaMap[a.id];
+      const cands = [meta?.last_contact_at, meta?.updated_at, lastMovesMap[a.id]].filter(Boolean) as string[];
+      const last = cands.length ? new Date(Math.max(...cands.map((d) => new Date(d).getTime()))).toISOString() : null;
+      const t = computeTemperature(last);
+      if (filters.quick === "quentes" && t !== "quente") return false;
+      if (filters.quick === "parados" && t !== "parado") return false;
+    }
+    if (filters.quick === "semana") {
+      if (!isThisWeek(lastMovesMap[a.id])) return false;
+    }
+    return true;
+  });
+}
