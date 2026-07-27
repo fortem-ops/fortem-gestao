@@ -7237,6 +7237,10 @@ export type Database = {
         Args: { p_parceiro_id: string; p_senha: string }
         Returns: undefined
       }
+      fn_pipeline_relatorio: {
+        Args: { p_ate: string; p_desde: string; p_funnel_id: string }
+        Returns: Json
+      }
       fn_ponto_ajustar_jornada: {
         Args: {
           _campo: string
