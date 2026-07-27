@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { User, Clock, CalendarPlus, CheckCircle2, XCircle, RefreshCw, Bell, Ban } from "lucide-react";
+import { User, Clock, CalendarPlus, CheckCircle2, XCircle, RefreshCw, Bell, Ban, AlertTriangle } from "lucide-react";
 import {
   formatDaysAgo, type NextTaskInfo, type Funnel,
   PLANO_BADGE_CLASSES, computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL,
   formatCurrencyBRL, formatNextAction, ATIVIDADE_CONFIG, type TipoAtividade,
+  isStageOverdue,
 } from "@/lib/pipeline";
 import { ScheduleTaskDialog } from "./ScheduleTaskDialog";
 import { ConvertToAlunoDialog } from "./ConvertToAlunoDialog";
