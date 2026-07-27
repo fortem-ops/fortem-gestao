@@ -402,7 +402,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         mode === "todos" ? true : mode === "com" ? has : !has;
       const matchDados =
         checkPresenca(d.email, !!(s as any).email) &&
-        checkPresenca(d.cpf, !!(s as any).cpf) &&
+        checkPresenca(d.cpf, !!(s as any).cpf_ultimos3) &&
         checkPresenca(d.telefone, !!(s as any).telefone) &&
         checkPresenca(d.rg, !!(s as any).rg) &&
         checkPresenca(d.dataNascimento, !!(s as any).data_nascimento) &&
