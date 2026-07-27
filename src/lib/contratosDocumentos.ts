@@ -68,10 +68,24 @@ export async function gerarDocumentoContrato(params: {
   try {
     const { data: aluno, error: alunoErr } = await (supabase as any)
       .from('alunos')
-      .select('nome, email, cpf, rg, data_nascimento, endereco, bairro, cidade, uf, cep')
+      .select('nome, email, cpf_hash, rg, data_nascimento, endereco, bairro, cidade, uf, cep')
       .eq('id', params.alunoId)
       .single();
     if (alunoErr || !aluno) return { success: false, error: 'Aluno não encontrado' };
+
+    // Revela CPF completo via RPC (requer coord/admin autenticado). Se falhar
+    // (ex.: chamada por edge function/cron sem sessão), segue com string vazia
+    // pra não bloquear a geração do resto do documento.
+    let cpfCompleto = '';
+    try {
+      const { data: cpfRpc, error: cpfErr } = await (supabase as any).rpc('fn_reveal_cpf', {
+        p_aluno_id: params.alunoId,
+      });
+      if (cpfErr) throw cpfErr;
+      cpfCompleto = typeof cpfRpc === 'string' ? cpfRpc : '';
+    } catch (revealErr) {
+      console.error('[contratosDocumentos] fn_reveal_cpf falhou:', revealErr);
+    }
 
     const templateId = resolverTemplateId(params.planoNome, params.tipoCobranca);
     if (!templateId) return { success: true };
