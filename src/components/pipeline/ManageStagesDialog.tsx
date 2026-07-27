@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { ArrowDown, ArrowUp, Plus, Trash2, Save } from "lucide-react";
-import { STAGE_COLORS, stageColor, FUNNELS, type Funnel } from "@/lib/pipeline";
+import { STAGE_COLORS, stageColor, slugifyFunnel, type PipelineFunnelRow } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 
 interface Stage {
@@ -19,7 +20,7 @@ interface Stage {
   position: number;
   color: string;
   is_active: boolean;
-  funnel: Funnel;
+  funnel_id: string;
 }
 
 const COLOR_KEYS = Object.keys(STAGE_COLORS);
@@ -35,16 +36,34 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
   const [editing, setEditing] = useState<Record<string, { name: string }>>({});
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("blue");
-  const [newFunnel, setNewFunnel] = useState<Funnel>("prospects");
+  const [newFunnelId, setNewFunnelId] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Stage | null>(null);
+
+  // Funnel management state
+  const [editingFunnel, setEditingFunnel] = useState<Record<string, { label: string; description: string }>>({});
+  const [newFunnelLabel, setNewFunnelLabel] = useState("");
+  const [confirmDeleteFunnel, setConfirmDeleteFunnel] = useState<PipelineFunnelRow | null>(null);
+
+  const { data: funnels = [], isLoading: funnelsLoading } = useQuery<PipelineFunnelRow[]>({
+    queryKey: ["pipeline-funnels-manage"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pipeline_funnels")
+        .select("id,slug,label,description,position,is_system,is_active")
+        .order("position");
+      if (error) throw error;
+      return (data || []) as PipelineFunnelRow[];
+    },
+    enabled: open,
+  });
 
   const { data: stages = [], isLoading } = useQuery<Stage[]>({
     queryKey: ["pipeline-stages-manage"],
     queryFn: async () => {
       const { data, error } = await (supabase
         .from("pipeline_stages")
-        .select("id,name,position,color,is_active,funnel")
+        .select("id,name,position,color,is_active,funnel_id")
         .order("position") as any);
       if (error) throw error;
       return (data || []) as Stage[];
@@ -54,14 +73,85 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: ["pipeline-stages-manage"] });
+    qc.invalidateQueries({ queryKey: ["pipeline-funnels-manage"] });
+    qc.invalidateQueries({ queryKey: ["pipeline-funnels"] });
     qc.invalidateQueries({ queryKey: ["pipeline-stages"] });
+    qc.invalidateQueries({ queryKey: ["pipeline-stages-all"] });
     qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
     qc.invalidateQueries({ queryKey: ["dashboard-pipeline-widget"] });
   }
 
+  // ============ Funil ops ============
+  async function createFunnel() {
+    const label = newFunnelLabel.trim();
+    if (!label) return toast.error("Informe o nome do funil");
+    const slug = slugifyFunnel(label);
+    const maxPos = funnels.reduce((m, f) => Math.max(m, f.position), -1);
+    setBusy(true);
+    const { error } = await (supabase as any).from("pipeline_funnels").insert({
+      slug,
+      label,
+      description: null,
+      position: maxPos + 1,
+      is_active: true,
+      is_system: false,
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Funil criado");
+    setNewFunnelLabel("");
+    invalidate();
+  }
+
+  async function updateFunnel(id: string, patch: Partial<PipelineFunnelRow>) {
+    const { error } = await (supabase as any).from("pipeline_funnels").update(patch).eq("id", id);
+    if (error) return toast.error(error.message);
+    invalidate();
+  }
+
+  async function saveFunnelLabel(f: PipelineFunnelRow) {
+    const draft = editingFunnel[f.id];
+    if (!draft) return;
+    const label = draft.label.trim();
+    const description = draft.description.trim() || null;
+    if (!label) return toast.error("Nome não pode ser vazio");
+    if (label === f.label && description === (f.description ?? null)) {
+      setEditingFunnel((p) => { const c = { ...p }; delete c[f.id]; return c; });
+      return;
+    }
+    await updateFunnel(f.id, { label, description });
+    setEditingFunnel((p) => { const c = { ...p }; delete c[f.id]; return c; });
+    toast.success("Funil atualizado");
+  }
+
+  async function moveFunnel(f: PipelineFunnelRow, dir: -1 | 1) {
+    const idx = funnels.findIndex((x) => x.id === f.id);
+    const swap = funnels[idx + dir];
+    if (!swap) return;
+    const tmp = -1000 - idx;
+    await (supabase as any).from("pipeline_funnels").update({ position: tmp }).eq("id", f.id);
+    await (supabase as any).from("pipeline_funnels").update({ position: f.position }).eq("id", swap.id);
+    await (supabase as any).from("pipeline_funnels").update({ position: swap.position }).eq("id", f.id);
+    invalidate();
+  }
+
+  async function doDeleteFunnel(f: PipelineFunnelRow) {
+    const { error } = await (supabase as any).from("pipeline_funnels").delete().eq("id", f.id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Funil excluído");
+      invalidate();
+    }
+    setConfirmDeleteFunnel(null);
+  }
+
+  // ============ Stage ops ============
   async function createStage() {
     const name = newName.trim();
     if (!name) return toast.error("Informe o nome da etapa");
+    const funnelId = newFunnelId || funnels[0]?.id;
+    if (!funnelId) return toast.error("Nenhum funil disponível — crie um funil primeiro");
     setBusy(true);
     const maxPos = stages.reduce((m, s) => Math.max(m, s.position), -1);
     const { error } = await (supabase.from("pipeline_stages").insert({
@@ -69,7 +159,7 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
       color: newColor,
       position: maxPos + 1,
       is_active: true,
-      funnel: newFunnel,
+      funnel_id: funnelId,
     } as any) as any);
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -104,7 +194,6 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
     const idx = stages.findIndex((s) => s.id === stage.id);
     const swap = stages[idx + dir];
     if (!swap) return;
-    // Two-step swap to avoid unique conflicts (if any)
     const tmp = -1 - idx;
     await supabase.from("pipeline_stages").update({ position: tmp }).eq("id", stage.id);
     await supabase.from("pipeline_stages").update({ position: stage.position }).eq("id", swap.id);
@@ -137,19 +226,107 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Gerenciar etapas do funil</DialogTitle>
+            <DialogTitle>Gerenciar funis e etapas</DialogTitle>
           </DialogHeader>
 
-          {/* Lista agrupada por funil */}
+          {/* ============ Funis ============ */}
+          <div className="space-y-2 border-b border-border pb-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gerenciar funis</h3>
+            {funnelsLoading ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (
+              <div className="space-y-1.5">
+                {funnels.map((f, i) => {
+                  const isEditing = editingFunnel[f.id] !== undefined;
+                  return (
+                    <div key={f.id} className="rounded-md border border-border/60 bg-card/40 p-2.5 space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isEditing ? (
+                          <Input
+                            value={editingFunnel[f.id].label}
+                            onChange={(e) => setEditingFunnel((p) => ({ ...p, [f.id]: { ...p[f.id], label: e.target.value } }))}
+                            className="h-8 flex-1 min-w-[140px]"
+                            autoFocus
+                          />
+                        ) : (
+                          <button
+                            className="flex-1 min-w-[140px] text-left text-sm font-medium hover:underline"
+                            onClick={() => setEditingFunnel((p) => ({ ...p, [f.id]: { label: f.label, description: f.description || "" } }))}
+                          >
+                            {f.label}
+                            <span className="ml-2 text-[10px] text-muted-foreground font-normal">/{f.slug}</span>
+                          </button>
+                        )}
+                        {f.is_system && (
+                          <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-300">(sistema)</Badge>
+                        )}
+                        {isEditing && (
+                          <Button size="sm" variant="ghost" onClick={() => saveFunnelLabel(f)} className="h-8">
+                            <Save className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" disabled={i === 0} onClick={() => moveFunnel(f, -1)}>
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" disabled={i === funnels.length - 1} onClick={() => moveFunnel(f, 1)}>
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-muted-foreground">Ativo</span>
+                          <Switch
+                            checked={f.is_active}
+                            onCheckedChange={(v) => updateFunnel(f.id, { is_active: v })}
+                          />
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-rose-400 hover:text-rose-300"
+                          onClick={() => setConfirmDeleteFunnel(f)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      {isEditing && (
+                        <Input
+                          value={editingFunnel[f.id].description}
+                          onChange={(e) => setEditingFunnel((p) => ({ ...p, [f.id]: { ...p[f.id], description: e.target.value } }))}
+                          placeholder="Descrição (opcional)"
+                          className="h-8"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-2">
+              <Input
+                placeholder="Nome do novo funil"
+                value={newFunnelLabel}
+                onChange={(e) => setNewFunnelLabel(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && createFunnel()}
+                className="h-9 flex-1"
+              />
+              <Button onClick={createFunnel} disabled={busy} className="gap-1.5" size="sm">
+                <Plus className="w-4 h-4" /> Criar funil
+              </Button>
+            </div>
+          </div>
+
+          {/* ============ Etapas por funil ============ */}
           {isLoading ? (
             <Skeleton className="h-40 w-full" />
           ) : (
-            FUNNELS.map((f) => {
-              const funnelStages = stages.filter((s) => s.funnel === f.id);
+            funnels.map((f) => {
+              const funnelStages = stages.filter((s) => s.funnel_id === f.id);
               return (
                 <div key={f.id} className="space-y-2">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mt-3">
-                    Funil · {f.label}
+                    Etapas · {f.label}
                   </h3>
                   {funnelStages.length === 0 ? (
                     <p className="text-[11px] text-muted-foreground italic pl-2">Nenhuma etapa neste funil.</p>
@@ -184,10 +361,10 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
                                 <Save className="w-3.5 h-3.5" />
                               </Button>
                             )}
-                            <Select value={s.funnel} onValueChange={(v) => updateStage(s.id, { funnel: v as Funnel })}>
-                              <SelectTrigger className="h-7 w-[110px] text-[11px]"><SelectValue /></SelectTrigger>
+                            <Select value={s.funnel_id} onValueChange={(v) => updateStage(s.id, { funnel_id: v })}>
+                              <SelectTrigger className="h-7 w-[130px] text-[11px]"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                {FUNNELS.map((ff) => (
+                                {funnels.map((ff) => (
                                   <SelectItem key={ff.id} value={ff.id}>{ff.label}</SelectItem>
                                 ))}
                               </SelectContent>
@@ -244,7 +421,7 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
             })
           )}
 
-          {/* Criar nova */}
+          {/* Criar nova etapa */}
           <div className="rounded-md border border-dashed p-3 space-y-2 mt-4">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Nova etapa</p>
             <div className="flex items-center gap-2 flex-wrap">
@@ -255,10 +432,10 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
                 onKeyDown={(e) => e.key === "Enter" && createStage()}
                 className="h-9 flex-1 min-w-[160px]"
               />
-              <Select value={newFunnel} onValueChange={(v) => setNewFunnel(v as Funnel)}>
-                <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
+              <Select value={newFunnelId || funnels[0]?.id || ""} onValueChange={(v) => setNewFunnelId(v)}>
+                <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder="Funil" /></SelectTrigger>
                 <SelectContent>
-                  {FUNNELS.map((f) => (
+                  {funnels.map((f) => (
                     <SelectItem key={f.id} value={f.id}>Funil · {f.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -306,6 +483,23 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => confirmDelete && doDelete(confirmDelete)}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmDeleteFunnel} onOpenChange={(v) => !v && setConfirmDeleteFunnel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir funil "{confirmDeleteFunnel?.label}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Funis de sistema ou com etapas vinculadas não podem ser excluídos — a operação falhará caso alguma dessas condições seja verdadeira.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmDeleteFunnel && doDeleteFunnel(confirmDeleteFunnel)}>
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
