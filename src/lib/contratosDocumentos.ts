@@ -123,7 +123,7 @@ export async function gerarDocumentoContrato(params: {
     const vars: Record<string, string> = {
       NOME: aluno.nome ?? '',
       DATA_NASCIMENTO: formatarData(aluno.data_nascimento),
-      CPF: formatarCPF(aluno.cpf ?? ''),
+      CPF: formatarCPF(cpfCompleto),
       RG: aluno.rg ?? '',
       ENDERECO: aluno.endereco ?? '',
       BAIRRO: aluno.bairro ?? '',
