@@ -10,7 +10,7 @@ import { User, Clock, CalendarPlus, CheckCircle2, XCircle, RefreshCw, Bell, Ban 
 import {
   formatDaysAgo, type NextTaskInfo, type Funnel,
   PLANO_BADGE_CLASSES, computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL,
-  formatCurrencyBRL, formatNextAction,
+  formatCurrencyBRL, formatNextAction, ATIVIDADE_CONFIG, type TipoAtividade,
 } from "@/lib/pipeline";
 import { ScheduleTaskDialog } from "./ScheduleTaskDialog";
 import { ConvertToAlunoDialog } from "./ConvertToAlunoDialog";
