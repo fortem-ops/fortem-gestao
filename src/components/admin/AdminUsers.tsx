@@ -550,7 +550,7 @@ export function AdminUsers() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>CPF</Label>
+                  <Label>CPF (deixe vazio para não alterar)</Label>
                   <Input
                     value={editForm.cpf}
                     onChange={(e) => setEditForm({ ...editForm, cpf: maskCPF(e.target.value) })}
