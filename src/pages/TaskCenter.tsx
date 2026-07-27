@@ -34,6 +34,7 @@ interface TaskRow {
   data_limite: string | null;
   automatica: boolean;
   tipo_auto: string | null;
+  tipo_atividade: string | null;
   aluno_id: string | null;
   responsavel_id: string;
   responsavel_nome?: string;
