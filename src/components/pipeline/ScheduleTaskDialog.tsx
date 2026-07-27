@@ -44,7 +44,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
     queryFn: async () => {
       const { data } = await supabase
         .from("tarefas")
-        .select("id,titulo,data_limite,prioridade,descricao")
+        .select("id,titulo,data_limite,prioridade,descricao,tipo_atividade")
         .eq("aluno_id", alunoId)
         .eq("status", "pendente")
         .order("data_limite", { ascending: true, nullsFirst: false })
