@@ -79,6 +79,34 @@ export default function Pipeline() {
           <p className="text-sm text-muted-foreground mt-1">CRM Fortem — jornada do lead ao aluno ativo</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex rounded-md border border-border bg-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode("kanban")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors",
+                viewMode === "kanban" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
+              )}
+              title="Visualização Kanban"
+              aria-pressed={viewMode === "kanban"}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span className="hidden sm:inline">Kanban</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("lista")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors border-l border-border",
+                viewMode === "lista" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
+              )}
+              title="Visualização em lista"
+              aria-pressed={viewMode === "lista"}
+            >
+              <List className="w-4 h-4" />
+              <span className="hidden sm:inline">Lista</span>
+            </button>
+          </div>
           <Button variant="outline" size="sm" onClick={runEvasaoScan} disabled={scanning} className="gap-2">
             <RefreshCw className={`w-4 h-4 ${scanning ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">{scanning ? "Recalculando..." : "Recalcular status"}</span>
