@@ -108,12 +108,22 @@ Deno.serve(async (req) => {
           full_name: body.full_name,
           phone: body.phone ?? null,
           specialty: body.specialty ?? null,
-          cpf: body.cpf ? body.cpf.replace(/\D/g, "") : null,
           pis_pasep: body.pis_pasep ? body.pis_pasep.replace(/\D/g, "") : null,
         },
         { onConflict: "user_id" },
       );
       if (pErr) return json({ error: pErr.message }, 500);
+
+      // CPF goes through the encrypted RPC (never written as plaintext).
+      const cpfDigits = body.cpf ? body.cpf.replace(/\D/g, "") : "";
+      if (cpfDigits) {
+        if (cpfDigits.length !== 11) return json({ error: "CPF deve conter 11 dígitos" }, 400);
+        const { error: cpfErr } = await admin.rpc("fn_update_profile_cpf", {
+          p_user_id: uid,
+          p_novo_cpf: cpfDigits,
+        });
+        if (cpfErr) return json({ error: cpfErr.message }, 500);
+      }
 
       if (body.role) {
         const { error: rErr } = await admin.from("user_roles").insert({ user_id: uid, role: body.role });
@@ -144,7 +154,7 @@ Deno.serve(async (req) => {
       // Read current profile to preserve required fields on upsert
       const { data: current } = await admin
         .from("profiles")
-        .select("user_id, full_name, phone, specialty, cpf, pis_pasep")
+        .select("user_id, full_name, phone, specialty, pis_pasep, cpf_ultimos3")
         .eq("user_id", body.user_id)
         .maybeSingle();
 
@@ -153,25 +163,37 @@ Deno.serve(async (req) => {
         full_name: body.full_name ?? current?.full_name ?? "Sem nome",
         phone: body.phone !== undefined ? body.phone : (current?.phone ?? null),
         specialty: body.specialty !== undefined ? body.specialty : (current?.specialty ?? null),
-        cpf: body.cpf !== undefined ? (cpfDigits || null) : (current?.cpf ?? null),
         pis_pasep: body.pis_pasep !== undefined ? (pisDigits || null) : (current?.pis_pasep ?? null),
       };
 
       console.log("admin-users update", {
         user_id: body.user_id,
         had_profile: !!current,
-        patch: { ...upsertRow, cpf: upsertRow.cpf ? "***" : null, pis_pasep: upsertRow.pis_pasep ? "***" : null },
+        patch: { ...upsertRow, pis_pasep: upsertRow.pis_pasep ? "***" : null, cpf_touched: cpfDigits != null },
       });
 
       const { data: saved, error: pErr } = await admin
         .from("profiles")
         .upsert(upsertRow, { onConflict: "user_id" })
-        .select("user_id, full_name, phone, specialty, cpf, pis_pasep")
+        .select("user_id, full_name, phone, specialty, pis_pasep, cpf_ultimos3")
         .maybeSingle();
       if (pErr) {
         console.error("admin-users upsert error", pErr);
         return json({ error: pErr.message }, 500);
       }
+
+      // CPF only touched when explicitly provided (non-null/non-empty).
+      if (cpfDigits) {
+        const { error: cpfErr } = await admin.rpc("fn_update_profile_cpf", {
+          p_user_id: body.user_id,
+          p_novo_cpf: cpfDigits,
+        });
+        if (cpfErr) {
+          console.error("admin-users fn_update_profile_cpf error", cpfErr);
+          return json({ error: cpfErr.message }, 500);
+        }
+      }
+
       return json({ ok: true, profile: saved });
     }
 

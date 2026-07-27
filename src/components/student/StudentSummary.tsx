@@ -373,7 +373,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
       if (!cpfHash) return null;
       const { data } = await supabase
         .from("legal_annexes")
-        .select("id, nome, cpf, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone")
+        .select("id, nome, cpf_ultimos3, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone")
         .eq("cpf_hash", cpfHash)
         .order("signed_at", { ascending: false })
         .limit(1)

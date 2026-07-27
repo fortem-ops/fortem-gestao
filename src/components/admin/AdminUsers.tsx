@@ -45,7 +45,7 @@ type ProfileRow = {
   full_name: string;
   phone: string | null;
   specialty: string | null;
-  cpf: string | null;
+  cpf_ultimos3: string | null;
   pis_pasep: string | null;
 };
 
@@ -221,7 +221,8 @@ export function AdminUsers() {
           full_name: f.full_name.trim(),
           phone: f.phone.trim() || null,
           specialty: f.specialty.trim() || null,
-          cpf: cpfDigits || null,
+          // Only send cpf when user typed something (empty = don't touch).
+          cpf: cpfDigits ? cpfDigits : undefined,
           pis_pasep: pisDigits || null,
         },
       });
@@ -275,7 +276,7 @@ export function AdminUsers() {
       email: emailByUserId.get(p.user_id) || "",
       phone: p.phone || "",
       specialty: p.specialty || "",
-      cpf: p.cpf ? maskCPF(p.cpf) : "",
+      cpf: "",
       pis_pasep: p.pis_pasep ? maskPIS(p.pis_pasep) : "",
       changePassword: false,
       password: "",
@@ -550,7 +551,7 @@ export function AdminUsers() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>CPF</Label>
+                  <Label>CPF (deixe vazio para não alterar)</Label>
                   <Input
                     value={editForm.cpf}
                     onChange={(e) => setEditForm({ ...editForm, cpf: maskCPF(e.target.value) })}

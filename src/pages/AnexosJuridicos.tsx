@@ -25,7 +25,7 @@ interface AnnexRow extends AnnexDetail {
 const fetchAnnexes = async (): Promise<AnnexRow[]> => {
   const { data, error } = await supabase
     .from("legal_annexes")
-    .select("id, nome, cpf, cpf_hash, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone, aluno_id, aluno:alunos(id, nome)")
+    .select("id, nome, cpf_ultimos3, cpf_hash, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone, aluno_id, aluno:alunos(id, nome)")
     .order("signed_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as AnnexRow[];
@@ -66,14 +66,9 @@ const AnexosJuridicos = () => {
     enabled: annexes.length > 0,
     queryFn: async () => {
       const map = new Map<string, string>();
-      await Promise.all(
-        annexes.map(async (a: any) => {
-          const digits = (a.cpf_hash as string | null) || null;
-          if (digits) { map.set(a.id, digits); return; }
-          const raw = (a.cpf || "").replace(/\D/g, "");
-          if (raw.length === 11) map.set(a.id, await hashCpfClient(raw));
-        }),
-      );
+      annexes.forEach((a: any) => {
+        if (a.cpf_hash) map.set(a.id, a.cpf_hash as string);
+      });
       return map;
     },
   });
@@ -103,7 +98,7 @@ const AnexosJuridicos = () => {
   };
 
   const filtered = useMemo(() => annexes.filter((d) => {
-    if (search && !d.nome.toLowerCase().includes(search.toLowerCase()) && !d.cpf.includes(search)) return false;
+    if (search && !d.nome.toLowerCase().includes(search.toLowerCase()) && !(d.cpf_ultimos3 || "").includes(search.replace(/\D/g, ""))) return false;
     if (medicalFilter !== "all" && d.medical_status !== medicalFilter) return false;
     if (docFilter !== "all" && d.document_type !== docFilter) return false;
     if (imageFilter !== "all" && d.image_usage !== (imageFilter === "true")) return false;
@@ -192,7 +187,7 @@ const AnexosJuridicos = () => {
                         {isExp ? "Experimental" : "Anexo"}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm font-mono text-muted-foreground tabular-nums">{doc.cpf}</td>
+                    <td className="px-5 py-4 text-sm font-mono text-muted-foreground tabular-nums">{doc.cpf_ultimos3 ? `•••.•••.**${doc.cpf_ultimos3}` : "—"}</td>
                     <td className="px-5 py-4 text-sm text-muted-foreground">{new Date(doc.signed_at).toLocaleDateString("pt-BR")}</td>
                     <td className="px-5 py-4 text-sm text-muted-foreground">{doc.medical_status === "ok" ? "OK" : "Restrição"}</td>
                     <td className="px-5 py-4 text-sm text-muted-foreground">{isExp ? "—" : doc.image_usage ? "Sim" : "Não"}</td>

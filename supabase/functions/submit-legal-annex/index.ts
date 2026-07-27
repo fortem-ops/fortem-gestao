@@ -50,6 +50,12 @@ function isValidCPF(cpf: string): boolean {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_SIGNATURE_BYTES = 1_000_000; // ~1 MB raw signature payload
 
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -147,10 +153,11 @@ Deno.serve(async (req) => {
     const documentType = body.document_type === "experimental" ? "experimental" : "anexo";
 
     // Upsert by CPF + document_type
+    const cpfHash = await sha256Hex(cpfDigits);
     const { data: existing } = await supabaseAdmin
       .from("legal_annexes")
       .select("id, email")
-      .eq("cpf", cpfDigits)
+      .eq("cpf_hash", cpfHash)
       .eq("document_type", documentType)
       .order("signed_at", { ascending: false })
       .limit(1)
@@ -219,7 +226,7 @@ Deno.serve(async (req) => {
     <h2 style="font-size: 16px; color: #1a1a2e; margin-bottom: 16px;">Dados da Assinatura</h2>
     <table style="width: 100%; border-collapse: collapse;">
       <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 0; color: #888; font-size: 13px;">Nome</td><td style="padding: 10px 0; text-align: right; font-size: 13px; font-weight: 500;">${data.nome}</td></tr>
-      <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 0; color: #888; font-size: 13px;">CPF</td><td style="padding: 10px 0; text-align: right; font-size: 13px; font-family: monospace;">${data.cpf}</td></tr>
+      <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 0; color: #888; font-size: 13px;">CPF</td><td style="padding: 10px 0; text-align: right; font-size: 13px; font-family: monospace;">${cpfDigits}</td></tr>
       <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 0; color: #888; font-size: 13px;">E-mail</td><td style="padding: 10px 0; text-align: right; font-size: 13px;">${data.email}</td></tr>
       <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 0; color: #888; font-size: 13px;">Telefone</td><td style="padding: 10px 0; text-align: right; font-size: 13px;">${data.telefone || "—"}</td></tr>
       <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 0; color: #888; font-size: 13px;">Contato emergência</td><td style="padding: 10px 0; text-align: right; font-size: 13px;">${data.emergency_contact_name || "—"} ${data.emergency_contact_phone ? "(" + data.emergency_contact_phone + ")" : ""}</td></tr>

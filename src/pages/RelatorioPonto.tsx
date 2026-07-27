@@ -110,7 +110,7 @@ export default function RelatorioPonto() {
       if (!ids.length) return [];
       const { data } = await supabase
         .from("profiles")
-        .select("user_id, full_name, cpf, pis_pasep")
+        .select("user_id, full_name, pis_pasep")
         .in("user_id", ids)
         .order("full_name");
       return data ?? [];

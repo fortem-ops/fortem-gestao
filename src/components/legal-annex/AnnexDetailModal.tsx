@@ -1,13 +1,15 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, FileText } from "lucide-react";
+import { Printer, FileText, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface AnnexDetail {
   id: string;
   nome: string;
-  cpf: string;
+  cpf_ultimos3: string | null;
   email: string;
   telefone?: string | null;
   data_nascimento?: string | null;
@@ -29,6 +31,8 @@ interface Props {
   onClose: () => void;
 }
 
+const REVEAL_MS = 15_000;
+
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
@@ -42,12 +46,59 @@ const isSafeHttpUrl = (url?: string | null): boolean => {
   }
 };
 
+function formatCPF(digits: string) {
+  const d = (digits || "").replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
 const AnnexDetailModal = ({ annex, open, onClose }: Props) => {
   const printRef = useRef<HTMLDivElement>(null);
+  const [revealed, setRevealed] = useState<string | null>(null);
+  const [progress, setProgress] = useState(100);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef<number | null>(null);
+  const startRef = useRef<number>(0);
+
+  function clearTimer() {
+    if (timerRef.current) { window.clearInterval(timerRef.current); timerRef.current = null; }
+  }
+  function hide() { clearTimer(); setRevealed(null); setProgress(100); }
+  useEffect(() => () => clearTimer(), []);
+  useEffect(() => { if (!open) hide(); }, [open]);
+
   if (!annex) return null;
 
   const isExperimental = annex.document_type === "experimental";
   const attachmentSafe = isSafeHttpUrl(annex.attachment_url);
+  const maskedCpf = annex.cpf_ultimos3 ? `•••.•••.**${annex.cpf_ultimos3}` : "—";
+  const cpfDisplay = revealed ? formatCPF(revealed) : maskedCpf;
+
+  async function reveal() {
+    if (!annex) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("fn_reveal_annex_cpf", { p_annex_id: annex.id });
+      if (error) throw error;
+      const full = typeof data === "string" ? data : "";
+      setRevealed(full);
+      startRef.current = Date.now();
+      setProgress(100);
+      clearTimer();
+      timerRef.current = window.setInterval(() => {
+        const elapsed = Date.now() - startRef.current;
+        const pct = Math.max(0, 100 - (elapsed / REVEAL_MS) * 100);
+        setProgress(pct);
+        if (elapsed >= REVEAL_MS) hide();
+      }, 200);
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível revelar o CPF.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handlePrint = () => {
     const content = printRef.current;
@@ -88,7 +139,28 @@ const AnnexDetailModal = ({ annex, open, onClose }: Props) => {
             <tbody>
               <Row label="Tipo" value={isExperimental ? "Treino Experimental" : "Anexo Padrão (Aluno)"} />
               <Row label="Nome" value={annex.nome} />
-              <Row label="CPF" value={annex.cpf ? annex.cpf.replace(/(\d{3})\.\d{3}\.\d{3}-(\d{2})/, "$1.***.***-$2") : "—"} mono />
+              <tr className="border-b border-border/50">
+                <td className="py-2.5 text-sm text-muted-foreground">CPF</td>
+                <td className="py-2.5 text-sm text-right font-medium text-foreground font-mono">
+                  <div className="flex items-center justify-end gap-2">
+                    <span>{cpfDisplay}</span>
+                    {revealed ? (
+                      <Button size="sm" variant="ghost" className="h-7 px-2 gap-1" onClick={hide}>
+                        <EyeOff className="w-3.5 h-3.5" /> Ocultar
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="ghost" className="h-7 px-2 gap-1" onClick={reveal} disabled={loading}>
+                        <Eye className="w-3.5 h-3.5" /> {loading ? "..." : "Revelar"}
+                      </Button>
+                    )}
+                  </div>
+                  {revealed && (
+                    <div className="mt-2 h-1 w-full bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-[width] duration-200 ease-linear" style={{ width: `${progress}%` }} />
+                    </div>
+                  )}
+                </td>
+              </tr>
               <Row label="E-mail" value={annex.email} />
               {annex.telefone && <Row label="Telefone" value={annex.telefone} />}
               {annex.data_nascimento && <Row label="Data de nascimento" value={new Date(annex.data_nascimento + "T12:00:00").toLocaleDateString("pt-BR")} />}

@@ -3045,8 +3045,10 @@ export type Database = {
         Row: {
           aluno_id: string | null
           attachment_url: string | null
-          cpf: string
+          cpf: string | null
+          cpf_encrypted: string | null
           cpf_hash: string | null
+          cpf_ultimos3: string | null
           created_at: string
           data_nascimento: string | null
           document_type: string
@@ -3067,8 +3069,10 @@ export type Database = {
         Insert: {
           aluno_id?: string | null
           attachment_url?: string | null
-          cpf: string
+          cpf?: string | null
+          cpf_encrypted?: string | null
           cpf_hash?: string | null
+          cpf_ultimos3?: string | null
           created_at?: string
           data_nascimento?: string | null
           document_type?: string
@@ -3089,8 +3093,10 @@ export type Database = {
         Update: {
           aluno_id?: string | null
           attachment_url?: string | null
-          cpf?: string
+          cpf?: string | null
+          cpf_encrypted?: string | null
           cpf_hash?: string | null
+          cpf_ultimos3?: string | null
           created_at?: string
           data_nascimento?: string | null
           document_type?: string
@@ -5118,7 +5124,9 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          cpf: string | null
+          cpf_encrypted: string | null
+          cpf_hash: string | null
+          cpf_ultimos3: string | null
           created_at: string
           full_name: string
           id: string
@@ -5130,7 +5138,9 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
-          cpf?: string | null
+          cpf_encrypted?: string | null
+          cpf_hash?: string | null
+          cpf_ultimos3?: string | null
           created_at?: string
           full_name: string
           id?: string
@@ -5142,7 +5152,9 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
-          cpf?: string | null
+          cpf_encrypted?: string | null
+          cpf_hash?: string | null
+          cpf_ultimos3?: string | null
           created_at?: string
           full_name?: string
           id?: string
@@ -7269,7 +7281,9 @@ export type Database = {
         Args: { _aluno_id: string; _fallback: string }
         Returns: string
       }
+      fn_reveal_annex_cpf: { Args: { p_annex_id: string }; Returns: string }
       fn_reveal_cpf: { Args: { p_aluno_id: string }; Returns: string }
+      fn_reveal_profile_cpf: { Args: { p_user_id: string }; Returns: string }
       fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
       fn_staff_excluir_treino_agendamento: {
         Args: { p_agendamento_id: string; p_estornar?: boolean }
@@ -7297,6 +7311,10 @@ export type Database = {
       }
       fn_update_cpf: {
         Args: { p_aluno_id: string; p_novo_cpf: string }
+        Returns: undefined
+      }
+      fn_update_profile_cpf: {
+        Args: { p_novo_cpf: string; p_user_id: string }
         Returns: undefined
       }
       fn_user_can_see_notificacao: {
