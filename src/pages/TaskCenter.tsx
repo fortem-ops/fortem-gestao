@@ -169,6 +169,7 @@ function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => v
   const [prioridade, setPrioridade] = useState("media");
   const [dataLimite, setDataLimite] = useState("");
   const [responsavelId, setResponsavelId] = useState<string>(defaultResponsavelId || "");
+  const [tipoAtividade, setTipoAtividade] = useState<TipoAtividade>("tarefa");
 
   useEffect(() => {
     setResponsavelId(defaultResponsavelId || "");
