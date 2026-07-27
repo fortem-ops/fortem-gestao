@@ -14,6 +14,7 @@ import { EditDadosCadastraisDialog } from "./EditDadosCadastraisDialog";
 import AnnexDetailModal, { type AnnexDetail } from "@/components/legal-annex/AnnexDetailModal";
 import ContratoDetailModal, { type ContratoDetail } from "@/components/student/ContratoDetailModal";
 import MarkPresentialSignatureDialog from "@/components/student/MarkPresentialSignatureDialog";
+import { CpfRevealField } from "./CpfRevealField";
 import { Link } from "react-router-dom";
 
 
@@ -55,15 +56,20 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const [viewingContrato, setViewingContrato] = useState<ContratoDetail | null>(null);
   const [markingPresential, setMarkingPresential] = useState(false);
 
-  const { data: isCoordAdmin = false } = useQuery({
-    queryKey: ["is_coord_admin_summary"],
+  const { data: roleFlags = { isAdmin: false, isCoordAdmin: false } } = useQuery({
+    queryKey: ["role_flags_summary"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user.id });
-      return !!data;
+      if (!user) return { isAdmin: false, isCoordAdmin: false };
+      const [{ data: admin }, { data: coord }] = await Promise.all([
+        supabase.rpc("is_admin", { _user_id: user.id }),
+        supabase.rpc("is_coordinator_or_admin", { _user_id: user.id }),
+      ]);
+      return { isAdmin: !!admin, isCoordAdmin: !!coord };
     },
   });
+  const isAdmin = roleFlags.isAdmin;
+  const isCoordAdmin = roleFlags.isCoordAdmin;
   const { data: professor } = useQuery({
     queryKey: ["professor", student.responsavel_id],
     queryFn: async () => {
@@ -358,22 +364,23 @@ export function StudentSummary({ student }: { student: Aluno }) {
     }
   }
 
-  const cpfDigits = ((student as any).cpf || "").replace(/\D/g, "");
+  const cpfHash = (student as any).cpf_hash as string | null | undefined;
+  const cpfUltimos3 = (student as any).cpf_ultimos3 as string | null | undefined;
+  const cpfDigits = cpfHash || ""; // usado apenas para habilitar/desabilitar seções de vínculo
   const { data: legalAnnex } = useQuery({
-    queryKey: ["legal_annex_by_cpf", cpfDigits],
+    queryKey: ["legal_annex_by_cpf_hash", cpfHash],
     queryFn: async () => {
-      if (!cpfDigits) return null;
+      if (!cpfHash) return null;
       const { data } = await supabase
         .from("legal_annexes")
         .select("id, nome, cpf, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone")
-        .in("cpf", Array.from(new Set([cpfDigits, (student as any).cpf]).values()).filter(Boolean) as string[])
-        .order("signed_at", { ascending: false })
+        .eq("cpf_hash", cpfHash)
         .order("signed_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       return (data as AnnexDetail | null) ?? null;
     },
-    enabled: !!cpfDigits,
+    enabled: !!cpfHash,
   });
 
 
@@ -924,7 +931,12 @@ export function StudentSummary({ student }: { student: Aluno }) {
               <FileText className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">CPF</span>
             </div>
-            <p className="text-sm font-semibold text-foreground font-mono">{(student as any).cpf || "Não informado"}</p>
+            <CpfRevealField
+              alunoId={student.id}
+              cpfUltimos3={cpfUltimos3}
+              isCoordAdmin={isCoordAdmin}
+              isAdmin={isAdmin}
+            />
           </div>
           <div className="glass-card rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">

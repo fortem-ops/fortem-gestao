@@ -12,6 +12,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { hashCpfClient } from "@/lib/clube";
 
 type MedicalType = "ok" | "restricao";
 type DocType = "anexo" | "experimental";
@@ -24,18 +25,20 @@ interface AnnexRow extends AnnexDetail {
 const fetchAnnexes = async (): Promise<AnnexRow[]> => {
   const { data, error } = await supabase
     .from("legal_annexes")
-    .select("id, nome, cpf, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone, aluno_id, aluno:alunos(id, nome)")
+    .select("id, nome, cpf, cpf_hash, email, telefone, data_nascimento, signed_at, valid_until, medical_status, image_usage, signature_data, ip_address, attachment_url, document_type, emergency_contact_name, emergency_contact_phone, aluno_id, aluno:alunos(id, nome)")
     .order("signed_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as AnnexRow[];
 };
 
-const fetchAlunosByCpf = async (): Promise<Map<string, { id: string; nome: string }>> => {
+const fetchAlunosByCpfHash = async (): Promise<Map<string, { id: string; nome: string }>> => {
   const map = new Map<string, { id: string; nome: string }>();
-  const { data } = await supabase.from("alunos").select("id, nome, cpf").not("cpf", "is", null);
+  const { data } = await supabase
+    .from("alunos")
+    .select("id, nome, cpf_hash")
+    .not("cpf_hash", "is", null);
   (data ?? []).forEach((a: any) => {
-    const norm = (a.cpf || "").replace(/\D/g, "");
-    if (norm) map.set(norm, { id: a.id, nome: a.nome });
+    if (a.cpf_hash) map.set(a.cpf_hash, { id: a.id, nome: a.nome });
   });
   return map;
 };
@@ -53,9 +56,26 @@ const AnexosJuridicos = () => {
 
   const { data: annexes = [], isLoading, refetch } = useQuery({ queryKey: ["legal_annexes"], queryFn: fetchAnnexes });
 
-  const { data: alunosByCpf } = useQuery({
-    queryKey: ["alunos_by_cpf_all"],
-    queryFn: fetchAlunosByCpf,
+  const { data: alunosByCpfHash } = useQuery<Map<string, { id: string; nome: string }>>({
+    queryKey: ["alunos_by_cpf_hash_all"],
+    queryFn: fetchAlunosByCpfHash,
+  });
+
+  const { data: annexHashes } = useQuery<Map<string, string>>({
+    queryKey: ["legal_annex_cpf_hashes", annexes.map((a) => a.id).join(",")],
+    enabled: annexes.length > 0,
+    queryFn: async () => {
+      const map = new Map<string, string>();
+      await Promise.all(
+        annexes.map(async (a: any) => {
+          const digits = (a.cpf_hash as string | null) || null;
+          if (digits) { map.set(a.id, digits); return; }
+          const raw = (a.cpf || "").replace(/\D/g, "");
+          if (raw.length === 11) map.set(a.id, await hashCpfClient(raw));
+        }),
+      );
+      return map;
+    },
   });
 
   const handleImport = async () => {
@@ -178,7 +198,8 @@ const AnexosJuridicos = () => {
                     <td className="px-5 py-4 text-sm text-muted-foreground">{isExp ? "—" : doc.image_usage ? "Sim" : "Não"}</td>
                     <td className="px-5 py-4 text-sm">
                       {(() => {
-                        const match = alunosByCpf?.get((doc.cpf || "").replace(/\D/g, ""));
+                        const hash = annexHashes?.get(doc.id);
+                        const match = hash ? alunosByCpfHash?.get(hash) : undefined;
                         if (!match) return <span className="text-muted-foreground/60 text-xs">—</span>;
                         return (
                           <Link to={`/alunos/${match.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
