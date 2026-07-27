@@ -65,12 +65,12 @@ export function ConvertToAlunoDialog({
     (async () => {
       const { data } = await supabase
         .from("alunos")
-        .select("cpf,email,cep,logradouro,numero,complemento,bairro,cidade,uf" as any)
+        .select("email,cep,logradouro,numero,complemento,bairro,cidade,uf" as any)
         .eq("id", alunoId)
         .maybeSingle();
       if (data) {
         const a: any = data;
-        setCpf(a.cpf || "");
+        setCpf("");
         setEmail(a.email || "");
         setCep(a.cep || "");
         setLogradouro(a.logradouro || "");
