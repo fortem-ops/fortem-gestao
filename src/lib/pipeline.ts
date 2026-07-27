@@ -2,6 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Phone, Users, Mail, MessageCircle, MapPin, CheckSquare, type LucideIcon } from "lucide-react";
+
+export type TipoAtividade = "ligacao" | "reuniao" | "email" | "whatsapp" | "visita" | "tarefa";
+export const ATIVIDADE_TIPOS: TipoAtividade[] = ["ligacao", "reuniao", "email", "whatsapp", "visita", "tarefa"];
+export const ATIVIDADE_CONFIG: Record<TipoAtividade, { label: string; icon: LucideIcon; defaultTitle: string }> = {
+  ligacao:  { label: "Ligação",  icon: Phone,         defaultTitle: "Ligar" },
+  reuniao:  { label: "Reunião",  icon: Users,         defaultTitle: "Reunião" },
+  email:    { label: "E-mail",   icon: Mail,          defaultTitle: "Enviar e-mail" },
+  whatsapp: { label: "WhatsApp", icon: MessageCircle, defaultTitle: "WhatsApp" },
+  visita:   { label: "Visita",   icon: MapPin,        defaultTitle: "Visita" },
+  tarefa:   { label: "Tarefa",   icon: CheckSquare,   defaultTitle: "Tarefa" },
+};
 
 /** Slug do funil (dinâmico agora — vinha do enum "prospects" | "aluno" | "inativo"). */
 export type Funnel = string;
