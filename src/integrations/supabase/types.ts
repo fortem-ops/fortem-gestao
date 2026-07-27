@@ -5557,6 +5557,7 @@ export type Database = {
           prioridade: string
           responsavel_id: string
           status: string
+          tipo_atividade: string
           tipo_auto: string | null
           titulo: string
           updated_at: string
@@ -5572,6 +5573,7 @@ export type Database = {
           prioridade?: string
           responsavel_id: string
           status?: string
+          tipo_atividade?: string
           tipo_auto?: string | null
           titulo: string
           updated_at?: string
@@ -5587,6 +5589,7 @@ export type Database = {
           prioridade?: string
           responsavel_id?: string
           status?: string
+          tipo_atividade?: string
           tipo_auto?: string | null
           titulo?: string
           updated_at?: string
