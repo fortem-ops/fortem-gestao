@@ -45,7 +45,7 @@ type ProfileRow = {
   full_name: string;
   phone: string | null;
   specialty: string | null;
-  cpf: string | null;
+  cpf_ultimos3: string | null;
   pis_pasep: string | null;
 };
 
