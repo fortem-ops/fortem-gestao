@@ -371,6 +371,23 @@ export function ManageStagesDialog({ open, onOpenChange }: Props) {
                               </SelectContent>
                             </Select>
                             <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-muted-foreground">SLA</span>
+                              <Input
+                                type="number"
+                                min={1}
+                                defaultValue={s.sla_dias ?? ""}
+                                placeholder="—"
+                                className="h-7 w-16 text-[11px]"
+                                title="SLA em dias — vazio = sem alerta"
+                                onBlur={(e) => {
+                                  const raw = e.target.value.trim();
+                                  const parsed = raw === "" ? null : Math.max(1, parseInt(raw, 10) || 0) || null;
+                                  if (parsed !== s.sla_dias) updateStage(s.id, { sla_dias: parsed } as any);
+                                }}
+                              />
+                              <span className="text-[10px] text-muted-foreground">d</span>
+                            </div>
+                            <div className="flex items-center gap-1">
                               <Button size="icon" variant="ghost" className="h-7 w-7" disabled={i === 0} onClick={() => move(s, -1)}>
                                 <ArrowUp className="w-3.5 h-3.5" />
                               </Button>
