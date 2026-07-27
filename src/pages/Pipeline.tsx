@@ -147,7 +147,9 @@ export default function Pipeline() {
                 <div className="flex-1 h-px bg-border ml-2" />
               </button>
               <div className={cn(collapsed[f.id] && "hidden")}>
-                <PipelineKanban funnelId={f.id} funnelSlug={f.slug} filters={filters} />
+                {viewMode === "kanban"
+                  ? <PipelineKanban funnelId={f.id} funnelSlug={f.slug} filters={filters} />
+                  : <PipelineListView funnelId={f.id} funnelSlug={f.slug} filters={filters} />}
               </div>
             </section>
           ))
