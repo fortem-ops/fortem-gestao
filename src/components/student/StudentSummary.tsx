@@ -56,15 +56,20 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const [viewingContrato, setViewingContrato] = useState<ContratoDetail | null>(null);
   const [markingPresential, setMarkingPresential] = useState(false);
 
-  const { data: isCoordAdmin = false } = useQuery({
-    queryKey: ["is_coord_admin_summary"],
+  const { data: roleFlags = { isAdmin: false, isCoordAdmin: false } } = useQuery({
+    queryKey: ["role_flags_summary"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user.id });
-      return !!data;
+      if (!user) return { isAdmin: false, isCoordAdmin: false };
+      const [{ data: admin }, { data: coord }] = await Promise.all([
+        supabase.rpc("is_admin", { _user_id: user.id }),
+        supabase.rpc("is_coordinator_or_admin", { _user_id: user.id }),
+      ]);
+      return { isAdmin: !!admin, isCoordAdmin: !!coord };
     },
   });
+  const isAdmin = roleFlags.isAdmin;
+  const isCoordAdmin = roleFlags.isCoordAdmin;
   const { data: professor } = useQuery({
     queryKey: ["professor", student.responsavel_id],
     queryFn: async () => {
