@@ -201,17 +201,19 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       console.log("[StudentList] Total planos ativos retornados:", planos.length);
       const planoIds = planos.map((p: any) => p.id);
       const consumos: any[] = [];
-      for (const part of chunk(planoIds, CHUNK)) {
-        const { data, error } = await supabase
-          .from("consumo_servicos")
-          .select("aluno_id, plano_id, tipo_servico, tipo_registro, quantidade, agenda_id")
-          .in("plano_id", part);
-        if (error) {
-          console.error("Erro ao buscar consumo de serviços:", error, { chunkSize: part.length });
-          throw error;
-        }
-        consumos.push(...(data || []));
-      }
+      await Promise.all(
+        chunk(planoIds, CHUNK).map(async (part) => {
+          const { data, error } = await supabase
+            .from("consumo_servicos")
+            .select("aluno_id, plano_id, tipo_servico, tipo_registro, quantidade, agenda_id")
+            .in("plano_id", part);
+          if (error) {
+            console.error("Erro ao buscar consumo de serviços:", error, { chunkSize: part.length });
+            throw error;
+          }
+          consumos.push(...(data || []));
+        })
+      );
       const creditos: any[] = [];
       for (const part of chunk(ids, CHUNK)) {
         const { data, error } = await supabase
