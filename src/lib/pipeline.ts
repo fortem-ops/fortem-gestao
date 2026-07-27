@@ -215,7 +215,7 @@ export interface PipelineFilterInput {
   origem: string | null;
   quick: "todos" | "meus" | "quentes" | "parados" | "semana";
 }
-export function filterPipelineAlunos<T extends { id: string; nome: string; responsavel_id?: string | null }>(
+export function filterPipelineAlunos<T extends { id: string; nome: string; responsavel_id?: string | null; telefone?: string | null; email?: string | null }>(
   alunos: T[],
   filters: PipelineFilterInput,
   metaMap: Record<string, any>,
@@ -223,9 +223,16 @@ export function filterPipelineAlunos<T extends { id: string; nome: string; respo
   currentUserId: string | null | undefined,
 ): T[] {
   const term = (filters.search || "").trim().toLowerCase();
+  const termDigits = term.replace(/\D/g, "");
   const isThisWeek = (d?: string | null) => !!d && Date.now() - new Date(d).getTime() <= 7 * 86400000;
   return alunos.filter((a) => {
-    if (term && !a.nome.toLowerCase().includes(term)) return false;
+    if (term) {
+      const nomeMatch = a.nome.toLowerCase().includes(term);
+      const emailMatch = !!a.email && a.email.toLowerCase().includes(term);
+      const telDigits = (a.telefone || "").replace(/\D/g, "");
+      const telMatch = !!termDigits && !!telDigits && telDigits.includes(termDigits);
+      if (!nomeMatch && !emailMatch && !telMatch) return false;
+    }
     if (filters.professorId && a.responsavel_id !== filters.professorId) return false;
     if (filters.origem) {
       const meta = metaMap[a.id];
