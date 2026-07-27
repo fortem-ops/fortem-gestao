@@ -511,7 +511,6 @@ export async function importStudents(
           frequencia_semanal:
             typeof p.frequencia_semanal === "number" ? p.frequencia_semanal : null,
           observacoes: p.observacoes || null,
-          cpf: p.cpf ? p.cpf.replace(/\D/g, "") : null,
           rg: p.rg || null,
           cep: p.cep ? p.cep.replace(/\D/g, "") : null,
           logradouro: p.logradouro || null,
@@ -526,6 +525,16 @@ export async function importStudents(
         .select("id")
         .single();
       if (error) throw error;
+
+      const cpfDigits = p.cpf ? p.cpf.replace(/\D/g, "") : "";
+      if (cpfDigits.length === 11 && aluno) {
+        const { error: cpfErr } = await supabase.rpc("fn_update_cpf", {
+          p_aluno_id: aluno.id,
+          p_novo_cpf: cpfDigits,
+        });
+        if (cpfErr) console.error("Erro ao gravar CPF (fn_update_cpf):", cpfErr);
+      }
+
 
       if (p.plano_tipo) {
         const plan = getPlanDetails(p.plano_tipo, p.plano_consultas || undefined);
