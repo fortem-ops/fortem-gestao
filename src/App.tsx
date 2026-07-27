@@ -61,6 +61,7 @@ const RelatoriosPlanos = lazy(() => import("./pages/relatorios/Planos"));
 const RelatoriosCancelamentos = lazy(() => import("./pages/relatorios/Cancelamentos"));
 const RelatoriosServicos = lazy(() => import("./pages/relatorios/Servicos"));
 const RelatoriosEmBreve = lazy(() => import("./pages/relatorios/EmBreve"));
+const RelatoriosCRM = lazy(() => import("./pages/relatorios/CRM"));
 const RelatoriosEquipe = lazy(() => import("./pages/relatorios/Equipe"));
 const WhatsApp = lazy(() => import("./pages/WhatsApp"));
 const Privacidade = lazy(() => import("./pages/Privacidade"));
@@ -520,7 +521,7 @@ const App = () => (
                 <Route path="planos" element={<Suspense fallback={<RouteFallback />}><RelatoriosPlanos /></Suspense>} />
                 <Route path="cancelamentos" element={<Suspense fallback={<RouteFallback />}><RelatoriosCancelamentos /></Suspense>} />
                 <Route path="servicos" element={<Suspense fallback={<RouteFallback />}><RelatoriosServicos /></Suspense>} />
-                <Route path="crm" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="CRM" /></Suspense>} />
+                <Route path="crm" element={<Suspense fallback={<RouteFallback />}><RelatoriosCRM /></Suspense>} />
                 <Route path="tecnicos" element={<Suspense fallback={<RouteFallback />}><RelatoriosEmBreve titulo="Técnicos" /></Suspense>} />
                 <Route path="equipe" element={<Suspense fallback={<RouteFallback />}><RelatoriosEquipe /></Suspense>} />
               </Route>
