@@ -88,7 +88,7 @@ export default function ImportStudentsCSVDialog({ status, onImported }: Props) {
         toast.warning(`Colunas ignoradas: ${ignored.join(", ")}`);
       }
       const ctx = await loadImportContext(status);
-      setValidated(validateRows(rows, ctx));
+      setValidated(await validateRows(rows, ctx));
     } catch (err: any) {
       toast.error(err.message || "Erro ao ler arquivo.");
     } finally {
