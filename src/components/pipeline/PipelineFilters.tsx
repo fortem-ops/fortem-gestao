@@ -94,7 +94,7 @@ export function PipelineFilters({ value, onChange }: Props) {
           <Input
             value={value.search}
             onChange={(e) => onChange({ ...value, search: e.target.value })}
-            placeholder="Buscar lead por nome..."
+            placeholder="Buscar por nome, telefone ou email..."
             className="pl-8"
           />
         </div>
