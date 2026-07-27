@@ -66,14 +66,9 @@ const AnexosJuridicos = () => {
     enabled: annexes.length > 0,
     queryFn: async () => {
       const map = new Map<string, string>();
-      await Promise.all(
-        annexes.map(async (a: any) => {
-          const digits = (a.cpf_hash as string | null) || null;
-          if (digits) { map.set(a.id, digits); return; }
-          const raw = (a.cpf || "").replace(/\D/g, "");
-          if (raw.length === 11) map.set(a.id, await hashCpfClient(raw));
-        }),
-      );
+      annexes.forEach((a: any) => {
+        if (a.cpf_hash) map.set(a.id, a.cpf_hash as string);
+      });
       return map;
     },
   });
