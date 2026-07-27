@@ -221,7 +221,8 @@ export function AdminUsers() {
           full_name: f.full_name.trim(),
           phone: f.phone.trim() || null,
           specialty: f.specialty.trim() || null,
-          cpf: cpfDigits || null,
+          // Only send cpf when user typed something (empty = don't touch).
+          cpf: cpfDigits ? cpfDigits : undefined,
           pis_pasep: pisDigits || null,
         },
       });
