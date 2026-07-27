@@ -161,7 +161,7 @@ export interface NextTaskInfo {
   id: string;
   titulo: string;
   data_limite: string | null;
-  tipo_atividade?: TipoAtividade | null;
+  tipo_atividade?: TipoAtividade | string | null;
 }
 
 /** Determines task indicator from due date string (YYYY-MM-DD). */
