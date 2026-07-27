@@ -144,6 +144,11 @@ export default function RelatoriosCRM() {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-base">Funil de conversão</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Entradas = alunos que passaram por cada etapa no período. Como o funil não é sempre
+            linear (leads podem pular etapas ou retroceder), os números não são necessariamente
+            decrescentes.
+          </p>
         </CardHeader>
         <CardContent className="space-y-2">
           {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
