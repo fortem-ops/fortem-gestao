@@ -181,7 +181,16 @@ export function MarkPresentialSignatureDialog({ open, onOpenChange, student, con
           return;
         }
 
-        const { conteudo, vars } = mergeAluno(template.conteudo, student, date);
+        let cpfCompleto = "";
+        try {
+          const { data: cpfRpc, error: cpfErr } = await db.rpc("fn_reveal_cpf", { p_aluno_id: student.id });
+          if (cpfErr) throw cpfErr;
+          cpfCompleto = typeof cpfRpc === "string" ? cpfRpc : "";
+        } catch (revealErr) {
+          console.error("[MarkPresentialSignature] fn_reveal_cpf falhou:", revealErr);
+        }
+
+        const { conteudo, vars } = mergeAluno(template.conteudo, student, date, cpfCompleto);
 
         const { error: errIns } = await db.from("contratos_documentos").insert({
           contrato_id: contrato.id,
