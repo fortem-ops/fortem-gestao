@@ -142,6 +142,17 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
 
         <div className="space-y-3">
           <div>
+            <Label className="text-xs">Tipo de atividade</Label>
+            <AtividadeTipoSelector
+              value={tipoAtividade}
+              onChange={(t) => {
+                setTipoAtividade(t);
+                if (!titulo.trim()) setTitulo(ATIVIDADE_CONFIG[t].defaultTitle);
+              }}
+              className="mt-1"
+            />
+          </div>
+          <div>
             <Label className="text-xs">Título</Label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="O que fazer?" />
             <div className="flex flex-wrap gap-1.5 mt-2">
