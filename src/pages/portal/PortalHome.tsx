@@ -257,19 +257,12 @@ export default function PortalHome() {
           .eq("aluno_id", student!.id)
           .eq("aceite", false)
           .limit(1),
-        cpfDigits
-          ? supabase
-              .from("legal_annexes")
-              .select("id, signed_at")
-              .or(`aluno_id.eq.${student!.id},cpf.eq.${cpfDigits}`)
-              .not("signed_at", "is", null)
-              .limit(1)
-          : supabase
-              .from("legal_annexes")
-              .select("id, signed_at")
-              .eq("aluno_id", student!.id)
-              .not("signed_at", "is", null)
-              .limit(1),
+        supabase
+          .from("legal_annexes")
+          .select("id, signed_at")
+          .eq("aluno_id", student!.id)
+          .not("signed_at", "is", null)
+          .limit(1),
       ]);
       const contratoPendente = (contratoRes.data?.length ?? 0) > 0;
       const anexoAssinado = (anexoRes.data?.length ?? 0) > 0;
