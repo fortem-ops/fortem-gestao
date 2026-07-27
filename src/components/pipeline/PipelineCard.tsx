@@ -28,6 +28,7 @@ export interface PipelineCardData {
   current_stage_name?: string;
   current_stage_probabilidade?: number | null;
   current_funnel?: Funnel;
+  stage_sla_dias?: number | null;
   meta?: {
     plano_interesse?: string | null;
     temperatura_lead?: string | null;
