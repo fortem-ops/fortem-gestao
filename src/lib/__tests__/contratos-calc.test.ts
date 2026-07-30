@@ -18,6 +18,8 @@ import {
 /** Cria uma data ISO no passado, N meses atrás */
 function dataHaMeses(n: number): string {
   const d = new Date();
+  // Usar dia 1 para evitar edge cases de meses com menos dias
+  d.setDate(1);
   d.setMonth(d.getMonth() - n);
   return d.toISOString().split("T")[0];
 }
