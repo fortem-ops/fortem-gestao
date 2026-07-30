@@ -3135,29 +3135,35 @@ export type Database = {
         Row: {
           aluno_id: string
           created_at: string
-          created_by: string | null
-          expires_at: string
+          criado_por: string | null
+          expira_em: string
           id: string
+          origem: string
           token: string
           usado: boolean
+          usado_em: string | null
         }
         Insert: {
           aluno_id: string
           created_at?: string
-          created_by?: string | null
-          expires_at?: string
+          criado_por?: string | null
+          expira_em?: string
           id?: string
+          origem?: string
           token?: string
           usado?: boolean
+          usado_em?: string | null
         }
         Update: {
           aluno_id?: string
           created_at?: string
-          created_by?: string | null
-          expires_at?: string
+          criado_por?: string | null
+          expira_em?: string
           id?: string
+          origem?: string
           token?: string
           usado?: boolean
+          usado_em?: string | null
         }
         Relationships: [
           {
@@ -3176,7 +3182,7 @@ export type Database = {
           },
           {
             foreignKeyName: "links_cartao_created_by_fkey"
-            columns: ["created_by"]
+            columns: ["criado_por"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

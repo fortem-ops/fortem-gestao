@@ -274,13 +274,13 @@ export function CartoesSection({ student }: Props) {
     try {
       const { data, error } = await (supabase as any)
         .from("links_cartao")
-        .insert({ aluno_id: student.id })
+        .insert({ aluno_id: student.id, origem: "recepcao" })
         .select("token")
         .single();
       if (error) throw error;
-      const url = `${window.location.origin}/cartao/${data.token}`;
+      const url = `${window.location.origin}/cadastrar-cartao?token=${data.token}`;
       setLinkGerado(url);
-      setLinkCopiado(false);
+      try { await navigator.clipboard.writeText(url); setLinkCopiado(true); } catch { /* noop */ }
     } catch (e: any) {
       toast.error("Falha ao gerar link: " + e.message);
     } finally {
@@ -363,7 +363,7 @@ export function CartoesSection({ student }: Props) {
           )}
           {linkGerado && (
             <p className="text-[10px] text-muted-foreground mt-1">
-              Válido por 48h. Envie por WhatsApp ou e-mail para o aluno concluir o cadastro.
+              Válido por 24h e de uso único. Envie por WhatsApp ou e-mail para o aluno concluir o cadastro.
             </p>
           )}
         </CardHeader>
