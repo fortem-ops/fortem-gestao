@@ -118,9 +118,10 @@ describe("useUserRoles", () => {
     mockUserValue = null;
     setupMocks();
     const { result } = renderHook(() => useUserRoles(), { wrapper: makeWrapper() });
-    // Deve ficar em loading (enabled=false) sem chamar o Supabase
+    // Query desabilitada: não está carregando nem executando fetch
     await new Promise((r) => setTimeout(r, 100));
-    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.fetchStatus).toBe("idle");
     expect(mockRpc).not.toHaveBeenCalled();
   });
 
