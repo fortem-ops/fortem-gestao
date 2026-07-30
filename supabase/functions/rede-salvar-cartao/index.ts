@@ -211,7 +211,7 @@ serve(async (req) => {
   const last4 = cardClean.slice(-4);
 
   const { error: insErr } = await supabase.from("cartoes_salvos").insert({
-    aluno_id,
+    aluno_id: alunoId,
     token_rede: cardToken,
     brand,
     last4,
@@ -229,9 +229,12 @@ serve(async (req) => {
   }
 
   // Marcar link como usado
-  if (origem === "link_cadastro" && linkRecord) {
-    await supabase.from("links_cartao").update({ usado: true }).eq("id", linkRecord.id);
+  if (linkRecord) {
+    await supabase.from("links_cartao")
+      .update({ usado: true, usado_em: new Date().toISOString() })
+      .eq("id", linkRecord.id);
   }
+
 
   return new Response(JSON.stringify({ success: true, last4, brand }), { status: 200, headers });
 });
