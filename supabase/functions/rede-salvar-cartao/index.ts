@@ -65,11 +65,38 @@ serve(async (req) => {
     expiration_month,
     expiration_year,
     security_code,
-    origem,
-    token: linkToken,
+    origem = "link_cadastro",
+    token,
+    link_token,
   } = body ?? {};
 
-  if (!aluno_id || !card_number || !card_holder || !expiration_month || !expiration_year || !security_code || !origem) {
+  const linkToken = link_token ?? token ?? null;
+  let alunoId = aluno_id ?? null;
+
+  // Validar link público (quando enviado)
+  let linkRecord: any = null;
+  if (linkToken) {
+    let q = supabase
+      .from("links_cartao")
+      .select("id, aluno_id, usado, expira_em")
+      .eq("token", linkToken);
+    if (alunoId) q = q.eq("aluno_id", alunoId);
+    const { data: link } = await q.maybeSingle();
+
+    if (!link) {
+      return new Response(JSON.stringify({ success: false, error: "Link inválido ou não encontrado" }), { status: 404, headers });
+    }
+    if (link.usado) {
+      return new Response(JSON.stringify({ success: false, error: "Este link já foi utilizado" }), { status: 410, headers });
+    }
+    if (new Date(link.expira_em).getTime() < Date.now()) {
+      return new Response(JSON.stringify({ success: false, error: "Link expirado. Solicite um novo link na recepção" }), { status: 410, headers });
+    }
+    linkRecord = link;
+    alunoId = link.aluno_id;
+  }
+
+  if (!alunoId || !card_number || !card_holder || !expiration_month || !expiration_year || !security_code) {
     return new Response(JSON.stringify({
       success: false,
       error: "Campos obrigatórios ausentes",
@@ -81,24 +108,6 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: false, error: "Número de cartão inválido" }), { status: 400, headers });
   }
 
-  // Se origem = link_cadastro, validar link
-  let linkRecord: any = null;
-  if (origem === "link_cadastro") {
-    if (!linkToken) {
-      return new Response(JSON.stringify({ success: false, error: "Token do link ausente" }), { status: 400, headers });
-    }
-    const { data: link } = await supabase
-      .from("links_cartao")
-      .select("*")
-      .eq("token", linkToken)
-      .eq("aluno_id", aluno_id)
-      .maybeSingle();
-
-    if (!link || link.usado || new Date(link.expires_at).getTime() < Date.now()) {
-      return new Response(JSON.stringify({ success: false, error: "Link inválido ou expirado" }), { status: 400, headers });
-    }
-    linkRecord = link;
-  }
 
   // Credenciais Rede
   const pv = Deno.env.get("REDE_PV") ?? "";
