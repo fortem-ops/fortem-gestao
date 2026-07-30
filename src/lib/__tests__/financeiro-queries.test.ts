@@ -15,7 +15,7 @@ const mockSingle = vi.fn();
 const builder: any = {
   select: (...a: any[]) => { mockSelect(...a); return builder; },
   eq: (...a: any[]) => { mockEq(...a); return builder; },
-  order: (...a: any[]) => { mockOrder(...a); return builder; },
+  order: (...a: any[]) => { const r = mockOrder(...a); return r === undefined ? builder : r; },
   maybeSingle: () => mockMaybeSingle(),
   single: () => mockSingle(),
   then: undefined, // não é thenable — força uso explícito de await nos testes
