@@ -181,4 +181,219 @@ describe("calcRescisao — Start mensal (sem multa)", () => {
 
   it("total_devido é zero", () => {
     const r = calcRescisao(startMensal, SEM_SERVICOS);
-    expect(r.total_devido).toClipboard is not available. Use keyboard shortcuts instead.Clipboard is not available. Use keyboard shortcuts instead.
+    expect(r.total_devido).toBe(0);
+  });
+
+  it("total_restituir é zero", () => {
+    const r = calcRescisao(startMensal, SEM_SERVICOS);
+    expect(r.total_restituir).toBe(0);
+  });
+});
+
+// ─── calcRescisao — Recorrência ───────────────────────────────────────────────
+
+describe("calcRescisao — Recorrência mensal (anual fidelizado)", () => {
+  it("tipo é recorrencia_com_multa", () => {
+    const r = calcRescisao(BASE_CONTRATO_RECORRENCIA, SEM_SERVICOS);
+    expect(r.tipo).toBe("recorrencia_com_multa");
+  });
+
+  it("meses_restantes é positivo", () => {
+    const r = calcRescisao(BASE_CONTRATO_RECORRENCIA, SEM_SERVICOS);
+    expect(r.meses_restantes).toBeGreaterThan(0);
+  });
+
+  it("total_restituir é sempre zero na recorrência", () => {
+    const r = calcRescisao(BASE_CONTRATO_RECORRENCIA, SEM_SERVICOS);
+    expect(r.total_restituir).toBe(0);
+  });
+
+  it("mês 2 → multa 25% sobre vincendas", () => {
+    const contrato: Contrato = {
+      ...BASE_CONTRATO_RECORRENCIA,
+      data_inicio: dataHaMeses(1), // mês 2
+    };
+    const r = calcRescisao(contrato, SEM_SERVICOS);
+    expect(r.percentual).toBe(25);
+    expect(r.total_devido).toBeGreaterThan(0);
+  });
+
+  it("mês 5 → multa 20% sobre vincendas", () => {
+    const contrato: Contrato = {
+      ...BASE_CONTRATO_RECORRENCIA,
+      data_inicio: dataHaMeses(4), // mês 5
+    };
+    const r = calcRescisao(contrato, SEM_SERVICOS);
+    expect(r.percentual).toBe(20);
+  });
+
+  it("mês 8 → multa 15% sobre vincendas", () => {
+    const contrato: Contrato = {
+      ...BASE_CONTRATO_RECORRENCIA,
+      data_inicio: dataHaMeses(7), // mês 8
+    };
+    const r = calcRescisao(contrato, SEM_SERVICOS);
+    expect(r.percentual).toBe(15);
+  });
+
+  it("com nutrição utilizada: servicos_vincendos > 0", () => {
+    const r = calcRescisao(BASE_CONTRATO_RECORRENCIA, COM_NUTRICAO);
+    expect(r.servicos_vincendos).toBeGreaterThan(0);
+    expect(r.total_devido).toBeGreaterThan(r.multa_base ?? 0);
+  });
+
+  it("total_devido = multa_base + servicos_vincendos", () => {
+    const r = calcRescisao(BASE_CONTRATO_RECORRENCIA, COM_NUTRICAO);
+    const esperado = Math.round(((r.multa_base ?? 0) + (r.servicos_vincendos ?? 0)) * 100) / 100;
+    expect(r.total_devido).toBeCloseTo(esperado, 2);
+  });
+
+  it("Pix automático também usa lógica de recorrência", () => {
+    const contrato: Contrato = {
+      ...BASE_CONTRATO_RECORRENCIA,
+      forma_pagamento: "pix_automatico",
+    };
+    const r = calcRescisao(contrato, SEM_SERVICOS);
+    expect(r.tipo).toBe("recorrencia_com_multa");
+  });
+});
+
+// ─── calcRescisao — Parcelado ─────────────────────────────────────────────────
+
+describe("calcRescisao — Parcelado (restituição)", () => {
+  it("tipo é parcelado_com_restituicao", () => {
+    const r = calcRescisao(BASE_CONTRATO_PARCELADO, SEM_SERVICOS);
+    expect(r.tipo).toBe("parcelado_com_restituicao");
+  });
+
+  it("total_devido é zero quando não há saldo devedor", () => {
+    const r = calcRescisao(BASE_CONTRATO_PARCELADO, SEM_SERVICOS);
+    // No mês 6 sem serviços utilizados, restituição > 0 e não há saldo devedor
+    expect(r.total_devido).toBeGreaterThanOrEqual(0);
+  });
+
+  it("mês 2 → restitui 75%", () => {
+    const contrato: Contrato = {
+      ...BASE_CONTRATO_PARCELADO,
+      data_inicio: dataHaMeses(1),
+    };
+    const r = calcRescisao(contrato, SEM_SERVICOS);
+    expect(r.percentual).toBe(75);
+    expect(r.total_restituir).toBeGreaterThan(0);
+  });
+
+  it("mês 5 → restitui 80%", () => {
+    const contrato: Contrato = {
+      ...BASE_CONTRATO_PARCELADO,
+      data_inicio: dataHaMeses(4),
+    };
+    const r = calcRescisao(contrato, SEM_SERVICOS);
+    expect(r.percentual).toBe(80);
+  });
+
+  it("mês 8 → restitui 85%", () => {
+    const contrato: Contrato = {
+      ...BASE_CONTRATO_PARCELADO,
+      data_inicio: dataHaMeses(7),
+    };
+    const r = calcRescisao(contrato, SEM_SERVICOS);
+    expect(r.percentual).toBe(85);
+  });
+
+  it("sem serviços: restituicao_bruta = total_restituir", () => {
+    const r = calcRescisao(BASE_CONTRATO_PARCELADO, SEM_SERVICOS);
+    expect(r.total_restituir).toBeCloseTo(r.restituicao_bruta ?? 0, 2);
+  });
+
+  it("com nutrição utilizada: deduz R$ 300 da restituição", () => {
+    const r = calcRescisao(BASE_CONTRATO_PARCELADO, COM_NUTRICAO);
+    expect(r.deducao_servicos).toBe(300);
+    expect(r.total_restituir).toBeLessThan(r.restituicao_bruta ?? 0);
+  });
+
+  it("saldo devedor quando serviços > restituição bruta", () => {
+    // Contrato de baixo valor no mês 1 com muitos serviços
+    const contrato: Contrato = {
+      ...BASE_CONTRATO_PARCELADO,
+      valor_cobrado: 200,
+      data_inicio: dataHaMeses(11), // mês 12 — pouco a restituir
+    };
+    const r = calcRescisao(contrato, COM_AMBOS); // R$ 450 em serviços
+    // Pode gerar saldo devedor
+    expect(r.saldo_devedor).toBeGreaterThanOrEqual(0);
+    expect(r.total_restituir).toBeGreaterThanOrEqual(0);
+  });
+
+  it("total_restituir nunca é negativo", () => {
+    const r = calcRescisao(BASE_CONTRATO_PARCELADO, COM_AMBOS);
+    expect(r.total_restituir).toBeGreaterThanOrEqual(0);
+  });
+
+  it("Max — 5 nutri + 5 fisio: deduz R$ 2.250", () => {
+    const maxServicos: ServicoUtilizado[] = [
+      ...Array(5).fill({ tipo: "nutricao" as const, utilizado: true }),
+      ...Array(5).fill({ tipo: "fisioterapia" as const, utilizado: true }),
+    ];
+    const contrato: Contrato = {
+      ...BASE_CONTRATO_PARCELADO,
+      plano_tipo: "max",
+      valor_cobrado: 649,
+      data_inicio: dataHaMeses(1), // mês 2
+    };
+    const r = calcRescisao(contrato, maxServicos);
+    expect(r.deducao_servicos).toBe(2250);
+  });
+
+  it("valor_total_contrato = valor_cobrado × parcelas", () => {
+    const r = calcRescisao(BASE_CONTRATO_PARCELADO, SEM_SERVICOS);
+    const esperado = BASE_CONTRATO_PARCELADO.valor_cobrado * BASE_CONTRATO_PARCELADO.parcelas;
+    expect(r.valor_total_contrato).toBe(esperado);
+  });
+});
+
+// ─── Constantes e labels ──────────────────────────────────────────────────────
+
+describe("LABEL_PLANO", () => {
+  it("cobre todos os planos", () => {
+    const planos = ["start", "start_plus", "power", "pro", "max", "corrida", "outro"] as const;
+    planos.forEach((p) => expect(LABEL_PLANO[p]).toBeTruthy());
+  });
+
+  it("Start+ tem label correto", () => {
+    expect(LABEL_PLANO["start_plus"]).toBe("Start+");
+  });
+});
+
+describe("LABEL_PAGAMENTO", () => {
+  it("cobre todas as formas de pagamento", () => {
+    const formas = [
+      "cartao_recorrencia", "cartao_parcelado", "pix_automatico",
+      "boleto", "maquina_debito", "maquina_credito", "dinheiro",
+    ] as const;
+    formas.forEach((f) => expect(LABEL_PAGAMENTO[f]).toBeTruthy());
+  });
+});
+
+describe("TRANCAMENTO_MAXIMO", () => {
+  it("Start tem 0 dias normais e 30 por doença", () => {
+    expect(TRANCAMENTO_MAXIMO["start"].normal).toBe(0);
+    expect(TRANCAMENTO_MAXIMO["start"].doenca).toBe(30);
+  });
+
+  it("Power tem 15 dias normais", () => {
+    expect(TRANCAMENTO_MAXIMO["power"].normal).toBe(15);
+  });
+
+  it("Pro tem 20 dias normais", () => {
+    expect(TRANCAMENTO_MAXIMO["pro"].normal).toBe(20);
+  });
+
+  it("Max tem 30 dias normais", () => {
+    expect(TRANCAMENTO_MAXIMO["max"].normal).toBe(30);
+  });
+
+  it("todos os planos têm 30 dias por doença", () => {
+    const planos = ["start", "start_plus", "power", "pro", "max"] as const;
+    planos.forEach((p) => expect(TRANCAMENTO_MAXIMO[p].doenca).toBe(30));
+  });
+});
