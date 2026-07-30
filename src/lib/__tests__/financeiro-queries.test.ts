@@ -21,7 +21,7 @@ const builder: any = {
   then: undefined, // não é thenable — força uso explícito de await nos testes
 };
 
-const mockFrom = vi.fn(() => builder);
+const mockFrom = vi.fn((..._a: any[]) => builder);
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: (...a: any[]) => mockFrom(...a) },
