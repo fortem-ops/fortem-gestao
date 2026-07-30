@@ -155,7 +155,8 @@ export function calcCreditosPorFrequencia(
     1: { mensal: 4, anual: 52 },
     2: { mensal: 8, anual: 104 },
     3: { mensal: 12, anual: 156 },
-    0: { mensal: 20, anual: 260 },
+    5: { mensal: 20, anual: 260 }, // Livre = seg-sex
+    0: { mensal: 20, anual: 260 }, // alias legado (manter compatibilidade)
   };
   return tabela[frequencia]?.[vigencia] ?? 0;
 }
