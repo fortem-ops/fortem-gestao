@@ -363,7 +363,7 @@ export function CartoesSection({ student }: Props) {
           )}
           {linkGerado && (
             <p className="text-[10px] text-muted-foreground mt-1">
-              Válido por 48h. Envie por WhatsApp ou e-mail para o aluno concluir o cadastro.
+              Válido por 24h e de uso único. Envie por WhatsApp ou e-mail para o aluno concluir o cadastro.
             </p>
           )}
         </CardHeader>
