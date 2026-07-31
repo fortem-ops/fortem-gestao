@@ -350,7 +350,10 @@ export default function PortalAgenda() {
     },
     onSuccess: (result: any) => {
       toast.success("Treino agendado!", {
-        description: `${result.creditos_restantes} crédito(s) restante(s).`,
+        description:
+          result.creditos_restantes == null
+            ? "Sua vaga está confirmada."
+            : `${result.creditos_restantes} crédito(s) restante(s).`,
       });
       setConfirmando(null);
       qc.invalidateQueries({ queryKey: ["portal-vagas-dia"] });
