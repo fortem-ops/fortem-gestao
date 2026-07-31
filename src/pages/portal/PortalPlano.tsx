@@ -198,11 +198,20 @@ export default function PortalPlano() {
         </h1>
       </div>
 
-      <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => { setExpandido(v => !v); if (expandido) setAba("visao"); }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpandido(v => !v); } }}
+        className="bg-card border border-border rounded-2xl p-5 space-y-3 cursor-pointer transition-colors hover:border-primary/30"
+      >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Plano ativo</p>
-            <p className="text-2xl font-black text-foreground mt-0.5" style={{fontFamily:'Archivo,sans-serif'}}>{planoTipo}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 uppercase tracking-wide">Ativo</span>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Plano ativo</span>
+            </div>
+            <p className="text-2xl font-black text-foreground mt-1" style={{fontFamily:'Archivo,sans-serif'}}>{planoTipo}</p>
           </div>
           <div className="text-right">
             <p className="text-[11px] text-muted-foreground">Vence em</p>
@@ -222,56 +231,17 @@ export default function PortalPlano() {
             <p className="text-xs text-amber-400 font-medium">Plano trancado até {format(parseISO(licencas.find((l:any) => l.data_inicio <= todayStr && l.data_fim >= todayStr).data_fim), "dd/MM/yyyy")}</p>
           </div>
         )}
+        <div className="flex items-center gap-1 text-[11px] font-semibold text-primary pt-1">
+          <span>{expandido ? "Ocultar ações" : "Ver ações do plano"}</span>
+          <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expandido ? "rotate-90" : ""}`} />
+        </div>
       </div>
 
-      {contratosAdicionais.length > 0 && (
-        <section className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Contratos adicionais</p>
-          {contratosAdicionais.map((c: any) => {
-            const corrida = isCorridaItem(c);
-            const dias = c.data_fim ? differenceInDays(parseISO(c.data_fim), new Date()) : 0;
-            return (
-              <div key={c.id} className="bg-card border border-border rounded-2xl p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 uppercase tracking-wide">Ativo</span>
-                      {c.vigencia_tipo && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide">
-                          {c.vigencia_tipo}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-2xl font-black text-foreground mt-1" style={{fontFamily:'Archivo,sans-serif'}}>
-                      {corrida ? "Corrida" : (c.plano_tipo ?? "Plano")}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[11px] text-muted-foreground">Vence em</p>
-                    <p className="text-lg font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-                      {dias > 0 ? `${dias} dias` : "Vencido"}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {c.data_inicio ? format(parseISO(c.data_inicio), "dd/MM/yyyy") : "—"}
-                  {" → "}
-                  {c.data_fim ? format(parseISO(c.data_fim), "dd/MM/yyyy") : "—"}
-                  {" · R$ "}
-                  {Number(c.valor_cobrado ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </p>
-                {corrida && (
-                  <p className="text-xs text-muted-foreground">Sem controle de créditos</p>
-                )}
-              </div>
-            );
-          })}
-        </section>
-      )}
-
+      {expandido && (
       <div className="space-y-2">
 
         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Ações</p>
+
 
         {limiteLicenca > 0 && (
           <button
