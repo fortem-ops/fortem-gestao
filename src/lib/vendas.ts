@@ -1,7 +1,7 @@
 export type Frequencia = "1x" | "2x" | "3x" | "livre";
 
 export const FREQUENCIAS: Frequencia[] = ["1x", "2x", "3x", "livre"];
-export const PERIODOS = [1, 12];
+export const PERIODOS = [1, 6, 12];
 
 export const PRESET_CORES = [
   { nome: "Cinza", cor: "#9CA3AF" },
