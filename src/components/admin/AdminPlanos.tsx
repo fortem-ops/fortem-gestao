@@ -122,6 +122,8 @@ export function AdminPlanos() {
       valor: Number(p.valor),
       cor: p.cor || "#9CA3AF",
       ativo: p.ativo,
+      atividade: p.atividade || ATIVIDADES_PLANO[0].value,
+      plano_base_requerido: p.plano_base_requerido || PLANO_BASE_NENHUM,
       manualCreditos: true,
     });
     setOpen(true);
