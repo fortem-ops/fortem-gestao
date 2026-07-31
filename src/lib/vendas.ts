@@ -17,6 +17,25 @@ export const PRESET_CORES = [
 export const PLANOS_SUGERIDOS = ["Start", "Start+", "Power", "Pro", "Max", "VIP", "Gympass/Wellhub", "Total Pass"];
 export const ATIVIDADES_SUGERIDAS = ["Nutrição", "Reabilitação", "Avaliação Funcional"];
 
+/** Atividades do catálogo (coluna `atividade`). Extensível: basta adicionar aqui. */
+export const ATIVIDADES_PLANO = [
+  { value: "treinamento_funcional", label: "Treinamento Funcional" },
+  { value: "corrida", label: "Corrida" },
+] as const;
+
+export type AtividadePlano = (typeof ATIVIDADES_PLANO)[number]["value"];
+
+/** Planos base possíveis (coluna `plano_base_requerido`). NULL = nenhum. */
+export const PLANOS_BASE = [
+  { value: "start", label: "Start" },
+  { value: "start_plus", label: "Start+" },
+  { value: "power", label: "Power" },
+  { value: "pro", label: "Pro" },
+  { value: "max", label: "Max" },
+] as const;
+
+export const PLANO_BASE_NENHUM = "nenhum";
+
 /**
  * Calcula créditos automáticos. Retorna { quantidade, ilimitado }.
  * 1x mensal=4/anual=52, 2x=8/104, 3x=12/156, livre=ilimitado.
