@@ -62,8 +62,8 @@ export default function PortalPlano() {
   const [cancelSaving, setCancelSaving] = useState(false);
   const [confirmacaoTexto, setConfirmacaoTexto] = useState("");
 
-  const { data: plano } = useQuery({
-    queryKey: ["portal-plano-ativo", student?.id],
+  const { data: planos = [] } = useQuery({
+    queryKey: ["portal-planos-ativos", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -71,15 +71,13 @@ export default function PortalPlano() {
         .select("*")
         .eq("aluno_id", student!.id)
         .eq("ativo", true)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
+        .order("created_at", { ascending: false });
+      return data || [];
     },
   });
 
-  const { data: contrato } = useQuery({
-    queryKey: ["portal-contrato-ativo", student?.id],
+  const { data: contratos = [] } = useQuery({
+    queryKey: ["portal-contratos-ativos", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -87,12 +85,19 @@ export default function PortalPlano() {
         .select("*")
         .eq("aluno_id", student!.id)
         .eq("status", "ativo")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
+        .order("created_at", { ascending: false });
+      return data || [];
     },
   });
+
+  const isCorridaItem = (x: any) =>
+    x?.plano_tipo === "corrida" || x?.tipo === "corrida" || x?.atividade === "corrida";
+
+  // Plano/contrato principal = primeiro que não é Corrida (fallback: o primeiro)
+  const plano = planos.find((p: any) => !isCorridaItem(p)) ?? planos[0] ?? null;
+  const contrato = contratos.find((c: any) => !isCorridaItem(c)) ?? contratos[0] ?? null;
+  const contratosAdicionais = contratos.filter((c: any) => c.id !== contrato?.id);
+
 
   const { data: licencas = [] } = useQuery({
     queryKey: ["portal-licencas", student?.id, plano?.id],
