@@ -83,7 +83,8 @@ export function StudentSummary({ student }: { student: Aluno }) {
     enabled: !!student.responsavel_id,
   });
 
-  const { data: plano } = useQuery({
+  // Todos os planos ativos (o aluno pode ter o plano principal + Corrida em paralelo)
+  const { data: planosAtivos = [] } = useQuery({
     queryKey: ["plano_resumo", student.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -91,11 +92,15 @@ export function StudentSummary({ student }: { student: Aluno }) {
         .select("*")
         .eq("aluno_id", student.id)
         .eq("ativo", true)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      return data && data.length > 0 ? data[0] : null;
+        .order("created_at", { ascending: false });
+      return data ?? [];
     },
   });
+  const plano =
+    (planosAtivos as any[]).find((p) => p.atividade !== "corrida") ??
+    (planosAtivos as any[])[0] ??
+    null;
+  const planoCorrida = (planosAtivos as any[]).find((p) => p.atividade === "corrida") ?? null;
 
   const { data: licencas = [] } = useQuery({
     queryKey: ["aluno_licencas_summary", student.id, plano?.id],
@@ -526,7 +531,16 @@ export function StudentSummary({ student }: { student: Aluno }) {
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="glass-card rounded-lg p-4">
             <span className="text-xs text-muted-foreground">Tipo</span>
-            <p className="text-sm font-semibold text-foreground mt-1">{plano?.tipo || "Sem plano"}</p>
+            <p className="text-sm font-semibold text-foreground mt-1 flex items-center gap-2 flex-wrap">
+              {plano?.tipo || "Sem plano"}
+              {planoCorrida && (
+                <Badge variant="outline" className="text-[10px] status-info">+ Corrida</Badge>
+              )}
+            </p>
+          </div>
+          <div className="glass-card rounded-lg p-4">
+            <span className="text-xs text-muted-foreground">Frequência</span>
+            <p className="text-sm font-semibold text-foreground mt-1">{student.frequencia_semanal === 5 ? "Livre" : `${student.frequencia_semanal || 0}x/semana`}</p>
           </div>
           <div className="glass-card rounded-lg p-4">
             <span className="text-xs text-muted-foreground">Frequência</span>

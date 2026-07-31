@@ -86,8 +86,10 @@ export default function StudentProfile() {
     queryFn: async () => {
       const { data: planos } = await supabase
         .from("planos").select("*").eq("aluno_id", id!).eq("ativo", true)
-        .order("created_at", { ascending: false }).limit(1);
-      const plano = planos?.[0];
+        .order("created_at", { ascending: false });
+      // O aluno pode ter mais de um plano ativo (ex.: plano principal + Corrida).
+      // O status de exibição segue o plano principal (não-Corrida).
+      const plano = (planos ?? []).find((p: any) => p.atividade !== "corrida") ?? planos?.[0];
       const planEnd = plano
         ? (plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : addMonths(new Date(plano.data_inicio), plano.duracao_meses))
         : null;
