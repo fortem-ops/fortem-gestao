@@ -428,7 +428,7 @@ serve(async (req) => {
       console.warn("[rede] cartão não salvo — token ausente na resposta. Chaves disponíveis:", Object.keys(redeResponse ?? {}));
     }
 
-    // Recorrência: criar contrato + 12 cobranças (1ª paga)
+    // Recorrência: criar contrato + N cobranças (1ª paga), onde N = periodo_meses do plano
     if (isRecorrencia) {
       const periodoQ = await supabase.from("planos_catalogo")
         .select("periodo_meses").eq("id", (venda as any)?.catalogo_id).maybeSingle();
