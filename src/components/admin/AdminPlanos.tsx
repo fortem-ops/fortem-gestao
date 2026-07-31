@@ -74,6 +74,8 @@ export function AdminPlanos() {
         valor: form.valor,
         cor: form.cor,
         ativo: form.ativo,
+        atividade: form.atividade,
+        plano_base_requerido: form.plano_base_requerido === PLANO_BASE_NENHUM ? null : form.plano_base_requerido,
       };
       if (editing) {
         const { error } = await (supabase as any).from("planos_catalogo").update(payload).eq("id", editing.id);
