@@ -1070,8 +1070,16 @@ export default function PortalAgenda() {
               </p>
               {confirmando.instrutor && <p className="text-muted-foreground">Instrutor: {confirmando.instrutor}</p>}
               <div className="bg-muted/50 rounded-lg p-3 mt-2">
-                <p className="text-xs text-muted-foreground">1 crédito será debitado.</p>
-                <p className="text-xs text-muted-foreground">Você terá {Math.max(0, saldo - 1)} crédito(s) restante(s).</p>
+                {confirmando.slot.modalidade === "corrida" ? (
+                  <p className="text-xs text-muted-foreground">
+                    Sua vaga será confirmada. Horários de Corrida não consomem créditos.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">1 crédito será debitado.</p>
+                    <p className="text-xs text-muted-foreground">Você terá {Math.max(0, saldo - 1)} crédito(s) restante(s).</p>
+                  </>
+                )}
               </div>
             </div>
           )}
