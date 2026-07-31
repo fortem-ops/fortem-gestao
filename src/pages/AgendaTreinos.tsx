@@ -153,7 +153,21 @@ function SlotDialog({
               </p>
             )}
           </div>
+          <div>
+            <Label>Modalidade</Label>
+            <Select value={form.modalidade} onValueChange={(v) => setForm({ ...form, modalidade: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="treino">Treino</SelectItem>
+                <SelectItem value="corrida">Corrida</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Horários de Corrida não consomem créditos — exigem plano de Corrida ativo.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
+
             <div>
               <Label>Início</Label>
               <Input type="time" value={form.horario_inicio} onChange={(e) => setForm({ ...form, horario_inicio: e.target.value })} />
