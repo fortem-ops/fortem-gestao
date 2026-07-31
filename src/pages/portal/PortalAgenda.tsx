@@ -364,6 +364,7 @@ export default function PortalAgenda() {
     onError: (e: any) => {
       const msgs: Record<string, string> = {
         sem_creditos: "Você não tem créditos disponíveis.",
+        sem_plano_corrida: "Este horário é exclusivo para alunos com plano de Corrida ativo. Fale com a equipe para contratar.",
         sem_vagas: "Não há vagas disponíveis neste horário.",
         ja_agendado_neste_dia: "Você já tem um treino agendado neste dia.",
         data_passada: "Não é possível agendar para datas passadas.",
