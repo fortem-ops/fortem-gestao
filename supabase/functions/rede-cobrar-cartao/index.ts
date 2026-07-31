@@ -449,6 +449,21 @@ serve(async (req) => {
       });
       if (rpcErr) console.error("[rede] fn_criar_contrato_recorrencia:", rpcErr.message);
 
+    } else {
+      // Tradicional pago via cartão online: contrato + cobranças (todas pagas)
+      const subtotal = Math.max(0, (Number((venda as any)?.valor) || 0) - (Number((venda as any)?.desconto) || 0));
+      const { error: rpcTradErr } = await supabase.rpc("fn_criar_contrato_tradicional", {
+        p_venda_id: venda_id,
+        p_aluno_id: aluno_id,
+        p_plano_id: (venda as any)?.catalogo_id,
+        p_valor_total: subtotal,
+        p_parcelas: Number((venda as any)?.parcelas) || 1,
+        p_forma_pagamento: "cartao_credito",
+        p_data_inicio: (venda as any)?.data_venda ?? new Date().toISOString().split("T")[0],
+        p_status_pagamento: "pago",
+        p_servicos_inclusos: servicos_inclusos,
+      });
+      if (rpcTradErr) console.error("[rede] fn_criar_contrato_tradicional:", rpcTradErr.message);
     }
   }
 
