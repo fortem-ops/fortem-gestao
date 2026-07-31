@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Search, Plus, Pencil, Trash2, X } from "lucide-react";
-import { calcularCreditos, FREQUENCIAS, PERIODOS, PLANOS_SUGERIDOS, PRESET_CORES, formatBRL, type Frequencia } from "@/lib/vendas";
+import { calcularCreditos, FREQUENCIAS, PERIODOS, PLANOS_SUGERIDOS, PRESET_CORES, ATIVIDADES_PLANO, PLANOS_BASE, PLANO_BASE_NENHUM, formatBRL, type Frequencia } from "@/lib/vendas";
 
 type StatusFilter = "todos" | "ativo" | "inativo";
 
@@ -25,6 +25,8 @@ type PlanoCat = {
   valor: number;
   cor: string | null;
   ativo: boolean;
+  atividade: string | null;
+  plano_base_requerido: string | null;
 };
 
 const empty = {
@@ -36,6 +38,8 @@ const empty = {
   valor: 0,
   cor: "#9CA3AF",
   ativo: true,
+  atividade: ATIVIDADES_PLANO[0].value as string,
+  plano_base_requerido: PLANO_BASE_NENHUM as string,
   manualCreditos: false,
 };
 
@@ -70,6 +74,8 @@ export function AdminPlanos() {
         valor: form.valor,
         cor: form.cor,
         ativo: form.ativo,
+        atividade: form.atividade,
+        plano_base_requerido: form.plano_base_requerido === PLANO_BASE_NENHUM ? null : form.plano_base_requerido,
       };
       if (editing) {
         const { error } = await (supabase as any).from("planos_catalogo").update(payload).eq("id", editing.id);
@@ -116,6 +122,8 @@ export function AdminPlanos() {
       valor: Number(p.valor),
       cor: p.cor || "#9CA3AF",
       ativo: p.ativo,
+      atividade: p.atividade || ATIVIDADES_PLANO[0].value,
+      plano_base_requerido: p.plano_base_requerido || PLANO_BASE_NENHUM,
       manualCreditos: true,
     });
     setOpen(true);
@@ -238,6 +246,27 @@ export function AdminPlanos() {
               <Label>Nome do Plano</Label>
               <Input list="planos-sugeridos" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Start, Power..." />
               <datalist id="planos-sugeridos">{PLANOS_SUGERIDOS.map((n) => <option key={n} value={n} />)}</datalist>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Atividade</Label>
+                <Select value={form.atividade} onValueChange={(v) => setForm({ ...form, atividade: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ATIVIDADES_PLANO.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Plano base necessário</Label>
+                <Select value={form.plano_base_requerido} onValueChange={(v) => setForm({ ...form, plano_base_requerido: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PLANO_BASE_NENHUM}>Nenhum</SelectItem>
+                    {PLANOS_BASE.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
