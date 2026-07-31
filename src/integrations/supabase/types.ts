@@ -7412,6 +7412,7 @@ export type Database = {
         Args: { _notif_id: string; _user_id: string }
         Returns: boolean
       }
+      fn_validar_link_cartao: { Args: { p_token: string }; Returns: Json }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       get_webhook_secret: { Args: never; Returns: string }
       has_role: {
