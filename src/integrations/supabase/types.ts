@@ -7162,6 +7162,20 @@ export type Database = {
             }
             Returns: string
           }
+      fn_criar_contrato_tradicional: {
+        Args: {
+          p_aluno_id: string
+          p_data_inicio: string
+          p_forma_pagamento: string
+          p_parcelas: number
+          p_plano_id: string
+          p_servicos_inclusos?: Json
+          p_status_pagamento?: string
+          p_valor_total: number
+          p_venda_id: string
+        }
+        Returns: string
+      }
       fn_criar_tarefa_reavaliacao: {
         Args: { _aluno_id: string; _criado_por: string; _data_ultima: string }
         Returns: string
