@@ -36,6 +36,7 @@ type Slot = {
   instrutor_id: string | null;
   ativo: boolean;
   observacoes: string | null;
+  modalidade: string | null;
 };
 
 type Profile = { user_id: string; full_name: string };
