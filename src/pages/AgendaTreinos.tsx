@@ -92,6 +92,7 @@ function SlotDialog({
         capacidade_maxima: form.capacidade_maxima,
         instrutor_id: form.instrutor_id || null,
         observacoes: form.observacoes || null,
+        modalidade: form.modalidade,
       };
       if (isEdit) {
         const { error } = await supabase
