@@ -417,13 +417,14 @@ export default function PortalAgenda() {
       <div className="flex gap-1 p-1 bg-muted rounded-xl">
         {[
           { key: "treinos", label: "🏋️ Treinos" },
+          { key: "corrida", label: "🏃 Corrida" },
           { key: "servicos", label: "📋 Serviços" },
           { key: "agendamentos", label: "📌 Meus" },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setAbaAgenda(tab.key as any)}
-            className={`flex-1 py-2 px-2 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex-1 py-2 px-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
               abaAgenda === tab.key
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground"
@@ -434,14 +435,19 @@ export default function PortalAgenda() {
         ))}
       </div>
 
-      {abaAgenda === "treinos" && (<>
+      {(abaAgenda === "treinos" || abaAgenda === "corrida") && (() => {
+        const isCorrida = abaAgenda === "corrida";
+        const lista = isCorrida ? slotsCorrida : slotsTreino;
+        const diasSet = isCorrida ? diasComSlotsCorrida : diasComSlotsTreino;
+        const bloqueadoCorrida = isCorrida && !temPlanoCorrida;
+        return (<>
       {/* Calendário semanal horizontal */}
       <section className="space-y-2">
         <SectionLabel>Próximos 7 dias</SectionLabel>
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
           {dias7.map((d) => {
             const ativo = isSameDay(d, diaSelecionado);
-            const temSlots = diasComSlots.has(d.getDay());
+            const temSlots = diasSet.has(d.getDay());
             return (
               <button
                 key={d.toISOString()}
@@ -466,16 +472,34 @@ export default function PortalAgenda() {
         </div>
       </section>
 
+      {bloqueadoCorrida && (
+        <section className="bg-card border border-border rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🔒</span>
+            <p className="text-sm font-bold text-foreground">Disponível apenas para alunos com plano de Corrida</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Você pode ver os horários, mas o agendamento é exclusivo para quem tem um plano de Corrida ativo.
+          </p>
+          <button
+            onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero contratar o plano de Corrida.', '_blank')}
+            className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
+          >
+            🏃 Falar com a equipe sobre o plano de Corrida →
+          </button>
+        </section>
+      )}
+
       {/* Slots do dia */}
       <section className="space-y-3">
         <SectionLabel>{format(diaSelecionado, "EEEE, dd 'de' MMMM", { locale: ptBR })}</SectionLabel>
-        {slots.length === 0 ? (
+        {lista.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-8 text-center">
             <CalendarDays className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">Sem horários disponíveis neste dia.</p>
           </div>
         ) : (
-          slots.map((slot) => {
+          lista.map((slot) => {
             const ocupadas = agendamentosDia.filter((a) => a.slot_id === slot.id).length;
             const meuAgendamentoNesteSlot = agendamentosDia.find(
               (a) => a.slot_id === slot.id && a.aluno_id === student?.id
@@ -484,7 +508,7 @@ export default function PortalAgenda() {
             const lotado = ocupadas >= slot.capacidade_maxima;
             const pct = Math.min(100, (ocupadas / slot.capacidade_maxima) * 100);
             const instrutorNome = slot.instrutor_id ? instrutores[slot.instrutor_id] : null;
-            const semCreditos = saldo <= 0;
+            const semCreditos = !isCorrida && saldo <= 0;
             const ehHoje = isSameDay(diaSelecionado, new Date());
             const slotPassou = ehHoje && (() => {
               const [hh, mm] = slot.horario_inicio.split(":").map(Number);
@@ -551,7 +575,11 @@ export default function PortalAgenda() {
                       </button>
                     </div>
                   );
-                })() : lotado ? (
+                })() : bloqueadoCorrida ? (
+                  <Button className="w-full" disabled>
+                    🔒 Exclusivo plano de Corrida
+                  </Button>
+                ) : lotado ? (
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
                 ) : slotPassou ? (
                   <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
@@ -584,7 +612,8 @@ export default function PortalAgenda() {
           })
         )}
       </section>
-      </>)}
+      </>);
+      })()}
 
       {abaAgenda === "agendamentos" && (
         <div className="space-y-6">
