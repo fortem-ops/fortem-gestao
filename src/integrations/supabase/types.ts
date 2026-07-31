@@ -4171,6 +4171,7 @@ export type Database = {
       planos: {
         Row: {
           aluno_id: string
+          atividade: string
           ativo: boolean
           cartao_token_id: string | null
           created_at: string
@@ -4191,6 +4192,7 @@ export type Database = {
         }
         Insert: {
           aluno_id: string
+          atividade?: string
           ativo?: boolean
           cartao_token_id?: string | null
           created_at?: string
@@ -4211,6 +4213,7 @@ export type Database = {
         }
         Update: {
           aluno_id?: string
+          atividade?: string
           ativo?: boolean
           cartao_token_id?: string | null
           created_at?: string
@@ -4255,6 +4258,7 @@ export type Database = {
       }
       planos_catalogo: {
         Row: {
+          atividade: string
           ativo: boolean
           cor: string | null
           created_at: string
@@ -4269,6 +4273,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          atividade?: string
           ativo?: boolean
           cor?: string | null
           created_at?: string
@@ -4283,6 +4288,7 @@ export type Database = {
           valor?: number
         }
         Update: {
+          atividade?: string
           ativo?: boolean
           cor?: string | null
           created_at?: string
