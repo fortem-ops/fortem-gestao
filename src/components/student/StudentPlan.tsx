@@ -116,8 +116,7 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         .eq("aluno_id", student.id)
         .eq("ativo", true)
         .lte("data_inicio", today)
-        .order("data_inicio", { ascending: false })
-        .limit(1);
+        .order("data_inicio", { ascending: false });
       let planos = planosAtuais;
       if (!planos || planos.length === 0) {
         const { data: futuros } = await supabase
@@ -125,13 +124,14 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
           .select("*")
           .eq("aluno_id", student.id)
           .eq("ativo", true)
-          .order("created_at", { ascending: false })
-          .limit(1);
+          .order("created_at", { ascending: false });
         planos = futuros;
       }
 
       if (!planos || planos.length === 0) return null;
-      const plano = planos[0];
+      // O plano principal é o de treinamento; Corrida é contrato adicional e
+      // é exibido em bloco separado.
+      const plano = planos.find((p: any) => p.atividade !== "corrida") ?? planos[0];
 
 
       // Plano vencido sem renovação automática => tratar como inativo
@@ -193,6 +193,22 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
   });
 
   const futurosFiltrados = (planosFuturos as any[]).filter((p) => !data || p.id !== data.id);
+
+  // Planos de Corrida ativos (contratos adicionais, sem controle de créditos)
+  const { data: planosCorrida = [] } = useQuery({
+    queryKey: ["planos_corrida_ativos", student.id],
+    queryFn: async () => {
+      const { data: corrida } = await supabase
+        .from("planos")
+        .select("*")
+        .eq("aluno_id", student.id)
+        .eq("ativo", true)
+        .eq("atividade", "corrida")
+        .order("data_inicio", { ascending: false });
+      return corrida ?? [];
+    },
+  });
+  const corridaFiltrados = (planosCorrida as any[]).filter((p) => !data || p.id !== data.id);
 
   async function handleSaveCredit(dbLabel: string) {
     if (!data) return;
@@ -370,6 +386,14 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
           <div className="space-y-3">
             {futurosFiltrados.map((p: any) => (
               <PlanoFuturoCard key={p.id} plano={p} />
+            ))}
+          </div>
+        )}
+
+        {corridaFiltrados.length > 0 && (
+          <div className="space-y-3">
+            {corridaFiltrados.map((p: any) => (
+              <PlanoCorridaCard key={p.id} plano={p} />
             ))}
           </div>
         )}
@@ -612,6 +636,14 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         <div className="space-y-3">
           {futurosFiltrados.map((p: any) => (
             <PlanoFuturoCard key={p.id} plano={p} />
+          ))}
+        </div>
+      )}
+
+      {corridaFiltrados.length > 0 && (
+        <div className="space-y-3">
+          {corridaFiltrados.map((p: any) => (
+            <PlanoCorridaCard key={p.id} plano={p} />
           ))}
         </div>
       )}
@@ -950,6 +982,52 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PlanoCorridaCard({ plano }: { plano: any }) {
+  const inicio = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") : "—";
+  const fim = plano.data_fim
+    ? new Date(plano.data_fim + "T00:00:00").toLocaleDateString("pt-BR")
+    : (plano.data_inicio ? calcEndDate(plano.data_inicio, plano.duracao_meses ?? 1) : "—");
+  return (
+    <div className="glass-card rounded-lg p-5 space-y-3 border-l-4 border-l-primary/70">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge className="text-sm px-3 py-1">{plano.tipo}</Badge>
+          <Badge variant="outline" className="status-info">Plano adicional · Corrida</Badge>
+        </div>
+        {plano.valor != null && plano.valor > 0 && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <DollarSign className="h-4 w-4" />
+            <span>R$ {Number(plano.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-xs text-muted-foreground">Início</p>
+            <p className="text-foreground">{inicio}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-xs text-muted-foreground">Término</p>
+            <p className="text-foreground">{fim}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-xs text-muted-foreground">Créditos</p>
+            <p className="text-foreground">Sem controle</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

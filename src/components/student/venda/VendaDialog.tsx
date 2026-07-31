@@ -46,6 +46,13 @@ const FREQ_OPTIONS: { value: Frequencia; label: string; desc: string }[] = [
   { value: "livre", label: "Livre", desc: "Acesso ilimitado no período" },
 ];
 
+/** Prioridade para sugerir a variante de Corrida a partir do plano base ativo. */
+const PRIORIDADE_PLANO_BASE = ["max", "pro", "power", "start_plus", "start"] as const;
+
+const LABEL_PLANO_BASE: Record<string, string> = {
+  start: "Start", start_plus: "Start+", power: "Power", pro: "Pro", max: "Max",
+};
+
 function StepIndicator({ steps, current }: { steps: string[]; current: number }) {
   return (
     <div className="flex items-center justify-between gap-2 mb-6 px-1">
@@ -115,6 +122,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   // Plano wizard
   const [pStep, setPStep] = useState(1);
   const [frequencia, setFrequencia] = useState<Frequencia | "">("");
+  const [atividadeSel, setAtividadeSel] = useState<"treinamento_funcional" | "corrida">("treinamento_funcional");
   const [planoId, setPlanoId] = useState<string>("");
 
   // Servico wizard
@@ -147,7 +155,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
 
   const reset = () => {
-    setPStep(1); setFrequencia(""); setPlanoId("");
+    setPStep(1); setFrequencia(""); setAtividadeSel("treinamento_funcional"); setPlanoId("");
     setSStep(1); setServicoId("");
     setStatusPagamento("pendente"); setObservacoes("");
     setDesconto(0); setFormaPagamento(null); setParcelas(1);
@@ -194,11 +202,29 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     enabled: open && tab === "planos",
   });
 
-  // Quando há plano vigente, o padrão é "renovacao" (não substituir)
-  useEffect(() => {
-    if (planoVigente) setModoContrato("renovacao");
-    else setModoContrato("substituir");
-  }, [planoVigente?.id]);
+  // Contratos ativos do aluno — usados para sugerir a variante de Corrida
+  const { data: contratosAtivos = [] } = useQuery({
+    queryKey: ["contratos-ativos-venda", alunoId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("contratos")
+        .select("id, plano_tipo, status")
+        .eq("aluno_id", alunoId)
+        .eq("status", "ativo");
+      return data || [];
+    },
+    enabled: open && tab === "planos",
+  });
+
+  // Plano base mais relevante entre os contratos ativos (ignora Corrida)
+  const planoBaseAtivo: string | null = (() => {
+    const tipos = new Set(
+      (contratosAtivos as any[])
+        .map((c) => c.plano_tipo)
+        .filter((t: string) => t && t !== "corrida"),
+    );
+    return PRIORIDADE_PLANO_BASE.find((t) => tipos.has(t)) ?? null;
+  })();
 
   // Calcula término do vigente (data_fim ou início + duração)
   const fimVigente = (() => {
@@ -242,9 +268,34 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
     enabled: open,
   });
 
-  const planosFiltrados = planos.filter((p: any) => p.frequencia === frequencia);
+  const modoCorrida = atividadeSel === "corrida";
+  const planosFiltrados = modoCorrida
+    ? planos.filter((p: any) => p.atividade === "corrida")
+    : planos.filter((p: any) => p.frequencia === frequencia && p.atividade !== "corrida");
   const planoSelecionado = planos.find((p: any) => p.id === planoId);
   const servicoSelecionado = servicos.find((s: any) => s.id === servicoId);
+
+  const planoEhCorrida = planoSelecionado?.atividade === "corrida";
+
+  // Pré-seleciona a variante de Corrida correspondente ao plano base ativo
+  useEffect(() => {
+    if (!modoCorrida || planoId || planosFiltrados.length === 0) return;
+    const compat = planosFiltrados.filter(
+      (p: any) => (p.plano_base_requerido ?? null) === planoBaseAtivo,
+    );
+    const lista = compat.length > 0 ? compat : planosFiltrados;
+    const ordenada = [...lista].sort(
+      (a: any, b: any) => (a.periodo_meses || 0) - (b.periodo_meses || 0),
+    );
+    setPlanoId(ordenada[0].id);
+  }, [modoCorrida, planoId, planosFiltrados.length, planoBaseAtivo]);
+
+  // Modo do contrato: Corrida é sempre adicional; demais mantêm o comportamento atual
+  useEffect(() => {
+    if (planoEhCorrida) setModoContrato("adicional");
+    else if (planoVigente) setModoContrato("renovacao");
+    else setModoContrato("substituir");
+  }, [planoVigente?.id, planoEhCorrida]);
 
   const totaisPlano = planoSelecionado
     ? calcularTotaisVenda({
@@ -504,7 +555,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
           formaPagamento: formaPgto,
           parcelas: parcelas || 1,
           recorrencia: tipoCobranca === "recorrencia",
-          modo: planoVigente ? modoContrato : "substituir",
+          modo: planoEhCorrida ? "adicional" : (planoVigente ? modoContrato : "substituir"),
         });
       }
 
@@ -547,6 +598,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       qc.invalidateQueries({ queryKey: ["cobrancas"] });
       qc.invalidateQueries({ queryKey: ["ciclos_credito"] });
       qc.invalidateQueries({ queryKey: ["plano-vigente-venda", alunoId] });
+      qc.invalidateQueries({ queryKey: ["contratos-ativos-venda", alunoId] });
       invalidatePlanoCaches(qc, alunoId);
 
       if (cartaoOnline && vendaId) {
@@ -593,25 +645,43 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                     {FREQ_OPTIONS.map((f) => (
                       <RadioCard
                         key={f.value}
-                        selected={frequencia === f.value}
-                        onClick={() => setFrequencia(f.value)}
+                        selected={!modoCorrida && frequencia === f.value}
+                        onClick={() => { setAtividadeSel("treinamento_funcional"); setPlanoId(""); setFrequencia(f.value); }}
                         icon={f.value === "livre" ? <InfinityIcon className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
                         title={f.label}
                         subtitle={f.desc}
                       />
                     ))}
+                    <RadioCard
+                      selected={modoCorrida}
+                      onClick={() => { setAtividadeSel("corrida"); setFrequencia(""); setPlanoId(""); }}
+                      icon={<Activity className="w-5 h-5" />}
+                      title="Corrida — plano adicional"
+                      subtitle="Contrato paralelo ao plano principal, sem controle de créditos."
+                    />
                     <div className="flex justify-end pt-4">
-                      <Button disabled={!frequencia} onClick={() => setPStep(2)}>Continuar</Button>
+                      <Button disabled={!frequencia && !modoCorrida} onClick={() => setPStep(2)}>Continuar</Button>
                     </div>
                   </div>
                 )}
 
                 {pStep === 2 && (
                   <div className="space-y-2">
+                    {modoCorrida && (
+                      <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground/90 mb-2">
+                        {planoBaseAtivo
+                          ? <>Sugerido pelo plano ativo: <strong>{LABEL_PLANO_BASE[planoBaseAtivo]}</strong>. Você pode trocar manualmente.</>
+                          : <>Aluno sem plano base ativo — sugerido <strong>Corrida - Sem Plano</strong>. Você pode trocar manualmente.</>}
+                      </div>
+                    )}
                     {planosFiltrados.length === 0 ? (
                       <div className="text-center py-8 space-y-3">
-                        <p className="text-sm text-muted-foreground">Nenhum plano ativo com frequência <strong>{frequencia}</strong>.</p>
-                        <Button variant="outline" size="sm" onClick={() => setPStep(1)}>Escolher outra frequência</Button>
+                        <p className="text-sm text-muted-foreground">
+                          {modoCorrida
+                            ? <>Nenhum plano de <strong>Corrida</strong> ativo no catálogo.</>
+                            : <>Nenhum plano ativo com frequência <strong>{frequencia}</strong>.</>}
+                        </p>
+                        <Button variant="outline" size="sm" onClick={() => setPStep(1)}>Voltar</Button>
                       </div>
                     ) : (
                       (() => {
@@ -725,13 +795,20 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div><span className="text-muted-foreground">Aluno:</span> <span className="font-medium">{alunoNome}</span></div>
-                        <div><span className="text-muted-foreground">Frequência:</span> <span className="font-medium">{frequencia}</span></div>
+                        <div><span className="text-muted-foreground">{planoEhCorrida ? "Atividade:" : "Frequência:"}</span> <span className="font-medium">{planoEhCorrida ? "Corrida" : frequencia}</span></div>
                         <div><span className="text-muted-foreground">Período:</span> <span className="font-medium">{planoSelecionado.periodo_meses} {planoSelecionado.periodo_meses === 1 ? "mês" : "meses"}</span></div>
-                        <div><span className="text-muted-foreground">Créditos:</span> <span className="font-medium">{planoSelecionado.ilimitado ? "Ilimitado" : `${planoSelecionado.quantidade_creditos}`}</span></div>
+                        <div><span className="text-muted-foreground">Créditos:</span> <span className="font-medium">{planoEhCorrida ? "Sem controle de créditos" : planoSelecionado.ilimitado ? "Ilimitado" : `${planoSelecionado.quantidade_creditos}`}</span></div>
                       </div>
                     </div>
 
-                    {planoVigente && (
+                    {planoEhCorrida ? (
+                      <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">
+                        <div className="font-medium text-foreground">Plano adicional</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          Este plano é adicional e não substitui o plano atual do aluno.
+                        </div>
+                      </div>
+                    ) : planoVigente && (
                       <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 space-y-3">
                         <div className="text-sm">
                           <div className="font-medium text-foreground">Aluno já possui plano vigente</div>

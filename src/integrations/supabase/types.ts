@@ -2384,14 +2384,14 @@ export type Database = {
           aluno_id: string
           cartao_token_id: string | null
           created_at: string
-          creditos_total: number
+          creditos_total: number | null
           criado_por: string | null
           data_cancelamento: string | null
           data_fim: string | null
           data_inicio: string
           data_renovacao: string | null
           forma_pagamento: string
-          frequencia_semanal: number
+          frequencia_semanal: number | null
           id: string
           indice_reajuste: string | null
           motivo_cancelamento: string | null
@@ -2414,14 +2414,14 @@ export type Database = {
           aluno_id: string
           cartao_token_id?: string | null
           created_at?: string
-          creditos_total: number
+          creditos_total?: number | null
           criado_por?: string | null
           data_cancelamento?: string | null
           data_fim?: string | null
           data_inicio: string
           data_renovacao?: string | null
           forma_pagamento: string
-          frequencia_semanal: number
+          frequencia_semanal?: number | null
           id?: string
           indice_reajuste?: string | null
           motivo_cancelamento?: string | null
@@ -2444,14 +2444,14 @@ export type Database = {
           aluno_id?: string
           cartao_token_id?: string | null
           created_at?: string
-          creditos_total?: number
+          creditos_total?: number | null
           criado_por?: string | null
           data_cancelamento?: string | null
           data_fim?: string | null
           data_inicio?: string
           data_renovacao?: string | null
           forma_pagamento?: string
-          frequencia_semanal?: number
+          frequencia_semanal?: number | null
           id?: string
           indice_reajuste?: string | null
           motivo_cancelamento?: string | null
