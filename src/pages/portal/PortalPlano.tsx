@@ -62,8 +62,8 @@ export default function PortalPlano() {
   const [cancelSaving, setCancelSaving] = useState(false);
   const [confirmacaoTexto, setConfirmacaoTexto] = useState("");
 
-  const { data: plano } = useQuery({
-    queryKey: ["portal-plano-ativo", student?.id],
+  const { data: planos = [] } = useQuery({
+    queryKey: ["portal-planos-ativos", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -71,15 +71,13 @@ export default function PortalPlano() {
         .select("*")
         .eq("aluno_id", student!.id)
         .eq("ativo", true)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
+        .order("created_at", { ascending: false });
+      return data || [];
     },
   });
 
-  const { data: contrato } = useQuery({
-    queryKey: ["portal-contrato-ativo", student?.id],
+  const { data: contratos = [] } = useQuery({
+    queryKey: ["portal-contratos-ativos", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data } = await (supabase as any)
@@ -87,12 +85,19 @@ export default function PortalPlano() {
         .select("*")
         .eq("aluno_id", student!.id)
         .eq("status", "ativo")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
+        .order("created_at", { ascending: false });
+      return data || [];
     },
   });
+
+  const isCorridaItem = (x: any) =>
+    x?.plano_tipo === "corrida" || x?.tipo === "corrida" || x?.atividade === "corrida";
+
+  // Plano/contrato principal = primeiro que não é Corrida (fallback: o primeiro)
+  const plano = planos.find((p: any) => !isCorridaItem(p)) ?? planos[0] ?? null;
+  const contrato = contratos.find((c: any) => !isCorridaItem(c)) ?? contratos[0] ?? null;
+  const contratosAdicionais = contratos.filter((c: any) => c.id !== contrato?.id);
+
 
   const { data: licencas = [] } = useQuery({
     queryKey: ["portal-licencas", student?.id, plano?.id],
@@ -218,7 +223,53 @@ export default function PortalPlano() {
         )}
       </div>
 
+      {contratosAdicionais.length > 0 && (
+        <section className="space-y-2">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Contratos adicionais</p>
+          {contratosAdicionais.map((c: any) => {
+            const corrida = isCorridaItem(c);
+            const dias = c.data_fim ? differenceInDays(parseISO(c.data_fim), new Date()) : 0;
+            return (
+              <div key={c.id} className="bg-card border border-border rounded-2xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 uppercase tracking-wide">Ativo</span>
+                      {c.vigencia_tipo && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide">
+                          {c.vigencia_tipo}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl font-black text-foreground mt-1" style={{fontFamily:'Archivo,sans-serif'}}>
+                      {corrida ? "Corrida" : (c.plano_tipo ?? "Plano")}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] text-muted-foreground">Vence em</p>
+                    <p className="text-lg font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                      {dias > 0 ? `${dias} dias` : "Vencido"}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {c.data_inicio ? format(parseISO(c.data_inicio), "dd/MM/yyyy") : "—"}
+                  {" → "}
+                  {c.data_fim ? format(parseISO(c.data_fim), "dd/MM/yyyy") : "—"}
+                  {" · R$ "}
+                  {Number(c.valor_cobrado ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </p>
+                {corrida && (
+                  <p className="text-xs text-muted-foreground">Sem controle de créditos</p>
+                )}
+              </div>
+            );
+          })}
+        </section>
+      )}
+
       <div className="space-y-2">
+
         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Ações</p>
 
         {limiteLicenca > 0 && (
