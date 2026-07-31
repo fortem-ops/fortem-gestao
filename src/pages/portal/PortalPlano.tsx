@@ -51,6 +51,7 @@ export default function PortalPlano() {
   const qc = useQueryClient();
 
   const [aba, setAba] = useState<"visao" | "trancar" | "cancelar">("visao");
+  const [expandido, setExpandido] = useState(false);
 
   const [trancInicio, setTrancInicio] = useState("");
   const [trancFim, setTrancFim] = useState("");
