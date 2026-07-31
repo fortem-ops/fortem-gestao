@@ -308,13 +308,13 @@ export default function PortalAgenda() {
     queryFn: async () => {
       const { data } = await supabase
         .from("treino_agendamentos")
-        .select("id, data, horario_inicio, horario_fim, status")
+        .select("id, data, horario_inicio, horario_fim, status, treino_slots(modalidade)")
         .eq("aluno_id", student!.id)
         .lte("data", format(new Date(), "yyyy-MM-dd"))
         .in("status", ["realizado", "faltou", "cancelado"])
         .order("data", { ascending: false })
         .limit(60);
-      return data || [];
+      return (data || []) as Agendamento[];
     },
   });
 
@@ -640,7 +640,7 @@ export default function PortalAgenda() {
                   <div className="w-8 h-8 rounded-lg bg-[#2C2C2C] flex items-center justify-center shrink-0">
                     <CalendarPlus className="w-4 h-4 text-primary" />
                   </div>
-                  <p className="text-sm font-semibold text-foreground truncate">
+                  <p className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">
                     Vincule seus treinos à sua agenda do celular
                   </p>
                 </div>
@@ -849,9 +849,16 @@ export default function PortalAgenda() {
                           </p>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-foreground">
-                            {ag.horario_inicio?.slice(0, 5)} → {ag.horario_fim?.slice(0, 5)}
-                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-bold text-sm text-foreground">
+                              {ag.horario_inicio?.slice(0, 5)} → {ag.horario_fim?.slice(0, 5)}
+                            </p>
+                            {ag.treino_slots?.modalidade === "corrida" && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                🏃 Corrida
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {format(parseISO(ag.data + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
                           </p>
@@ -1205,9 +1212,16 @@ export default function PortalAgenda() {
                       </p>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">
-                        {h.horario_inicio?.slice(0, 5)} → {h.horario_fim?.slice(0, 5)}
-                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-foreground">
+                          {h.horario_inicio?.slice(0, 5)} → {h.horario_fim?.slice(0, 5)}
+                        </p>
+                        {h.treino_slots?.modalidade === "corrida" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                            🏃 Corrida
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
                       h.status === "realizado"
