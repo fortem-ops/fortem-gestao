@@ -58,21 +58,20 @@ export default function CadastrarCartao() {
   useEffect(() => {
     if (!token) { setEstado("invalido"); return; }
     (supabase as any)
-      .from("links_cartao")
-      .select("usado, expira_em, alunos(nome)")
-      .eq("token", token)
-      .maybeSingle()
+      .rpc("fn_validar_link_cartao", { p_token: token })
       .then(({ data, error }: any) => {
         if (error || !data) { setEstado("invalido"); return; }
-        if (data.usado) { setErroMsg("Este link já foi utilizado."); setEstado("invalido"); return; }
-        if (new Date(data.expira_em) < new Date()) {
-          setErroMsg("Este link expirou. Solicite um novo na recepção.");
-          setEstado("invalido"); return;
+        if (!data.valido) {
+          if (data.motivo === "usado") setErroMsg("Este link já foi utilizado.");
+          else if (data.motivo === "expirado") setErroMsg("Este link expirou. Solicite um novo na recepção.");
+          setEstado("invalido");
+          return;
         }
-        setNomeAluno(data.alunos?.nome ?? "");
+        setNomeAluno(data.nome ?? "");
         setEstado("formulario");
       });
   }, [token]);
+
 
   async function handleSubmit() {
     if (!formOk) return;
