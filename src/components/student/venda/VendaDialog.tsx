@@ -536,6 +536,27 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         });
         if (rpcErr) throw rpcErr;
       }
+
+      // Tradicional (à vista/parcelado, sem recorrência automática) → criar
+      // contrato + ciclo de crédito + cobranças via RPC. A trigger
+      // fn_auto_criar_contrato_ciclo ignora planos com renovacao_automatica=false,
+      // então o contrato precisa ser criado explicitamente aqui.
+      // Exceção: cartão online (tratado pela edge function rede-cobrar-cartao após aprovação).
+      if (tipoCobranca !== "recorrencia" && !cartaoOnline) {
+        const formaContrato = mapModalidadeParaContrato(modalidade, canalCartao);
+        const { error: rpcTradErr } = await (supabase as any).rpc("fn_criar_contrato_tradicional", {
+          p_venda_id: vendaIns?.id,
+          p_aluno_id: alunoId,
+          p_plano_id: planoSelecionado.id,
+          p_valor_total: valorFinal,
+          p_parcelas: parcelas || 1,
+          p_forma_pagamento: formaContrato,
+          p_data_inicio: format(dataInicio, "yyyy-MM-dd"),
+          p_status_pagamento: initialStatus,
+          p_servicos_inclusos: servicosInclusos,
+        });
+        if (rpcTradErr) throw rpcTradErr;
+      }
       // Créditos de serviços incluídos: criar sempre que houver, tanto em
       // tradicional quanto em recorrência. O trigger não cria mais o bônus
       // hard-coded do Start+, então não há duplicação.
