@@ -693,21 +693,41 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                           arr.push(p);
                           grupos.set(p.nome, arr);
                         }
-                        const lista = Array.from(grupos.entries()).map(([nome, variantes]) => {
+                        let lista = Array.from(grupos.entries()).map(([nome, variantes]) => {
                           const ordenadas = [...variantes].sort((a, b) => (a.periodo_meses || 0) - (b.periodo_meses || 0));
-                          const menorValor = Math.min(...variantes.map((v) => Number(v.valor) || 0));
-                          return { nome, variantes: ordenadas, menorValor, cor: ordenadas[0]?.cor };
-                        }).sort((a, b) => a.menorValor - b.menorValor);
+                          // Menor valor MENSAL equivalente entre os períodos (valor / meses)
+                          const menorMensal = Math.min(
+                            ...variantes.map((v) => (Number(v.valor) || 0) / Math.max(1, Number(v.periodo_meses) || 1)),
+                          );
+                          return { nome, variantes: ordenadas, menorMensal, cor: ordenadas[0]?.cor };
+                        }).sort((a, b) => a.menorMensal - b.menorMensal);
 
-                        return lista.map((g) => {
+                        // Corrida: mostrar apenas a faixa sugerida até a equipe pedir para trocar
+                        let ocultouOutras = false;
+                        if (modoCorrida && !mostrarTodasCorrida) {
+                          const compat = planosFiltrados.filter(
+                            (p: any) => (p.plano_base_requerido ?? null) === planoBaseAtivo,
+                          );
+                          const nomeSugerido =
+                            (planosFiltrados.find((p: any) => p.id === planoId)?.nome) ??
+                            compat[0]?.nome ??
+                            lista[0]?.nome;
+                          const sugerida = lista.filter((g) => g.nome === nomeSugerido);
+                          if (sugerida.length > 0 && sugerida.length < lista.length) {
+                            ocultouOutras = true;
+                            lista = sugerida;
+                          }
+                        }
+
+                        const cards = lista.map((g) => {
                           const selectedVariante = g.variantes.find((v) => v.id === planoId);
-                          const isOpen = !!selectedVariante;
+                          const isOpen = !!selectedVariante || (modoCorrida && lista.length === 1);
                           return (
                             <div key={g.nome} className="space-y-2">
                               <RadioCard
-                                selected={isOpen}
+                                selected={!!selectedVariante}
                                 onClick={() => {
-                                  if (isOpen) return;
+                                  if (selectedVariante) return;
                                   setPlanoId(g.variantes[0].id);
                                 }}
                                 icon={<span className="inline-block w-4 h-4 rounded-full mt-1" style={{ background: g.cor || "#999" }} />}
@@ -724,7 +744,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                                 right={
                                   <span className="text-right">
                                     <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">a partir de</span>
-                                    <span className="text-base font-semibold text-primary">{formatBRL(g.menorValor)}</span>
+                                    <span className="text-base font-semibold text-primary">{formatBRL(g.menorMensal)}/mês</span>
                                   </span>
                                 }
                               />
@@ -755,7 +775,23 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                             </div>
                           );
                         });
+
+                        return (
+                          <>
+                            {cards}
+                            {ocultouOutras && (
+                              <button
+                                type="button"
+                                onClick={() => setMostrarTodasCorrida(true)}
+                                className="text-xs text-muted-foreground underline underline-offset-2 hover:text-primary transition"
+                              >
+                                Trocar plano de Corrida
+                              </button>
+                            )}
+                          </>
+                        );
                       })()
+
                     )}
                     <div className="flex justify-between pt-4">
                       <Button variant="outline" onClick={() => setPStep(1)}><ArrowLeft className="w-4 h-4 mr-1" />Voltar</Button>
