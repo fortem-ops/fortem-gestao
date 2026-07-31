@@ -376,8 +376,20 @@ export default function PortalHome() {
                   Créditos de Treino
                 </span>
                 <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full">
-                  {planoAtivo!.tipo.toUpperCase()}
-                  {student.frequencia_semanal ? ` · ${student.frequencia_semanal}×` : ""}
+                  {(() => {
+                    const partes = planoAtivo!.tipo
+                      .toUpperCase()
+                      .split(/\s*[-–·]\s*/)
+                      .map((p) => p.trim())
+                      .filter(Boolean);
+                    const corrida = partes.filter((p) => p.includes("CORRIDA"));
+                    const principais = partes.filter((p) => !p.includes("CORRIDA"));
+                    const label: string[] = [];
+                    if (principais.length) label.push(principais.join(" - "));
+                    if (student.frequencia_semanal) label.push(`${student.frequencia_semanal}×`);
+                    if (corrida.length) label.push("CORRIDA");
+                    return label.join(" · ");
+                  })()}
                 </span>
               </div>
               <div className="flex items-baseline gap-2">
