@@ -124,6 +124,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const [frequencia, setFrequencia] = useState<Frequencia | "">("");
   const [atividadeSel, setAtividadeSel] = useState<"treinamento_funcional" | "corrida">("treinamento_funcional");
   const [planoId, setPlanoId] = useState<string>("");
+  const [mostrarTodasCorrida, setMostrarTodasCorrida] = useState(false);
 
   // Servico wizard
   const [sStep, setSStep] = useState(1);
