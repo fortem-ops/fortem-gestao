@@ -67,6 +67,7 @@ function SlotDialog({
     capacidade_maxima: slot?.capacidade_maxima ?? 8,
     instrutor_id: slot?.instrutor_id ?? "",
     observacoes: slot?.observacoes ?? "",
+    modalidade: slot?.modalidade ?? "treino",
   });
 
   const toggleDia = (i: number) => {
