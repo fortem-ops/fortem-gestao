@@ -208,14 +208,21 @@ export default function PortalAgenda() {
     }
   };
 
-  // Dias que têm slots ativos (bolinha vermelha)
-  const { data: diasComSlots = new Set<number>() } = useQuery({
+  // Dias que têm slots ativos (bolinha vermelha) — por modalidade
+  const { data: diasPorModalidade } = useQuery({
     queryKey: ["portal-dias-com-slots"],
     queryFn: async () => {
-      const { data } = await supabase.from("treino_slots").select("dia_semana").eq("ativo", true);
-      return new Set((data || []).map((s) => s.dia_semana));
+      const { data } = await supabase.from("treino_slots").select("dia_semana, modalidade").eq("ativo", true);
+      const treino = new Set<number>();
+      const corrida = new Set<number>();
+      for (const s of (data || []) as any[]) {
+        (s.modalidade === "corrida" ? corrida : treino).add(s.dia_semana);
+      }
+      return { treino, corrida };
     },
   });
+  const diasComSlotsTreino = diasPorModalidade?.treino ?? new Set<number>();
+  const diasComSlotsCorrida = diasPorModalidade?.corrida ?? new Set<number>();
 
   // Horários fixos do aluno
   const { data: horariosFixos = [] } = useQuery({
