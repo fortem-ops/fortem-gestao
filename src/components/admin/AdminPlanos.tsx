@@ -249,6 +249,27 @@ export function AdminPlanos() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label>Atividade</Label>
+                <Select value={form.atividade} onValueChange={(v) => setForm({ ...form, atividade: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ATIVIDADES_PLANO.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Plano base necessário</Label>
+                <Select value={form.plano_base_requerido} onValueChange={(v) => setForm({ ...form, plano_base_requerido: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PLANO_BASE_NENHUM}>Nenhum</SelectItem>
+                    {PLANOS_BASE.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Período</Label>
                 <Select value={String(form.periodo_meses)} onValueChange={(v) => syncCreditos(parseInt(v), form.frequencia)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
