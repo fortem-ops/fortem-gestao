@@ -4263,6 +4263,7 @@ export type Database = {
           ilimitado: boolean
           nome: string
           periodo_meses: number
+          plano_base_requerido: string | null
           quantidade_creditos: number | null
           updated_at: string
           valor: number
@@ -4276,6 +4277,7 @@ export type Database = {
           ilimitado?: boolean
           nome: string
           periodo_meses?: number
+          plano_base_requerido?: string | null
           quantidade_creditos?: number | null
           updated_at?: string
           valor?: number
@@ -4289,6 +4291,7 @@ export type Database = {
           ilimitado?: boolean
           nome?: string
           periodo_meses?: number
+          plano_base_requerido?: string | null
           quantidade_creditos?: number | null
           updated_at?: string
           valor?: number
