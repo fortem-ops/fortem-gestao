@@ -308,13 +308,13 @@ export default function PortalAgenda() {
     queryFn: async () => {
       const { data } = await supabase
         .from("treino_agendamentos")
-        .select("id, data, horario_inicio, horario_fim, status")
+        .select("id, data, horario_inicio, horario_fim, status, treino_slots(modalidade)")
         .eq("aluno_id", student!.id)
         .lte("data", format(new Date(), "yyyy-MM-dd"))
         .in("status", ["realizado", "faltou", "cancelado"])
         .order("data", { ascending: false })
         .limit(60);
-      return data || [];
+      return (data || []) as Agendamento[];
     },
   });
 
