@@ -515,8 +515,8 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
         await (supabase as any).from("alunos").update({ aluno_2025: aluno2025 }).eq("id", alunoId);
       }
 
-      // Recorrência sem cartão online → criar contrato + 12 cobranças via RPC
-      // (cartão online é tratado pela edge function rede-cobrar-cartao após aprovação)
+      // Recorrência sem cartão online → criar contrato + N cobranças via RPC
+      // (N = periodo_meses do plano; cartão online é tratado pela edge function rede-cobrar-cartao após aprovação)
       if (tipoCobranca === "recorrencia" && modalidade !== "cartao_credito") {
         const periodo = Math.max(1, Number(planoSelecionado.periodo_meses) || 1);
         const valorMensal = totaisPlano.subtotalPlano / periodo;
@@ -914,7 +914,14 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
 
                     {tipoCobranca === "recorrencia" && (
                       <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground/90">
-                        Será criado um <strong>contrato de 12 meses</strong> com cobranças automáticas mensais. A 1ª mensalidade é cobrada agora; as outras 11 ficam agendadas como pendentes.
+                        {(() => {
+                          const periodo = Number(planoSelecionado.periodo_meses) || 1;
+                          const outras = Math.max(0, periodo - 1);
+                          if (periodo === 1) {
+                            return <>Será criado um <strong>contrato mensal</strong> com cobrança automática. A 1ª mensalidade é cobrada agora.</>;
+                          }
+                          return <>Será criado um <strong>contrato de {periodo} meses</strong> com cobranças automáticas mensais. A 1ª mensalidade é cobrada agora; as outras {outras} ficam agendadas como pendentes.</>;
+                        })()}
                       </div>
                     )}
 
