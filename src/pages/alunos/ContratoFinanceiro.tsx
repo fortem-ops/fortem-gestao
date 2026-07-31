@@ -472,7 +472,12 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
               </Badge>
               <Badge variant="outline">{LABEL_PLANO[contrato.plano_tipo] ?? contrato.plano_tipo}</Badge>
               <Badge variant="outline">
-                {contrato.vigencia_tipo === "anual" ? "Anual" : "Mensal"}
+                {contrato.vigencia_tipo === "anual"
+                  ? "Anual"
+                  : contrato.vigencia_tipo === "semestral"
+                    ? "Semestral"
+                    : "Mensal"}
+
               </Badge>
               <Badge variant="outline">{LABEL_PAGAMENTO[contrato.forma_pagamento]}</Badge>
             </div>
