@@ -111,9 +111,16 @@ Deno.serve(async (req) => {
         continue;
       }
       geradas++;
-      // Não atualizamos proxima_renovacao do plano antigo: a trigger fn_processar_venda
-      // já desativou-o e criou um novo plano. O trigger fn_planos_autorenew_defaults
-      // calculou a nova proxima_renovacao no INSERT do novo plano.
+
+      const { error: deactErr } = await supabase
+        .from("planos")
+        .update({ ativo: false })
+        .eq("id", p.id);
+
+      if (deactErr) {
+        console.error(`Erro ao desativar plano antigo ${p.id} após renovação:`, deactErr);
+        erros.push({ plano_id: p.id, motivo: `Renovado mas não desativado: ${deactErr.message}` });
+      }
     }
 
     return new Response(
