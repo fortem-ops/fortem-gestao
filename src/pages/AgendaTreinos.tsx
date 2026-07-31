@@ -687,8 +687,13 @@ function HorariosTab() {
               {list.map((s) => (
                 <div key={s.id} className={cn("flex items-center gap-3 p-3 rounded-lg border", !s.ativo && "opacity-60")}>
                   <div className="flex-1">
-                    <div className="font-medium">
+                    <div className="font-medium flex items-center gap-2">
                       {s.horario_inicio.slice(0, 5)} → {s.horario_fim.slice(0, 5)}
+                      {s.modalidade === "corrida" && (
+                        <Badge variant="outline" className="bg-orange-500/15 text-orange-500 border-orange-500/30">
+                          Corrida
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-3">
                       <span><Users className="w-3 h-3 inline mr-1" />{s.capacidade_maxima} vagas</span>
