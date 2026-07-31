@@ -472,7 +472,12 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
               </Badge>
               <Badge variant="outline">{LABEL_PLANO[contrato.plano_tipo] ?? contrato.plano_tipo}</Badge>
               <Badge variant="outline">
-                {contrato.vigencia_tipo === "anual" ? "Anual" : "Mensal"}
+                {contrato.vigencia_tipo === "anual"
+                  ? "Anual"
+                  : contrato.vigencia_tipo === "semestral"
+                    ? "Semestral"
+                    : "Mensal"}
+
               </Badge>
               <Badge variant="outline">{LABEL_PAGAMENTO[contrato.forma_pagamento]}</Badge>
             </div>
@@ -493,11 +498,24 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
             label="Próxima cobrança"
             value={proxCob ? `${fmtDate(proxCob.data_vencimento)} · ${fmt(Number(proxCob.valor))}` : "—"}
           />
-          <Info
-            label="Créditos do ciclo"
-            value={ciclo ? `${ciclo.creditos_usados}/${ciclo.creditos_liberados}` : "—"}
-          />
-          <Info label="Créditos contrato" value={String(contrato.creditos_total)} />
+          {contrato.plano_tipo === "corrida" ? (
+            <div className="col-span-2">
+              <div className="text-xs text-muted-foreground">Créditos</div>
+              <div className="font-medium text-sm">Sem controle de créditos</div>
+            </div>
+          ) : (
+            <>
+              <Info
+                label="Créditos do ciclo"
+                value={ciclo ? `${ciclo.creditos_usados}/${ciclo.creditos_liberados}` : "—"}
+              />
+              <Info
+                label="Créditos contrato"
+                value={contrato.creditos_total != null ? String(contrato.creditos_total) : "—"}
+              />
+            </>
+          )}
+
         </div>
       </Card>
 
