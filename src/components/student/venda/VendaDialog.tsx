@@ -762,7 +762,7 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
                                           : "border-border hover:border-primary/40"
                                       )}
                                     >
-                                      {v.periodo_meses} {v.periodo_meses === 1 ? "mês" : "meses"} · {formatBRL(v.valor)}
+                                      {v.periodo_meses} {v.periodo_meses === 1 ? "mês" : "meses"} · {formatBRL(v.valor)} · {formatBRL(Number(v.valor) / Math.max(1, Number(v.periodo_meses)))}/mês
                                     </button>
                                   ))}
                                 </div>
