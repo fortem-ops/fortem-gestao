@@ -504,7 +504,9 @@ export default function PortalAgenda() {
             const meuAgendamentoNesteSlot = agendamentosDia.find(
               (a) => a.slot_id === slot.id && a.aluno_id === student?.id
             );
-            const jaTemNoDia = meusAgendamentos.some((a) => a.data === dataStr);
+            const jaTemNoDia = meusAgendamentos.some(
+              (a) => a.data === dataStr && (((a as any).treino_slots?.modalidade === "corrida") === isCorrida)
+            );
             const lotado = ocupadas >= slot.capacidade_maxima;
             const pct = Math.min(100, (ocupadas / slot.capacidade_maxima) * 100);
             const instrutorNome = slot.instrutor_id ? instrutores[slot.instrutor_id] : null;
