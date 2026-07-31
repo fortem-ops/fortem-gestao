@@ -17,6 +17,7 @@ type Slot = {
   horario_fim: string;
   capacidade_maxima: number;
   instrutor_id: string | null;
+  modalidade?: string | null;
 };
 
 type Agendamento = {
