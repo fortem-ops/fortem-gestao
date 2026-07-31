@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Search, Plus, Pencil, Trash2, X } from "lucide-react";
-import { calcularCreditos, FREQUENCIAS, PERIODOS, PLANOS_SUGERIDOS, PRESET_CORES, formatBRL, type Frequencia } from "@/lib/vendas";
+import { calcularCreditos, FREQUENCIAS, PERIODOS, PLANOS_SUGERIDOS, PRESET_CORES, ATIVIDADES_PLANO, PLANOS_BASE, PLANO_BASE_NENHUM, formatBRL, type Frequencia } from "@/lib/vendas";
 
 type StatusFilter = "todos" | "ativo" | "inativo";
 
@@ -25,6 +25,8 @@ type PlanoCat = {
   valor: number;
   cor: string | null;
   ativo: boolean;
+  atividade: string | null;
+  plano_base_requerido: string | null;
 };
 
 const empty = {
@@ -36,6 +38,8 @@ const empty = {
   valor: 0,
   cor: "#9CA3AF",
   ativo: true,
+  atividade: ATIVIDADES_PLANO[0].value as string,
+  plano_base_requerido: PLANO_BASE_NENHUM as string,
   manualCreditos: false,
 };
 
