@@ -550,6 +550,9 @@ function WeeklyGrid({
                           <span className={cn(cheio ? "text-amber-500" : "text-primary")}>
                             {ocup}/{slot.capacidade_maxima}
                           </span>
+                          {slot.modalidade === "corrida" && (
+                            <span className="text-[9px] uppercase text-orange-500 font-bold">corrida</span>
+                          )}
                         </div>
                         {slot.instrutor_id && (
                           <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
