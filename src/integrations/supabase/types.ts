@@ -5926,6 +5926,7 @@ export type Database = {
           horario_inicio: string
           id: string
           instrutor_id: string | null
+          modalidade: string
           observacoes: string | null
           updated_at: string
         }
@@ -5939,6 +5940,7 @@ export type Database = {
           horario_inicio: string
           id?: string
           instrutor_id?: string | null
+          modalidade?: string
           observacoes?: string | null
           updated_at?: string
         }
@@ -5952,6 +5954,7 @@ export type Database = {
           horario_inicio?: string
           id?: string
           instrutor_id?: string | null
+          modalidade?: string
           observacoes?: string | null
           updated_at?: string
         }

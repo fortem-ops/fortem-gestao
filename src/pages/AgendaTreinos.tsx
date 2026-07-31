@@ -36,6 +36,7 @@ type Slot = {
   instrutor_id: string | null;
   ativo: boolean;
   observacoes: string | null;
+  modalidade: string | null;
 };
 
 type Profile = { user_id: string; full_name: string };
@@ -66,6 +67,7 @@ function SlotDialog({
     capacidade_maxima: slot?.capacidade_maxima ?? 8,
     instrutor_id: slot?.instrutor_id ?? "",
     observacoes: slot?.observacoes ?? "",
+    modalidade: slot?.modalidade ?? "treino",
   });
 
   const toggleDia = (i: number) => {
@@ -90,6 +92,7 @@ function SlotDialog({
         capacidade_maxima: form.capacidade_maxima,
         instrutor_id: form.instrutor_id || null,
         observacoes: form.observacoes || null,
+        modalidade: form.modalidade,
       };
       if (isEdit) {
         const { error } = await supabase
@@ -150,7 +153,21 @@ function SlotDialog({
               </p>
             )}
           </div>
+          <div>
+            <Label>Modalidade</Label>
+            <Select value={form.modalidade} onValueChange={(v) => setForm({ ...form, modalidade: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="treino">Treino</SelectItem>
+                <SelectItem value="corrida">Corrida</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Horários de Corrida não consomem créditos — exigem plano de Corrida ativo.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
+
             <div>
               <Label>Início</Label>
               <Input type="time" value={form.horario_inicio} onChange={(e) => setForm({ ...form, horario_inicio: e.target.value })} />
@@ -533,6 +550,9 @@ function WeeklyGrid({
                           <span className={cn(cheio ? "text-amber-500" : "text-primary")}>
                             {ocup}/{slot.capacidade_maxima}
                           </span>
+                          {slot.modalidade === "corrida" && (
+                            <span className="text-[9px] uppercase text-orange-500 font-bold">corrida</span>
+                          )}
                         </div>
                         {slot.instrutor_id && (
                           <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
@@ -670,8 +690,13 @@ function HorariosTab() {
               {list.map((s) => (
                 <div key={s.id} className={cn("flex items-center gap-3 p-3 rounded-lg border", !s.ativo && "opacity-60")}>
                   <div className="flex-1">
-                    <div className="font-medium">
+                    <div className="font-medium flex items-center gap-2">
                       {s.horario_inicio.slice(0, 5)} → {s.horario_fim.slice(0, 5)}
+                      {s.modalidade === "corrida" && (
+                        <Badge variant="outline" className="bg-orange-500/15 text-orange-500 border-orange-500/30">
+                          Corrida
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-3">
                       <span><Users className="w-3 h-3 inline mr-1" />{s.capacidade_maxima} vagas</span>

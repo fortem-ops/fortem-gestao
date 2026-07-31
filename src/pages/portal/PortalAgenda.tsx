@@ -17,6 +17,7 @@ type Slot = {
   horario_fim: string;
   capacidade_maxima: number;
   instrutor_id: string | null;
+  modalidade?: string | null;
 };
 
 type Agendamento = {
@@ -45,7 +46,7 @@ export default function PortalAgenda() {
   const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
   const [confirmando, setConfirmando] = useState<{ slot: Slot; data: string; instrutor?: string } | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
-  const [abaAgenda, setAbaAgenda] = useState<"treinos" | "servicos" | "agendamentos">("treinos");
+  const [abaAgenda, setAbaAgenda] = useState<"treinos" | "corrida" | "servicos" | "agendamentos">("treinos");
   const [servicoSelecionado, setServicoSelecionado] = useState<string | null>(null);
   const [showHistoricoTreinos, setShowHistoricoTreinos] = useState(false);
   const [filtroTreinos, setFiltroTreinos] = useState<"todos" | "realizado" | "faltou" | "cancelado">("todos");
@@ -100,6 +101,27 @@ export default function PortalAgenda() {
       return (data || []) as Slot[];
     },
   });
+
+  const slotsTreino = useMemo(() => slots.filter((s) => (s.modalidade ?? "treino") !== "corrida"), [slots]);
+  const slotsCorrida = useMemo(() => slots.filter((s) => s.modalidade === "corrida"), [slots]);
+
+  // Contrato de Corrida ativo (libera agendamento sem crédito)
+  const { data: temPlanoCorrida = false } = useQuery({
+    queryKey: ["portal-contrato-corrida", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const hoje = format(new Date(), "yyyy-MM-dd");
+      const { data } = await supabase
+        .from("contratos")
+        .select("id, data_fim")
+        .eq("aluno_id", student!.id)
+        .eq("status", "ativo")
+        .eq("plano_tipo", "corrida");
+      return (data || []).some((c: any) => !c.data_fim || c.data_fim >= hoje);
+    },
+  });
+
+
 
   // Instrutores (nomes)
   const instrutorIds = useMemo(() => [...new Set(slots.map((s) => s.instrutor_id).filter(Boolean))] as string[], [slots]);
@@ -186,14 +208,21 @@ export default function PortalAgenda() {
     }
   };
 
-  // Dias que têm slots ativos (bolinha vermelha)
-  const { data: diasComSlots = new Set<number>() } = useQuery({
+  // Dias que têm slots ativos (bolinha vermelha) — por modalidade
+  const { data: diasPorModalidade } = useQuery({
     queryKey: ["portal-dias-com-slots"],
     queryFn: async () => {
-      const { data } = await supabase.from("treino_slots").select("dia_semana").eq("ativo", true);
-      return new Set((data || []).map((s) => s.dia_semana));
+      const { data } = await supabase.from("treino_slots").select("dia_semana, modalidade").eq("ativo", true);
+      const treino = new Set<number>();
+      const corrida = new Set<number>();
+      for (const s of (data || []) as any[]) {
+        (s.modalidade === "corrida" ? corrida : treino).add(s.dia_semana);
+      }
+      return { treino, corrida };
     },
   });
+  const diasComSlotsTreino = diasPorModalidade?.treino ?? new Set<number>();
+  const diasComSlotsCorrida = diasPorModalidade?.corrida ?? new Set<number>();
 
   // Horários fixos do aluno
   const { data: horariosFixos = [] } = useQuery({
@@ -321,7 +350,10 @@ export default function PortalAgenda() {
     },
     onSuccess: (result: any) => {
       toast.success("Treino agendado!", {
-        description: `${result.creditos_restantes} crédito(s) restante(s).`,
+        description:
+          result.creditos_restantes == null
+            ? "Sua vaga está confirmada."
+            : `${result.creditos_restantes} crédito(s) restante(s).`,
       });
       setConfirmando(null);
       qc.invalidateQueries({ queryKey: ["portal-vagas-dia"] });
@@ -332,6 +364,7 @@ export default function PortalAgenda() {
     onError: (e: any) => {
       const msgs: Record<string, string> = {
         sem_creditos: "Você não tem créditos disponíveis.",
+        sem_plano_corrida: "Este horário é exclusivo para alunos com plano de Corrida ativo. Fale com a equipe para contratar.",
         sem_vagas: "Não há vagas disponíveis neste horário.",
         ja_agendado_neste_dia: "Você já tem um treino agendado neste dia.",
         data_passada: "Não é possível agendar para datas passadas.",
@@ -388,13 +421,14 @@ export default function PortalAgenda() {
       <div className="flex gap-1 p-1 bg-muted rounded-xl">
         {[
           { key: "treinos", label: "🏋️ Treinos" },
+          { key: "corrida", label: "🏃 Corrida" },
           { key: "servicos", label: "📋 Serviços" },
           { key: "agendamentos", label: "📌 Meus" },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setAbaAgenda(tab.key as any)}
-            className={`flex-1 py-2 px-2 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex-1 py-2 px-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
               abaAgenda === tab.key
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground"
@@ -405,14 +439,19 @@ export default function PortalAgenda() {
         ))}
       </div>
 
-      {abaAgenda === "treinos" && (<>
+      {(abaAgenda === "treinos" || abaAgenda === "corrida") && (() => {
+        const isCorrida = abaAgenda === "corrida";
+        const lista = isCorrida ? slotsCorrida : slotsTreino;
+        const diasSet = isCorrida ? diasComSlotsCorrida : diasComSlotsTreino;
+        const bloqueadoCorrida = isCorrida && !temPlanoCorrida;
+        return (<>
       {/* Calendário semanal horizontal */}
       <section className="space-y-2">
         <SectionLabel>Próximos 7 dias</SectionLabel>
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
           {dias7.map((d) => {
             const ativo = isSameDay(d, diaSelecionado);
-            const temSlots = diasComSlots.has(d.getDay());
+            const temSlots = diasSet.has(d.getDay());
             return (
               <button
                 key={d.toISOString()}
@@ -437,25 +476,45 @@ export default function PortalAgenda() {
         </div>
       </section>
 
+      {bloqueadoCorrida && (
+        <section className="bg-card border border-border rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🔒</span>
+            <p className="text-sm font-bold text-foreground">Disponível apenas para alunos com plano de Corrida</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Você pode ver os horários, mas o agendamento é exclusivo para quem tem um plano de Corrida ativo.
+          </p>
+          <button
+            onClick={() => window.open('https://wa.me/555135199451?text=Olá! Quero contratar o plano de Corrida.', '_blank')}
+            className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold"
+          >
+            🏃 Falar com a equipe sobre o plano de Corrida →
+          </button>
+        </section>
+      )}
+
       {/* Slots do dia */}
       <section className="space-y-3">
         <SectionLabel>{format(diaSelecionado, "EEEE, dd 'de' MMMM", { locale: ptBR })}</SectionLabel>
-        {slots.length === 0 ? (
+        {lista.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-8 text-center">
             <CalendarDays className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">Sem horários disponíveis neste dia.</p>
           </div>
         ) : (
-          slots.map((slot) => {
+          lista.map((slot) => {
             const ocupadas = agendamentosDia.filter((a) => a.slot_id === slot.id).length;
             const meuAgendamentoNesteSlot = agendamentosDia.find(
               (a) => a.slot_id === slot.id && a.aluno_id === student?.id
             );
-            const jaTemNoDia = meusAgendamentos.some((a) => a.data === dataStr);
+            const jaTemNoDia = meusAgendamentos.some(
+              (a) => a.data === dataStr && (((a as any).treino_slots?.modalidade === "corrida") === isCorrida)
+            );
             const lotado = ocupadas >= slot.capacidade_maxima;
             const pct = Math.min(100, (ocupadas / slot.capacidade_maxima) * 100);
             const instrutorNome = slot.instrutor_id ? instrutores[slot.instrutor_id] : null;
-            const semCreditos = saldo <= 0;
+            const semCreditos = !isCorrida && saldo <= 0;
             const ehHoje = isSameDay(diaSelecionado, new Date());
             const slotPassou = ehHoje && (() => {
               const [hh, mm] = slot.horario_inicio.split(":").map(Number);
@@ -522,7 +581,11 @@ export default function PortalAgenda() {
                       </button>
                     </div>
                   );
-                })() : lotado ? (
+                })() : bloqueadoCorrida ? (
+                  <Button className="w-full" disabled>
+                    🔒 Exclusivo plano de Corrida
+                  </Button>
+                ) : lotado ? (
                   <div className="text-sm text-muted-foreground font-semibold">Turma lotada</div>
                 ) : slotPassou ? (
                   <div className="w-full py-2.5 rounded-xl bg-muted/50 border border-border text-center text-xs font-semibold text-muted-foreground">
@@ -555,7 +618,8 @@ export default function PortalAgenda() {
           })
         )}
       </section>
-      </>)}
+      </>);
+      })()}
 
       {abaAgenda === "agendamentos" && (
         <div className="space-y-6">
