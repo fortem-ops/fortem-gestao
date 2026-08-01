@@ -239,7 +239,7 @@ export default function PortalAgenda() {
     },
   });
 
-  // Plano ativo (elegibilidade horário fixo)
+  // Plano ativo (elegibilidade horário fixo) — usa apenas o plano principal de Treinamento Funcional, ignorando Corrida
   const { data: planoPortal } = useQuery({
     queryKey: ["portal-plano-horario-fixo", student?.id],
     enabled: !!student,
@@ -249,6 +249,7 @@ export default function PortalAgenda() {
         .select("tipo")
         .eq("aluno_id", student!.id)
         .eq("ativo", true)
+        .eq("atividade", "treinamento_funcional")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
