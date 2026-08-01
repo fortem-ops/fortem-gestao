@@ -748,6 +748,10 @@ export default function PortalAgenda() {
                           <p className="text-xs text-muted-foreground">
                             Garanta seu horário toda semana automaticamente, sem precisar agendar manualmente.
                           </p>
+                          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 space-y-1.5 text-xs text-amber-200">
+                            <p className="font-semibold text-amber-100">Por que está indisível?</p>
+                            <p>O Horário Fixo é vinculado ao seu <strong className="text-amber-100">plano principal de Treinamento Funcional</strong>. Planos adicionais (como Corrida) não liberam esse benefício sozinhos.</p>
+                          </div>
                           <div className="bg-muted/50 rounded-xl p-3 space-y-1.5 text-xs text-muted-foreground">
                             <p>A partir do plano <strong className="text-foreground">Power</strong>, você pode fixar horários conforme sua frequência semanal contratada.</p>
                             <p>Exemplo: se você treina <strong className="text-foreground">3×/semana</strong>, pode fixar até <strong className="text-foreground">3 horários</strong> automaticamente.</p>
