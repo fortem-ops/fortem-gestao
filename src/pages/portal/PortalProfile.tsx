@@ -29,6 +29,7 @@ export default function PortalProfile() {
       const { data } = await supabase
         .from("planos").select("*")
         .eq("aluno_id", student!.id).eq("ativo", true)
+        .eq("atividade", "treinamento_funcional")
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       return data;
     },

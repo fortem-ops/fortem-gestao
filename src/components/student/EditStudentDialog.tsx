@@ -31,6 +31,7 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
       .select("tipo, servicos, valor, data_inicio")
       .eq("aluno_id", student.id)
       .eq("ativo", true)
+      .eq("atividade", "treinamento_funcional")
       .order("created_at", { ascending: false })
       .limit(1)
       .then(({ data }) => {
