@@ -683,19 +683,35 @@ export default function PortalAgenda() {
                     Seus treinos e serviços aparecem automaticamente no seu calendário.
                   </p>
 
-                  <div className="flex items-center gap-2 bg-[#0F0F0F] border border-border rounded-lg px-3 py-2">
-                    <p className="text-[11px] text-muted-foreground truncate flex-1 font-mono">
-                      {feedHttpsUrl || "Gerando link…"}
-                    </p>
-                    <button
-                      onClick={copyFeed}
-                      disabled={!feedHttpsUrl}
-                      className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 disabled:opacity-40"
-                      aria-label="Copiar link"
-                    >
-                      {calCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-primary" />}
-                    </button>
-                  </div>
+                  {calendarTokenError && !feedHttpsUrl ? (
+                    <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
+                      <p className="text-[11px] text-destructive flex-1">
+                        Não foi possível gerar o link do calendário.
+                      </p>
+                      <button
+                        onClick={() => void refetchCalendarToken()}
+                        disabled={calendarTokenFetching}
+                        className="text-[11px] font-bold text-primary shrink-0 disabled:opacity-40"
+                      >
+                        {calendarTokenFetching ? "Tentando…" : "Tentar novamente"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-[#0F0F0F] border border-border rounded-lg px-3 py-2">
+                      <p className="text-[11px] text-muted-foreground truncate flex-1 font-mono">
+                        {feedHttpsUrl || "Gerando link…"}
+                      </p>
+                      <button
+                        onClick={copyFeed}
+                        disabled={!feedHttpsUrl}
+                        className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 disabled:opacity-40"
+                        aria-label="Copiar link"
+                      >
+                        {calCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-primary" />}
+                      </button>
+                    </div>
+                  )}
+
 
                   {feedWebcalUrl && (
                     <a
