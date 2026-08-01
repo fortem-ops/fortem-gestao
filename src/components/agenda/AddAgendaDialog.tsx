@@ -277,6 +277,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           .select("id, servicos")
           .eq("aluno_id", alunoId)
           .eq("ativo", true)
+          .eq("atividade", "treinamento_funcional")
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
