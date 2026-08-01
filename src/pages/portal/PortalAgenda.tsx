@@ -192,7 +192,7 @@ export default function PortalAgenda() {
       const existing = await fetchExisting();
       if (existing) return existing;
 
-      const newToken = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "");
+      const newToken = gerarTokenCalendario();
       const { data, error } = await (supabase as any)
         .from("aluno_calendar_tokens")
         .insert({ aluno_id: student!.id, token: newToken })
