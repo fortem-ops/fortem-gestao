@@ -169,26 +169,50 @@ export default function PortalAgenda() {
   });
 
   // Feed ICS pessoal (webcal)
-  const { data: calendarToken } = useQuery({
+  const {
+    data: calendarToken,
+    isError: calendarTokenError,
+    isFetching: calendarTokenFetching,
+    refetch: refetchCalendarToken,
+  } = useQuery({
     queryKey: ["portal-calendar-token", student?.id],
     enabled: !!student,
+    retry: 1,
     queryFn: async () => {
-      const { data: existing } = await (supabase as any)
-        .from("aluno_calendar_tokens")
-        .select("token")
-        .eq("aluno_id", student!.id)
-        .maybeSingle();
-      if (existing?.token) return existing.token as string;
+      const fetchExisting = async () => {
+        const { data, error } = await (supabase as any)
+          .from("aluno_calendar_tokens")
+          .select("token")
+          .eq("aluno_id", student!.id)
+          .maybeSingle();
+        if (error) throw error;
+        return (data?.token as string | undefined) ?? null;
+      };
+
+      const existing = await fetchExisting();
+      if (existing) return existing;
+
       const newToken = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "");
       const { data, error } = await (supabase as any)
         .from("aluno_calendar_tokens")
         .insert({ aluno_id: student!.id, token: newToken })
         .select("token")
-        .single();
-      if (error) throw error;
-      return data.token as string;
+        .maybeSingle();
+
+      if (error) {
+        // Conflito (outra aba/dispositivo criou o token antes) → relê
+        const retry = await fetchExisting();
+        if (retry) return retry;
+        throw error;
+      }
+      if (data?.token) return data.token as string;
+
+      const after = await fetchExisting();
+      if (after) return after;
+      throw new Error("Não foi possível gerar o link do calendário.");
     },
   });
+
 
   const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
   const feedHttpsUrl = supabaseUrl && calendarToken
