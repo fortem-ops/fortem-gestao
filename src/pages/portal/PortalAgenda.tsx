@@ -698,17 +698,25 @@ export default function PortalAgenda() {
                   </p>
 
                   {calendarTokenError && !feedHttpsUrl ? (
-                    <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
-                      <p className="text-[11px] text-destructive flex-1">
-                        Não foi possível gerar o link do calendário.
-                      </p>
-                      <button
-                        onClick={() => void refetchCalendarToken()}
-                        disabled={calendarTokenFetching}
-                        className="text-[11px] font-bold text-primary shrink-0 disabled:opacity-40"
-                      >
-                        {calendarTokenFetching ? "Tentando…" : "Tentar novamente"}
-                      </button>
+                    <div className="flex flex-col gap-1 bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[11px] text-destructive flex-1">
+                          Não foi possível gerar o link do calendário.
+                        </p>
+                        <button
+                          onClick={() => void refetchCalendarToken()}
+                          disabled={calendarTokenFetching}
+                          className="text-[11px] font-bold text-primary shrink-0 disabled:opacity-40"
+                        >
+                          {calendarTokenFetching ? "Tentando…" : "Tentar novamente"}
+                        </button>
+                      </div>
+                      {calendarTokenErrorObj && (
+                        <p className="text-[10px] text-destructive/80 font-mono break-all">
+                          {(calendarTokenErrorObj as any).code ? `[${(calendarTokenErrorObj as any).code}] ` : ""}
+                          {(calendarTokenErrorObj as Error).message}
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 bg-[#0F0F0F] border border-border rounded-lg px-3 py-2">
