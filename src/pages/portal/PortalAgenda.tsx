@@ -187,6 +187,7 @@ export default function PortalAgenda() {
     isError: calendarTokenError,
     isFetching: calendarTokenFetching,
     refetch: refetchCalendarToken,
+    error: calendarTokenErrorObj,
   } = useQuery({
     queryKey: ["portal-calendar-token", student?.id],
     enabled: !!student,
