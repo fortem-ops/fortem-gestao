@@ -77,6 +77,13 @@ function cargoFromAppRole(role: string | null): string {
   return 'Treinador(a)';
 }
 
+function sanitizeTextParam(text: string): string {
+  return text
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 async function buildContext(agendaId: string) {
   const { data: agenda } = await admin
     .from('agenda_servicos')
