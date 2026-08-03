@@ -206,10 +206,12 @@ function buildTemplatePayload(
   vars: Record<string, string>,
   destinoTelefone: string,
 ): Record<string, unknown> | null {
-  const p = (v: string) => ({ type: 'text', text: vars[v] || '' });
-  const dataCompleta = vars['%DIA_SEMANA%'] && vars['%DATA%']
-    ? `${vars['%DIA_SEMANA%']}, ${vars['%DATA%']}`
-    : vars['%DATA%'] || '';
+  const p = (v: string) => ({ type: 'text', text: sanitizeTextParam(vars[v] || '') });
+  const dataCompleta = sanitizeTextParam(
+    vars['%DIA_SEMANA%'] && vars['%DATA%']
+      ? `${vars['%DIA_SEMANA%']}, ${vars['%DATA%']}`
+      : vars['%DATA%'] || ''
+  );
 
   if (gatilho === 'agendamento_cancelado') {
     return {
