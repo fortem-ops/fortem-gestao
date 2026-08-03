@@ -1,5 +1,5 @@
 import type { Tables } from "@/integrations/supabase/types";
-import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles, Scale, ShieldCheck, Camera, Eye } from "lucide-react";
+import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles, Scale, ShieldCheck, Camera, Eye, Smartphone } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -205,6 +205,16 @@ export function StudentSummary({ student }: { student: Aluno }) {
         .eq("aluno_id", student.id)
         .maybeSingle();
       return (data as any)?.origem_lead ?? null;
+    },
+  });
+
+  const { data: lastAccess } = useQuery({
+    queryKey: ["aluno_last_access", student.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_aluno_last_access", { _aluno_id: student.id });
+      if (error) return null;
+      if (data && typeof data === "object" && "error" in data) return null;
+      return data as { linked: boolean; last_sign_in_at: string | null } | null;
     },
   });
 
@@ -1005,6 +1015,23 @@ export function StudentSummary({ student }: { student: Aluno }) {
               <span className="text-xs text-muted-foreground">Cadastro</span>
             </div>
             <p className="text-sm font-semibold text-foreground">{new Date(student.created_at).toLocaleDateString("pt-BR")}</p>
+          </div>
+          <div className="glass-card rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Smartphone className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Acesso ao App</span>
+            </div>
+            {(() => {
+              if (!lastAccess || !lastAccess.linked) {
+                return <p className="text-sm text-muted-foreground">Aluno não acessou o app ainda</p>;
+              }
+              if (!lastAccess.last_sign_in_at) {
+                return <p className="text-sm font-semibold text-foreground">Vinculado ao portal · nunca acessou</p>;
+              }
+              const d = new Date(lastAccess.last_sign_in_at);
+              const formatted = d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+              return <p className="text-sm font-semibold text-foreground">Último acesso: {formatted}</p>;
+            })()}
           </div>
         </div>
       </div>
