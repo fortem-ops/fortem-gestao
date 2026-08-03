@@ -134,12 +134,18 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const { data: profissionais = [] } = useQuery({
     queryKey: ["profiles_all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["admin", "coordenador", "professor", "nutricionista", "fisioterapeuta"]);
+      const ids = (roles || []).map((r: any) => r.user_id);
+      if (ids.length === 0) return [];
+      const { data: profs } = await supabase
         .from("profiles")
         .select("user_id, full_name")
+        .in("user_id", ids)
         .order("full_name");
-      if (error) throw error;
-      return data;
+      return profs || [];
     },
   });
 
