@@ -77,6 +77,13 @@ function cargoFromAppRole(role: string | null): string {
   return 'Treinador(a)';
 }
 
+function sanitizeTextParam(text: string): string {
+  return text
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 async function buildContext(agendaId: string) {
   const { data: agenda } = await admin
     .from('agenda_servicos')
@@ -199,10 +206,12 @@ function buildTemplatePayload(
   vars: Record<string, string>,
   destinoTelefone: string,
 ): Record<string, unknown> | null {
-  const p = (v: string) => ({ type: 'text', text: vars[v] || '' });
-  const dataCompleta = vars['%DIA_SEMANA%'] && vars['%DATA%']
-    ? `${vars['%DIA_SEMANA%']}, ${vars['%DATA%']}`
-    : vars['%DATA%'] || '';
+  const p = (v: string) => ({ type: 'text', text: sanitizeTextParam(vars[v] || '') });
+  const dataCompleta = sanitizeTextParam(
+    vars['%DIA_SEMANA%'] && vars['%DATA%']
+      ? `${vars['%DIA_SEMANA%']}, ${vars['%DATA%']}`
+      : vars['%DATA%'] || ''
+  );
 
   if (gatilho === 'agendamento_cancelado') {
     return {
