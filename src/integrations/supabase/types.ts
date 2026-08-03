@@ -7065,6 +7065,7 @@ export type Database = {
         Args: { p_data: string; p_slot_id: string }
         Returns: Json
       }
+      fn_aluno_last_access: { Args: { _aluno_id: string }; Returns: Json }
       fn_calcular_rescisao: { Args: { p_contrato_id: string }; Returns: Json }
       fn_call_edge_function: {
         Args: { p_body: Json; p_name: string }
