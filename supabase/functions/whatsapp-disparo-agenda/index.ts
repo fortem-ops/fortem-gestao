@@ -104,14 +104,17 @@ async function buildContext(agendaId: string) {
 
   let anamnese: any = null;
   let ultimaAvaliacao: any = null;
+  let pipelineMeta: any = null;
   if (agenda.aluno_id) {
-    const [anaRes, avalRes] = await Promise.all([
+    const [anaRes, avalRes, metaRes] = await Promise.all([
       admin.from('prospect_anamnese').select('*').eq('aluno_id', agenda.aluno_id).maybeSingle(),
       admin.from('avaliacoes').select('data_avaliacao, created_at').eq('aluno_id', agenda.aluno_id)
         .order('data_avaliacao', { ascending: false }).limit(1).maybeSingle(),
+      admin.from('pipeline_metadata').select('origem_lead').eq('aluno_id', agenda.aluno_id).maybeSingle(),
     ]);
     anamnese = (anaRes as any).data;
     ultimaAvaliacao = (avalRes as any).data;
+    pipelineMeta = (metaRes as any).data;
   }
 
   const profRole = profissional ? await roleOfUser(profissional.user_id) : null;
@@ -129,7 +132,7 @@ async function buildContext(agendaId: string) {
     '%LIMITACOES%': anamnese?.limitacoes ?? '—',
     '%ATIVIDADE_FISICA%': anamnese?.atividade_fisica ?? '—',
     '%OBJETIVO%': anamnese?.objetivo_treinamento ?? '—',
-    '%COMO_CONHECEU%': anamnese?.como_conheceu ?? '—',
+    '%COMO_CONHECEU%': pipelineMeta?.origem_lead ?? '—',
     '%QUEIXA%': anamnese?.queixa ?? anamnese?.limitacoes ?? '—',
     '%ULTIMA_AVALIACAO%': formatDateBR(ultimaAvaliacao?.data_avaliacao ?? null) || 'Nenhuma',
     '%PROTOCOLO%': agenda.protocolo ?? '—',
