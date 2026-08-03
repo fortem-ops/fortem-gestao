@@ -1016,6 +1016,23 @@ export function StudentSummary({ student }: { student: Aluno }) {
             </div>
             <p className="text-sm font-semibold text-foreground">{new Date(student.created_at).toLocaleDateString("pt-BR")}</p>
           </div>
+          <div className="glass-card rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Smartphone className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Acesso ao App</span>
+            </div>
+            {(() => {
+              if (!lastAccess || !lastAccess.linked) {
+                return <p className="text-sm text-muted-foreground">Aluno não acessou o app ainda</p>;
+              }
+              if (!lastAccess.last_sign_in_at) {
+                return <p className="text-sm font-semibold text-foreground">Vinculado ao portal · nunca acessou</p>;
+              }
+              const d = new Date(lastAccess.last_sign_in_at);
+              const formatted = d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+              return <p className="text-sm font-semibold text-foreground">Último acesso: {formatted}</p>;
+            })()}
+          </div>
         </div>
       </div>
 
