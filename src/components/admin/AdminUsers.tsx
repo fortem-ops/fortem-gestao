@@ -258,10 +258,12 @@ export function AdminUsers() {
   const getRolesForUser = (userId: string) => allRoles.filter((r) => r.user_id === userId);
 
   const filtered = profiles.filter((p) => {
+    const email = emailByUserId.get(p.user_id) || "";
+    if (/^teste\..*@fortem\.app$/i.test(email)) return false;
     const q = search.toLowerCase();
     return (
       p.full_name.toLowerCase().includes(q) ||
-      (emailByUserId.get(p.user_id) || "").toLowerCase().includes(q)
+      email.toLowerCase().includes(q)
     );
   });
 
