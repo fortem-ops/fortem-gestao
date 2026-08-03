@@ -1,5 +1,5 @@
 import type { Tables } from "@/integrations/supabase/types";
-import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles, Scale, ShieldCheck, Camera, Eye } from "lucide-react";
+import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles, Scale, ShieldCheck, Camera, Eye, Smartphone } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -205,6 +205,16 @@ export function StudentSummary({ student }: { student: Aluno }) {
         .eq("aluno_id", student.id)
         .maybeSingle();
       return (data as any)?.origem_lead ?? null;
+    },
+  });
+
+  const { data: lastAccess } = useQuery({
+    queryKey: ["aluno_last_access", student.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_aluno_last_access", { _aluno_id: student.id });
+      if (error) return null;
+      if (data && typeof data === "object" && "error" in data) return null;
+      return data as { linked: boolean; last_sign_in_at: string | null } | null;
     },
   });
 
