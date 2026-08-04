@@ -112,7 +112,7 @@ export default function Contratos() {
   const { data: contratos } = useTodosContratos();
 
   const filtradas = useMemo(() => {
-    let list = (cobrancas ?? []).filter((c) => temMensalidade(c.contratos?.plano_tipo));
+    let list = (cobrancas ?? []).filter((c) => temMensalidade(c.contratos?.plano_tipo, (c as any).plano_real_tipo));
     if (filtroPlano !== 'todos') list = list.filter((c) => c.contratos?.plano_tipo === filtroPlano);
     if (filtroPgto !== 'todos') {
       list = list.filter((c) => (c.forma_pagamento || c.contratos?.forma_pagamento) === filtroPgto);
@@ -181,7 +181,7 @@ export default function Contratos() {
   };
 
   const kpis = useMemo(() => {
-    const all = (contratos ?? []).filter((c) => temMensalidade(c.plano_tipo));
+    const all = (contratos ?? []).filter((c) => temMensalidade(c.plano_tipo, (c as any).plano_real_tipo));
     const ativos = all.filter((c) => c.status === 'ativo');
     const inadimplentes = all.filter((c) => c.status === 'inadimplente' || c.status === 'suspenso');
     const em30dias = new Date();
@@ -193,7 +193,7 @@ export default function Contratos() {
     const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
     const mesAtual = (cobrancas ?? []).filter((c) => {
-      if (!temMensalidade(c.contratos?.plano_tipo)) return false;
+      if (!temMensalidade(c.contratos?.plano_tipo, (c as any).plano_real_tipo)) return false;
       if (!c.data_vencimento) return false;
       const d = new Date(c.data_vencimento + 'T00:00:00');
       return d >= ini && d <= fim;
