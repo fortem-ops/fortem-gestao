@@ -370,6 +370,63 @@ export default function Contratos() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog de baixa em lote */}
+      <Dialog open={baixaOpen} onOpenChange={setBaixaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dar baixa em lote (retroativa)</DialogTitle>
+            <DialogDescription>
+              As {selecionadasList.length} cobrança(s) selecionada(s) serão marcadas como <strong>pagas</strong> com a data de pagamento retroativa informada abaixo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">Data do pagamento</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(dataBaixa, 'dd/MM/yyyy', { locale: ptBR })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataBaixa}
+                    onSelect={(d) => d && setDataBaixa(d)}
+                    disabled={(d) => d > new Date()}
+                    initialFocus
+                    locale={ptBR}
+                    className={cn('p-3 pointer-events-auto')}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="rounded-lg border border-border p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cobranças</span>
+                <span className="font-medium tabular-nums">{selecionadasList.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valor total</span>
+                <span className="font-medium tabular-nums">{formatBRL(totalSelecionado)}</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBaixaOpen(false)} disabled={darBaixa.isPending}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmarBaixa} disabled={darBaixa.isPending || selecionadasList.length === 0}>
+              {darBaixa.isPending ? 'Salvando...' : 'Confirmar baixa'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
