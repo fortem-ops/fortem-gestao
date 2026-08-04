@@ -90,6 +90,43 @@ Deno.serve(async (req) => {
       const desconto = Number((p as any).desconto_recorrente ?? 0);
       const valorFinal = Math.max(0, valor - desconto);
 
+      // Trava de idempotência: já houve renovação automática para este aluno nas últimas 20h?
+      const desde = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
+      const { data: recentes, error: recErr } = await supabase
+        .from("vendas")
+        .select("id")
+        .eq("aluno_id", p.aluno_id)
+        .eq("origem", "renovacao_automatica")
+        .gte("created_at", desde)
+        .limit(1);
+
+      if (recErr) {
+        console.error(`Erro ao checar renovações recentes do plano ${p.id}:`, recErr);
+        erros.push({ plano_id: p.id, motivo: `Falha ao verificar duplicidade: ${recErr.message}` });
+        continue;
+      }
+
+      if (recentes && recentes.length > 0) {
+        erros.push({
+          plano_id: p.id,
+          motivo: "Renovação já processada nas últimas 20h — pulando para evitar duplicata",
+        });
+        continue;
+      }
+
+      // 1) Desativa o plano antigo ANTES de criar a venda
+      const { error: deactErr } = await supabase
+        .from("planos")
+        .update({ ativo: false })
+        .eq("id", p.id);
+
+      if (deactErr) {
+        console.error(`Erro ao desativar plano antigo ${p.id}:`, deactErr);
+        erros.push({ plano_id: p.id, motivo: `Não desativado, venda não criada: ${deactErr.message}` });
+        continue;
+      }
+
+      // 2) Só então cria a venda (que dispara plano+contrato+cobrança)
       const { error: vErr } = await supabase.from("vendas").insert({
         aluno_id: p.aluno_id,
         tipo: "plano",
