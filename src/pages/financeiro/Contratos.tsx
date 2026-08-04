@@ -1,21 +1,25 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Users, AlertTriangle, RefreshCw, Search, CalendarIcon, TrendingUp, Clock } from 'lucide-react';
+import { FileText, Users, AlertTriangle, RefreshCw, Search, CalendarIcon, TrendingUp, Clock, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { useCobrancasListagem, useTodosContratos, type StatusPagamento } from '@/hooks/useContratos';
+import { useCobrancasListagem, useTodosContratos, useDarBaixaLote, type StatusPagamento } from '@/hooks/useContratos';
 import {
   PLANO_LABELS, FREQUENCIA_LABELS, STATUS_CONTRATO_LABELS,
   FORMA_PAGAMENTO_LABELS, formatBRL, ContratoStatus,
