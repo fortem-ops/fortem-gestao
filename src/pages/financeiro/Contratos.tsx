@@ -40,6 +40,13 @@ const PAG_LABEL: Record<StatusPagamento, string> = {
   pago: 'Pago', pendente: 'Pendente', vencida: 'Vencida', sem_cobranca: '—',
 };
 
+/** Planos sem mensalidade fixa — ocultos nesta listagem (inclui VIP, mapeado como 'outro'). */
+const PLANOS_SEM_MENSALIDADE = ['gympass', 'wellhub', 'totalpass', 'outro'];
+const temMensalidade = (planoTipo?: string | null) =>
+  !planoTipo || !PLANOS_SEM_MENSALIDADE.includes(planoTipo);
+
+const PLANO_OPTIONS = Object.entries(PLANO_LABELS).filter(([k]) => !PLANOS_SEM_MENSALIDADE.includes(k));
+
 type PeriodoPreset = 'todos' | 'hoje' | 'ontem' | 'ultimos_7' | 'semana_atual' | 'mes_atual' | 'mes_passado' | 'custom';
 
 const PERIODO_LABELS: Record<PeriodoPreset, string> = {
@@ -89,7 +96,7 @@ export default function Contratos() {
   const { data: contratos } = useTodosContratos();
 
   const filtradas = useMemo(() => {
-    let list = (cobrancas ?? []).slice();
+    let list = (cobrancas ?? []).filter((c) => temMensalidade(c.contratos?.plano_tipo));
     if (filtroPlano !== 'todos') list = list.filter((c) => c.contratos?.plano_tipo === filtroPlano);
     if (filtroPgto !== 'todos') {
       list = list.filter((c) => (c.forma_pagamento || c.contratos?.forma_pagamento) === filtroPgto);
@@ -119,7 +126,7 @@ export default function Contratos() {
   }, [filtradas]);
 
   const kpis = useMemo(() => {
-    const all = contratos ?? [];
+    const all = (contratos ?? []).filter((c) => temMensalidade(c.plano_tipo));
     const ativos = all.filter((c) => c.status === 'ativo');
     const inadimplentes = all.filter((c) => c.status === 'inadimplente' || c.status === 'suspenso');
     const em30dias = new Date();
@@ -131,6 +138,7 @@ export default function Contratos() {
     const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
     const mesAtual = (cobrancas ?? []).filter((c) => {
+      if (!temMensalidade(c.contratos?.plano_tipo)) return false;
       if (!c.data_vencimento) return false;
       const d = new Date(c.data_vencimento + 'T00:00:00');
       return d >= ini && d <= fim;
@@ -192,7 +200,7 @@ export default function Contratos() {
               <SelectTrigger><SelectValue placeholder="Plano" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os planos</SelectItem>
-                {Object.entries(PLANO_LABELS).map(([k, v]) => (
+                {PLANO_OPTIONS.map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v}</SelectItem>
                 ))}
               </SelectContent>
