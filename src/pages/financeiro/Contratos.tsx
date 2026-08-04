@@ -127,10 +127,6 @@ export default function Contratos() {
     const recebido = filtradas.filter((c) => c.status_pagamento === 'pago').reduce((s, c) => s + Number(c.valor || 0), 0);
     const receber  = filtradas.filter((c) => c.status_pagamento === 'pendente' || c.status_pagamento === 'vencida').reduce((s, c) => s + Number(c.valor || 0), 0);
     return { recebido, receber };
-  const resumoPeriodo = useMemo(() => {
-    const recebido = filtradas.filter((c) => c.status_pagamento === 'pago').reduce((s, c) => s + Number(c.valor || 0), 0);
-    const receber  = filtradas.filter((c) => c.status_pagamento === 'pendente' || c.status_pagamento === 'vencida').reduce((s, c) => s + Number(c.valor || 0), 0);
-    return { recebido, receber };
   }, [filtradas]);
 
   // ---- Baixa em lote ----
