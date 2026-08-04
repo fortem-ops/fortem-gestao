@@ -24,20 +24,51 @@ export function useContratosAluno(alunoId: string) {
 
 export type StatusPagamento = 'pago' | 'pendente' | 'vencida' | 'sem_cobranca';
 
+/** Busca todas as linhas em páginas de 1000 (contorna o limite padrão do PostgREST). */
+async function fetchAllPages<T = any>(buildQuery: (from: number, to: number) => any): Promise<T[]> {
+  const pageSize = 1000;
+  let from = 0;
+  let all: T[] = [];
+  while (true) {
+    const { data, error } = await buildQuery(from, from + pageSize - 1);
+    if (error) throw error;
+    all = all.concat((data ?? []) as T[]);
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
+/** Mapa aluno_id -> tipo do plano ativo (fonte confiável, em vez de contratos.plano_tipo). */
+async function fetchPlanoRealMap(): Promise<Map<string, string>> {
+  const rows = await fetchAllPages<any>((from, to) =>
+    db.from('planos').select('aluno_id, tipo').eq('ativo', true).range(from, to)
+  );
+  const map = new Map<string, string>();
+  for (const p of rows) {
+    if (p?.aluno_id && p?.tipo && !map.has(p.aluno_id)) map.set(p.aluno_id, p.tipo);
+  }
+  return map;
+}
 
 export function useTodosContratos(filtroStatus?: string) {
   return useQuery({
     queryKey: ['contratos', 'todos', filtroStatus],
     queryFn: async () => {
-      let query = db
-        .from('contratos')
-        .select('*, alunos(id, nome, email), cobrancas(data_vencimento, data_pagamento, status)')
-        .order('created_at', { ascending: false });
-      if (filtroStatus && filtroStatus !== 'todos') {
-        query = query.eq('status', filtroStatus);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
+      const [data, planoMap] = await Promise.all([
+        fetchAllPages<any>((from, to) => {
+          let query = db
+            .from('contratos')
+            .select('*, alunos(id, nome, email), cobrancas(data_vencimento, data_pagamento, status)')
+            .order('created_at', { ascending: false })
+            .range(from, to);
+          if (filtroStatus && filtroStatus !== 'todos') {
+            query = query.eq('status', filtroStatus);
+          }
+          return query;
+        }),
+        fetchPlanoRealMap(),
+      ]);
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       const list = (data ?? []) as any[];
@@ -56,14 +87,15 @@ export function useTodosContratos(filtroStatus?: string) {
         } else if (cobs.some((cb) => cb.status === 'pago')) {
           status_pagamento = 'pago';
         }
-        return { ...c, proxima_cobranca, status_pagamento };
-      }) as (Contrato & { proxima_cobranca: string | null; status_pagamento: StatusPagamento })[];
+        return { ...c, proxima_cobranca, status_pagamento, plano_real_tipo: planoMap.get(c.aluno_id) ?? null };
+      }) as (Contrato & { proxima_cobranca: string | null; status_pagamento: StatusPagamento; plano_real_tipo: string | null })[];
     },
   });
 }
 
 export interface CobrancaListagem extends Cobranca {
   status_pagamento: StatusPagamento;
+  plano_real_tipo?: string | null;
   contratos?: {
     id: string;
     plano_tipo: string;
@@ -79,11 +111,16 @@ export function useCobrancasListagem(filtroStatusContrato?: string) {
   return useQuery({
     queryKey: ['cobrancas', 'listagem', filtroStatusContrato],
     queryFn: async () => {
-      const { data, error } = await db
-        .from('cobrancas')
-        .select('*, contratos!inner(id, plano_tipo, frequencia_semanal, forma_pagamento, status, aluno_id, alunos(id, nome, email))')
-        .order('data_vencimento', { ascending: true });
-      if (error) throw error;
+      const [data, planoMap] = await Promise.all([
+        fetchAllPages<any>((from, to) =>
+          db
+            .from('cobrancas')
+            .select('*, contratos!inner(id, plano_tipo, frequencia_semanal, forma_pagamento, status, aluno_id, alunos(id, nome, email))')
+            .order('data_vencimento', { ascending: true })
+            .range(from, to)
+        ),
+        fetchPlanoRealMap(),
+      ]);
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       let list = (data ?? []) as any[];
@@ -97,7 +134,7 @@ export function useCobrancasListagem(filtroStatusContrato?: string) {
           const venc = new Date(cb.data_vencimento + 'T00:00:00');
           status_pagamento = venc < hoje ? 'vencida' : 'pendente';
         } else status_pagamento = 'sem_cobranca';
-        return { ...cb, status_pagamento };
+        return { ...cb, status_pagamento, plano_real_tipo: planoMap.get(cb.aluno_id) ?? null };
       }) as CobrancaListagem[];
     },
   });
