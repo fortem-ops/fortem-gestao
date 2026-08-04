@@ -19,7 +19,10 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { useCobrancasListagem, useTodosContratos, useDarBaixaLote, type StatusPagamento } from '@/hooks/useContratos';
+import {
+  useCobrancasListagem, useTodosContratos, useDarBaixaLote, useInadimplenciasAbertas,
+  type StatusPagamento,
+} from '@/hooks/useContratos';
 import {
   PLANO_LABELS, FREQUENCIA_LABELS, STATUS_CONTRATO_LABELS,
   FORMA_PAGAMENTO_LABELS, formatBRL, ContratoStatus,
@@ -110,6 +113,7 @@ export default function Contratos() {
 
   const { data: cobrancas, isLoading, refetch, isRefetching } = useCobrancasListagem(filtroStatus);
   const { data: contratos } = useTodosContratos();
+  const { data: inadimplenciasAbertas } = useInadimplenciasAbertas();
 
   const filtradas = useMemo(() => {
     let list = (cobrancas ?? []).filter((c) => temMensalidade(c.contratos?.plano_tipo, (c as any).plano_real_tipo));
@@ -183,7 +187,7 @@ export default function Contratos() {
   const kpis = useMemo(() => {
     const all = (contratos ?? []).filter((c) => temMensalidade(c.plano_tipo, (c as any).plano_real_tipo));
     const ativos = all.filter((c) => c.status === 'ativo');
-    const inadimplentes = all.filter((c) => c.status === 'inadimplente' || c.status === 'suspenso');
+    const inadimplentes = new Set((inadimplenciasAbertas ?? []).map((i) => i.aluno_id)).size;
     const em30dias = new Date();
     em30dias.setDate(em30dias.getDate() + 30);
     const renovacoes = ativos.filter((c) => c.data_renovacao && new Date(c.data_renovacao) <= em30dias);
@@ -203,10 +207,10 @@ export default function Contratos() {
     return {
       ativos: ativos.length,
       receita,
-      inadimplentes: inadimplentes.length,
+      inadimplentes,
       renovacoes: renovacoes.length,
     };
-  }, [contratos, cobrancas]);
+  }, [contratos, cobrancas, inadimplenciasAbertas]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
