@@ -46,8 +46,20 @@ const PAG_LABEL: Record<StatusPagamento, string> = {
 
 /** Planos sem mensalidade fixa — ocultos nesta listagem (inclui VIP, mapeado como 'outro'). */
 const PLANOS_SEM_MENSALIDADE = ['gympass', 'wellhub', 'totalpass', 'outro'];
-const temMensalidade = (planoTipo?: string | null) =>
-  !planoTipo || !PLANOS_SEM_MENSALIDADE.includes(planoTipo);
+/**
+ * Fonte prioritária: `plano_real_tipo` (tabela planos, plano ativo do aluno).
+ * Fallback: `contratos.plano_tipo` quando o aluno não tem plano ativo cadastrado.
+ */
+const temMensalidade = (planoTipo?: string | null, planoRealTipo?: string | null) => {
+  if (planoRealTipo) {
+    const t = planoRealTipo.toLowerCase().trim();
+    if (t.startsWith('vip')) return false;
+    if (t.includes('gympass') || t.includes('wellhub')) return false;
+    if (t.includes('total pass') || t.includes('totalpass')) return false;
+    return true;
+  }
+  return !planoTipo || !PLANOS_SEM_MENSALIDADE.includes(planoTipo);
+};
 
 const PLANO_OPTIONS = Object.entries(PLANO_LABELS).filter(([k]) => !PLANOS_SEM_MENSALIDADE.includes(k));
 
