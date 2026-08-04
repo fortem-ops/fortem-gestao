@@ -1,21 +1,25 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Users, AlertTriangle, RefreshCw, Search, CalendarIcon, TrendingUp, Clock } from 'lucide-react';
+import { FileText, Users, AlertTriangle, RefreshCw, Search, CalendarIcon, TrendingUp, Clock, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { useCobrancasListagem, useTodosContratos, type StatusPagamento } from '@/hooks/useContratos';
+import { useCobrancasListagem, useTodosContratos, useDarBaixaLote, type StatusPagamento } from '@/hooks/useContratos';
 import {
   PLANO_LABELS, FREQUENCIA_LABELS, STATUS_CONTRATO_LABELS,
   FORMA_PAGAMENTO_LABELS, formatBRL, ContratoStatus,
@@ -124,6 +128,45 @@ export default function Contratos() {
     const receber  = filtradas.filter((c) => c.status_pagamento === 'pendente' || c.status_pagamento === 'vencida').reduce((s, c) => s + Number(c.valor || 0), 0);
     return { recebido, receber };
   }, [filtradas]);
+
+  // ---- Baixa em lote ----
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [baixaOpen, setBaixaOpen] = useState(false);
+  const [dataBaixa, setDataBaixa] = useState<Date>(new Date());
+  const darBaixa = useDarBaixaLote();
+
+  const vencidasVisiveis = useMemo(
+    () => filtradas.filter((c) => c.status_pagamento === 'vencida'),
+    [filtradas],
+  );
+  const idsVisiveisKey = vencidasVisiveis.map((c) => c.id).join(',');
+
+  // Limpa seleção sempre que o recorte visível muda
+  useEffect(() => { setSelecionadas(new Set()); }, [idsVisiveisKey]);
+
+  const toggleOne = (id: string) => {
+    setSelecionadas((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const allSelected = vencidasVisiveis.length > 0 && vencidasVisiveis.every((c) => selecionadas.has(c.id));
+  const toggleAll = () => {
+    setSelecionadas(allSelected ? new Set() : new Set(vencidasVisiveis.map((c) => c.id)));
+  };
+
+  const selecionadasList = vencidasVisiveis.filter((c) => selecionadas.has(c.id));
+  const totalSelecionado = selecionadasList.reduce((s, c) => s + Number(c.valor || 0), 0);
+
+  const confirmarBaixa = async () => {
+    await darBaixa.mutateAsync({
+      cobrancaIds: selecionadasList.map((c) => c.id),
+      dataPagamento: format(dataBaixa, 'yyyy-MM-dd'),
+    });
+    setBaixaOpen(false);
+    setSelecionadas(new Set());
+  };
 
   const kpis = useMemo(() => {
     const all = (contratos ?? []).filter((c) => temMensalidade(c.plano_tipo));
@@ -247,10 +290,29 @@ export default function Contratos() {
 
       {/* Tabela */}
       <Card>
+        {selecionadasList.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border bg-muted/40 px-4 py-3">
+            <p className="text-sm">
+              <span className="font-semibold">{selecionadasList.length}</span> cobrança(s) selecionada(s) —{' '}
+              <span className="font-semibold tabular-nums">{formatBRL(totalSelecionado)}</span>
+            </p>
+            <Button size="sm" onClick={() => setBaixaOpen(true)}>
+              <CheckCircle2 className="h-4 w-4 mr-2" /> Dar baixa em lote
+            </Button>
+          </div>
+        )}
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={toggleAll}
+                    disabled={vencidasVisiveis.length === 0}
+                    aria-label="Selecionar todas as cobranças vencidas"
+                  />
+                </TableHead>
                 <TableHead>Aluno</TableHead>
                 <TableHead>Plano</TableHead>
                 <TableHead>Vencimento</TableHead>
@@ -263,15 +325,24 @@ export default function Contratos() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
               ) : filtradas.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma cobrança encontrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma cobrança encontrada.</TableCell></TableRow>
               ) : filtradas.map((c) => {
                 const contratoStatus = (c.contratos?.status || 'ativo') as ContratoStatus;
                 const isInad = c.status_pagamento === 'vencida';
                 const forma = (c.forma_pagamento || c.contratos?.forma_pagamento || '') as keyof typeof FORMA_PAGAMENTO_LABELS;
                 return (
                   <TableRow key={c.id} className={isInad ? 'bg-destructive/5' : ''}>
+                    <TableCell className="w-10">
+                      {isInad && (
+                        <Checkbox
+                          checked={selecionadas.has(c.id)}
+                          onCheckedChange={() => toggleOne(c.id)}
+                          aria-label="Selecionar cobrança"
+                        />
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {c.contratos?.aluno_id ? (
                         <Link to={`/alunos/${c.contratos.aluno_id}?tab=contrato`} className="hover:text-primary hover:underline">
@@ -299,6 +370,63 @@ export default function Contratos() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog de baixa em lote */}
+      <Dialog open={baixaOpen} onOpenChange={setBaixaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dar baixa em lote (retroativa)</DialogTitle>
+            <DialogDescription>
+              As {selecionadasList.length} cobrança(s) selecionada(s) serão marcadas como <strong>pagas</strong> com a data de pagamento retroativa informada abaixo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">Data do pagamento</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(dataBaixa, 'dd/MM/yyyy', { locale: ptBR })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dataBaixa}
+                    onSelect={(d) => d && setDataBaixa(d)}
+                    disabled={(d) => d > new Date()}
+                    initialFocus
+                    locale={ptBR}
+                    className={cn('p-3 pointer-events-auto')}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="rounded-lg border border-border p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cobranças</span>
+                <span className="font-medium tabular-nums">{selecionadasList.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valor total</span>
+                <span className="font-medium tabular-nums">{formatBRL(totalSelecionado)}</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBaixaOpen(false)} disabled={darBaixa.isPending}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmarBaixa} disabled={darBaixa.isPending || selecionadasList.length === 0}>
+              {darBaixa.isPending ? 'Salvando...' : 'Confirmar baixa'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
