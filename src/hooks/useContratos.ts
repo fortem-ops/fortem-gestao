@@ -278,7 +278,7 @@ export function useDarBaixaLote() {
         .update({
           status: 'pago',
           data_pagamento: dataPagamento,
-          meio_registro: 'baixa_retroativa_lote',
+          meio_registro: 'manual_admin',
         })
         .in('id', cobrancaIds);
       if (error) throw error;
