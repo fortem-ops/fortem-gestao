@@ -103,7 +103,7 @@ function getRange(p: PeriodoPreset, de?: Date, ate?: Date): { from: Date | null;
 }
 
 export default function Contratos() {
-  const [filtroStatus, setFiltroStatus] = useState<string>('todos');
+  const [filtroStatus, setFiltroStatus] = useState<string>('ativo');
   const [filtroPlano, setFiltroPlano] = useState<string>('todos');
   const [filtroPgto, setFiltroPgto] = useState<string>('todos');
   const [filtroPeriodo, setFiltroPeriodo] = useState<PeriodoPreset>('todos');
