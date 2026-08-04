@@ -24,20 +24,51 @@ export function useContratosAluno(alunoId: string) {
 
 export type StatusPagamento = 'pago' | 'pendente' | 'vencida' | 'sem_cobranca';
 
+/** Busca todas as linhas em páginas de 1000 (contorna o limite padrão do PostgREST). */
+async function fetchAllPages<T = any>(buildQuery: (from: number, to: number) => any): Promise<T[]> {
+  const pageSize = 1000;
+  let from = 0;
+  let all: T[] = [];
+  while (true) {
+    const { data, error } = await buildQuery(from, from + pageSize - 1);
+    if (error) throw error;
+    all = all.concat((data ?? []) as T[]);
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
+/** Mapa aluno_id -> tipo do plano ativo (fonte confiável, em vez de contratos.plano_tipo). */
+async function fetchPlanoRealMap(): Promise<Map<string, string>> {
+  const rows = await fetchAllPages<any>((from, to) =>
+    db.from('planos').select('aluno_id, tipo').eq('ativo', true).range(from, to)
+  );
+  const map = new Map<string, string>();
+  for (const p of rows) {
+    if (p?.aluno_id && p?.tipo && !map.has(p.aluno_id)) map.set(p.aluno_id, p.tipo);
+  }
+  return map;
+}
 
 export function useTodosContratos(filtroStatus?: string) {
   return useQuery({
     queryKey: ['contratos', 'todos', filtroStatus],
     queryFn: async () => {
-      let query = db
-        .from('contratos')
-        .select('*, alunos(id, nome, email), cobrancas(data_vencimento, data_pagamento, status)')
-        .order('created_at', { ascending: false });
-      if (filtroStatus && filtroStatus !== 'todos') {
-        query = query.eq('status', filtroStatus);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
+      const [data, planoMap] = await Promise.all([
+        fetchAllPages<any>((from, to) => {
+          let query = db
+            .from('contratos')
+            .select('*, alunos(id, nome, email), cobrancas(data_vencimento, data_pagamento, status)')
+            .order('created_at', { ascending: false })
+            .range(from, to);
+          if (filtroStatus && filtroStatus !== 'todos') {
+            query = query.eq('status', filtroStatus);
+          }
+          return query;
+        }),
+        fetchPlanoRealMap(),
+      ]);
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       const list = (data ?? []) as any[];
