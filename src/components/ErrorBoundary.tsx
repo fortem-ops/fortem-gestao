@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clipboard } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { toastSuccess, toastError } from "@/lib/toast-helpers";
+import { isChunkLoadError } from "@/lib/lazyWithReload";
+
 
 interface State {
   hasError: boolean;
@@ -62,16 +64,23 @@ export class ErrorBoundary extends React.Component<Props, State> {
     const error = this.state.error ?? new Error("Erro desconhecido");
     if (this.props.fallback) return this.props.fallback(error, this.reset);
 
+    const chunkError = isChunkLoadError(error);
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="max-w-md w-full glass-card p-8 rounded-2xl text-center space-y-4">
           <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="w-6 h-6 text-destructive" />
           </div>
-          <h1 className="font-heading font-bold text-lg">Algo deu errado</h1>
+          <h1 className="font-heading font-bold text-lg">
+            {chunkError ? "Nova versão disponível" : "Algo deu errado"}
+          </h1>
           <p className="text-sm text-muted-foreground break-words">
-            {error.message || "Ocorreu um erro inesperado ao carregar esta tela."}
+            {chunkError
+              ? "O aplicativo foi atualizado. Recarregue a página para carregar a versão mais recente."
+              : error.message || "Ocorreu um erro inesperado ao carregar esta tela."}
           </p>
+
           <div className="flex flex-wrap gap-2 justify-center pt-2">
             <Button variant="outline" onClick={this.reset}>
               Tentar novamente
