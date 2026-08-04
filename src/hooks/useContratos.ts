@@ -75,7 +75,7 @@ export function useTodosContratos(filtroStatus?: string) {
       return list.map((c) => {
         const cobs = (c.cobrancas ?? []) as any[];
         const pendentes = cobs
-          .filter((cb) => cb.status === 'pendente' && cb.data_vencimento)
+          .filter((cb) => (cb.status === 'pendente' || cb.status === 'atrasado') && cb.data_vencimento)
           .map((cb) => cb.data_vencimento as string)
           .sort();
         const proxima_cobranca = pendentes[0] ?? null;
@@ -130,7 +130,7 @@ export function useCobrancasListagem(filtroStatusContrato?: string) {
       return list.map((cb) => {
         let status_pagamento: StatusPagamento;
         if (cb.status === 'pago') status_pagamento = 'pago';
-        else if (cb.status === 'pendente' && cb.data_vencimento) {
+        else if ((cb.status === 'pendente' || cb.status === 'atrasado') && cb.data_vencimento) {
           const venc = new Date(cb.data_vencimento + 'T00:00:00');
           status_pagamento = venc < hoje ? 'vencida' : 'pendente';
         } else status_pagamento = 'sem_cobranca';
