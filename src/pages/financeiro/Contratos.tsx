@@ -294,10 +294,29 @@ export default function Contratos() {
 
       {/* Tabela */}
       <Card>
+        {selecionadasList.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border bg-muted/40 px-4 py-3">
+            <p className="text-sm">
+              <span className="font-semibold">{selecionadasList.length}</span> cobrança(s) selecionada(s) —{' '}
+              <span className="font-semibold tabular-nums">{formatBRL(totalSelecionado)}</span>
+            </p>
+            <Button size="sm" onClick={() => setBaixaOpen(true)}>
+              <CheckCircle2 className="h-4 w-4 mr-2" /> Dar baixa em lote
+            </Button>
+          </div>
+        )}
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={toggleAll}
+                    disabled={vencidasVisiveis.length === 0}
+                    aria-label="Selecionar todas as cobranças vencidas"
+                  />
+                </TableHead>
                 <TableHead>Aluno</TableHead>
                 <TableHead>Plano</TableHead>
                 <TableHead>Vencimento</TableHead>
@@ -310,15 +329,24 @@ export default function Contratos() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
               ) : filtradas.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma cobrança encontrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma cobrança encontrada.</TableCell></TableRow>
               ) : filtradas.map((c) => {
                 const contratoStatus = (c.contratos?.status || 'ativo') as ContratoStatus;
                 const isInad = c.status_pagamento === 'vencida';
                 const forma = (c.forma_pagamento || c.contratos?.forma_pagamento || '') as keyof typeof FORMA_PAGAMENTO_LABELS;
                 return (
                   <TableRow key={c.id} className={isInad ? 'bg-destructive/5' : ''}>
+                    <TableCell className="w-10">
+                      {isInad && (
+                        <Checkbox
+                          checked={selecionadas.has(c.id)}
+                          onCheckedChange={() => toggleOne(c.id)}
+                          aria-label="Selecionar cobrança"
+                        />
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {c.contratos?.aluno_id ? (
                         <Link to={`/alunos/${c.contratos.aluno_id}?tab=contrato`} className="hover:text-primary hover:underline">
