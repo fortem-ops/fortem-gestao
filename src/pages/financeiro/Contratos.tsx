@@ -172,6 +172,9 @@ export default function Contratos() {
     setSelecionadas(new Set());
   };
 
+  const kpis = useMemo(() => {
+    const all = (contratos ?? []).filter((c) => temMensalidade(c.plano_tipo));
+    const ativos = all.filter((c) => c.status === 'ativo');
     const inadimplentes = all.filter((c) => c.status === 'inadimplente' || c.status === 'suspenso');
     const em30dias = new Date();
     em30dias.setDate(em30dias.getDate() + 30);
