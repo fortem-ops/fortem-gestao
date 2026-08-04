@@ -227,3 +227,31 @@ export function useRegistrarPagamento() {
     onError: (e: any) => toast.error('Erro ao registrar pagamento: ' + e.message),
   });
 }
+
+/** Baixa retroativa em lote de cobranças vencidas. */
+export function useDarBaixaLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ cobrancaIds, dataPagamento }: {
+      cobrancaIds: string[]; dataPagamento: string;
+    }) => {
+      if (!cobrancaIds.length) return 0;
+      const { error } = await db
+        .from('cobrancas')
+        .update({
+          status: 'pago',
+          data_pagamento: dataPagamento,
+          meio_registro: 'baixa_retroativa_lote',
+        })
+        .in('id', cobrancaIds);
+      if (error) throw error;
+      return cobrancaIds.length;
+    },
+    onSuccess: (qtd) => {
+      toast.success(`${qtd} cobrança(s) regularizada(s)`);
+      qc.invalidateQueries({ queryKey: ['cobrancas'] });
+      qc.invalidateQueries({ queryKey: ['contratos'] });
+    },
+    onError: (e: any) => toast.error('Erro ao dar baixa em lote: ' + e.message),
+  });
+}
