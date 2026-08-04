@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clipboard } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { toastSuccess, toastError } from "@/lib/toast-helpers";
+import { isChunkLoadError } from "@/lib/lazyWithReload";
+
 
 interface State {
   hasError: boolean;
