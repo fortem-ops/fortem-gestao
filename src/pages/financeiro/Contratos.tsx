@@ -127,11 +127,51 @@ export default function Contratos() {
     const recebido = filtradas.filter((c) => c.status_pagamento === 'pago').reduce((s, c) => s + Number(c.valor || 0), 0);
     const receber  = filtradas.filter((c) => c.status_pagamento === 'pendente' || c.status_pagamento === 'vencida').reduce((s, c) => s + Number(c.valor || 0), 0);
     return { recebido, receber };
+  const resumoPeriodo = useMemo(() => {
+    const recebido = filtradas.filter((c) => c.status_pagamento === 'pago').reduce((s, c) => s + Number(c.valor || 0), 0);
+    const receber  = filtradas.filter((c) => c.status_pagamento === 'pendente' || c.status_pagamento === 'vencida').reduce((s, c) => s + Number(c.valor || 0), 0);
+    return { recebido, receber };
   }, [filtradas]);
 
-  const kpis = useMemo(() => {
-    const all = (contratos ?? []).filter((c) => temMensalidade(c.plano_tipo));
-    const ativos = all.filter((c) => c.status === 'ativo');
+  // ---- Baixa em lote ----
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [baixaOpen, setBaixaOpen] = useState(false);
+  const [dataBaixa, setDataBaixa] = useState<Date>(new Date());
+  const darBaixa = useDarBaixaLote();
+
+  const vencidasVisiveis = useMemo(
+    () => filtradas.filter((c) => c.status_pagamento === 'vencida'),
+    [filtradas],
+  );
+  const idsVisiveisKey = vencidasVisiveis.map((c) => c.id).join(',');
+
+  // Limpa seleção sempre que o recorte visível muda
+  useEffect(() => { setSelecionadas(new Set()); }, [idsVisiveisKey]);
+
+  const toggleOne = (id: string) => {
+    setSelecionadas((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const allSelected = vencidasVisiveis.length > 0 && vencidasVisiveis.every((c) => selecionadas.has(c.id));
+  const toggleAll = () => {
+    setSelecionadas(allSelected ? new Set() : new Set(vencidasVisiveis.map((c) => c.id)));
+  };
+
+  const selecionadasList = vencidasVisiveis.filter((c) => selecionadas.has(c.id));
+  const totalSelecionado = selecionadasList.reduce((s, c) => s + Number(c.valor || 0), 0);
+
+  const confirmarBaixa = async () => {
+    await darBaixa.mutateAsync({
+      cobrancaIds: selecionadasList.map((c) => c.id),
+      dataPagamento: format(dataBaixa, 'yyyy-MM-dd'),
+    });
+    setBaixaOpen(false);
+    setSelecionadas(new Set());
+  };
+
     const inadimplentes = all.filter((c) => c.status === 'inadimplente' || c.status === 'suspenso');
     const em30dias = new Date();
     em30dias.setDate(em30dias.getDate() + 30);
