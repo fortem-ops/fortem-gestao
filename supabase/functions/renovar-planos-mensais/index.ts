@@ -148,16 +148,6 @@ Deno.serve(async (req) => {
         continue;
       }
       geradas++;
-
-      const { error: deactErr } = await supabase
-        .from("planos")
-        .update({ ativo: false })
-        .eq("id", p.id);
-
-      if (deactErr) {
-        console.error(`Erro ao desativar plano antigo ${p.id} após renovação:`, deactErr);
-        erros.push({ plano_id: p.id, motivo: `Renovado mas não desativado: ${deactErr.message}` });
-      }
     }
 
     return new Response(
