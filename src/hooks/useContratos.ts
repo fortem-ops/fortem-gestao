@@ -87,8 +87,8 @@ export function useTodosContratos(filtroStatus?: string) {
         } else if (cobs.some((cb) => cb.status === 'pago')) {
           status_pagamento = 'pago';
         }
-        return { ...c, proxima_cobranca, status_pagamento };
-      }) as (Contrato & { proxima_cobranca: string | null; status_pagamento: StatusPagamento })[];
+        return { ...c, proxima_cobranca, status_pagamento, plano_real_tipo: planoMap.get(c.aluno_id) ?? null };
+      }) as (Contrato & { proxima_cobranca: string | null; status_pagamento: StatusPagamento; plano_real_tipo: string | null })[];
     },
   });
 }
