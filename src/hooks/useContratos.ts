@@ -95,6 +95,7 @@ export function useTodosContratos(filtroStatus?: string) {
 
 export interface CobrancaListagem extends Cobranca {
   status_pagamento: StatusPagamento;
+  plano_real_tipo?: string | null;
   contratos?: {
     id: string;
     plano_tipo: string;
@@ -110,11 +111,16 @@ export function useCobrancasListagem(filtroStatusContrato?: string) {
   return useQuery({
     queryKey: ['cobrancas', 'listagem', filtroStatusContrato],
     queryFn: async () => {
-      const { data, error } = await db
-        .from('cobrancas')
-        .select('*, contratos!inner(id, plano_tipo, frequencia_semanal, forma_pagamento, status, aluno_id, alunos(id, nome, email))')
-        .order('data_vencimento', { ascending: true });
-      if (error) throw error;
+      const [data, planoMap] = await Promise.all([
+        fetchAllPages<any>((from, to) =>
+          db
+            .from('cobrancas')
+            .select('*, contratos!inner(id, plano_tipo, frequencia_semanal, forma_pagamento, status, aluno_id, alunos(id, nome, email))')
+            .order('data_vencimento', { ascending: true })
+            .range(from, to)
+        ),
+        fetchPlanoRealMap(),
+      ]);
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       let list = (data ?? []) as any[];
@@ -128,7 +134,7 @@ export function useCobrancasListagem(filtroStatusContrato?: string) {
           const venc = new Date(cb.data_vencimento + 'T00:00:00');
           status_pagamento = venc < hoje ? 'vencida' : 'pendente';
         } else status_pagamento = 'sem_cobranca';
-        return { ...cb, status_pagamento };
+        return { ...cb, status_pagamento, plano_real_tipo: planoMap.get(cb.aluno_id) ?? null };
       }) as CobrancaListagem[];
     },
   });
