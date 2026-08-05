@@ -280,48 +280,59 @@ Deno.serve(async (req) => {
       const fim = timeToMin(horario?.horario_fim);
       const intervaloMin = Number(horario?.intervalo_min ?? 0);
 
-      const varsBase: Record<string, string> = {
-        '%NOME_PROFISSIONAL%': nome ?? '',
-        '%DATA%': dataBR,
-        '%DIA_SEMANA%': diaSemana,
-        '%INTERVALO_MIN%': String(intervaloMin),
-      };
+      const nomeVar = nome ?? '';
 
-      // --- lembrete_entrada ---
+      // --- lembrete_entrada: {{1}} nome, {{2}} dia semana, {{3}} hora prevista ---
       const cfgEntrada = byGatilho.get('lembrete_entrada');
       if (cfgEntrada && inicio != null && !jornada?.entrada) {
         const alvo = inicio + (cfgEntrada.offset_min ?? 0);
         if (naJanela(agora, alvo) && !(await jaEnviado(cfgEntrada.id, usuarioId, data))) {
           results.push(await dispara({
             cfg: cfgEntrada, usuarioId, nome, telefone, data,
-            vars: { ...varsBase, '%HORA_PREVISTA%': minToHHMM(inicio) },
+            args: [nomeVar, diaSemana, minToHHMM(inicio)],
           }));
         }
       }
 
-      // --- lembrete_intervalo (meio da janela prevista) ---
-      const cfgIntervalo = byGatilho.get('lembrete_intervalo');
+      // --- lembrete_intervalo_inicio (meio da janela prevista): {{1}} nome, {{2}} min ---
+      const cfgIntervaloInicio = byGatilho.get('lembrete_intervalo_inicio');
       if (
-        cfgIntervalo && inicio != null && fim != null && intervaloMin > 0 &&
+        cfgIntervaloInicio && inicio != null && fim != null && intervaloMin > 0 &&
         jornada?.entrada && !jornada?.intervalo_inicio
       ) {
-        const alvo = Math.round(inicio + (fim - inicio) / 2) + (cfgIntervalo.offset_min ?? 0);
-        if (naJanela(agora, alvo) && !(await jaEnviado(cfgIntervalo.id, usuarioId, data))) {
+        const alvo = Math.round(inicio + (fim - inicio) / 2) + (cfgIntervaloInicio.offset_min ?? 0);
+        if (naJanela(agora, alvo) && !(await jaEnviado(cfgIntervaloInicio.id, usuarioId, data))) {
           results.push(await dispara({
-            cfg: cfgIntervalo, usuarioId, nome, telefone, data,
-            vars: { ...varsBase, '%HORA_PREVISTA%': minToHHMM(alvo) },
+            cfg: cfgIntervaloInicio, usuarioId, nome, telefone, data,
+            args: [nomeVar, String(intervaloMin)],
           }));
         }
       }
 
-      // --- lembrete_saida ---
+      // --- lembrete_intervalo_fim: âncora = intervalo_inicio real + intervalo_min ---
+      const cfgIntervaloFim = byGatilho.get('lembrete_intervalo_fim');
+      if (
+        cfgIntervaloFim && intervaloMin > 0 &&
+        jornada?.intervalo_inicio && !jornada?.intervalo_fim
+      ) {
+        const iniReal = tsToMinSP(jornada.intervalo_inicio);
+        const alvo = iniReal == null ? null : iniReal + intervaloMin;
+        if (alvo != null && agora >= alvo && !(await jaEnviado(cfgIntervaloFim.id, usuarioId, data))) {
+          results.push(await dispara({
+            cfg: cfgIntervaloFim, usuarioId, nome, telefone, data,
+            args: [nomeVar, String(intervaloMin)],
+          }));
+        }
+      }
+
+      // --- lembrete_saida: {{1}} nome, {{2}} hora prevista ---
       const cfgSaida = byGatilho.get('lembrete_saida');
       if (cfgSaida && fim != null && jornada?.entrada && !jornada?.saida) {
         const alvo = fim + (cfgSaida.offset_min ?? 0);
         if (naJanela(agora, alvo) && !(await jaEnviado(cfgSaida.id, usuarioId, data))) {
           results.push(await dispara({
             cfg: cfgSaida, usuarioId, nome, telefone, data,
-            vars: { ...varsBase, '%HORA_PREVISTA%': minToHHMM(fim) },
+            args: [nomeVar, minToHHMM(fim)],
           }));
         }
       }
@@ -346,19 +357,21 @@ Deno.serve(async (req) => {
             : 'não registrado';
           results.push(await dispara({
             cfg: cfgResumo, usuarioId, nome, telefone, data,
-            vars: {
-              ...varsBase,
-              '%HORA_ENTRADA%': horaSP(jornada.entrada),
-              '%HORA_SAIDA%': jornada.saida ? horaSP(jornada.saida) : 'NÃO REGISTRADA',
-              '%INTERVALO%': intervaloTxt,
-              '%TEMPO_TRABALHADO%': formatDuracao(jornada.minutos_trabalhados),
-              '%AVISO%': jornada.saida
-                ? ''
+            args: [
+              nomeVar,
+              dataBR,
+              horaSP(jornada.entrada),
+              intervaloTxt,
+              jornada.saida ? horaSP(jornada.saida) : 'NÃO REGISTRADA',
+              formatDuracao(jornada.minutos_trabalhados),
+              jornada.saida
+                ? 'Tudo certo por hoje. 👍'
                 : '⚠️ Sua saída não foi registrada hoje. Acesse o módulo Ponto para regularizar.',
-            },
+            ],
           }));
         }
       }
+
     }
 
     return new Response(JSON.stringify({ ok: true, agora: minToHHMM(agora), data, results }), {
