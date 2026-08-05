@@ -502,7 +502,21 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-          <Info label="Valor mensal" value={fmt(contrato.valor_cobrado)} />
+          {contrato.vigencia_tipo === "mensal" ? (
+            <Info label="Valor mensal" value={fmt(contrato.valor_cobrado)} />
+          ) : (
+            <>
+              <Info label="Valor total do contrato" value={fmt(contrato.valor_cobrado)} />
+              <Info
+                label="Valor mensal"
+                value={fmt(
+                  contrato.parcelas
+                    ? contrato.valor_cobrado / contrato.parcelas
+                    : contrato.valor_cobrado,
+                )}
+              />
+            </>
+          )}
           <Info
             label="Próxima cobrança"
             value={proxCob ? `${fmtDate(proxCob.data_vencimento)} · ${fmt(Number(proxCob.valor))}` : "—"}
