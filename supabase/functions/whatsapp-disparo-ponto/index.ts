@@ -3,7 +3,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   normalizarTelefone,
-  resolveTemplate,
+  resolveNumberedTemplate,
   sendWhatsAppText,
   registrarNoChat,
 } from '../_shared/whatsapp.ts';
