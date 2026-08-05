@@ -31,6 +31,7 @@ const TEMPLATE_MAP: Record<string, Record<string, string>> = {
   'corrida - sem plano': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
   'gympass': { recorrencia: '67e1fc10-fa3f-452f-ba1e-ce53f5820b28', tradicional: '67e1fc10-fa3f-452f-ba1e-ce53f5820b28' },
   'totalpass': { recorrencia: '84317e7f-01b8-44d4-be36-2125c4949f90', tradicional: '84317e7f-01b8-44d4-be36-2125c4949f90' },
+  'total pass': { recorrencia: '84317e7f-01b8-44d4-be36-2125c4949f90', tradicional: '84317e7f-01b8-44d4-be36-2125c4949f90' },
   'wellhub': { recorrencia: '352c1104-0c6a-4542-98d8-2ee6ca6bcbf6', tradicional: '352c1104-0c6a-4542-98d8-2ee6ca6bcbf6' },
 };
 
