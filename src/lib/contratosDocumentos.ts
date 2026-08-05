@@ -159,14 +159,25 @@ export async function gerarDocumentoContrato(params: {
 
       let periodoMeses: number | null = null;
       let planoBase: string | null = null;
+      let tipoPlano: string | null = null;
       if (contratoRow?.plano_id) {
-        const { data: catalogo } = await (supabase as any)
-          .from('planos_catalogo')
-          .select('periodo_meses, plano_base_requerido')
+        const { data: plano } = await (supabase as any)
+          .from('planos')
+          .select('tipo, duracao_meses')
           .eq('id', contratoRow.plano_id)
           .maybeSingle();
-        periodoMeses = catalogo?.periodo_meses ?? null;
-        planoBase = catalogo?.plano_base_requerido ?? null;
+        periodoMeses = plano?.duracao_meses ?? null;
+        tipoPlano = plano?.tipo ?? null;
+
+        if (tipoPlano) {
+          const { data: catalogo } = await (supabase as any)
+            .from('planos_catalogo')
+            .select('plano_base_requerido')
+            .eq('nome', tipoPlano)
+            .limit(1)
+            .maybeSingle();
+          planoBase = catalogo?.plano_base_requerido ?? null;
+        }
       }
 
       const vigenciaTexto =
