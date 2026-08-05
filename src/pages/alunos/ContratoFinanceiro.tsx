@@ -487,11 +487,18 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
               Início {fmtDate(contrato.data_inicio)} · Fim {fmtDate(contrato.data_fim)}
             </div>
           </div>
-          {podeCancelar && (
-            <Button variant="destructive" size="sm" onClick={onCancelar}>
-              Cancelar contrato
-            </Button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {podeCancelar && contrato.forma_pagamento === "cartao_recorrencia" && (
+              <Button variant="outline" size="sm" onClick={() => setAlterarOpen(true)}>
+                Alterar dados da venda
+              </Button>
+            )}
+            {podeCancelar && (
+              <Button variant="destructive" size="sm" onClick={onCancelar}>
+                Cancelar contrato
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
