@@ -142,15 +142,46 @@ async function dispara(params: {
   return { config: cfg.gatilho, usuario: usuarioId, status, error: erro ?? undefined };
 }
 
+let _cachedSecret: string | null = null;
+
+/** Autoriza cron (x-webhook-secret), service role, ou usuário staff logado. */
+async function autorizar(req: Request): Promise<boolean> {
+  const provided = req.headers.get('x-webhook-secret');
+  if (provided) {
+    if (!_cachedSecret) {
+      const { data } = await admin.rpc('get_webhook_secret');
+      _cachedSecret = typeof data === 'string' ? data : null;
+    }
+    if (_cachedSecret && provided === _cachedSecret) return true;
+  }
+
+  const auth = req.headers.get('Authorization') ?? '';
+  if (auth === `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`) return true;
+
+  if (auth.startsWith('Bearer ')) {
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: auth } } },
+    );
+    const { data: u } = await userClient.auth.getUser();
+    if (u?.user) {
+      const { data: isStaff } = await admin.rpc('is_staff', { _user_id: u.user.id });
+      if (isStaff) return true;
+    }
+  }
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const auth = req.headers.get('Authorization') ?? '';
-  if (auth !== `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`) {
+  if (!(await autorizar(req))) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), {
       status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
 
   try {
     const body = await req.json().catch(() => ({}));
