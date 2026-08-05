@@ -197,6 +197,17 @@ export async function gerarDocumentoContrato(params: {
 
     const conteudoGerado = preencherVariaveis(template.conteudo, vars);
 
+    const { data: regulamentoAtivo, error: regErr } = await (supabase as any)
+      .from('regulamento_interno_versoes')
+      .select('versao')
+      .eq('ativo', true)
+      .order('versao', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (regErr || !regulamentoAtivo) {
+      return { success: false, error: 'Nenhuma versão ativa do regulamento interno encontrada' };
+    }
+
     const { error: insErr } = await (supabase as any)
       .from('contratos_documentos')
       .insert({
@@ -204,6 +215,7 @@ export async function gerarDocumentoContrato(params: {
         contrato_id: params.contratoId,
         template_id: templateId,
         template_versao: template.versao,
+        regulamento_versao: regulamentoAtivo.versao,
         conteudo_gerado: conteudoGerado,
         variaveis_utilizadas: vars,
         aceite: false,
