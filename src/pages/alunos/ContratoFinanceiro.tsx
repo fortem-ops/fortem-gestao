@@ -320,7 +320,9 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
                     {fmtDate(c.data_inicio)} → {fmtDate(c.data_fim)}
                   </span>
                 </div>
-                <span className="font-medium">{fmt(c.valor_cobrado)}/mês</span>
+                <span className="font-medium">
+                  {c.vigencia_tipo === "mensal" ? `${fmt(c.valor_cobrado)}/mês` : `${fmt(c.valor_cobrado)} total`}
+                </span>
               </Card>
             ))}
           </CollapsibleContent>
