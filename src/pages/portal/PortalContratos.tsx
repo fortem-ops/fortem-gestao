@@ -19,12 +19,15 @@ interface ContratoDocumento {
   formato_aceite: string | null;
   ip_aceite: string | null;
   created_at: string;
+  contratos?: { plano_tipo: string | null } | null;
 }
 
 interface LegalAnnexRow {
   id: string;
   signed_at: string | null;
 }
+
+const CORRIDA_TIPOS = ["corrida", "corrida_sem_plano"];
 
 function preencherMergeFields(
   html: string,
@@ -38,28 +41,114 @@ function preencherMergeFields(
     .replace(/%IP_ACEITE%/g, values.ip_aceite ?? "");
 }
 
+interface BlocoProps {
+  titulo: string;
+  subtitulo: string;
+  vazioMsg: string;
+  loading: boolean;
+  doc: ContratoDocumento | null;
+  onLer: (doc: ContratoDocumento) => void;
+  onAceitar: (doc: ContratoDocumento) => void;
+}
+
+function ContratoBloco({ titulo, subtitulo, vazioMsg, loading, doc, onLer, onAceitar }: BlocoProps) {
+  return (
+    <section className="space-y-2">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{titulo}</p>
+      <div className="bg-card border border-border rounded-2xl p-5">
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Carregando…
+          </div>
+        ) : !doc ? (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Nenhum contrato disponível no momento</p>
+              <p className="text-xs text-muted-foreground">{vazioMsg}</p>
+            </div>
+          </div>
+        ) : doc.aceite ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">{subtitulo}</p>
+                <p className="text-xs text-muted-foreground">
+                  Aceito em{" "}
+                  {doc.data_aceite
+                    ? format(new Date(doc.data_aceite), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                    : "—"}
+                </p>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">
+                Assinado
+              </span>
+            </div>
+            <Button variant="outline" className="w-full" onClick={() => onLer(doc)}>
+              <FileText className="w-4 h-4 mr-2" /> Ver contrato
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">{subtitulo}</p>
+                <p className="text-xs text-muted-foreground">Leia o contrato e confirme para concluir sua matrícula.</p>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">
+                Pendente
+              </span>
+            </div>
+            <Button className="w-full" onClick={() => onAceitar(doc)}>
+              <FileSignature className="w-4 h-4 mr-2" /> Ler e Aceitar Contrato
+            </Button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function PortalContratos() {
   const { student } = useStudentPortal();
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"aceitar" | "ler">("ler");
+  const [docAtivo, setDocAtivo] = useState<ContratoDocumento | null>(null);
   const [aceitando, setAceitando] = useState(false);
 
-  const { data: contratoDoc, isLoading: loadingContrato } = useQuery({
-    queryKey: ["portal-contrato-documento", student?.id],
+  const { data: documentos, isLoading: loadingContrato } = useQuery({
+    queryKey: ["portal-contrato-documentos", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contratos_documentos")
-        .select("id, aluno_id, conteudo_gerado, aceite, data_aceite, formato_aceite, ip_aceite, created_at")
+        .select(
+          "id, aluno_id, conteudo_gerado, aceite, data_aceite, formato_aceite, ip_aceite, created_at, contratos(plano_tipo)",
+        )
         .eq("aluno_id", student!.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as ContratoDocumento | null;
+      return (data ?? []) as unknown as ContratoDocumento[];
     },
   });
+
+  const funcionalDoc = useMemo(
+    () => documentos?.find((d) => !CORRIDA_TIPOS.includes(d.contratos?.plano_tipo ?? "")) ?? null,
+    [documentos],
+  );
+  const corridaDoc = useMemo(
+    () => documentos?.find((d) => CORRIDA_TIPOS.includes(d.contratos?.plano_tipo ?? "")) ?? null,
+    [documentos],
+  );
 
   const { data: anexo, isLoading: loadingAnexo } = useQuery({
     queryKey: ["portal-legal-annex", student?.id],
@@ -78,43 +167,45 @@ export default function PortalContratos() {
   });
 
   const conteudoDialog = useMemo(() => {
-    if (!contratoDoc) return "";
-    if (contratoDoc.aceite) {
-      return preencherMergeFields(contratoDoc.conteudo_gerado, {
+    if (!docAtivo) return "";
+    if (docAtivo.aceite) {
+      return preencherMergeFields(docAtivo.conteudo_gerado, {
         assinatura: "Assinatura eletrônica confirmada",
         aceite: "Aceito",
-        data_aceite: contratoDoc.data_aceite
-          ? format(new Date(contratoDoc.data_aceite), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+        data_aceite: docAtivo.data_aceite
+          ? format(new Date(docAtivo.data_aceite), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
           : "",
         formato_aceite: "Aceite digital via Portal do Aluno",
-        ip_aceite: contratoDoc.ip_aceite ?? "",
+        ip_aceite: docAtivo.ip_aceite ?? "",
       });
     }
-    return preencherMergeFields(contratoDoc.conteudo_gerado, {});
-  }, [contratoDoc]);
+    return preencherMergeFields(docAtivo.conteudo_gerado, {});
+  }, [docAtivo]);
 
-  const abrirParaAceitar = () => {
+  const abrirParaAceitar = (doc: ContratoDocumento) => {
+    setDocAtivo(doc);
     setDialogMode("aceitar");
     setDialogOpen(true);
   };
-  const abrirParaLer = () => {
+  const abrirParaLer = (doc: ContratoDocumento) => {
+    setDocAtivo(doc);
     setDialogMode("ler");
     setDialogOpen(true);
   };
 
   const confirmarAceite = async () => {
-    if (!contratoDoc) return;
+    if (!docAtivo) return;
     setAceitando(true);
     try {
       const { data, error } = await supabase.functions.invoke("aceitar-contrato-documento", {
-        body: { contrato_documento_id: contratoDoc.id },
+        body: { contrato_documento_id: docAtivo.id },
       });
       if (error || (data as any)?.error) {
         throw new Error(error?.message || (data as any)?.error || "Falha ao registrar aceite");
       }
       toast.success("Contrato aceito com sucesso");
       setDialogOpen(false);
-      qc.invalidateQueries({ queryKey: ["portal-contrato-documento", student?.id] });
+      qc.invalidateQueries({ queryKey: ["portal-contrato-documentos", student?.id] });
       qc.invalidateQueries({ queryKey: ["portal-home-pendencias", student?.id] });
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao registrar aceite");
@@ -134,72 +225,29 @@ export default function PortalContratos() {
         <p className="text-sm text-muted-foreground mt-1">Documentos legais da sua matrícula</p>
       </div>
 
-      {/* Bloco 1 — Contrato */}
-      <section className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-          Contrato de Prestação de Serviços
-        </p>
-        <div className="bg-card border border-border rounded-2xl p-5">
-          {loadingContrato ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" /> Carregando…
-            </div>
-          ) : !contratoDoc ? (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
-                <FileText className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Nenhum contrato disponível no momento</p>
-                <p className="text-xs text-muted-foreground">Assim que a coordenação gerar seu contrato, ele aparecerá aqui.</p>
-              </div>
-            </div>
-          ) : contratoDoc.aceite ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">Contrato assinado</p>
-                  <p className="text-xs text-muted-foreground">
-                    Aceito em{" "}
-                    {contratoDoc.data_aceite
-                      ? format(new Date(contratoDoc.data_aceite), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                      : "—"}
-                  </p>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">
-                  Assinado
-                </span>
-              </div>
-              <Button variant="outline" className="w-full" onClick={abrirParaLer}>
-                <FileText className="w-4 h-4 mr-2" /> Ver contrato
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <AlertCircle className="w-5 h-5 text-amber-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">Pendente de aceite</p>
-                  <p className="text-xs text-muted-foreground">Leia o contrato e confirme para concluir sua matrícula.</p>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">
-                  Pendente
-                </span>
-              </div>
-              <Button className="w-full" onClick={abrirParaAceitar}>
-                <FileSignature className="w-4 h-4 mr-2" /> Ler e Aceitar Contrato
-              </Button>
-            </div>
-          )}
-        </div>
-      </section>
+      {/* Bloco 1 — Treinamento Funcional */}
+      <ContratoBloco
+        titulo="Treinamento Funcional"
+        subtitulo="Contrato de Prestação de Serviços"
+        vazioMsg="Assim que a coordenação gerar seu contrato de treinamento, ele aparecerá aqui."
+        loading={loadingContrato}
+        doc={funcionalDoc}
+        onLer={abrirParaLer}
+        onAceitar={abrirParaAceitar}
+      />
 
-      {/* Bloco 2 — Anexo I */}
+      {/* Bloco 2 — Grupo de Corrida */}
+      <ContratoBloco
+        titulo="Grupo de Corrida"
+        subtitulo="Contrato de Prestação de Serviços — Corrida"
+        vazioMsg="Assim que a coordenação gerar seu contrato de Corrida, ele aparecerá aqui."
+        loading={loadingContrato}
+        doc={corridaDoc}
+        onLer={abrirParaLer}
+        onAceitar={abrirParaAceitar}
+      />
+
+      {/* Bloco 3 — Anexo I */}
       <section className="space-y-2">
         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
           Anexo I — Aptidão Física e Uso de Imagem
