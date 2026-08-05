@@ -129,18 +129,12 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo, entrada }: Props
       if (coords.lat != null && coords.lng != null) {
         const { nome, distM } = localMaisProximo(coords.lat, coords.lng);
         if (distM > RAIO_M) {
-          setGeoAlerta({
-            distM: Math.round(distM),
-            localNome: nome,
-            onConfirm: () => {
-              if (isDestructive) setConfirmOpen(true);
-              else mut.mutate();
-            },
-          });
+          setGeoAlerta({ distM: Math.round(distM), localNome: nome });
+          setDiagStep("fora_do_raio");
           return;
         }
       }
-      if (isDestructive) setConfirmOpen(true);
+      if (isDestructive) setDiagStep("encerrar");
       else mut.mutate();
     } finally {
       setChecandoGeo(false);
@@ -162,81 +156,96 @@ export function BotaoInteligente({ proximaAcao, pularIntervalo, entrada }: Props
         {label}
       </Button>
 
+      {/*
+        Um ÚNICO AlertDialog para os dois passos. Trocar apenas o conteúdo evita
+        desmontar/montar dois portais Radix no mesmo commit — causa do erro
+        "Failed to execute 'insertBefore' on 'Node'" no celular.
+      */}
       <AlertDialog
-        open={confirmOpen}
+        open={diagStep !== null}
         onOpenChange={(o) => {
-          setConfirmOpen(o);
-          if (!o) setObsEncerramento("");
+          if (!o) {
+            setDiagStep(null);
+            setGeoAlerta(null);
+            setObsEncerramento("");
+          }
         }}
       >
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Encerrar jornada?</AlertDialogTitle>
-            <AlertDialogDescription className="sr-only">
-              Confirme o encerramento da jornada de trabalho.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-2 text-sm">
-            {entrada ? (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Entrada</span>
-                <span className="font-medium">{formatHora(entrada)}</span>
+          {diagStep === "fora_do_raio" ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Você está fora da Fortem</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {geoAlerta
+                    ? `Seu dispositivo está a aproximadamente ${geoAlerta.distM}m do local mais próximo (${geoAlerta.localNome}). Deseja registrar o ponto assim mesmo? Seu coordenador será notificado.`
+                    : ""}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={(e) => {
+                    if (isDestructive) {
+                      // Mantém o MESMO diálogo aberto e apenas troca o passo.
+                      e.preventDefault();
+                      setDiagStep("encerrar");
+                    } else {
+                      mut.mutate();
+                    }
+                  }}
+                >
+                  Registrar assim mesmo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          ) : (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Encerrar jornada?</AlertDialogTitle>
+                <AlertDialogDescription className="sr-only">
+                  Confirme o encerramento da jornada de trabalho.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-2 text-sm">
+                {entrada ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Entrada</span>
+                    <span className="font-medium">{formatHora(entrada)}</span>
+                  </div>
+                ) : null}
+                {entrada ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tempo trabalhado</span>
+                    <span className="font-medium">{formatMinutes(minutesSince(entrada))}</span>
+                  </div>
+                ) : null}
+                <p className="text-xs text-muted-foreground pt-1">
+                  Após encerrada, novas batidas só serão possíveis amanhã.
+                </p>
+                <div className="pt-2">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Observação (opcional)
+                  </label>
+                  <Textarea
+                    value={obsEncerramento}
+                    onChange={(e) => setObsEncerramento(e.target.value)}
+                    placeholder="Ex.: saí para atendimento externo…"
+                    rows={2}
+                    className="mt-2 text-sm"
+                  />
+                </div>
               </div>
-            ) : null}
-            {entrada ? (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tempo trabalhado</span>
-                <span className="font-medium">{formatMinutes(minutesSince(entrada))}</span>
-              </div>
-            ) : null}
-            <p className="text-xs text-muted-foreground pt-1">
-              Após encerrada, novas batidas só serão possíveis amanhã.
-            </p>
-            <div className="pt-2">
-              <label className="text-xs font-medium text-muted-foreground">
-                Observação (opcional)
-              </label>
-              <Textarea
-                value={obsEncerramento}
-                onChange={(e) => setObsEncerramento(e.target.value)}
-                placeholder="Ex.: saí para atendimento externo…"
-                rows={2}
-                className="mt-2 text-sm"
-              />
-            </div>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setObsEncerramento("")}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => mut.mutate()}>Encerrar agora</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-
-      <AlertDialog open={!!geoAlerta} onOpenChange={(o) => !o && setGeoAlerta(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Você está fora da Fortem</AlertDialogTitle>
-            <AlertDialogDescription>
-              {geoAlerta
-                ? `Seu dispositivo está a aproximadamente ${geoAlerta.distM}m do local mais próximo (${geoAlerta.localNome}). Deseja registrar o ponto assim mesmo? Seu coordenador será notificado.`
-                : ""}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                geoAlerta?.onConfirm();
-                setGeoAlerta(null);
-              }}
-            >
-              Registrar assim mesmo
-            </AlertDialogAction>
-          </AlertDialogFooter>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setObsEncerramento("")}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => mut.mutate()}>Encerrar agora</AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </>
   );
+
 }
