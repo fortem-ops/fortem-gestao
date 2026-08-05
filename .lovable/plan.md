@@ -1,114 +1,53 @@
-# Lembretes de Ponto via WhatsApp — Relatório de investigação e proposta
+# Investigação — erro "insertBefore" ao bater ponto no celular
 
-Fase 1: investigação apenas. Nenhuma alteração de código ou banco foi feita.
+## 1. Onde está o fluxo
 
-## 1. Como funcionam hoje os disparos WhatsApp
+Existe **uma única tela responsiva**, sem versão mobile separada:
 
-Descoberta principal: **a categoria "agendado" não é processada por nenhum cron job hoje.**
+- `src/pages/Ponto.tsx` — página do profissional (desktop e mobile são a mesma árvore).
+- `src/components/ponto/BotaoInteligente.tsx` — o botão único que registra entrada / intervalo / saída.
+- `src/lib/ponto.ts` — `tryGeo()` (geolocalização), `localMaisProximo()` e geofencing de 300 m.
+- Coordenador/admin usa a mesma página em modo "Visualizar como" (leitura) e `PontoEquipe.tsx` / `RelatorioPonto.tsx` para ajustes — nesses caminhos **o botão nem é renderizado** (`!isViewingOther`).
 
-- A única função de disparo é `whatsapp-disparo-agenda`. Ela é **orientada a evento**, não a horário: recebe `{ evento, agenda_id }` no corpo da requisição e é chamada pelo front-end em `src/pages/Agenda.tsx` e `src/components/agenda/AddAgendaDialog.tsx` quando um agendamento é criado ou cancelado.
-- Ela busca em `whatsapp_disparos_config` as linhas com `gatilho = evento` e `ativo = true`, monta as variáveis a partir da agenda/aluno/profissional, envia via `send-whatsapp` e grava em `whatsapp_disparos_log`.
-- Anti-duplicidade: função `alreadySent(agenda_id, config_id)` — consulta `whatsapp_disparos_log` por `agenda_id + config_id` com status `enviado` ou `bloqueado_teste`. Ou seja, **a deduplicação depende de existir um `agenda_id`**.
-- Os dois registros de categoria "agendado" (`lembrete_dia_anterior`, `lembrete_renovacao`) existem na tabela desde a migração de 09/07, mas estão com `ativo = false` e `modo_teste = true`, e nada os invoca. São configurações órfãs.
-- Não há coluna de horário na tabela: `whatsapp_disparos_config` tem apenas `id, nome, descricao, categoria, gatilho, destinatario, atividades[], ativo, modo_teste, template_texto, variaveis_disponiveis[], ordem, timestamps`. Não existe `horario_envio` nem `antecedencia_min`.
-- `whatsapp_disparos_log` tem `config_id, agenda_id, aluno_id, destinatario_telefone, destinatario_nome, mensagem_enviada, status, erro_detalhe, created_at`. Não tem `usuario_id` nem `referencia_data`.
+Não há `createPortal` manual em nenhum ponto do módulo. Os portals são todos internos ao Radix (AlertDialog, Dialog, Tooltip, Select) e ao Sonner (`<Sonner />` montado em `src/App.tsx`).
 
-Conclusão: para lembretes de ponto será preciso **criar o mecanismo de agendamento do zero** (cron + nova edge function), e estender o log para permitir deduplicação sem `agenda_id`.
+## 2. Diferença real entre desktop e mobile
 
-## 2. `ponto_horarios_professor`
+A diferença não é de código, é de **resultado da geolocalização**:
 
-- Colunas: `usuario_id, dia_semana (smallint), horario_inicio (time), horario_fim (time), intervalo_min (smallint), ativo, frequencia_mensal`.
-- **Constraint UNIQUE (usuario_id, dia_semana)** — portanto é impossível haver dois horários no mesmo dia para o mesmo profissional. Não existe caso manhã+noite; jornada partida hoje só seria representada como uma janela única com intervalo.
-- `dia_semana` segue a convenção de `EXTRACT(dow)` / `Date.getDay()`: 0 = domingo … 6 = sábado. A UI de admin só expõe segunda (1) a sábado (6).
-- Estado atual: 25 horários ativos distribuídos entre 5 profissionais.
-- `intervalo_min` assume 0, 15 ou 60. A UI força `intervalo_min = 0` quando a janela é ≤ 4h.
-- Fallback quando não há horário no dia: `ponto_configuracoes.carga_diaria_min` (linha do usuário, senão a linha global com `usuario_id IS NULL`, senão 480).
+- No desktop (navegador sem GPS, permissão negada, ou timeout de 4 s) `tryGeo()` devolve `{lat: null, lng: null}` → o código pula toda a checagem de raio e vai direto para o diálogo de encerramento. Um único diálogo é aberto.
+- No celular o GPS responde com coordenadas reais. Se a distância for maior que 300 m de todos os locais (Matriz, Orla, Ramiro Souto) — o que acontece com facilidade por deriva de GPS ou por a professora estar em atendimento externo — entra o **segundo** diálogo (`geoAlerta`).
 
-## 3. Verificar batidas já registradas
+Ou seja: o caminho de dois diálogos só é alcançável no celular.
 
-`ponto_jornadas` tem **UNIQUE (usuario_id, data)** — no máximo uma linha por profissional por dia. A consulta é direta:
+## 3. Hipótese de causa raiz
 
-```sql
-SELECT entrada, intervalo_inicio, intervalo_fim, saida, status
-FROM public.ponto_jornadas
-WHERE usuario_id = :uid AND data = :data;
+Em `BotaoInteligente.tsx`, o `AlertDialogAction` do diálogo "Você está fora da Fortem" faz, no mesmo clique / mesmo lote de renderização:
+
+```
+onClick={() => {
+  geoAlerta?.onConfirm();   // → setConfirmOpen(true)  (abre o 2º AlertDialog)
+  setGeoAlerta(null);       // → fecha o 1º AlertDialog
+}}
 ```
 
-Regra de decisão por lembrete:
-- linha ausente ou `entrada IS NULL` → só o lembrete de **entrada** faz sentido.
-- `entrada IS NOT NULL AND intervalo_inicio IS NULL` → cabe lembrete de **intervalo** (se `intervalo_min > 0`).
-- `intervalo_inicio IS NOT NULL AND intervalo_fim IS NULL` → cabe lembrete de **retorno do intervalo**.
-- `entrada IS NOT NULL AND saida IS NULL` → cabe lembrete de **saída**.
-- `saida IS NOT NULL` → nada a lembrar; o dia entra no resumo.
+Os dois `AlertDialog` são irmãos na árvore. No mesmo commit, o React manda o Radix **desmontar o portal do diálogo A (com animação de saída, focus guards e restauração de foco/scroll-lock no `<body>`) e montar o portal do diálogo B**. Os focus guards e o nó de portal são inseridos/removidos diretamente no `document.body` pelo Radix; quando duas instâncias fazem isso na mesma microtask, a referência de "nó anterior" que o React guardou já não é mais filha do `<body>`, e o commit falha exatamente com `Failed to execute 'insertBefore' on 'Node'`.
 
-Atenção crítica de fuso: o banco roda em **UTC** (`current_setting('TimeZone') = 'UTC'`). `CURRENT_DATE` vira o dia seguinte às 21h de Brasília. Toda comparação de data/horário nos lembretes deve calcular o dia e a hora em `America/Sao_Paulo` explicitamente (`(now() AT TIME ZONE 'America/Sao_Paulo')::date`), nunca `CURRENT_DATE` puro.
+Fatores que tornam o caso mais provável no celular:
+- A janela é fechada/reaberta ainda durante a animação de saída (mais lenta em aparelho fraco).
+- O teclado virtual do Android/iOS pode ser invocado pelo `Textarea` de observação do diálogo de encerramento, que aparece **no mesmo frame** em que o outro diálogo está saindo — o browser reflui o layout no meio do commit.
+- `handleClick` roda `await tryGeo()` e depois `setState` — se o componente for re-renderizado por um refetch do React Query (`refetchInterval: 60_000` em `ponto-estado`) no intervalo, o estado do diálogo muda junto com a substituição da árvore de `<StatusJornadaCard>` / `<ResumoDoDia>`.
 
-## 4. Ausências (feriados / férias)
+Suspeito secundário (menos provável, mas na mesma tela): `ConsentimentoGeoDialog` em `Ponto.tsx` tem `open` derivado de duas queries assíncronas (`consentimento` e `termoVigente`). Se qualquer uma revalidar enquanto um `AlertDialog` está abrindo, um terceiro portal entra em cena no mesmo commit. E `ResumoDoDia` monta um `TooltipProvider`/`Tooltip` por linha de evento — no touch, o tooltip abre por toque e também usa portal.
 
-- `ponto_feriados`: `data, descricao, tipo (nacional | estadual | municipal | facultativo | recesso), created_by`. É global, não tem `usuario_id`.
-- `ponto_ferias`: `usuario_id, data_inicio, data_fim, tipo (ferias | folga | atestado | licenca), observacao`.
+## 4. Correção proposta (para sua validação, ainda não aplicada)
 
-Já existe a função pronta para essa checagem — reutilizar em vez de duplicar lógica:
+1. **Serializar a troca de diálogos** em `BotaoInteligente.tsx`: fechar o `geoAlerta` primeiro e só abrir o diálogo de encerramento (ou disparar a mutation) depois que a saída terminar — via um `useEffect` disparado por um estado `pendenteAposGeo`, ou um `requestAnimationFrame`/`setTimeout(0)`. Nunca dois `open` mudando no mesmo handler.
+2. **Unificar em um único `AlertDialog`** cujo conteúdo muda por estado (`"fora_do_raio" | "encerrar"`), eliminando o par montar/desmontar simultâneo. É a correção mais robusta.
+3. Envolver o bloco do botão num `ErrorBoundary` local, para que uma falha de reconciliação não derrube a tela inteira do ponto (a batida já foi ou não gravada no servidor de qualquer forma).
+4. Opcional: mover o `TooltipProvider` de `ResumoDoDia` para um provider único no topo, em vez de um por linha.
 
-```sql
-SELECT public.fn_ponto_dia_ausencia(:uid, :data);
-```
+## 5. Verificação após a correção
 
-Retorna `'feriado'` (prioridade 1) ou o tipo da ausência individual (prioridade 2), e `NULL` quando o profissional deve trabalhar. Proposta: **nenhum disparo se o retorno for não-nulo**, exceto feriado do tipo `facultativo`, que pode ser tratado como dia normal (a definir com o gestor).
-
-Checagens adicionais recomendadas antes de qualquer envio:
-1. `fn_ponto_dia_ausencia` = NULL.
-2. Existe `ponto_horarios_professor` ativo para `(usuario_id, dow)`.
-3. Se `dia_semana = 6` (sábado), respeitar `frequencia_mensal` (1–4 sábados/mês).
-4. Profissional ainda tem role ativa de staff e telefone em `profiles.phone` (hoje todos os 5 têm telefone cadastrado).
-
-## 5. Proposta técnica dos 4 novos disparos
-
-### Estrutura de dados
-
-Novas colunas em `whatsapp_disparos_config` (nullable, não quebram o fluxo atual):
-- `offset_min integer` — deslocamento em minutos relativo ao horário-âncora. Negativo = antes. Ex.: `-10` para lembrar 10 min antes da entrada.
-- `horario_fixo time` — usado apenas pelo resumo diário, que não depende de horário individual.
-
-Novas colunas em `whatsapp_disparos_log` (para deduplicar sem `agenda_id`):
-- `usuario_id uuid`
-- `referencia_data date`
-- índice único parcial em `(config_id, usuario_id, referencia_data)` quando `usuario_id IS NOT NULL` e `status = 'enviado'`.
-
-### As 4 configurações
-
-| nome | gatilho | âncora | offset sugerido | condição de envio |
-|---|---|---|---|---|
-| Lembrete de Entrada → Profissional | `lembrete_entrada` | `horario_inicio` | +10 min | `entrada IS NULL` |
-| Lembrete de Intervalo → Profissional | `lembrete_intervalo` | `horario_inicio + (janela/2)` | 0 | `intervalo_min > 0` e `intervalo_inicio IS NULL` e `entrada IS NOT NULL` |
-| Lembrete de Saída → Profissional | `lembrete_saida` | `horario_fim` | +10 min | `entrada IS NOT NULL` e `saida IS NULL` |
-| Resumo Diário de Ponto → Profissional | `resumo_diario_ponto` | `horario_fixo` | — (ex.: 20:00) | sempre que houve jornada prevista no dia |
-
-Todas: `categoria = 'agendado'`, `destinatario = 'profissional'`, `ativo = false` e `modo_teste = true` na criação, para ativação controlada pelo gestor.
-
-Variáveis do template: `%NOME_PROFISSIONAL%`, `%DATA%`, `%DIA_SEMANA%`, `%HORA_PREVISTA%`, `%HORA_ENTRADA%`, `%HORA_SAIDA%`, `%INTERVALO_MIN%`, `%TEMPO_TRABALHADO%`, `%STATUS_DIA%`.
-
-### Mecanismo de execução
-
-Nova edge function `whatsapp-disparo-ponto`, disparada por cron a cada 5 minutos (mesmo padrão de `notify-agenda-proximos-5min`), executando:
-
-1. Calcula agora e hoje em `America/Sao_Paulo`.
-2. Carrega os configs ativos de categoria `agendado` com gatilho de ponto.
-3. Para cada profissional com `ponto_horarios_professor` ativo no dia da semana atual:
-   - pula se `fn_ponto_dia_ausencia` retornar algo;
-   - calcula o horário-alvo de cada lembrete (`âncora + offset`);
-   - envia se agora estiver dentro da janela de tolerância do alvo (alvo ≤ agora < alvo + 5 min);
-   - checa a jornada em `ponto_jornadas` e pula se a batida já existe;
-   - checa `whatsapp_disparos_log` por `(config_id, usuario_id, hoje)` e pula se já enviado;
-   - envia via `send-whatsapp` (texto livre) e grava no log + `whatsapp_mensagens`, reaproveitando os helpers já existentes em `whatsapp-disparo-agenda`.
-4. Resumo diário: quando a hora atual bate com `horario_fixo`, monta o consolidado do dia (entrada, intervalo, saída, minutos trabalhados, status) e envia.
-
-Recomendação: extrair `normalizarTelefone`, `callSendWhatsApp`, `sendWhatsAppText` e a gravação no chat de `whatsapp-disparo-agenda` para `supabase/functions/_shared/whatsapp.ts`, evitando duplicação entre as duas funções.
-
-### Pontos que precisam de decisão do gestor antes da Fase 2
-
-1. Offsets exatos de cada lembrete (proposta: entrada +10, saída +10).
-2. Horário do resumo diário (proposta: 20:00).
-3. Feriado facultativo conta como dia útil para o ponto?
-4. O resumo diário vai também para coordenação/admin ou só para o próprio profissional?
-5. Sábado: respeitar `frequencia_mensal` exige saber quais sábados do mês valem — hoje o campo só guarda a quantidade, não quais datas.
+- Reproduzir no Chrome mobile emulado com geolocalização forçada fora dos 300 m (ex.: -30.10, -51.30) e executar entrada → saída, confirmando "Registrar assim mesmo" e depois "Encerrar agora".
+- Confirmar que nenhum erro de `insertBefore` aparece no console e que o evento de saída chega em `ponto_eventos`.
