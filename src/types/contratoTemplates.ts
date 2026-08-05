@@ -23,7 +23,7 @@ export interface RegulamentoInternoVersao {
   updated_at: string;
 }
 
-export const PLANOS_ORDEM: PlanoTipo[] = ['start', 'start_plus', 'power', 'pro', 'max', 'corrida', 'corrida_sem_plano'];
+export const PLANOS_ORDEM: PlanoTipo[] = ['start', 'start_plus', 'power', 'pro', 'max', 'corrida', 'corrida_sem_plano', 'gympass', 'wellhub', 'totalpass'];
 
 const HOJE = new Date();
 const pad = (n: number) => String(n).padStart(2, '0');
