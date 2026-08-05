@@ -136,7 +136,7 @@ function EditorTemplate({ open, onOpenChange, template }: EditorTemplateProps) {
 const FORMAS_TEMPLATE: FormaPagamento[] = ['cartao_recorrencia', 'cartao_parcelado', 'plataforma_agregadora'];
 const PLANOS_TEMPLATE: PlanoTipo[] = [
   'start', 'start_plus', 'power', 'pro', 'max',
-  'corrida', 'gympass', 'wellhub', 'totalpass', 'outro',
+  'corrida', 'corrida_sem_plano', 'gympass', 'wellhub', 'totalpass', 'outro',
 ];
 
 interface CriarTemplateDialogProps {
