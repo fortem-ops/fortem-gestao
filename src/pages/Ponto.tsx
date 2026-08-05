@@ -269,9 +269,25 @@ export default function Ponto() {
 
               {!isViewingOther && (
                 <Card className="p-4">
-                  <BotaoInteligente proximaAcao={estado.proxima_acao} pularIntervalo={pularIntervalo} entrada={estado?.entrada} />
+                  <ErrorBoundary
+                    fallback={(_e, reset) => (
+                      <div className="text-center space-y-3">
+                        <p className="text-sm text-muted-foreground">
+                          Não foi possível atualizar a tela, mas sua marcação pode já ter sido
+                          registrada. Toque para recarregar e conferir.
+                        </p>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          <Button variant="outline" onClick={reset}>Tentar novamente</Button>
+                          <Button onClick={() => window.location.reload()}>Recarregar</Button>
+                        </div>
+                      </div>
+                    )}
+                  >
+                    <BotaoInteligente proximaAcao={estado.proxima_acao} pularIntervalo={pularIntervalo} entrada={estado?.entrada} />
+                  </ErrorBoundary>
                 </Card>
               )}
+
 
               <ResumoDoDia
                 jornadaId={estado.jornada_id}
