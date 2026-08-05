@@ -16,6 +16,14 @@ export function resolveTemplate(template: string, vars: Record<string, string>):
   return template.replace(/%[A-Z_]+%/g, (m) => (m in vars ? vars[m] : m));
 }
 
+/** Resolve templates no formato Meta ({{1}}, {{2}}, ...) a partir de um array posicional. */
+export function resolveNumberedTemplate(template: string, args: string[]): string {
+  return template.replace(/\{\{(\d+)\}\}/g, (m, n) => {
+    const v = args[Number(n) - 1];
+    return v === undefined ? m : v;
+  });
+}
+
 export type SendResult = { ok: boolean; error?: string; details?: unknown };
 
 export async function callSendWhatsApp(payload: Record<string, unknown>): Promise<SendResult> {
