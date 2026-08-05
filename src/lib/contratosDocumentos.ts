@@ -147,6 +147,52 @@ export async function gerarDocumentoContrato(params: {
       ANO: format(hoje, 'yyyy'),
     };
 
+    // Variáveis exclusivas dos contratos de Corrida — só consulta quando necessário
+    if (params.planoNome.trim().toLowerCase().startsWith('corrida')) {
+      const { data: contratoRow } = await (supabase as any)
+        .from('contratos')
+        .select('plano_id, parcelas, vigencia_tipo')
+        .eq('id', params.contratoId)
+        .maybeSingle();
+
+      let periodoMeses: number | null = null;
+      let planoBase: string | null = null;
+      if (contratoRow?.plano_id) {
+        const { data: catalogo } = await (supabase as any)
+          .from('planos_catalogo')
+          .select('periodo_meses, plano_base_requerido')
+          .eq('id', contratoRow.plano_id)
+          .maybeSingle();
+        periodoMeses = catalogo?.periodo_meses ?? null;
+        planoBase = catalogo?.plano_base_requerido ?? null;
+      }
+
+      const vigenciaTexto =
+        periodoMeses === 1
+          ? '1 (um) mês'
+          : periodoMeses === 6
+            ? '6 (seis) meses'
+            : periodoMeses === 12
+              ? '12 (doze) meses'
+              : periodoMeses
+                ? `${periodoMeses} meses`
+                : '';
+
+      const PLANO_BASE_LABEL: Record<string, string> = {
+        start: 'Start',
+        start_plus: 'Start+',
+        power: 'Power',
+        pro: 'Pro',
+        max: 'Max',
+      };
+
+      vars.VIGENCIA_TEXTO = vigenciaTexto;
+      vars.PARCELAS = contratoRow?.parcelas != null ? String(contratoRow.parcelas) : '';
+      vars.PLANO_BASE_VINCULADO = planoBase
+        ? (PLANO_BASE_LABEL[planoBase] ?? planoBase)
+        : 'nenhum (Corrida - Sem Plano)';
+    }
+
     const conteudoGerado = preencherVariaveis(template.conteudo, vars);
 
     const { error: insErr } = await (supabase as any)
