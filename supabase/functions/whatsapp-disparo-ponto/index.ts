@@ -22,7 +22,13 @@ const DIAS_SEMANA = [
   'Quinta-feira', 'Sexta-feira', 'Sábado',
 ];
 
-const GATILHOS = ['lembrete_entrada', 'lembrete_intervalo', 'lembrete_saida', 'resumo_diario_ponto'];
+const GATILHOS = [
+  'lembrete_entrada',
+  'lembrete_intervalo_inicio',
+  'lembrete_intervalo_fim',
+  'lembrete_saida',
+  'resumo_diario_ponto',
+];
 
 /** Data/hora atuais em America/Sao_Paulo. */
 function agoraSP() {
