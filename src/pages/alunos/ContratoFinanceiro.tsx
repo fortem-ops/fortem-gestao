@@ -626,6 +626,13 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
           </Table>
         )}
       </Card>
+
+      <AlterarDadosVendaDialog
+        open={alterarOpen}
+        onOpenChange={setAlterarOpen}
+        contratoId={contrato.id}
+        cobrancas={cobrancas}
+      />
     </div>
   );
 }
