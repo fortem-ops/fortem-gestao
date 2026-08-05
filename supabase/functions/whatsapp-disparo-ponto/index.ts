@@ -109,10 +109,10 @@ async function dispara(params: {
   nome: string | null;
   telefone: string | null;
   data: string;
-  vars: Record<string, string>;
+  args: string[];
 }): Promise<{ config: string; usuario: string; status: string; error?: string }> {
-  const { cfg, usuarioId, nome, telefone, data, vars } = params;
-  const mensagem = resolveTemplate(cfg.template_texto ?? '', vars);
+  const { cfg, usuarioId, nome, telefone, data, args } = params;
+  const mensagem = resolveNumberedTemplate(cfg.template_texto ?? '', args);
   const tel = normalizarTelefone(telefone);
 
   if (!tel) {
