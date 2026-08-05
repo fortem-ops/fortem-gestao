@@ -6363,9 +6363,11 @@ export type Database = {
           descricao: string | null
           destinatario: string
           gatilho: string
+          horario_fixo: string | null
           id: string
           modo_teste: boolean
           nome: string
+          offset_min: number | null
           ordem: number
           template_texto: string
           updated_at: string
@@ -6379,9 +6381,11 @@ export type Database = {
           descricao?: string | null
           destinatario: string
           gatilho: string
+          horario_fixo?: string | null
           id?: string
           modo_teste?: boolean
           nome: string
+          offset_min?: number | null
           ordem?: number
           template_texto: string
           updated_at?: string
@@ -6395,9 +6399,11 @@ export type Database = {
           descricao?: string | null
           destinatario?: string
           gatilho?: string
+          horario_fixo?: string | null
           id?: string
           modo_teste?: boolean
           nome?: string
+          offset_min?: number | null
           ordem?: number
           template_texto?: string
           updated_at?: string
@@ -6416,7 +6422,9 @@ export type Database = {
           erro_detalhe: string | null
           id: string
           mensagem_enviada: string | null
+          referencia_data: string | null
           status: string
+          usuario_id: string | null
         }
         Insert: {
           agenda_id?: string | null
@@ -6428,7 +6436,9 @@ export type Database = {
           erro_detalhe?: string | null
           id?: string
           mensagem_enviada?: string | null
+          referencia_data?: string | null
           status?: string
+          usuario_id?: string | null
         }
         Update: {
           agenda_id?: string | null
@@ -6440,7 +6450,9 @@ export type Database = {
           erro_detalhe?: string | null
           id?: string
           mensagem_enviada?: string | null
+          referencia_data?: string | null
           status?: string
+          usuario_id?: string | null
         }
         Relationships: [
           {
