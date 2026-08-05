@@ -45,24 +45,22 @@ const RAIO_M = 300;
 /** Botão único contextual: dispara a próxima ação válida do estado atual. */
 export function BotaoInteligente({ proximaAcao, pularIntervalo, entrada }: Props) {
   const qc = useQueryClient();
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  /** Passo exibido pelo ÚNICO AlertDialog do fluxo. */
+  const [diagStep, setDiagStep] = useState<"fora_do_raio" | "encerrar" | null>(null);
   const [checandoGeo, setChecandoGeo] = useState(false);
   const [geoCoords, setGeoCoords] = useState<{ lat: number | null; lng: number | null } | null>(null);
   const [obsEncerramento, setObsEncerramento] = useState("");
   const [, setTick] = useState(0);
-  const [geoAlerta, setGeoAlerta] = useState<{
-    distM: number;
-    localNome: string;
-    onConfirm: () => void;
-  } | null>(null);
+  const [geoAlerta, setGeoAlerta] = useState<{ distM: number; localNome: string } | null>(null);
 
   // Re-render a cada 60s enquanto o diálogo de encerramento está aberto, para
   // atualizar o "Tempo trabalhado" exibido.
   useEffect(() => {
-    if (!confirmOpen) return;
+    if (diagStep !== "encerrar") return;
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
-  }, [confirmOpen]);
+  }, [diagStep]);
+
 
   // Em jornadas curtas (≤4h), o intervalo é opcional: substituímos por encerramento.
   const acaoEfetiva: ProximaAcao =
