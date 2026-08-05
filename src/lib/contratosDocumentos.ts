@@ -77,7 +77,7 @@ export async function gerarDocumentoContrato(params: {
   try {
     const { data: aluno, error: alunoErr } = await (supabase as any)
       .from('alunos')
-      .select('nome, email, cpf_hash, rg, data_nascimento, endereco, bairro, cidade, uf, cep')
+      .select('nome, email, cpf_hash, rg, data_nascimento, logradouro, numero, complemento, bairro, cidade, uf, cep')
       .eq('id', params.alunoId)
       .single();
     if (alunoErr || !aluno) return { success: false, error: 'Aluno não encontrado' };
@@ -134,7 +134,9 @@ export async function gerarDocumentoContrato(params: {
       DATA_NASCIMENTO: formatarData(aluno.data_nascimento),
       CPF: formatarCPF(cpfCompleto),
       RG: aluno.rg ?? '',
-      ENDERECO: aluno.endereco ?? '',
+      ENDERECO: aluno.logradouro
+        ? `${aluno.logradouro}, ${aluno.numero ?? ''}${aluno.complemento ? ` - ${aluno.complemento}` : ''}`
+        : '',
       BAIRRO: aluno.bairro ?? '',
       CIDADE: aluno.cidade ?? 'Porto Alegre',
       UF: aluno.uf ?? 'RS',
