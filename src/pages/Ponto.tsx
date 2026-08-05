@@ -22,6 +22,8 @@ import type { PontoEstado, ProximaAcao } from "@/lib/ponto";
 import { useConsentimentoGeo } from "@/hooks/useConsentimentoGeo";
 import { useTermoVigente } from "@/hooks/useTermoVigente";
 import { ConsentimentoGeoDialog } from "@/components/ponto/ConsentimentoGeoDialog";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
 
 interface EstadoAtual {
   status: PontoEstado;
