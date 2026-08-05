@@ -23,6 +23,12 @@ const TEMPLATE_MAP: Record<string, Record<string, string>> = {
     tradicional: '412807df-2321-43f2-9512-779e16a548fb',
   },
   'gympass/wellhub': { recorrencia: '67e1fc10-fa3f-452f-ba1e-ce53f5820b28', tradicional: '67e1fc10-fa3f-452f-ba1e-ce53f5820b28' },
+  'corrida - start': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
+  'corrida - start+': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
+  'corrida - power': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
+  'corrida - pro': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
+  'corrida - max': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
+  'corrida - sem plano': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
   'gympass': { recorrencia: '67e1fc10-fa3f-452f-ba1e-ce53f5820b28', tradicional: '67e1fc10-fa3f-452f-ba1e-ce53f5820b28' },
   'totalpass': { recorrencia: '84317e7f-01b8-44d4-be36-2125c4949f90', tradicional: '84317e7f-01b8-44d4-be36-2125c4949f90' },
   'wellhub': { recorrencia: '352c1104-0c6a-4542-98d8-2ee6ca6bcbf6', tradicional: '352c1104-0c6a-4542-98d8-2ee6ca6bcbf6' },
@@ -51,6 +57,9 @@ function preencherVariaveis(conteudo: string, vars: Record<string, string>): str
     .replace(/%DIA%/g, vars.DIA ?? '')
     .replace(/%MES%/g, vars.MES ?? '')
     .replace(/%ANO%/g, vars.ANO ?? '')
+    .replace(/%VIGENCIA_TEXTO%/g, vars.VIGENCIA_TEXTO ?? '')
+    .replace(/%PARCELAS%/g, vars.PARCELAS ?? '')
+    .replace(/%PLANO_BASE_VINCULADO%/g, vars.PLANO_BASE_VINCULADO ?? '')
     .replace(/%ASSINATURA%/g, '')
     .replace(/%ACEITE%/g, '')
     .replace(/%DATA_ACEITE%/g, '')
@@ -137,6 +146,52 @@ export async function gerarDocumentoContrato(params: {
       MES: format(hoje, 'MM'),
       ANO: format(hoje, 'yyyy'),
     };
+
+    // Variáveis exclusivas dos contratos de Corrida — só consulta quando necessário
+    if (params.planoNome.trim().toLowerCase().startsWith('corrida')) {
+      const { data: contratoRow } = await (supabase as any)
+        .from('contratos')
+        .select('plano_id, parcelas, vigencia_tipo')
+        .eq('id', params.contratoId)
+        .maybeSingle();
+
+      let periodoMeses: number | null = null;
+      let planoBase: string | null = null;
+      if (contratoRow?.plano_id) {
+        const { data: catalogo } = await (supabase as any)
+          .from('planos_catalogo')
+          .select('periodo_meses, plano_base_requerido')
+          .eq('id', contratoRow.plano_id)
+          .maybeSingle();
+        periodoMeses = catalogo?.periodo_meses ?? null;
+        planoBase = catalogo?.plano_base_requerido ?? null;
+      }
+
+      const vigenciaTexto =
+        periodoMeses === 1
+          ? '1 (um) mês'
+          : periodoMeses === 6
+            ? '6 (seis) meses'
+            : periodoMeses === 12
+              ? '12 (doze) meses'
+              : periodoMeses
+                ? `${periodoMeses} meses`
+                : '';
+
+      const PLANO_BASE_LABEL: Record<string, string> = {
+        start: 'Start',
+        start_plus: 'Start+',
+        power: 'Power',
+        pro: 'Pro',
+        max: 'Max',
+      };
+
+      vars.VIGENCIA_TEXTO = vigenciaTexto;
+      vars.PARCELAS = contratoRow?.parcelas != null ? String(contratoRow.parcelas) : '';
+      vars.PLANO_BASE_VINCULADO = planoBase
+        ? (PLANO_BASE_LABEL[planoBase] ?? planoBase)
+        : 'nenhum (Corrida - Sem Plano)';
+    }
 
     const conteudoGerado = preencherVariaveis(template.conteudo, vars);
 
