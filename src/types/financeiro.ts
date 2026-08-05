@@ -1,4 +1,4 @@
-export type PlanoTipo = 'start' | 'start_plus' | 'power' | 'pro' | 'max' | 'corrida' | 'gympass' | 'wellhub' | 'totalpass' | 'outro';
+export type PlanoTipo = 'start' | 'start_plus' | 'power' | 'pro' | 'max' | 'corrida' | 'corrida_sem_plano' | 'gympass' | 'wellhub' | 'totalpass' | 'outro';
 export type VigenciaTipo = 'mensal' | 'anual';
 export type FormaPagamento = 'cartao_recorrencia' | 'cartao_parcelado' | 'pix_automatico' | 'boleto' | 'maquina_debito' | 'maquina_credito' | 'dinheiro' | 'plataforma_agregadora';
 export type ContratoStatus = 'ativo' | 'suspenso' | 'cancelado' | 'inadimplente' | 'encerrado';
@@ -109,6 +109,7 @@ export interface ResultadoRescisao {
 export const PLANO_LABELS: Record<PlanoTipo, string> = {
   start: 'Start', start_plus: 'Start+', power: 'Power',
   pro: 'Pro', max: 'Max', corrida: 'Grupo de Corrida',
+  corrida_sem_plano: 'Grupo de Corrida (Sem Plano)',
   gympass: 'Gympass', wellhub: 'Wellhub', totalpass: 'Totalpass', outro: 'Outro',
 };
 
