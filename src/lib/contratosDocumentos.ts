@@ -28,7 +28,7 @@ const TEMPLATE_MAP: Record<string, Record<string, string>> = {
   'corrida - power': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
   'corrida - pro': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
   'corrida - max': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
-  'corrida - sem plano': { recorrencia: 'b4cd7e1e-cc24-474a-99fc-0702b893ffbe', tradicional: '9d69ab4c-6281-4084-be52-0236e5fdaaa8' },
+  'corrida - sem plano': { recorrencia: 'fd5259f5-df4d-4746-8a2f-86e1bf80fe97', tradicional: 'd3970fcc-3d3f-41c4-b2a6-7853eed68d89' },
   'gympass': { recorrencia: '67e1fc10-fa3f-452f-ba1e-ce53f5820b28', tradicional: '67e1fc10-fa3f-452f-ba1e-ce53f5820b28' },
   'totalpass': { recorrencia: '84317e7f-01b8-44d4-be36-2125c4949f90', tradicional: '84317e7f-01b8-44d4-be36-2125c4949f90' },
   'total pass': { recorrencia: '84317e7f-01b8-44d4-be36-2125c4949f90', tradicional: '84317e7f-01b8-44d4-be36-2125c4949f90' },
