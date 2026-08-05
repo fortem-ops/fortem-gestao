@@ -47,6 +47,7 @@ import {
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useToast } from "@/hooks/use-toast";
 import { RescisaoDialog } from "@/components/contratos/RescisaoDialog";
+import { AlterarDadosVendaDialog } from "@/components/financeiro/AlterarDadosVendaDialog";
 import { HistoricoVendas } from "@/components/student/venda/HistoricoVendas";
 import {
   LABEL_PLANO,
