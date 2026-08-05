@@ -6369,6 +6369,7 @@ export type Database = {
           nome: string
           offset_min: number | null
           ordem: number
+          template_meta_nome: string | null
           template_texto: string
           updated_at: string
           variaveis_disponiveis: string[]
@@ -6387,6 +6388,7 @@ export type Database = {
           nome: string
           offset_min?: number | null
           ordem?: number
+          template_meta_nome?: string | null
           template_texto: string
           updated_at?: string
           variaveis_disponiveis?: string[]
@@ -6405,6 +6407,7 @@ export type Database = {
           nome?: string
           offset_min?: number | null
           ordem?: number
+          template_meta_nome?: string | null
           template_texto?: string
           updated_at?: string
           variaveis_disponiveis?: string[]

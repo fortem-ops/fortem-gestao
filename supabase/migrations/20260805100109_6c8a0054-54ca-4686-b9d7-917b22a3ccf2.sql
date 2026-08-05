@@ -1,0 +1,1 @@
+ALTER TABLE public.whatsapp_disparos_config ADD COLUMN IF NOT EXISTS template_meta_nome text;
