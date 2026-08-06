@@ -23,7 +23,7 @@ O modo **Avulso (data específica)** continua exatamente como está.
 ## Detalhes técnicos
 
 - Arquivo: `src/components/agenda/AddAgendaDialog.tsx`.
-- Estados `diaSemana`/`horarioInicio`/`horarioFim` passam a conviver com `diasSemana: number[]`, `horarios: string[]` e `duracaoMin: number` usados apenas no modo fixo de criação.
+- Estados `diaSemana`/`horarioInicio`/`horarioFim` passam a conviver com `diasSemana: number[]` e `horarios: string[]` usados apenas no modo fixo de criação; o fim de cada faixa é derivado somando 60 minutos ao início.
 - A mutation monta um array de payloads (produto cartesiano dias × horários) e faz um único `insert` em `agenda_servicos` com a lista, mantendo o payload atual campo a campo.
 - Verificação de duplicados via `select` prévio em `agenda_servicos` filtrando `tipo='fixo'`, atividade, local e dias envolvidos.
 - Invalidação de queries, toasts e o fluxo de notificação/WhatsApp permanecem; os disparos continuam ocorrendo só quando há aluno vinculado (caso de horário único).
