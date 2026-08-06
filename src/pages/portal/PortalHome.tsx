@@ -693,33 +693,13 @@ export default function PortalHome() {
       {/* Serviços do Plano e Avulsos */}
       {(() => {
         // Serviços inclusos no plano: derivados de planos.servicos + consumo_servicos
-        // (mesma fonte de verdade usada em StudentPlan/ContratoFinanceiro).
-        const parseServiceCount = (servicos: string[] | null | undefined, tipo: string): number => {
-          if (!servicos) return 0;
-          for (const s of servicos) {
-            const m = s.match(/^(\d+)\s+(.+)$/);
-            if (m && m[2] === tipo) return parseInt(m[1]);
-          }
-          return 0;
-        };
-        const buildIncluso = (tipo: string) => {
-          const base = parseServiceCount((planoAtivo as any)?.servicos, tipo);
-          const comprado = (consumosPlano as any[])
-            .filter((c) => c.tipo_servico === tipo && c.tipo_registro === "compra")
-            .reduce((sum, c) => sum + (c.quantidade ?? 1), 0);
-          const usado = (consumosPlano as any[])
-            .filter((c) => c.tipo_servico === tipo && (!!c.agenda_id || c.tipo_registro === "uso_manual"))
-            .length;
-          const total = base + comprado;
-          return { total, usado };
-        };
-        const doPlano = [
-          { tipo: "Avaliação Funcional", label: "Avaliação Funcional" },
-          { tipo: "Consultas Nutrição", label: "Nutrição" },
-          { tipo: "Consultas Reabilitação", label: "Reabilitação" },
-        ]
+        // (lógica compartilhada com PortalAgenda em @/lib/creditosServicos).
+        const buildIncluso = (tipo: string) =>
+          buildInclusoPlano((planoAtivo as any)?.servicos, consumosPlano as any[], tipo);
+        const doPlano = SERVICOS_PLANO
           .map((cfg) => ({ atividade: cfg.label, ...buildIncluso(cfg.tipo) }))
           .filter((s) => s.total > 0)
+
           .map((s, i) => ({
             id: `plano-${i}-${s.atividade}`,
             atividade: s.atividade,
