@@ -586,35 +586,100 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             </Select>
           </div>
 
-          {tipo === "fixo" ? (
-            <div className="space-y-2">
-              <Label>Dia da Semana</Label>
-              <Select value={diaSemana} onValueChange={setDiaSemana}>
-                <SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger>
-                <SelectContent>
-                  {DIAS_SEMANA.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label>Data</Label>
-              <Input type="date" value={dataEspecifica} onChange={(e) => setDataEspecifica(e.target.value)} />
-            </div>
-          )}
+          {modoLote ? (
+            <>
+              <div className="space-y-2">
+                <Label>Dias da Semana</Label>
+                <div className="flex flex-wrap gap-2">
+                  {DIAS_SEMANA.map((d) => {
+                    const ativo = diasSemana.includes(d.value);
+                    return (
+                      <button
+                        key={d.value}
+                        type="button"
+                        onClick={() => toggleDia(d.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                          ativo
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground border-border hover:bg-accent"
+                        }`}
+                      >
+                        {d.label.slice(0, 3)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Horário Início</Label>
-              <Input type="time" value={horarioInicio} onChange={(e) => setHorarioInicio(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Horário Fim</Label>
-              <Input type="time" value={horarioFim} onChange={(e) => setHorarioFim(e.target.value)} />
-            </div>
-          </div>
+              <div className="space-y-2">
+                <Label>Horários</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="time"
+                    value={novoHorario}
+                    onChange={(e) => setNovoHorario(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" onClick={adicionarHorario}>Adicionar</Button>
+                </div>
+                {horarios.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {horarios.map((h) => (
+                      <Badge key={h} variant="secondary" className="text-xs gap-1.5">
+                        {h} → {somaUmaHora(h)}
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => setHorarios((prev) => prev.filter((x) => x !== h))}
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Cada horário dura 1 hora (ex.: 16:30 → 17:30).</p>
+                )}
+                {totalLote > 0 && (
+                  <p className="text-xs text-primary font-medium">
+                    {diasSemana.length} dia{diasSemana.length > 1 ? "s" : ""} × {horarios.length} horário{horarios.length > 1 ? "s" : ""} = {totalLote} horário{totalLote > 1 ? "s" : ""} fixo{totalLote > 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {tipo === "fixo" ? (
+                <div className="space-y-2">
+                  <Label>Dia da Semana</Label>
+                  <Select value={diaSemana} onValueChange={setDiaSemana}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger>
+                    <SelectContent>
+                      {DIAS_SEMANA.map((d) => (
+                        <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Data</Label>
+                  <Input type="date" value={dataEspecifica} onChange={(e) => setDataEspecifica(e.target.value)} />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Horário Início</Label>
+                  <Input type="time" value={horarioInicio} onChange={(e) => setHorarioInicio(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Horário Fim</Label>
+                  <Input type="time" value={horarioFim} onChange={(e) => setHorarioFim(e.target.value)} />
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Student search */}
           <div className="space-y-2">
