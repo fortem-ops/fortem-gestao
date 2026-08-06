@@ -890,6 +890,16 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             </div>
           )}
 
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="visivel-portal" className="text-sm">Visível no app do aluno</Label>
+              <p className="text-xs text-muted-foreground">
+                Quando ligado, este horário aparece em Agenda &gt; Serviços no app do aluno.
+              </p>
+            </div>
+            <Switch id="visivel-portal" checked={visivelPortal} onCheckedChange={setVisivelPortal} />
+          </div>
+
           <div className="space-y-2">
             <Label>Observações</Label>
             <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Opcional" rows={2} />
