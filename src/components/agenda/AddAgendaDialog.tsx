@@ -385,6 +385,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         consultor_id: ["Treino Experimental", "Avaliação Funcional"].includes(atividade) ? (consultorId || null) : null,
         protocolo: atividade === "Avaliação Funcional" ? (protocolo || null) : null,
         observacoes: observacoes || null,
+        visivel_portal: visivelPortal,
       };
 
       // Criação em lote de horários fixos (dias × horários)
