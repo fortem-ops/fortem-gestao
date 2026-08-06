@@ -334,7 +334,7 @@ export default function PortalAgenda() {
         .from("agenda_servicos")
         .select("id, atividade, horario_inicio, horario_fim, dia_semana, local, profissional_id, data_especifica")
         .eq("atividade", servicoSelecionado!)
-        .order("dia_semana")
+        .eq("visivel_portal", true)
         .order("horario_inicio");
       return data || [];
     },
