@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarDays, Users, X, CheckCircle2, AlertCircle, Utensils, Footprints, Activity, ChevronDown, ChevronRight, Pin, CalendarPlus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { saldoTotalPorAtividade } from "@/lib/creditosServicos";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Button } from "@/components/ui/button";
