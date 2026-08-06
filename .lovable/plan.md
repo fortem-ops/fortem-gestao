@@ -1,77 +1,63 @@
-# Relatório: tema escuro da tela Avaliações Premium
+# Relatório — Mapa Corporal Biomecânico (somente leitura)
 
-Investigação somente leitura. Nenhum arquivo do projeto foi alterado.
+## 1. O componente é compartilhado? SIM — atenção crítica
 
-## 1. Como o tema escuro é aplicado hoje
+`PremiumBodyMap.tsx` é apenas um wrapper fino: ele importa e renderiza o `BodyMap` de
+`src/components/student/assessment/funcionalV2/BodyMap.tsx`, que é o mesmo componente usado em:
 
-Não há theme provider nem classe `dark` envolvida. Confirmado: zero ocorrências de `dark:` nos componentes de `src/components/avaliacoes-premium/`.
+- `FuncionalV2Assessment.tsx` (formulário legado de Avaliação Funcional v2, em `/avaliacoes`) — linha 184
+- `FuncionalV2Viewer.tsx` (visualizador), que por sua vez é renderizado em:
+  - `src/pages/portal/PortalAssessments.tsx` (**Portal do Aluno**) — linha 272
+  - `AssessmentViewerDialog.tsx` (painel admin)
 
-O escuro vem de duas fontes, ambas hardcoded:
+Ou seja: qualquer mudança direta em `BodyMap.tsx`, `BodyMapSVG.tsx`, `RegionListPanel.tsx` ou nos
+utilitários `.bodymap-*` / tokens `--bodymap-*` do `index.css` **afeta o Portal do Aluno e o
+formulário antigo**. Só é seguro mexer de forma escopada (via seletor pai) ou no wrapper Premium.
 
-- Utilitários CSS globais definidos em `src/index.css` (bloco `@layer utilities`, seção "Avaliações Premium"), linhas ~227-256:
-  - `.bio-shell` — fundo `hsl(220 28% 6%)` com gradientes radiais, texto `hsl(0 0% 95%)`
-  - `.bio-card` / `.bio-card-hover` — gradiente escuro + borda branca translúcida + blur
-  - `.bio-glow-good` / `-warn` / `-risk` / `-fortem`
-  - `.bio-label` (texto `hsl(0 0% 100% / 0.45)`) e `.bio-heading` (texto `hsl(0 0% 98%)`)
-  - `.bio-bar-fill`
-  Nada disso está no `tailwind.config.ts` — é CSS puro no `index.css`.
-- Classes Tailwind fixas de cor nos componentes: `text-white/*`, `bg-white/*`, `border-white/*`, além de tons diretos como `text-rose-300`, `text-emerald-300`, `text-amber-300`.
+## 2. De onde vêm as cores hoje
 
-Também são usados os tokens `--sev-*` e `--bodymap-*` (definidos no `:root` do `index.css`), compartilhados com o Body Map da Avaliação Funcional v2 — cuidado ao mexer neles, pois afetam outra tela.
+Três camadas:
 
-## 2. O restante do painel administrativo
+1. **Tokens globais `--bodymap-*` no `:root`** (`index.css`, linhas 51–58): `--bodymap-bg: 220 28% 7%`,
+   `--bodymap-silhouette`, `--bodymap-muscle-*`, `--bodymap-line`, `--bodymap-skin`.
+2. **Utilitários globais** (`index.css`, linhas ~195–225): `.bodymap-surface` (fundo escuro + borda
+   `hsl(0 0% 100% / 0.06)` + `color: hsl(0 0% 95%)`), `.anatomy-*`, `.bodymap-pulse`, `.bodymap-chain`.
+   O container do mapa é `<div className="bodymap-surface rounded-xl p-5 md:p-6">` (BodyMap.tsx:138).
+3. **Classes fixas dentro do TSX**: ~21 ocorrências de `text-white`, `text-white/50`, `text-white/60`,
+   `hsl(0 0% 100% / 0.08)` em `BodyMap.tsx`; 3 em `BodyMapSVG.tsx`; 4 em `RegionListPanel.tsx`.
 
-O painel Técnico é **claro por padrão**. O `:root` do `index.css` define `--background: 220 14% 92%` (cinza claro), `--card: 0 0% 100%` (branco), `--foreground` escuro. Não existe alternância de tema.
+Escopar é tecnicamente viável (mesmo padrão do `--bio-*`): redefinir `--bodymap-*` e sobrescrever
+`.bodymap-surface` / textos dentro de `[data-bio-theme="light"]`, sem tocar no `:root`. As classes
+fixas `text-white*` dentro do TSX exigiriam overrides CSS escopados (ou props de tema), já que o
+arquivo é compartilhado.
 
-Ou seja: **Avaliações Premium é hoje uma ilha escura dentro de um painel claro.** Ela cria esse escuro via `.bio-shell -m-6 p-6` na raiz de `AvaliacoesPremium.tsx`, que "estoura" o padding do layout e pinta a área inteira.
+## 3. A silhueta é imagem raster com fundo escuro embutido — este é o bloqueio
 
-O único outro escuro isolado é o Portal do Aluno, via `[data-portal="true"]` (mesmo `index.css`, linhas 120-180) — escopo totalmente separado.
+`AnatomyFront.tsx` / `AnatomyBack.tsx` não são SVG vetorial: eles renderizam
+`src/assets/bodymap/anatomy-front.png` e `anatomy-back.png` dentro de um `<image>` do SVG.
 
-## 3. A tela é usada no app do aluno?
+Verificação das imagens:
 
-**Não.** Confirmado:
+- Modo **RGB (sem canal alpha)**, 1024×1024
+- Pixels de canto: ~`rgb(38, 37, 37)` — ou seja, **fundo cinza-quase-preto opaco embutido no PNG**
 
-- `AvaliacoesPremium.tsx` só é referenciada em `src/App.tsx` (rotas `/avaliacoes-premium` e `/avaliacoes-premium/:alunoId`, dentro das rotas protegidas do painel) e no menu `AppSidebar.tsx`. Também há um botão de navegação em `StudentAssessments.tsx` (perfil do aluno, painel admin).
-- Nenhuma rota do portal (`/portal/*`) renderiza essa página.
-- O portal reaproveita apenas **arquivos não visuais** da pasta: `PortalAssessments.tsx` importa o hook de dados `useAlunoAvaliacoesConsolidadas` — nenhum estilo envolvido.
-- Um componente visual da pasta é compartilhado fora dela: `AssessmentDateField.tsx`, importado por `src/components/student/assessment/AssessmentForm.tsx` (painel admin, não portal). Ele tem 3 ocorrências de `text-white/bg-white/border-white` — precisa de atenção específica para não quebrar o formulário legado.
+Conclusão: clarear o CSS ao redor **não funciona** — a silhueta continuaria como um retângulo escuro
+colado sobre fundo claro. As alternativas reais são:
 
-Conclusão: mudar a paleta dessa tela **não toca o app do aluno**.
-
-## 4. Tamanho da mudança
-
-15 arquivos `.tsx` na pasta. Ocorrências de utilitários `bio-*`:
-
-| Arquivo | ocorrências `bio-*` | cores fixas white |
+| Opção | Esforço | Resultado |
 |---|---|---|
-| pages/AvaliacoesPremium.tsx | 6 | — |
-| AlunoSidebarCard.tsx | 6 | 11 |
-| DashboardScoreCard.tsx | 6 | 5 |
-| PremiumBodyMap.tsx | 3 | 1 |
-| PremiumKinologyImport.tsx | 2 | 1 |
-| AssessmentDateField.tsx | 0 | 3 (compartilhado com AssessmentForm) |
-| tabs/ComposicaoTab.tsx | 13 | 14 |
-| tabs/PliometriaTab.tsx | 8 | 12 |
-| tabs/ForcaTab.tsx | 7 | 7 |
-| tabs/MobilidadeTab.tsx | 6 | 21 |
-| tabs/ComparativoTab.tsx | 5 | 13 |
-| tabs/EvolucaoTab.tsx | 5 | 5 |
-| tabs/CompareTable.tsx | 4 | 8 |
-| tabs/RecomendacoesTab.tsx | 3 | 5 |
-| tabs/ComparacoesSalvas.tsx | 2 | 6 |
-| tabs/SalvarComparacaoDialog.tsx | 0 | 1 |
-| DashboardSummary.tsx | (usa DashboardScoreCard) | — |
+| A. Fundo preto puro escopado na Premium | Baixo | Mapa vira bloco preto sólido, imagem "casa" melhor (o fundo do PNG é quase preto). Zero risco fora da Premium. |
+| B. Remover fundo do PNG (gerar versões com alpha) + tema claro | Alto | Fica realmente claro, mas exige regenerar/tratar as 2 imagens e reescrever cores dos halos, textos e legendas para fundo claro. |
+| C. Filtro CSS `invert()` | Baixo | Inviável: inverte também as cores de severidade e deixa a anatomia com aparência de negativo. |
 
-Totais na pasta: **139 ocorrências de cores fixas** (92 `text-white*`, 29 `border-white*`, 18 `bg-white*`) e ~76 usos de classes `bio-*`, espalhados por 16 arquivos.
+**Recomendação:** Opção A, exatamente como o usuário previu — trocar o cinza escuro por preto puro
+escopado em `[data-bio-theme="light"] .bodymap-surface`, mais moldura/legenda ajustadas ao entorno
+claro, sem alterar `:root` nem os arquivos compartilhados.
 
-## Estratégia recomendada (quando for implementar)
+## Próximo passo
 
-A boa notícia: como quase tudo passa pelos utilitários `bio-*`, a maior parte da conversão pode ser feita **em um único ponto**.
-
-1. Transformar os utilitários `bio-*` do `index.css` em variantes claras usando variáveis CSS próprias (`--bio-surface`, `--bio-ink`, `--bio-ink-muted`, `--bio-line`), escopadas por um seletor da tela (ex.: `[data-bio-theme="light"]`) para não afetar nada mais.
-2. Substituir as cores fixas `text-white/*`, `bg-white/*`, `border-white/*` pelos novos tokens nos 15 arquivos — esse é o trabalho braçal, mas é mecânico.
-3. Ajustar as cores de destaque (`text-rose-300`, `emerald-300`, `amber-300`) para tons -600/-700, que têm contraste adequado em fundo claro.
-4. Tratar `AssessmentDateField.tsx` à parte, já que também é usado pelo formulário legado.
-5. Não alterar `--sev-*` nem `--bodymap-*` no `:root`: são compartilhados com o Body Map da Avaliação Funcional v2. Se o Body Map precisar clarear, criar overrides escopados.
-
-Estimativa: 1 edição no CSS global + 15 arquivos de componente.
+Se aprovado, implemento a Opção A:
+- bloco CSS novo escopado a `[data-bio-theme="light"] .bodymap-surface` (fundo `hsl(0 0% 0%)`,
+  borda clara sutil, remoção dos halos radiais coloridos)
+- ajuste do wrapper `PremiumBodyMap.tsx` (moldura clara, glow removido/atenuado)
+- nenhum arquivo dentro de `funcionalV2/` alterado; Portal do Aluno e `/avaliacoes` intactos.
