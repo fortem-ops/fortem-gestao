@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ChevronLeft, ChevronRight, Trash2, User, CalendarIcon, CheckSquare } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, User, CalendarIcon, CheckSquare, EyeOff, X } from "lucide-react";
+import { MultiSelectFilter } from "@/components/student/MultiSelectFilter";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -33,14 +34,18 @@ import {
 const DIAS_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const HORAS = Array.from({ length: 16 }, (_, i) => i + 6);
 
-const ATIVIDADE_COLORS: Record<string, string> = {
-  "Nutrição": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  "Reabilitação": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  "Avaliação Funcional": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  "Avaliação Física": "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  "Recovery (Bota de Compressão)": "bg-rose-500/20 text-rose-400 border-rose-500/30",
-  "Treino Experimental": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+// Cor de destaque por atividade (barra lateral / ponto). O texto sempre usa
+// tokens de alto contraste para garantir legibilidade.
+const ATIVIDADE_ACCENT: Record<string, string> = {
+  "Nutrição": "bg-blue-500",
+  "Reabilitação": "bg-purple-500",
+  "Avaliação Funcional": "bg-emerald-500",
+  "Avaliação Física": "bg-amber-500",
+  "Recovery (Bota de Compressão)": "bg-rose-500",
+  "Treino Experimental": "bg-cyan-500",
 };
+
+const accentDe = (atividade: string) => ATIVIDADE_ACCENT[atividade] || "bg-muted-foreground";
 
 export default function Agenda() {
   const { user } = useAuth();
@@ -50,6 +55,9 @@ export default function Agenda() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
+  const [fAtividade, setFAtividade] = useState<string[]>([]);
+  const [fProfissional, setFProfissional] = useState<string[]>([]);
+  const [fAluno, setFAluno] = useState<string[]>([]);
 
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
@@ -74,7 +82,7 @@ export default function Agenda() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agenda_servicos")
-        .select("id, dia_semana, data_especifica, tipo, horario_inicio, horario_fim, atividade, local, observacoes, profissional_id, consultor_id, aluno_id")
+        .select("id, dia_semana, data_especifica, tipo, horario_inicio, horario_fim, atividade, local, observacoes, profissional_id, consultor_id, aluno_id, visivel_portal")
         .order("horario_inicio");
       if (error) throw error;
 
@@ -167,6 +175,31 @@ export default function Agenda() {
     onError: () => toast.error("Erro ao remover este dia"),
   });
 
+  // Opções dos filtros derivadas dos dados carregados
+  const opcoesAtividade = useMemo(() => {
+    const s = new Set<string>(agendas.map((a: any) => a.atividade).filter(Boolean));
+    return [...s].sort().map((v) => ({ value: v, label: v }));
+  }, [agendas]);
+
+  const opcoesProfissional = useMemo(() => {
+    const m = new Map<string, string>();
+    agendas.forEach((a: any) => {
+      if (a.profissional_id && a.profissional_nome) m.set(a.profissional_id, a.profissional_nome);
+    });
+    return [...m.entries()].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label));
+  }, [agendas]);
+
+  const opcoesAluno = useMemo(() => {
+    const m = new Map<string, string>();
+    agendas.forEach((a: any) => {
+      if (a.aluno_id && a.aluno_nome) m.set(a.aluno_id, a.aluno_nome);
+    });
+    return [...m.entries()].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label));
+  }, [agendas]);
+
+  const temFiltro = fAtividade.length > 0 || fProfissional.length > 0 || fAluno.length > 0;
+  const limparFiltros = () => { setFAtividade([]); setFProfissional([]); setFAluno([]); };
+
   const getEventsForCell = (dayIndex: number, hour: number) => {
     const date = weekDates[dayIndex];
     const diaSemana = date.getDay();
@@ -174,6 +207,10 @@ export default function Agenda() {
     return agendas.filter((a: any) => {
       const startHour = parseInt(a.horario_inicio?.split(":")[0] || "0");
       if (startHour !== hour) return false;
+
+      if (fAtividade.length > 0 && !fAtividade.includes(a.atividade)) return false;
+      if (fProfissional.length > 0 && !fProfissional.includes(a.profissional_id)) return false;
+      if (fAluno.length > 0 && !fAluno.includes(a.aluno_id)) return false;
 
       if (a.tipo === "fixo") {
         if (a.dia_semana !== diaSemana) return false;
@@ -261,6 +298,51 @@ export default function Agenda() {
         </span>
       </div>
 
+      <div className="rounded-lg border border-border bg-card p-3 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Atividade</span>
+            <MultiSelectFilter
+              options={opcoesAtividade}
+              value={fAtividade}
+              onChange={setFAtividade}
+              placeholderAll="Todas as atividades"
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Profissional</span>
+            <MultiSelectFilter
+              options={opcoesProfissional}
+              value={fProfissional}
+              onChange={setFProfissional}
+              placeholderAll="Todos os profissionais"
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Aluno</span>
+            <MultiSelectFilter
+              options={opcoesAluno}
+              value={fAluno}
+              onChange={setFAluno}
+              placeholderAll="Todos os alunos"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {opcoesAtividade.map((o) => (
+            <span key={o.value} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className={cn("h-2 w-2 rounded-full", accentDe(o.value))} />
+              {o.label}
+            </span>
+          ))}
+          {temFiltro && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 ml-auto" onClick={limparFiltros}>
+              <X className="h-3 w-3" /> Limpar filtros
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <ScrollArea className="h-[calc(100vh-240px)]">
           <div className="min-w-[900px]">
@@ -296,26 +378,35 @@ export default function Agenda() {
                       {events.map((ev: any) => (
                         <div
                           key={ev.id}
-                          className={`rounded p-1.5 mb-0.5 text-xs border group relative ${ATIVIDADE_COLORS[ev.atividade] || "bg-muted text-foreground border-border"}`}
+                          className="rounded-md mb-0.5 text-xs border border-border bg-card hover:bg-muted/50 transition-colors group relative overflow-hidden flex"
                           onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}
                         >
-                          <div className="font-medium truncate">{ev.atividade}</div>
-                          <div className="truncate opacity-75">{ev.local}</div>
-                          <div className="truncate opacity-60">
-                            {ev.horario_inicio?.slice(0, 5)} - {ev.horario_fim?.slice(0, 5)}
-                          </div>
-                          {ev.aluno_nome && (
-                            <div className="truncate opacity-80 flex items-center gap-1 mt-0.5">
-                              <User className="h-2.5 w-2.5" />
-                              {ev.aluno_nome}
+                          <span className={cn("w-1 shrink-0", accentDe(ev.atividade))} />
+                          <div className="p-1.5 min-w-0 flex-1">
+                            <div className="font-semibold text-foreground truncate">{ev.atividade}</div>
+                            <div className="truncate text-foreground/90">
+                              {ev.horario_inicio?.slice(0, 5)} - {ev.horario_fim?.slice(0, 5)}
                             </div>
-                          )}
-                          {ev.profissional_nome && (
-                            <div className="truncate opacity-60">{ev.profissional_nome}</div>
-                          )}
-                          {ev.tipo === "avulso" && (
-                            <Badge variant="outline" className="mt-0.5 text-[10px] px-1 py-0">Avulso</Badge>
-                          )}
+                            <div className="truncate text-muted-foreground">{ev.local}</div>
+                            {ev.aluno_nome && (
+                              <div className="truncate text-foreground flex items-center gap-1 mt-0.5">
+                                <User className="h-2.5 w-2.5 shrink-0" />
+                                {ev.aluno_nome}
+                              </div>
+                            )}
+                            {ev.profissional_nome && (
+                              <div className="truncate text-muted-foreground">{ev.profissional_nome}</div>
+                            )}
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {ev.tipo === "avulso" && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0">Avulso</Badge>
+                              )}
+                              {!ev.visivel_portal && (
+                                <EyeOff className="h-3 w-3 text-muted-foreground" aria-label="Oculto no app do aluno" />
+                              )}
+                            </div>
+                          </div>
+
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: ev.id, date: weekDates[dayIdx], tipo: ev.tipo }); }}
                             className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"

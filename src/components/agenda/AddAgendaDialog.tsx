@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Search, AlertTriangle } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -104,6 +105,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [alunoSearch, setAlunoSearch] = useState("");
   const [creditoOrigem, setCreditoOrigem] = useState<"" | "plano" | "servico">("");
   const [protocolo, setProtocolo] = useState("");
+  const [visivelPortal, setVisivelPortal] = useState(false);
 
   const isEditing = !!editEvent;
   // Modo lote: criação de horários fixos em várias combinações dia × horário
@@ -143,6 +145,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
       setAlunoId(editEvent.aluno_id || "");
       setAlunoSearch("");
       setProtocolo(editEvent.protocolo || "");
+      setVisivelPortal(!!editEvent.visivel_portal);
     } else if (prefill) {
       const h = String(prefill.hour).padStart(2, "0");
       const hEnd = String(Math.min(prefill.hour + 1, 21)).padStart(2, "0");
@@ -383,6 +386,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         consultor_id: ["Treino Experimental", "Avaliação Funcional"].includes(atividade) ? (consultorId || null) : null,
         protocolo: atividade === "Avaliação Funcional" ? (protocolo || null) : null,
         observacoes: observacoes || null,
+        visivel_portal: visivelPortal,
       };
 
       // Criação em lote de horários fixos (dias × horários)
@@ -520,6 +524,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setAlunoSearch("");
     setCreditoOrigem("");
     setProtocolo("");
+    setVisivelPortal(false);
   };
 
   const canSubmit = atividade && local &&
@@ -885,6 +890,16 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
               )}
             </div>
           )}
+
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="visivel-portal" className="text-sm">Visível no app do aluno</Label>
+              <p className="text-xs text-muted-foreground">
+                Quando ligado, este horário aparece em Agenda &gt; Serviços no app do aluno.
+              </p>
+            </div>
+            <Switch id="visivel-portal" checked={visivelPortal} onCheckedChange={setVisivelPortal} />
+          </div>
 
           <div className="space-y-2">
             <Label>Observações</Label>
