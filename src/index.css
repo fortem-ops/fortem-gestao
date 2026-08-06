@@ -245,6 +245,7 @@
     color: hsl(0 0% 95%);
     min-height: 100%;
   }
+  [data-bio-theme="light"].bio-shell,
   [data-bio-theme="light"] .bio-shell {
     background:
       radial-gradient(80% 60% at 50% 0%, hsl(0 80% 55% / 0.05) 0%, transparent 55%),
