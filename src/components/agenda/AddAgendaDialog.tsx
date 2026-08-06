@@ -506,6 +506,9 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setLocal("");
     setTipo("avulso");
     setDiaSemana("");
+    setDiasSemana([]);
+    setHorarios([]);
+    setNovoHorario("16:30");
     setDataEspecifica("");
     setHorarioInicio("08:00");
     setHorarioFim("09:00");
@@ -518,8 +521,10 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setProtocolo("");
   };
 
-  const canSubmit = atividade && local && horarioInicio && horarioFim &&
-    (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "") &&
+  const canSubmit = atividade && local &&
+    (modoLote
+      ? totalLote > 0
+      : horarioInicio && horarioFim && (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "")) &&
     (!exigeEscolhaOrigem || !!creditoOrigem);
 
   const hasCredits =
