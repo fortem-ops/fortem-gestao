@@ -78,7 +78,7 @@ export default function Agenda() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agenda_servicos")
-        .select("id, dia_semana, data_especifica, tipo, horario_inicio, horario_fim, atividade, local, observacoes, profissional_id, consultor_id, aluno_id")
+        .select("id, dia_semana, data_especifica, tipo, horario_inicio, horario_fim, atividade, local, observacoes, profissional_id, consultor_id, aluno_id, visivel_portal")
         .order("horario_inicio");
       if (error) throw error;
 
