@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ChevronLeft, ChevronRight, Trash2, User, CalendarIcon, CheckSquare, EyeOff, X } from "lucide-react";
 import { MultiSelectFilter } from "@/components/student/MultiSelectFilter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
