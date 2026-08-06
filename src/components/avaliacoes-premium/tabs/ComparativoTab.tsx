@@ -23,9 +23,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ComparacoesSalvas, type ComparativoSalvo } from "./ComparacoesSalvas";
+import { SalvarComparacaoDialog } from "./SalvarComparacaoDialog";
 
 interface Props {
   data: ConsolidadoAluno;
+  alunoId: string;
 }
 
 type Modo = "auto" | "datas" | "intervalo";
@@ -104,7 +107,7 @@ function plioRows(a: PliometriaSnapshot | null, b: PliometriaSnapshot | null): C
   ];
 }
 
-export function ComparativoTab({ data }: Props) {
+export function ComparativoTab({ data, alunoId }: Props) {
   const [modo, setModo] = useState<Modo>("auto");
 
   // União de datas disponíveis (para modo "datas")
@@ -169,8 +172,21 @@ export function ComparativoTab({ data }: Props) {
   // Warnings quando o snapshot mais próximo diverge muito da data alvo
   const AVISO_DIAS = 7;
 
+  const aplicarSalvo = (c: ComparativoSalvo) => {
+    setModo(c.modo);
+    if (c.modo === "datas") {
+      setDataA(c.data_a ?? "");
+      setDataB(c.data_b ?? "");
+    } else if (c.modo === "intervalo") {
+      setIntervaloDe(c.intervalo_de ?? "");
+      setIntervaloAte(c.intervalo_ate ?? "");
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <ComparacoesSalvas alunoId={alunoId} onAplicar={aplicarSalvo} />
+
       {/* Header: seletor de modo */}
       <div className="bio-card p-4">
         <div className="flex flex-wrap items-end gap-3">
@@ -233,6 +249,21 @@ export function ComparativoTab({ data }: Props) {
               Comparando <b className="text-white/80">{format(parseISO(data.funcional.history[1]?.data ?? data.composicao.history[1]?.data ?? todasDatas[1]), "dd/MM/yy")}</b>{" "}
               → <b className="text-white/80">{format(parseISO(todasDatas[0]), "dd/MM/yy")}</b>
             </p>
+          )}
+
+          {modo !== "auto" && (
+            <div className="ml-auto">
+              <SalvarComparacaoDialog
+                alunoId={alunoId}
+                params={{
+                  modo,
+                  data_a: modo === "datas" ? dataA || null : null,
+                  data_b: modo === "datas" ? dataB || null : null,
+                  intervalo_de: modo === "intervalo" ? intervaloDe || null : null,
+                  intervalo_ate: modo === "intervalo" ? intervaloAte || null : null,
+                }}
+              />
+            </div>
           )}
         </div>
       </div>

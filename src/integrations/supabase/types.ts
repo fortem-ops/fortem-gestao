@@ -884,6 +884,63 @@ export type Database = {
           },
         ]
       }
+      avaliacoes_comparativos_salvos: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          criado_por: string
+          data_a: string | null
+          data_b: string | null
+          id: string
+          intervalo_ate: string | null
+          intervalo_de: string | null
+          modo: string
+          nota: string | null
+          titulo: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          criado_por: string
+          data_a?: string | null
+          data_b?: string | null
+          id?: string
+          intervalo_ate?: string | null
+          intervalo_de?: string | null
+          modo: string
+          nota?: string | null
+          titulo: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          criado_por?: string
+          data_a?: string | null
+          data_b?: string | null
+          id?: string
+          intervalo_ate?: string | null
+          intervalo_de?: string | null
+          modo?: string
+          nota?: string | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_comparativos_salvos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_comparativos_salvos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       banco_treinos_escolhas: {
         Row: {
           categoria: string
