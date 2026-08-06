@@ -58,6 +58,7 @@ export default function Agenda() {
   const [fAtividade, setFAtividade] = useState<string[]>([]);
   const [fProfissional, setFProfissional] = useState<string[]>([]);
   const [fAluno, setFAluno] = useState<string[]>([]);
+  const [fOcupacao, setFOcupacao] = useState<"todos" | "livre" | "ocupado">("todos");
 
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
@@ -197,8 +198,8 @@ export default function Agenda() {
     return [...m.entries()].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label));
   }, [agendas]);
 
-  const temFiltro = fAtividade.length > 0 || fProfissional.length > 0 || fAluno.length > 0;
-  const limparFiltros = () => { setFAtividade([]); setFProfissional([]); setFAluno([]); };
+  const temFiltro = fAtividade.length > 0 || fProfissional.length > 0 || fAluno.length > 0 || fOcupacao !== "todos";
+  const limparFiltros = () => { setFAtividade([]); setFProfissional([]); setFAluno([]); setFOcupacao("todos"); };
 
   const getEventsForCell = (dayIndex: number, hour: number) => {
     const date = weekDates[dayIndex];
@@ -211,6 +212,8 @@ export default function Agenda() {
       if (fAtividade.length > 0 && !fAtividade.includes(a.atividade)) return false;
       if (fProfissional.length > 0 && !fProfissional.includes(a.profissional_id)) return false;
       if (fAluno.length > 0 && !fAluno.includes(a.aluno_id)) return false;
+      if (fOcupacao === "livre" && a.aluno_id) return false;
+      if (fOcupacao === "ocupado" && !a.aluno_id) return false;
 
       if (a.tipo === "fixo") {
         if (a.dia_semana !== diaSemana) return false;
@@ -299,7 +302,7 @@ export default function Agenda() {
       </div>
 
       <div className="rounded-lg border border-border bg-card p-3 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
           <div className="space-y-1">
             <span className="text-xs text-muted-foreground">Atividade</span>
             <MultiSelectFilter
@@ -326,6 +329,19 @@ export default function Agenda() {
               onChange={setFAluno}
               placeholderAll="Todos os alunos"
             />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Ocupação</span>
+            <Select value={fOcupacao} onValueChange={(v) => setFOcupacao(v as any)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Todos os horários" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os horários</SelectItem>
+                <SelectItem value="livre">Somente livres</SelectItem>
+                <SelectItem value="ocupado">Somente ocupados</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -400,6 +416,9 @@ export default function Agenda() {
                             <div className="flex items-center gap-1 mt-0.5">
                               {ev.tipo === "avulso" && (
                                 <Badge variant="outline" className="text-[10px] px-1 py-0">Avulso</Badge>
+                              )}
+                              {!ev.aluno_id && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/50 text-primary">Livre</Badge>
                               )}
                               {!ev.visivel_portal && (
                                 <EyeOff className="h-3 w-3 text-muted-foreground" aria-label="Oculto no app do aluno" />
