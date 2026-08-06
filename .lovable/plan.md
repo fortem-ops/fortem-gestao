@@ -1,82 +1,60 @@
-# Mapa Corporal Biomecânico — tema cinza claro escopado à Premium
+# Diagnóstico — Avaliações fragmentadas do Airton (somente leitura)
 
-## 1. Por que o card ficou de fora da conversão anterior
+## 1. Dados reais no banco
 
-Confirmado. A conversão anterior trocou classes fixas apenas dentro de `src/components/avaliacoes-premium/`.
-O card do mapa **não mora ali**: `PremiumBodyMap.tsx` é só um wrapper que renderiza
-`src/components/student/assessment/funcionalV2/BodyMap.tsx` — arquivo compartilhado, fora do escopo da
-primeira leva.
+Aluno: AIRTON LUIZ MORAES JUNIOR (`503a1d7d…`). Registros em `avaliacoes`:
 
-O card inteiro é escuro por duas razões:
+| data | tipo | id (curto) | métricas | força | created_at (UTC) | laudo importado em |
+|---|---|---|---|---|---|---|
+| 2024-09-05 | funcional_v2 | 033341be | 9 | 6 (laudo **2024**) | 06/08 13:58:30 | 13:58:05 |
+| 2024-09-05 | funcional_v2 | 7191278f | 9 | 6 (laudo **2025**) | 06/08 14:03:08 | 14:03:13 |
+| 2024-09-05 | funcional_v2 | e49d395d | 0 | 6 (laudo **2024**, duplicado) | 06/08 14:04:54 | 14:04:33 |
+| 2025-07-22 | funcional_v2 | 446cd360 | 0 | 6 (laudo **2025**, duplicado) | 06/08 14:03:48 | 14:03:27 |
+| 2026-01-22 | funcional (legado) | db208cd2 | 0 | 0 | 11/06 | — |
+| 2026-08-05 | funcional_v2 | e6b04e1c | 9 | 6 | 05/08 17:18 | manual (sem laudo) |
+| 2026-08-06 | experimental | 2a6b8319 | 0 | 0 | 06/08 13:46 | — |
 
-- O container raiz é `<div className="bodymap-surface rounded-xl p-5 md:p-6">` (BodyMap.tsx:138).
-  `.bodymap-surface` (index.css ~196) define `background: ... hsl(var(--bodymap-bg))` (`220 28% 7%`),
-  `color: hsl(0 0% 95%)` e borda branca translúcida.
-- Todo o conteúdo usa classes fixas de tema escuro:
+Confirmações sobre as datas: a tela está certa — é **22/07/2025** (não 21/07). A "avaliação de 22/01/2026" existe, mas é do tipo **`funcional` legado e está vazia** (sem métricas e sem força). A "de 03/08/2026" na verdade está gravada em **05/08/2026**.
 
-| Área | Arquivo | Classes escuras |
-|---|---|---|
-| Cabeçalho + título + chip de risco | BodyMap.tsx | `text-white`, `text-white/40`, `text-white/50` |
-| 5 anéis de score (ScoreRing) | BodyMap.tsx:47-77 | `stroke="hsl(0 0% 100% / 0.08)"`, `text-white`, `text-white/50`, `text-white/60` |
-| Abas Qualidade/Assimetria/Risco + Ambos/Anterior/Posterior | BodyMap.tsx | `bg-white/5`, `border-white/5`, `bg-white/10`, `text-white/55` |
-| Seletor de Camada + legenda | BodyMap.tsx | `text-white/55`, `text-white/60` |
-| Barra de calibração (admin) | BodyMap.tsx | `border-white/5`, `bg-white/[0.03]` |
-| Rótulos "Vista anterior/posterior" | BodyMapSVG.tsx:274 | `text-white/40` |
-| Painel "Pontos de atenção" | RegionListPanel.tsx:85-121 | `border-white/5`, `bg-white/[0.02]`, `divide-white/5`, `text-white`, `text-white/50` |
-| Nota de rodapé | BodyMap.tsx | `text-white/40` |
+São **três** linhas na mesma data 05/09/2024 (não duas): duas completas com conteúdos de força **diferentes** (uma do laudo 2024, outra do laudo 2025) e uma só-força duplicada.
 
-## 2. Viável clarear tudo de forma escopada? SIM
+## 2. Causa raiz — hipótese CONFIRMADA, e pior que o previsto
 
-`BodyMap.tsx` é compartilhado com o formulário legado (`FuncionalV2Assessment`) e com o Portal do
-Aluno (`FuncionalV2Viewer` em `PortalAssessments.tsx`), então **nenhum desses arquivos será editado**.
+A sequência reconstruída pelos timestamps (`created_at` vs `dados.forca.importadoEm`) mostra dois defeitos combinados:
 
-A conversão é feita 100% em CSS, escopada em `[data-bio-theme="light"] .bodymap-surface ...` no
-`index.css`, sem tocar `:root`, `--bodymap-*` nem `--sev-*`. Como o wrapper `data-bio-theme="light"`
-só existe em `AvaliacoesPremium.tsx`, o Portal e o formulário antigo ficam byte-idênticos no visual.
+**(a) A busca do "par pendente" ignora a data.** Tanto `findFuncionalV2AguardandoForca` (`src/lib/kinologyImport.ts:116`) quanto `findFuncionalV2AguardandoMobilidade` (`MobilidadeTab.tsx:74`) pegam **a primeira linha `funcional_v2` do aluno, ordenada por data desc, que tenha um lado vazio** — sem nenhum filtro pela data que o usuário está lançando. Em lançamento retroativo isso mescla na linha errada.
 
-Novos tokens escopados (cinza claro, não branco puro):
+**(b) O import de força SOBRESCREVE a data da linha alvo.** `PremiumKinologyImport.tsx:61` faz `update({ dados: novosDados, data: finalData })`. Ao mesclar numa linha de outra data, ele arrasta a mobilidade já existente para a data do laudo.
 
-```text
---bm-l-surface: 220 16% 93%   /* fundo do card */
---bm-l-panel:   220 18% 97%   /* abas, painel lateral, caixas */
---bm-l-line:    220 12% 82%   /* bordas e divisórias */
---bm-l-ink:     220 25% 16%   /* texto principal */
---bm-l-muted:   220 10% 42%   /* rótulos e secundários */
-```
+Sequência real:
+1. 13:58 — import do laudo **2024** não achou pendente → criou `033341be` (data 05/09/2024, só força). Depois a mobilidade foi salva e mesclou nela → ficou completa. Correto.
+2. ~14:03 — mobilidade da data 22/07/2025 foi salva; não havia linha só-força → criou `7191278f`, mobilidade-only.
+3. 14:03:13 — import do laudo **2025** achou `7191278f` como "aguardando força" e mesclou nela, **sobrescrevendo a data para 05/09/2024** (a data do campo/laudo naquele momento). Resultado: a mobilidade de 2025 foi teleportada para 2024 → **duas linhas completas em 05/09/2024**.
+4. 14:03:27 e 14:04:33 — o operador reimportou os dois laudos tentando corrigir; como já não havia linha "aguardando força", cada import criou uma **nova linha só-força** (`446cd360` em 22/07/2025 e `e49d395d` em 05/09/2024) → duplicatas.
 
-Overrides escopados a aplicar (todos dentro de `[data-bio-theme="light"]`):
+Ou seja: a hipótese está confirmada, e há também o efeito colateral da sobrescrita de data — que é o que gerou a duplicidade na Timeline.
 
-- `.bodymap-surface` — fundo cinza claro liso (remove os gradientes radiais escuros), borda
-  `--bm-l-line`, `color: --bm-l-ink`.
-- Mapear as utilitárias fixas por seletor de classe escapada dentro do card:
-  `.text-white`, `.text-white\/40`, `.text-white\/50`, `.text-white\/55`, `.text-white\/60`
-  → tons de `--bm-l-ink` / `--bm-l-muted`;
-  `.bg-white\/5`, `.bg-white\/10`, `.bg-white\/\[0\.02\]`, `.bg-white\/\[0\.03\]` → `--bm-l-panel`
-  (com o estado ativo das abas um pouco mais escuro para manter o contraste de seleção);
-  `.border-white\/5`, `.divide-white\/5` → `--bm-l-line`.
-- Anéis de score: o trilho `stroke="hsl(0 0% 100% / 0.08)"` é inline no SVG — sobrescrito por
-  `[data-bio-theme="light"] .bodymap-surface svg circle[fill="none"]:first-of-type { stroke: hsl(var(--bm-l-line)) }`.
-- Chip de risco, legenda de severidade e percentuais continuam usando `--sev-*` (já legíveis em fundo
-  claro); ajuste apenas da opacidade do fundo do chip para 0.18 se ficar lavado.
+## 3. Por que o Comparativo mostra "—" e "Nº métricas = 0"
 
-## 3. Caixas "Vista Anterior" / "Vista Posterior"
+Confirmado. `useAlunoAvaliacoesConsolidadas` monta `funcional.history` a partir de um `.order("data", desc)` **sem desempate**; com três linhas na mesma data, a ordem entre elas é arbitrária no Postgres. O `nearest()` (`ComparativoTab.tsx:37`) usa `d < bestDiff` (estrito), então **fica com a primeira linha empatada que aparecer** — nesse caso `e49d395d`, que tem `metricas: []`. Daí `Score Mobilidade / Flexibilidade / Simetria / Risco = "—"` e `Nº métricas = 0`. O mesmo empate afeta `funcional.latest` na aba Visão Geral quando a data mais recente tiver duplicatas.
 
-Os PNGs (`src/assets/bodymap/anatomy-front.png` / `anatomy-back.png`) são RGB sem alpha, com fundo
-opaco ~`rgb(38,37,37)` embutido — a imagem em si não clareia por CSS. Em vez de preto puro:
+## 4. Extensão do problema
 
-- moldura cinza clara ao redor de cada SVG: contêiner com `background: --bm-l-panel`,
-  `border: 1px solid --bm-l-line`, `rounded-xl`, padding interno pequeno;
-- o SVG em si mantém cantos arredondados, ficando um retângulo escuro menor "emoldurado" em cinza
-  claro, reduzindo a área escura percebida;
-- rótulos "Vista anterior/posterior" passam a `--bm-l-muted`.
+- **05/09/2024** — 3 linhas: 1 correta, 1 com mobilidade que pertence a 22/07/2025, 1 só-força duplicada.
+- **22/07/2025** — 1 linha só-força; a mobilidade dessa data está presa na linha `7191278f` (datada 05/09/2024).
+- **22/01/2026** — não é fragmentação: é uma linha `funcional` legada totalmente vazia (nunca preenchida). Aparece na Timeline mas não entra em nenhum score.
+- **05/08/2026** — linha única e íntegra; sem problema.
+- Nenhuma outra data afetada. O risco é sistêmico, porém: qualquer lançamento retroativo futuro reproduz o mesmo padrão.
 
-Isso é feito por CSS escopado sobre a estrutura existente (`.bodymap-surface svg[role="img"]` e o
-`div` pai `.flex.flex-col.items-center`), sem editar `BodyMapSVG.tsx`.
+## 5. Correções possíveis (para decisão — nada aplicado ainda)
 
-## Escopo técnico da implementação
+**Dados (uma migração/insert pontual):**
+- Mover a mobilidade de `7191278f` (md5 distinto, é a de 2025) para a linha `446cd360` (22/07/2025) e apagar `7191278f`.
+- Apagar a linha só-força duplicada `e49d395d` (05/09/2024), já que `033341be` tem os mesmos exercícios (md5 idêntico) + mobilidade.
+- Decidir o destino da linha vazia `db208cd2` (22/01/2026): apagar ou manter.
 
-- **Editar apenas** `src/index.css` (um bloco novo no fim da seção Premium) e, se necessário,
-  `src/components/avaliacoes-premium/PremiumBodyMap.tsx` (atenuar o glow radial escuro do wrapper).
-- **Não editar**: `BodyMap.tsx`, `BodyMapSVG.tsx`, `RegionListPanel.tsx`, `anatomy/*`, tokens `:root`.
-- Validação por screenshot em `/avaliacoes-premium` e em uma avaliação do Portal do Aluno para
-  provar ausência de regressão.
+**Código (prevenção):**
+- Casar por data: nas duas funções de "pendente", filtrar `.eq("data", dataEscolhida)` — mesclar só na linha da MESMA data; caso contrário, criar nova.
+- Parar de sobrescrever `data` no merge do import Kinology, ou sobrescrever só quando a linha alvo for da mesma data.
+- Desempate determinístico nas consultas (`.order("data", desc).order("created_at", desc)`) e preferir, em empate, a linha com mais dados — em `useAlunoAvaliacoesConsolidadas` e no `nearest()`.
+- Opcional: consolidar no cliente linhas `funcional_v2` da mesma data ao montar o histórico, evitando duplicidade visual na Timeline.
