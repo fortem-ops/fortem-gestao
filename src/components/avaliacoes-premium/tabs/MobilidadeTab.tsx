@@ -1,10 +1,21 @@
-import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, Loader2, Plus, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Save, Loader2, Plus, X, Pencil, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -27,24 +38,64 @@ interface Props {
   history?: FuncionalSnapshot[];
 }
 
+interface MobilidadeRow {
+  id: string;
+  data: string;
+  dados: Record<string, unknown>;
+  metricas: MetricInput[];
+}
+
 /**
  * Aba de entrada manual de mobilidade/flexibilidade na tela Avaliações Premium.
  * Espelha a lógica do Kinology (força): tenta mesclar em uma avaliação
- * funcional_v2 existente que já tenha força mas ainda não tem métricas.
- * Caso contrário, cria uma nova linha só com mobilidade.
+ * funcional_v2 existente NA MESMA DATA que já tenha força mas ainda não tem
+ * métricas. Caso contrário, cria uma nova linha só com mobilidade.
  */
-export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
+export function MobilidadeTab({ alunoId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  // Snapshot mais recente que realmente possui métricas de mobilidade
-  const ultimaMobilidade = useMemo<FuncionalSnapshot | null>(() => {
-    if (latest && latest.metricas.length > 0) return latest;
-    return history.find((h) => h.metricas.length > 0) ?? null;
-  }, [latest, history]);
+
+  const { data: historico = [], isLoading } = useQuery({
+    queryKey: ["mobilidade-historico", alunoId],
+    enabled: !!alunoId,
+    queryFn: async (): Promise<MobilidadeRow[]> => {
+      const { data, error } = await supabase
+        .from("avaliacoes")
+        .select("id, data, dados")
+        .eq("aluno_id", alunoId)
+        .eq("tipo", "funcional_v2")
+        .order("data", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? [])
+        .map((row) => {
+          const dados = (row.dados as Record<string, unknown>) || {};
+          const metricas = (dados.metricas as MetricInput[] | undefined) ?? [];
+          return { id: row.id, data: row.data as string, dados, metricas };
+        })
+        .filter((r) => r.metricas.length > 0);
+    },
+  });
+
+  const [selectedId, setSelectedId] = useState<string>("");
+  useEffect(() => {
+    if (historico.length > 0 && !historico.some((h) => h.id === selectedId)) {
+      setSelectedId(historico[0].id);
+    }
+  }, [historico, selectedId]);
+
+  const selecionada = useMemo(
+    () => historico.find((h) => h.id === selectedId) ?? null,
+    [historico, selectedId],
+  );
+
   const [formOpen, setFormOpen] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
   const [data, setData] = useState<string>(todayISO());
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleChange = (metric: string, side: "left" | "right", val: string) =>
     setValues((p) => ({
@@ -71,13 +122,47 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
 
   const preenchidos = rows.filter((r) => r.left !== null || r.right !== null);
 
-  async function findFuncionalV2AguardandoMobilidade() {
+  function abrirNova() {
+    setEditandoId(null);
+    setValues({});
+    setData(todayISO());
+    setFormOpen(true);
+  }
+
+  function abrirEdicao(row: MobilidadeRow) {
+    const v: Record<string, { left: string; right: string }> = {};
+    row.metricas.forEach((m) => {
+      v[m.metric] = {
+        left: m.left !== null && m.left !== undefined ? String(m.left) : "",
+        right: m.right !== null && m.right !== undefined ? String(m.right) : "",
+      };
+    });
+    setValues(v);
+    setData(row.data);
+    setEditandoId(row.id);
+    setFormOpen(true);
+  }
+
+  function invalidar() {
+    qc.invalidateQueries({ queryKey: ["mobilidade-historico", alunoId] });
+    qc.invalidateQueries({ queryKey: ["aluno-avaliacoes-consolidadas", alunoId] });
+    qc.invalidateQueries({ queryKey: ["avaliacoes-aluno", alunoId] });
+    qc.invalidateQueries({ queryKey: ["avaliacoes-global", alunoId] });
+  }
+
+  /**
+   * Procura linha funcional_v2 com força já registrada, sem métricas,
+   * NA MESMA DATA que está sendo lançada. O filtro por data evita mesclar
+   * lançamentos retroativos na avaliação errada.
+   */
+  async function findFuncionalV2AguardandoMobilidade(dataISO: string) {
     const { data, error } = await supabase
       .from("avaliacoes")
       .select("id, data, dados")
       .eq("aluno_id", alunoId)
       .eq("tipo", "funcional_v2")
-      .order("data", { ascending: false })
+      .eq("data", dataISO)
+      .order("created_at", { ascending: false })
       .limit(10);
     if (error) throw error;
     for (const row of data ?? []) {
@@ -104,39 +189,52 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
     }
     setSaving(true);
     try {
-      const pendente = await findFuncionalV2AguardandoMobilidade();
-      if (pendente) {
-        const novosDados = { ...pendente.dados, metricas: rows };
+      const dataFinal = data || todayISO();
+
+      if (editandoId) {
+        const alvo = historico.find((h) => h.id === editandoId);
+        const novosDados = { ...(alvo?.dados ?? {}), metricas: rows };
         const { error } = await supabase
           .from("avaliacoes")
-          .update({ dados: novosDados } as never)
-          .eq("id", pendente.id);
+          .update({ dados: novosDados, data: dataFinal } as never)
+          .eq("id", editandoId);
         if (error) throw error;
-        toast.success("Mobilidade mesclada com sucesso", {
-          description: `${preenchidos.length} métrica(s) integradas à avaliação existente.`,
-        });
+        toast.success("Avaliação de mobilidade atualizada");
       } else {
-        const protocoloId = await getFuncionalV2DefaultProtocoloId();
-        if (!protocoloId) throw new Error("Protocolo padrão de funcional_v2 não encontrado");
-        const { error } = await supabase.from("avaliacoes").insert({
-          aluno_id: alunoId,
-          avaliador_id: user.id,
-          tipo: "funcional_v2",
-          protocolo_id: protocoloId,
-          data: data || todayISO(),
-          dados: { metricas: rows, forca: null },
-        } as never);
-        if (error) throw error;
-        toast.success("Mobilidade registrada", {
-          description: "Falta a força para completar a avaliação.",
-        });
+        const pendente = await findFuncionalV2AguardandoMobilidade(dataFinal);
+        if (pendente) {
+          const novosDados = { ...pendente.dados, metricas: rows };
+          const { error } = await supabase
+            .from("avaliacoes")
+            .update({ dados: novosDados } as never)
+            .eq("id", pendente.id);
+          if (error) throw error;
+          toast.success("Mobilidade mesclada com sucesso", {
+            description: `${preenchidos.length} métrica(s) integradas à avaliação da mesma data.`,
+          });
+        } else {
+          const protocoloId = await getFuncionalV2DefaultProtocoloId();
+          if (!protocoloId) throw new Error("Protocolo padrão de funcional_v2 não encontrado");
+          const { error } = await supabase.from("avaliacoes").insert({
+            aluno_id: alunoId,
+            avaliador_id: user.id,
+            tipo: "funcional_v2",
+            protocolo_id: protocoloId,
+            data: dataFinal,
+            dados: { metricas: rows, forca: null },
+          } as never);
+          if (error) throw error;
+          toast.success("Mobilidade registrada", {
+            description: "Falta a força para completar a avaliação.",
+          });
+        }
       }
+
       setValues({});
       setData(todayISO());
+      setEditandoId(null);
       setFormOpen(false);
-      qc.invalidateQueries({ queryKey: ["aluno-avaliacoes-consolidadas", alunoId] });
-      qc.invalidateQueries({ queryKey: ["avaliacoes-aluno", alunoId] });
-      qc.invalidateQueries({ queryKey: ["avaliacoes-global", alunoId] });
+      invalidar();
     } catch (e) {
       console.error("[MobilidadeTab] falha ao salvar mobilidade", {
         name: e instanceof Error ? e.name : undefined,
@@ -150,14 +248,56 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
     }
   }
 
+  async function handleDelete() {
+    if (!selecionada) return;
+    setDeleting(true);
+    try {
+      const temForca = Array.isArray(
+        (selecionada.dados.forca as { exercicios?: unknown[] } | null)?.exercicios,
+      )
+        ? ((selecionada.dados.forca as { exercicios?: unknown[] }).exercicios?.length ?? 0) > 0
+        : false;
+
+      if (temForca) {
+        // Preserva a força: remove só as métricas de mobilidade.
+        const novosDados = { ...selecionada.dados, metricas: [] };
+        const { error } = await supabase
+          .from("avaliacoes")
+          .update({ dados: novosDados } as never)
+          .eq("id", selecionada.id);
+        if (error) throw error;
+        toast.success("Mobilidade removida (força preservada)");
+      } else {
+        const { error } = await supabase.from("avaliacoes").delete().eq("id", selecionada.id);
+        if (error) throw error;
+        toast.success("Avaliação de mobilidade excluída");
+      }
+      setConfirmDelete(false);
+      setSelectedId("");
+      invalidar();
+    } catch (e) {
+      console.error("[MobilidadeTab] falha ao excluir mobilidade", e);
+      toast.error(e instanceof Error ? e.message : "Erro ao excluir avaliação");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (!formOpen) {
-    if (!ultimaMobilidade) {
+    if (isLoading) {
+      return (
+        <div className="bio-card p-8 text-center">
+          <Loader2 className="w-5 h-5 animate-spin mx-auto text-[hsl(var(--bio-ink-muted))]" />
+        </div>
+      );
+    }
+    if (!selecionada) {
       return (
         <div className="bio-card p-8 text-center space-y-3">
           <p className="text-sm text-[hsl(var(--bio-ink-muted))]">
             Nenhuma avaliação de mobilidade/flexibilidade registrada para este aluno.
           </p>
-          <Button onClick={() => setFormOpen(true)}>
+          <Button onClick={abrirNova}>
             <Plus className="w-4 h-4 mr-2" /> Nova avaliação de mobilidade
           </Button>
         </div>
@@ -166,14 +306,29 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
     return (
       <div className="space-y-4">
         <div className="bio-card overflow-hidden">
-          <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex items-center justify-between gap-3">
+          <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex flex-wrap items-center justify-between gap-3">
             <h3 className="bio-heading text-base">Mobilidade / Flexibilidade</h3>
-            <div className="flex items-center gap-3">
-              <span className="bio-label">
-                Avaliação · {format(parseISO(ultimaMobilidade.data), "dd/MM/yyyy")}
-              </span>
-              <Button size="sm" variant="outline" onClick={() => setFormOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" /> Nova avaliação de mobilidade
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={selectedId} onValueChange={setSelectedId}>
+                <SelectTrigger className="h-9 w-[190px] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
+                  <SelectValue placeholder="Selecione a data" />
+                </SelectTrigger>
+                <SelectContent>
+                  {historico.map((h) => (
+                    <SelectItem key={h.id} value={h.id}>
+                      {format(parseISO(h.data), "dd/MM/yyyy")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" onClick={() => abrirEdicao(selecionada)}>
+                <Pencil className="w-4 h-4 mr-2" /> Editar
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="w-4 h-4 mr-2" /> Excluir
+              </Button>
+              <Button size="sm" onClick={abrirNova}>
+                <Plus className="w-4 h-4 mr-2" /> Nova avaliação
               </Button>
             </div>
           </div>
@@ -188,7 +343,7 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
               </tr>
             </thead>
             <tbody>
-              {ultimaMobilidade.metricas.map((m) => (
+              {selecionada.metricas.map((m) => (
                 <tr key={m.metric} className="border-b border-[hsl(var(--bio-line))]">
                   <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">{m.metric}</td>
                   <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
@@ -220,6 +375,30 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
             </tbody>
           </table>
         </div>
+
+        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir avaliação de mobilidade?</AlertDialogTitle>
+              <AlertDialogDescription>
+                As métricas de {format(parseISO(selecionada.data), "dd/MM/yyyy")} serão removidas.
+                Se a avaliação também tiver dados de força, a força é preservada.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete();
+                }}
+                disabled={deleting}
+              >
+                {deleting ? "Excluindo..." : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
@@ -228,13 +407,26 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
     <div className="space-y-4">
       <div className="bio-card p-4 flex items-start justify-between gap-4">
         <div className="flex-1">
-        <AssessmentDateField theme="light"
-          value={data}
-          onChange={setData}
-          helperText="Usada apenas quando uma nova avaliação for criada. Ao mesclar em uma avaliação existente (com força já registrada), a data original é preservada."
-        />
+          <AssessmentDateField
+            theme="light"
+            value={data}
+            onChange={setData}
+            helperText={
+              editandoId
+                ? "Editando uma avaliação existente — alterar a data move o registro para a nova data."
+                : "Usada para localizar/criar a avaliação. A mesclagem com a força só acontece se a data for exatamente a mesma."
+            }
+          />
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setFormOpen(false);
+            setEditandoId(null);
+            setValues({});
+          }}
+        >
           <X className="w-4 h-4 mr-2" /> Cancelar
         </Button>
       </div>
@@ -317,7 +509,7 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
             </>
           ) : (
             <>
-              <Save className="w-4 h-4 mr-2" /> Salvar mobilidade
+              <Save className="w-4 h-4 mr-2" /> {editandoId ? "Salvar alterações" : "Salvar mobilidade"}
             </>
           )}
         </Button>
