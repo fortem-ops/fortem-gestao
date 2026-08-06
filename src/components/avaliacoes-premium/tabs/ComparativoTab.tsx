@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComparacoesSalvas, type ComparativoSalvo } from "./ComparacoesSalvas";
 import { SalvarComparacaoDialog } from "./SalvarComparacaoDialog";
+import { ALL_FUNCTIONAL_METRICS } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 
 interface Props {
   data: ConsolidadoAluno;
@@ -33,7 +34,17 @@ interface Props {
 
 type Modo = "auto" | "datas" | "intervalo";
 
-/** Retorna o snapshot com data mais próxima da alvo (dentro do histórico). */
+/** Quantidade de dados preenchidos num snapshot funcional (desempate). */
+function riqueza(s: unknown): number {
+  const snap = s as Partial<FuncionalSnapshot> | null;
+  if (!snap) return 0;
+  return (snap.metricas?.length ?? 0) + (snap.forca?.length ?? 0);
+}
+
+/**
+ * Retorna o snapshot com data mais próxima da alvo (dentro do histórico).
+ * Em caso de empate de data, prefere a linha com mais dados preenchidos.
+ */
 function nearest<T extends { data: string }>(
   history: T[],
   targetISO: string | null,
@@ -44,7 +55,7 @@ function nearest<T extends { data: string }>(
   let bestDiff = Infinity;
   for (const h of history) {
     const d = Math.abs(differenceInCalendarDays(parseISO(h.data), target));
-    if (d < bestDiff) {
+    if (d < bestDiff || (d === bestDiff && riqueza(h) > riqueza(best))) {
       bestDiff = d;
       best = h;
     }
@@ -55,14 +66,30 @@ function nearest<T extends { data: string }>(
 function funcRows(a: FuncionalSnapshot | null, b: FuncionalSnapshot | null): CompareRow[] {
   const compA = a ? computePremiumScores(a, null) : null;
   const compB = b ? computePremiumScores(b, null) : null;
-  return [
+  const rows: CompareRow[] = [
     { label: "Score Mobilidade", a: compA?.mobilidade ?? null, b: compB?.mobilidade ?? null, suffix: "" },
     { label: "Score Flexibilidade", a: compA?.flexibilidade ?? null, b: compB?.flexibilidade ?? null, suffix: "" },
     { label: "Simetria", a: compA?.assimetria ?? null, b: compB?.assimetria ?? null, suffix: "" },
     { label: "Risco (100 = baixíssimo)", a: compA?.risco ?? null, b: compB?.risco ?? null, suffix: "" },
     { label: "Nº métricas registradas", a: a?.metricas.length ?? null, b: b?.metricas.length ?? null, higherIsBetter: true, format: (v) => `${Math.round(v)}` },
   ];
+  // Métrica a métrica (média entre esquerdo/direito), igual ao padrão da Força
+  const media = (snap: FuncionalSnapshot | null, metric: string): number | null => {
+    const m = snap?.metricas.find((x) => x.metric === metric);
+    if (!m) return null;
+    const vals = [m.left, m.right].filter((v): v is number => typeof v === "number");
+    if (vals.length === 0) return null;
+    return vals.reduce((s, v) => s + v, 0) / vals.length;
+  };
+  ALL_FUNCTIONAL_METRICS.forEach((metric) => {
+    const ma = media(a, metric);
+    const mb = media(b, metric);
+    if (ma === null && mb === null) return;
+    rows.push({ label: `${metric} (média °)`, a: ma, b: mb, suffix: "°" });
+  });
+  return rows;
 }
+
 
 function forcaRows(a: FuncionalSnapshot | null, b: FuncionalSnapshot | null): CompareRow[] {
   const compA = a ? computePremiumScores(a, null) : null;
