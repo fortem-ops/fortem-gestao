@@ -145,7 +145,7 @@ export function PremiumKinologyImport({ alunoId }: Props) {
           )}
         </Button>
       </div>
-      <AssessmentDateField
+      <AssessmentDateField theme="light"
         value={data}
         onChange={(v) => {
           setData(v);

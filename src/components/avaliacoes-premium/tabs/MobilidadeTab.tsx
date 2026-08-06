@@ -228,7 +228,7 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
     <div className="space-y-4">
       <div className="bio-card p-4 flex items-start justify-between gap-4">
         <div className="flex-1">
-        <AssessmentDateField
+        <AssessmentDateField theme="light"
           value={data}
           onChange={setData}
           helperText="Usada apenas quando uma nova avaliação for criada. Ao mesclar em uma avaliação existente (com força já registrada), a data original é preservada."

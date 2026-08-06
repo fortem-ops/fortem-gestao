@@ -112,7 +112,7 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
           <h3 className="bio-heading text-base">Nova avaliação — Pollock 7 Dobras</h3>
         </div>
 
-        <AssessmentDateField value={dataAval} onChange={setDataAval} />
+        <AssessmentDateField theme="light" value={dataAval} onChange={setDataAval} />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
