@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Plus, X } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
   ALL_FUNCTIONAL_METRICS,
@@ -18,9 +19,12 @@ import {
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { getFuncionalV2DefaultProtocoloId } from "@/lib/kinologyImport";
 import { AssessmentDateField, todayISO } from "../AssessmentDateField";
+import type { FuncionalSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 
 interface Props {
   alunoId: string;
+  latest?: FuncionalSnapshot | null;
+  history?: FuncionalSnapshot[];
 }
 
 /**
@@ -29,9 +33,15 @@ interface Props {
  * funcional_v2 existente que já tenha força mas ainda não tem métricas.
  * Caso contrário, cria uma nova linha só com mobilidade.
  */
-export function MobilidadeTab({ alunoId }: Props) {
+export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  // Snapshot mais recente que realmente possui métricas de mobilidade
+  const ultimaMobilidade = useMemo<FuncionalSnapshot | null>(() => {
+    if (latest && latest.metricas.length > 0) return latest;
+    return history.find((h) => h.metricas.length > 0) ?? null;
+  }, [latest, history]);
+  const [formOpen, setFormOpen] = useState(false);
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
   const [data, setData] = useState<string>(todayISO());
   const [saving, setSaving] = useState(false);
@@ -123,6 +133,7 @@ export function MobilidadeTab({ alunoId }: Props) {
       }
       setValues({});
       setData(todayISO());
+      setFormOpen(false);
       qc.invalidateQueries({ queryKey: ["aluno-avaliacoes-consolidadas", alunoId] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["avaliacoes-global", alunoId] });
@@ -139,14 +150,93 @@ export function MobilidadeTab({ alunoId }: Props) {
     }
   }
 
+  if (!formOpen) {
+    if (!ultimaMobilidade) {
+      return (
+        <div className="bio-card p-8 text-center space-y-3">
+          <p className="text-sm text-white/55">
+            Nenhuma avaliação de mobilidade/flexibilidade registrada para este aluno.
+          </p>
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Nova avaliação de mobilidade
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        <div className="bio-card overflow-hidden">
+          <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between gap-3">
+            <h3 className="bio-heading text-base">Mobilidade / Flexibilidade</h3>
+            <div className="flex items-center gap-3">
+              <span className="bio-label">
+                Avaliação · {format(parseISO(ultimaMobilidade.data), "dd/MM/yyyy")}
+              </span>
+              <Button size="sm" variant="outline" onClick={() => setFormOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" /> Nova avaliação de mobilidade
+              </Button>
+            </div>
+          </div>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left text-xs font-medium text-white/60 p-3">Métrica</th>
+                <th className="text-center text-xs font-medium text-white/60 p-3 w-20">Esquerdo</th>
+                <th className="text-center text-xs font-medium text-white/60 p-3 w-24">Class. E</th>
+                <th className="text-center text-xs font-medium text-white/60 p-3 w-20">Direito</th>
+                <th className="text-center text-xs font-medium text-white/60 p-3 w-24">Class. D</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ultimaMobilidade.metricas.map((m) => (
+                <tr key={m.metric} className="border-b border-white/5">
+                  <td className="p-3 text-sm text-white/90">{m.metric}</td>
+                  <td className="p-3 text-center text-sm text-white/80">
+                    {m.left !== null ? `${m.left}°` : "—"}
+                  </td>
+                  <td className="p-3 text-center">
+                    {m.leftClass && (
+                      <span
+                        className={`text-xs font-semibold ${getClassificationColor(m.leftClass as AssessmentClassification)}`}
+                      >
+                        {m.leftClass}
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-3 text-center text-sm text-white/80">
+                    {m.right !== null ? `${m.right}°` : "—"}
+                  </td>
+                  <td className="p-3 text-center">
+                    {m.rightClass && (
+                      <span
+                        className={`text-xs font-semibold ${getClassificationColor(m.rightClass as AssessmentClassification)}`}
+                      >
+                        {m.rightClass}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <div className="bio-card p-4">
+      <div className="bio-card p-4 flex items-start justify-between gap-4">
+        <div className="flex-1">
         <AssessmentDateField
           value={data}
           onChange={setData}
           helperText="Usada apenas quando uma nova avaliação for criada. Ao mesclar em uma avaliação existente (com força já registrada), a data original é preservada."
         />
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)}>
+          <X className="w-4 h-4 mr-2" /> Cancelar
+        </Button>
       </div>
       <div className="bio-card overflow-hidden">
         <table className="w-full">
