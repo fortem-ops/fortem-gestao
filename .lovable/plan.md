@@ -8,7 +8,7 @@ No diálogo de novo horário, quando o tipo for **Fixo (semanal)**:
 
 1. **Dias da semana** viram seleção múltipla (botões de alternância Dom–Sáb) em vez de uma lista com um único dia.
 2. **Horários** viram uma lista: o usuário informa um horário de início e clica em "Adicionar", formando chips removíveis (16:30, 17:30, 18:30...).
-3. **Duração** de cada atendimento em minutos (padrão 60) define o horário de fim de cada faixa automaticamente.
+3. **Horário de fim** é sempre 1 hora depois do início escolhido (16:30 → 17:30), calculado automaticamente e exibido no chip; não há campo de duração.
 4. Um resumo mostra quantos horários serão criados ("3 dias × 3 horários = 9 horários fixos") antes de confirmar.
 5. Ao salvar, todos os registros são criados de uma vez; havendo falhas parciais, o aviso informa quantos foram criados e quantos falharam.
 
@@ -23,7 +23,7 @@ O modo **Avulso (data específica)** continua exatamente como está.
 ## Detalhes técnicos
 
 - Arquivo: `src/components/agenda/AddAgendaDialog.tsx`.
-- Estados `diaSemana`/`horarioInicio`/`horarioFim` passam a conviver com `diasSemana: number[]`, `horarios: string[]` e `duracaoMin: number` usados apenas no modo fixo de criação.
+- Estados `diaSemana`/`horarioInicio`/`horarioFim` passam a conviver com `diasSemana: number[]` e `horarios: string[]` usados apenas no modo fixo de criação; o fim de cada faixa é derivado somando 60 minutos ao início.
 - A mutation monta um array de payloads (produto cartesiano dias × horários) e faz um único `insert` em `agenda_servicos` com a lista, mantendo o payload atual campo a campo.
 - Verificação de duplicados via `select` prévio em `agenda_servicos` filtrando `tipo='fixo'`, atividade, local e dias envolvidos.
 - Invalidação de queries, toasts e o fluxo de notificação/WhatsApp permanecem; os disparos continuam ocorrendo só quando há aluno vinculado (caso de horário único).
