@@ -68,7 +68,7 @@ export function SalvarComparacaoDialog({ alunoId, params }: Props) {
       <Button
         variant="outline"
         size="sm"
-        className="h-9 gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10"
+        className="h-9 gap-2 border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-surface-2))] text-[hsl(var(--bio-ink))] hover:bg-[hsl(var(--bio-surface-3))]"
         onClick={() => setOpen(true)}
       >
         <Save className="w-3.5 h-3.5" /> Salvar esta comparação

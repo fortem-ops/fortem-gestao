@@ -10,9 +10,9 @@ interface Props {
 }
 
 function classFromDiff(diff: number): { label: string; cls: string } {
-  if (diff < 10) return { label: "BAIXO", cls: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30" };
-  if (diff < 20) return { label: "ATENÇÃO", cls: "text-amber-300 bg-amber-500/10 border-amber-500/30" };
-  return { label: "ALTO", cls: "text-rose-300 bg-rose-500/10 border-rose-500/30" };
+  if (diff < 10) return { label: "BAIXO", cls: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" };
+  if (diff < 20) return { label: "ATENÇÃO", cls: "text-amber-600 bg-amber-500/10 border-amber-500/30" };
+  return { label: "ALTO", cls: "text-rose-600 bg-rose-500/10 border-rose-500/30" };
 }
 
 export function ForcaTab({ latest, history }: Props) {
@@ -46,7 +46,7 @@ export function ForcaTab({ latest, history }: Props) {
 
   if (exercicios.length === 0) {
     return (
-      <div className="bio-card p-8 text-center text-white/55 text-sm">
+      <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
         Nenhuma dinamometria importada. Use o módulo Avaliações para fazer upload do laudo Kinology.
       </div>
     );
@@ -55,13 +55,13 @@ export function ForcaTab({ latest, history }: Props) {
   return (
     <div className="space-y-4">
       <div className="bio-card overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
+        <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex items-center justify-between">
           <h3 className="bio-heading text-base">Principais Assimetrias de Força</h3>
           <span className="bio-label">Dinamometria · {format(parseISO(latest!.data), "dd/MM/yyyy")}</span>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-white/55">
+            <tr className="text-[hsl(var(--bio-ink-muted))]">
               <th className="text-left p-3 font-medium text-xs">Exercício</th>
               <th className="text-center p-3 font-medium text-xs w-24">Direito</th>
               <th className="text-center p-3 font-medium text-xs w-24">Esquerdo</th>
@@ -75,12 +75,12 @@ export function ForcaTab({ latest, history }: Props) {
               const diff = max > 0 ? (Math.abs(ex.direito_kg - ex.esquerdo_kg) / max) * 100 : 0;
               const c = classFromDiff(diff);
               return (
-                <tr key={ex.nome} className="border-t border-white/5">
-                  <td className="p-3 text-white/85">{FORCA_EXERCICIO_LABEL[ex.nome] ?? ex.nome}</td>
-                  <td className="p-3 text-center text-white/80">{ex.direito_kg.toFixed(1)} kg</td>
-                  <td className="p-3 text-center text-white/80">{ex.esquerdo_kg.toFixed(1)} kg</td>
+                <tr key={ex.nome} className="border-t border-[hsl(var(--bio-line))]">
+                  <td className="p-3 text-[hsl(var(--bio-ink))]">{FORCA_EXERCICIO_LABEL[ex.nome] ?? ex.nome}</td>
+                  <td className="p-3 text-center text-[hsl(var(--bio-ink))]">{ex.direito_kg.toFixed(1)} kg</td>
+                  <td className="p-3 text-center text-[hsl(var(--bio-ink))]">{ex.esquerdo_kg.toFixed(1)} kg</td>
                   <td className="p-3 text-center font-semibold">
-                    <span className={diff >= 20 ? "text-rose-300" : diff >= 10 ? "text-amber-300" : "text-emerald-300"}>
+                    <span className={diff >= 20 ? "text-rose-600" : diff >= 10 ? "text-amber-600" : "text-emerald-600"}>
                       {diff.toFixed(1)}%
                     </span>
                   </td>
@@ -104,10 +104,10 @@ export function ForcaTab({ latest, history }: Props) {
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 100% / 0.06)" />
-              <XAxis dataKey="data" stroke="hsl(0 0% 100% / 0.4)" tick={{ fontSize: 11 }} />
-              <YAxis stroke="hsl(0 0% 100% / 0.4)" tick={{ fontSize: 11 }} unit="%" />
-              <Tooltip contentStyle={{ background: "hsl(220 18% 12%)", border: "1px solid hsl(0 0% 100% / 0.1)", borderRadius: 8 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 86%)" />
+              <XAxis dataKey="data" stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} />
+              <YAxis stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} unit="%" />
+              <Tooltip contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(220 14% 86%)", borderRadius: 8 }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               {series.map((s, i) => (
                 <Line key={s} type="monotone" dataKey={s} stroke={palette[i % palette.length]} strokeWidth={2} dot={{ r: 3 }} />

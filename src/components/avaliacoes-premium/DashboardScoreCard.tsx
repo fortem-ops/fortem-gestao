@@ -15,10 +15,10 @@ interface Props {
 }
 
 const BAND_TONE: Record<SeverityBand, { text: string; bar: string; glow: string }> = {
-  good: { text: "text-emerald-300", bar: "hsl(var(--sev-good))", glow: "bio-glow-good" },
-  warn: { text: "text-amber-300", bar: "hsl(var(--sev-attention))", glow: "bio-glow-warn" },
-  risk: { text: "text-rose-300", bar: "hsl(var(--sev-weak))", glow: "bio-glow-risk" },
-  none: { text: "text-white/40", bar: "hsl(0 0% 100% / 0.2)", glow: "" },
+  good: { text: "text-emerald-600", bar: "hsl(var(--sev-good))", glow: "bio-glow-good" },
+  warn: { text: "text-amber-600", bar: "hsl(var(--sev-attention))", glow: "bio-glow-warn" },
+  risk: { text: "text-rose-600", bar: "hsl(var(--sev-weak))", glow: "bio-glow-risk" },
+  none: { text: "text-[hsl(var(--bio-ink-faint))]", bar: "hsl(220 14% 80%)", glow: "" },
 };
 
 export function DashboardScoreCard({ label, value, unit = "%", statusLabel, subtle, band, tooltip }: Props) {
@@ -34,16 +34,16 @@ export function DashboardScoreCard({ label, value, unit = "%", statusLabel, subt
       className={`bio-card bio-card-hover p-4 relative overflow-hidden ${subtle ? "" : tone.glow} ${tooltip ? "cursor-help" : ""}`}
     >
       {tooltip && (
-        <Info className="absolute top-2 right-2 w-3.5 h-3.5 text-white/30" aria-hidden />
+        <Info className="absolute top-2 right-2 w-3.5 h-3.5 text-[hsl(var(--bio-ink-faint))]" aria-hidden />
       )}
       <p className="bio-label">{label}</p>
       <div className="mt-2 flex items-baseline gap-1">
         <span className={`text-3xl bio-heading ${tone.text}`}>
           {value !== null ? value : "—"}
         </span>
-        {value !== null && unit && <span className="text-sm text-white/40">{unit}</span>}
+        {value !== null && unit && <span className="text-sm text-[hsl(var(--bio-ink-faint))]">{unit}</span>}
       </div>
-      <div className="mt-3 h-1.5 rounded-full bg-white/5 overflow-hidden">
+      <div className="mt-3 h-1.5 rounded-full bg-[hsl(var(--bio-surface-2))] overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
@@ -68,7 +68,7 @@ export function DashboardScoreCard({ label, value, unit = "%", statusLabel, subt
         </TooltipTrigger>
         <TooltipContent
           side="top"
-          className="max-w-xs text-xs leading-relaxed bg-[hsl(var(--bio-surface,222_25%_8%))]/95 border-white/10 text-white/85"
+          className="max-w-xs text-xs leading-relaxed bg-[hsl(var(--bio-surface,222_25%_8%))]/95 border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]"
         >
           {tooltip}
         </TooltipContent>

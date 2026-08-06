@@ -30,7 +30,7 @@ export function EvolucaoTab({ data }: Props) {
 
   if (series.length < 2) {
     return (
-      <div className="bio-card p-8 text-center text-white/55 text-sm">
+      <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
         Necessário pelo menos 2 avaliações para visualizar a evolução histórica.
       </div>
     );
@@ -42,10 +42,10 @@ export function EvolucaoTab({ data }: Props) {
         <h3 className="bio-heading text-base mb-3">Evolução do Índice Funcional FORTEM</h3>
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={series}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 100% / 0.06)" />
-            <XAxis dataKey="data" stroke="hsl(0 0% 100% / 0.4)" tick={{ fontSize: 11 }} />
-            <YAxis stroke="hsl(0 0% 100% / 0.4)" domain={[0, 100]} tick={{ fontSize: 11 }} />
-            <Tooltip contentStyle={{ background: "hsl(220 18% 12%)", border: "1px solid hsl(0 0% 100% / 0.1)", borderRadius: 8 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 86%)" />
+            <XAxis dataKey="data" stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} />
+            <YAxis stroke="hsl(220 12% 45%)" domain={[0, 100]} tick={{ fontSize: 11 }} />
+            <Tooltip contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(220 14% 86%)", borderRadius: 8 }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Line type="monotone" dataKey="indice" name="Índice Fortem" stroke="hsl(0 84% 60%)" strokeWidth={3} dot={{ r: 4 }} />
             <Line type="monotone" dataKey="mobilidade" name="Mobilidade" stroke="hsl(var(--sev-medium))" strokeWidth={2} />
@@ -56,17 +56,17 @@ export function EvolucaoTab({ data }: Props) {
       </div>
 
       <div className="bio-card overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/5">
+        <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))]">
           <h3 className="bio-heading text-base">Timeline de Avaliações</h3>
         </div>
-        <ul className="divide-y divide-white/5">
+        <ul className="divide-y divide-[hsl(var(--bio-line))]">
           {data.raw.map((r) => (
             <li key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
               <div>
-                <p className="text-white/85 capitalize">{r.tipo.replace(/_/g, " ")}</p>
-                {r.observacoes && <p className="text-[11px] text-white/45 line-clamp-1">{r.observacoes}</p>}
+                <p className="text-[hsl(var(--bio-ink))] capitalize">{r.tipo.replace(/_/g, " ")}</p>
+                {r.observacoes && <p className="text-[11px] text-[hsl(var(--bio-ink-faint))] line-clamp-1">{r.observacoes}</p>}
               </div>
-              <span className="text-xs text-white/55">
+              <span className="text-xs text-[hsl(var(--bio-ink-muted))]">
                 {format(parseISO(r.data), "dd/MM/yyyy")}
               </span>
             </li>

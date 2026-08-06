@@ -109,11 +109,11 @@ export function PremiumKinologyImport({ alunoId }: Props) {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2 rounded-md bg-rose-500/10 border border-rose-500/30 shrink-0">
-            <FileText className="w-4 h-4 text-rose-300" />
+            <FileText className="w-4 h-4 text-rose-600" />
           </div>
           <div className="min-w-0">
             <p className="bio-label">Laudo Kinology</p>
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-[hsl(var(--bio-ink-muted))]">
               Importe um PDF de dinamometria — se houver uma avaliação aguardando
               força, os dados serão mesclados automaticamente.
             </p>

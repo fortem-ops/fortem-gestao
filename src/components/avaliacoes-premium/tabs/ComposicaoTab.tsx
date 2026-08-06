@@ -116,7 +116,7 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
-            <label className="text-xs text-white/60">Sexo</label>
+            <label className="text-xs text-[hsl(var(--bio-ink-muted))]">Sexo</label>
             <div className="flex gap-2 mt-1">
               <Button
                 size="sm"
@@ -137,7 +137,7 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
             </div>
           </div>
           <div>
-            <label className="text-xs text-white/60">Idade</label>
+            <label className="text-xs text-[hsl(var(--bio-ink-muted))]">Idade</label>
             <Input
               type="number"
               className="mt-1 h-8"
@@ -147,7 +147,7 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
             />
           </div>
           <div>
-            <label className="text-xs text-white/60">Peso (kg)</label>
+            <label className="text-xs text-[hsl(var(--bio-ink-muted))]">Peso (kg)</label>
             <Input
               type="number"
               className="mt-1 h-8"
@@ -157,7 +157,7 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
             />
           </div>
           <div>
-            <label className="text-xs text-white/60">Altura (cm)</label>
+            <label className="text-xs text-[hsl(var(--bio-ink-muted))]">Altura (cm)</label>
             <Input
               type="number"
               className="mt-1 h-8"
@@ -169,11 +169,11 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
         </div>
 
         <div>
-          <p className="text-xs text-white/60 mb-2">Dobras cutâneas (mm)</p>
+          <p className="text-xs text-[hsl(var(--bio-ink-muted))] mb-2">Dobras cutâneas (mm)</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {DOBRAS_POLLOCK_7.map((d, i) => (
               <div key={d}>
-                <label className="text-xs text-white/60">
+                <label className="text-xs text-[hsl(var(--bio-ink-muted))]">
                   {i + 1}. {d}
                 </label>
                 <Input
@@ -228,7 +228,7 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
 
       {/* ============ HISTÓRICO ============ */}
       {!latest ? (
-        <div className="bio-card p-6 text-center text-white/55 text-sm">
+        <div className="bio-card p-6 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
           Nenhuma composição corporal (Pollock) registrada ainda.
         </div>
       ) : (
@@ -252,10 +252,10 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
             <h3 className="bio-heading text-base mb-3">Distribuição das Dobras (mm)</h3>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={dobrasArr}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 100% / 0.06)" />
-                <XAxis dataKey="name" stroke="hsl(0 0% 100% / 0.4)" tick={{ fontSize: 10 }} />
-                <YAxis stroke="hsl(0 0% 100% / 0.4)" tick={{ fontSize: 11 }} />
-                <Tooltip contentStyle={{ background: "hsl(220 18% 12%)", border: "1px solid hsl(0 0% 100% / 0.1)", borderRadius: 8 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 86%)" />
+                <XAxis dataKey="name" stroke="hsl(220 12% 45%)" tick={{ fontSize: 10 }} />
+                <YAxis stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} />
+                <Tooltip contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(220 14% 86%)", borderRadius: 8 }} />
                 <Bar dataKey="valor" fill="hsl(var(--sev-attention))" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -266,10 +266,10 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
               <h3 className="bio-heading text-base mb-3">Evolução</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={evol}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 100% / 0.06)" />
-                  <XAxis dataKey="data" stroke="hsl(0 0% 100% / 0.4)" tick={{ fontSize: 11 }} />
-                  <YAxis stroke="hsl(0 0% 100% / 0.4)" tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ background: "hsl(220 18% 12%)", border: "1px solid hsl(0 0% 100% / 0.1)", borderRadius: 8 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 86%)" />
+                  <XAxis dataKey="data" stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} />
+                  <Tooltip contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(220 14% 86%)", borderRadius: 8 }} />
                   <Line type="monotone" dataKey="gordura" name="% Gordura" stroke="hsl(var(--sev-attention))" strokeWidth={2} />
                   <Line type="monotone" dataKey="magra" name="Massa Magra (kg)" stroke="hsl(var(--sev-good))" strokeWidth={2} />
                   <Line type="monotone" dataKey="peso" name="Peso (kg)" stroke="hsl(var(--sev-medium))" strokeWidth={2} />
@@ -285,21 +285,21 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
 
 function ResumoCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-lg bg-white/5 border border-white/5 p-2 text-center">
-      <p className="text-[10px] uppercase tracking-wide text-white/50">{label}</p>
-      <p className="text-sm bio-heading text-white/90 mt-0.5">{value}</p>
-      {sub && <p className="text-[10px] text-white/50">{sub}</p>}
+    <div className="rounded-lg bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))] p-2 text-center">
+      <p className="text-[10px] uppercase tracking-wide text-[hsl(var(--bio-ink-muted))]">{label}</p>
+      <p className="text-sm bio-heading text-[hsl(var(--bio-ink))] mt-0.5">{value}</p>
+      {sub && <p className="text-[10px] text-[hsl(var(--bio-ink-muted))]">{sub}</p>}
     </div>
   );
 }
 
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "good" | "warn" | "risk" }) {
-  const toneCls = tone === "good" ? "text-emerald-300" : tone === "warn" ? "text-amber-300" : tone === "risk" ? "text-rose-300" : "text-white/90";
+  const toneCls = tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-amber-600" : tone === "risk" ? "text-rose-600" : "text-[hsl(var(--bio-ink))]";
   return (
-    <div className="rounded-lg bg-white/5 border border-white/5 p-3 text-center">
+    <div className="rounded-lg bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))] p-3 text-center">
       <p className="bio-label">{label}</p>
       <p className={`text-lg bio-heading mt-1 ${toneCls}`}>{value}</p>
-      {sub && <p className="text-[10px] text-white/50 mt-0.5">{sub}</p>}
+      {sub && <p className="text-[10px] text-[hsl(var(--bio-ink-muted))] mt-0.5">{sub}</p>}
     </div>
   );
 }
