@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarDays, Users, X, CheckCircle2, AlertCircle, Utensils, Footprints, Activity, ChevronDown, ChevronRight, Pin, CalendarPlus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { saldoTotalPorAtividade } from "@/lib/creditosServicos";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Button } from "@/components/ui/button";
@@ -338,17 +339,48 @@ export default function PortalAgenda() {
     },
   });
 
-  // Saldo consolidado por atividade
-  const saldoPorAtividade = useMemo(() => {
-    const map: Record<string, { saldo: number; ilimitado: boolean }> = {};
-    for (const c of creditosServicos as any[]) {
-      const atual = map[c.atividade] ?? { saldo: 0, ilimitado: false };
-      if (c.ilimitado) atual.ilimitado = true;
-      else atual.saldo += Math.max(0, (c.quantidade_inicial ?? 0) - (c.quantidade_usada ?? 0));
-      map[c.atividade] = atual;
-    }
-    return map;
-  }, [creditosServicos]);
+  // Plano ativo (para serviços inclusos) — mesma fonte da Home
+  const { data: planoAtivoServicos } = useQuery({
+    queryKey: ["portal-agenda-plano-servicos", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planos")
+        .select("id, servicos")
+        .eq("aluno_id", student!.id)
+        .eq("ativo", true)
+        .eq("atividade", "treinamento_funcional")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  const { data: consumosPlano = [] } = useQuery({
+    queryKey: ["portal-agenda-consumos", student?.id, planoAtivoServicos?.id],
+    enabled: !!student && !!planoAtivoServicos?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("consumo_servicos")
+        .select("tipo_servico, tipo_registro, quantidade, agenda_id")
+        .eq("aluno_id", student!.id)
+        .eq("plano_id", planoAtivoServicos!.id);
+      return (data as any[]) || [];
+    },
+  });
+
+  // Saldo consolidado por atividade (plano + avulso)
+  const saldoPorAtividade = useMemo(
+    () =>
+      saldoTotalPorAtividade(
+        (planoAtivoServicos as any)?.servicos,
+        consumosPlano as any[],
+        creditosServicos as any[],
+      ),
+    [planoAtivoServicos, consumosPlano, creditosServicos],
+  );
+
 
   // Horários "modelo" abertos (sem aluno) do serviço selecionado
   const { data: horariosServico = [] } = useQuery({
