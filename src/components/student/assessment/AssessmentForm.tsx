@@ -365,7 +365,10 @@ export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
     queryKey: ["avaliacao-tipos"],
     queryFn: fetchTipos,
   });
-  const tiposAtivos = useMemo(() => tipos.filter((t) => t.ativo), [tipos]);
+  const tiposAtivos = useMemo(
+    () => tipos.filter((t) => t.ativo && TIPOS_PERMITIDOS_LEGADO.includes(t.slug)),
+    [tipos],
+  );
 
   const [tipoId, setTipoId] = useState<string>("");
   const [protocoloId, setProtocoloId] = useState<string>("");
