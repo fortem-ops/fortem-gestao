@@ -239,6 +239,12 @@ export default function PortalWorkouts() {
       toast.error("Você precisa ter um treino agendado para hoje para concluir.");
       return;
     }
+    // Captura a variação realmente concluída ANTES de qualquer invalidação,
+    // pois `variacaoExibida` é recalculado a partir de `totalSessoes`.
+    const variacaoFeita = variacaoExibida;
+    const originalFeita = foiTrocado ? variacaoAtual : null;
+    setVariacaoConcluida(variacaoFeita);
+    setVariacaoOriginalConcluida(originalFeita);
     setConcluindo(true);
     try {
       // Salvar todas as cargas editadas
