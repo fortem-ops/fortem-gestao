@@ -96,7 +96,12 @@ export default function AvaliacoesPremium() {
                 <TabsTrigger value="recomendacoes">Recomendações</TabsTrigger>
               </TabsList>
               <TabsContent value="mobilidade" className="mt-4">
-                <MobilidadeTab alunoId={alunoId} />
+                <MobilidadeTab
+                  alunoId={alunoId}
+                  latest={data.funcional.latest}
+                  history={data.funcional.history}
+                />
+
               </TabsContent>
               <TabsContent value="forca" className="mt-4">
                 <ForcaTab latest={data.funcional.latest} history={data.funcional.history} />
