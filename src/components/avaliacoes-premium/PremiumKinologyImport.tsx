@@ -52,13 +52,16 @@ export function PremiumKinologyImport({ alunoId }: Props) {
         : (parsed.dataEmissao || data || todayISO());
       if (!dataTouched && parsed.dataEmissao) setData(parsed.dataEmissao);
 
-      const pendente = await findFuncionalV2AguardandoForca(alunoId);
+      // Só mescla em linha pendente da MESMA data — evita "teletransporte"
+      // de dados em lançamentos retroativos.
+      const pendente = await findFuncionalV2AguardandoForca(alunoId, finalData);
 
       if (pendente) {
         const novosDados = { ...pendente.dados, forca: forcaPayload };
+        // A data da linha existente prevalece (é a mesma de finalData).
         const { error } = await supabase
           .from("avaliacoes")
-          .update({ dados: novosDados, data: finalData } as never)
+          .update({ dados: novosDados } as never)
           .eq("id", pendente.id);
         if (error) throw error;
         toast.dismiss(toastId);
