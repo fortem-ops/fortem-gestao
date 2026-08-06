@@ -374,16 +374,63 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const payload: any = {
+      const base: any = {
         atividade,
         local,
         tipo,
-        horario_inicio: horarioInicio,
-        horario_fim: horarioFim,
         profissional_id: profissionalId || (atividade === "Avaliação Funcional" ? null : user?.id),
         consultor_id: ["Treino Experimental", "Avaliação Funcional"].includes(atividade) ? (consultorId || null) : null,
         protocolo: atividade === "Avaliação Funcional" ? (protocolo || null) : null,
         observacoes: observacoes || null,
+      };
+
+      // Criação em lote de horários fixos (dias × horários)
+      if (modoLote) {
+        const dias = diasSemana.map((d) => parseInt(d));
+        const combos = dias.flatMap((d) => horarios.map((h) => ({ dia: d, hora: h })));
+        const unico = combos.length === 1;
+
+        // Ignora duplicados já existentes na grade
+        const { data: existentes } = await supabase
+          .from("agenda_servicos")
+          .select("dia_semana, horario_inicio")
+          .eq("tipo", "fixo")
+          .eq("atividade", atividade)
+          .eq("local", local)
+          .in("dia_semana", dias);
+        const jaExiste = new Set(
+          (existentes || []).map((e: any) => `${e.dia_semana}|${String(e.horario_inicio).slice(0, 5)}`)
+        );
+
+        const novos = combos.filter((c) => !jaExiste.has(`${c.dia}|${c.hora}`));
+        const ignorados = combos.length - novos.length;
+        if (novos.length === 0) {
+          return { lote: true, criados: 0, ignorados };
+        }
+
+        const payloads = novos.map((c) => ({
+          ...base,
+          dia_semana: c.dia,
+          horario_inicio: c.hora,
+          horario_fim: somaUmaHora(c.hora),
+          aluno_id: unico ? (alunoId || null) : null,
+          credito_origem: unico && alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem ? creditoOrigem : null,
+        }));
+
+        const { data: inseridos, error } = await supabase
+          .from("agenda_servicos")
+          .insert(payloads)
+          .select();
+        if (error) throw error;
+
+        if (unico) return (inseridos || [])[0];
+        return { lote: true, criados: (inseridos || []).length, ignorados };
+      }
+
+      const payload: any = {
+        ...base,
+        horario_inicio: horarioInicio,
+        horario_fim: horarioFim,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
         aluno_id: alunoId || null,
         credito_origem: (alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
