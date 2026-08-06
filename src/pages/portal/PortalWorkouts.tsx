@@ -152,6 +152,8 @@ export default function PortalWorkouts() {
   const [cargasEditaveis, setCargasEditaveis] = useState<Record<string, string>>({});
   const [concluindo, setConcluindo] = useState(false);
   const [concluido, setConcluido] = useState(false);
+  const [variacaoConcluida, setVariacaoConcluida] = useState<string | null>(null);
+  const [variacaoOriginalConcluida, setVariacaoOriginalConcluida] = useState<string | null>(null);
 
   // Popular cargas ao carregar
   useEffect(() => {
