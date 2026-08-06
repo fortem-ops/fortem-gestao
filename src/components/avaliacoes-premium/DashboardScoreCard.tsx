@@ -68,7 +68,7 @@ export function DashboardScoreCard({ label, value, unit = "%", statusLabel, subt
         </TooltipTrigger>
         <TooltipContent
           side="top"
-          className="max-w-xs text-xs leading-relaxed bg-[hsl(var(--bio-surface,222_25%_8%))]/95 border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]"
+          className="max-w-xs text-xs leading-relaxed bg-[hsl(var(--bio-surface))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]"
         >
           {tooltip}
         </TooltipContent>
