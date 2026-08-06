@@ -290,4 +290,62 @@
   }
   .bio-bar-fill { animation: bio-bar-fill .9s cubic-bezier(.22,1,.36,1) both; }
 
+  /* ============ Body Map claro (somente Avaliações Premium) ============
+     Escopado a [data-bio-theme="light"] .bodymap-surface. BodyMap.tsx,
+     BodyMapSVG.tsx e RegionListPanel.tsx são compartilhados com o formulário
+     legado e com o Portal do Aluno — por isso a conversão é 100% CSS aqui,
+     sem alterar :root, --bodymap-* ou --sev-*. */
+  [data-bio-theme="light"] .bodymap-surface {
+    --bm-l-surface: 220 16% 93%;
+    --bm-l-panel: 220 18% 97%;
+    --bm-l-line: 220 12% 82%;
+    --bm-l-ink: 220 25% 16%;
+    --bm-l-muted: 220 10% 42%;
+
+    background: hsl(var(--bm-l-surface));
+    border: 1px solid hsl(var(--bm-l-line));
+    color: hsl(var(--bm-l-ink));
+  }
+
+  /* Texto */
+  [data-bio-theme="light"] .bodymap-surface .text-white { color: hsl(var(--bm-l-ink)); }
+  [data-bio-theme="light"] .bodymap-surface .text-white\/40,
+  [data-bio-theme="light"] .bodymap-surface .text-white\/50,
+  [data-bio-theme="light"] .bodymap-surface .text-white\/55,
+  [data-bio-theme="light"] .bodymap-surface .text-white\/60 { color: hsl(var(--bm-l-muted)); }
+  [data-bio-theme="light"] .bodymap-surface .hover\:text-white\/80:hover { color: hsl(var(--bm-l-ink)); }
+
+  /* Superfícies (abas, seletor de camada, painel lateral, barra de calibração) */
+  [data-bio-theme="light"] .bodymap-surface .bg-white\/5,
+  [data-bio-theme="light"] .bodymap-surface .bg-white\/\[0\.02\],
+  [data-bio-theme="light"] .bodymap-surface .bg-white\/\[0\.03\] {
+    background-color: hsl(var(--bm-l-panel));
+  }
+  [data-bio-theme="light"] .bodymap-surface .bg-white\/10 {
+    background-color: hsl(220 14% 84%);
+    color: hsl(var(--bm-l-ink));
+  }
+
+  /* Bordas e divisórias */
+  [data-bio-theme="light"] .bodymap-surface .border-white\/5,
+  [data-bio-theme="light"] .bodymap-surface .border-b { border-color: hsl(var(--bm-l-line)); }
+  [data-bio-theme="light"] .bodymap-surface .divide-white\/5 > * + * { border-color: hsl(var(--bm-l-line)); }
+
+  /* Trilho dos anéis de score (stroke inline branco translúcido) */
+  [data-bio-theme="light"] .bodymap-surface svg circle[stroke^="hsl(0 0% 100%"] {
+    stroke: hsl(var(--bm-l-line));
+  }
+
+  /* Moldura clara em volta das caixas Vista Anterior / Vista Posterior.
+     O PNG anatômico tem fundo escuro embutido (RGB sem alpha) e não pode ser
+     clareado — a moldura reduz a área escura percebida. */
+  [data-bio-theme="light"] .bodymap-surface svg[role="img"] {
+    background: hsl(var(--bm-l-panel));
+    border: 1px solid hsl(var(--bm-l-line));
+    border-radius: 14px;
+    padding: 8px;
+    box-shadow: 0 8px 20px -18px hsl(220 28% 20% / 0.5);
+  }
+
 }
+
