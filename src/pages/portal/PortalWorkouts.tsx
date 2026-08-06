@@ -152,6 +152,8 @@ export default function PortalWorkouts() {
   const [cargasEditaveis, setCargasEditaveis] = useState<Record<string, string>>({});
   const [concluindo, setConcluindo] = useState(false);
   const [concluido, setConcluido] = useState(false);
+  const [variacaoConcluida, setVariacaoConcluida] = useState<string | null>(null);
+  const [variacaoOriginalConcluida, setVariacaoOriginalConcluida] = useState<string | null>(null);
 
   // Popular cargas ao carregar
   useEffect(() => {
@@ -237,6 +239,12 @@ export default function PortalWorkouts() {
       toast.error("Você precisa ter um treino agendado para hoje para concluir.");
       return;
     }
+    // Captura a variação realmente concluída ANTES de qualquer invalidação,
+    // pois `variacaoExibida` é recalculado a partir de `totalSessoes`.
+    const variacaoFeita = variacaoExibida;
+    const originalFeita = foiTrocado ? variacaoAtual : null;
+    setVariacaoConcluida(variacaoFeita);
+    setVariacaoOriginalConcluida(originalFeita);
     setConcluindo(true);
     try {
       // Salvar todas as cargas editadas
@@ -249,8 +257,8 @@ export default function PortalWorkouts() {
       await registrarSessaoConcluida({
         alunoId: student.id,
         treinoId: treino.id,
-        variacao: variacaoExibida,
-        variacaoOriginal: foiTrocado ? variacaoAtual : null,
+        variacao: variacaoFeita,
+        variacaoOriginal: originalFeita,
         foiTroca: foiTrocado,
         agendamentoId: agendamentoHoje.id,
       });
@@ -263,7 +271,7 @@ export default function PortalWorkouts() {
 
       setVariacaoSelecionada(null);
       setConcluido(true);
-      toast.success(`${variacaoExibida} concluído! ${foiTrocado ? "(troca registrada)" : ""}`);
+      toast.success(`${variacaoFeita} concluído! ${foiTrocado ? "(troca registrada)" : ""}`);
     } catch (e: any) {
       toast.error(e.message || "Erro ao concluir treino.");
     } finally {
@@ -314,13 +322,13 @@ export default function PortalWorkouts() {
         <div className="bg-card border border-primary/30 rounded-2xl p-6 text-center space-y-3">
           <p className="text-4xl">🎉</p>
           <p className="font-black text-xl text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-            {variacaoExibida} concluído!
+            {variacaoConcluida ?? variacaoExibida} concluído!
           </p>
           <p className="text-sm text-muted-foreground">
             Sessão {novaTotalSessoes} de {totalSessoesPrevistas} · Presença confirmada ✓
           </p>
-          {foiTrocado && (
-            <p className="text-xs text-warning">↕ Realizado fora de ordem (original: {variacaoAtual})</p>
+          {foiTrocado && variacaoOriginalConcluida && (
+            <p className="text-xs text-warning">↕ Realizado fora de ordem (original: {variacaoOriginalConcluida})</p>
           )}
         </div>
 
