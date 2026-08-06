@@ -298,6 +298,51 @@ export default function Agenda() {
         </span>
       </div>
 
+      <div className="rounded-lg border border-border bg-card p-3 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Atividade</span>
+            <MultiSelectFilter
+              options={opcoesAtividade}
+              value={fAtividade}
+              onChange={setFAtividade}
+              placeholderAll="Todas as atividades"
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Profissional</span>
+            <MultiSelectFilter
+              options={opcoesProfissional}
+              value={fProfissional}
+              onChange={setFProfissional}
+              placeholderAll="Todos os profissionais"
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">Aluno</span>
+            <MultiSelectFilter
+              options={opcoesAluno}
+              value={fAluno}
+              onChange={setFAluno}
+              placeholderAll="Todos os alunos"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {opcoesAtividade.map((o) => (
+            <span key={o.value} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className={cn("h-2 w-2 rounded-full", accentDe(o.value))} />
+              {o.label}
+            </span>
+          ))}
+          {temFiltro && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 ml-auto" onClick={limparFiltros}>
+              <X className="h-3 w-3" /> Limpar filtros
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <ScrollArea className="h-[calc(100vh-240px)]">
           <div className="min-w-[900px]">
