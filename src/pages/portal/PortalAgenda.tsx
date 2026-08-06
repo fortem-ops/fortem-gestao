@@ -32,6 +32,15 @@ type Agendamento = {
 
 const DIA_ABREV = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+// Serviços sempre exibidos na aba "Serviços" do portal
+const SERVICOS_PORTAL = [
+  "Nutrição",
+  "Reabilitação",
+  "Avaliação Física",
+  "Avaliação Funcional",
+  "Bota de Compressão Pneumática",
+];
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
