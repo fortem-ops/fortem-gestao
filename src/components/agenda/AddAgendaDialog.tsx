@@ -91,6 +91,9 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [local, setLocal] = useState("");
   const [tipo, setTipo] = useState("avulso");
   const [diaSemana, setDiaSemana] = useState("");
+  const [diasSemana, setDiasSemana] = useState<string[]>([]);
+  const [horarios, setHorarios] = useState<string[]>([]);
+  const [novoHorario, setNovoHorario] = useState("16:30");
   const [dataEspecifica, setDataEspecifica] = useState("");
   const [horarioInicio, setHorarioInicio] = useState("08:00");
   const [horarioFim, setHorarioFim] = useState("09:00");
