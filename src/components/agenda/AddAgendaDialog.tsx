@@ -687,7 +687,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar aluno pelo nome..."
+                placeholder={loteMultiplo ? "Indisponível ao criar vários horários" : "Buscar aluno pelo nome..."}
+                disabled={loteMultiplo}
                 value={selectedAluno ? selectedAluno.nome : alunoSearch}
                 onChange={(e) => {
                   setAlunoSearch(e.target.value);
@@ -696,6 +697,11 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                 className="pl-9"
               />
             </div>
+            {loteMultiplo && (
+              <p className="text-xs text-muted-foreground">
+                Vários horários fixos são criados como vagas na grade, sem aluno vinculado.
+              </p>
+            )}
             {alunoId && selectedAluno && (
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">
