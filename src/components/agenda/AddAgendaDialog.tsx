@@ -106,6 +106,24 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [protocolo, setProtocolo] = useState("");
 
   const isEditing = !!editEvent;
+  // Modo lote: criação de horários fixos em várias combinações dia × horário
+  const modoLote = tipo === "fixo" && !isEditing;
+
+  const somaUmaHora = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    const total = (h * 60 + m + 60) % (24 * 60);
+    return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  };
+
+  const toggleDia = (v: string) =>
+    setDiasSemana((prev) => (prev.includes(v) ? prev.filter((d) => d !== v) : [...prev, v]));
+
+  const adicionarHorario = () => {
+    if (!novoHorario) return;
+    setHorarios((prev) => (prev.includes(novoHorario) ? prev : [...prev, novoHorario].sort()));
+  };
+
+  const totalLote = diasSemana.length * horarios.length;
 
   // Apply prefill or editEvent when dialog opens
   useEffect(() => {
