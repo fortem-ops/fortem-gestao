@@ -107,7 +107,7 @@ function plioRows(a: PliometriaSnapshot | null, b: PliometriaSnapshot | null): C
   ];
 }
 
-export function ComparativoTab({ data }: Props) {
+export function ComparativoTab({ data, alunoId }: Props) {
   const [modo, setModo] = useState<Modo>("auto");
 
   // União de datas disponíveis (para modo "datas")
