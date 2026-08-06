@@ -310,36 +310,83 @@ export default function PortalAgenda() {
     },
   });
 
-  // Créditos de serviço (exceto Treino)
-  const { data: servicosDisponiveis = [] } = useQuery({
+  // Créditos de serviço do aluno (plano + avulso), mesma lógica da Home
+  const { data: creditosServicos = [] } = useQuery({
     queryKey: ["portal-agenda-servicos-creditos", student?.id],
-    enabled: !!student && abaAgenda === "servicos",
+    enabled: !!student,
     queryFn: async () => {
+      const hoje = format(new Date(), "yyyy-MM-dd");
       const { data } = await supabase
         .from("creditos_aluno" as any)
-        .select("atividade, quantidade_inicial, quantidade_usada, ilimitado")
+        .select("atividade, quantidade_inicial, quantidade_usada, ilimitado, data_validade")
         .eq("aluno_id", student!.id)
         .eq("ativo", true)
         .neq("atividade", "Treino");
-      return (data as any[]) || [];
+      return ((data as any[]) || []).filter(
+        (c) => !c.data_validade || c.data_validade >= hoje
+      );
     },
   });
 
-  // Horários da agenda_servicos para o serviço selecionado
+  // Saldo consolidado por atividade
+  const saldoPorAtividade = useMemo(() => {
+    const map: Record<string, { saldo: number; ilimitado: boolean }> = {};
+    for (const c of creditosServicos as any[]) {
+      const atual = map[c.atividade] ?? { saldo: 0, ilimitado: false };
+      if (c.ilimitado) atual.ilimitado = true;
+      else atual.saldo += Math.max(0, (c.quantidade_inicial ?? 0) - (c.quantidade_usada ?? 0));
+      map[c.atividade] = atual;
+    }
+    return map;
+  }, [creditosServicos]);
+
+  // Horários "modelo" abertos (sem aluno) do serviço selecionado
   const { data: horariosServico = [] } = useQuery({
     queryKey: ["portal-agenda-horarios-servico", servicoSelecionado],
     enabled: !!servicoSelecionado,
     queryFn: async () => {
       const { data } = await supabase
         .from("agenda_servicos")
-        .select("id, atividade, horario_inicio, horario_fim, dia_semana, local, profissional_id, data_especifica")
+        .select("id, atividade, horario_inicio, horario_fim, dia_semana, local, profissional_id, data_especifica, tipo")
         .eq("atividade", servicoSelecionado!)
         .eq("visivel_portal", true)
+        .is("aluno_id", null)
         .order("dia_semana")
         .order("horario_inicio");
       return data || [];
     },
   });
+
+  // Materializa os horários recorrentes em datas concretas (próximos 14 dias)
+  const dias14 = useMemo(() => Array.from({ length: 14 }, (_, i) => addDays(new Date(), i)), []);
+
+  const horariosServicoPorDia = useMemo(() => {
+    const agora = Date.now();
+    const map: Record<string, any[]> = {};
+    for (const d of dias14) {
+      const key = format(d, "yyyy-MM-dd");
+      const doDia = (horariosServico as any[]).filter((h) => {
+        if (h.data_especifica) return h.data_especifica === key;
+        return h.dia_semana === d.getDay();
+      });
+      const validos = doDia.filter((h) => {
+        const [hh, mm] = String(h.horario_inicio).split(":").map(Number);
+        const dt = new Date(d);
+        dt.setHours(hh, mm, 0, 0);
+        return dt.getTime() > agora;
+      });
+      if (validos.length > 0) {
+        map[key] = validos.sort((a, b) => String(a.horario_inicio).localeCompare(String(b.horario_inicio)));
+      }
+    }
+    return map;
+  }, [horariosServico, dias14]);
+
+  const diasServicoDisponiveis = useMemo(
+    () => dias14.filter((d) => horariosServicoPorDia[format(d, "yyyy-MM-dd")]?.length),
+    [dias14, horariosServicoPorDia]
+  );
+
 
   // Histórico de treinos (passados)
   const { data: historicoTreinos = [] } = useQuery({
