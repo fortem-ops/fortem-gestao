@@ -1,0 +1,1 @@
+ALTER TABLE public.agenda_servicos ADD COLUMN IF NOT EXISTS visivel_portal boolean NOT NULL DEFAULT false;

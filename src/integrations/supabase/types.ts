@@ -194,6 +194,7 @@ export type Database = {
           protocolo: string | null
           tipo: string
           updated_at: string
+          visivel_portal: boolean
         }
         Insert: {
           aluno_id?: string | null
@@ -212,6 +213,7 @@ export type Database = {
           protocolo?: string | null
           tipo?: string
           updated_at?: string
+          visivel_portal?: boolean
         }
         Update: {
           aluno_id?: string | null
@@ -230,6 +232,7 @@ export type Database = {
           protocolo?: string | null
           tipo?: string
           updated_at?: string
+          visivel_portal?: boolean
         }
         Relationships: []
       }
