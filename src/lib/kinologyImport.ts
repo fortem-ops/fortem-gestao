@@ -109,19 +109,22 @@ export interface FuncionalV2Row {
 }
 
 /**
- * Procura a avaliação funcional_v2 mais recente do aluno que ainda esteja
- * "aguardando força" — ou seja: existe `dados.metricas` mas `dados.forca`
- * está ausente/vazia. Retorna `null` se não houver.
+ * Procura a avaliação funcional_v2 do aluno NA MESMA DATA informada que ainda
+ * esteja "aguardando força" — ou seja: `dados.forca` ausente/vazia.
+ * O filtro por data evita que lançamentos retroativos mesclem na linha errada.
+ * Retorna `null` se não houver.
  */
 export async function findFuncionalV2AguardandoForca(
   alunoId: string,
+  dataISO: string,
 ): Promise<FuncionalV2Row | null> {
   const { data, error } = await supabase
     .from("avaliacoes")
     .select("id, data, dados")
     .eq("aluno_id", alunoId)
     .eq("tipo", "funcional_v2")
-    .order("data", { ascending: false })
+    .eq("data", dataISO)
+    .order("created_at", { ascending: false })
     .limit(10);
   if (error) throw error;
 
@@ -135,6 +138,7 @@ export async function findFuncionalV2AguardandoForca(
   }
   return null;
 }
+
 
 /**
  * Retorna o id do protocolo default (is_default=true) do tipo `funcional_v2`.

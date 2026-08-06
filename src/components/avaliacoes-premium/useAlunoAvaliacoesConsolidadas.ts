@@ -109,7 +109,8 @@ export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefine
           .from("avaliacoes")
           .select("*")
           .eq("aluno_id", alunoId!)
-          .order("data", { ascending: false }),
+          .order("data", { ascending: false })
+          .order("created_at", { ascending: false }),
       ]);
 
       const rows = avaliacoes ?? [];
