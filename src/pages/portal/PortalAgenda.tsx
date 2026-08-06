@@ -481,7 +481,11 @@ export default function PortalAgenda() {
       });
       if (error) throw error;
       const r = result as any;
-      if (!r?.ok) throw new Error(r?.erro || "erro");
+      if (!r?.ok) {
+        const err = new Error(r?.erro || "erro");
+        (err as any).detalhe = r?.detalhe;
+        throw err;
+      }
       return r;
     },
     onSuccess: () => {
@@ -491,12 +495,15 @@ export default function PortalAgenda() {
       qc.invalidateQueries({ queryKey: ["portal-historico-servicos"] });
     },
     onError: (e: any) => {
+      // eslint-disable-next-line no-console
+      console.error("fn_agendar_servico erro:", e.message, e?.detalhe || "");
       const msgs: Record<string, string> = {
         sem_creditos: "Você não tem créditos disponíveis para este serviço.",
         sem_vaga: "Esse horário já foi reservado por outro aluno.",
         horario_passado: "Esse horário já passou. Escolha outro.",
         horario_invalido: "Horário indisponível.",
         aluno_nao_encontrado: "Não foi possível identificar seu cadastro.",
+        erro_interno: "Não foi possível agendar. Tente novamente em instantes.",
       };
       toast.error(msgs[e.message] || "Erro ao agendar. Tente novamente.");
     },
