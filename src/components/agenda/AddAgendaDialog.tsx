@@ -124,6 +124,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   };
 
   const totalLote = diasSemana.length * horarios.length;
+  const loteMultiplo = modoLote && totalLote > 1;
 
   // Apply prefill or editEvent when dialog opens
   useEffect(() => {
