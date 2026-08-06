@@ -332,26 +332,35 @@ export default function Agenda() {
                       {events.map((ev: any) => (
                         <div
                           key={ev.id}
-                          className={`rounded p-1.5 mb-0.5 text-xs border group relative ${ATIVIDADE_COLORS[ev.atividade] || "bg-muted text-foreground border-border"}`}
+                          className="rounded-md mb-0.5 text-xs border border-border bg-card hover:bg-muted/50 transition-colors group relative overflow-hidden flex"
                           onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}
                         >
-                          <div className="font-medium truncate">{ev.atividade}</div>
-                          <div className="truncate opacity-75">{ev.local}</div>
-                          <div className="truncate opacity-60">
-                            {ev.horario_inicio?.slice(0, 5)} - {ev.horario_fim?.slice(0, 5)}
-                          </div>
-                          {ev.aluno_nome && (
-                            <div className="truncate opacity-80 flex items-center gap-1 mt-0.5">
-                              <User className="h-2.5 w-2.5" />
-                              {ev.aluno_nome}
+                          <span className={cn("w-1 shrink-0", accentDe(ev.atividade))} />
+                          <div className="p-1.5 min-w-0 flex-1">
+                            <div className="font-semibold text-foreground truncate">{ev.atividade}</div>
+                            <div className="truncate text-foreground/90">
+                              {ev.horario_inicio?.slice(0, 5)} - {ev.horario_fim?.slice(0, 5)}
                             </div>
-                          )}
-                          {ev.profissional_nome && (
-                            <div className="truncate opacity-60">{ev.profissional_nome}</div>
-                          )}
-                          {ev.tipo === "avulso" && (
-                            <Badge variant="outline" className="mt-0.5 text-[10px] px-1 py-0">Avulso</Badge>
-                          )}
+                            <div className="truncate text-muted-foreground">{ev.local}</div>
+                            {ev.aluno_nome && (
+                              <div className="truncate text-foreground flex items-center gap-1 mt-0.5">
+                                <User className="h-2.5 w-2.5 shrink-0" />
+                                {ev.aluno_nome}
+                              </div>
+                            )}
+                            {ev.profissional_nome && (
+                              <div className="truncate text-muted-foreground">{ev.profissional_nome}</div>
+                            )}
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {ev.tipo === "avulso" && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0">Avulso</Badge>
+                              )}
+                              {!ev.visivel_portal && (
+                                <EyeOff className="h-3 w-3 text-muted-foreground" aria-label="Oculto no app do aluno" />
+                              )}
+                            </div>
+                          </div>
+
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: ev.id, date: weekDates[dayIdx], tipo: ev.tipo }); }}
                             className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
