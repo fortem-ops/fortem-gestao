@@ -523,6 +523,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setAlunoSearch("");
     setCreditoOrigem("");
     setProtocolo("");
+    setVisivelPortal(false);
   };
 
   const canSubmit = atividade && local &&
