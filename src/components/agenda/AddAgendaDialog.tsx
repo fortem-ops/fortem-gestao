@@ -461,7 +461,19 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       queryClient.invalidateQueries({ queryKey: ["student_credits"] });
       queryClient.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
-      toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
+      if (inserted?.lote) {
+        const { criados, ignorados } = inserted;
+        if (criados === 0) {
+          toast.info("Nenhum horário criado — todos já existiam na grade.");
+        } else {
+          toast.success(
+            `${criados} horário${criados > 1 ? "s" : ""} fixo${criados > 1 ? "s" : ""} criado${criados > 1 ? "s" : ""}` +
+            (ignorados > 0 ? ` · ${ignorados} já existia${ignorados > 1 ? "m" : ""}` : "")
+          );
+        }
+      } else {
+        toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
+      }
 
       // Fallback de notificação (idempotente via tabela agenda_notificacoes_log)
       if (!isEditing && inserted?.id && inserted.aluno_id &&
