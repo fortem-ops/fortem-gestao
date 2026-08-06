@@ -44,11 +44,11 @@ export default function AvaliacoesPremium() {
   }
 
   return (
-    <div className="bio-shell -m-6 p-6 min-h-[calc(100vh-3.5rem)]">
+    <div data-bio-theme="light" className="bio-shell -m-6 p-6 min-h-[calc(100vh-3.5rem)]">
       <header className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30">
-            <Activity className="w-5 h-5 text-rose-300" />
+            <Activity className="w-5 h-5 text-rose-600" />
           </div>
           <div>
             <p className="bio-label">FORTEM · Central Biomecânica</p>
@@ -61,13 +61,13 @@ export default function AvaliacoesPremium() {
       </header>
 
       {!alunoId && (
-        <div className="bio-card p-10 text-center text-white/55">
+        <div className="bio-card p-10 text-center text-[hsl(var(--bio-ink-muted))]">
           Selecione um aluno para abrir o dashboard biomecânico premium.
         </div>
       )}
 
       {alunoId && isLoading && (
-        <div className="bio-card p-10 flex items-center justify-center text-white/55">
+        <div className="bio-card p-10 flex items-center justify-center text-[hsl(var(--bio-ink-muted))]">
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Carregando dados consolidados...
         </div>
       )}
@@ -86,7 +86,7 @@ export default function AvaliacoesPremium() {
             <PremiumBodyMap funcional={data.funcional.latest} />
 
             <Tabs defaultValue="mobilidade" className="bio-card p-4">
-              <TabsList className="bg-white/5 border border-white/5">
+              <TabsList className="bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))]">
                 <TabsTrigger value="mobilidade">Mobilidade/Flexibilidade</TabsTrigger>
                 <TabsTrigger value="forca">Força</TabsTrigger>
                 <TabsTrigger value="composicao">Composição</TabsTrigger>

@@ -113,11 +113,11 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
           return (
             <div key={f.key} className="bio-card p-3">
               <div className="flex items-center justify-between">
-                <Icon className="w-3.5 h-3.5 text-white/50" />
+                <Icon className="w-3.5 h-3.5 text-[hsl(var(--bio-ink-muted))]" />
                 <span className="bio-label">{f.unit}</span>
               </div>
-              <p className="text-[10px] uppercase tracking-wider text-white/55 mt-2 truncate">{f.label}</p>
-              <p className="text-lg bio-heading text-white/90">
+              <p className="text-[10px] uppercase tracking-wider text-[hsl(var(--bio-ink-muted))] mt-2 truncate">{f.label}</p>
+              <p className="text-lg bio-heading text-[hsl(var(--bio-ink))]">
                 {v !== null && v !== undefined ? v : "—"}
               </p>
             </div>
@@ -135,24 +135,24 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
             </span>
           )}
         </div>
-        <AssessmentDateField value={data} onChange={setData} />
+        <AssessmentDateField theme="light" value={data} onChange={setData} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {FIELDS.map((f) => (
             <div key={f.key}>
-              <Label className="text-xs text-white/65">{f.label} {f.unit && <span className="text-white/40">({f.unit})</span>}</Label>
+              <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">{f.label} {f.unit && <span className="text-[hsl(var(--bio-ink-faint))]">({f.unit})</span>}</Label>
               <Input
                 type="number"
                 inputMode="decimal"
                 value={values[f.key]}
                 onChange={(e) => setValues((p) => ({ ...p, [f.key]: e.target.value }))}
-                className="mt-1 h-9 bg-white/5 border-white/10 text-white"
+                className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]"
               />
             </div>
           ))}
         </div>
         <div>
-          <Label className="text-xs text-white/65">Observações</Label>
-          <Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} className="mt-1 bg-white/5 border-white/10 text-white" />
+          <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">Observações</Label>
+          <Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} className="mt-1 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]" />
         </div>
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={saving}>
@@ -165,12 +165,12 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
       {/* Histórico */}
       {history.length > 0 && (
         <div className="bio-card overflow-hidden">
-          <div className="px-5 py-3 border-b border-white/5">
+          <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))]">
             <h3 className="bio-heading text-base">Histórico</h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-white/55 text-xs">
+              <tr className="text-[hsl(var(--bio-ink-muted))] text-xs">
                 <th className="text-left p-3 font-medium">Data</th>
                 {FIELDS.map((f) => (
                   <th key={f.key} className="text-center p-3 font-medium">{f.label}</th>
@@ -179,10 +179,10 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
             </thead>
             <tbody>
               {history.map((s, i) => (
-                <tr key={i} className="border-t border-white/5">
-                  <td className="p-3 text-white/75">{format(parseISO(s.data), "dd/MM/yyyy")}</td>
+                <tr key={i} className="border-t border-[hsl(var(--bio-line))]">
+                  <td className="p-3 text-[hsl(var(--bio-ink-muted))]">{format(parseISO(s.data), "dd/MM/yyyy")}</td>
                   {FIELDS.map((f) => (
-                    <td key={f.key} className="p-3 text-center text-white/75">
+                    <td key={f.key} className="p-3 text-center text-[hsl(var(--bio-ink-muted))]">
                       {(s[f.key] as number | null) ?? "—"}
                     </td>
                   ))}

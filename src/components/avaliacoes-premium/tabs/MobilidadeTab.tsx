@@ -154,7 +154,7 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
     if (!ultimaMobilidade) {
       return (
         <div className="bio-card p-8 text-center space-y-3">
-          <p className="text-sm text-white/55">
+          <p className="text-sm text-[hsl(var(--bio-ink-muted))]">
             Nenhuma avaliação de mobilidade/flexibilidade registrada para este aluno.
           </p>
           <Button onClick={() => setFormOpen(true)}>
@@ -166,7 +166,7 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
     return (
       <div className="space-y-4">
         <div className="bio-card overflow-hidden">
-          <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between gap-3">
+          <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex items-center justify-between gap-3">
             <h3 className="bio-heading text-base">Mobilidade / Flexibilidade</h3>
             <div className="flex items-center gap-3">
               <span className="bio-label">
@@ -179,19 +179,19 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
           </div>
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left text-xs font-medium text-white/60 p-3">Métrica</th>
-                <th className="text-center text-xs font-medium text-white/60 p-3 w-20">Esquerdo</th>
-                <th className="text-center text-xs font-medium text-white/60 p-3 w-24">Class. E</th>
-                <th className="text-center text-xs font-medium text-white/60 p-3 w-20">Direito</th>
-                <th className="text-center text-xs font-medium text-white/60 p-3 w-24">Class. D</th>
+              <tr className="border-b border-[hsl(var(--bio-line))]">
+                <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">Métrica</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Esquerdo</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. E</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Direito</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. D</th>
               </tr>
             </thead>
             <tbody>
               {ultimaMobilidade.metricas.map((m) => (
-                <tr key={m.metric} className="border-b border-white/5">
-                  <td className="p-3 text-sm text-white/90">{m.metric}</td>
-                  <td className="p-3 text-center text-sm text-white/80">
+                <tr key={m.metric} className="border-b border-[hsl(var(--bio-line))]">
+                  <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">{m.metric}</td>
+                  <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
                     {m.left !== null ? `${m.left}°` : "—"}
                   </td>
                   <td className="p-3 text-center">
@@ -203,7 +203,7 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
                       </span>
                     )}
                   </td>
-                  <td className="p-3 text-center text-sm text-white/80">
+                  <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
                     {m.right !== null ? `${m.right}°` : "—"}
                   </td>
                   <td className="p-3 text-center">
@@ -228,7 +228,7 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
     <div className="space-y-4">
       <div className="bio-card p-4 flex items-start justify-between gap-4">
         <div className="flex-1">
-        <AssessmentDateField
+        <AssessmentDateField theme="light"
           value={data}
           onChange={setData}
           helperText="Usada apenas quando uma nova avaliação for criada. Ao mesclar em uma avaliação existente (com força já registrada), a data original é preservada."
@@ -241,14 +241,14 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
       <div className="bio-card overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/10">
-              <th className="text-left text-xs font-medium text-white/60 p-3">
+            <tr className="border-b border-[hsl(var(--bio-line))]">
+              <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">
                 Mobilidade / Flexibilidade
               </th>
-              <th className="text-center text-xs font-medium text-white/60 p-3 w-20">Esquerdo</th>
-              <th className="text-center text-xs font-medium text-white/60 p-3 w-24">Class. E</th>
-              <th className="text-center text-xs font-medium text-white/60 p-3 w-20">Direito</th>
-              <th className="text-center text-xs font-medium text-white/60 p-3 w-24">Class. D</th>
+              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Esquerdo</th>
+              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. E</th>
+              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Direito</th>
+              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. D</th>
             </tr>
           </thead>
           <tbody>
@@ -260,11 +260,11 @@ export function MobilidadeTab({ alunoId, latest = null, history = [] }: Props) {
               const rc = !isNaN(r) ? classifyAngle(metric, r) : null;
               const ref = assessmentReferences[metric]?.referenceText;
               return (
-                <tr key={metric} className="border-b border-white/5">
+                <tr key={metric} className="border-b border-[hsl(var(--bio-line))]">
                   <td className="p-3">
-                    <p className="text-sm text-white/90">{metric}</p>
+                    <p className="text-sm text-[hsl(var(--bio-ink))]">{metric}</p>
                     {ref && (
-                      <p className="text-[10px] text-white/45 mt-0.5 italic">{ref}</p>
+                      <p className="text-[10px] text-[hsl(var(--bio-ink-faint))] mt-0.5 italic">{ref}</p>
                     )}
                   </td>
                   <td className="p-3">

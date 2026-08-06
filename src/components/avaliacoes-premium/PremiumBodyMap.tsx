@@ -13,7 +13,7 @@ interface Props {
 export function PremiumBodyMap({ funcional }: Props) {
   if (!funcional || (funcional.metricas.length === 0 && funcional.forca.length === 0)) {
     return (
-      <div className="bio-card p-8 text-center text-white/55">
+      <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))]">
         <p className="bio-label mb-2">Mapa Corporal</p>
         <p className="text-sm">
           Nenhuma avaliação funcional registrada. Realize uma Avaliação Funcional v2
@@ -54,7 +54,7 @@ export function PremiumBodyMap({ funcional }: Props) {
       />
       {incompleto && chipLabel && (
         <div className="relative px-4 pt-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-200">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-700">
             <AlertTriangle className="w-3.5 h-3.5" />
             {chipLabel}
           </div>

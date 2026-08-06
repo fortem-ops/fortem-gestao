@@ -88,24 +88,24 @@ export function ComparacoesSalvas({ alunoId, onAplicar }: Props) {
         {lista.map((c) => (
           <div
             key={c.id}
-            className="group flex items-start gap-2 rounded-lg border border-white/10 bg-white/5 p-3 hover:bg-white/10 transition-colors"
+            className="group flex items-start gap-2 rounded-lg border border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-surface-2))] p-3 hover:bg-[hsl(var(--bio-surface-3))] transition-colors"
           >
             <button
               type="button"
               onClick={() => onAplicar(c)}
               className="flex-1 text-left min-w-0"
             >
-              <p className="text-sm text-white font-medium truncate">{c.titulo}</p>
-              <p className="text-[11px] text-white/60 mt-0.5">{resumo(c)}</p>
-              {c.nota && <p className="text-[11px] text-white/50 mt-1 line-clamp-2">{c.nota}</p>}
-              <p className="text-[10px] text-white/35 mt-1">
+              <p className="text-sm text-[hsl(var(--bio-ink))] font-medium truncate">{c.titulo}</p>
+              <p className="text-[11px] text-[hsl(var(--bio-ink-muted))] mt-0.5">{resumo(c)}</p>
+              {c.nota && <p className="text-[11px] text-[hsl(var(--bio-ink-muted))] mt-1 line-clamp-2">{c.nota}</p>}
+              <p className="text-[10px] text-[hsl(var(--bio-ink-faint))] mt-1">
                 Criado em {format(new Date(c.created_at), "dd/MM/yy HH:mm")}
               </p>
             </button>
             <Button
               size="icon"
               variant="ghost"
-              className="h-7 w-7 text-white/40 hover:text-destructive"
+              className="h-7 w-7 text-[hsl(var(--bio-ink-faint))] hover:text-destructive"
               onClick={() => setParaExcluir(c)}
               aria-label={`Excluir ${c.titulo}`}
             >

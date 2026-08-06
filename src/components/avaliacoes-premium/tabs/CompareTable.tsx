@@ -36,7 +36,7 @@ export function CompareTable({ titulo, labelA, labelB, rows, emptyMessage }: Pro
     return (
       <div className="bio-card p-5">
         <h3 className="bio-heading text-base mb-2">{titulo}</h3>
-        <p className="text-sm text-white/55">
+        <p className="text-sm text-[hsl(var(--bio-ink-muted))]">
           {emptyMessage ?? "Sem dados suficientes para esta categoria."}
         </p>
       </div>
@@ -45,12 +45,12 @@ export function CompareTable({ titulo, labelA, labelB, rows, emptyMessage }: Pro
 
   return (
     <div className="bio-card overflow-hidden">
-      <div className="px-5 py-3 border-b border-white/5">
+      <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))]">
         <h3 className="bio-heading text-base">{titulo}</h3>
       </div>
       <table className="w-full">
         <thead>
-          <tr className="border-b border-white/5 text-[11px] uppercase tracking-wide text-white/50">
+          <tr className="border-b border-[hsl(var(--bio-line))] text-[11px] uppercase tracking-wide text-[hsl(var(--bio-ink-muted))]">
             <th className="text-left p-3">Métrica</th>
             <th className="text-center p-3">{labelA}</th>
             <th className="text-center p-3">{labelB}</th>
@@ -74,10 +74,10 @@ export function CompareTable({ titulo, labelA, labelB, rows, emptyMessage }: Pro
             }
             const toneCls =
               tone === "good"
-                ? "text-emerald-300"
+                ? "text-emerald-600"
                 : tone === "bad"
-                  ? "text-rose-300"
-                  : "text-white/50";
+                  ? "text-rose-600"
+                  : "text-[hsl(var(--bio-ink-muted))]";
             const Icon =
               tone === "neutral" || delta === null
                 ? Minus
@@ -85,10 +85,10 @@ export function CompareTable({ titulo, labelA, labelB, rows, emptyMessage }: Pro
                   ? ArrowUp
                   : ArrowDown;
             return (
-              <tr key={r.label} className="border-b border-white/5">
-                <td className="p-3 text-sm text-white/85">{r.label}</td>
-                <td className="p-3 text-center text-sm text-white/80">{fmt(r.a, r)}</td>
-                <td className="p-3 text-center text-sm text-white/80">{fmt(r.b, r)}</td>
+              <tr key={r.label} className="border-b border-[hsl(var(--bio-line))]">
+                <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">{r.label}</td>
+                <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">{fmt(r.a, r)}</td>
+                <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">{fmt(r.b, r)}</td>
                 <td className={`p-3 text-center text-sm font-medium ${toneCls}`}>
                   {delta === null
                     ? "—"

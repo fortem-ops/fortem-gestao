@@ -191,9 +191,9 @@ export function ComparativoTab({ data, alunoId }: Props) {
       <div className="bio-card p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[180px]">
-            <Label className="text-xs text-white/60">Modo</Label>
+            <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">Modo</Label>
             <Select value={modo} onValueChange={(v) => setModo(v as Modo)}>
-              <SelectTrigger className="mt-1 h-9 bg-white/5 border-white/10 text-white">
+              <SelectTrigger className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -224,30 +224,30 @@ export function ComparativoTab({ data, alunoId }: Props) {
           {modo === "intervalo" && (
             <>
               <div>
-                <Label className="text-xs text-white/60">De</Label>
+                <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">De</Label>
                 <Input
                   type="date"
                   value={intervaloDe}
                   onChange={(e) => setIntervaloDe(e.target.value)}
-                  className="mt-1 h-9 bg-white/5 border-white/10 text-white w-44"
+                  className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))] w-44"
                 />
               </div>
               <div>
-                <Label className="text-xs text-white/60">Até</Label>
+                <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">Até</Label>
                 <Input
                   type="date"
                   value={intervaloAte}
                   onChange={(e) => setIntervaloAte(e.target.value)}
-                  className="mt-1 h-9 bg-white/5 border-white/10 text-white w-44"
+                  className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))] w-44"
                 />
               </div>
             </>
           )}
 
           {modo === "auto" && todasDatas.length >= 2 && (
-            <p className="text-xs text-white/55">
-              Comparando <b className="text-white/80">{format(parseISO(data.funcional.history[1]?.data ?? data.composicao.history[1]?.data ?? todasDatas[1]), "dd/MM/yy")}</b>{" "}
-              → <b className="text-white/80">{format(parseISO(todasDatas[0]), "dd/MM/yy")}</b>
+            <p className="text-xs text-[hsl(var(--bio-ink-muted))]">
+              Comparando <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(data.funcional.history[1]?.data ?? data.composicao.history[1]?.data ?? todasDatas[1]), "dd/MM/yy")}</b>{" "}
+              → <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(todasDatas[0]), "dd/MM/yy")}</b>
             </p>
           )}
 
@@ -330,9 +330,9 @@ function DataSelector({
 }) {
   return (
     <div>
-      <Label className="text-xs text-white/60">{label}</Label>
+      <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="mt-1 h-9 w-52 bg-white/5 border-white/10 text-white">
+        <SelectTrigger className="mt-1 h-9 w-52 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
           <SelectValue placeholder="Selecione" />
         </SelectTrigger>
         <SelectContent>
@@ -414,9 +414,9 @@ function AvisosProximidade({
   return (
     <div className="bio-card p-3 border-l-2 border-amber-500/60 bg-amber-500/5">
       <div className="flex items-start gap-2">
-        <AlertCircle className="w-4 h-4 text-amber-300 mt-0.5 flex-shrink-0" />
-        <div className="text-xs text-white/75 space-y-0.5">
-          <p className="font-medium text-amber-200">Datas aproximadas</p>
+        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+        <div className="text-xs text-[hsl(var(--bio-ink-muted))] space-y-0.5">
+          <p className="font-medium text-amber-700">Datas aproximadas</p>
           {alertas.map((a) => (
             <p key={a.nome}>
               <b>{a.nome}</b>: usando {format(parseISO(a.snap!.data), "dd/MM/yy")} (a data escolhida
@@ -432,7 +432,7 @@ function AvisosProximidade({
 function IntervaloGrafico({ serie }: { serie: Array<Record<string, unknown>> }) {
   if (serie.length < 2) {
     return (
-      <div className="bio-card p-8 text-center text-white/55 text-sm">
+      <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
         Necessário ao menos 2 pontos dentro do intervalo selecionado.
       </div>
     );
@@ -442,10 +442,10 @@ function IntervaloGrafico({ serie }: { serie: Array<Record<string, unknown>> }) 
       <h3 className="bio-heading text-base mb-3">Evolução no intervalo</h3>
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={serie as Record<string, string | number | null>[]}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 100% / 0.06)" />
-          <XAxis dataKey="data" stroke="hsl(0 0% 100% / 0.4)" tick={{ fontSize: 11 }} />
-          <YAxis stroke="hsl(0 0% 100% / 0.4)" tick={{ fontSize: 11 }} />
-          <Tooltip contentStyle={{ background: "hsl(220 18% 12%)", border: "1px solid hsl(0 0% 100% / 0.1)", borderRadius: 8 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 86%)" />
+          <XAxis dataKey="data" stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} />
+          <YAxis stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} />
+          <Tooltip contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(220 14% 86%)", borderRadius: 8 }} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
           <Line type="monotone" dataKey="indice" name="Índice Fortem" stroke="hsl(0 84% 60%)" strokeWidth={3} dot={{ r: 4 }} connectNulls />
           <Line type="monotone" dataKey="mobilidade" name="Mobilidade" stroke="hsl(var(--sev-medium))" strokeWidth={2} connectNulls />

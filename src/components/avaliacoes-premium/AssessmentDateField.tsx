@@ -17,7 +17,26 @@ interface Props {
   className?: string;
   id?: string;
   disabled?: boolean;
+  /**
+   * "dark" (padrão) mantém a aparência do formulário legado de avaliações.
+   * "light" é usado dentro da tela Avaliações Premium (tema claro).
+   */
+  theme?: "dark" | "light";
 }
+
+const THEME = {
+  dark: {
+    label: "text-white/65",
+    input: "bg-white/5 border-white/10 text-white",
+    helper: "text-white/45",
+  },
+  light: {
+    label: "text-[hsl(var(--bio-ink-muted))]",
+    input:
+      "bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]",
+    helper: "text-[hsl(var(--bio-ink-faint))]",
+  },
+} as const;
 
 /**
  * Campo compartilhado de data para lançamento retroativo de avaliações.
@@ -31,11 +50,13 @@ export function AssessmentDateField({
   className,
   id = "assessment-date",
   disabled,
+  theme = "dark",
 }: Props) {
   const max = todayISO();
+  const tone = THEME[theme];
   return (
     <div className={className}>
-      <Label htmlFor={id} className="text-xs text-white/65 flex items-center gap-1.5">
+      <Label htmlFor={id} className={`text-xs ${tone.label} flex items-center gap-1.5`}>
         <CalendarIcon className="w-3.5 h-3.5" /> {label}
       </Label>
       <Input
@@ -45,11 +66,9 @@ export function AssessmentDateField({
         max={max}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 h-9 bg-white/5 border-white/10 text-white w-full md:w-56"
+        className={`mt-1 h-9 w-full md:w-56 ${tone.input}`}
       />
-      {helperText && (
-        <p className="text-[10px] text-white/45 mt-1">{helperText}</p>
-      )}
+      {helperText && <p className={`text-[10px] ${tone.helper} mt-1`}>{helperText}</p>}
     </div>
   );
 }
