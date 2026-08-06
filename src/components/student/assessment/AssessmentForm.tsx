@@ -360,6 +360,11 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
   );
 }
 
+// Somente estes tipos continuam disponíveis no fluxo legado (Técnico > Avaliações).
+// Os demais (funcional_v2, composicao_pollock, dinamico) foram migrados para Avaliações Premium.
+// Para reverter/expandir, basta adicionar o slug aqui.
+const TIPOS_PERMITIDOS_LEGADO = ["experimental"];
+
 export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
   const { data: tipos = [], isLoading: loadingTipos } = useQuery({
     queryKey: ["avaliacao-tipos"],
