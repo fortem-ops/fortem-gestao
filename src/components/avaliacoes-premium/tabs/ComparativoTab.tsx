@@ -250,6 +250,21 @@ export function ComparativoTab({ data, alunoId }: Props) {
               → <b className="text-white/80">{format(parseISO(todasDatas[0]), "dd/MM/yy")}</b>
             </p>
           )}
+
+          {modo !== "auto" && (
+            <div className="ml-auto">
+              <SalvarComparacaoDialog
+                alunoId={alunoId}
+                params={{
+                  modo,
+                  data_a: modo === "datas" ? dataA || null : null,
+                  data_b: modo === "datas" ? dataB || null : null,
+                  intervalo_de: modo === "intervalo" ? intervaloDe || null : null,
+                  intervalo_ate: modo === "intervalo" ? intervaloAte || null : null,
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
