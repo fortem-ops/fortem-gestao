@@ -54,6 +54,9 @@ export default function Agenda() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
+  const [fAtividade, setFAtividade] = useState<string[]>([]);
+  const [fProfissional, setFProfissional] = useState<string[]>([]);
+  const [fAluno, setFAluno] = useState<string[]>([]);
 
   const weekDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
