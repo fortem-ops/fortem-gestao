@@ -91,6 +91,9 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [local, setLocal] = useState("");
   const [tipo, setTipo] = useState("avulso");
   const [diaSemana, setDiaSemana] = useState("");
+  const [diasSemana, setDiasSemana] = useState<string[]>([]);
+  const [horarios, setHorarios] = useState<string[]>([]);
+  const [novoHorario, setNovoHorario] = useState("16:30");
   const [dataEspecifica, setDataEspecifica] = useState("");
   const [horarioInicio, setHorarioInicio] = useState("08:00");
   const [horarioFim, setHorarioFim] = useState("09:00");
@@ -103,6 +106,25 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
   const [protocolo, setProtocolo] = useState("");
 
   const isEditing = !!editEvent;
+  // Modo lote: criação de horários fixos em várias combinações dia × horário
+  const modoLote = tipo === "fixo" && !isEditing;
+
+  const somaUmaHora = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    const total = (h * 60 + m + 60) % (24 * 60);
+    return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  };
+
+  const toggleDia = (v: string) =>
+    setDiasSemana((prev) => (prev.includes(v) ? prev.filter((d) => d !== v) : [...prev, v]));
+
+  const adicionarHorario = () => {
+    if (!novoHorario) return;
+    setHorarios((prev) => (prev.includes(novoHorario) ? prev : [...prev, novoHorario].sort()));
+  };
+
+  const totalLote = diasSemana.length * horarios.length;
+  const loteMultiplo = modoLote && totalLote > 1;
 
   // Apply prefill or editEvent when dialog opens
   useEffect(() => {
@@ -353,16 +375,63 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const payload: any = {
+      const base: any = {
         atividade,
         local,
         tipo,
-        horario_inicio: horarioInicio,
-        horario_fim: horarioFim,
         profissional_id: profissionalId || (atividade === "Avaliação Funcional" ? null : user?.id),
         consultor_id: ["Treino Experimental", "Avaliação Funcional"].includes(atividade) ? (consultorId || null) : null,
         protocolo: atividade === "Avaliação Funcional" ? (protocolo || null) : null,
         observacoes: observacoes || null,
+      };
+
+      // Criação em lote de horários fixos (dias × horários)
+      if (modoLote) {
+        const dias = diasSemana.map((d) => parseInt(d));
+        const combos = dias.flatMap((d) => horarios.map((h) => ({ dia: d, hora: h })));
+        const unico = combos.length === 1;
+
+        // Ignora duplicados já existentes na grade
+        const { data: existentes } = await supabase
+          .from("agenda_servicos")
+          .select("dia_semana, horario_inicio")
+          .eq("tipo", "fixo")
+          .eq("atividade", atividade)
+          .eq("local", local)
+          .in("dia_semana", dias);
+        const jaExiste = new Set(
+          (existentes || []).map((e: any) => `${e.dia_semana}|${String(e.horario_inicio).slice(0, 5)}`)
+        );
+
+        const novos = combos.filter((c) => !jaExiste.has(`${c.dia}|${c.hora}`));
+        const ignorados = combos.length - novos.length;
+        if (novos.length === 0) {
+          return { lote: true, criados: 0, ignorados };
+        }
+
+        const payloads = novos.map((c) => ({
+          ...base,
+          dia_semana: c.dia,
+          horario_inicio: c.hora,
+          horario_fim: somaUmaHora(c.hora),
+          aluno_id: unico ? (alunoId || null) : null,
+          credito_origem: unico && alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem ? creditoOrigem : null,
+        }));
+
+        const { data: inseridos, error } = await supabase
+          .from("agenda_servicos")
+          .insert(payloads)
+          .select();
+        if (error) throw error;
+
+        if (unico) return (inseridos || [])[0];
+        return { lote: true, criados: (inseridos || []).length, ignorados };
+      }
+
+      const payload: any = {
+        ...base,
+        horario_inicio: horarioInicio,
+        horario_fim: horarioFim,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
         aluno_id: alunoId || null,
         credito_origem: (alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
@@ -393,7 +462,19 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       queryClient.invalidateQueries({ queryKey: ["student_credits"] });
       queryClient.invalidateQueries({ queryKey: ["creditos-aluno", alunoId] });
-      toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
+      if (inserted?.lote) {
+        const { criados, ignorados } = inserted;
+        if (criados === 0) {
+          toast.info("Nenhum horário criado — todos já existiam na grade.");
+        } else {
+          toast.success(
+            `${criados} horário${criados > 1 ? "s" : ""} fixo${criados > 1 ? "s" : ""} criado${criados > 1 ? "s" : ""}` +
+            (ignorados > 0 ? ` · ${ignorados} já existia${ignorados > 1 ? "m" : ""}` : "")
+          );
+        }
+      } else {
+        toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
+      }
 
       // Fallback de notificação (idempotente via tabela agenda_notificacoes_log)
       if (!isEditing && inserted?.id && inserted.aluno_id &&
@@ -426,6 +507,9 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setLocal("");
     setTipo("avulso");
     setDiaSemana("");
+    setDiasSemana([]);
+    setHorarios([]);
+    setNovoHorario("16:30");
     setDataEspecifica("");
     setHorarioInicio("08:00");
     setHorarioFim("09:00");
@@ -438,8 +522,10 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
     setProtocolo("");
   };
 
-  const canSubmit = atividade && local && horarioInicio && horarioFim &&
-    (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "") &&
+  const canSubmit = atividade && local &&
+    (modoLote
+      ? totalLote > 0
+      : horarioInicio && horarioFim && (tipo === "fixo" ? diaSemana !== "" : dataEspecifica !== "")) &&
     (!exigeEscolhaOrigem || !!creditoOrigem);
 
   const hasCredits =
@@ -501,35 +587,100 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             </Select>
           </div>
 
-          {tipo === "fixo" ? (
-            <div className="space-y-2">
-              <Label>Dia da Semana</Label>
-              <Select value={diaSemana} onValueChange={setDiaSemana}>
-                <SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger>
-                <SelectContent>
-                  {DIAS_SEMANA.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label>Data</Label>
-              <Input type="date" value={dataEspecifica} onChange={(e) => setDataEspecifica(e.target.value)} />
-            </div>
-          )}
+          {modoLote ? (
+            <>
+              <div className="space-y-2">
+                <Label>Dias da Semana</Label>
+                <div className="flex flex-wrap gap-2">
+                  {DIAS_SEMANA.map((d) => {
+                    const ativo = diasSemana.includes(d.value);
+                    return (
+                      <button
+                        key={d.value}
+                        type="button"
+                        onClick={() => toggleDia(d.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                          ativo
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground border-border hover:bg-accent"
+                        }`}
+                      >
+                        {d.label.slice(0, 3)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Horário Início</Label>
-              <Input type="time" value={horarioInicio} onChange={(e) => setHorarioInicio(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Horário Fim</Label>
-              <Input type="time" value={horarioFim} onChange={(e) => setHorarioFim(e.target.value)} />
-            </div>
-          </div>
+              <div className="space-y-2">
+                <Label>Horários</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="time"
+                    value={novoHorario}
+                    onChange={(e) => setNovoHorario(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" onClick={adicionarHorario}>Adicionar</Button>
+                </div>
+                {horarios.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {horarios.map((h) => (
+                      <Badge key={h} variant="secondary" className="text-xs gap-1.5">
+                        {h} → {somaUmaHora(h)}
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => setHorarios((prev) => prev.filter((x) => x !== h))}
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Cada horário dura 1 hora (ex.: 16:30 → 17:30).</p>
+                )}
+                {totalLote > 0 && (
+                  <p className="text-xs text-primary font-medium">
+                    {diasSemana.length} dia{diasSemana.length > 1 ? "s" : ""} × {horarios.length} horário{horarios.length > 1 ? "s" : ""} = {totalLote} horário{totalLote > 1 ? "s" : ""} fixo{totalLote > 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {tipo === "fixo" ? (
+                <div className="space-y-2">
+                  <Label>Dia da Semana</Label>
+                  <Select value={diaSemana} onValueChange={setDiaSemana}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger>
+                    <SelectContent>
+                      {DIAS_SEMANA.map((d) => (
+                        <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Data</Label>
+                  <Input type="date" value={dataEspecifica} onChange={(e) => setDataEspecifica(e.target.value)} />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Horário Início</Label>
+                  <Input type="time" value={horarioInicio} onChange={(e) => setHorarioInicio(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Horário Fim</Label>
+                  <Input type="time" value={horarioFim} onChange={(e) => setHorarioFim(e.target.value)} />
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Student search */}
           <div className="space-y-2">
@@ -537,7 +688,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar aluno pelo nome..."
+                placeholder={loteMultiplo ? "Indisponível ao criar vários horários" : "Buscar aluno pelo nome..."}
+                disabled={loteMultiplo}
                 value={selectedAluno ? selectedAluno.nome : alunoSearch}
                 onChange={(e) => {
                   setAlunoSearch(e.target.value);
@@ -546,6 +698,11 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                 className="pl-9"
               />
             </div>
+            {loteMultiplo && (
+              <p className="text-xs text-muted-foreground">
+                Vários horários fixos são criados como vagas na grade, sem aluno vinculado.
+              </p>
+            )}
             {alunoId && selectedAluno && (
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">
