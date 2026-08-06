@@ -57,6 +57,7 @@ export default function PortalAgenda() {
   const [cancelando, setCancelando] = useState<string | null>(null);
   const [abaAgenda, setAbaAgenda] = useState<"treinos" | "corrida" | "servicos" | "agendamentos">("treinos");
   const [servicoSelecionado, setServicoSelecionado] = useState<string | null>(null);
+  const [diaServico, setDiaServico] = useState<Date | null>(null);
   const [showHistoricoTreinos, setShowHistoricoTreinos] = useState(false);
   const [filtroTreinos, setFiltroTreinos] = useState<"todos" | "realizado" | "faltou" | "cancelado">("todos");
   const [showHistoricoServicos, setShowHistoricoServicos] = useState(false);
