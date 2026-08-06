@@ -33,14 +33,18 @@ import {
 const DIAS_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const HORAS = Array.from({ length: 16 }, (_, i) => i + 6);
 
-const ATIVIDADE_COLORS: Record<string, string> = {
-  "Nutrição": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  "Reabilitação": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  "Avaliação Funcional": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  "Avaliação Física": "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  "Recovery (Bota de Compressão)": "bg-rose-500/20 text-rose-400 border-rose-500/30",
-  "Treino Experimental": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+// Cor de destaque por atividade (barra lateral / ponto). O texto sempre usa
+// tokens de alto contraste para garantir legibilidade.
+const ATIVIDADE_ACCENT: Record<string, string> = {
+  "Nutrição": "bg-blue-500",
+  "Reabilitação": "bg-purple-500",
+  "Avaliação Funcional": "bg-emerald-500",
+  "Avaliação Física": "bg-amber-500",
+  "Recovery (Bota de Compressão)": "bg-rose-500",
+  "Treino Experimental": "bg-cyan-500",
 };
+
+const accentDe = (atividade: string) => ATIVIDADE_ACCENT[atividade] || "bg-muted-foreground";
 
 export default function Agenda() {
   const { user } = useAuth();
