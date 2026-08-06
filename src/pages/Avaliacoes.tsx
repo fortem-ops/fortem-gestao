@@ -41,7 +41,8 @@ export default function Avaliacoes() {
         .from("avaliacoes")
         .select("*")
         .eq("aluno_id", alunoId)
-        .order("data", { ascending: false });
+        .order("data", { ascending: false })
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },

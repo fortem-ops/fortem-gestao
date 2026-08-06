@@ -67,7 +67,8 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
         .from("avaliacoes")
         .select("*")
         .eq("aluno_id", student.id)
-        .order("data", { ascending: false });
+        .order("data", { ascending: false })
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
