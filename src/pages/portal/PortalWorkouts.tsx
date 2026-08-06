@@ -257,8 +257,8 @@ export default function PortalWorkouts() {
       await registrarSessaoConcluida({
         alunoId: student.id,
         treinoId: treino.id,
-        variacao: variacaoExibida,
-        variacaoOriginal: foiTrocado ? variacaoAtual : null,
+        variacao: variacaoFeita,
+        variacaoOriginal: originalFeita,
         foiTroca: foiTrocado,
         agendamentoId: agendamentoHoje.id,
       });
@@ -271,7 +271,7 @@ export default function PortalWorkouts() {
 
       setVariacaoSelecionada(null);
       setConcluido(true);
-      toast.success(`${variacaoExibida} concluído! ${foiTrocado ? "(troca registrada)" : ""}`);
+      toast.success(`${variacaoFeita} concluído! ${foiTrocado ? "(troca registrada)" : ""}`);
     } catch (e: any) {
       toast.error(e.message || "Erro ao concluir treino.");
     } finally {
