@@ -116,7 +116,7 @@ export default function AvaliacoesPremium() {
                 <EvolucaoTab data={data} />
               </TabsContent>
               <TabsContent value="comparativo" className="mt-4">
-                <ComparativoTab data={data} />
+                <ComparativoTab data={data} alunoId={alunoId} />
               </TabsContent>
               <TabsContent value="recomendacoes" className="mt-4">
                 <RecomendacoesTab recomendacoes={recomendacoes} />
