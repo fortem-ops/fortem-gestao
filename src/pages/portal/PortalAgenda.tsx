@@ -1054,101 +1054,161 @@ export default function PortalAgenda() {
       )}
 
 
-      {abaAgenda === "servicos" && (
+      {abaAgenda === "servicos" && (() => {
+        const diaServicoStr = diaServico ? format(diaServico, "yyyy-MM-dd") : null;
+        const horariosDoDia = diaServicoStr ? horariosServicoPorDia[diaServicoStr] ?? [] : [];
+        const infoSelecionado = servicoSelecionado ? saldoPorAtividade[servicoSelecionado] : undefined;
+        const temCreditoSelecionado = !!infoSelecionado && (infoSelecionado.ilimitado || infoSelecionado.saldo > 0);
+        return (
         <div className="space-y-4">
-          <SectionLabel>Seus créditos de serviço</SectionLabel>
+          <SectionLabel>Serviços</SectionLabel>
 
-          {servicosDisponiveis.length === 0 ? (
-            <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-2">
-              <p className="text-sm font-bold text-foreground">Nenhum serviço disponível</p>
-              <p className="text-xs text-muted-foreground">
-                Seus serviços inclusos no plano aparecerão aqui quando disponíveis.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {servicosDisponiveis.map((s: any) => {
-                const saldoS = s.ilimitado ? Infinity : s.quantidade_inicial - s.quantidade_usada;
-                const temSaldo = saldoS > 0 || s.ilimitado;
-                const { icon: Icon } = iconServico(s.atividade);
-                const isSelected = servicoSelecionado === s.atividade;
-                return (
-                  <button
-                    key={s.atividade}
-                    onClick={() => setServicoSelecionado(isSelected ? null : s.atividade)}
-                    disabled={!temSaldo}
-                    className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-colors text-left ${
-                      isSelected
-                        ? "bg-primary/10 border-primary/40"
-                        : temSaldo
-                          ? "bg-card border-border hover:border-primary/20"
-                          : "bg-card border-border opacity-50 cursor-not-allowed"
-                    }`}
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
-                      <Icon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{s.atividade}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {s.ilimitado
-                          ? "Ilimitado"
-                          : `${saldoS} sessão${saldoS !== 1 ? "ões" : ""} disponível${saldoS !== 1 ? "is" : ""}`}
-                      </p>
-                    </div>
-                    {isSelected && <ChevronDown className="w-4 h-4 text-primary shrink-0" />}
-                    {!isSelected && temSaldo && <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <div className="space-y-2">
+            {SERVICOS_PORTAL.map((atividade) => {
+              const info = saldoPorAtividade[atividade];
+              const ilimitado = !!info?.ilimitado;
+              const saldoS = info?.saldo ?? 0;
+              const { icon: Icon } = iconServico(atividade);
+              const isSelected = servicoSelecionado === atividade;
+              return (
+                <button
+                  key={atividade}
+                  onClick={() => {
+                    const next = isSelected ? null : atividade;
+                    setServicoSelecionado(next);
+                    setDiaServico(null);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-4 rounded-xl border transition-colors text-left",
+                    isSelected ? "bg-primary/10 border-primary/40" : "bg-card border-border hover:border-primary/20"
+                  )}
+                >
+                  <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">{atividade}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {ilimitado
+                        ? "Ilimitado"
+                        : saldoS > 0
+                          ? `${saldoS} ${saldoS === 1 ? "sessão disponível" : "sessões disponíveis"}`
+                          : "Nenhum crédito disponível"}
+                    </p>
+                  </div>
+                  {isSelected ? (
+                    <ChevronDown className="w-4 h-4 text-primary shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
           {servicoSelecionado && (
             <div className="space-y-3">
               <SectionLabel>Horários disponíveis — {servicoSelecionado}</SectionLabel>
 
-              {horariosServico.length === 0 ? (
-                <div className="bg-card border border-border rounded-xl p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Nenhum horário disponível no momento.</p>
-                  <p className="text-xs text-muted-foreground mt-1">Entre em contato com a equipe FORTEM.</p>
+              {diasServicoDisponiveis.length === 0 ? (
+                <div className="bg-card border border-border rounded-xl p-4 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum horário disponível no momento — fale com a equipe.
+                  </p>
+                  <button
+                    onClick={() =>
+                      window.open(
+                        "https://wa.me/555135199451?text=" +
+                          encodeURIComponent(`Olá! Quero saber mais sobre o serviço de ${servicoSelecionado}.`),
+                        "_blank"
+                      )
+                    }
+                    className="py-2 px-3 rounded-lg bg-[#25D366] text-white text-xs font-bold"
+                  >
+                    WhatsApp
+                  </button>
                 </div>
               ) : (
-                horariosServico.map((h: any) => (
-                  <div key={h.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                    <div className="min-w-[44px] text-center">
-                      <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                        {h.data_especifica ? format(parseISO(h.data_especifica), "dd/MM") : DIA_ABREV[h.dia_semana]}
-                      </p>
-                      <p className="text-base font-black text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
-                        {h.horario_inicio.slice(0, 5)}
-                      </p>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{h.atividade}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {h.horario_inicio.slice(0, 5)} → {h.horario_fim.slice(0, 5)}
-                        {h.local ? ` · ${h.local}` : ""}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const quando = h.data_especifica
-                          ? format(parseISO(h.data_especifica), "dd/MM")
-                          : DIA_ABREV[h.dia_semana];
-                        window.open(
-                          `https://wa.me/555135199451?text=${encodeURIComponent(
-                            `Olá! Quero agendar ${h.atividade} no horário ${h.horario_inicio.slice(0, 5)} de ${quando}.`
-                          )}`,
-                          "_blank"
-                        );
-                      }}
-                      className="py-2 px-3 rounded-lg bg-primary text-white text-xs font-bold"
-                    >
-                      Agendar
-                    </button>
+                <>
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
+                    {diasServicoDisponiveis.map((d) => {
+                      const ativo = !!diaServico && isSameDay(d, diaServico);
+                      return (
+                        <button
+                          key={d.toISOString()}
+                          onClick={() => setDiaServico(d)}
+                          className={cn(
+                            "min-w-[62px] snap-start rounded-2xl border py-3 px-2 text-center transition-all",
+                            ativo
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "bg-card border-border text-foreground hover:border-primary/40"
+                          )}
+                        >
+                          <div className="text-[10px] uppercase tracking-wider font-bold opacity-80">
+                            {DIA_ABREV[d.getDay()]}
+                          </div>
+                          <div className="text-xl font-black mt-0.5" style={{ fontFamily: "Archivo, sans-serif" }}>
+                            {d.getDate()}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
-                ))
+
+                  {!diaServico ? (
+                    <div className="bg-card border border-border rounded-xl p-4 text-center">
+                      <p className="text-sm text-muted-foreground">Escolha um dia para ver os horários.</p>
+                    </div>
+                  ) : horariosDoDia.length === 0 ? (
+                    <div className="bg-card border border-border rounded-xl p-4 text-center">
+                      <p className="text-sm text-muted-foreground">Sem horários disponíveis neste dia.</p>
+                    </div>
+                  ) : (
+                    horariosDoDia.map((h: any) => (
+                      <div key={`${h.id}-${diaServicoStr}`} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                        <div className="min-w-[44px] text-center">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                            {format(diaServico, "dd/MM")}
+                          </p>
+                          <p className="text-base font-black text-foreground" style={{ fontFamily: "Archivo, sans-serif" }}>
+                            {h.horario_inicio.slice(0, 5)}
+                          </p>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-foreground">{h.atividade}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {h.horario_inicio.slice(0, 5)} → {h.horario_fim.slice(0, 5)}
+                            {h.local ? ` · ${h.local}` : ""}
+                          </p>
+                        </div>
+                        {temCreditoSelecionado ? (
+                          <button
+                            disabled={agendarServico.isPending}
+                            onClick={() =>
+                              agendarServico.mutate({ agendaId: h.id, data: diaServicoStr! })
+                            }
+                            className="py-2 px-3 rounded-lg bg-primary text-white text-xs font-bold disabled:opacity-50"
+                          >
+                            Agendar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              window.open(
+                                "https://wa.me/555135199451?text=" +
+                                  encodeURIComponent(`Olá! Quero saber mais sobre o serviço de ${h.atividade}.`),
+                                "_blank"
+                              )
+                            }
+                            className="py-2 px-3 rounded-lg bg-[#25D366] text-white text-xs font-bold"
+                          >
+                            Comprar
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </>
               )}
 
               <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
@@ -1171,7 +1231,9 @@ export default function PortalAgenda() {
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
+
 
 
 
