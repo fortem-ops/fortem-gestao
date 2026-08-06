@@ -322,13 +322,13 @@ export default function PortalWorkouts() {
         <div className="bg-card border border-primary/30 rounded-2xl p-6 text-center space-y-3">
           <p className="text-4xl">🎉</p>
           <p className="font-black text-xl text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-            {variacaoExibida} concluído!
+            {variacaoConcluida ?? variacaoExibida} concluído!
           </p>
           <p className="text-sm text-muted-foreground">
             Sessão {novaTotalSessoes} de {totalSessoesPrevistas} · Presença confirmada ✓
           </p>
-          {foiTrocado && (
-            <p className="text-xs text-warning">↕ Realizado fora de ordem (original: {variacaoAtual})</p>
+          {foiTrocado && variacaoOriginalConcluida && (
+            <p className="text-xs text-warning">↕ Realizado fora de ordem (original: {variacaoOriginalConcluida})</p>
           )}
         </div>
 
