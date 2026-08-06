@@ -43,13 +43,13 @@ export function PremiumBodyMap({ funcional }: Props) {
 
   return (
     <div className="bio-card overflow-hidden relative">
-      {/* Glow ambiente */}
+      {/* Glow ambiente (suave, compatível com o tema claro) */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-70"
+        className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           background:
-            "radial-gradient(60% 40% at 30% 10%, hsl(var(--sev-medium) / 0.16) 0%, transparent 60%), radial-gradient(50% 40% at 80% 90%, hsl(0 80% 55% / 0.10) 0%, transparent 60%)",
+            "radial-gradient(60% 40% at 30% 10%, hsl(var(--sev-medium) / 0.08) 0%, transparent 60%), radial-gradient(50% 40% at 80% 90%, hsl(0 80% 55% / 0.06) 0%, transparent 60%)",
         }}
       />
       {incompleto && chipLabel && (
