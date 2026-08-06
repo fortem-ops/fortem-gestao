@@ -473,6 +473,35 @@ export default function PortalAgenda() {
     },
   });
 
+  const agendarServico = useMutation({
+    mutationFn: async ({ agendaId, data }: { agendaId: string; data: string }) => {
+      const { data: result, error } = await (supabase as any).rpc("fn_agendar_servico", {
+        p_agenda_servico_id: agendaId,
+        p_data: data,
+      });
+      if (error) throw error;
+      const r = result as any;
+      if (!r?.ok) throw new Error(r?.erro || "erro");
+      return r;
+    },
+    onSuccess: () => {
+      toast.success("Serviço agendado!", { description: "Sua vaga está confirmada." });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-servicos-creditos"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-horarios-servico"] });
+      qc.invalidateQueries({ queryKey: ["portal-historico-servicos"] });
+    },
+    onError: (e: any) => {
+      const msgs: Record<string, string> = {
+        sem_creditos: "Você não tem créditos disponíveis para este serviço.",
+        sem_vaga: "Esse horário já foi reservado por outro aluno.",
+        horario_passado: "Esse horário já passou. Escolha outro.",
+        horario_invalido: "Horário indisponível.",
+        aluno_nao_encontrado: "Não foi possível identificar seu cadastro.",
+      };
+      toast.error(msgs[e.message] || "Erro ao agendar. Tente novamente.");
+    },
+  });
+
   const cancelar = useMutation({
     mutationFn: async (agendamentoId: string) => {
       const { data: result, error } = await supabase.rpc("fn_cancelar_treino_agendamento", {
