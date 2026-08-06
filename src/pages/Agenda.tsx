@@ -171,6 +171,31 @@ export default function Agenda() {
     onError: () => toast.error("Erro ao remover este dia"),
   });
 
+  // Opções dos filtros derivadas dos dados carregados
+  const opcoesAtividade = useMemo(() => {
+    const s = new Set<string>(agendas.map((a: any) => a.atividade).filter(Boolean));
+    return [...s].sort().map((v) => ({ value: v, label: v }));
+  }, [agendas]);
+
+  const opcoesProfissional = useMemo(() => {
+    const m = new Map<string, string>();
+    agendas.forEach((a: any) => {
+      if (a.profissional_id && a.profissional_nome) m.set(a.profissional_id, a.profissional_nome);
+    });
+    return [...m.entries()].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label));
+  }, [agendas]);
+
+  const opcoesAluno = useMemo(() => {
+    const m = new Map<string, string>();
+    agendas.forEach((a: any) => {
+      if (a.aluno_id && a.aluno_nome) m.set(a.aluno_id, a.aluno_nome);
+    });
+    return [...m.entries()].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label));
+  }, [agendas]);
+
+  const temFiltro = fAtividade.length > 0 || fProfissional.length > 0 || fAluno.length > 0;
+  const limparFiltros = () => { setFAtividade([]); setFProfissional([]); setFAluno([]); };
+
   const getEventsForCell = (dayIndex: number, hour: number) => {
     const date = weekDates[dayIndex];
     const diaSemana = date.getDay();
@@ -178,6 +203,10 @@ export default function Agenda() {
     return agendas.filter((a: any) => {
       const startHour = parseInt(a.horario_inicio?.split(":")[0] || "0");
       if (startHour !== hour) return false;
+
+      if (fAtividade.length > 0 && !fAtividade.includes(a.atividade)) return false;
+      if (fProfissional.length > 0 && !fProfissional.includes(a.profissional_id)) return false;
+      if (fAluno.length > 0 && !fAluno.includes(a.aluno_id)) return false;
 
       if (a.tipo === "fixo") {
         if (a.dia_semana !== diaSemana) return false;
