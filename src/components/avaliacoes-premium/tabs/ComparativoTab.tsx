@@ -172,8 +172,21 @@ export function ComparativoTab({ data, alunoId }: Props) {
   // Warnings quando o snapshot mais próximo diverge muito da data alvo
   const AVISO_DIAS = 7;
 
+  const aplicarSalvo = (c: ComparativoSalvo) => {
+    setModo(c.modo);
+    if (c.modo === "datas") {
+      setDataA(c.data_a ?? "");
+      setDataB(c.data_b ?? "");
+    } else if (c.modo === "intervalo") {
+      setIntervaloDe(c.intervalo_de ?? "");
+      setIntervaloAte(c.intervalo_ate ?? "");
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <ComparacoesSalvas alunoId={alunoId} onAplicar={aplicarSalvo} />
+
       {/* Header: seletor de modo */}
       <div className="bio-card p-4">
         <div className="flex flex-wrap items-end gap-3">
