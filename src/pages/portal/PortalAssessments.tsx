@@ -29,7 +29,8 @@ export default function PortalAssessments() {
         .select("*")
         .eq("aluno_id", student!.id)
         .in("tipo", ["funcional_v2", "funcional", "composicao_corporal", "pliometria"])
-        .order("data", { ascending: false });
+        .order("data", { ascending: false })
+        .order("created_at", { ascending: false });
       return (data || []) as Tables<"avaliacoes">[];
     },
   });

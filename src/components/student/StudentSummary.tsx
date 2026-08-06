@@ -149,6 +149,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
           .eq("aluno_id", student.id)
           .ilike("tipo", "%funcional%")
           .order("data", { ascending: false })
+          .order("created_at", { ascending: false })
           .limit(1),
         supabase
           .from("agenda_servicos")
