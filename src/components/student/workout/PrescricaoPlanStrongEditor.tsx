@@ -89,7 +89,7 @@ const AQUECIMENTO_GRUPO_MAP: Record<AquecimentoBloco, string> = {
   PREV: "Preventivo",
 };
 
-const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DIAS_SEMANA_OPCOES = [2, 3, 4, 5];
 
 interface Props {
   alunoId: string;
