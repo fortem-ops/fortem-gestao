@@ -21,9 +21,27 @@ interface Props {
   alunoId: string | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Customizações para reuso (ex.: reativação de ex-aluno). */
+  title?: string;
+  description?: string;
+  confirmLabel?: string;
+  successMessage?: string;
+  /** Nota gravada no movimento de pipeline gerado pela conversão. */
+  movementNote?: string;
+  onConverted?: () => void;
 }
 
-export function ConvertToProspectDialog({ alunoId, open, onOpenChange }: Props) {
+export function ConvertToProspectDialog({
+  alunoId,
+  open,
+  onOpenChange,
+  title = "Converter em Prospect",
+  description = "Complete os dados qualificados e a anamnese inicial.",
+  confirmLabel = "Converter em Prospect",
+  successMessage = "Convertido em Prospect",
+  movementNote,
+  onConverted,
+}: Props) {
   const qc = useQueryClient();
   const { data: origens = [] } = useLeadOrigens();
   const [saving, setSaving] = useState(false);
