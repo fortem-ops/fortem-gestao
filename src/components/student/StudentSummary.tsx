@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { getDisplayStatus } from "@/lib/studentStatus";
 import type { AlunoLicenca } from "@/lib/licencas";
 import { EditDadosCadastraisDialog } from "./EditDadosCadastraisDialog";
+import { AnamneseCard } from "./AnamneseCard";
 import AnnexDetailModal, { type AnnexDetail } from "@/components/legal-annex/AnnexDetailModal";
 import ContratoDetailModal, { type ContratoDetail } from "@/components/student/ContratoDetailModal";
 import MarkPresentialSignatureDialog from "@/components/student/MarkPresentialSignatureDialog";
@@ -725,6 +726,11 @@ export function StudentSummary({ student }: { student: Aluno }) {
           })}
         </div>
       </div>
+
+      {/* Seção: Anamnese inicial */}
+      <AnamneseCard alunoId={student.id} />
+
+
 
       {/* Seção 1.5: Serviços (Plano + Contratados) */}
       {(() => {
