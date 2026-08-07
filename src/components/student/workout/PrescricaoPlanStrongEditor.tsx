@@ -234,6 +234,36 @@ export function PrescricaoPlanStrongEditor({
       return { ...p, aquecimento: { ...aq, [b]: aq[b].filter((_, idx) => idx !== i) } };
     });
 
+  // ── Auxiliares por slot (T1..Tn) ────────────────────────────
+  const addAux = (slot: string) =>
+    setData((p) => {
+      const map = p.auxiliaresPorSlot ?? {};
+      return {
+        ...p,
+        auxiliaresPorSlot: { ...map, [slot]: [...(map[slot] ?? []), emptyAuxiliar()] },
+      };
+    });
+  const updateAux = (slot: string, i: number, patch: Partial<PSAuxiliar>) =>
+    setData((p) => {
+      const map = p.auxiliaresPorSlot ?? {};
+      return {
+        ...p,
+        auxiliaresPorSlot: {
+          ...map,
+          [slot]: (map[slot] ?? []).map((a, idx) => (idx === i ? { ...a, ...patch } : a)),
+        },
+      };
+    });
+  const removeAux = (slot: string, i: number) =>
+    setData((p) => {
+      const map = p.auxiliaresPorSlot ?? {};
+      return {
+        ...p,
+        auxiliaresPorSlot: { ...map, [slot]: (map[slot] ?? []).filter((_, idx) => idx !== i) },
+      };
+    });
+
+
   // ── Levantamentos ───────────────────────────────────────────
   const usados = data.levantamentos.map((l) => l.tipo);
   const disponiveis = PS_LEVANTAMENTOS.filter((t) => !usados.includes(t));
