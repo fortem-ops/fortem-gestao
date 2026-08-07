@@ -723,6 +723,36 @@ export function PrescricaoPlanStrongEditor({
     [data.levantamentos],
   );
 
+  // Poda automática: mantém só marcações de levantamentos ainda existentes
+  useEffect(() => {
+    setData((p) => {
+      const aq = ensureAq(p.aquecimento);
+      let changed = false;
+      const next = (Object.keys(aq) as AquecimentoBloco[]).reduce(
+        (acc, b) => {
+          acc[b] = aq[b].map((ex) => {
+            const dias = (ex.dias ?? []).filter((d) => aqDias.includes(d));
+            if (dias.length !== (ex.dias?.length ?? 0)) {
+              changed = true;
+              return { ...ex, dias };
+            }
+            return ex;
+          });
+          return acc;
+        },
+        {} as Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>,
+      );
+      return changed ? { ...p, aquecimento: next } : p;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aqDias]);
+
+  const toggleAqDia = (b: AquecimentoBloco, i: number, dia: string, atual: string[]) =>
+    updateAq(b, i, {
+      dias: atual.includes(dia) ? atual.filter((d) => d !== dia) : [...atual, dia],
+    });
+
+
   return (
     <div className="container mx-auto p-6 max-w-6xl animate-fade-in space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
