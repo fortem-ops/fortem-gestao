@@ -440,9 +440,10 @@ export async function exportPlanStrongPDF({
         ];
         porLev.forEach((pl, i) => {
           headSemana.push({
-            content: `${PS_LEV_LABEL[grupo[i].tipo]}:`,
+            content: `${PS_LEV_LABEL_CURTO[grupo[i].tipo] ?? PS_LEV_LABEL[grupo[i].tipo]}:`,
             styles: { fontStyle: "bold", halign: "right", fontSize: ROW_FONT - 0.8 },
           });
+
           for (let sIdx = 0; sIdx < maxSess[i]; sIdx++) {
             headSemana.push({
               content: pl.slots[sIdx] ?? "",
