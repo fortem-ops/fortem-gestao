@@ -19,6 +19,7 @@ import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoE
 import { emptyPersonalizado, type PersonalizadoConteudo } from "@/components/student/workout/personalizadoTypes";
 import { Prescricao531Editor } from "@/components/student/workout/Prescricao531Editor";
 import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM102Editor";
+import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 
 interface GroupSelection { grupo: string; subcategoria: string }
@@ -825,6 +826,8 @@ export default function BancoTreinos() {
   const [editor531, setEditor531] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [selectM102Open, setSelectM102Open] = useState(false);
   const [editorM102, setEditorM102] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [selectPSOpen, setSelectPSOpen] = useState(false);
+  const [editorPS, setEditorPS] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
@@ -1116,6 +1119,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editorPS) {
+    return (
+      <PrescricaoPlanStrongEditor
+        alunoId={editorPS.alunoId}
+        alunoNome={editorPS.alunoNome}
+        onBack={() => setEditorPS(null)}
+      />
+    );
+  }
+
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
@@ -1203,7 +1216,13 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102];
+            const syntheticPS: WorkoutTemplate = {
+              fase: "Plan Strong 50",
+              frequencia: "1-4 lev.",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS];
           }
           if (items.length === 0) return null;
           return (
@@ -1216,7 +1235,8 @@ export default function BancoTreinos() {
                   const isUnderConstruction = ["Planilha 5RM"].includes(template.fase);
                   const is531 = template.fase === "5-3-1";
                   const isM102Sintetico = template.fase === "M102";
-                  const isDinamicoPorAluno = is531 || isM102Sintetico;
+                  const isPSSintetico = template.fase === "Plan Strong 50";
+                  const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico;
                   return (
                   <Card
                     key={template.fase}
@@ -1236,6 +1256,10 @@ export default function BancoTreinos() {
                       }
                       if (isM102Sintetico) {
                         setSelectM102Open(true);
+                        return;
+                      }
+                      if (isPSSintetico) {
+                        setSelectPSOpen(true);
                         return;
                       }
                       if (template.fase === "Personalizado") {
@@ -1294,6 +1318,10 @@ export default function BancoTreinos() {
                       ) : isM102Sintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 11 semanas + teste · carga por tier em % do 1RM
+                        </p>
+                      ) : isPSSintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 1-6 meses · orçamento de volume (NL) por zona
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -1393,6 +1421,12 @@ export default function BancoTreinos() {
         onOpenChange={setSelectM102Open}
         title="Escolha o aluno para prescrever M102"
         onSelect={(a) => setEditorM102({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={selectPSOpen}
+        onOpenChange={setSelectPSOpen}
+        title="Escolha o aluno para prescrever Plan Strong 50"
+        onSelect={(a) => setEditorPS({ alunoId: a.id, alunoNome: a.nome })}
       />
     </div>
   );
