@@ -279,7 +279,7 @@ export interface PSMes {
 export interface PSLevantamentoConfig {
   tipo: PSLevantamento;
   rm1: number;
-  /** Dias de treino livres (rótulos, ex.: "Seg", "Qua"). */
+  /** Slots de treino compartilhados ocupados por este levantamento (ex.: ["T1", "T3"]). */
   diasTreino: string[];
   meses: PSMes[];
 }
@@ -287,8 +287,18 @@ export interface PSLevantamentoConfig {
 export interface PlanStrong50Conteudo {
   variante: "PLANSTRONG50";
   duracaoMeses: number;
+  /** Quantos slots de treino (T1..Tn) existem na prescrição inteira (2 a 5). */
+  diasTreinoSemana?: number;
   levantamentos: PSLevantamentoConfig[];
   aquecimento: Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
+}
+
+export const PS_DIAS_SEMANA_PADRAO = 3;
+
+/** Lista de slots T1..Tn. */
+export function psSlots(n: number | undefined): string[] {
+  const total = Math.min(5, Math.max(2, n ?? PS_DIAS_SEMANA_PADRAO));
+  return Array.from({ length: total }, (_, i) => `T${i + 1}`);
 }
 
 export function isPlanStrong50(c: unknown): c is PlanStrong50Conteudo {
