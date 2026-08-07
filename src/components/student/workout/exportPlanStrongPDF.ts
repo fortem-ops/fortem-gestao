@@ -336,8 +336,28 @@ export async function exportPlanStrongPDF({
     const right = [slots, rms].filter(Boolean).join("  ·  ");
     ly = sectionBar(doc, titulo, right || undefined, mainX, ly, mainW, 6.4);
 
-    const totalCols = 1 + n * 2;
     const nMeses = Math.max(...grupo.map((l) => l.meses.length));
+
+    // nº máximo de sessões por semana em cada levantamento (define colunas)
+    const maxSess = grupo.map((lev) =>
+      Math.max(
+        1,
+        ...lev.meses.flatMap((m) => m.semanas.map((s) => Math.max(1, s.sessoes || 0))),
+      ),
+    );
+    const totalSess = maxSess.reduce((a, b) => a + b, 0);
+    const totalCols = 1 + n + totalSess;
+
+    // índice da primeira coluna de cada levantamento (coluna KG)
+    const levStart: number[] = [];
+    {
+      let c = 1;
+      for (let i = 0; i < n; i++) {
+        levStart.push(c);
+        c += 1 + maxSess[i];
+      }
+    }
+
     const body: Cell[][] = [];
 
     for (let mesIdx = 0; mesIdx < nMeses; mesIdx++) {
@@ -361,13 +381,14 @@ export async function exportPlanStrongPDF({
         // sessões por levantamento
         const porLev = grupo.map((lev) => {
           const semana = lev.meses[mesIdx]?.semanas[semanaIdx];
-          if (!semana) return { sessoes: [], nSessoes: 0, split: "" };
+          if (!semana) return { sessoes: [], nSessoes: 0, slots: [] as string[] };
           const nSessoes = Math.max(1, semana.sessoes || 0);
           const fr = fracoesSessoes(nSessoes, semana.splitSessao);
+          const slotsLev = lev.diasTreino ?? [];
           return {
             sessoes: fr.map((_, sIdx) => calcularSessao(lev, mesIdx, semanaIdx, sIdx)),
             nSessoes,
-            split: semana.splitSessao ?? "",
+            slots: fr.map((_, sIdx) => slotsLev[sIdx] ?? `S${sIdx + 1}`),
           };
         });
 
@@ -375,49 +396,55 @@ export async function exportPlanStrongPDF({
         PS_ZONAS.forEach((z) => {
           const cells: Cell[] = [{ content: z.label, styles: { fontStyle: "bold" } }];
           let algum = false;
-          porLev.forEach((pl) => {
-            const partes: string[] = [];
+          porLev.forEach((pl, i) => {
             let kg = 0;
+            const valores: string[] = [];
             pl.sessoes.forEach((s) => {
               const zs = s?.zonas.find((x) => x.zona === z.key);
               if (zs && zs.series) {
-                partes.push(zs.series);
+                valores.push(zs.series);
                 kg = zs.kg;
+              } else {
+                valores.push("");
               }
             });
-            if (partes.length) algum = true;
-            cells.push({ content: partes.length && kg ? `${kg} kg` : "—", styles: { halign: "right" } });
-            cells.push({ content: partes.join("  ·  "), styles: {} });
+            if (valores.some(Boolean)) algum = true;
+            cells.push({
+              content: valores.some(Boolean) && kg ? `${kg} kg` : "—",
+              styles: { halign: "right" },
+            });
+            for (let sIdx = 0; sIdx < maxSess[i]; sIdx++) {
+              cells.push({ content: valores[sIdx] ?? "", styles: { halign: "center" } });
+            }
           });
           if (algum) linhasZona.push(cells);
         });
 
         if (!linhasZona.length) continue;
 
-        const resumo = grupo
-          .map((lev, i) => {
-            const pl = porLev[i];
-            if (!pl.nSessoes) return null;
-            const slotsLev = lev.diasTreino?.length ? lev.diasTreino.join(", ") : "";
-            const s = `${pl.nSessoes} ${pl.nSessoes === 1 ? "sessão" : "sessões"}${slotsLev ? ` · ${slotsLev}` : ""}`;
-            return n > 1 ? `${PS_LEV_LABEL[lev.tipo]}: ${s}` : s;
-          })
-          .filter(Boolean)
-          .join("  ·  ");
-
-        body.push([
+        // linha de cabeçalho da semana: nome do levantamento + rótulos de slot por sessão
+        const headSemana: Cell[] = [
           {
-            content: `Semana ${semanaIdx + 1}${resumo ? `  ·  ${resumo}` : ""}`,
-            colSpan: totalCols,
-            styles: {
-              fillColor: SURFACE,
-              textColor: INK,
-              fontStyle: "bold",
-              halign: "left",
-              fontSize: ROW_FONT - 0.6,
-            },
+            content: `Semana ${semanaIdx + 1}`,
+            styles: { fontStyle: "bold", fontSize: ROW_FONT - 0.6 },
           },
-        ]);
+        ];
+        porLev.forEach((pl, i) => {
+          headSemana.push({
+            content: `${PS_LEV_LABEL[grupo[i].tipo]}:`,
+            styles: { fontStyle: "bold", halign: "right", fontSize: ROW_FONT - 0.8 },
+          });
+          for (let sIdx = 0; sIdx < maxSess[i]; sIdx++) {
+            headSemana.push({
+              content: pl.slots[sIdx] ?? "",
+              styles: { fontStyle: "bold", halign: "center", fontSize: ROW_FONT - 0.8 },
+            });
+          }
+        });
+        headSemana.forEach((c) => {
+          c.styles = { ...(c.styles ?? {}), fillColor: SURFACE, textColor: INK };
+        });
+        body.push(headSemana);
         body.push(...linhasZona);
       }
     }
@@ -432,22 +459,16 @@ export async function exportPlanStrongPDF({
 
     const wZona = n > 2 ? 20 : 26;
     const wKg = n > 2 ? 13 : n === 2 ? 16 : 20;
-    const wSeries = (mainW - wZona - n * wKg) / n;
-
-    const head: Cell[][] = [[
-      { content: "ZONA", styles: { halign: "left" as const } },
-      ...grupo.flatMap(() => [
-        { content: "KG", styles: { halign: "right" as const } },
-        { content: n > 1 ? "SÉRIES" : "SÉRIES SUGERIDAS", styles: { halign: "left" as const } },
-      ]),
-    ]];
+    const wSess = (mainW - wZona - n * wKg) / Math.max(1, totalSess);
 
     const colStyles: Record<number, Record<string, unknown>> = {
       0: { cellWidth: wZona },
     };
     for (let i = 0; i < n; i++) {
-      colStyles[1 + i * 2] = { cellWidth: wKg, halign: "right" };
-      colStyles[2 + i * 2] = { cellWidth: wSeries, overflow: "linebreak" };
+      colStyles[levStart[i]] = { cellWidth: wKg, halign: "right" };
+      for (let s = 0; s < maxSess[i]; s++) {
+        colStyles[levStart[i] + 1 + s] = { cellWidth: wSess, halign: "center" };
+      }
     }
 
     autoTable(doc, {
@@ -456,10 +477,8 @@ export async function exportPlanStrongPDF({
       tableWidth: mainW,
       theme: "plain",
       rowPageBreak: "avoid",
-      head,
       body,
       styles: { ...commonStyles, fontSize: n > 2 ? ROW_FONT - 1.2 : ROW_FONT },
-      headStyles: { ...commonHeadStyles, fontSize: n > 2 ? HEAD_FONT - 0.8 : HEAD_FONT },
       columnStyles: colStyles,
       didParseCell: (hd) => {
         if (hd.section === "body" && hd.row.raw && (hd.row.raw as Cell[]).length === totalCols) {
@@ -468,22 +487,22 @@ export async function exportPlanStrongPDF({
         }
       },
       didDrawCell: (hd) => {
-        if (n <= 1) return;
+        if (n <= 1 || hd.section !== "body") return;
         const raw = hd.row.raw as Cell[] | undefined;
-        const isSpanRow = hd.section === "body" && Array.isArray(raw) && raw.length === 1;
+        const isSpanRow = Array.isArray(raw) && raw.length === 1;
         if (isSpanRow) {
-          // linhas de mês/semana: desenha as divisórias manualmente sobre a célula mesclada
-          const isMes = String(raw?.[0]?.content ?? "").startsWith("MÊS");
-          doc.setDrawColor(...(isMes ? WHITE : RULE));
+          // linha de mês: divisórias desenhadas manualmente sobre a célula mesclada
+          doc.setDrawColor(...WHITE);
           doc.setLineWidth(0.15);
-          for (let i = 1; i < n; i++) {
-            const x = hd.cell.x + wZona + i * (wKg + wSeries);
+          let x = hd.cell.x + wZona;
+          for (let i = 0; i < n - 1; i++) {
+            x += wKg + maxSess[i] * wSess;
             doc.line(x, hd.cell.y, x, hd.cell.y + hd.cell.height);
           }
           return;
         }
-        // divisória vertical entre levantamentos (linhas de zona e cabeçalho)
-        if (hd.column.index > 1 && (hd.column.index - 1) % 2 === 0) {
+        // divisória vertical entre levantamentos (todas as demais linhas)
+        if (levStart.includes(hd.column.index) && hd.column.index > 1) {
           doc.setDrawColor(...RULE);
           doc.setLineWidth(0.15);
           doc.line(hd.cell.x, hd.cell.y, hd.cell.x, hd.cell.y + hd.cell.height);
