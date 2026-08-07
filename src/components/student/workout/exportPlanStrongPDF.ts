@@ -436,12 +436,9 @@ export async function exportPlanStrongPDF({
 
     const head: Cell[][] = [[
       { content: "ZONA", styles: { halign: "left" as const } },
-      ...grupo.flatMap((l) => [
-        { content: n > 1 ? `${PS_LEV_LABEL[l.tipo].toUpperCase()} KG` : "KG", styles: { halign: "right" as const } },
-        {
-          content: n > 1 ? `${PS_LEV_LABEL[l.tipo].toUpperCase()} · SÉRIES` : "SÉRIES SUGERIDAS",
-          styles: { halign: "left" as const },
-        },
+      ...grupo.flatMap(() => [
+        { content: "KG", styles: { halign: "right" as const } },
+        { content: n > 1 ? "SÉRIES" : "SÉRIES SUGERIDAS", styles: { halign: "left" as const } },
       ]),
     ]];
 
