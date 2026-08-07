@@ -303,6 +303,15 @@ export async function exportPlanStrongPDF({
   // ============================================================
   type Cell = { content: string; colSpan?: number; styles?: Record<string, unknown> };
 
+  const PS_LEV_LABEL_CURTO: Record<string, string> = {
+    agachamento: "Agachamento",
+    remada: "Remada",
+    terra: "Terra",
+    supino: "Supino",
+    press: "Press",
+  };
+
+
   const slotKey = (l: PSLevantamentoConfig) =>
     [...(l.diasTreino ?? [])].map((s) => s.trim().toUpperCase()).sort().join("|");
 
