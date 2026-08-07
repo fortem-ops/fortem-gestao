@@ -851,7 +851,36 @@ export function PrescricaoPlanStrongEditor({
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-2 flex items-end">
+            <div>
+              <Label className="flex items-center gap-1">
+                Dias de treino por semana
+                <HelpTip title="Slots de treino (T1..Tn)">
+                  <p>
+                    Define quantas sessões semanais a prescrição tem. Cada sessão vira um slot
+                    <strong> T1, T2, T3…</strong> compartilhado por toda a prescrição.
+                  </p>
+                  <p>
+                    Em cada levantamento você marca em quais slots ele entra — dois levantamentos
+                    podem ocupar o mesmo slot (ex.: T1 = Terra + Supino) e o mesmo levantamento pode
+                    aparecer em vários slots.
+                  </p>
+                  <p>O aquecimento também usa esses mesmos slots.</p>
+                </HelpTip>
+              </Label>
+              <Select value={String(diasSemana)} onValueChange={(v) => setDiasSemana(Number(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIAS_SEMANA_OPCOES.map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n} dias (T1–T{n})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
               <div className="flex gap-1.5 flex-wrap">
                 {Array.from({ length: data.duracaoMeses }, (_, i) => (
                   <Badge key={i} variant="outline" className="text-[10px]">
@@ -868,6 +897,7 @@ export function PrescricaoPlanStrongEditor({
               </div>
             </div>
           </div>
+
 
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold flex items-center gap-1">
