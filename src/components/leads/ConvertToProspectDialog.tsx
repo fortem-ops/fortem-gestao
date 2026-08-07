@@ -148,12 +148,28 @@ export function ConvertToProspectDialog({
         .update(updatePayload)
         .eq("id", alunoId);
       if (respErr) throw respErr;
-      toast.success("Convertido em Prospect");
+
+      // Nota customizada no último movimento gerado pela conversão (ex.: reativação).
+      if (movementNote) {
+        const { data: lastMov } = await supabase
+          .from("pipeline_movements")
+          .select("id")
+          .eq("aluno_id", alunoId)
+          .order("moved_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lastMov?.id) {
+          await supabase.from("pipeline_movements").update({ notes: movementNote }).eq("id", lastMov.id);
+        }
+      }
+
+      toast.success(successMessage);
       qc.invalidateQueries({ queryKey: ["leads-list"] });
 
       qc.invalidateQueries({ queryKey: ["prospects-list"] });
       qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
       qc.invalidateQueries({ queryKey: ["pipeline-last-moves"] });
+      onConverted?.();
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message || "Erro ao converter");
@@ -166,8 +182,8 @@ export function ConvertToProspectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Converter em Prospect</DialogTitle>
-          <DialogDescription>Complete os dados qualificados e a anamnese inicial.</DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
