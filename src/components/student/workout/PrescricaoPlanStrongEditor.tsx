@@ -43,7 +43,9 @@ import type {
 } from "@/components/student/workout/personalizadoTypes";
 import {
   type PlanStrong50Conteudo,
-  type PSLevantamento,
+  type PSAuxiliar,
+  emptyAuxiliar,
+  psAuxiliaresDoSlot,
   type PSLevantamentoConfig,
   type PSMes,
   type PSVariante,
