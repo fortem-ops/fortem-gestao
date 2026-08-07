@@ -16,6 +16,7 @@ import {
 import { ScheduleTaskDialog } from "./ScheduleTaskDialog";
 import { ConvertToAlunoDialog } from "./ConvertToAlunoDialog";
 import { MarkLostDialog } from "./MarkLostDialog";
+import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { cn } from "@/lib/utils";
 
 export interface PipelineCardData {
@@ -52,6 +53,7 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
   const [convertOpen, setConvertOpen] = useState(false);
   const [renewOpen, setRenewOpen] = useState(false);
   const [lostOpen, setLostOpen] = useState(false);
+  const [reativarOpen, setReativarOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: student.id,
     disabled: !draggable,
@@ -76,6 +78,8 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
   const showRenew = stageName === "Renovação de plano";
   const showLost = stageName === "Follow Up" || stageName === "Renovação de plano" || stageName === "Risco de evasão";
   const lostDest = student.current_funnel === "aluno" ? "Aluno inativo" : "Aluno perdido";
+  // Ex-aluno (inativo) pode voltar ao funil de prospects para agendar treino experimental.
+  const showReativar = stageName === "Aluno inativo" || student.current_funnel === "inativo";
 
   const valor = Number(student.meta?.valor_estimado_plano || 0);
 
@@ -215,7 +219,7 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
           </div>
         )}
 
-        {(showConvert || showRenew || showLost) && (
+        {(showConvert || showRenew || showLost || showReativar) && (
           <div className="mt-2 flex flex-wrap gap-1.5 pt-2 border-t border-border/50">
             {showConvert && (
               <Button
@@ -237,6 +241,17 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
                 onClick={(e) => { e.stopPropagation(); setRenewOpen(true); }}
               >
                 <RefreshCw className="w-3 h-3" /> Ganho
+              </Button>
+            )}
+            {showReativar && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[10px] gap-1 border-sky-500/40 text-sky-300 hover:bg-sky-500/10"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setReativarOpen(true); }}
+              >
+                <RefreshCw className="w-3 h-3" /> Reativar
               </Button>
             )}
             {showLost && (
@@ -282,6 +297,18 @@ export function PipelineCard({ student, draggable = true, onOpen }: Props) {
           fullConvert={false}
           destinoStage="Aluno ativo"
           title={`Renovar plano de ${student.nome}`}
+        />
+      )}
+      {reativarOpen && (
+        <ConvertToProspectDialog
+          alunoId={student.id}
+          open={reativarOpen}
+          onOpenChange={setReativarOpen}
+          title={`Reativar ${student.nome} como Prospect`}
+          description="Revise os dados e atualize a anamnese antes de retornar o ex-aluno ao funil de prospects."
+          confirmLabel="Reativar como Prospect"
+          successMessage="Ex-aluno reativado como Prospect"
+          movementNote="Reativação de ex-aluno"
         />
       )}
       {lostOpen && (
