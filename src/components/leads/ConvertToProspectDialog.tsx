@@ -285,7 +285,7 @@ export function ConvertToProspectDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={save} disabled={saving}>{saving ? "Convertendo..." : "Converter em Prospect"}</Button>
+          <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : confirmLabel}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
