@@ -468,8 +468,22 @@ export async function exportPlanStrongPDF({
         }
       },
       didDrawCell: (hd) => {
-        // divisória vertical entre levantamentos
-        if (n > 1 && hd.column.index > 0 && (hd.column.index - 1) % 2 === 0) {
+        if (n <= 1) return;
+        const raw = hd.row.raw as Cell[] | undefined;
+        const isSpanRow = hd.section === "body" && Array.isArray(raw) && raw.length === 1;
+        if (isSpanRow) {
+          // linhas de mês/semana: desenha as divisórias manualmente sobre a célula mesclada
+          const isMes = String(raw?.[0]?.content ?? "").startsWith("MÊS");
+          doc.setDrawColor(...(isMes ? WHITE : RULE));
+          doc.setLineWidth(0.15);
+          for (let i = 1; i < n; i++) {
+            const x = hd.cell.x + wZona + i * (wKg + wSeries);
+            doc.line(x, hd.cell.y, x, hd.cell.y + hd.cell.height);
+          }
+          return;
+        }
+        // divisória vertical entre levantamentos (linhas de zona e cabeçalho)
+        if (hd.column.index > 1 && (hd.column.index - 1) % 2 === 0) {
           doc.setDrawColor(...RULE);
           doc.setLineWidth(0.15);
           doc.line(hd.cell.x, hd.cell.y, hd.cell.x, hd.cell.y + hd.cell.height);
