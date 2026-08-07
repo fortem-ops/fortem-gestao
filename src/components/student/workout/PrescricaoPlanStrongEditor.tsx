@@ -123,7 +123,11 @@ export function PrescricaoPlanStrongEditor({
   const [dirty, setDirty] = useState(false);
   const skipNext = useRef(true);
 
-  const { grupoSubcategorias } = useExerciseCategories();
+  const { grupoSubcategorias, categories } = useExerciseCategories();
+  const forcaCategories = useMemo(
+    () => categories.filter((c) => c.name === "Força"),
+    [categories],
+  );
 
   // Sessões concluídas por levantamento (preview ao vivo)
   const { data: sessionCounts = {} } = useQuery({
