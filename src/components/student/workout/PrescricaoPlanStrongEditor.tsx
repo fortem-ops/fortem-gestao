@@ -1126,17 +1126,30 @@ export function PrescricaoPlanStrongEditor({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Dias de treino</Label>
+                  <Label className="text-xs flex items-center gap-1">
+                    Dias de treino
+                    <HelpTip title="Em quais sessões este levantamento entra?">
+                      <p>
+                        Os slots T1..T{diasSemana} são as sessões da semana, compartilhadas por
+                        toda a prescrição.
+                      </p>
+                      <p>
+                        Marque os slots em que este levantamento é treinado. Mais de um
+                        levantamento pode ocupar o mesmo slot.
+                      </p>
+                    </HelpTip>
+                  </Label>
                   <div className="flex gap-1 flex-wrap pt-1">
-                    {DIAS.map((d) => {
+                    {aqDias.map((d) => {
                       const on = lev.diasTreino.includes(d);
                       return (
                         <button
                           key={d}
                           type="button"
+                          title={`Sessão ${d}`}
                           onClick={() => toggleDia(li, d)}
                           className={
-                            "h-7 px-2 rounded text-[10px] font-semibold border transition-colors " +
+                            "h-7 min-w-[32px] px-2 rounded text-[10px] font-semibold border transition-colors " +
                             (on
                               ? "bg-primary text-primary-foreground border-primary"
                               : "bg-card text-muted-foreground border-border hover:border-primary/40")
@@ -1148,6 +1161,7 @@ export function PrescricaoPlanStrongEditor({
                     })}
                   </div>
                 </div>
+
               </div>
 
               {/* Preview ao vivo */}
