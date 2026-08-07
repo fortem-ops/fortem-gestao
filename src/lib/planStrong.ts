@@ -348,6 +348,7 @@ export function emptyPlanStrong50(duracaoMeses = 3): PlanStrong50Conteudo {
   return {
     variante: "PLANSTRONG50",
     duracaoMeses,
+    diasTreinoSemana: PS_DIAS_SEMANA_PADRAO,
     levantamentos: [emptyLevantamento("agachamento", duracaoMeses)],
     aquecimento: { LIB: [], MOB: [], ATI: [], PREV: [] },
   };
