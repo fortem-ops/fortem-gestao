@@ -50,6 +50,8 @@ import {
   type PSZona,
   PS_LEVANTAMENTOS,
   PS_LEV_LABEL,
+  PS_DIAS_SEMANA_PADRAO,
+  psSlots,
   PS_LEV_BASE,
   PS_ZONAS,
   PS_ZONAS_INPUT,
@@ -89,7 +91,7 @@ const AQUECIMENTO_GRUPO_MAP: Record<AquecimentoBloco, string> = {
   PREV: "Preventivo",
 };
 
-const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DIAS_SEMANA_OPCOES = [2, 3, 4, 5];
 
 interface Props {
   alunoId: string;
@@ -321,6 +323,12 @@ export function PrescricaoPlanStrongEditor({
 
   const setDuracao = (n: number) => setData((p) => ajustarDuracao(p, n));
 
+  const setDiasSemana = (n: number) => setData((p) => ({ ...p, diasTreinoSemana: n }));
+
+  // Ordena os slots (T1, T2, ...) para exibição estável
+  const ordenaSlots = (arr: string[]) =>
+    [...arr].sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+
   const toggleDia = (li: number, dia: string) =>
     setData((p) => ({
       ...p,
@@ -329,7 +337,9 @@ export function PrescricaoPlanStrongEditor({
         const has = l.diasTreino.includes(dia);
         return {
           ...l,
-          diasTreino: has ? l.diasTreino.filter((d) => d !== dia) : [...l.diasTreino, dia],
+          diasTreino: has
+            ? l.diasTreino.filter((d) => d !== dia)
+            : ordenaSlots([...l.diasTreino, dia]),
         };
       }),
     }));
@@ -718,12 +728,10 @@ export function PrescricaoPlanStrongEditor({
     );
   };
 
-  const aqDias = useMemo(
-    () => data.levantamentos.map((l) => PS_LEV_LABEL[l.tipo]),
-    [data.levantamentos],
-  );
+  const diasSemana = data.diasTreinoSemana ?? PS_DIAS_SEMANA_PADRAO;
+  const aqDias = useMemo(() => psSlots(diasSemana), [diasSemana]);
 
-  // Poda automática: mantém só marcações de levantamentos ainda existentes
+  // Poda automática: remove marcações de slots que excedem os dias configurados
   useEffect(() => {
     setData((p) => {
       const aq = ensureAq(p.aquecimento);
@@ -742,14 +750,26 @@ export function PrescricaoPlanStrongEditor({
         },
         {} as Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>,
       );
-      return changed ? { ...p, aquecimento: next } : p;
+
+      const levs = p.levantamentos.map((l) => {
+        const dt = l.diasTreino.filter((d) => aqDias.includes(d));
+        if (dt.length !== l.diasTreino.length) {
+          changed = true;
+          return { ...l, diasTreino: dt };
+        }
+        return l;
+      });
+
+      return changed ? { ...p, aquecimento: next, levantamentos: levs } : p;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aqDias]);
 
   const toggleAqDia = (b: AquecimentoBloco, i: number, dia: string, atual: string[]) =>
     updateAq(b, i, {
-      dias: atual.includes(dia) ? atual.filter((d) => d !== dia) : [...atual, dia],
+      dias: atual.includes(dia)
+        ? atual.filter((d) => d !== dia)
+        : ordenaSlots([...atual, dia]),
     });
 
 
@@ -831,7 +851,36 @@ export function PrescricaoPlanStrongEditor({
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-2 flex items-end">
+            <div>
+              <Label className="flex items-center gap-1">
+                Dias de treino por semana
+                <HelpTip title="Slots de treino (T1..Tn)">
+                  <p>
+                    Define quantas sessões semanais a prescrição tem. Cada sessão vira um slot
+                    <strong> T1, T2, T3…</strong> compartilhado por toda a prescrição.
+                  </p>
+                  <p>
+                    Em cada levantamento você marca em quais slots ele entra — dois levantamentos
+                    podem ocupar o mesmo slot (ex.: T1 = Terra + Supino) e o mesmo levantamento pode
+                    aparecer em vários slots.
+                  </p>
+                  <p>O aquecimento também usa esses mesmos slots.</p>
+                </HelpTip>
+              </Label>
+              <Select value={String(diasSemana)} onValueChange={(v) => setDiasSemana(Number(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIAS_SEMANA_OPCOES.map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n} dias (T1–T{n})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
               <div className="flex gap-1.5 flex-wrap">
                 {Array.from({ length: data.duracaoMeses }, (_, i) => (
                   <Badge key={i} variant="outline" className="text-[10px]">
@@ -848,6 +897,7 @@ export function PrescricaoPlanStrongEditor({
               </div>
             </div>
           </div>
+
 
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold flex items-center gap-1">
@@ -954,36 +1004,31 @@ export function PrescricaoPlanStrongEditor({
                               className="h-6 w-24 text-xs"
                               placeholder='10 ou 60"'
                             />
-                            {aqDias.length === 0 ? (
-                              <span className="text-[10px] text-muted-foreground ml-2 italic">
-                                Adicione levantamentos para definir os dias
-                              </span>
-                            ) : (
-                              <div className="flex items-center gap-1 ml-2">
-                                <Label className="text-[10px] text-muted-foreground mr-1">
-                                  Dias
-                                </Label>
-                                {aqDias.map((dia, di) => {
-                                  const atual = ex.dias ?? [];
-                                  const on = atual.includes(dia);
-                                  return (
-                                    <button
-                                      key={dia}
-                                      type="button"
-                                      title={dia}
-                                      onClick={() => toggleAqDia(b.key, i, dia, atual)}
-                                      className={`h-6 min-w-[28px] px-1.5 rounded text-[10px] font-semibold border transition-colors ${
-                                        on
-                                          ? "bg-primary text-primary-foreground border-primary"
-                                          : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                                      }`}
-                                    >
-                                      T{di + 1}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-1 ml-2">
+                              <Label className="text-[10px] text-muted-foreground mr-1">
+                                Dias
+                              </Label>
+                              {aqDias.map((dia) => {
+                                const atual = ex.dias ?? [];
+                                const on = atual.includes(dia);
+                                return (
+                                  <button
+                                    key={dia}
+                                    type="button"
+                                    title={`Sessão ${dia}`}
+                                    onClick={() => toggleAqDia(b.key, i, dia, atual)}
+                                    className={`h-6 min-w-[28px] px-1.5 rounded text-[10px] font-semibold border transition-colors ${
+                                      on
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                                    }`}
+                                  >
+                                    {dia}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
 
                           </div>
                         </div>
@@ -1076,17 +1121,30 @@ export function PrescricaoPlanStrongEditor({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Dias de treino</Label>
+                  <Label className="text-xs flex items-center gap-1">
+                    Dias de treino
+                    <HelpTip title="Em quais sessões este levantamento entra?">
+                      <p>
+                        Os slots T1..T{diasSemana} são as sessões da semana, compartilhadas por
+                        toda a prescrição.
+                      </p>
+                      <p>
+                        Marque os slots em que este levantamento é treinado. Mais de um
+                        levantamento pode ocupar o mesmo slot.
+                      </p>
+                    </HelpTip>
+                  </Label>
                   <div className="flex gap-1 flex-wrap pt-1">
-                    {DIAS.map((d) => {
+                    {aqDias.map((d) => {
                       const on = lev.diasTreino.includes(d);
                       return (
                         <button
                           key={d}
                           type="button"
+                          title={`Sessão ${d}`}
                           onClick={() => toggleDia(li, d)}
                           className={
-                            "h-7 px-2 rounded text-[10px] font-semibold border transition-colors " +
+                            "h-7 min-w-[32px] px-2 rounded text-[10px] font-semibold border transition-colors " +
                             (on
                               ? "bg-primary text-primary-foreground border-primary"
                               : "bg-card text-muted-foreground border-border hover:border-primary/40")
@@ -1098,6 +1156,7 @@ export function PrescricaoPlanStrongEditor({
                     })}
                   </div>
                 </div>
+
               </div>
 
               {/* Preview ao vivo */}
