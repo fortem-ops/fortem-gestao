@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2, DollarSign } from "lucide-react";
+import { ArrowLeft, Trash2, DollarSign, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
@@ -26,6 +26,7 @@ import { StudentNotes } from "@/components/student/StudentNotes";
 import EditStudentDialog from "@/components/student/EditStudentDialog";
 import { VendaDialog } from "@/components/student/venda/VendaDialog";
 import { StudentPipelinePanel } from "@/components/pipeline/StudentPipelinePanel";
+import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { StudentClubePanel } from "@/components/clube/StudentClubePanel";
 import ContratoFinanceiro from "@/pages/alunos/ContratoFinanceiro";
 import { getDisplayStatus } from "@/lib/studentStatus";
@@ -39,6 +40,8 @@ export default function StudentProfile() {
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [vendaOpen, setVendaOpen] = useState(false);
+  const [reativarOpen, setReativarOpen] = useState(false);
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const validTabs = ["resumo","pipeline","clube","plano","financeiro","contrato","treinos","avaliacoes","tarefas","observacoes","uploads"];
   const tabParam = searchParams.get("tab");
