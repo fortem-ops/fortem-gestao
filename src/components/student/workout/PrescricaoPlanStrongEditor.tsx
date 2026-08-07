@@ -50,6 +50,8 @@ import {
   type PSZona,
   PS_LEVANTAMENTOS,
   PS_LEV_LABEL,
+  PS_DIAS_SEMANA_PADRAO,
+  psSlots,
   PS_LEV_BASE,
   PS_ZONAS,
   PS_ZONAS_INPUT,
