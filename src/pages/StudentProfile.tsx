@@ -118,6 +118,14 @@ export default function StudentProfile() {
     return <div className="text-center py-20 text-muted-foreground">Aluno não encontrado</div>;
   }
 
+  const displayStatus = getDisplayStatus(
+    student.status,
+    statusInfo?.planEnd ?? null,
+    statusInfo?.licencas ?? [],
+    statusInfo?.planTipo ?? null,
+  );
+  const podeReativar = displayStatus.key === "encerrado";
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-4">
@@ -127,20 +135,39 @@ export default function StudentProfile() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-heading font-bold text-foreground">{student.nome}</h1>
-            {(() => {
-              const d = getDisplayStatus(student.status, statusInfo?.planEnd ?? null, statusInfo?.licencas ?? [], statusInfo?.planTipo ?? null);
-              return <Badge variant="outline" className={d.className}>{d.label}</Badge>;
-            })()}
+            <Badge variant="outline" className={displayStatus.className}>{displayStatus.label}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
             {student.email || "Sem email"} · {student.frequencia_semanal === 5 ? "Livre" : `${student.frequencia_semanal}x/semana`}
           </p>
         </div>
         <EditStudentDialog student={student} onStudentUpdated={() => refetch()} />
+        {podeReativar && (
+          <Button variant="outline" size="sm" onClick={() => setReativarOpen(true)} className="gap-1">
+            <RefreshCw className="w-4 h-4" />
+            Reativar como Prospect
+          </Button>
+        )}
         <Button variant="default" size="sm" onClick={() => setVendaOpen(true)} className="gap-1">
           <DollarSign className="w-4 h-4" />
           Nova venda
         </Button>
+        <ConvertToProspectDialog
+          alunoId={student.id}
+          open={reativarOpen}
+          onOpenChange={setReativarOpen}
+          title={`Reativar ${student.nome} como Prospect`}
+          description="Revise os dados e atualize a anamnese antes de retornar o ex-aluno ao funil de prospects."
+          confirmLabel="Reativar como Prospect"
+          successMessage="Ex-aluno reativado como Prospect"
+          movementNote="Reativação de ex-aluno"
+          onConverted={() => {
+            refetch();
+            queryClient.invalidateQueries({ queryKey: ["aluno_display_status", id] });
+            queryClient.invalidateQueries({ queryKey: ["trajetoria_aluno", id] });
+            queryClient.invalidateQueries({ queryKey: ["prospect_anamnese", id] });
+          }}
+        />
         <VendaDialog
           alunoId={student.id}
           alunoNome={student.nome}
