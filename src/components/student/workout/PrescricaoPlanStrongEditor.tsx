@@ -1248,6 +1248,48 @@ export function PrescricaoPlanStrongEditor({
           </Card>
         );
       })}
+
+      {/* Auxiliares por slot de dia */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            Auxiliares
+            <HelpTip>
+              <p>
+                Exercícios complementares, prescritos por slot de dia (T1..T{diasSemana}) — os
+                mesmos slots usados pelos levantamentos e pelo aquecimento.
+              </p>
+              <p>Séries e reps fixos, sem percentual. O kg é opcional e digitado à mão.</p>
+            </HelpTip>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {aqDias.map((slot) => {
+            const levsDoSlot = data.levantamentos
+              .filter((l) => l.diasTreino.includes(slot))
+              .map((l) => PS_LEV_LABEL[l.tipo]);
+            return (
+              <div key={slot} className="rounded-md border border-border p-3 space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="secondary">{slot}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {levsDoSlot.length ? levsDoSlot.join(" + ") : "Sem levantamento neste slot"}
+                  </span>
+                </div>
+                <AuxiliaresBlock
+                  title=""
+                  emptyLabel="Sem auxiliares neste dia."
+                  itens={psAuxiliaresDoSlot(data, slot)}
+                  categorias={forcaCategories}
+                  onAdd={() => addAux(slot)}
+                  onUpdate={(i, patch) => updateAux(slot, i, patch)}
+                  onRemove={(i) => removeAux(slot, i)}
+                />
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
     </div>
   );
 }
