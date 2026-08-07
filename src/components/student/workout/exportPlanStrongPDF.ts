@@ -91,9 +91,9 @@ export async function exportPlanStrongPDF({
   let y = drawWorkoutHeader(doc, student, mainX, mainW, margin, "PLAN STRONG 50");
   y = drawObservacoes(doc, mainX, y, mainW, 1, 3);
 
-  // Dias de treino = rótulos usados no aquecimento (um por levantamento configurado)
-  const dias = data.levantamentos.map((l) => PS_LEV_LABEL[l.tipo]);
-  const diasHeader = dias.map((_, i) => `T${i + 1}`);
+  // Slots de treino compartilhados (T1..Tn) — mesmos usados no editor
+  const dias = psSlots(data.diasTreinoSemana);
+  const diasHeader = dias;
 
   // ── AQUECIMENTO ───────────────────────────────────────────
   const aq = data.aquecimento;
