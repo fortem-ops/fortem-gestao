@@ -26,6 +26,15 @@ import {
   type M102Slot,
 } from "@/lib/m102";
 import {
+  isPlanStrong50,
+  statusLevantamento,
+  totalSessoes,
+  variacaoKey,
+  PS_LEV_LABEL,
+  PS_LEV_BASE,
+  type PlanStrong50Conteudo,
+} from "@/lib/planStrong";
+import {
   Play, CheckCircle2, ChevronDown, ChevronUp, History,
   AlertCircle, Loader2, RefreshCw, X, PlayCircle
 } from "lucide-react";
@@ -181,6 +190,22 @@ export default function PortalWorkouts() {
   ) {
     return (
       <PortalM102View
+        treino={treino}
+        sessoes={sessoes}
+        student={student}
+        agendamentoHoje={agendamentoHoje ?? null}
+        qc={qc}
+      />
+    );
+  }
+
+  // ── Plan Strong 50: renderização dedicada ───────────────────
+  if (
+    treino &&
+    ((treino as any).template_fase === "Plan Strong 50" || isPlanStrong50(treino.conteudo))
+  ) {
+    return (
+      <PortalPlanStrongView
         treino={treino}
         sessoes={sessoes}
         student={student}
@@ -1127,6 +1152,214 @@ function PortalM102View({
                       <><Loader2 className="w-4 h-4 animate-spin" /> Concluindo…</>
                     ) : (
                       <><CheckCircle2 className="w-4 h-4" /> {st.phase === "readyForTest" ? `Concluir teste (${slot})` : `Concluir esta sessão (${slot})`}</>
+                    )}
+                  </button>
+                  {!agendamentoHoje && (
+                    <p className="text-[10px] text-warning text-center">
+                      Precisa de um treino agendado para hoje para concluir.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Portal Plan Strong 50: sessão atual calculada por levantamento
+// ─────────────────────────────────────────────────────────────
+
+function PortalPlanStrongView({
+  treino,
+  sessoes,
+  student,
+  agendamentoHoje,
+  qc,
+}: {
+  treino: any;
+  sessoes: Array<{ variacao: string; concluido_em: string | null }>;
+  student: { id: string } | null;
+  agendamentoHoje: { id: string } | null;
+  qc: ReturnType<typeof useQueryClient>;
+}) {
+  const [concluindo, setConcluindo] = useState<string | null>(null);
+  const data = (treino?.conteudo ?? null) as PlanStrong50Conteudo | null;
+
+  async function handleConcluir(variacao: string, label: string) {
+    if (!student || !treino?.id) return;
+    if (!agendamentoHoje) {
+      toast.error("Você precisa ter um treino agendado para hoje para concluir.");
+      return;
+    }
+    setConcluindo(variacao);
+    try {
+      await registrarSessaoConcluida({
+        alunoId: student.id,
+        treinoId: treino.id,
+        variacao,
+        agendamentoId: agendamentoHoje.id,
+      });
+      qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
+      qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
+      qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
+      qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
+      toast.success(`${label} concluído!`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao concluir sessão.");
+    } finally {
+      setConcluindo(null);
+    }
+  }
+
+  if (!data) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">Treino indisponível.</div>
+    );
+  }
+
+  const counts: Record<string, number> = {};
+  sessoes.forEach((s) => {
+    if (s.concluido_em) counts[s.variacao] = (counts[s.variacao] ?? 0) + 1;
+  });
+
+  return (
+    <div className="p-4 space-y-5 max-w-3xl mx-auto pb-16">
+      <header className="space-y-1">
+        <h1 className="text-lg font-bold">Plan Strong 50</h1>
+        <p className="text-xs text-muted-foreground">
+          {data.duracaoMeses} {data.duracaoMeses === 1 ? "mês" : "meses"} ·{" "}
+          {data.levantamentos.length} levantamento(s)
+        </p>
+      </header>
+
+      {data.aquecimento &&
+        (["LIB", "MOB", "ATI", "PREV"] as const).some(
+          (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+        ) && (
+          <section className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Aquecimento
+              </p>
+            </div>
+            <div className="p-3 space-y-2">
+              {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
+                const items = data.aquecimento?.[k] ?? [];
+                if (!items.length) return null;
+                return (
+                  <div key={k}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {k}
+                    </p>
+                    <ul className="space-y-1">
+                      {items.map((ex, i) => (
+                        <li
+                          key={i}
+                          className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
+                        >
+                          <span className="truncate flex items-center gap-1">
+                            {ex.exercicio || "—"}
+                            {ex.video_url && (
+                              <a
+                                href={ex.video_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary"
+                              >
+                                <PlayCircle className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </span>
+                          <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+      {data.levantamentos.map((lev) => {
+        const key = variacaoKey(lev.tipo);
+        const done = counts[key] ?? 0;
+        const st = statusLevantamento(lev, done);
+        const base = PS_LEV_BASE[lev.tipo];
+        return (
+          <section key={lev.tipo} className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60 flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{PS_LEV_LABEL[lev.tipo]}</p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {base.nome} · 1RM {lev.rm1} kg
+                </p>
+              </div>
+              <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
+                {done}/{totalSessoes(lev)}
+              </span>
+            </div>
+            <div className="p-3 space-y-3">
+              {st.phase === "vazio" && (
+                <p className="text-xs text-muted-foreground text-center py-2 italic">
+                  Prescrição ainda sem volume configurado.
+                </p>
+              )}
+              {st.phase === "concluido" && (
+                <p className="text-xs text-success text-center py-2 italic">
+                  Programa concluído neste levantamento — procure o professor.
+                </p>
+              )}
+              {st.phase === "sessao" && (
+                <div className="border rounded-lg p-3 space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Mês {st.sessao.mesIdx + 1} · Semana {st.sessao.semanaIdx + 1} · Sessão{" "}
+                    {st.sessao.sessaoIdx + 1}
+                  </p>
+                  {st.sessao.zonas.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">Sem volume nesta sessão.</p>
+                  ) : (
+                    st.sessao.zonas.map((z) => (
+                      <div
+                        key={z.zona}
+                        className="flex items-center justify-between text-xs gap-2"
+                      >
+                        <span className="font-semibold shrink-0">{z.label}</span>
+                        <span className="tabular-nums text-muted-foreground">
+                          {z.series} ·{" "}
+                          <span className="font-semibold text-foreground">{z.kg} kg</span>
+                        </span>
+                      </div>
+                    ))
+                  )}
+                  {base.video_url && (
+                    <a
+                      href={base.video_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary inline-flex items-center gap-1 text-[11px]"
+                    >
+                      <PlayCircle className="w-3.5 h-3.5" /> Ver execução
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {st.phase === "sessao" && (
+                <div className="pt-1 space-y-1">
+                  <button
+                    onClick={() => handleConcluir(key, PS_LEV_LABEL[lev.tipo])}
+                    disabled={concluindo !== null || !agendamentoHoje}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {concluindo === key ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Concluindo…</>
+                    ) : (
+                      <><CheckCircle2 className="w-4 h-4" /> Concluir esta sessão</>
                     )}
                   </button>
                   {!agendamentoHoje && (

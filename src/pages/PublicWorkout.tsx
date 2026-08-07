@@ -33,6 +33,15 @@ import {
   type M102Conteudo,
   type M102Slot,
 } from "@/lib/m102";
+import {
+  isPlanStrong50,
+  statusLevantamento,
+  totalSessoes,
+  PS_LEV_LABEL,
+  PS_LEV_BASE,
+  PS_FASE_LABEL,
+  type PlanStrong50Conteudo,
+} from "@/lib/planStrong";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
@@ -123,11 +132,13 @@ export default function PublicWorkout() {
     treino?.template_fase === "5-3-1" || isWendler531(treino?.conteudo ?? null);
   const isM102Treino =
     treino?.template_fase === "M102" || isM102(treino?.conteudo ?? null);
+  const isPSTreino =
+    treino?.template_fase === "Plan Strong 50" || isPlanStrong50(treino?.conteudo ?? null);
 
   const data = useMemo<WorkoutData | null>(() => {
-    if (!treino?.conteudo || is531 || isM102Treino) return null;
+    if (!treino?.conteudo || is531 || isM102Treino || isPSTreino) return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531, isM102Treino]);
+  }, [treino, is531, isM102Treino, isPSTreino]);
 
   const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
     if (!treino?.conteudo || !is531) return null;
@@ -138,6 +149,11 @@ export default function PublicWorkout() {
     if (!treino?.conteudo || !isM102Treino) return null;
     return treino.conteudo as unknown as M102Conteudo;
   }, [treino, isM102Treino]);
+
+  const psData = useMemo<PlanStrong50Conteudo | null>(() => {
+    if (!treino?.conteudo || !isPSTreino) return null;
+    return treino.conteudo as unknown as PlanStrong50Conteudo;
+  }, [treino, isPSTreino]);
 
   const openVideo = (url: string, title: string) => {
     if (isYouTubeUrl(url)) {
@@ -157,7 +173,7 @@ export default function PublicWorkout() {
     );
   }
 
-  if (error || !treino || (!data && !wendlerData && !m102Data)) {
+  if (error || !treino || (!data && !wendlerData && !m102Data && !psData)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3 max-w-sm">
@@ -183,6 +199,10 @@ export default function PublicWorkout() {
 
   if (m102Data) {
     return <M102Public treino={treino} aluno={aluno} data={m102Data} />;
+  }
+
+  if (psData) {
+    return <PlanStrongPublic treino={treino} aluno={aluno} data={psData} />;
   }
 
   // Group warm-up by category
@@ -742,6 +762,120 @@ function M102Public({
             </section>
           );
         })}
+      </main>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Plan Strong 50 · visão pública somente leitura
+// ─────────────────────────────────────────────────────────────
+
+function PlanStrongPublic({
+  treino,
+  aluno,
+  data,
+}: {
+  treino: TreinoRow;
+  aluno: AlunoRow | null;
+  data: PlanStrong50Conteudo;
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-sm leading-tight truncate">
+                Plan Strong 50 · {treino.descricao || "Prescrição"}
+              </h1>
+              {aluno && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {aluno.nome} · v{treino.versao} · {data.duracaoMeses}{" "}
+                  {data.duracaoMeses === 1 ? "mês" : "meses"}
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+            Somente leitura
+          </span>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-4 space-y-6 pb-12">
+        {(["LIB", "MOB", "ATI", "PREV"] as const).some(
+          (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+        ) && (
+          <section className="rounded-xl border border-border p-4 space-y-2">
+            <h2 className="text-xs font-heading font-bold uppercase tracking-wider text-primary">
+              Aquecimento
+            </h2>
+            {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
+              const items = data.aquecimento?.[k] ?? [];
+              if (!items.length) return null;
+              return (
+                <div key={k}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    {k}
+                  </p>
+                  <ul className="space-y-1">
+                    {items.map((ex, i) => (
+                      <li key={i} className="flex justify-between text-xs">
+                        <span className="truncate">{ex.exercicio || "—"}</span>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </section>
+        )}
+
+        {data.levantamentos.map((lev) => {
+          const st = statusLevantamento(lev, 0);
+          const base = PS_LEV_BASE[lev.tipo];
+          return (
+            <section key={lev.tipo} className="rounded-xl border border-border p-4 space-y-2">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <h2 className="text-sm font-heading font-bold">{PS_LEV_LABEL[lev.tipo]}</h2>
+                <span className="text-[11px] text-muted-foreground">
+                  {base.nome} · 1RM {lev.rm1} kg · {totalSessoes(lev)} sessões
+                </span>
+              </div>
+              {st.phase === "sessao" ? (
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Primeira sessão · Mês {st.sessao.mesIdx + 1} ({PS_FASE_LABEL[st.sessao.fase]}) ·
+                    Semana {st.sessao.semanaIdx + 1}
+                  </p>
+                  {st.sessao.zonas.map((z) => (
+                    <div key={z.zona} className="flex justify-between text-xs">
+                      <span className="font-medium">{z.label}</span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {z.series} · <span className="text-foreground font-semibold">{z.kg} kg</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  Sem volume configurado para este levantamento.
+                </p>
+              )}
+            </section>
+          );
+        })}
+
+        <footer className="pt-4 text-center">
+          <p className="text-[10px] text-muted-foreground">
+            Fortem Gestão Técnica · Plan Strong 50
+          </p>
+        </footer>
       </main>
     </div>
   );
