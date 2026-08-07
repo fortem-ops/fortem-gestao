@@ -726,6 +726,11 @@ export function StudentSummary({ student }: { student: Aluno }) {
         </div>
       </div>
 
+      {/* Seção: Anamnese inicial */}
+      <AnamneseCard alunoId={student.id} />
+
+
+
       {/* Seção 1.5: Serviços (Plano + Contratados) */}
       {(() => {
         const servico = creditos.filter((c) => c.origem_tipo === "servico");
