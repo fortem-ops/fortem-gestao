@@ -296,6 +296,90 @@ export async function exportPlanStrongPDF({
       }
     },
   });
+  y = lastY(doc) + 3;
+
+  // ── AUXILIARES (por slot de dia) ──────────────────────────
+  const auxMap = data.auxiliaresPorSlot ?? {};
+  const slotsComAux = dias.filter((s) => (auxMap[s]?.length ?? 0) > 0);
+
+  if (slotsComAux.length > 0) {
+    y = sectionBar(doc, "Auxiliares", undefined, mainX, y, mainW, 6.0);
+
+    slotsComAux.forEach((slot) => {
+      const itens = auxMap[slot] ?? [];
+      const levs = data.levantamentos
+        .filter((l) => (l.diasTreino ?? []).includes(slot))
+        .map((l) => PS_LEV_LABEL[l.tipo].toUpperCase())
+        .join(" + ");
+
+      if (y + 12 + itens.length * 4.4 > bottomY) {
+        doc.addPage();
+        y = margin;
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...INK);
+      doc.text(levs ? `${slot} · ${levs}` : slot, mainX, y + 3);
+      y += 4.6;
+
+      autoTable(doc, {
+        startY: y,
+        margin: tableMargin,
+        tableWidth: mainW,
+        theme: "plain",
+        rowPageBreak: "avoid",
+        head: [[
+          { content: "#", styles: { halign: "center" as const } },
+          { content: "CAT", styles: { halign: "center" as const } },
+          { content: "EXERCÍCIO", styles: { halign: "left" as const } },
+          { content: "SÉRIES", styles: { halign: "center" as const } },
+          { content: "REPS", styles: { halign: "center" as const } },
+          { content: "KG", styles: { halign: "right" as const } },
+        ]],
+        body: itens.map((a, i) => [
+          String(i + 1),
+          (a.categoria || "").toUpperCase(),
+          cleanName(a.exercicio) || "—",
+          String(a.series ?? ""),
+          a.reps ?? "",
+          a.kg?.trim() ? a.kg : "—",
+        ]),
+        styles: commonStyles,
+        headStyles: commonHeadStyles,
+        alternateRowStyles: { fillColor: SURFACE },
+        columnStyles: {
+          0: { cellWidth: 8, halign: "center", fontStyle: "bold", textColor: INK_SOFT },
+          1: {
+            cellWidth: 24,
+            halign: "center",
+            fontStyle: "bold",
+            textColor: INK_SOFT,
+            overflow: "linebreak",
+            fontSize: 7,
+          },
+          2: { fontStyle: "bold" },
+          3: { cellWidth: 18, halign: "center" },
+          4: { cellWidth: 22, halign: "center" },
+          5: { cellWidth: 22, halign: "right", fontStyle: "bold" },
+        },
+        didParseCell: (hd) => {
+          if (hd.section === "body") {
+            hd.cell.styles.lineWidth = {
+              top: 0,
+              right: 0,
+              bottom: 0.2,
+              left: 0,
+            } as unknown as number;
+            hd.cell.styles.lineColor = INK_SOFT;
+          }
+        },
+      });
+      y = lastY(doc) + 2.6;
+    });
+  }
+
+
 
   // ============================================================
   // PÁGINAS SEGUINTES — planilha por grupo de levantamentos "casados"
