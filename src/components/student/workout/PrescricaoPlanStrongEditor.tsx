@@ -1004,36 +1004,31 @@ export function PrescricaoPlanStrongEditor({
                               className="h-6 w-24 text-xs"
                               placeholder='10 ou 60"'
                             />
-                            {aqDias.length === 0 ? (
-                              <span className="text-[10px] text-muted-foreground ml-2 italic">
-                                Adicione levantamentos para definir os dias
-                              </span>
-                            ) : (
-                              <div className="flex items-center gap-1 ml-2">
-                                <Label className="text-[10px] text-muted-foreground mr-1">
-                                  Dias
-                                </Label>
-                                {aqDias.map((dia, di) => {
-                                  const atual = ex.dias ?? [];
-                                  const on = atual.includes(dia);
-                                  return (
-                                    <button
-                                      key={dia}
-                                      type="button"
-                                      title={dia}
-                                      onClick={() => toggleAqDia(b.key, i, dia, atual)}
-                                      className={`h-6 min-w-[28px] px-1.5 rounded text-[10px] font-semibold border transition-colors ${
-                                        on
-                                          ? "bg-primary text-primary-foreground border-primary"
-                                          : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                                      }`}
-                                    >
-                                      T{di + 1}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-1 ml-2">
+                              <Label className="text-[10px] text-muted-foreground mr-1">
+                                Dias
+                              </Label>
+                              {aqDias.map((dia) => {
+                                const atual = ex.dias ?? [];
+                                const on = atual.includes(dia);
+                                return (
+                                  <button
+                                    key={dia}
+                                    type="button"
+                                    title={`Sessão ${dia}`}
+                                    onClick={() => toggleAqDia(b.key, i, dia, atual)}
+                                    className={`h-6 min-w-[28px] px-1.5 rounded text-[10px] font-semibold border transition-colors ${
+                                      on
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                                    }`}
+                                  >
+                                    {dia}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
 
                           </div>
                         </div>
