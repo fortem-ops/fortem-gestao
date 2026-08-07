@@ -398,7 +398,8 @@ export async function exportPlanStrongPDF({
           .map((lev, i) => {
             const pl = porLev[i];
             if (!pl.nSessoes) return null;
-            const s = `${pl.nSessoes} ${pl.nSessoes === 1 ? "sessão" : "sessões"}${pl.split ? ` (${pl.split})` : ""}`;
+            const slotsLev = lev.diasTreino?.length ? lev.diasTreino.join(", ") : "";
+            const s = `${pl.nSessoes} ${pl.nSessoes === 1 ? "sessão" : "sessões"}${slotsLev ? ` · ${slotsLev}` : ""}`;
             return n > 1 ? `${PS_LEV_LABEL[lev.tipo]}: ${s}` : s;
           })
           .filter(Boolean)
