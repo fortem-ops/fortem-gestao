@@ -728,12 +728,10 @@ export function PrescricaoPlanStrongEditor({
     );
   };
 
-  const aqDias = useMemo(
-    () => data.levantamentos.map((l) => PS_LEV_LABEL[l.tipo]),
-    [data.levantamentos],
-  );
+  const diasSemana = data.diasTreinoSemana ?? PS_DIAS_SEMANA_PADRAO;
+  const aqDias = useMemo(() => psSlots(diasSemana), [diasSemana]);
 
-  // Poda automática: mantém só marcações de levantamentos ainda existentes
+  // Poda automática: remove marcações de slots que excedem os dias configurados
   useEffect(() => {
     setData((p) => {
       const aq = ensureAq(p.aquecimento);
@@ -752,14 +750,26 @@ export function PrescricaoPlanStrongEditor({
         },
         {} as Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>,
       );
-      return changed ? { ...p, aquecimento: next } : p;
+
+      const levs = p.levantamentos.map((l) => {
+        const dt = l.diasTreino.filter((d) => aqDias.includes(d));
+        if (dt.length !== l.diasTreino.length) {
+          changed = true;
+          return { ...l, diasTreino: dt };
+        }
+        return l;
+      });
+
+      return changed ? { ...p, aquecimento: next, levantamentos: levs } : p;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aqDias]);
 
   const toggleAqDia = (b: AquecimentoBloco, i: number, dia: string, atual: string[]) =>
     updateAq(b, i, {
-      dias: atual.includes(dia) ? atual.filter((d) => d !== dia) : [...atual, dia],
+      dias: atual.includes(dia)
+        ? atual.filter((d) => d !== dia)
+        : ordenaSlots([...atual, dia]),
     });
 
 
