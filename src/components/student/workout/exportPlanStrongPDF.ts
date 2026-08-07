@@ -219,6 +219,14 @@ export async function exportPlanStrongPDF({
   // ── CONFIGURAÇÃO (meses/fases) ────────────────────────────
   const fasesRef = data.levantamentos[0]?.meses ?? [];
   y = sectionBar(doc, "Configuração", `${data.duracaoMeses} ${data.duracaoMeses === 1 ? "mês" : "meses"}`, mainX, y, mainW, 6.0);
+  const cfgLabelW = 22;
+  const cfgMesW = (mainW - cfgLabelW) / Math.max(1, data.duracaoMeses);
+  const cfgColStyles: Record<number, Record<string, unknown>> = {
+    0: { cellWidth: cfgLabelW, fontStyle: "bold" },
+  };
+  for (let i = 0; i < data.duracaoMeses; i++) {
+    cfgColStyles[i + 1] = { cellWidth: cfgMesW, halign: "center", overflow: "linebreak" };
+  }
   autoTable(doc, {
     startY: y,
     margin: tableMargin,
@@ -226,17 +234,21 @@ export async function exportPlanStrongPDF({
     theme: "plain",
     rowPageBreak: "avoid",
     head: [[
-      { content: "MÊS", styles: { halign: "left" as const } },
-      { content: "FASE", styles: { halign: "left" as const } },
+      { content: "", styles: { halign: "left" as const } },
+      ...Array.from({ length: data.duracaoMeses }, (_, i) => ({
+        content: `MÊS ${i + 1}`,
+        styles: { halign: "center" as const },
+      })),
     ]],
-    body: Array.from({ length: data.duracaoMeses }, (_, i) => [
-      `Mês ${i + 1}`,
-      PS_FASE_LABEL[fasesRef[i]?.fase ?? "preparatorio"],
-    ]),
+    body: [[
+      "FASE",
+      ...Array.from({ length: data.duracaoMeses }, (_, i) =>
+        PS_FASE_LABEL[fasesRef[i]?.fase ?? "preparatorio"].toUpperCase(),
+      ),
+    ]],
     styles: commonStyles,
     headStyles: commonHeadStyles,
-    alternateRowStyles: { fillColor: SURFACE },
-    columnStyles: { 0: { cellWidth: 30, fontStyle: "bold" } },
+    columnStyles: cfgColStyles,
     didParseCell: (hd) => {
       if (hd.section === "body") {
         hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.2, left: 0 } as unknown as number;
@@ -386,7 +398,8 @@ export async function exportPlanStrongPDF({
           .map((lev, i) => {
             const pl = porLev[i];
             if (!pl.nSessoes) return null;
-            const s = `${pl.nSessoes} ${pl.nSessoes === 1 ? "sessão" : "sessões"}${pl.split ? ` (${pl.split})` : ""}`;
+            const slotsLev = lev.diasTreino?.length ? lev.diasTreino.join(", ") : "";
+            const s = `${pl.nSessoes} ${pl.nSessoes === 1 ? "sessão" : "sessões"}${slotsLev ? ` · ${slotsLev}` : ""}`;
             return n > 1 ? `${PS_LEV_LABEL[lev.tipo]}: ${s}` : s;
           })
           .filter(Boolean)
@@ -423,12 +436,9 @@ export async function exportPlanStrongPDF({
 
     const head: Cell[][] = [[
       { content: "ZONA", styles: { halign: "left" as const } },
-      ...grupo.flatMap((l) => [
-        { content: n > 1 ? `${PS_LEV_LABEL[l.tipo].toUpperCase()} KG` : "KG", styles: { halign: "right" as const } },
-        {
-          content: n > 1 ? `${PS_LEV_LABEL[l.tipo].toUpperCase()} · SÉRIES` : "SÉRIES SUGERIDAS",
-          styles: { halign: "left" as const },
-        },
+      ...grupo.flatMap(() => [
+        { content: "KG", styles: { halign: "right" as const } },
+        { content: n > 1 ? "SÉRIES" : "SÉRIES SUGERIDAS", styles: { halign: "left" as const } },
       ]),
     ]];
 
@@ -458,8 +468,22 @@ export async function exportPlanStrongPDF({
         }
       },
       didDrawCell: (hd) => {
-        // divisória vertical entre levantamentos
-        if (n > 1 && hd.column.index > 0 && (hd.column.index - 1) % 2 === 0) {
+        if (n <= 1) return;
+        const raw = hd.row.raw as Cell[] | undefined;
+        const isSpanRow = hd.section === "body" && Array.isArray(raw) && raw.length === 1;
+        if (isSpanRow) {
+          // linhas de mês/semana: desenha as divisórias manualmente sobre a célula mesclada
+          const isMes = String(raw?.[0]?.content ?? "").startsWith("MÊS");
+          doc.setDrawColor(...(isMes ? WHITE : RULE));
+          doc.setLineWidth(0.15);
+          for (let i = 1; i < n; i++) {
+            const x = hd.cell.x + wZona + i * (wKg + wSeries);
+            doc.line(x, hd.cell.y, x, hd.cell.y + hd.cell.height);
+          }
+          return;
+        }
+        // divisória vertical entre levantamentos (linhas de zona e cabeçalho)
+        if (hd.column.index > 1 && (hd.column.index - 1) % 2 === 0) {
           doc.setDrawColor(...RULE);
           doc.setLineWidth(0.15);
           doc.line(hd.cell.x, hd.cell.y, hd.cell.x, hd.cell.y + hd.cell.height);
