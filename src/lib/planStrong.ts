@@ -284,6 +284,18 @@ export interface PSLevantamentoConfig {
   meses: PSMes[];
 }
 
+/** Mesmo shape do `Auxiliar531` — exercício fixo, sem % nem progressão. */
+export interface PSAuxiliar {
+  categoria: string;
+  exercicio: string;
+  exercicio_id?: string | null;
+  video_url?: string | null;
+  series: number;
+  reps: string;
+  /** Livre / opcional — não calculado. */
+  kg?: string;
+}
+
 export interface PlanStrong50Conteudo {
   variante: "PLANSTRONG50";
   duracaoMeses: number;
@@ -291,9 +303,31 @@ export interface PlanStrong50Conteudo {
   diasTreinoSemana?: number;
   levantamentos: PSLevantamentoConfig[];
   aquecimento: Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
+  /** Auxiliares por slot de dia — chave "T1", "T2", ... */
+  auxiliaresPorSlot?: Record<string, PSAuxiliar[]>;
 }
 
 export const PS_DIAS_SEMANA_PADRAO = 3;
+
+export function emptyAuxiliar(): PSAuxiliar {
+  return {
+    categoria: "",
+    exercicio: "",
+    exercicio_id: null,
+    video_url: null,
+    series: 3,
+    reps: "10",
+    kg: "",
+  };
+}
+
+/** Auxiliares de um slot (sempre um array). */
+export function psAuxiliaresDoSlot(
+  data: Pick<PlanStrong50Conteudo, "auxiliaresPorSlot">,
+  slot: string,
+): PSAuxiliar[] {
+  return data.auxiliaresPorSlot?.[slot] ?? [];
+}
 
 /** Lista de slots T1..Tn. */
 export function psSlots(n: number | undefined): string[] {
