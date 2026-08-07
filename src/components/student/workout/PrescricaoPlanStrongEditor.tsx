@@ -323,6 +323,12 @@ export function PrescricaoPlanStrongEditor({
 
   const setDuracao = (n: number) => setData((p) => ajustarDuracao(p, n));
 
+  const setDiasSemana = (n: number) => setData((p) => ({ ...p, diasTreinoSemana: n }));
+
+  // Ordena os slots (T1, T2, ...) para exibição estável
+  const ordenaSlots = (arr: string[]) =>
+    [...arr].sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+
   const toggleDia = (li: number, dia: string) =>
     setData((p) => ({
       ...p,
@@ -331,7 +337,9 @@ export function PrescricaoPlanStrongEditor({
         const has = l.diasTreino.includes(dia);
         return {
           ...l,
-          diasTreino: has ? l.diasTreino.filter((d) => d !== dia) : [...l.diasTreino, dia],
+          diasTreino: has
+            ? l.diasTreino.filter((d) => d !== dia)
+            : ordenaSlots([...l.diasTreino, dia]),
         };
       }),
     }));
