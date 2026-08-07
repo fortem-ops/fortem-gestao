@@ -8,6 +8,7 @@ import {
   PS_LEV_BASE,
   PS_ZONAS,
   PS_FASE_LABEL,
+  psSlots,
   calcularSessao,
   fracoesSessoes,
 } from "@/lib/planStrong";
