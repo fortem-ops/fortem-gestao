@@ -243,10 +243,8 @@ export function sugerirSeries(nl: number, ideal: number): string {
   const series = Math.ceil(total / ideal);
   const base = Math.floor(total / series);
   const resto = total - base * series;
-  const arr = Array.from({ length: series }, (_, i) =>
-    i < series - resto ? base : base + 1,
-  );
-  // resto distribuído nas últimas séries; garante ordem "maiores no fim"
+  // séries mais cheias primeiro; o resto cai nas últimas (ex.: 19/4 → 4,4,4,4,3)
+  const arr = Array.from({ length: series }, (_, i) => (i < resto ? base + 1 : base));
   return arr.join(",");
 }
 
