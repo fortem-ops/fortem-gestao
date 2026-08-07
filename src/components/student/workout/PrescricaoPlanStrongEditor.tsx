@@ -46,6 +46,7 @@ import {
   type PSAuxiliar,
   emptyAuxiliar,
   psAuxiliaresDoSlot,
+  type PSLevantamento,
   type PSLevantamentoConfig,
   type PSMes,
   type PSVariante,
