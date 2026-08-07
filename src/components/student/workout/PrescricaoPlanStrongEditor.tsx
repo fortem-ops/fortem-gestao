@@ -28,9 +28,12 @@ import {
   CheckCircle2,
   Sparkles,
   PlayCircle,
+  FileDown,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
+import type { Json, Tables } from "@/integrations/supabase/types";
+import { exportPlanStrongPDF } from "./exportPlanStrongPDF";
 import { HelpTip } from "@/components/student/workout/HelpTip";
 import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
@@ -747,6 +750,12 @@ export function PrescricaoPlanStrongEditor({
               {savingLabel}
             </span>
           )}
+          <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
+            <FileDown className="w-3 h-3 mr-1" /> PDF
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => handleExport("print")}>
+            <Printer className="w-3 h-3 mr-1" /> Imprimir
+          </Button>
           <Button onClick={handlePublish} disabled={publishing}>
             {publishing ? (
               <Loader2 className="w-4 h-4 mr-1 animate-spin" />
