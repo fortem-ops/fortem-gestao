@@ -476,6 +476,13 @@ export default function PortalAgenda() {
     },
   });
 
+  // Regra: cancelamento só estorna crédito com 8h+ de antecedência
+  const servicoDentroPrazo = (s: any) => {
+    if (!s?.data_especifica) return false;
+    const inicio = new Date(`${s.data_especifica}T${(s.horario_inicio || "00:00:00").slice(0, 8)}`);
+    return inicio.getTime() - Date.now() >= 8 * 60 * 60 * 1000;
+  };
+
   // Agendamentos futuros de serviços
   const { data: servicosFuturos = [] } = useQuery({
     queryKey: ["portal-servicos-futuros", student?.id],
@@ -565,11 +572,15 @@ export default function PortalAgenda() {
       return r;
     },
     onSuccess: () => {
-      toast.success("Serviço agendado!", { description: "Sua vaga está confirmada." });
+      toast.success("Serviço agendado!", {
+        description:
+          "Sua vaga está confirmada. Cancelamentos devem ser feitos com até 8h de antecedência para manter o crédito.",
+      });
       qc.invalidateQueries({ queryKey: ["portal-agenda-servicos-creditos"] });
       qc.invalidateQueries({ queryKey: ["portal-agenda-horarios-servico"] });
       qc.invalidateQueries({ queryKey: ["portal-agenda-reservas-servico"] });
       qc.invalidateQueries({ queryKey: ["portal-historico-servicos"] });
+      qc.invalidateQueries({ queryKey: ["portal-servicos-futuros"] });
     },
     onError: (e: any) => {
       // eslint-disable-next-line no-console
@@ -618,8 +629,12 @@ export default function PortalAgenda() {
       if (!r?.ok) throw new Error(r?.erro || "erro");
       return r;
     },
-    onSuccess: () => {
-      toast.success("Serviço cancelado", { description: "Seu crédito foi estornado." });
+    onSuccess: (result: any) => {
+      toast.success("Serviço cancelado", {
+        description: result?.credito_estornado
+          ? "Seu crédito foi estornado."
+          : "Como faltavam menos de 8h, o crédito não foi estornado.",
+      });
       setCancelandoServico(null);
       qc.invalidateQueries({ queryKey: ["portal-servicos-futuros"] });
       qc.invalidateQueries({ queryKey: ["portal-historico-servicos"] });
@@ -1217,6 +1232,12 @@ export default function PortalAgenda() {
                         Cancelar
                       </button>
                     </div>
+                    {!servicoDentroPrazo(s) && (
+                      <p className="mt-2 text-[11px] text-amber-400 flex items-start gap-1.5">
+                        <span>⚠️</span>
+                        <span>Faltam menos de 8h — cancelar agora não estorna o crédito.</span>
+                      </p>
+                    )}
                   </div>
                 ))}
                 <button
@@ -1527,9 +1548,17 @@ export default function PortalAgenda() {
               <p className="text-sm text-muted-foreground">
                 {s.atividade} · {format(parseISO(s.data_especifica + "T12:00:00"), "EEEE, dd 'de' MMMM", {locale: ptBR})} às {s.horario_inicio?.slice(0,5)}
               </p>
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
-                <p className="text-xs text-emerald-400">✓ Crédito será estornado automaticamente.</p>
-              </div>
+              {servicoDentroPrazo(s) ? (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                  <p className="text-xs text-emerald-400">✓ Crédito será estornado automaticamente.</p>
+                </div>
+              ) : (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                  <p className="text-xs text-amber-400">
+                    ⚠️ Faltam menos de 8h para o atendimento — o crédito <strong>não</strong> será estornado.
+                  </p>
+                </div>
+              )}
               <div className="flex gap-3">
                 <button onClick={() => setCancelandoServico(null)} className="flex-1 py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">Voltar</button>
                 <button
