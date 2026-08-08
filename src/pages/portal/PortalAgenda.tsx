@@ -552,6 +552,7 @@ export default function PortalAgenda() {
       toast.success("Serviço agendado!", { description: "Sua vaga está confirmada." });
       qc.invalidateQueries({ queryKey: ["portal-agenda-servicos-creditos"] });
       qc.invalidateQueries({ queryKey: ["portal-agenda-horarios-servico"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-reservas-servico"] });
       qc.invalidateQueries({ queryKey: ["portal-historico-servicos"] });
     },
     onError: (e: any) => {
