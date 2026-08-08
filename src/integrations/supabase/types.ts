@@ -7161,6 +7161,10 @@ export type Database = {
         Args: { p_body: Json; p_name: string }
         Returns: undefined
       }
+      fn_cancelar_agendamento_servico: {
+        Args: { p_agenda_id: string }
+        Returns: Json
+      }
       fn_cancelar_treino_agendamento: {
         Args: { p_agendamento_id: string }
         Returns: Json

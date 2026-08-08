@@ -57,6 +57,7 @@ export default function PortalAgenda() {
   const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
   const [confirmando, setConfirmando] = useState<{ slot: Slot; data: string; instrutor?: string } | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
+  const [cancelandoServico, setCancelandoServico] = useState<string | null>(null);
   const [abaAgenda, setAbaAgenda] = useState<"treinos" | "corrida" | "servicos" | "agendamentos">("treinos");
   const [servicoSelecionado, setServicoSelecionado] = useState<string | null>(null);
   const [diaServico, setDiaServico] = useState<Date | null>(null);
@@ -475,19 +476,34 @@ export default function PortalAgenda() {
     },
   });
 
-  // Agendamentos futuros de serviços (agenda_servicos com confirmação)
-  // Por enquanto, buscar de consumo_servicos para mostrar histórico real
+  // Agendamentos futuros de serviços
+  const { data: servicosFuturos = [] } = useQuery({
+    queryKey: ["portal-servicos-futuros", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("agenda_servicos")
+        .select("id, atividade, local, data_especifica, horario_inicio, horario_fim")
+        .eq("aluno_id", student!.id)
+        .gte("data_especifica", format(new Date(), "yyyy-MM-dd"))
+        .order("data_especifica", { ascending: true });
+      return (data || []) as any[];
+    },
+  });
+
+  // Histórico de serviços (atendimentos já realizados)
   const { data: historicoServicos = [] } = useQuery({
     queryKey: ["portal-historico-servicos", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data } = await supabase
-        .from("consumo_servicos")
-        .select("id, tipo_servico, data_consumo, quantidade")
+        .from("agenda_servicos")
+        .select("id, atividade, local, data_especifica, horario_inicio")
         .eq("aluno_id", student!.id)
-        .order("data_consumo", { ascending: false })
+        .lt("data_especifica", format(new Date(), "yyyy-MM-dd"))
+        .order("data_especifica", { ascending: false })
         .limit(30);
-      return data || [];
+      return (data || []) as any[];
     },
   });
 
@@ -591,6 +607,38 @@ export default function PortalAgenda() {
     },
     onError: () => toast.error("Erro ao cancelar."),
   });
+
+  const cancelarServico = useMutation({
+    mutationFn: async (agendaId: string) => {
+      const { data: result, error } = await (supabase as any).rpc("fn_cancelar_agendamento_servico", {
+        p_agenda_id: agendaId,
+      });
+      if (error) throw error;
+      const r = result as any;
+      if (!r?.ok) throw new Error(r?.erro || "erro");
+      return r;
+    },
+    onSuccess: () => {
+      toast.success("Serviço cancelado", { description: "Seu crédito foi estornado." });
+      setCancelandoServico(null);
+      qc.invalidateQueries({ queryKey: ["portal-servicos-futuros"] });
+      qc.invalidateQueries({ queryKey: ["portal-historico-servicos"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-servicos-creditos"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-consumos"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-reservas-servico"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-horarios-servico"] });
+    },
+    onError: (e: any) => {
+      const msgs: Record<string, string> = {
+        data_passada: "Não é possível cancelar um atendimento que já passou.",
+        nao_autorizado: "Este agendamento não pertence a você.",
+        agendamento_nao_encontrado: "Agendamento não encontrado.",
+      };
+      toast.error(msgs[e.message] || "Erro ao cancelar.");
+    },
+  });
+
+
 
   return (
     <div className="space-y-6 pb-32 pt-4 animate-fade-in">
@@ -1128,17 +1176,57 @@ export default function PortalAgenda() {
               <SectionLabel>Serviços</SectionLabel>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Agendamentos de serviços são feitos via WhatsApp com a equipe FORTEM.
-              </p>
-              <button
-                onClick={() => setAbaAgenda("servicos")}
-                className="w-full py-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-foreground"
-              >
-                Ver serviços disponíveis →
-              </button>
-            </div>
+            {servicosFuturos.length === 0 ? (
+              <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Nenhum serviço agendado.
+                </p>
+                <button
+                  onClick={() => setAbaAgenda("servicos")}
+                  className="w-full py-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-foreground"
+                >
+                  Ver serviços disponíveis →
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {servicosFuturos.map((s: any) => (
+                  <div key={s.id} className="bg-card border border-border rounded-xl p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-center min-w-[44px] shrink-0">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                          {format(parseISO(s.data_especifica + "T12:00:00"), "EEE", { locale: ptBR })}
+                        </p>
+                        <p className="text-2xl font-black text-foreground" style={{ fontFamily: 'Archivo,sans-serif' }}>
+                          {format(parseISO(s.data_especifica + "T12:00:00"), "d")}
+                        </p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-foreground truncate">
+                          {s.horario_inicio?.slice(0, 5)}{s.horario_fim ? ` → ${s.horario_fim.slice(0, 5)}` : ""} · {s.atividade}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {format(parseISO(s.data_especifica + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
+                          {s.local ? ` · ${s.local}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setCancelandoServico(s.id)}
+                        className="py-1.5 px-3 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setAbaAgenda("servicos")}
+                  className="w-full py-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-foreground"
+                >
+                  Ver serviços disponíveis →
+                </button>
+              </div>
+            )}
 
             {/* Botão histórico de serviços */}
             <button
@@ -1428,6 +1516,35 @@ export default function PortalAgenda() {
         );
       })()}
 
+      {/* Dialog cancelar serviço */}
+      {cancelandoServico && (() => {
+        const s = servicosFuturos.find((x: any) => x.id === cancelandoServico);
+        if (!s) return null;
+        return (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
+            <div className="bg-card border border-border rounded-t-2xl w-full p-6 space-y-4">
+              <p className="font-black text-lg text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Cancelar serviço?</p>
+              <p className="text-sm text-muted-foreground">
+                {s.atividade} · {format(parseISO(s.data_especifica + "T12:00:00"), "EEEE, dd 'de' MMMM", {locale: ptBR})} às {s.horario_inicio?.slice(0,5)}
+              </p>
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                <p className="text-xs text-emerald-400">✓ Crédito será estornado automaticamente.</p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setCancelandoServico(null)} className="flex-1 py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">Voltar</button>
+                <button
+                  onClick={() => cancelarServico.mutate(cancelandoServico)}
+                  disabled={cancelarServico.isPending}
+                  className="flex-1 py-3 rounded-xl bg-destructive text-white font-bold text-sm"
+                >
+                  {cancelarServico.isPending ? 'Cancelando...' : 'Cancelar serviço'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── HISTÓRICO DE TREINOS ── */}
       {showHistoricoTreinos && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowHistoricoTreinos(false)}>
@@ -1541,16 +1658,16 @@ export default function PortalAgenda() {
               {historicoServicos.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço registrado.</p>
               ) : historicoServicos.map((s: any) => {
-                const { icon: Icon } = iconServico(s.tipo_servico ?? "");
+                const { icon: Icon } = iconServico(s.atividade ?? "");
                 return (
                   <div key={s.id} className="flex items-center gap-3 py-3 border-b border-border last:border-0">
                     <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
                       <Icon className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{s.tipo_servico}</p>
+                      <p className="text-sm font-semibold text-foreground">{s.atividade}</p>
                       <p className="text-xs text-muted-foreground">
-                        {s.data_consumo ? format(parseISO(s.data_consumo), "dd 'de' MMMM 'de' yyyy", {locale: ptBR}) : "—"}
+                        {s.data_especifica ? format(parseISO(s.data_especifica + "T12:00:00"), "dd 'de' MMMM 'de' yyyy", {locale: ptBR}) : "—"}
                       </p>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
