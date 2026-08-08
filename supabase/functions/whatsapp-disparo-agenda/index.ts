@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const ctx = await buildContext(agendaId);
+    const ctx = await buildContext(agendaId, body?.agenda_snapshot ?? null);
     if (!ctx) {
       return new Response(JSON.stringify({ error: 'Agenda não encontrada' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
