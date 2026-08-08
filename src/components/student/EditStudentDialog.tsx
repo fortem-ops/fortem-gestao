@@ -8,6 +8,7 @@ import { Pencil } from "lucide-react";
 import StudentFormFields, { type StudentFormValues, getPlanDetails } from "./StudentFormFields";
 import { isAutoRenewPlan } from "@/lib/planTipo";
 import { invalidatePlanoCaches } from "@/lib/planoCache";
+import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface EditStudentDialogProps {
