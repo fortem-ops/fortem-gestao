@@ -476,6 +476,13 @@ export default function PortalAgenda() {
     },
   });
 
+  // Regra: cancelamento só estorna crédito com 8h+ de antecedência
+  const servicoDentroPrazo = (s: any) => {
+    if (!s?.data_especifica) return false;
+    const inicio = new Date(`${s.data_especifica}T${(s.horario_inicio || "00:00:00").slice(0, 8)}`);
+    return inicio.getTime() - Date.now() >= 8 * 60 * 60 * 1000;
+  };
+
   // Agendamentos futuros de serviços
   const { data: servicosFuturos = [] } = useQuery({
     queryKey: ["portal-servicos-futuros", student?.id],
