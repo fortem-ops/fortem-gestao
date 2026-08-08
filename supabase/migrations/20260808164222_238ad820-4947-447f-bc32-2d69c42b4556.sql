@@ -1,0 +1,1 @@
+DELETE FROM public.agenda_servicos WHERE id = '350571c2-6270-402d-9c5d-58720497714a';
