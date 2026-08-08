@@ -26,17 +26,9 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
 
   useEffect(() => {
     if (!open) return;
-    supabase
-      .from("planos")
-      .select("tipo, servicos, valor, data_inicio")
-      .eq("aluno_id", student.id)
-      .eq("ativo", true)
-      .eq("atividade", "treinamento_funcional")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          const p = data[0];
+    queryPlanoPrincipalAtivo(student.id, "tipo, servicos, valor, data_inicio").then(
+      ({ data: p }: any) => {
+        if (p) {
           let consultas: string | undefined;
           const servicos = p.servicos || [];
           if (p.tipo === "Power") {
@@ -58,7 +50,8 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
         } else {
           setPlanDefaults({});
         }
-      });
+      },
+    );
   }, [open, student.id]);
 
   const defaultValues: StudentFormValues = {
