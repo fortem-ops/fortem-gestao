@@ -84,12 +84,19 @@ function sanitizeTextParam(text: string): string {
     .trim();
 }
 
-async function buildContext(agendaId: string) {
-  const { data: agenda } = await admin
-    .from('agenda_servicos')
-    .select('id, atividade, profissional_id, consultor_id, aluno_id, data_especifica, dia_semana, horario_inicio, horario_fim, local, tipo, protocolo, observacoes')
-    .eq('id', agendaId)
-    .maybeSingle();
+async function buildContext(agendaId: string, snapshot?: Record<string, unknown> | null) {
+  let agenda: any = null;
+
+  if (snapshot && typeof snapshot === 'object' && Object.keys(snapshot).length > 0) {
+    agenda = { id: agendaId, ...snapshot };
+  } else {
+    const { data } = await admin
+      .from('agenda_servicos')
+      .select('id, atividade, profissional_id, consultor_id, aluno_id, data_especifica, dia_semana, horario_inicio, horario_fim, local, tipo, protocolo, observacoes')
+      .eq('id', agendaId)
+      .maybeSingle();
+    agenda = data;
+  }
   if (!agenda) return null;
 
   const [alunoRes, profRes] = await Promise.all([
