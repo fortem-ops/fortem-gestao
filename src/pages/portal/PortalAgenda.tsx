@@ -1176,17 +1176,57 @@ export default function PortalAgenda() {
               <SectionLabel>Serviços</SectionLabel>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Agendamentos de serviços são feitos via WhatsApp com a equipe FORTEM.
-              </p>
-              <button
-                onClick={() => setAbaAgenda("servicos")}
-                className="w-full py-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-foreground"
-              >
-                Ver serviços disponíveis →
-              </button>
-            </div>
+            {servicosFuturos.length === 0 ? (
+              <div className="bg-card border border-border rounded-2xl p-5 text-center space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Nenhum serviço agendado.
+                </p>
+                <button
+                  onClick={() => setAbaAgenda("servicos")}
+                  className="w-full py-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-foreground"
+                >
+                  Ver serviços disponíveis →
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {servicosFuturos.map((s: any) => (
+                  <div key={s.id} className="bg-card border border-border rounded-xl p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-center min-w-[44px] shrink-0">
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                          {format(parseISO(s.data_especifica + "T12:00:00"), "EEE", { locale: ptBR })}
+                        </p>
+                        <p className="text-2xl font-black text-foreground" style={{ fontFamily: 'Archivo,sans-serif' }}>
+                          {format(parseISO(s.data_especifica + "T12:00:00"), "d")}
+                        </p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-foreground truncate">
+                          {s.horario_inicio?.slice(0, 5)}{s.horario_fim ? ` → ${s.horario_fim.slice(0, 5)}` : ""} · {s.atividade}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {format(parseISO(s.data_especifica + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
+                          {s.local ? ` · ${s.local}` : ""}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setCancelandoServico(s.id)}
+                        className="py-1.5 px-3 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setAbaAgenda("servicos")}
+                  className="w-full py-2.5 rounded-xl bg-card border border-border text-xs font-semibold text-foreground"
+                >
+                  Ver serviços disponíveis →
+                </button>
+              </div>
+            )}
 
             {/* Botão histórico de serviços */}
             <button
