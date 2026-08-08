@@ -7136,10 +7136,21 @@ export type Database = {
         Returns: Database["public"]["Enums"]["tipo_acordo_intervalo"]
       }
       fn_agendar_reavaliacoes_pendentes: { Args: never; Returns: Json }
-      fn_agendar_servico: {
-        Args: { p_agenda_servico_id: string; p_data: string }
-        Returns: Json
-      }
+      fn_agendar_servico:
+        | {
+            Args: {
+              _aluno_id: string
+              _data_hora: string
+              _observacoes?: string
+              _profissional_id?: string
+              _servico_catalogo_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: { p_agenda_servico_id: string; p_data: string }
+            Returns: Json
+          }
       fn_agendar_treino: {
         Args: { p_data: string; p_slot_id: string }
         Returns: Json
