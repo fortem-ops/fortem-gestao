@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
+import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { Button } from "@/components/ui/button";
 import {
   CalendarPlus,

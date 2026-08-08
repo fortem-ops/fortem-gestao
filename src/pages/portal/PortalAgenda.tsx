@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { saldoTotalPorAtividade } from "@/lib/creditosServicos";
 import { supabase } from "@/integrations/supabase/client";
+import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";

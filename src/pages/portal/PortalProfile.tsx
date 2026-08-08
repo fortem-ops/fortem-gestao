@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
+import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
