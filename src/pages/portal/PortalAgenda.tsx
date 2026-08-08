@@ -475,19 +475,34 @@ export default function PortalAgenda() {
     },
   });
 
-  // Agendamentos futuros de serviços (agenda_servicos com confirmação)
-  // Por enquanto, buscar de consumo_servicos para mostrar histórico real
+  // Agendamentos futuros de serviços
+  const { data: servicosFuturos = [] } = useQuery({
+    queryKey: ["portal-servicos-futuros", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("agenda_servicos")
+        .select("id, atividade, local, data_especifica, horario_inicio, horario_fim")
+        .eq("aluno_id", student!.id)
+        .gte("data_especifica", format(new Date(), "yyyy-MM-dd"))
+        .order("data_especifica", { ascending: true });
+      return (data || []) as any[];
+    },
+  });
+
+  // Histórico de serviços (atendimentos já realizados)
   const { data: historicoServicos = [] } = useQuery({
     queryKey: ["portal-historico-servicos", student?.id],
     enabled: !!student,
     queryFn: async () => {
       const { data } = await supabase
-        .from("consumo_servicos")
-        .select("id, tipo_servico, data_consumo, quantidade")
+        .from("agenda_servicos")
+        .select("id, atividade, local, data_especifica, horario_inicio")
         .eq("aluno_id", student!.id)
-        .order("data_consumo", { ascending: false })
+        .lt("data_especifica", format(new Date(), "yyyy-MM-dd"))
+        .order("data_especifica", { ascending: false })
         .limit(30);
-      return data || [];
+      return (data || []) as any[];
     },
   });
 
