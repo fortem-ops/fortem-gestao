@@ -44,15 +44,10 @@ export default function PortalHome() {
     queryKey: ["portal-home-plano", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("planos")
-        .select("id, tipo, data_inicio, data_fim, proxima_renovacao, servicos")
-        .eq("aluno_id", student!.id)
-        .eq("ativo", true)
-        .eq("atividade", "treinamento_funcional")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data } = await queryPlanoPrincipalAtivo(
+        student!.id,
+        "id, tipo, data_inicio, data_fim, proxima_renovacao, servicos",
+      );
       return data;
     },
   });

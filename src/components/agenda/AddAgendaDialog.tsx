@@ -303,15 +303,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
       const planLabel = PLAN_SERVICE_LABEL[atividade];
       let plano = { temLinhas: false, ilimitado: false, total: 0, usado: 0, restante: 0 };
       if (planLabel) {
-        const { data: planoAtivo } = await supabase
-          .from("planos")
-          .select("id, servicos")
-          .eq("aluno_id", alunoId)
-          .eq("ativo", true)
-          .eq("atividade", "treinamento_funcional")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const { data: planoAtivo } = await queryPlanoPrincipalAtivo(alunoId, "id, servicos");
 
         if (planoAtivo) {
           const base = parsePlanServiceCount(planoAtivo.servicos as any, planLabel);

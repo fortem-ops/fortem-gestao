@@ -56,15 +56,7 @@ export default function PortalClube() {
     queryKey: ["portal-clube-plano", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("planos")
-        .select("tipo")
-        .eq("aluno_id", student!.id)
-        .eq("ativo", true)
-        .eq("atividade", "treinamento_funcional")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data } = await queryPlanoPrincipalAtivo(student!.id, "tipo");
       return data?.tipo ?? "Start";
     },
   });

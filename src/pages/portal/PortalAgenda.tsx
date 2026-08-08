@@ -293,15 +293,7 @@ export default function PortalAgenda() {
     queryKey: ["portal-plano-horario-fixo", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("planos")
-        .select("tipo")
-        .eq("aluno_id", student!.id)
-        .eq("ativo", true)
-        .eq("atividade", "treinamento_funcional")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data } = await queryPlanoPrincipalAtivo(student!.id, "tipo");
       return data ? { tipo: data.tipo, frequencia_semanal: student?.frequencia_semanal ?? 1 } : null;
     },
   });
@@ -344,15 +336,7 @@ export default function PortalAgenda() {
     queryKey: ["portal-agenda-plano-servicos", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("planos")
-        .select("id, servicos")
-        .eq("aluno_id", student!.id)
-        .eq("ativo", true)
-        .eq("atividade", "treinamento_funcional")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data } = await queryPlanoPrincipalAtivo(student!.id, "id, servicos");
       return data as any;
     },
   });
