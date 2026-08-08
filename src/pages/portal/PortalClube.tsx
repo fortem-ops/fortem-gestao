@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,15 +57,7 @@ export default function PortalClube() {
     queryKey: ["portal-clube-plano", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("planos")
-        .select("tipo")
-        .eq("aluno_id", student!.id)
-        .eq("ativo", true)
-        .eq("atividade", "treinamento_funcional")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data } = await queryPlanoPrincipalAtivo(student!.id, "tipo");
       return data?.tipo ?? "Start";
     },
   });

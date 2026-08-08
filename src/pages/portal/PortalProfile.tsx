@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
+import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
@@ -26,11 +27,7 @@ export default function PortalProfile() {
     queryKey: ["portal-plano", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("planos").select("*")
-        .eq("aluno_id", student!.id).eq("ativo", true)
-        .eq("atividade", "treinamento_funcional")
-        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = await queryPlanoPrincipalAtivo(student!.id);
       return data;
     },
   });

@@ -1,6 +1,7 @@
 import { useState, useEffect, ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -190,15 +191,10 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
   const { data: planoVigente } = useQuery({
     queryKey: ["plano-vigente-venda", alunoId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("planos")
-        .select("id, tipo, data_inicio, data_fim, duracao_meses, renovacao_automatica")
-        .eq("aluno_id", alunoId)
-        .eq("ativo", true)
-        .eq("atividade", "treinamento_funcional")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data } = await queryPlanoPrincipalAtivo(
+        alunoId,
+        "id, tipo, data_inicio, data_fim, duracao_meses, renovacao_automatica",
+      );
       return data || null;
     },
     enabled: open && tab === "planos",

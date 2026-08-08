@@ -7370,6 +7370,36 @@ export type Database = {
         Args: { p_ate: string; p_desde: string; p_funnel_id: string }
         Returns: Json
       }
+      fn_plano_principal_ativo: {
+        Args: { p_aluno_id: string }
+        Returns: {
+          aluno_id: string
+          atividade: string
+          ativo: boolean
+          cartao_token_id: string | null
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          desconto_recorrente: number
+          duracao_meses: number
+          forma_pagamento_padrao: string | null
+          id: string
+          observacoes: string | null
+          parcelas_padrao: number
+          proxima_renovacao: string | null
+          renovacao_automatica: boolean
+          servicos: string[] | null
+          tipo: string
+          updated_at: string
+          valor: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "planos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fn_ponto_ajustar_jornada: {
         Args: {
           _campo: string
