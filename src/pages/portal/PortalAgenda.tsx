@@ -1629,16 +1629,16 @@ export default function PortalAgenda() {
               {historicoServicos.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Nenhum serviço registrado.</p>
               ) : historicoServicos.map((s: any) => {
-                const { icon: Icon } = iconServico(s.tipo_servico ?? "");
+                const { icon: Icon } = iconServico(s.atividade ?? "");
                 return (
                   <div key={s.id} className="flex items-center gap-3 py-3 border-b border-border last:border-0">
                     <div className="w-9 h-9 rounded-xl bg-[#2C2C2C] flex items-center justify-center shrink-0">
                       <Icon className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{s.tipo_servico}</p>
+                      <p className="text-sm font-semibold text-foreground">{s.atividade}</p>
                       <p className="text-xs text-muted-foreground">
-                        {s.data_consumo ? format(parseISO(s.data_consumo), "dd 'de' MMMM 'de' yyyy", {locale: ptBR}) : "—"}
+                        {s.data_especifica ? format(parseISO(s.data_especifica + "T12:00:00"), "dd 'de' MMMM 'de' yyyy", {locale: ptBR}) : "—"}
                       </p>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
