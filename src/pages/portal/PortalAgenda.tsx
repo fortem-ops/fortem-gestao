@@ -1516,6 +1516,35 @@ export default function PortalAgenda() {
         );
       })()}
 
+      {/* Dialog cancelar serviço */}
+      {cancelandoServico && (() => {
+        const s = servicosFuturos.find((x: any) => x.id === cancelandoServico);
+        if (!s) return null;
+        return (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
+            <div className="bg-card border border-border rounded-t-2xl w-full p-6 space-y-4">
+              <p className="font-black text-lg text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>Cancelar serviço?</p>
+              <p className="text-sm text-muted-foreground">
+                {s.atividade} · {format(parseISO(s.data_especifica + "T12:00:00"), "EEEE, dd 'de' MMMM", {locale: ptBR})} às {s.horario_inicio?.slice(0,5)}
+              </p>
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                <p className="text-xs text-emerald-400">✓ Crédito será estornado automaticamente.</p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setCancelandoServico(null)} className="flex-1 py-3 rounded-xl bg-muted text-foreground font-semibold text-sm">Voltar</button>
+                <button
+                  onClick={() => cancelarServico.mutate(cancelandoServico)}
+                  disabled={cancelarServico.isPending}
+                  className="flex-1 py-3 rounded-xl bg-destructive text-white font-bold text-sm"
+                >
+                  {cancelarServico.isPending ? 'Cancelando...' : 'Cancelar serviço'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── HISTÓRICO DE TREINOS ── */}
       {showHistoricoTreinos && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/70" onClick={() => setShowHistoricoTreinos(false)}>
