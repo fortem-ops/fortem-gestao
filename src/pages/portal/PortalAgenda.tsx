@@ -607,6 +607,38 @@ export default function PortalAgenda() {
     onError: () => toast.error("Erro ao cancelar."),
   });
 
+  const cancelarServico = useMutation({
+    mutationFn: async (agendaId: string) => {
+      const { data: result, error } = await (supabase as any).rpc("fn_cancelar_agendamento_servico", {
+        p_agenda_id: agendaId,
+      });
+      if (error) throw error;
+      const r = result as any;
+      if (!r?.ok) throw new Error(r?.erro || "erro");
+      return r;
+    },
+    onSuccess: () => {
+      toast.success("Serviço cancelado", { description: "Seu crédito foi estornado." });
+      setCancelandoServico(null);
+      qc.invalidateQueries({ queryKey: ["portal-servicos-futuros"] });
+      qc.invalidateQueries({ queryKey: ["portal-historico-servicos"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-servicos-creditos"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-consumos"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-reservas-servico"] });
+      qc.invalidateQueries({ queryKey: ["portal-agenda-horarios-servico"] });
+    },
+    onError: (e: any) => {
+      const msgs: Record<string, string> = {
+        data_passada: "Não é possível cancelar um atendimento que já passou.",
+        nao_autorizado: "Este agendamento não pertence a você.",
+        agendamento_nao_encontrado: "Agendamento não encontrado.",
+      };
+      toast.error(msgs[e.message] || "Erro ao cancelar.");
+    },
+  });
+
+
+
   return (
     <div className="space-y-6 pb-32 pt-4 animate-fade-in">
       {/* Header */}
