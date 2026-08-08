@@ -387,6 +387,44 @@ export default function PortalAgenda() {
   // Materializa os horários recorrentes em datas concretas (próximos 14 dias)
   const dias14 = useMemo(() => Array.from({ length: 14 }, (_, i) => addDays(new Date(), i)), []);
 
+  const janela14 = useMemo(
+    () => ({
+      inicio: format(dias14[0], "yyyy-MM-dd"),
+      fim: format(dias14[dias14.length - 1], "yyyy-MM-dd"),
+    }),
+    [dias14],
+  );
+
+  const profissionaisHorarios = useMemo(
+    () => Array.from(new Set((horariosServico as any[]).map((h) => h.profissional_id).filter(Boolean))),
+    [horariosServico],
+  );
+
+  // Reservas já feitas (com aluno vinculado) para esses profissionais na janela de 14 dias
+  const { data: reservasServico = [] } = useQuery({
+    queryKey: ["portal-agenda-reservas-servico", profissionaisHorarios, janela14.inicio, janela14.fim],
+    enabled: profissionaisHorarios.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("agenda_servicos")
+        .select("profissional_id, data_especifica, horario_inicio")
+        .not("aluno_id", "is", null)
+        .in("profissional_id", profissionaisHorarios as string[])
+        .gte("data_especifica", janela14.inicio)
+        .lte("data_especifica", janela14.fim);
+      return data || [];
+    },
+  });
+
+  const ocupadosSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of reservasServico as any[]) {
+      if (!r.data_especifica) continue;
+      s.add(`${r.profissional_id ?? ""}|${r.data_especifica}|${String(r.horario_inicio).slice(0, 5)}`);
+    }
+    return s;
+  }, [reservasServico]);
+
   const horariosServicoPorDia = useMemo(() => {
     const agora = Date.now();
     const map: Record<string, any[]> = {};
@@ -400,14 +438,19 @@ export default function PortalAgenda() {
         const [hh, mm] = String(h.horario_inicio).split(":").map(Number);
         const dt = new Date(d);
         dt.setHours(hh, mm, 0, 0);
-        return dt.getTime() > agora;
+        if (dt.getTime() <= agora) return false;
+        const ocupado = ocupadosSet.has(
+          `${h.profissional_id ?? ""}|${key}|${String(h.horario_inicio).slice(0, 5)}`,
+        );
+        return !ocupado;
       });
       if (validos.length > 0) {
         map[key] = validos.sort((a, b) => String(a.horario_inicio).localeCompare(String(b.horario_inicio)));
       }
     }
     return map;
-  }, [horariosServico, dias14]);
+  }, [horariosServico, dias14, ocupadosSet]);
+
 
   const diasServicoDisponiveis = useMemo(
     () => dias14.filter((d) => horariosServicoPorDia[format(d, "yyyy-MM-dd")]?.length),
