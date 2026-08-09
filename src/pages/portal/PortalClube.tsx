@@ -149,6 +149,21 @@ export default function PortalClube() {
     },
   });
 
+  const { data: pontosMes } = useQuery({
+    queryKey: ["portal-clube-pontos-mes", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const inicio = new Date();
+      inicio.setDate(1); inicio.setHours(0, 0, 0, 0);
+      const { data } = await supabase
+        .from("clube_historico")
+        .select("pontos_final")
+        .eq("aluno_id", student!.id)
+        .gte("created_at", inicio.toISOString());
+      return (data || []).reduce((sum: number, r: any) => sum + (r.pontos_final ?? 0), 0);
+    },
+  });
+
   const resgatar = useMutation({
     mutationFn: async (recompensa_id: string) => {
       const { data, error } = await supabase.rpc("fn_clube_resgatar", { p_recompensa_id: recompensa_id });
@@ -321,7 +336,11 @@ export default function PortalClube() {
         <div className="flex-1">
           <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Ranking mensal</p>
           <p className="font-heading font-bold">
-            {posicaoRanking ? `#${posicaoRanking}` : rankingAberto ? "Fora do top" : "—"}
+            {posicaoRanking
+              ? `#${posicaoRanking} este mês`
+              : (pontosMes ?? 0) > 0
+              ? `Fora do top · ${pontosMes} pontos este mês`
+              : "Nenhum ponto este mês ainda"}
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={() => setRankingAberto((v) => !v)}>
