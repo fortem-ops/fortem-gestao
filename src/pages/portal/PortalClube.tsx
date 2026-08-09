@@ -582,10 +582,11 @@ export default function PortalClube() {
               </p>
               <div className="space-y-2">
                 {[
-                  { nivel: "🥉 Bronze", cor: "text-amber-700", plano: "Start / Start+", pontos: "0 – 299 pts", desc: "Nível inicial. Acesso aos benefícios básicos dos parceiros." },
-                  { nivel: "🥈 Prata", cor: "text-slate-400", plano: "Power", pontos: "300 – 999 pts", desc: "Acesso a benefícios intermediários e desconto em recompensas." },
-                  { nivel: "🥇 Ouro", cor: "text-yellow-400", plano: "Pro", pontos: "1.000 – 2.999 pts", desc: "Acesso a benefícios premium e desconto significativo nas recompensas." },
-                  { nivel: "👑 Elite", cor: "text-primary", plano: "Max", pontos: "3.000+ pts", desc: "Nível máximo. Acesso VIP a todos os benefícios e mínimo de pontos para resgates." },
+                  { nivel: "🥉 Bronze", cor: "text-amber-700", plano: "Wellhub / Gympass / Total Pass", pontos: "fixo", desc: "Nível fixo para planos agregadores. Acesso aos benefícios básicos dos parceiros, mas pontua 50% menos e resgates custam 30% a mais." },
+                  { nivel: "🥈 Prata", cor: "text-slate-300", plano: "Start / Start+", pontos: "0 – 299 pts", desc: "Nível inicial dos planos FORTEM. Acesso aos benefícios básicos dos parceiros." },
+                  { nivel: "🥇 Ouro", cor: "text-yellow-400", plano: "Power", pontos: "300 – 999 pts", desc: "Acesso a benefícios intermediários e desconto em recompensas." },
+                  { nivel: "💎 Diamante", cor: "text-cyan-400", plano: "Pro", pontos: "1.000 – 2.999 pts", desc: "Acesso a benefícios premium e desconto significativo nas recompensas." },
+                  { nivel: "👑 Platina", cor: "text-purple-400", plano: "Max", pontos: "3.000+ pts", desc: "Nível máximo. Acesso VIP a todos os benefícios e melhores condições de resgate." },
                 ].map(n => (
                   <div key={n.nivel} className="bg-background border border-border rounded-xl p-3 space-y-1.5">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -601,7 +602,7 @@ export default function PortalClube() {
               </div>
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
                 <p className="text-xs text-foreground">
-                  💡 <strong>Exemplo:</strong> Aluno com plano Power (nível mínimo Prata) que acumula 1.200 pontos sobe automaticamente para <strong>Ouro</strong> — o maior entre os dois prevalece.
+                  💡 <strong>Exemplo:</strong> Aluno com plano Power (nível mínimo Ouro) que acumula 1.200 pontos sobe automaticamente para <strong>Diamante</strong> — o maior entre os dois prevalece.
                 </p>
               </div>
             </section>
