@@ -277,13 +277,25 @@ export default function PortalClube() {
           <div className="mt-4">
             <div className="flex justify-between text-[11px] mb-1">
               <span>
-                {faltamParaProximo === 0
-                  ? `✓ Próximo nível desbloqueado!`
-                  : <>Faltam <strong>{faltamParaProximo}</strong> pts para {proxNivel.emoji} {proxNivel.nome}</>}
+                {boostedByPlan ? (
+                  <>
+                    Seu plano já garante {nivelAtual.emoji} {nivelAtual.nome} — faltam{" "}
+                    <strong>{faltamParaNivelAtualPorPontos}</strong> pts para chegar lá também por pontuação
+                  </>
+                ) : faltamParaProximo === 0 ? (
+                  `✓ Próximo nível desbloqueado!`
+                ) : (
+                  <>
+                    Faltam <strong>{faltamParaProximo}</strong> pts para {proxNivel.emoji} {proxNivel.nome}
+                  </>
+                )}
               </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary transition-all" style={{ width: `${progresso}%` }} />
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${boostedByPlan ? progressoPorPontos : progresso}%` }}
+              />
             </div>
           </div>
         ) : !isAgregador && (
