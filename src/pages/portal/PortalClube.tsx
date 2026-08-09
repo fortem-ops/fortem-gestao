@@ -208,10 +208,6 @@ export default function PortalClube() {
   const progresso = proxNivel
     ? Math.min(100, Math.round((saldo / proxNivel.min) * 100))
     : 100;
-  const progressoPorPontos = Math.min(
-    100,
-    Math.round((saldo / nivelAtual.min) * 100)
-  );
   const posMinhaMes = ranking?.findIndex((r) => r.aluno_id === student.id);
 
   const posicaoRanking = posMinhaMes !== undefined && posMinhaMes >= 0 ? posMinhaMes + 1 : null;
