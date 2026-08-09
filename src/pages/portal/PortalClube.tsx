@@ -294,7 +294,7 @@ export default function PortalClube() {
               />
             </div>
           </div>
-        ) : (
+        ) : !isAgregador && (
           <p className="text-xs text-emerald-400 font-semibold mt-4">👑 Nível máximo atingido!</p>
         )}
         {pontos?.pontos_expiram_em && (
