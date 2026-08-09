@@ -279,8 +279,8 @@ export default function PortalClube() {
               <span>
                 {boostedByPlan ? (
                   <>
-                    Seu plano já garante {nivelAtual.emoji} {nivelAtual.nome} — faltam{" "}
-                    <strong>{faltamParaNivelAtualPorPontos}</strong> pts para chegar lá também por pontuação
+                    Seu plano já garante {nivelAtual.emoji} {nivelAtual.nome}. Faltam{" "}
+                    <strong>{faltamParaProximo}</strong> pts para chegar em {proxNivel.emoji} {proxNivel.nome} por pontuação
                   </>
                 ) : faltamParaProximo === 0 ? (
                   `✓ Próximo nível desbloqueado!`
@@ -294,11 +294,11 @@ export default function PortalClube() {
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all"
-                style={{ width: `${boostedByPlan ? progressoPorPontos : progresso}%` }}
+                style={{ width: `${progresso}%` }}
               />
             </div>
           </div>
-        ) : !isAgregador && (
+        ) : (
           <p className="text-xs text-emerald-400 font-semibold mt-4">👑 Nível máximo atingido!</p>
         )}
         {pontos?.pontos_expiram_em && (
