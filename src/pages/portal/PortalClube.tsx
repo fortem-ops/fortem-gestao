@@ -203,7 +203,7 @@ export default function PortalClube() {
   const nivelAtualIdx = NIVEIS.findIndex((n) => n.key === nivelKey);
   const proxNivel = isAgregador ? undefined : NIVEIS[nivelAtualIdx + 1]; // undefined se já for Platina
   const faltamParaProximo = proxNivel ? Math.max(0, proxNivel.min - saldo) : 0;
-  const faltamParaNivelAtualPorPontos = Math.max(0, nivelAtual.min - saldo);
+  
 
   const progresso = proxNivel
     ? Math.min(100, Math.round((saldo / proxNivel.min) * 100))
