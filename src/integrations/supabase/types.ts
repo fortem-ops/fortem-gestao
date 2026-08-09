@@ -7194,6 +7194,10 @@ export type Database = {
         Returns: Json
       }
       fn_clube_check_divergencias: { Args: never; Returns: Json }
+      fn_clube_conceder_badge: {
+        Args: { p_aluno_id: string; p_badge_nome: string }
+        Returns: boolean
+      }
       fn_clube_dashboard: { Args: { _periodo_dias?: number }; Returns: Json }
       fn_clube_generate_qr_token: { Args: { _aluno_id: string }; Returns: Json }
       fn_clube_hash_cpf: { Args: { _cpf: string }; Returns: string }
