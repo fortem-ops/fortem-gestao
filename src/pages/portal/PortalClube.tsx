@@ -336,7 +336,11 @@ export default function PortalClube() {
         <div className="flex-1">
           <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Ranking mensal</p>
           <p className="font-heading font-bold">
-            {posicaoRanking ? `#${posicaoRanking}` : rankingAberto ? "Fora do top" : "—"}
+            {posicaoRanking
+              ? `#${posicaoRanking} este mês`
+              : (pontosMes ?? 0) > 0
+              ? `Fora do top · ${pontosMes} pontos este mês`
+              : "Nenhum ponto este mês ainda"}
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={() => setRankingAberto((v) => !v)}>
