@@ -190,14 +190,28 @@ export default function PortalClube() {
   const nivelKey = pontos?.nivel ?? "prata";
   const nivelAtual = NIVEIS.find((n) => n.key === nivelKey) ?? NIVEIS[1];
   const isAgregador = nivelKey === "bronze";
-  // Próximo nível: primeiro nível (após Bronze) cujo min é maior que o saldo atual
-  const proxNivel = isAgregador
-    ? undefined
-    : NIVEIS.slice(1).find((n) => n.min > saldo);
+
+  // Nível que o saldo bruto atingia sozinho (sem considerar o plano ativo)
+  const nivelPorPontos = isAgregador
+    ? NIVEIS[0]
+    : NIVEIS.slice(1).reduce((acc, n) => (saldo >= n.min ? n : acc), NIVEIS[1]);
+  const boostedByPlan =
+    NIVEIS.findIndex((n) => n.key === nivelKey) >
+    NIVEIS.findIndex((n) => n.key === nivelPorPontos.key);
+
+  // Próximo nível: sempre o nível seguinte ao exibido (combina plano + pontos)
+  const nivelAtualIdx = NIVEIS.findIndex((n) => n.key === nivelKey);
+  const proxNivel = isAgregador ? undefined : NIVEIS[nivelAtualIdx + 1]; // undefined se já for Platina
   const faltamParaProximo = proxNivel ? Math.max(0, proxNivel.min - saldo) : 0;
+  const faltamParaNivelAtualPorPontos = Math.max(0, nivelAtual.min - saldo);
+
   const progresso = proxNivel
     ? Math.min(100, Math.round((saldo / proxNivel.min) * 100))
     : 100;
+  const progressoPorPontos = Math.min(
+    100,
+    Math.round((saldo / nivelAtual.min) * 100)
+  );
   const posMinhaMes = ranking?.findIndex((r) => r.aluno_id === student.id);
 
   const posicaoRanking = posMinhaMes !== undefined && posMinhaMes >= 0 ? posMinhaMes + 1 : null;
