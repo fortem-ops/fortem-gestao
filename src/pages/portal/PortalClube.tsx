@@ -203,15 +203,11 @@ export default function PortalClube() {
   const nivelAtualIdx = NIVEIS.findIndex((n) => n.key === nivelKey);
   const proxNivel = isAgregador ? undefined : NIVEIS[nivelAtualIdx + 1]; // undefined se já for Platina
   const faltamParaProximo = proxNivel ? Math.max(0, proxNivel.min - saldo) : 0;
-  const faltamParaNivelAtualPorPontos = Math.max(0, nivelAtual.min - saldo);
+  
 
   const progresso = proxNivel
     ? Math.min(100, Math.round((saldo / proxNivel.min) * 100))
     : 100;
-  const progressoPorPontos = Math.min(
-    100,
-    Math.round((saldo / nivelAtual.min) * 100)
-  );
   const posMinhaMes = ranking?.findIndex((r) => r.aluno_id === student.id);
 
   const posicaoRanking = posMinhaMes !== undefined && posMinhaMes >= 0 ? posMinhaMes + 1 : null;
@@ -279,8 +275,8 @@ export default function PortalClube() {
               <span>
                 {boostedByPlan ? (
                   <>
-                    Seu plano já garante {nivelAtual.emoji} {nivelAtual.nome} — faltam{" "}
-                    <strong>{faltamParaNivelAtualPorPontos}</strong> pts para chegar lá também por pontuação
+                    Seu plano já garante {nivelAtual.emoji} {nivelAtual.nome}. Faltam{" "}
+                    <strong>{faltamParaProximo}</strong> pts para chegar em {proxNivel.emoji} {proxNivel.nome} por pontuação
                   </>
                 ) : faltamParaProximo === 0 ? (
                   `✓ Próximo nível desbloqueado!`
@@ -294,7 +290,7 @@ export default function PortalClube() {
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all"
-                style={{ width: `${boostedByPlan ? progressoPorPontos : progresso}%` }}
+                style={{ width: `${progresso}%` }}
               />
             </div>
           </div>
