@@ -57,7 +57,7 @@ export default function Agenda() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date; tipo: string } | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
+  const [prefill, setPrefill] = useState<{ date: Date; hour: number; minute?: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
   const [cellDate, setCellDate] = useState<Date | null>(null);
   const [fAtividade, setFAtividade] = useState<string[]>([]);
