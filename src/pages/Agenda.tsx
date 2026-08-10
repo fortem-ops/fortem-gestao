@@ -464,20 +464,21 @@ export default function Agenda() {
               })}
             </div>
 
-            {HORAS.map((hour) => (
-              <div key={hour} className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border/50 min-h-[60px]">
+            {SLOTS.map((slot) => (
+              <div key={slot} className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border/50 min-h-[44px]">
                 <div className="p-2 text-xs text-muted-foreground text-right pr-3 pt-1">
-                  {String(hour).padStart(2, "0")}:00
+                  {slotLabel(slot)}
                 </div>
                 {weekDates.map((_, dayIdx) => {
-                  const events = getEventsForCell(dayIdx, hour);
+                  const events = getEventsForCell(dayIdx, slot);
                   const isToday = isSameDay(weekDates[dayIdx], new Date());
                   return (
                     <div
                       key={dayIdx}
-                      className={`border-l border-border/50 p-0.5 cursor-pointer hover:bg-muted/30 transition-colors ${isToday ? "bg-primary/5" : ""}`}
-                      onClick={() => handleCellClick(dayIdx, hour)}
+                      className={`border-l border-border/50 p-0.5 cursor-pointer hover:bg-muted/30 transition-colors overflow-hidden min-w-0 ${isToday ? "bg-primary/5" : ""}`}
+                      onClick={() => handleCellClick(dayIdx, slot)}
                     >
+
                       {events.map((ev: any) => (
                         <div
                           key={ev.id}
