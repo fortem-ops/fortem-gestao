@@ -3249,6 +3249,67 @@ export type Database = {
           },
         ]
       }
+      links_contrato: {
+        Row: {
+          aluno_id: string
+          contrato_documento_id: string
+          created_at: string
+          criado_por: string | null
+          expira_em: string
+          id: string
+          origem: string | null
+          token: string
+          usado: boolean
+          usado_em: string | null
+        }
+        Insert: {
+          aluno_id: string
+          contrato_documento_id: string
+          created_at?: string
+          criado_por?: string | null
+          expira_em: string
+          id?: string
+          origem?: string | null
+          token: string
+          usado?: boolean
+          usado_em?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          contrato_documento_id?: string
+          created_at?: string
+          criado_por?: string | null
+          expira_em?: string
+          id?: string
+          origem?: string | null
+          token?: string
+          usado?: boolean
+          usado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "links_contrato_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "links_contrato_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "links_contrato_contrato_documento_id_fkey"
+            columns: ["contrato_documento_id"]
+            isOneToOne: false
+            referencedRelation: "contratos_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notificacao_categorias_custom: {
         Row: {
           ativo: boolean
@@ -7275,6 +7336,10 @@ export type Database = {
         }
         Returns: string
       }
+      fn_criar_link_contrato: {
+        Args: { p_contrato_documento_id: string }
+        Returns: Json
+      }
       fn_criar_tarefa_reavaliacao: {
         Args: { _aluno_id: string; _criado_por: string; _data_ultima: string }
         Returns: string
@@ -7542,6 +7607,7 @@ export type Database = {
         Returns: boolean
       }
       fn_validar_link_cartao: { Args: { p_token: string }; Returns: Json }
+      fn_validar_link_contrato: { Args: { p_token: string }; Returns: Json }
       get_dashboard_data: { Args: { _professor_id?: string }; Returns: Json }
       get_webhook_secret: { Args: never; Returns: string }
       has_role: {
