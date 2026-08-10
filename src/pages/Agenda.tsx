@@ -313,9 +313,9 @@ export default function Agenda() {
   };
 
 
-  const handleCellClick = (dayIndex: number, hour: number) => {
+  const handleCellClick = (dayIndex: number, slot: number) => {
     setEditEvent(null);
-    setPrefill({ date: weekDates[dayIndex], hour });
+    setPrefill({ date: weekDates[dayIndex], hour: Math.floor(slot / 60), minute: slot % 60 });
     setDialogOpen(true);
   };
 
