@@ -131,6 +131,12 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
   const totalLote = diasSemana.length * horarios.length;
   const loteMultiplo = modoLote && totalLote > 1;
 
+  // Data da célula clicada (reserva avulsa a partir de uma vaga fixa)
+  const cellDateStr = cellDate ? format(cellDate, "yyyy-MM-dd") : null;
+  const editandoFixoUI = isEditing && editEvent?.tipo === "fixo";
+  // Aluno indisponível: criando vaga fixa, ou editando modelo fixo sem data de referência
+  const alunoBloqueado = modoLote || (editandoFixoUI && !cellDateStr);
+
   // Apply prefill or editEvent when dialog opens
   useEffect(() => {
     if (!open) return;
