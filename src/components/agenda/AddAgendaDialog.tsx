@@ -437,14 +437,16 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
       }
 
       const editandoFixo = isEditing && editEvent?.tipo === "fixo";
+      // Horário fixo é apenas a vaga na grade — nunca guarda aluno vinculado.
+      const semAluno = editandoFixo || tipo === "fixo";
 
       const payload: any = {
         ...base,
         horario_inicio: horarioInicio,
         horario_fim: horarioFim,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
-        aluno_id: editandoFixo ? null : (alunoId || null),
-        credito_origem: (!editandoFixo && alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
+        aluno_id: semAluno ? null : (alunoId || null),
+        credito_origem: (!semAluno && alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
       };
       if (tipo === "avulso") {
         payload.data_especifica = dataEspecifica;
