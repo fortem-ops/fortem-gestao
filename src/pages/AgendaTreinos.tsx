@@ -46,6 +46,13 @@ function toMinutes(hhmm: string): number {
   return h * 60 + m;
 }
 
+function fromMinutes(min: number): string {
+  const m = ((min % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
+type Horario = { inicio: string; fim: string };
+
 function SlotDialog({
   open,
   onOpenChange,
@@ -70,6 +77,45 @@ function SlotDialog({
     modalidade: slot?.modalidade ?? "treino",
   });
 
+  // Criação em lote: lista de horários
+  const [horarios, setHorarios] = useState<Horario[]>(
+    slot ? [{ inicio: slot.horario_inicio.slice(0, 5), fim: slot.horario_fim.slice(0, 5) }] : [],
+  );
+  const [novoInicio, setNovoInicio] = useState("07:00");
+  const [duracaoMin, setDuracaoMin] = useState(60);
+  const [serieDe, setSerieDe] = useState("07:30");
+  const [serieAte, setSerieAte] = useState("09:30");
+  const [serieIntervalo, setSerieIntervalo] = useState(30);
+
+  const addHorarios = (novos: Horario[]) => {
+    setHorarios((prev) => {
+      const map = new Map(prev.map((h) => [`${h.inicio}|${h.fim}`, h]));
+      novos.forEach((h) => map.set(`${h.inicio}|${h.fim}`, h));
+      return Array.from(map.values()).sort((a, b) => toMinutes(a.inicio) - toMinutes(b.inicio));
+    });
+  };
+
+  const handleAddUm = () => {
+    if (duracaoMin <= 0) return toastError("Duração inválida");
+    addHorarios([{ inicio: novoInicio, fim: fromMinutes(toMinutes(novoInicio) + duracaoMin) }]);
+  };
+
+  const handleGerarSerie = () => {
+    const de = toMinutes(serieDe);
+    const ate = toMinutes(serieAte);
+    if (ate < de) return toastError("O horário final da série deve ser maior que o inicial");
+    if (serieIntervalo <= 0 || duracaoMin <= 0) return toastError("Intervalo/duração inválidos");
+    const novos: Horario[] = [];
+    for (let t = de; t <= ate && novos.length < 40; t += serieIntervalo) {
+      novos.push({ inicio: fromMinutes(t), fim: fromMinutes(t + duracaoMin) });
+    }
+    if (!novos.length) return toastError("Nenhum horário gerado");
+    addHorarios(novos);
+  };
+
+  const removeHorario = (inicio: string, fim: string) =>
+    setHorarios((prev) => prev.filter((h) => !(h.inicio === inicio && h.fim === fim)));
+
   const toggleDia = (i: number) => {
     if (isEdit) return;
     setForm((f) => ({
@@ -80,60 +126,75 @@ function SlotDialog({
 
   const save = useSupabaseMutation({
     mutationFn: async () => {
-      if (toMinutes(form.horario_fim) <= toMinutes(form.horario_inicio)) {
-        throw new Error("Horário final deve ser maior que o inicial");
-      }
-      if (!isEdit && form.dias.length === 0) {
-        throw new Error("Selecione ao menos um dia da semana");
-      }
       const base = {
-        horario_inicio: form.horario_inicio,
-        horario_fim: form.horario_fim,
         capacidade_maxima: form.capacidade_maxima,
         instrutor_id: form.instrutor_id || null,
         observacoes: form.observacoes || null,
         modalidade: form.modalidade,
       };
+
       if (isEdit) {
+        if (toMinutes(form.horario_fim) <= toMinutes(form.horario_inicio)) {
+          throw new Error("Horário final deve ser maior que o inicial");
+        }
         const { error } = await supabase
           .from("treino_slots")
-          .update({ ...base, dia_semana: form.dias[0] })
+          .update({
+            ...base,
+            horario_inicio: form.horario_inicio,
+            horario_fim: form.horario_fim,
+            dia_semana: form.dias[0],
+          })
           .eq("id", slot!.id);
         if (error) throw error;
-        return { criados: 1, ignorados: [] as number[] };
-      } else {
-        // Já existe horário da MESMA modalidade neste dia/horário? Ignora esses dias.
-        const { data: existentes, error: errSel } = await supabase
-          .from("treino_slots")
-          .select("dia_semana")
-          .eq("modalidade", form.modalidade)
-          .eq("horario_inicio", form.horario_inicio)
-          .in("dia_semana", form.dias);
-        if (errSel) throw errSel;
-        const ocupados = new Set((existentes ?? []).map((e: any) => e.dia_semana));
-        const ignorados = form.dias.filter((d) => ocupados.has(d));
-        const novos = form.dias.filter((d) => !ocupados.has(d));
-
-        if (novos.length === 0) {
-          throw new Error(
-            `Já existe horário de ${form.modalidade === "corrida" ? "Corrida" : "Treino"} às ${form.horario_inicio} em ${ignorados.map((d) => DIAS_CURTOS[d]).join(", ")}.`
-          );
-        }
-
-        const payloads = novos.map((d) => ({ ...base, dia_semana: d }));
-        const { error } = await supabase.from("treino_slots").insert(payloads);
-        if (error) throw error;
-        return { criados: payloads.length, ignorados };
+        return { criados: 1, ignorados: [] as string[] };
       }
+
+      if (form.dias.length === 0) throw new Error("Selecione ao menos um dia da semana");
+      if (horarios.length === 0) throw new Error("Adicione ao menos um horário");
+      for (const h of horarios) {
+        if (toMinutes(h.fim) <= toMinutes(h.inicio)) {
+          throw new Error(`Horário inválido: ${h.inicio}–${h.fim} (fim deve ser maior que o início)`);
+        }
+      }
+
+      // Pares (dia + horário) já existentes na mesma modalidade são ignorados
+      const { data: existentes, error: errSel } = await supabase
+        .from("treino_slots")
+        .select("dia_semana, horario_inicio")
+        .eq("modalidade", form.modalidade)
+        .in("horario_inicio", horarios.map((h) => h.inicio))
+        .in("dia_semana", form.dias);
+      if (errSel) throw errSel;
+      const ocupados = new Set(
+        (existentes ?? []).map((e: any) => `${e.dia_semana}|${String(e.horario_inicio).slice(0, 5)}`),
+      );
+
+      const payloads: any[] = [];
+      const ignorados: string[] = [];
+      for (const d of form.dias) {
+        for (const h of horarios) {
+          if (ocupados.has(`${d}|${h.inicio}`)) ignorados.push(`${DIAS_CURTOS[d]} ${h.inicio}`);
+          else payloads.push({ ...base, dia_semana: d, horario_inicio: h.inicio, horario_fim: h.fim });
+        }
+      }
+
+      if (payloads.length === 0) {
+        throw new Error(
+          `Já existem horários de ${form.modalidade === "corrida" ? "Corrida" : "Treino"} em: ${ignorados.join(", ")}.`,
+        );
+      }
+
+      const { error } = await supabase.from("treino_slots").insert(payloads);
+      if (error) throw error;
+      return { criados: payloads.length, ignorados };
     },
     onSuccess: ({ criados, ignorados }) => {
       const msg = isEdit
         ? "Horário atualizado"
         : `${criados} horário${criados === 1 ? "" : "s"} criado${criados === 1 ? "" : "s"}` +
-          (ignorados.length
-            ? ` · já existia em ${ignorados.map((d) => DIAS_CURTOS[d]).join(", ")}`
-            : "");
-      import("@/lib/toast-helpers").then(({ toastSuccess }) => toastSuccess(msg));
+          (ignorados.length ? ` · já existia em ${ignorados.join(", ")}` : "");
+      toastSuccess(msg);
       onSaved();
       onOpenChange(false);
     },
@@ -141,9 +202,9 @@ function SlotDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Editar horário" : "Novo horário"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar horário" : "Novos horários"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -172,7 +233,7 @@ function SlotDialog({
             </div>
             {!isEdit && (
               <p className="text-xs text-muted-foreground mt-1.5">
-                Selecione todos os dias com o mesmo horário e capacidade — será criado um horário para cada.
+                Cada horário da lista será criado em todos os dias selecionados.
               </p>
             )}
           </div>
@@ -189,17 +250,95 @@ function SlotDialog({
               Horários de Corrida não consomem créditos — exigem plano de Corrida ativo.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
 
-            <div>
-              <Label>Início</Label>
-              <Input type="time" value={form.horario_inicio} onChange={(e) => setForm({ ...form, horario_inicio: e.target.value })} />
+          {isEdit ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Início</Label>
+                <Input type="time" value={form.horario_inicio} onChange={(e) => setForm({ ...form, horario_inicio: e.target.value })} />
+              </div>
+              <div>
+                <Label>Fim</Label>
+                <Input type="time" value={form.horario_fim} onChange={(e) => setForm({ ...form, horario_fim: e.target.value })} />
+              </div>
             </div>
-            <div>
-              <Label>Fim</Label>
-              <Input type="time" value={form.horario_fim} onChange={(e) => setForm({ ...form, horario_fim: e.target.value })} />
+          ) : (
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <div>
+                <Label>Duração de cada horário (min)</Label>
+                <Input
+                  type="number"
+                  min={5}
+                  step={5}
+                  value={duracaoMin}
+                  onChange={(e) => setDuracaoMin(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+                <div>
+                  <Label>Adicionar horário</Label>
+                  <Input type="time" value={novoInicio} onChange={(e) => setNovoInicio(e.target.value)} />
+                </div>
+                <Button type="button" variant="outline" onClick={handleAddUm}>
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-xs">De</Label>
+                  <Input type="time" value={serieDe} onChange={(e) => setSerieDe(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Até</Label>
+                  <Input type="time" value={serieAte} onChange={(e) => setSerieAte(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">A cada (min)</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    step={5}
+                    value={serieIntervalo}
+                    onChange={(e) => setSerieIntervalo(Number(e.target.value))}
+                  />
+                </div>
+                <Button type="button" variant="outline" onClick={handleGerarSerie}>Gerar</Button>
+              </div>
+
+              <div>
+                <Label className="text-xs">Horários selecionados ({horarios.length})</Label>
+                {horarios.length === 0 ? (
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Nenhum horário adicionado ainda.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {horarios.map((h) => (
+                      <Badge key={`${h.inicio}|${h.fim}`} variant="secondary" className="gap-1">
+                        {h.inicio}–{h.fim}
+                        <button
+                          type="button"
+                          className="ml-0.5 opacity-70 hover:opacity-100"
+                          onClick={() => removeHorario(h.inicio, h.fim)}
+                          aria-label={`Remover ${h.inicio}`}
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {horarios.length > 0 && form.dias.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Serão criados até {horarios.length * form.dias.length} horários.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
           <div>
             <Label>Capacidade máxima</Label>
             <Input type="number" min={1} value={form.capacidade_maxima}
