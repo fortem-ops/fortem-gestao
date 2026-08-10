@@ -518,7 +518,9 @@ export default function Agenda() {
             <AlertDialogDescription>
               {deleteTarget?.tipo === "fixo"
                 ? `Este é um horário fixo recorrente. Você pode remover apenas o dia ${deleteTarget ? format(deleteTarget.date, "dd/MM/yyyy", { locale: ptBR }) : ""} ou toda a recorrência.`
-                : "Esta ação não pode ser desfeita."}
+                : deleteTargetVagaFixa
+                  ? "Este agendamento ocupa uma vaga de horário fixo. Escolha o que deseja fazer."
+                  : "Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
@@ -532,12 +534,40 @@ export default function Agenda() {
                 Somente este dia
               </Button>
             )}
-            <AlertDialogAction onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
-              {deleteTarget?.tipo === "fixo" ? "Toda a recorrência" : "Remover"}
-            </AlertDialogAction>
+            {deleteTargetVagaFixa && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, modo: "liberar_vaga" })}
+                  disabled={deleteMutation.isPending}
+                >
+                  Remover só o aluno
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, modo: "somente_dia" })}
+                  disabled={deleteMutation.isPending}
+                >
+                  Cancelar só este dia
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, modo: "futuras" })}
+                  disabled={deleteMutation.isPending}
+                >
+                  Cancelar todas as futuras
+                </Button>
+              </>
+            )}
+            {!deleteTargetVagaFixa && (
+              <AlertDialogAction onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id })}>
+                {deleteTarget?.tipo === "fixo" ? "Toda a recorrência" : "Remover"}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
