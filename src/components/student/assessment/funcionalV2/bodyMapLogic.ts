@@ -8,6 +8,8 @@ export type Layer = "mobility" | "flexibility" | "pain" | "strength" | "asymmetr
 export type RegionId =
   | "shoulder-l" | "shoulder-r"
   | "shoulder-re-l" | "shoulder-re-r"
+  | "elbow-l" | "elbow-r"
+  | "wrist-l" | "wrist-r"
   | "thoracic"
   | "lumbar"
   | "hip-l" | "hip-r"
@@ -131,7 +133,9 @@ export interface BodyMapAnalysis {
 }
 
 const ALL_REGIONS: RegionId[] = [
-  "shoulder-l","shoulder-r","shoulder-re-l","shoulder-re-r","thoracic","lumbar",
+  "shoulder-l","shoulder-r","shoulder-re-l","shoulder-re-r",
+  "elbow-l","elbow-r","wrist-l","wrist-r",
+  "thoracic","lumbar",
   "hip-l","hip-r","hip-re-l","hip-re-r","psoas-l","psoas-r",
   "quad-l","quad-r","ham-l","ham-r","ankle-l","ankle-r",
 ];
@@ -325,7 +329,11 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility", stren
 
 export type ForcaExercicio =
   | "rotacao_interna" | "rotacao_externa"
-  | "dorsiflexao" | "flexao_plantar"
+  | "flexao_ombro" | "extensao_ombro" | "abducao_ombro" | "aducao_ombro"
+  | "flexao_cotovelo" | "extensao_cotovelo"
+  | "pronacao_antebraco" | "supinacao_antebraco"
+  | "flexao_punho" | "extensao_punho"
+  | "dorsiflexao" | "flexao_plantar" | "inversao"
   | "flexao_joelho" | "extensao_joelho"
   | "flexao_quadril" | "extensao_quadril"
   | "abducao_quadril" | "aducao_quadril";
@@ -340,8 +348,19 @@ export interface ForcaInput {
 export const FORCA_EXERCICIO_LABEL: Record<ForcaExercicio, string> = {
   rotacao_interna: "Rotação interna (ombro)",
   rotacao_externa: "Rotação externa (ombro)",
+  flexao_ombro: "Flexão de ombro",
+  extensao_ombro: "Extensão de ombro",
+  abducao_ombro: "Abdução de ombro",
+  aducao_ombro: "Adução de ombro",
+  flexao_cotovelo: "Flexão de cotovelo",
+  extensao_cotovelo: "Extensão de cotovelo",
+  pronacao_antebraco: "Pronação do antebraço",
+  supinacao_antebraco: "Supinação do antebraço",
+  flexao_punho: "Flexão de punho",
+  extensao_punho: "Extensão de punho",
   dorsiflexao: "Dorsiflexão",
   flexao_plantar: "Flexão plantar",
+  inversao: "Inversão (tornozelo)",
   flexao_joelho: "Flexão de joelho",
   extensao_joelho: "Extensão de joelho",
   flexao_quadril: "Flexão de quadril",
@@ -353,8 +372,19 @@ export const FORCA_EXERCICIO_LABEL: Record<ForcaExercicio, string> = {
 const FORCA_REGIONS: Record<ForcaExercicio, { left: RegionId; right: RegionId } | { both: RegionId }> = {
   rotacao_interna: { left: "shoulder-l", right: "shoulder-r" },
   rotacao_externa: { left: "shoulder-re-l", right: "shoulder-re-r" },
+  flexao_ombro: { left: "shoulder-l", right: "shoulder-r" },
+  abducao_ombro: { left: "shoulder-l", right: "shoulder-r" },
+  aducao_ombro: { left: "shoulder-l", right: "shoulder-r" },
+  extensao_ombro: { left: "shoulder-re-l", right: "shoulder-re-r" },
+  flexao_cotovelo: { left: "elbow-l", right: "elbow-r" },
+  extensao_cotovelo: { left: "elbow-l", right: "elbow-r" },
+  pronacao_antebraco: { left: "elbow-l", right: "elbow-r" },
+  supinacao_antebraco: { left: "elbow-l", right: "elbow-r" },
+  flexao_punho: { left: "wrist-l", right: "wrist-r" },
+  extensao_punho: { left: "wrist-l", right: "wrist-r" },
   dorsiflexao: { left: "ankle-l", right: "ankle-r" },
   flexao_plantar: { left: "ankle-l", right: "ankle-r" },
+  inversao: { left: "ankle-l", right: "ankle-r" },
   flexao_joelho: { left: "ham-l", right: "ham-r" },
   extensao_joelho: { left: "quad-l", right: "quad-r" },
   flexao_quadril: { left: "psoas-l", right: "psoas-r" },
@@ -362,6 +392,7 @@ const FORCA_REGIONS: Record<ForcaExercicio, { left: RegionId; right: RegionId } 
   abducao_quadril: { left: "hip-re-l", right: "hip-re-r" },
   aducao_quadril: { left: "hip-l", right: "hip-r" },
 };
+
 
 /** Classifica um exercício pela assimetria relativa (Kinology). */
 export function classifyForca(direito: number, esquerdo: number): {

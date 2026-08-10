@@ -9,8 +9,19 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const EXERCICIO_ENUM = [
   "rotacao_interna",
   "rotacao_externa",
+  "flexao_ombro",
+  "extensao_ombro",
+  "abducao_ombro",
+  "aducao_ombro",
+  "flexao_cotovelo",
+  "extensao_cotovelo",
+  "pronacao_antebraco",
+  "supinacao_antebraco",
+  "flexao_punho",
+  "extensao_punho",
   "dorsiflexao",
   "flexao_plantar",
+  "inversao",
   "flexao_joelho",
   "extensao_joelho",
   "flexao_quadril",
@@ -32,8 +43,19 @@ interface ParsedExercise {
 const NOME_LABEL_TO_ENUM: Record<string, ExercicioEnum> = {
   "rotação interna": "rotacao_interna",
   "rotação externa": "rotacao_externa",
+  "flexão de ombro": "flexao_ombro",
+  "extensão de ombro": "extensao_ombro",
+  "abdução de ombro": "abducao_ombro",
+  "adução de ombro": "aducao_ombro",
+  "flexão de cotovelo": "flexao_cotovelo",
+  "extensão de cotovelo": "extensao_cotovelo",
+  "pronação do antebraço": "pronacao_antebraco",
+  "supinação do antebraço": "supinacao_antebraco",
+  "flexão de punho": "flexao_punho",
+  "extensão de punho": "extensao_punho",
   "dorsiflexão": "dorsiflexao",
   "flexão plantar": "flexao_plantar",
+  "inversão": "inversao",
   "flexão de joelho": "flexao_joelho",
   "extensão de joelho": "extensao_joelho",
   "flexão de quadril": "flexao_quadril",
@@ -199,8 +221,19 @@ Para cada linha da tabela, extraia o nome do exercício (mapeie para o enum), a 
 Mapeamento de nomes:
 - "Rotação interna" → rotacao_interna
 - "Rotação externa" → rotacao_externa
+- "Flexão de ombro" → flexao_ombro
+- "Extensão de ombro" → extensao_ombro
+- "Abdução de ombro" → abducao_ombro
+- "Adução de ombro" → aducao_ombro
+- "Flexão de cotovelo" → flexao_cotovelo
+- "Extensão de cotovelo" → extensao_cotovelo
+- "Pronação do antebraço" → pronacao_antebraco
+- "Supinação do antebraço" → supinacao_antebraco
+- "Flexão de punho" → flexao_punho
+- "Extensão de punho" → extensao_punho
 - "Dorsiflexão" → dorsiflexao
 - "Flexão plantar" → flexao_plantar
+- "Inversão" → inversao
 - "Flexão de joelho" → flexao_joelho
 - "Extensão de joelho" → extensao_joelho
 - "Flexão de quadril" → flexao_quadril
