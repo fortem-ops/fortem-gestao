@@ -10,6 +10,22 @@ import { buildRegionList, RegionListPanel } from "./RegionListPanel";
 interface Props {
   metrics: MetricInput[];
   forcaExercises?: ForcaInput[];
+  /**
+   * Valores canônicos (mesma fonte que os cards do topo da página / computePremiumScores).
+   * Quando fornecidos, os 5 anéis, o chip de risco e a contagem de assimetrias usam ESSES
+   * valores (fixos, não dependem da camada selecionada abaixo). O heatmap SVG e a lista de
+   * regiões continuam usando `analysis` (dependente da camada), isso é intencional.
+   */
+  canonical?: {
+    geral: number | null;
+    mobilidade: number | null;
+    simetria: number | null;
+    estabilidade: number | null;
+    forca: number | null;
+    riskLevel: "low" | "attention" | "high";
+    asymmetryCount: number;
+    chains: Array<{ from: RegionId; to: RegionId; reason: string }>;
+  } | null;
 }
 
 const MODES: Array<{ id: Mode; label: string; icon: typeof Activity; desc: string }> = [
@@ -80,7 +96,7 @@ const RISK_STYLE: Record<"low" | "attention" | "high", { label: string; color: s
   high:      { label: "Alto risco compensatório", color: "var(--sev-weak)" },
 };
 
-export function BodyMap({ metrics, forcaExercises }: Props) {
+export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
   const [mode, setMode] = useState<Mode>("quality");
   const [layer, setLayer] = useState<Layer>("mobility");
   const [viewFilter, setViewFilter] = useState<"both" | "front" | "back">("both");
@@ -97,6 +113,9 @@ export function BodyMap({ metrics, forcaExercises }: Props) {
     return base;
   }, [metrics, layer, forcaExercises]);
   const risk = RISK_STYLE[analysis.riskLevel];
+  const riskDisplay = canonical ? RISK_STYLE[canonical.riskLevel] : risk;
+  const asymmetryCountDisplay = canonical ? canonical.asymmetryCount : analysis.asymmetries.length;
+  const chainsDisplay = canonical ? canonical.chains : analysis.chains;
 
   const regionList = useMemo(() => buildRegionList(analysis, 6), [analysis]);
   const numbering = useMemo(() => {
@@ -149,27 +168,27 @@ export function BodyMap({ metrics, forcaExercises }: Props) {
             <span
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
               style={{
-                background: `hsl(${risk.color} / 0.15)`,
-                color: `hsl(${risk.color})`,
-                border: `1px solid hsl(${risk.color} / 0.35)`,
+                background: `hsl(${riskDisplay.color} / 0.15)`,
+                color: `hsl(${riskDisplay.color})`,
+                border: `1px solid hsl(${riskDisplay.color} / 0.35)`,
               }}
             >
               <ShieldAlert className="w-3 h-3" />
-              {risk.label}
+              {riskDisplay.label}
             </span>
-            {analysis.asymmetries.length > 0 && (
+            {asymmetryCountDisplay > 0 && (
               <span className="text-[11px] text-white/50">
-                {analysis.asymmetries.length} assimetria(s) detectada(s)
+                {asymmetryCountDisplay} assimetria(s) detectada(s)
               </span>
             )}
           </div>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <ScoreRing value={analysis.scoreGeral} label="Geral" size={96} />
-          <ScoreRing value={analysis.scoreMobilidade} label="Mobilidade" />
-          <ScoreRing value={analysis.scoreSimetria} label="Simetria" />
-          <ScoreRing value={analysis.scoreEstabilidade} label="Estabilidade" />
-          <ScoreRing value={analysis.scoreForca} label="Força" />
+          <ScoreRing value={canonical ? canonical.geral : analysis.scoreGeral} label="Geral" size={96} />
+          <ScoreRing value={canonical ? canonical.mobilidade : analysis.scoreMobilidade} label="Mobilidade" />
+          <ScoreRing value={canonical ? canonical.simetria : analysis.scoreSimetria} label="Simetria" />
+          <ScoreRing value={canonical ? canonical.estabilidade : analysis.scoreEstabilidade} label="Estabilidade" />
+          <ScoreRing value={canonical ? canonical.forca : analysis.scoreForca} label="Força" />
         </div>
       </div>
 
@@ -320,13 +339,13 @@ export function BodyMap({ metrics, forcaExercises }: Props) {
       </p>
 
       {/* Chain explanations */}
-      {analysis.chains.length > 0 && (
+      {chainsDisplay.length > 0 && (
         <div className="rounded-lg bg-white/5 border border-white/5 p-3 space-y-1.5">
           <p className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
             Cadeias compensatórias
           </p>
           <ul className="text-[11px] text-white/70 space-y-1">
-            {analysis.chains.map((c, i) => (
+            {chainsDisplay.map((c, i) => (
               <li key={i} className="leading-snug">• {c.reason}</li>
             ))}
           </ul>
