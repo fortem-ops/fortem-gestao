@@ -221,8 +221,19 @@ Para cada linha da tabela, extraia o nome do exercício (mapeie para o enum), a 
 Mapeamento de nomes:
 - "Rotação interna" → rotacao_interna
 - "Rotação externa" → rotacao_externa
+- "Flexão de ombro" → flexao_ombro
+- "Extensão de ombro" → extensao_ombro
+- "Abdução de ombro" → abducao_ombro
+- "Adução de ombro" → aducao_ombro
+- "Flexão de cotovelo" → flexao_cotovelo
+- "Extensão de cotovelo" → extensao_cotovelo
+- "Pronação do antebraço" → pronacao_antebraco
+- "Supinação do antebraço" → supinacao_antebraco
+- "Flexão de punho" → flexao_punho
+- "Extensão de punho" → extensao_punho
 - "Dorsiflexão" → dorsiflexao
 - "Flexão plantar" → flexao_plantar
+- "Inversão" → inversao
 - "Flexão de joelho" → flexao_joelho
 - "Extensão de joelho" → extensao_joelho
 - "Flexão de quadril" → flexao_quadril
