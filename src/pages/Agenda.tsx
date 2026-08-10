@@ -418,7 +418,7 @@ export default function Agenda() {
                         <div
                           key={ev.id}
                           className="rounded-md mb-0.5 text-xs border border-border bg-card hover:bg-muted/50 transition-colors group relative overflow-hidden flex"
-                          onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}
+                          onClick={(e) => { e.stopPropagation(); handleEventClick(ev, weekDates[dayIdx]); }}
                         >
                           <span className={cn("w-1 shrink-0", accentDe(ev.atividade))} />
                           <div className="p-1.5 min-w-0 flex-1">
