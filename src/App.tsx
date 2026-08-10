@@ -76,6 +76,7 @@ const PortalResetPassword = lazyWithReload(() => import("./pages/portal/PortalRe
 const PortalProfile = lazyWithReload(() => import("./pages/portal/PortalProfile"));
 const PortalPagamentos = lazyWithReload(() => import("./pages/portal/PortalPagamentos"));
 const CadastrarCartaoPublico = lazyWithReload(() => import("./pages/CadastrarCartao"));
+const AceitarContratoToken = lazyWithReload(() => import("./pages/AceitarContratoToken"));
 const PortalHome = lazyWithReload(() => import("./pages/portal/PortalHome"));
 const PortalWorkouts = lazyWithReload(() => import("./pages/portal/PortalWorkouts"));
 const PortalAssessments = lazyWithReload(() => import("./pages/portal/PortalAssessments"));
@@ -197,6 +198,14 @@ const App = () => (
               element={
                 <Suspense fallback={<RouteFallback />}>
                   <CadastrarCartaoPublico />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/contrato/:token"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <AceitarContratoToken />
                 </Suspense>
               }
             />
