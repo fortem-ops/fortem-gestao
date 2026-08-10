@@ -462,7 +462,7 @@ function SlotDetailSheet({
           </SheetTitle>
           <div className="text-sm text-muted-foreground text-left flex items-center gap-2 flex-wrap">
             <span className="font-medium text-foreground">
-              {selected.slot.horario_inicio.slice(0, 5)} – {selected.slot.horario_fim.slice(0, 5)}
+              {selected.slot.horario_inicio.slice(0, 5)}
             </span>
             {selected.slot.instrutor_id && (
               <>· <span>{profileMap[selected.slot.instrutor_id] ?? "—"}</span></>
