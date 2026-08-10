@@ -56,6 +56,7 @@ export default function Agenda() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
+  const [cellDate, setCellDate] = useState<Date | null>(null);
   const [fAtividade, setFAtividade] = useState<string[]>([]);
   const [fProfissional, setFProfissional] = useState<string[]>([]);
   const [fAluno, setFAluno] = useState<string[]>([]);
@@ -138,6 +139,27 @@ export default function Agenda() {
 
       const { error } = await supabase.from("agenda_servicos").delete().eq("id", id);
       if (error) throw error;
+
+      // Reserva avulsa removida: devolve a vaga fixa correspondente à grade
+      if (ev?.tipo === "avulso" && ev?.data_especifica) {
+        const diaSemana = new Date(ev.data_especifica + "T12:00:00").getDay();
+        const { data: modelos } = await supabase
+          .from("agenda_servicos")
+          .select("id")
+          .eq("tipo", "fixo")
+          .eq("dia_semana", diaSemana)
+          .eq("horario_inicio", ev.horario_inicio)
+          .eq("atividade", ev.atividade)
+          .eq("local", ev.local);
+        const ids = (modelos || []).map((m: any) => m.id);
+        if (ids.length > 0) {
+          await supabase
+            .from("agenda_servicos_excecoes")
+            .delete()
+            .in("agenda_id", ids)
+            .eq("data_excecao", ev.data_especifica);
+        }
+      }
       return ev;
     },
     onSuccess: (ev: any) => {
@@ -252,15 +274,16 @@ export default function Agenda() {
     setDialogOpen(true);
   };
 
-  const handleEventClick = (ev: any) => {
+  const handleEventClick = (ev: any, date: Date) => {
     setEditEvent(ev);
+    setCellDate(date);
     setPrefill(null);
     setDialogOpen(true);
   };
 
   const handleOpenChange = (open: boolean) => {
     setDialogOpen(open);
-    if (!open) { setPrefill(null); setEditEvent(null); }
+    if (!open) { setPrefill(null); setEditEvent(null); setCellDate(null); }
   };
 
   const prevWeek = () => setWeekStart(addDays(weekStart, -7));
@@ -416,7 +439,7 @@ export default function Agenda() {
                         <div
                           key={ev.id}
                           className="rounded-md mb-0.5 text-xs border border-border bg-card hover:bg-muted/50 transition-colors group relative overflow-hidden flex"
-                          onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}
+                          onClick={(e) => { e.stopPropagation(); handleEventClick(ev, weekDates[dayIdx]); }}
                         >
                           <span className={cn("w-1 shrink-0", accentDe(ev.atividade))} />
                           <div className="p-1.5 min-w-0 flex-1">
@@ -464,7 +487,7 @@ export default function Agenda() {
         </ScrollArea>
       </div>
 
-      <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} />
+      <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} cellDate={cellDate} />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>

@@ -83,9 +83,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   prefill?: { date: Date; hour: number } | null;
   editEvent?: any | null;
+  /** Data da célula clicada na grade (usada para reservar aluno em vaga fixa). */
+  cellDate?: Date | null;
 }
 
-export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Props) {
+export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDate }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -128,6 +130,12 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
 
   const totalLote = diasSemana.length * horarios.length;
   const loteMultiplo = modoLote && totalLote > 1;
+
+  // Data da célula clicada (reserva avulsa a partir de uma vaga fixa)
+  const cellDateStr = cellDate ? format(cellDate, "yyyy-MM-dd") : null;
+  const editandoFixoUI = isEditing && editEvent?.tipo === "fixo";
+  // Aluno indisponível: criando vaga fixa, ou editando modelo fixo sem data de referência
+  const alunoBloqueado = modoLote || (editandoFixoUI && !cellDateStr);
 
   // Apply prefill or editEvent when dialog opens
   useEffect(() => {
@@ -411,8 +419,9 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           dia_semana: c.dia,
           horario_inicio: c.hora,
           horario_fim: somaUmaHora(c.hora),
-          aluno_id: unico ? (alunoId || null) : null,
-          credito_origem: unico && alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem ? creditoOrigem : null,
+          // Horário fixo é somente a vaga na grade — nunca leva aluno vinculado.
+          aluno_id: null,
+          credito_origem: null,
         }));
 
         const { data: inseridos, error } = await supabase
@@ -425,25 +434,53 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         return { lote: true, criados: (inseridos || []).length, ignorados };
       }
 
+      const editandoFixo = isEditing && editEvent?.tipo === "fixo";
+
       const payload: any = {
         ...base,
         horario_inicio: horarioInicio,
         horario_fim: horarioFim,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
-        aluno_id: alunoId || null,
-        credito_origem: (alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
+        aluno_id: editandoFixo ? null : (alunoId || null),
+        credito_origem: (!editandoFixo && alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
       };
       if (tipo === "avulso") {
         payload.data_especifica = dataEspecifica;
       }
 
       if (isEditing) {
-        // Update existing event
+        // Update existing event — em horário fixo o aluno nunca é gravado no modelo
         const { error } = await supabase
           .from("agenda_servicos")
           .update(payload)
           .eq("id", editEvent.id);
         if (error) throw error;
+
+        // Vincular aluno a uma vaga fixa cria uma RESERVA AVULSA na data clicada
+        // e uma exceção no modelo, para a vaga não duplicar naquele dia.
+        if (editandoFixo && alunoId && cellDateStr) {
+          const { data: reserva, error: errReserva } = await supabase
+            .from("agenda_servicos")
+            .insert({
+              ...base,
+              tipo: "avulso",
+              data_especifica: cellDateStr,
+              dia_semana: new Date(cellDateStr + "T12:00:00").getDay(),
+              horario_inicio: horarioInicio,
+              horario_fim: horarioFim,
+              aluno_id: alunoId,
+              credito_origem: (alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
+            })
+            .select()
+            .single();
+          if (errReserva) throw errReserva;
+
+          await supabase
+            .from("agenda_servicos_excecoes")
+            .insert({ agenda_id: editEvent.id, data_excecao: cellDateStr });
+
+          return reserva;
+        }
       } else {
         // Insert new event — débito de crédito é feito pelo trigger no banco
         const { data: inserted, error } = await supabase
@@ -686,8 +723,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={loteMultiplo ? "Indisponível ao criar vários horários" : "Buscar aluno pelo nome..."}
-                disabled={loteMultiplo}
+                placeholder={alunoBloqueado ? "Indisponível para horário fixo" : "Buscar aluno pelo nome..."}
+                disabled={alunoBloqueado}
                 value={selectedAluno ? selectedAluno.nome : alunoSearch}
                 onChange={(e) => {
                   setAlunoSearch(e.target.value);
@@ -696,9 +733,14 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
                 className="pl-9"
               />
             </div>
-            {loteMultiplo && (
+            {alunoBloqueado && (
               <p className="text-xs text-muted-foreground">
-                Vários horários fixos são criados como vagas na grade, sem aluno vinculado.
+                Horários fixos são apenas vagas na grade. O aluno é sempre agendado de forma avulsa, em uma data específica.
+              </p>
+            )}
+            {editandoFixoUI && cellDateStr && (
+              <p className="text-xs text-muted-foreground">
+                O aluno será agendado como avulso em {format(cellDate!, "dd/MM/yyyy")}, sem repetir nas próximas semanas.
               </p>
             )}
             {alunoId && selectedAluno && (
