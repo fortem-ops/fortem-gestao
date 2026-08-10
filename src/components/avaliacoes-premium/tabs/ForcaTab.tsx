@@ -2,11 +2,20 @@ import { FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcional
 import type { FuncionalSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { useMemo } from "react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInYears } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+// Movimentos com % Referência Kinology temporariamente suprimido: a tabela de
+// referência da Kinology para joelho está sistematicamente ~2-2.7x abaixo da
+// média real medida na base Fortem (amostra n>180 por lado), indicando possível
+// diferença de protocolo de teste. Suprimido até confirmação com a Kinology.
+const KINOLOGY_PCT_SUPRIMIDO = new Set(["extensao_joelho", "flexao_joelho"]);
 
 interface Props {
   latest: FuncionalSnapshot | null;
   history: FuncionalSnapshot[];
+  aluno?: { sexo: string | null; data_nascimento: string | null } | null;
 }
 
 function classFromDiff(diff: number): { label: string; cls: string } {
@@ -15,8 +24,42 @@ function classFromDiff(diff: number): { label: string; cls: string } {
   return { label: "ALTO", cls: "text-rose-600 bg-rose-500/10 border-rose-500/30" };
 }
 
-export function ForcaTab({ latest, history }: Props) {
+export function ForcaTab({ latest, history, aluno }: Props) {
   const exercicios = latest?.forca ?? [];
+
+  const sexoRpc: "M" | "F" | null =
+    aluno?.sexo?.toLowerCase().startsWith("m") ? "M" :
+    aluno?.sexo?.toLowerCase().startsWith("f") ? "F" : null;
+  const idadeRpc: number | null = aluno?.data_nascimento
+    ? differenceInYears(new Date(), parseISO(aluno.data_nascimento))
+    : null;
+
+  const { data: comparativos } = useQuery({
+    queryKey: ["forca-comparativo", latest?.data, sexoRpc, idadeRpc, exercicios.map((e) => e.nome).join(",")],
+    enabled: !!sexoRpc && idadeRpc !== null && exercicios.length > 0,
+    queryFn: async () => {
+      const results = await Promise.all(
+        exercicios.map(async (ex) => {
+          const valorMedio = (ex.direito_kg + ex.esquerdo_kg) / 2;
+          const { data, error } = await supabase.rpc("fn_forca_comparativo", {
+            p_movimento: ex.nome,
+            p_sexo: sexoRpc,
+            p_idade: idadeRpc,
+            p_valor_kgf: valorMedio,
+          });
+          if (error) {
+            console.error("fn_forca_comparativo error", ex.nome, error);
+            return [ex.nome, null] as const;
+          }
+          return [ex.nome, data?.[0] ?? null] as const;
+        }),
+      );
+      return Object.fromEntries(results) as Record<
+        string,
+        { kinology_media_kgf: number | null; kinology_pct: number | null; fortem_percentil: number | null; fortem_n: number; fortem_disponivel: boolean } | null
+      >;
+    },
+  });
 
   // Histórico de assimetria por exercício
   const chartData = useMemo(() => {
@@ -67,6 +110,8 @@ export function ForcaTab({ latest, history }: Props) {
               <th className="text-center p-3 font-medium text-xs w-24">Esquerdo</th>
               <th className="text-center p-3 font-medium text-xs w-28">Assimetria</th>
               <th className="text-center p-3 font-medium text-xs w-24">Risco</th>
+              <th className="text-center p-3 font-medium text-xs w-32">% Referência</th>
+              <th className="text-center p-3 font-medium text-xs w-32">Percentil Fortem</th>
             </tr>
           </thead>
           <tbody>
@@ -88,6 +133,22 @@ export function ForcaTab({ latest, history }: Props) {
                     <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border ${c.cls}`}>
                       {c.label}
                     </span>
+                  </td>
+                  <td className="p-3 text-center text-[hsl(var(--bio-ink-muted))]">
+                    {KINOLOGY_PCT_SUPRIMIDO.has(ex.nome) ? (
+                      <span title="Protocolo em validação com a Kinology">—</span>
+                    ) : comparativos?.[ex.nome]?.kinology_pct != null ? (
+                      `${comparativos[ex.nome]!.kinology_pct}%`
+                    ) : (
+                      "Sem referência"
+                    )}
+                  </td>
+                  <td className="p-3 text-center text-[hsl(var(--bio-ink-muted))]">
+                    {comparativos?.[ex.nome]?.fortem_disponivel ? (
+                      `Percentil ${comparativos[ex.nome]!.fortem_percentil}`
+                    ) : (
+                      `Base insuficiente (n=${comparativos?.[ex.nome]?.fortem_n ?? 0})`
+                    )}
                   </td>
                 </tr>
               );
