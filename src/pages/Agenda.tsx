@@ -139,6 +139,27 @@ export default function Agenda() {
 
       const { error } = await supabase.from("agenda_servicos").delete().eq("id", id);
       if (error) throw error;
+
+      // Reserva avulsa removida: devolve a vaga fixa correspondente à grade
+      if (ev?.tipo === "avulso" && ev?.data_especifica) {
+        const diaSemana = new Date(ev.data_especifica + "T12:00:00").getDay();
+        const { data: modelos } = await supabase
+          .from("agenda_servicos")
+          .select("id")
+          .eq("tipo", "fixo")
+          .eq("dia_semana", diaSemana)
+          .eq("horario_inicio", ev.horario_inicio)
+          .eq("atividade", ev.atividade)
+          .eq("local", ev.local);
+        const ids = (modelos || []).map((m: any) => m.id);
+        if (ids.length > 0) {
+          await supabase
+            .from("agenda_servicos_excecoes")
+            .delete()
+            .in("agenda_id", ids)
+            .eq("data_excecao", ev.data_especifica);
+        }
+      }
       return ev;
     },
     onSuccess: (ev: any) => {
