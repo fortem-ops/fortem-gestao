@@ -83,9 +83,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   prefill?: { date: Date; hour: number } | null;
   editEvent?: any | null;
+  /** Data da célula clicada na grade (usada para reservar aluno em vaga fixa). */
+  cellDate?: Date | null;
 }
 
-export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Props) {
+export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDate }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
