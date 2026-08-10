@@ -422,7 +422,49 @@ interface ContratoAtivoCardProps {
 }
 
 function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedirBaixa }: ContratoAtivoCardProps) {
-  const [alterarOpen, setAlterarOpen] = useState(false);
+  const { toast } = useToast();
+  const [copiandoLink, setCopiandoLink] = useState(false);
+
+  const { data: contratoDoc } = useQuery({
+    queryKey: ["contrato-documento", contrato.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contratos_documentos")
+        .select("id, aceite")
+        .eq("contrato_id", contrato.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  async function copiarLinkAceite() {
+    if (!contratoDoc?.id) return;
+    setCopiandoLink(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("fn_criar_link_contrato", {
+        p_contrato_documento_id: contratoDoc.id,
+      });
+      if (error) throw error;
+      if (!data?.ok || !data?.token) {
+        throw new Error(data?.motivo ?? "Não foi possível gerar o link.");
+      }
+      await navigator.clipboard.writeText(`${window.location.origin}/contrato/${data.token}`);
+      toast({ title: "Link copiado! Válido por 7 dias." });
+    } catch (e: any) {
+      toast({
+        title: "Erro ao gerar link",
+        description: e?.message ?? "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setCopiandoLink(false);
+    }
+  }
+
+
   const { data: cobrancas = [] } = useQuery({
     queryKey: ["cobrancas-contrato", contrato.id],
     queryFn: async () => {
