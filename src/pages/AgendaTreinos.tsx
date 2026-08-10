@@ -561,26 +561,34 @@ function WeeklyGrid({
   const weekStartStr = format(weekStart, "yyyy-MM-dd");
   const weekEndStr = format(addDays(weekStart, 6), "yyyy-MM-dd");
 
-  // Uma linha por combinação única horario_inicio-horario_fim (apenas slots ativos + selecionados)
+  // Uma linha por horário de início (independente da duração/atividade)
   const rows = useMemo(() => {
-    const map = new Map<string, { horario_inicio: string; horario_fim: string }>();
-    for (const s of slots) {
-      const key = `${s.horario_inicio}-${s.horario_fim}`;
-      if (!map.has(key)) map.set(key, { horario_inicio: s.horario_inicio, horario_fim: s.horario_fim });
-    }
-    return Array.from(map.entries())
-      .map(([key, v]) => ({ key, ...v }))
+    const set = new Set<string>();
+    for (const s of slots) set.add(s.horario_inicio);
+    return Array.from(set)
+      .map((horario_inicio) => ({ key: horario_inicio, horario_inicio }))
       .sort((a, b) => toMinutes(a.horario_inicio) - toMinutes(b.horario_inicio));
   }, [slots]);
 
-  // Índice: (dia_semana + horario_inicio + horario_fim) -> slot
+  // Índice: (dia_semana + horario_inicio) -> slots (várias atividades)
   const slotIndex = useMemo(() => {
-    const m = new Map<string, Slot>();
+    const m = new Map<string, Slot[]>();
     for (const s of slots) {
-      m.set(`${s.dia_semana}|${s.horario_inicio}|${s.horario_fim}`, s);
+      const k = `${s.dia_semana}|${s.horario_inicio}`;
+      const arr = m.get(k);
+      if (arr) arr.push(s);
+      else m.set(k, [s]);
+    }
+    for (const arr of m.values()) {
+      arr.sort(
+        (a, b) =>
+          (a.modalidade ?? "treino").localeCompare(b.modalidade ?? "treino") ||
+          a.horario_fim.localeCompare(b.horario_fim),
+      );
     }
     return m;
   }, [slots]);
+
 
   const { data: agendamentos = [], refetch: refetchAg } = useQuery({
     queryKey: ["treino-agendamentos-semana", weekStartStr, weekEndStr],
