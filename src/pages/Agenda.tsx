@@ -33,7 +33,10 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const DIAS_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const HORAS = Array.from({ length: 16 }, (_, i) => i + 6);
+// Faixas de 30 min: 06:00 até 21:30 (em minutos desde meia-noite)
+const SLOTS = Array.from({ length: 32 }, (_, i) => 6 * 60 + i * 30);
+const slotLabel = (min: number) =>
+  `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 
 // Cor de destaque por atividade (barra lateral / ponto). O texto sempre usa
 // tokens de alto contraste para garantir legibilidade.
