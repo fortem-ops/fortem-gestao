@@ -156,10 +156,12 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
       setProtocolo(editEvent.protocolo || "");
       setVisivelPortal(!!editEvent.visivel_portal);
     } else if (prefill) {
-      const h = String(prefill.hour).padStart(2, "0");
-      const hEnd = String(Math.min(prefill.hour + 1, 21)).padStart(2, "0");
-      setHorarioInicio(`${h}:00`);
-      setHorarioFim(`${hEnd}:00`);
+      const startMin = prefill.hour * 60 + (prefill.minute ?? 0);
+      const endMin = Math.min(startMin + 60, 22 * 60);
+      const fmt = (m: number) =>
+        `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+      setHorarioInicio(fmt(startMin));
+      setHorarioFim(fmt(endMin));
       setDiaSemana(String(prefill.date.getDay()));
       setDataEspecifica(format(prefill.date, "yyyy-MM-dd"));
     }
