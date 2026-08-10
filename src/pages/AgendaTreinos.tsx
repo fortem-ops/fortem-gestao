@@ -100,16 +100,39 @@ function SlotDialog({
           .update({ ...base, dia_semana: form.dias[0] })
           .eq("id", slot!.id);
         if (error) throw error;
-        return 1;
+        return { criados: 1, ignorados: [] as number[] };
       } else {
-        const payloads = form.dias.map((d) => ({ ...base, dia_semana: d }));
+        // Já existe horário da MESMA modalidade neste dia/horário? Ignora esses dias.
+        const { data: existentes, error: errSel } = await supabase
+          .from("treino_slots")
+          .select("dia_semana")
+          .eq("modalidade", form.modalidade)
+          .eq("horario_inicio", form.horario_inicio)
+          .in("dia_semana", form.dias);
+        if (errSel) throw errSel;
+        const ocupados = new Set((existentes ?? []).map((e: any) => e.dia_semana));
+        const ignorados = form.dias.filter((d) => ocupados.has(d));
+        const novos = form.dias.filter((d) => !ocupados.has(d));
+
+        if (novos.length === 0) {
+          throw new Error(
+            `Já existe horário de ${form.modalidade === "corrida" ? "Corrida" : "Treino"} às ${form.horario_inicio} em ${ignorados.map((d) => DIAS_CURTOS[d]).join(", ")}.`
+          );
+        }
+
+        const payloads = novos.map((d) => ({ ...base, dia_semana: d }));
         const { error } = await supabase.from("treino_slots").insert(payloads);
         if (error) throw error;
-        return payloads.length;
+        return { criados: payloads.length, ignorados };
       }
     },
-    onSuccess: (n) => {
-      const msg = isEdit ? "Horário atualizado" : `${n} horário${n === 1 ? "" : "s"} criado${n === 1 ? "" : "s"}`;
+    onSuccess: ({ criados, ignorados }) => {
+      const msg = isEdit
+        ? "Horário atualizado"
+        : `${criados} horário${criados === 1 ? "" : "s"} criado${criados === 1 ? "" : "s"}` +
+          (ignorados.length
+            ? ` · já existia em ${ignorados.map((d) => DIAS_CURTOS[d]).join(", ")}`
+            : "");
       import("@/lib/toast-helpers").then(({ toastSuccess }) => toastSuccess(msg));
       onSaved();
       onOpenChange(false);
