@@ -729,9 +729,6 @@ function WeeklyGrid({
                                   {isCorrida ? "corrida" : "treino"}
                                 </span>
                               </div>
-                              <div className="text-[9px] text-muted-foreground leading-tight">
-                                → {slot.horario_fim.slice(0, 5)}
-                              </div>
                               {slot.instrutor_id && (
                                 <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
                                   {profileMap[slot.instrutor_id] ?? "—"}
