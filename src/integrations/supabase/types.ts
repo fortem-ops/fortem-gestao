@@ -2815,6 +2815,75 @@ export type Database = {
         }
         Relationships: []
       }
+      forca_amostras_fortem: {
+        Row: {
+          created_at: string
+          data_execucao: string | null
+          fonte: string
+          id: string
+          idade: number
+          movimento: string
+          sexo: string
+          valor_kgf: number
+        }
+        Insert: {
+          created_at?: string
+          data_execucao?: string | null
+          fonte?: string
+          id?: string
+          idade: number
+          movimento: string
+          sexo: string
+          valor_kgf: number
+        }
+        Update: {
+          created_at?: string
+          data_execucao?: string | null
+          fonte?: string
+          id?: string
+          idade?: number
+          movimento?: string
+          sexo?: string
+          valor_kgf?: number
+        }
+        Relationships: []
+      }
+      forca_valores_referencia: {
+        Row: {
+          created_at: string
+          faixa_label: string
+          faixa_max: number
+          faixa_min: number
+          fonte: string
+          id: string
+          movimento: string
+          sexo: string
+          valor_kgf: number
+        }
+        Insert: {
+          created_at?: string
+          faixa_label: string
+          faixa_max: number
+          faixa_min: number
+          fonte?: string
+          id?: string
+          movimento: string
+          sexo: string
+          valor_kgf: number
+        }
+        Update: {
+          created_at?: string
+          faixa_label?: string
+          faixa_max?: number
+          faixa_min?: number
+          fonte?: string
+          id?: string
+          movimento?: string
+          sexo?: string
+          valor_kgf?: number
+        }
+        Relationships: []
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean
@@ -7361,6 +7430,21 @@ export type Database = {
       fn_excluir_horario_fixo: {
         Args: { p_horario_fixo_id: string }
         Returns: Json
+      }
+      fn_forca_comparativo: {
+        Args: {
+          p_idade: number
+          p_movimento: string
+          p_sexo: string
+          p_valor_kgf: number
+        }
+        Returns: {
+          fortem_disponivel: boolean
+          fortem_n: number
+          fortem_percentil: number
+          kinology_media_kgf: number
+          kinology_pct: number
+        }[]
       }
       fn_gerar_comissao: {
         Args: {
