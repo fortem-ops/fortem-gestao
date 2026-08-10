@@ -683,12 +683,11 @@ function WeeklyGrid({
             <div key={row.key} className="contents">
               <div className="border-t border-border/60 text-[11px] text-muted-foreground py-2 pr-2 text-right leading-tight">
                 <div className="font-medium text-foreground">{row.horario_inicio.slice(0, 5)}</div>
-                <div>{row.horario_fim.slice(0, 5)}</div>
               </div>
               {weekDays.map((d, di) => {
                 const dia = d.getDay();
-                const slot = slotIndex.get(`${dia}|${row.horario_inicio}|${row.horario_fim}`);
-                if (!slot) {
+                const slotsDia = slotIndex.get(`${dia}|${row.horario_inicio}`) ?? [];
+                if (slotsDia.length === 0) {
                   return (
                     <div key={`c-${row.key}-${di}`} className="border-t border-border/60 flex items-center justify-center text-muted-foreground/30">
                       ·
@@ -696,65 +695,78 @@ function WeeklyGrid({
                   );
                 }
                 const dataStr = format(d, "yyyy-MM-dd");
-                const ocup = ocupacao.get(`${slot.id}|${dataStr}`) ?? 0;
-                const cheio = ocup >= slot.capacidade_maxima;
-                const inativo = !slot.ativo;
-                const agendadosDoSlot = agendamentos.filter(
-                  (a) => a.slot_id === slot.id && a.data === dataStr && OCUPACAO_ATIVOS.has(a.status)
-                );
 
                 return (
-                  <Tooltip key={`c-${row.key}-${di}`} delayDuration={150}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setSelected({ slot, data: d })}
-                        className={cn(
-                          "border-t border-border/60 m-0.5 rounded-md px-2 py-1.5 text-left transition-colors border w-full h-full",
-                          inativo && "opacity-40 bg-muted border-border",
-                          !inativo && !cheio && "bg-primary/10 border-primary/30 hover:bg-primary/20",
-                          !inativo && cheio && "bg-amber-500/15 border-amber-500/40 hover:bg-amber-500/25",
-                        )}
-                      >
-                        <div className="flex items-center gap-1 text-[11px] font-semibold">
-                          <Users className="w-3 h-3" />
-                          <span className={cn(cheio ? "text-amber-500" : "text-primary")}>
-                            {ocup}/{slot.capacidade_maxima}
-                          </span>
-                          {slot.modalidade === "corrida" && (
-                            <span className="text-[9px] uppercase text-orange-500 font-bold">corrida</span>
-                          )}
-                        </div>
-                        {slot.instrutor_id && (
-                          <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
-                            {profileMap[slot.instrutor_id] ?? "—"}
-                          </div>
-                        )}
-                        {inativo && <div className="text-[9px] uppercase text-muted-foreground">off</div>}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" sideOffset={6} className="max-w-[220px] p-0">
-                      <div className="px-3 py-2">
-                        <div className="text-xs font-medium mb-1">
-                          {slot.horario_inicio.slice(0, 5)} – {slot.horario_fim.slice(0, 5)} · {DIAS[dia]}
-                        </div>
-                        {agendadosDoSlot.length === 0 ? (
-                          <div className="text-xs text-muted-foreground">Nenhum aluno agendado.</div>
-                        ) : (
-                          <ul className="space-y-0.5">
-                            {agendadosDoSlot.map((a) => (
-                              <li key={a.id} className="text-xs flex items-center gap-1.5">
-                                <span className={cn("w-1.5 h-1.5 rounded-full", STATUS_STYLES[a.status]?.split(" ")[1]?.replace("text-", "bg-") || "bg-primary")} />
-                                <span className="truncate">{a.alunos?.nome ?? "—"}</span>
-                                <span className="text-[10px] text-muted-foreground capitalize">{a.status}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
+                  <div key={`c-${row.key}-${di}`} className="border-t border-border/60 flex flex-col gap-0.5 p-0.5">
+                    {slotsDia.map((slot) => {
+                      const ocup = ocupacao.get(`${slot.id}|${dataStr}`) ?? 0;
+                      const cheio = ocup >= slot.capacidade_maxima;
+                      const inativo = !slot.ativo;
+                      const isCorrida = slot.modalidade === "corrida";
+                      const agendadosDoSlot = agendamentos.filter(
+                        (a) => a.slot_id === slot.id && a.data === dataStr && OCUPACAO_ATIVOS.has(a.status)
+                      );
+
+                      return (
+                        <Tooltip key={slot.id} delayDuration={150}>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => setSelected({ slot, data: d })}
+                              className={cn(
+                                "rounded-md px-2 py-1.5 text-left transition-colors border w-full",
+                                inativo && "opacity-40 bg-muted border-border",
+                                !inativo && isCorrida && !cheio && "bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/20",
+                                !inativo && !isCorrida && !cheio && "bg-primary/10 border-primary/30 hover:bg-primary/20",
+                                !inativo && cheio && "bg-amber-500/15 border-amber-500/40 hover:bg-amber-500/25",
+                              )}
+                            >
+                              <div className="flex items-center gap-1 text-[11px] font-semibold">
+                                <Users className="w-3 h-3" />
+                                <span className={cn(cheio ? "text-amber-500" : isCorrida ? "text-orange-500" : "text-primary")}>
+                                  {ocup}/{slot.capacidade_maxima}
+                                </span>
+                                <span className={cn("text-[9px] uppercase font-bold", isCorrida ? "text-orange-500" : "text-primary")}>
+                                  {isCorrida ? "corrida" : "treino"}
+                                </span>
+                              </div>
+                              <div className="text-[9px] text-muted-foreground leading-tight">
+                                → {slot.horario_fim.slice(0, 5)}
+                              </div>
+                              {slot.instrutor_id && (
+                                <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
+                                  {profileMap[slot.instrutor_id] ?? "—"}
+                                </div>
+                              )}
+                              {inativo && <div className="text-[9px] uppercase text-muted-foreground">off</div>}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" sideOffset={6} className="max-w-[220px] p-0">
+                            <div className="px-3 py-2">
+                              <div className="text-xs font-medium mb-1">
+                                {slot.horario_inicio.slice(0, 5)} – {slot.horario_fim.slice(0, 5)} · {DIAS[dia]}
+                              </div>
+                              {agendadosDoSlot.length === 0 ? (
+                                <div className="text-xs text-muted-foreground">Nenhum aluno agendado.</div>
+                              ) : (
+                                <ul className="space-y-0.5">
+                                  {agendadosDoSlot.map((a) => (
+                                    <li key={a.id} className="text-xs flex items-center gap-1.5">
+                                      <span className={cn("w-1.5 h-1.5 rounded-full", STATUS_STYLES[a.status]?.split(" ")[1]?.replace("text-", "bg-") || "bg-primary")} />
+                                      <span className="truncate">{a.alunos?.nome ?? "—"}</span>
+                                      <span className="text-[10px] text-muted-foreground capitalize">{a.status}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
                 );
               })}
+
             </div>
           ))}
         </div>
