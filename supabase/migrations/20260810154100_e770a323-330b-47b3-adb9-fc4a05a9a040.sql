@@ -1,0 +1,2 @@
+ALTER TABLE public.treino_slots DROP CONSTRAINT IF EXISTS treino_slots_dia_semana_horario_inicio_key;
+ALTER TABLE public.treino_slots ADD CONSTRAINT treino_slots_dia_horario_modalidade_key UNIQUE (dia_semana, horario_inicio, modalidade);
