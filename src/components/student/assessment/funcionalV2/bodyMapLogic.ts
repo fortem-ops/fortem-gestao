@@ -8,6 +8,8 @@ export type Layer = "mobility" | "flexibility" | "pain" | "strength" | "asymmetr
 export type RegionId =
   | "shoulder-l" | "shoulder-r"
   | "shoulder-re-l" | "shoulder-re-r"
+  | "elbow-l" | "elbow-r"
+  | "wrist-l" | "wrist-r"
   | "thoracic"
   | "lumbar"
   | "hip-l" | "hip-r"
