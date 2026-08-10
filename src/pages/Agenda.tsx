@@ -56,6 +56,7 @@ export default function Agenda() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
+  const [cellDate, setCellDate] = useState<Date | null>(null);
   const [fAtividade, setFAtividade] = useState<string[]>([]);
   const [fProfissional, setFProfissional] = useState<string[]>([]);
   const [fAluno, setFAluno] = useState<string[]>([]);
