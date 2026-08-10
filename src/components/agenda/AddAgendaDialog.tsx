@@ -510,8 +510,12 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
       }
 
+      // Houve criação de um novo agendamento? (inclui reserva avulsa a partir de vaga fixa)
+      const novoAgendamento =
+        !!inserted?.id && !inserted?.lote && (!isEditing || inserted.id !== editEvent?.id);
+
       // Fallback de notificação (idempotente via tabela agenda_notificacoes_log)
-      if (!isEditing && inserted?.id && inserted.aluno_id &&
+      if (novoAgendamento && inserted.aluno_id &&
           ["Treino Experimental","Avaliação Funcional"].includes(inserted.atividade)) {
         supabase.functions.invoke("notify-agenda-evento", {
           body: { evento: "agendado", agenda_id: inserted.id, agenda: inserted, origem: "frontend" },
@@ -519,7 +523,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
       }
 
       // Disparos automáticos WhatsApp
-      if (!isEditing && inserted?.id) {
+      if (novoAgendamento) {
         console.log('[WhatsApp Disparo] Iniciando disparo para agenda:', inserted.id, 'atividade:', inserted.atividade);
         supabase.functions.invoke("whatsapp-disparo-agenda", {
           body: { evento: "agendamento_criado", agenda_id: inserted.id },
@@ -529,6 +533,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
           console.error('[WhatsApp Disparo] Erro:', e);
         });
       }
+
 
       resetForm();
       onOpenChange(false);
