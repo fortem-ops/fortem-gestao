@@ -466,7 +466,7 @@ export default function Agenda() {
         </ScrollArea>
       </div>
 
-      <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} />
+      <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} cellDate={cellDate} />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
