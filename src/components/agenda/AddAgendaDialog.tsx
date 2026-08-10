@@ -411,8 +411,9 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
           dia_semana: c.dia,
           horario_inicio: c.hora,
           horario_fim: somaUmaHora(c.hora),
-          aluno_id: unico ? (alunoId || null) : null,
-          credito_origem: unico && alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem ? creditoOrigem : null,
+          // Horário fixo é somente a vaga na grade — nunca leva aluno vinculado.
+          aluno_id: null,
+          credito_origem: null,
         }));
 
         const { data: inseridos, error } = await supabase
