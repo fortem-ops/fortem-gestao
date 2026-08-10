@@ -205,6 +205,12 @@ export default function Agenda() {
   const getEventsForCell = (dayIndex: number, hour: number) => {
     const date = weekDates[dayIndex];
     const diaSemana = date.getDay();
+    const dateStr = format(date, "yyyy-MM-dd");
+
+    // Reservas já feitas nesse dia (usadas para ocultar a vaga-modelo correspondente)
+    const reservasDoDia = agendas.filter(
+      (a: any) => a.aluno_id && a.data_especifica === dateStr,
+    );
 
     return agendas.filter((a: any) => {
       const startHour = parseInt(a.horario_inicio?.split(":")[0] || "0");
@@ -218,13 +224,27 @@ export default function Agenda() {
 
       if (a.tipo === "fixo") {
         if (a.dia_semana !== diaSemana) return false;
-        const key = `${a.id}|${format(date, "yyyy-MM-dd")}`;
-        return !excecoesSet.has(key);
+        const key = `${a.id}|${dateStr}`;
+        if (excecoesSet.has(key)) return false;
+        // Vaga-modelo já reservada por um aluno neste dia/hora/profissional
+        if (
+          !a.aluno_id &&
+          reservasDoDia.some(
+            (r: any) =>
+              r.profissional_id === a.profissional_id &&
+              r.horario_inicio === a.horario_inicio &&
+              r.atividade === a.atividade,
+          )
+        ) {
+          return false;
+        }
+        return true;
       } else {
         return a.data_especifica && isSameDay(new Date(a.data_especifica + "T12:00:00"), date);
       }
     });
   };
+
 
   const handleCellClick = (dayIndex: number, hour: number) => {
     setEditEvent(null);
