@@ -451,11 +451,15 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
       }
 
       if (isEditing) {
+        const alunoAnterior = editEvent?.aluno_id ?? null;
+
         // Update existing event — em horário fixo o aluno nunca é gravado no modelo
-        const { error } = await supabase
+        const { data: atualizado, error } = await supabase
           .from("agenda_servicos")
           .update(payload)
-          .eq("id", editEvent.id);
+          .eq("id", editEvent.id)
+          .select()
+          .single();
         if (error) throw error;
 
         // Vincular aluno a uma vaga fixa cria uma RESERVA AVULSA na data clicada
@@ -481,8 +485,10 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
             .from("agenda_servicos_excecoes")
             .insert({ agenda_id: editEvent.id, data_excecao: cellDateStr });
 
-          return reserva;
+          return { ...reserva, __alunoAnterior: null };
         }
+
+        return { ...(atualizado || {}), __alunoAnterior: alunoAnterior };
       } else {
         // Insert new event — débito de crédito é feito pelo trigger no banco
         const { data: inserted, error } = await supabase
@@ -491,8 +497,9 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
           .select()
           .single();
         if (error) throw error;
-        return inserted;
+        return { ...inserted, __alunoAnterior: null };
       }
+
     },
     onSuccess: (inserted: any) => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
