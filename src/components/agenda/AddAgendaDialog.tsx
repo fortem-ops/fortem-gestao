@@ -426,25 +426,53 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent }: Prop
         return { lote: true, criados: (inseridos || []).length, ignorados };
       }
 
+      const editandoFixo = isEditing && editEvent?.tipo === "fixo";
+
       const payload: any = {
         ...base,
         horario_inicio: horarioInicio,
         horario_fim: horarioFim,
         dia_semana: tipo === "fixo" ? parseInt(diaSemana) : new Date(dataEspecifica + "T12:00:00").getDay(),
-        aluno_id: alunoId || null,
-        credito_origem: (alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
+        aluno_id: editandoFixo ? null : (alunoId || null),
+        credito_origem: (!editandoFixo && alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
       };
       if (tipo === "avulso") {
         payload.data_especifica = dataEspecifica;
       }
 
       if (isEditing) {
-        // Update existing event
+        // Update existing event — em horário fixo o aluno nunca é gravado no modelo
         const { error } = await supabase
           .from("agenda_servicos")
           .update(payload)
           .eq("id", editEvent.id);
         if (error) throw error;
+
+        // Vincular aluno a uma vaga fixa cria uma RESERVA AVULSA na data clicada
+        // e uma exceção no modelo, para a vaga não duplicar naquele dia.
+        if (editandoFixo && alunoId && cellDateStr) {
+          const { data: reserva, error: errReserva } = await supabase
+            .from("agenda_servicos")
+            .insert({
+              ...base,
+              tipo: "avulso",
+              data_especifica: cellDateStr,
+              dia_semana: new Date(cellDateStr + "T12:00:00").getDay(),
+              horario_inicio: horarioInicio,
+              horario_fim: horarioFim,
+              aluno_id: alunoId,
+              credito_origem: (alunoId && ATIVIDADES_COM_CREDITO.has(atividade) && creditoOrigem) ? creditoOrigem : null,
+            })
+            .select()
+            .single();
+          if (errReserva) throw errReserva;
+
+          await supabase
+            .from("agenda_servicos_excecoes")
+            .insert({ agenda_id: editEvent.id, data_excecao: cellDateStr });
+
+          return reserva;
+        }
       } else {
         // Insert new event — débito de crédito é feito pelo trigger no banco
         const { data: inserted, error } = await supabase
