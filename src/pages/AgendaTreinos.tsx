@@ -980,12 +980,12 @@ function AgendamentosTab() {
         const ativos = doSlot.filter((a) => ["agendado", "confirmado"].includes(a.status));
         return (
           <Card key={slot.id} className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">
-                {slot.horario_inicio.slice(0, 5)} → {slot.horario_fim.slice(0, 5)}
-              </h3>
-              <Badge variant="outline">{ativos.length} / {slot.capacidade_maxima} alunos</Badge>
-            </div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">
+                  {slot.horario_inicio.slice(0, 5)}
+                </h3>
+                <Badge variant="outline">{ativos.length} / {slot.capacidade_maxima} alunos</Badge>
+              </div>
             {doSlot.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem agendamentos.</p>
             ) : (
