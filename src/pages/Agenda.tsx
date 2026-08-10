@@ -199,6 +199,22 @@ export default function Agenda() {
         }).catch((e) => console.error("notify-agenda-evento (cancelado):", e));
       }
 
+  // Reserva avulsa que ocupa uma vaga de horário fixo
+  const deleteTargetVagaFixa = useMemo(() => {
+    if (!deleteTarget) return false;
+    const ev = (agendas as any[]).find((a: any) => a.id === deleteTarget.id);
+    if (!ev || ev.tipo !== "avulso" || !ev.data_especifica) return false;
+    const diaSemana = new Date(ev.data_especifica + "T12:00:00").getDay();
+    return (agendas as any[]).some(
+      (a: any) =>
+        a.tipo === "fixo" &&
+        a.dia_semana === diaSemana &&
+        a.horario_inicio === ev.horario_inicio &&
+        a.atividade === ev.atividade &&
+        a.local === ev.local,
+    );
+  }, [deleteTarget, agendas]);
+
       setDeleteTarget(null);
     },
     onError: () => toast.error("Erro ao remover horário"),
