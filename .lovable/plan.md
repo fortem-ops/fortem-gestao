@@ -24,7 +24,7 @@ Horário fixo = apenas a vaga na grade. Aluno vinculado é **sempre** avulso, nu
 Existem duas versões da rotina de agendamento no banco; só uma grava como avulso. A segunda (usada no fluxo de treino/serviço com profissional e horário) ainda copia o tipo do modelo — será ajustada para gravar avulso + exceção, igual à outra.
 
 ### 3. Dados existentes
-Converter o registro da Laura para avulso na data correta e recriar o horário-modelo fixo de segunda 11:00 sem aluno, com exceção nessa data. **Confirme a data**: o agendamento foi para hoje, 10/08?
+A reserva da Laura vale **somente para hoje, 10/08**. O registro atual vira avulso em 10/08/2026 às 11:00, é recriado o horário-modelo fixo de segunda 11:00 (Reabilitação, Sala de Reabilitação, sem aluno) e é registrada a exceção do modelo em 10/08 para não duplicar o card.
 
 ## Detalhes técnicos
 
