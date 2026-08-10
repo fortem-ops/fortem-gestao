@@ -422,6 +422,7 @@ interface ContratoAtivoCardProps {
 }
 
 function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedirBaixa }: ContratoAtivoCardProps) {
+  const [alterarOpen, setAlterarOpen] = useState(false);
   const { toast } = useToast();
   const [copiandoLink, setCopiandoLink] = useState(false);
 
