@@ -33,7 +33,10 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const DIAS_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const HORAS = Array.from({ length: 16 }, (_, i) => i + 6);
+// Faixas de 30 min: 06:00 até 21:30 (em minutos desde meia-noite)
+const SLOTS = Array.from({ length: 32 }, (_, i) => 6 * 60 + i * 30);
+const slotLabel = (min: number) =>
+  `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 
 // Cor de destaque por atividade (barra lateral / ponto). O texto sempre usa
 // tokens de alto contraste para garantir legibilidade.
@@ -54,7 +57,7 @@ export default function Agenda() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date; tipo: string } | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [prefill, setPrefill] = useState<{ date: Date; hour: number } | null>(null);
+  const [prefill, setPrefill] = useState<{ date: Date; hour: number; minute?: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
   const [cellDate, setCellDate] = useState<Date | null>(null);
   const [fAtividade, setFAtividade] = useState<string[]>([]);
@@ -264,7 +267,7 @@ export default function Agenda() {
   const temFiltro = fAtividade.length > 0 || fProfissional.length > 0 || fAluno.length > 0 || fOcupacao !== "todos";
   const limparFiltros = () => { setFAtividade([]); setFProfissional([]); setFAluno([]); setFOcupacao("todos"); };
 
-  const getEventsForCell = (dayIndex: number, hour: number) => {
+  const getEventsForCell = (dayIndex: number, slot: number) => {
     const date = weekDates[dayIndex];
     const diaSemana = date.getDay();
     const dateStr = format(date, "yyyy-MM-dd");
@@ -275,8 +278,10 @@ export default function Agenda() {
     );
 
     return agendas.filter((a: any) => {
-      const startHour = parseInt(a.horario_inicio?.split(":")[0] || "0");
-      if (startHour !== hour) return false;
+      const [hh, mm] = (a.horario_inicio || "00:00").split(":");
+      const startMin = parseInt(hh || "0") * 60 + parseInt(mm || "0");
+      if (Math.floor(startMin / 30) * 30 !== slot) return false;
+
 
       if (fAtividade.length > 0 && !fAtividade.includes(a.atividade)) return false;
       if (fProfissional.length > 0 && !fProfissional.includes(a.profissional_id)) return false;
@@ -308,9 +313,9 @@ export default function Agenda() {
   };
 
 
-  const handleCellClick = (dayIndex: number, hour: number) => {
+  const handleCellClick = (dayIndex: number, slot: number) => {
     setEditEvent(null);
-    setPrefill({ date: weekDates[dayIndex], hour });
+    setPrefill({ date: weekDates[dayIndex], hour: Math.floor(slot / 60), minute: slot % 60 });
     setDialogOpen(true);
   };
 
@@ -461,20 +466,21 @@ export default function Agenda() {
               })}
             </div>
 
-            {HORAS.map((hour) => (
-              <div key={hour} className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border/50 min-h-[60px]">
+            {SLOTS.map((slot) => (
+              <div key={slot} className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border/50 min-h-[44px]">
                 <div className="p-2 text-xs text-muted-foreground text-right pr-3 pt-1">
-                  {String(hour).padStart(2, "0")}:00
+                  {slotLabel(slot)}
                 </div>
                 {weekDates.map((_, dayIdx) => {
-                  const events = getEventsForCell(dayIdx, hour);
+                  const events = getEventsForCell(dayIdx, slot);
                   const isToday = isSameDay(weekDates[dayIdx], new Date());
                   return (
                     <div
                       key={dayIdx}
-                      className={`border-l border-border/50 p-0.5 cursor-pointer hover:bg-muted/30 transition-colors ${isToday ? "bg-primary/5" : ""}`}
-                      onClick={() => handleCellClick(dayIdx, hour)}
+                      className={`border-l border-border/50 p-0.5 cursor-pointer hover:bg-muted/30 transition-colors overflow-hidden min-w-0 ${isToday ? "bg-primary/5" : ""}`}
+                      onClick={() => handleCellClick(dayIdx, slot)}
                     >
+
                       {events.map((ev: any) => (
                         <div
                           key={ev.id}
