@@ -122,8 +122,23 @@ export default function Agenda() {
     },
   });
 
+  type DeleteModo = "padrao" | "somente_dia" | "liberar_vaga" | "futuras";
+
+  const buscarModelosFixos = async (ev: any) => {
+    const diaSemana = new Date(ev.data_especifica + "T12:00:00").getDay();
+    const { data } = await supabase
+      .from("agenda_servicos")
+      .select("id")
+      .eq("tipo", "fixo")
+      .eq("dia_semana", diaSemana)
+      .eq("horario_inicio", ev.horario_inicio)
+      .eq("atividade", ev.atividade)
+      .eq("local", ev.local);
+    return (data || []).map((m: any) => m.id);
+  };
+
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, modo = "padrao" }: { id: string; modo?: DeleteModo }) => {
       const ev = agendas.find((a: any) => a.id === id);
 
       // Dispara WhatsApp ANTES do delete (enquanto o registro ainda existe no banco)
@@ -140,28 +155,35 @@ export default function Agenda() {
       const { error } = await supabase.from("agenda_servicos").delete().eq("id", id);
       if (error) throw error;
 
-      // Reserva avulsa removida: devolve a vaga fixa correspondente à grade
       if (ev?.tipo === "avulso" && ev?.data_especifica) {
-        const diaSemana = new Date(ev.data_especifica + "T12:00:00").getDay();
-        const { data: modelos } = await supabase
-          .from("agenda_servicos")
-          .select("id")
-          .eq("tipo", "fixo")
-          .eq("dia_semana", diaSemana)
-          .eq("horario_inicio", ev.horario_inicio)
-          .eq("atividade", ev.atividade)
-          .eq("local", ev.local);
-        const ids = (modelos || []).map((m: any) => m.id);
-        if (ids.length > 0) {
+        const ids = await buscarModelosFixos(ev);
+
+        // Devolve a vaga fixa à grade naquele dia (remove a exceção)
+        if ((modo === "padrao" || modo === "liberar_vaga") && ids.length > 0) {
           await supabase
             .from("agenda_servicos_excecoes")
             .delete()
             .in("agenda_id", ids)
             .eq("data_excecao", ev.data_especifica);
         }
+
+        // Encerra a vaga fixa daqui pra frente
+        if (modo === "futuras" && ids.length > 0) {
+          await supabase
+            .from("agenda_servicos")
+            .delete()
+            .eq("tipo", "avulso")
+            .eq("atividade", ev.atividade)
+            .eq("local", ev.local)
+            .eq("horario_inicio", ev.horario_inicio)
+            .gt("data_especifica", ev.data_especifica);
+          await supabase.from("agenda_servicos").delete().in("id", ids);
+        }
+        // modo === "somente_dia": mantém a exceção, vaga não reaparece nesse dia
       }
       return ev;
     },
+
     onSuccess: (ev: any) => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos"] });
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos_excecoes"] });
