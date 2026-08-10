@@ -533,7 +533,20 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
               Início {fmtDate(contrato.data_inicio)} · Fim {fmtDate(contrato.data_fim)}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {contratoDoc?.id &&
+              (contratoDoc.aceite ? (
+                <span className="text-xs text-emerald-500 font-medium">Contrato assinado</span>
+              ) : (
+                <Button variant="outline" size="sm" onClick={copiarLinkAceite} disabled={copiandoLink}>
+                  {copiandoLink ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <LinkIcon className="h-4 w-4 mr-2" />
+                  )}
+                  Copiar link de aceite
+                </Button>
+              ))}
             {podeCancelar && contrato.forma_pagamento === "cartao_recorrencia" && (
               <Button variant="outline" size="sm" onClick={() => setAlterarOpen(true)}>
                 Alterar dados da venda
