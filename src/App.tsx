@@ -202,6 +202,14 @@ const App = () => (
               }
             />
             <Route
+              path="/contrato/:token"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <AceitarContratoToken />
+                </Suspense>
+              }
+            />
+            <Route
               path="/cadastrar-cartao"
               element={
                 <Suspense fallback={<RouteFallback />}>
