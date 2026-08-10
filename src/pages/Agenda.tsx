@@ -252,15 +252,16 @@ export default function Agenda() {
     setDialogOpen(true);
   };
 
-  const handleEventClick = (ev: any) => {
+  const handleEventClick = (ev: any, date: Date) => {
     setEditEvent(ev);
+    setCellDate(date);
     setPrefill(null);
     setDialogOpen(true);
   };
 
   const handleOpenChange = (open: boolean) => {
     setDialogOpen(open);
-    if (!open) { setPrefill(null); setEditEvent(null); }
+    if (!open) { setPrefill(null); setEditEvent(null); setCellDate(null); }
   };
 
   const prevWeek = () => setWeekStart(addDays(weekStart, -7));
