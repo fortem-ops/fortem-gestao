@@ -462,7 +462,7 @@ function SlotDetailSheet({
           </SheetTitle>
           <div className="text-sm text-muted-foreground text-left flex items-center gap-2 flex-wrap">
             <span className="font-medium text-foreground">
-              {selected.slot.horario_inicio.slice(0, 5)} – {selected.slot.horario_fim.slice(0, 5)}
+              {selected.slot.horario_inicio.slice(0, 5)}
             </span>
             {selected.slot.instrutor_id && (
               <>· <span>{profileMap[selected.slot.instrutor_id] ?? "—"}</span></>
@@ -729,9 +729,6 @@ function WeeklyGrid({
                                   {isCorrida ? "corrida" : "treino"}
                                 </span>
                               </div>
-                              <div className="text-[9px] text-muted-foreground leading-tight">
-                                → {slot.horario_fim.slice(0, 5)}
-                              </div>
                               {slot.instrutor_id && (
                                 <div className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
                                   {profileMap[slot.instrutor_id] ?? "—"}
@@ -743,7 +740,7 @@ function WeeklyGrid({
                           <TooltipContent side="top" sideOffset={6} className="max-w-[220px] p-0">
                             <div className="px-3 py-2">
                               <div className="text-xs font-medium mb-1">
-                                {slot.horario_inicio.slice(0, 5)} – {slot.horario_fim.slice(0, 5)} · {DIAS[dia]}
+                                {slot.horario_inicio.slice(0, 5)} · {DIAS[dia]}
                               </div>
                               {agendadosDoSlot.length === 0 ? (
                                 <div className="text-xs text-muted-foreground">Nenhum aluno agendado.</div>
@@ -873,7 +870,7 @@ function HorariosTab() {
                 <div key={s.id} className={cn("flex items-center gap-3 p-3 rounded-lg border", !s.ativo && "opacity-60")}>
                   <div className="flex-1">
                     <div className="font-medium flex items-center gap-2">
-                      {s.horario_inicio.slice(0, 5)} → {s.horario_fim.slice(0, 5)}
+                      {s.horario_inicio.slice(0, 5)}
                       {s.modalidade === "corrida" && (
                         <Badge variant="outline" className="bg-orange-500/15 text-orange-500 border-orange-500/30">
                           Corrida
@@ -983,12 +980,12 @@ function AgendamentosTab() {
         const ativos = doSlot.filter((a) => ["agendado", "confirmado"].includes(a.status));
         return (
           <Card key={slot.id} className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">
-                {slot.horario_inicio.slice(0, 5)} → {slot.horario_fim.slice(0, 5)}
-              </h3>
-              <Badge variant="outline">{ativos.length} / {slot.capacidade_maxima} alunos</Badge>
-            </div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">
+                  {slot.horario_inicio.slice(0, 5)}
+                </h3>
+                <Badge variant="outline">{ativos.length} / {slot.capacidade_maxima} alunos</Badge>
+              </div>
             {doSlot.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem agendamentos.</p>
             ) : (
