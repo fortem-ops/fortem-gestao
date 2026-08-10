@@ -267,7 +267,7 @@ export default function Agenda() {
   const temFiltro = fAtividade.length > 0 || fProfissional.length > 0 || fAluno.length > 0 || fOcupacao !== "todos";
   const limparFiltros = () => { setFAtividade([]); setFProfissional([]); setFAluno([]); setFOcupacao("todos"); };
 
-  const getEventsForCell = (dayIndex: number, hour: number) => {
+  const getEventsForCell = (dayIndex: number, slot: number) => {
     const date = weekDates[dayIndex];
     const diaSemana = date.getDay();
     const dateStr = format(date, "yyyy-MM-dd");
@@ -278,8 +278,10 @@ export default function Agenda() {
     );
 
     return agendas.filter((a: any) => {
-      const startHour = parseInt(a.horario_inicio?.split(":")[0] || "0");
-      if (startHour !== hour) return false;
+      const [hh, mm] = (a.horario_inicio || "00:00").split(":");
+      const startMin = parseInt(hh || "0") * 60 + parseInt(mm || "0");
+      if (Math.floor(startMin / 30) * 30 !== slot) return false;
+
 
       if (fAtividade.length > 0 && !fAtividade.includes(a.atividade)) return false;
       if (fProfissional.length > 0 && !fProfissional.includes(a.profissional_id)) return false;
