@@ -1,16 +1,18 @@
 import { BodyMap } from "@/components/student/assessment/funcionalV2/BodyMap";
 import { AlertTriangle } from "lucide-react";
 import type { FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
+import type { PremiumScores } from "./scoringPremium";
 
 interface Props {
   funcional: FuncionalSnapshot | null;
+  scores: PremiumScores | null;
 }
 
 /**
  * Wrapper premium do BodyMap existente. Adiciona moldura "vidro fosco" + halo radial
  * sem alterar a geometria nem os bindings já validados.
  */
-export function PremiumBodyMap({ funcional }: Props) {
+export function PremiumBodyMap({ funcional, scores }: Props) {
   if (!funcional || (funcional.metricas.length === 0 && funcional.forca.length === 0)) {
     return (
       <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))]">
@@ -61,7 +63,24 @@ export function PremiumBodyMap({ funcional }: Props) {
         </div>
       )}
       <div className="relative">
-        <BodyMap metrics={funcional.metricas} forcaExercises={forcaInputs} />
+        <BodyMap
+          metrics={funcional.metricas}
+          forcaExercises={forcaInputs}
+          canonical={
+            scores
+              ? {
+                  geral: scores.indiceFortem,
+                  mobilidade: scores.mobilidade,
+                  simetria: scores.assimetria,
+                  estabilidade: scores.analysisQuality.scoreEstabilidade,
+                  forca: scores.forca,
+                  riskLevel: scores.analysisQuality.riskLevel,
+                  asymmetryCount: scores.analysisQuality.asymmetries.length,
+                  chains: scores.analysisQuality.chains,
+                }
+              : null
+          }
+        />
       </div>
     </div>
   );
