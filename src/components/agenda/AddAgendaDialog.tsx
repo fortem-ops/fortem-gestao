@@ -723,8 +723,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={loteMultiplo ? "Indisponível ao criar vários horários" : "Buscar aluno pelo nome..."}
-                disabled={loteMultiplo}
+                placeholder={alunoBloqueado ? "Indisponível para horário fixo" : "Buscar aluno pelo nome..."}
+                disabled={alunoBloqueado}
                 value={selectedAluno ? selectedAluno.nome : alunoSearch}
                 onChange={(e) => {
                   setAlunoSearch(e.target.value);
@@ -733,9 +733,14 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
                 className="pl-9"
               />
             </div>
-            {loteMultiplo && (
+            {alunoBloqueado && (
               <p className="text-xs text-muted-foreground">
-                Vários horários fixos são criados como vagas na grade, sem aluno vinculado.
+                Horários fixos são apenas vagas na grade. O aluno é sempre agendado de forma avulsa, em uma data específica.
+              </p>
+            )}
+            {editandoFixoUI && cellDateStr && (
+              <p className="text-xs text-muted-foreground">
+                O aluno será agendado como avulso em {format(cellDate!, "dd/MM/yyyy")}, sem repetir nas próximas semanas.
               </p>
             )}
             {alunoId && selectedAluno && (
