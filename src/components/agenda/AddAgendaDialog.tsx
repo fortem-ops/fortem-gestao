@@ -519,12 +519,16 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         toast.success(isEditing ? "Horário atualizado com sucesso" : "Horário criado com sucesso");
       }
 
-      // Houve criação de um novo agendamento? (inclui reserva avulsa a partir de vaga fixa)
-      const novoAgendamento =
-        !!inserted?.id && !inserted?.lote && (!isEditing || inserted.id !== editEvent?.id);
+      // Novo agendamento (criação, reserva avulsa a partir de vaga fixa) OU
+      // edição que passou a ter um aluno vinculado / trocou de aluno.
+      const registroValido = !!inserted?.id && !inserted?.lote;
+      const criouRegistro = registroValido && (!isEditing || inserted.id !== editEvent?.id);
+      const alunoMudou =
+        registroValido && !!inserted.aluno_id && inserted.aluno_id !== inserted.__alunoAnterior;
+      const deveDisparar = criouRegistro || alunoMudou;
 
       // Fallback de notificação (idempotente via tabela agenda_notificacoes_log)
-      if (novoAgendamento && inserted.aluno_id &&
+      if (deveDisparar && inserted.aluno_id &&
           ["Treino Experimental","Avaliação Funcional"].includes(inserted.atividade)) {
         supabase.functions.invoke("notify-agenda-evento", {
           body: { evento: "agendado", agenda_id: inserted.id, agenda: inserted, origem: "frontend" },
@@ -532,16 +536,21 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
       }
 
       // Disparos automáticos WhatsApp
-      if (novoAgendamento) {
+      if (deveDisparar) {
         console.log('[WhatsApp Disparo] Iniciando disparo para agenda:', inserted.id, 'atividade:', inserted.atividade);
         supabase.functions.invoke("whatsapp-disparo-agenda", {
           body: { evento: "agendamento_criado", agenda_id: inserted.id },
-        }).then((result) => {
-          console.log('[WhatsApp Disparo] Resultado:', result);
+        }).then(({ error }) => {
+          if (error) {
+            console.error('[WhatsApp Disparo] Erro:', error);
+            toast.warning("Agendamento salvo, mas o WhatsApp não foi enviado.");
+          }
         }).catch((e) => {
           console.error('[WhatsApp Disparo] Erro:', e);
+          toast.warning("Agendamento salvo, mas o WhatsApp não foi enviado.");
         });
       }
+
 
 
       resetForm();
