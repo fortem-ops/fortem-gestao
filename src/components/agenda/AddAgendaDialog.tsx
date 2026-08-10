@@ -81,7 +81,7 @@ function parsePlanServiceCount(servicos: string[] | null | undefined, label: str
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  prefill?: { date: Date; hour: number } | null;
+  prefill?: { date: Date; hour: number; minute?: number } | null;
   editEvent?: any | null;
   /** Data da célula clicada na grade (usada para reservar aluno em vaga fixa). */
   cellDate?: Date | null;
