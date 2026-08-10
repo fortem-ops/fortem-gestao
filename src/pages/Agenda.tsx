@@ -199,6 +199,11 @@ export default function Agenda() {
         }).catch((e) => console.error("notify-agenda-evento (cancelado):", e));
       }
 
+      setDeleteTarget(null);
+    },
+    onError: () => toast.error("Erro ao remover horário"),
+  });
+
   // Reserva avulsa que ocupa uma vaga de horário fixo
   const deleteTargetVagaFixa = useMemo(() => {
     if (!deleteTarget) return false;
@@ -215,10 +220,7 @@ export default function Agenda() {
     );
   }, [deleteTarget, agendas]);
 
-      setDeleteTarget(null);
-    },
-    onError: () => toast.error("Erro ao remover horário"),
-  });
+
 
 
   const excecaoMutation = useMutation({
