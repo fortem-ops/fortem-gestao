@@ -52,7 +52,7 @@ const VideoTestimonialsSection = () => (
               preload="metadata"
               className="w-full aspect-[9/16] object-cover"
             >
-              <source src="/videos/fortem-highlight.mp4" type="video/mp4" />
+              <source src="/__l5e/assets-v1/e6dc32c8-781e-446f-ba87-70a9e428cec2/fortem-highlight.mp4" type="video/mp4" />
               Seu navegador não suporta vídeo.
             </video>
           </div>
