@@ -2656,6 +2656,7 @@ export type Database = {
           descricao: string | null
           distancia: string | null
           id: string
+          imagem_url: string | null
           isento: boolean
           nivel: string | null
           prova_nome: string | null
@@ -2673,6 +2674,7 @@ export type Database = {
           descricao?: string | null
           distancia?: string | null
           id?: string
+          imagem_url?: string | null
           isento?: boolean
           nivel?: string | null
           prova_nome?: string | null
@@ -2690,6 +2692,7 @@ export type Database = {
           descricao?: string | null
           distancia?: string | null
           id?: string
+          imagem_url?: string | null
           isento?: boolean
           nivel?: string | null
           prova_nome?: string | null

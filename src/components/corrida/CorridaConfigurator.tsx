@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Check, ArrowLeft, Gift } from "lucide-react";
+import { Loader2, Check, ArrowLeft, Gift, Shirt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 /* ------------------------------------------------------------------ */
@@ -30,7 +30,10 @@ interface CampanhaItem {
   valor: number;
   isento: boolean;
   condicao: string | null;
+  imagem_url?: string | null;
 }
+
+const AVAL_VALOR_CHEIO = 250;
 
 const TIER_NOME: Record<Tier, string> = {
   start: "Corrida - Start",
@@ -75,6 +78,8 @@ const Toggle = ({
   title,
   subtitle,
   price,
+  priceNode,
+  leading,
   disabled,
 }: {
   active: boolean;
@@ -82,6 +87,8 @@ const Toggle = ({
   title: string;
   subtitle?: string;
   price?: string;
+  priceNode?: React.ReactNode;
+  leading?: React.ReactNode;
   disabled?: boolean;
 }) => (
   <button
@@ -99,13 +106,31 @@ const Toggle = ({
     >
       {active && <Check className="w-3.5 h-3.5" />}
     </span>
+    {leading}
     <span className="flex-1">
       <span className="block font-semibold">{title}</span>
       {subtitle && <span className="block text-sm text-muted-foreground">{subtitle}</span>}
     </span>
-    {price && <span className="font-display font-bold whitespace-nowrap">{price}</span>}
+    {priceNode
+      ? priceNode
+      : price && <span className="font-display font-bold whitespace-nowrap">{price}</span>}
   </button>
 );
+
+const KitThumb = ({ url }: { url?: string | null }) =>
+  url ? (
+    <img
+      src={url}
+      alt=""
+      className="shrink-0 w-14 h-14 rounded-lg object-cover border border-border"
+      loading="lazy"
+    />
+  ) : (
+    <span className="shrink-0 w-14 h-14 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground">
+      <Shirt className="w-6 h-6" />
+    </span>
+  );
+
 
 const Pill = ({
   active,
@@ -552,23 +577,28 @@ const CorridaConfigurator = () => {
                 {rota === "somente_provas" ? "Adicione ao seu pedido" : "Turbine seu plano"}
               </h4>
 
-              <p className="text-sm font-semibold mb-2">
-                Kit Fortem{" "}
-                {oferta.kits[0]?.isento && (
-                  <span className="text-primary">— grátis, escolha o seu</span>
-                )}
-              </p>
-              <div className="space-y-2 mb-5">
-                {oferta.kits.map((k) => (
-                  <Toggle
-                    key={k.id}
-                    active={kitNivel === k.nivel}
-                    onClick={() => setKitNivel(kitNivel === k.nivel ? null : k.nivel)}
-                    title={k.descricao ?? k.nivel ?? "Kit"}
-                    price={k.isento ? "Grátis" : brl(Number(k.valor))}
-                  />
-                ))}
-              </div>
+              {oferta.kits.length > 0 && (
+                <>
+                  <p className="text-sm font-semibold mb-2">
+                    Kit Fortem{" "}
+                    {oferta.kits[0]?.isento && (
+                      <span className="text-primary">— grátis, escolha o seu</span>
+                    )}
+                  </p>
+                  <div className="space-y-2 mb-5">
+                    {oferta.kits.map((k) => (
+                      <Toggle
+                        key={k.id}
+                        active={kitNivel === k.nivel}
+                        onClick={() => setKitNivel(kitNivel === k.nivel ? null : k.nivel)}
+                        title={k.descricao ?? k.nivel ?? "Kit"}
+                        leading={<KitThumb url={k.imagem_url} />}
+                        price={k.isento ? "Grátis" : brl(Number(k.valor))}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
 
               {oferta.mipoaItem && (
                 <Toggle
@@ -591,7 +621,22 @@ const CorridaConfigurator = () => {
                         ? "Leve o resultado para o seu treinador."
                         : oferta.aval.descricao ?? undefined
                     }
-                    price={brl(Number(oferta.aval.valor))}
+                    priceNode={
+                      Number(oferta.aval.valor) < AVAL_VALOR_CHEIO ? (
+                        <span className="text-right whitespace-nowrap">
+                          <span className="block text-xs text-muted-foreground line-through">
+                            De {brl(AVAL_VALOR_CHEIO)}
+                          </span>
+                          <span className="block font-display font-bold">
+                            por {brl(Number(oferta.aval.valor))}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="font-display font-bold whitespace-nowrap">
+                          {brl(Number(oferta.aval.valor))}
+                        </span>
+                      )
+                    }
                   />
                 </div>
               )}
