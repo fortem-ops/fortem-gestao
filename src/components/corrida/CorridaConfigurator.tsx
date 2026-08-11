@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Check, ArrowLeft, Gift, Shirt } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 
 /* ------------------------------------------------------------------ */
@@ -172,16 +173,16 @@ const Pill = ({
 /* Componente                                                          */
 /* ------------------------------------------------------------------ */
 
-const CorridaConfigurator = () => {
-  const [step, setStep] = useState<"identificacao" | "oferta" | "resumo">("identificacao");
-  const [rota, setRota] = useState<Rota | null>(null);
-  const [tier, setTier] = useState<Tier | null>(null);
-  const [nome, setNome] = useState<string | null>(null);
+interface Props {
+  rota: Rota | null;
+  tier: Tier | null;
+  nome: string | null;
+  onTrocarRota?: (rota: Rota, tier?: Tier | null, nome?: string | null) => void;
+}
 
-  const [cpf, setCpf] = useState("");
-  const [verificando, setVerificando] = useState(false);
-  const [erroCpf, setErroCpf] = useState<string | null>(null);
-  const [naoEncontrado, setNaoEncontrado] = useState(false);
+const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
+  const [step, setStep] = useState<"oferta" | "resumo">("oferta");
+  const rota: Rota = rotaProp ?? "prospect";
 
   // seleções
   const [periodo, setPeriodo] = useState<"mensal" | "anual">("anual"); // prospect
@@ -191,6 +192,18 @@ const CorridaConfigurator = () => {
   const [avaliacao, setAvaliacao] = useState(false);
   const [provaNome, setProvaNome] = useState<"NB" | "MIPOA">("NB");
   const [provaDistancia, setProvaDistancia] = useState<Distancia>("5K");
+
+  // ao trocar de rota, volta pra oferta e limpa seleções
+  useEffect(() => {
+    setStep("oferta");
+    setKitNivel(null);
+    setMipoa(false);
+    setAvaliacao(false);
+    setDistanciaCortesia("5K");
+    setPeriodo("anual");
+    setProvaNome("NB");
+    setProvaDistancia("5K");
+  }, [rotaProp, tier]);
 
   const { data: planos = [], isLoading: loadingPlanos } = useQuery({
     queryKey: ["corrida-planos-catalogo"],
@@ -218,51 +231,6 @@ const CorridaConfigurator = () => {
   const plano = (nomePlano: string, meses: number) =>
     planos.find((p) => p.nome === nomePlano && p.periodo_meses === meses);
 
-  const resetSelecoes = () => {
-    setKitNivel(null);
-    setMipoa(false);
-    setAvaliacao(false);
-    setDistanciaCortesia("5K");
-    setPeriodo("anual");
-    setProvaNome("NB");
-    setProvaDistancia("5K");
-  };
-
-  const irPara = (r: Rota, t: Tier | null = null, n: string | null = null) => {
-    resetSelecoes();
-    setRota(r);
-    setTier(t);
-    setNome(n);
-    setStep("oferta");
-  };
-
-  /* --------------------------- Etapa 1 --------------------------- */
-
-  const verificarCpf = async () => {
-    setErroCpf(null);
-    setNaoEncontrado(false);
-    const digits = cpf.replace(/\D/g, "");
-    if (digits.length !== 11) {
-      setErroCpf("Informe um CPF válido com 11 dígitos.");
-      return;
-    }
-    setVerificando(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("corrida-lookup-cpf", {
-        body: { cpf: digits },
-      });
-      if (error) throw error;
-      if (data?.found) {
-        irPara(data.rota === "aluno" ? "aluno" : "somente_corrida", data.tier ?? null, data.primeiro_nome ?? null);
-      } else {
-        setNaoEncontrado(true);
-      }
-    } catch {
-      setErroCpf("Não conseguimos verificar seu CPF agora. Tente novamente em alguns minutos.");
-    } finally {
-      setVerificando(false);
-    }
-  };
 
   /* --------------------------- Dados da oferta --------------------------- */
 
@@ -384,15 +352,8 @@ const CorridaConfigurator = () => {
 
   /* --------------------------- Render --------------------------- */
 
-  const voltar = () => {
-    if (step === "resumo") setStep("oferta");
-    else {
-      setStep("identificacao");
-      setRota(null);
-      setTier(null);
-      setNome(null);
-    }
-  };
+  const voltar = () => setStep("oferta");
+
 
   const tituloRota = () => {
     switch (rota) {
@@ -425,64 +386,9 @@ const CorridaConfigurator = () => {
           <Card className="flex items-center justify-center gap-3 py-12 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" /> Carregando ofertas...
           </Card>
-        ) : step === "identificacao" ? (
-          <Card>
-            <label className="block text-sm font-semibold mb-2" htmlFor="cpf-corrida">
-              Seu CPF
-            </label>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                id="cpf-corrida"
-                inputMode="numeric"
-                value={cpf}
-                onChange={(e) => setCpf(maskCpf(e.target.value))}
-                placeholder="000.000.000-00"
-                className="flex-1 rounded-xl border border-border bg-background px-4 py-3 outline-none focus:border-primary"
-              />
-              <button
-                onClick={verificarCpf}
-                disabled={verificando}
-                className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-display font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
-              >
-                {verificando && <Loader2 className="w-4 h-4 animate-spin" />}
-                Verificar CPF
-              </button>
-            </div>
-
-            {erroCpf && <p className="mt-3 text-sm text-primary">{erroCpf}</p>}
-
-            {naoEncontrado && (
-              <div className="mt-4 rounded-xl bg-muted p-4">
-                <p className="text-sm mb-3">CPF não encontrado na nossa base.</p>
-                <button
-                  onClick={() => irPara("prospect")}
-                  className="text-sm font-semibold text-primary underline underline-offset-4"
-                >
-                  Continuar como visitante →
-                </button>
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-col gap-2 text-sm">
-              <button
-                onClick={() => irPara("prospect")}
-                className="text-left font-semibold text-primary hover:opacity-80"
-              >
-                Não sou aluno →
-              </button>
-              <button
-                onClick={() => irPara("somente_provas")}
-                className="text-left font-semibold text-primary hover:opacity-80"
-              >
-                Quero só me inscrever numa prova →
-              </button>
-            </div>
-          </Card>
         ) : step === "oferta" && oferta ? (
           <div className="space-y-4">
-            <button onClick={voltar} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ArrowLeft className="w-4 h-4" /> Voltar
-            </button>
+
 
             <Card>
               {nome && <p className="text-primary font-semibold mb-1">Olá, {nome}!</p>}
@@ -530,9 +436,20 @@ const CorridaConfigurator = () => {
                       </p>
                     </div>
                   )}
+                  <ul className="space-y-2">
+                    {["Inscrição da prova", "Retiramos seu kit da prova", "Acesso à estrutura da Fortem no dia da prova"].map(
+                      (b) => (
+                        <li key={b} className="flex items-start gap-2 text-sm">
+                          <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                          <span>{b}</span>
+                        </li>
+                      ),
+                    )}
+                  </ul>
                   <p className="text-sm text-muted-foreground">
                     Pagamento via Pix ou crédito à vista — sem parcelamento.
                   </p>
+
                 </div>
               ) : (
                 <div>
