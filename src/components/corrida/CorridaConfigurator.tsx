@@ -570,7 +570,7 @@ const CorridaConfigurator = () => {
                   {/* Cortesia NB */}
                   {rota === "prospect" && periodo === "mensal" ? (
                     <p className="mt-5 text-sm text-muted-foreground rounded-xl bg-muted p-4">
-                      A cortesia de inscrição + kit do Circuito New Balance é exclusiva do plano Anual.
+                      A cortesia de inscrição + kit da NB 42k 2027 é exclusiva do plano Anual.
                     </p>
                   ) : (
                     oferta.cortesia && (
@@ -579,12 +579,15 @@ const CorridaConfigurator = () => {
                           <Gift className="w-4 h-4 text-primary" /> Cortesia inclusa: {oferta.cortesia.descricao}
                         </p>
                         <p className="text-sm text-muted-foreground mt-2 mb-2">Escolha sua distância:</p>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {DISTANCIAS.map((d) => (
                             <Pill key={d} active={distanciaCortesia === d} onClick={() => setDistanciaCortesia(d)}>
                               {d}
                             </Pill>
                           ))}
+                          <span className="text-sm text-muted-foreground ml-1">
+                            NB 42k 2027 · {dataProva("NB", distanciaCortesia)}
+                          </span>
                         </div>
                       </div>
                     )
