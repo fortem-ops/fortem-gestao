@@ -25,9 +25,7 @@ const HeroSection = ({ onCtaClick }: { onCtaClick: () => void }) => {
             transition={{ duration: 0.7, delay: 0.4 }}
             className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-accent-foreground leading-[0.95] mb-6"
           >
-            Corra com método.
-            <br />
-            <span className="text-gradient">Evolua com a Fortem.</span>
+            <span className="text-gradient">Corra com a Fortem.</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -35,7 +33,7 @@ const HeroSection = ({ onCtaClick }: { onCtaClick: () => void }) => {
             transition={{ duration: 0.6, delay: 0.6 }}
             className="text-lg md:text-xl text-accent-foreground/70 max-w-2xl mx-auto mb-10 font-light"
           >
-            Treinos personalizados, equipe especializada e uma comunidade que corre junto.
+            Assessoria de Corrida — treinos técnicos, pacers e uma comunidade que te leva mais longe.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
