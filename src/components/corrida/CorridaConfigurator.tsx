@@ -675,6 +675,8 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
             </button>
           </div>
         ) : null}
+        </>
+        )}
       </div>
     </section>
   );
