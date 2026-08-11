@@ -329,7 +329,7 @@ const CorridaConfigurator = () => {
     if (rota === "somente_provas") {
       if (oferta.provaItem) {
         linhas.push({
-          label: `${oferta.provaItem.prova_nome === "NB" ? "Circuito New Balance" : "MIPOA"} — ${provaDistancia}`,
+          label: `${PROVA_LABEL[oferta.provaItem.prova_nome === "NB" ? "NB" : "MIPOA"]} — ${provaDistancia} · ${dataProva(oferta.provaItem.prova_nome === "NB" ? "NB" : "MIPOA", provaDistancia)}`,
           valor: Number(oferta.provaItem.valor),
         });
         hoje += Number(oferta.provaItem.valor);
