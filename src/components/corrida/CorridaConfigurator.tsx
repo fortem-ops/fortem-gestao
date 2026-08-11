@@ -30,7 +30,10 @@ interface CampanhaItem {
   valor: number;
   isento: boolean;
   condicao: string | null;
+  imagem_url?: string | null;
 }
+
+const AVAL_VALOR_CHEIO = 250;
 
 const TIER_NOME: Record<Tier, string> = {
   start: "Corrida - Start",
