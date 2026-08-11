@@ -5565,6 +5565,24 @@ export type Database = {
           },
         ]
       }
+      rate_limit_corrida_cpf: {
+        Row: {
+          contagem: number
+          ip_address: string
+          janela_min: number
+        }
+        Insert: {
+          contagem?: number
+          ip_address: string
+          janela_min: number
+        }
+        Update: {
+          contagem?: number
+          ip_address?: string
+          janela_min?: number
+        }
+        Relationships: []
+      }
       regras_elegibilidade: {
         Row: {
           ativo: boolean
