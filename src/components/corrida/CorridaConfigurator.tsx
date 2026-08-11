@@ -354,7 +354,7 @@ const CorridaConfigurator = () => {
       const cortesiaAtiva = oferta.cortesia && (rota !== "prospect" || periodo === "anual");
       if (cortesiaAtiva) {
         linhas.push({
-          label: `Cortesia: ${oferta.cortesia!.descricao} — ${distanciaCortesia}`,
+          label: `Cortesia: ${oferta.cortesia!.descricao} — ${distanciaCortesia} · ${dataProva("NB", distanciaCortesia)}`,
           valor: 0,
         });
       }
