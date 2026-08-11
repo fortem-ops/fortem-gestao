@@ -351,15 +351,8 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
 
   /* --------------------------- Render --------------------------- */
 
-  const voltar = () => {
-    if (step === "resumo") setStep("oferta");
-    else {
-      setStep("identificacao");
-      setRota(null);
-      setTier(null);
-      setNome(null);
-    }
-  };
+  const voltar = () => setStep("oferta");
+
 
   const tituloRota = () => {
     switch (rota) {
