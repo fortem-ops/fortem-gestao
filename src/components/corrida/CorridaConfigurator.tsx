@@ -392,64 +392,9 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
           <Card className="flex items-center justify-center gap-3 py-12 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" /> Carregando ofertas...
           </Card>
-        ) : step === "identificacao" ? (
-          <Card>
-            <label className="block text-sm font-semibold mb-2" htmlFor="cpf-corrida">
-              Seu CPF
-            </label>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                id="cpf-corrida"
-                inputMode="numeric"
-                value={cpf}
-                onChange={(e) => setCpf(maskCpf(e.target.value))}
-                placeholder="000.000.000-00"
-                className="flex-1 rounded-xl border border-border bg-background px-4 py-3 outline-none focus:border-primary"
-              />
-              <button
-                onClick={verificarCpf}
-                disabled={verificando}
-                className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-display font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
-              >
-                {verificando && <Loader2 className="w-4 h-4 animate-spin" />}
-                Verificar CPF
-              </button>
-            </div>
-
-            {erroCpf && <p className="mt-3 text-sm text-primary">{erroCpf}</p>}
-
-            {naoEncontrado && (
-              <div className="mt-4 rounded-xl bg-muted p-4">
-                <p className="text-sm mb-3">CPF não encontrado na nossa base.</p>
-                <button
-                  onClick={() => irPara("prospect")}
-                  className="text-sm font-semibold text-primary underline underline-offset-4"
-                >
-                  Continuar como visitante →
-                </button>
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-col gap-2 text-sm">
-              <button
-                onClick={() => irPara("prospect")}
-                className="text-left font-semibold text-primary hover:opacity-80"
-              >
-                Não sou aluno →
-              </button>
-              <button
-                onClick={() => irPara("somente_provas")}
-                className="text-left font-semibold text-primary hover:opacity-80"
-              >
-                Quero só me inscrever numa prova →
-              </button>
-            </div>
-          </Card>
         ) : step === "oferta" && oferta ? (
           <div className="space-y-4">
-            <button onClick={voltar} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ArrowLeft className="w-4 h-4" /> Voltar
-            </button>
+
 
             <Card>
               {nome && <p className="text-primary font-semibold mb-1">Olá, {nome}!</p>}
