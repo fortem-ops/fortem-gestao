@@ -172,16 +172,16 @@ const Pill = ({
 /* Componente                                                          */
 /* ------------------------------------------------------------------ */
 
-const CorridaConfigurator = () => {
-  const [step, setStep] = useState<"identificacao" | "oferta" | "resumo">("identificacao");
-  const [rota, setRota] = useState<Rota | null>(null);
-  const [tier, setTier] = useState<Tier | null>(null);
-  const [nome, setNome] = useState<string | null>(null);
+interface Props {
+  rota: Rota | null;
+  tier: Tier | null;
+  nome: string | null;
+  onTrocarRota?: (rota: Rota, tier?: Tier | null, nome?: string | null) => void;
+}
 
-  const [cpf, setCpf] = useState("");
-  const [verificando, setVerificando] = useState(false);
-  const [erroCpf, setErroCpf] = useState<string | null>(null);
-  const [naoEncontrado, setNaoEncontrado] = useState(false);
+const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
+  const [step, setStep] = useState<"oferta" | "resumo">("oferta");
+  const rota: Rota = rotaProp ?? "prospect";
 
   // seleções
   const [periodo, setPeriodo] = useState<"mensal" | "anual">("anual"); // prospect
@@ -191,6 +191,18 @@ const CorridaConfigurator = () => {
   const [avaliacao, setAvaliacao] = useState(false);
   const [provaNome, setProvaNome] = useState<"NB" | "MIPOA">("NB");
   const [provaDistancia, setProvaDistancia] = useState<Distancia>("5K");
+
+  // ao trocar de rota, volta pra oferta e limpa seleções
+  useEffect(() => {
+    setStep("oferta");
+    setKitNivel(null);
+    setMipoa(false);
+    setAvaliacao(false);
+    setDistanciaCortesia("5K");
+    setPeriodo("anual");
+    setProvaNome("NB");
+    setProvaDistancia("5K");
+  }, [rotaProp, tier]);
 
   const { data: planos = [], isLoading: loadingPlanos } = useQuery({
     queryKey: ["corrida-planos-catalogo"],
@@ -218,51 +230,6 @@ const CorridaConfigurator = () => {
   const plano = (nomePlano: string, meses: number) =>
     planos.find((p) => p.nome === nomePlano && p.periodo_meses === meses);
 
-  const resetSelecoes = () => {
-    setKitNivel(null);
-    setMipoa(false);
-    setAvaliacao(false);
-    setDistanciaCortesia("5K");
-    setPeriodo("anual");
-    setProvaNome("NB");
-    setProvaDistancia("5K");
-  };
-
-  const irPara = (r: Rota, t: Tier | null = null, n: string | null = null) => {
-    resetSelecoes();
-    setRota(r);
-    setTier(t);
-    setNome(n);
-    setStep("oferta");
-  };
-
-  /* --------------------------- Etapa 1 --------------------------- */
-
-  const verificarCpf = async () => {
-    setErroCpf(null);
-    setNaoEncontrado(false);
-    const digits = cpf.replace(/\D/g, "");
-    if (digits.length !== 11) {
-      setErroCpf("Informe um CPF válido com 11 dígitos.");
-      return;
-    }
-    setVerificando(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("corrida-lookup-cpf", {
-        body: { cpf: digits },
-      });
-      if (error) throw error;
-      if (data?.found) {
-        irPara(data.rota === "aluno" ? "aluno" : "somente_corrida", data.tier ?? null, data.primeiro_nome ?? null);
-      } else {
-        setNaoEncontrado(true);
-      }
-    } catch {
-      setErroCpf("Não conseguimos verificar seu CPF agora. Tente novamente em alguns minutos.");
-    } finally {
-      setVerificando(false);
-    }
-  };
 
   /* --------------------------- Dados da oferta --------------------------- */
 
