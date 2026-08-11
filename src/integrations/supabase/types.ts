@@ -2648,6 +2648,60 @@ export type Database = {
           },
         ]
       }
+      corrida_campanha_itens: {
+        Row: {
+          ativo: boolean
+          condicao: string | null
+          created_at: string
+          descricao: string | null
+          distancia: string | null
+          id: string
+          isento: boolean
+          nivel: string | null
+          prova_nome: string | null
+          rota: string | null
+          tier: string | null
+          tipo: string
+          updated_at: string
+          valido_ate: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          condicao?: string | null
+          created_at?: string
+          descricao?: string | null
+          distancia?: string | null
+          id?: string
+          isento?: boolean
+          nivel?: string | null
+          prova_nome?: string | null
+          rota?: string | null
+          tier?: string | null
+          tipo: string
+          updated_at?: string
+          valido_ate?: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          condicao?: string | null
+          created_at?: string
+          descricao?: string | null
+          distancia?: string | null
+          id?: string
+          isento?: boolean
+          nivel?: string | null
+          prova_nome?: string | null
+          rota?: string | null
+          tier?: string | null
+          tipo?: string
+          updated_at?: string
+          valido_ate?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       creditos_aluno: {
         Row: {
           aluno_id: string
