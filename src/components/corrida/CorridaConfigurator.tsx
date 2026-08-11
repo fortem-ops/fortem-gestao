@@ -436,9 +436,20 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
                       </p>
                     </div>
                   )}
+                  <ul className="space-y-2">
+                    {["Inscrição da prova", "Retiramos seu kit da prova", "Acesso à estrutura da Fortem no dia da prova"].map(
+                      (b) => (
+                        <li key={b} className="flex items-start gap-2 text-sm">
+                          <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                          <span>{b}</span>
+                        </li>
+                      ),
+                    )}
+                  </ul>
                   <p className="text-sm text-muted-foreground">
                     Pagamento via Pix ou crédito à vista — sem parcelamento.
                   </p>
+
                 </div>
               ) : (
                 <div>
