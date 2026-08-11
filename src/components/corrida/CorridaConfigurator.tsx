@@ -53,6 +53,20 @@ const TIER_LABEL: Record<Tier, string> = {
 
 const DISTANCIAS: Distancia[] = ["5K", "10K", "21K", "42K"];
 
+/* Datas oficiais das provas (fixas no componente) */
+const PROVA_LABEL: Record<"NB" | "MIPOA", string> = {
+  NB: "NB 42k 2027",
+  MIPOA: "42ª Maratona Internacional de Porto Alegre 2027",
+};
+
+const PROVA_DATAS: Record<"NB" | "MIPOA", { curtas: string; maratona: string }> = {
+  NB: { curtas: "21 de agosto de 2027", maratona: "22 de agosto de 2027" },
+  MIPOA: { curtas: "5 de junho de 2027", maratona: "6 de junho de 2027" },
+};
+
+const dataProva = (prova: "NB" | "MIPOA", distancia: Distancia) =>
+  distancia === "42K" ? PROVA_DATAS[prova].maratona : PROVA_DATAS[prova].curtas;
+
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
