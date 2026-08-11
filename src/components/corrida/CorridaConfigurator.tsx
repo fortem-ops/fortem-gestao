@@ -523,7 +523,12 @@ const CorridaConfigurator = () => {
                     </div>
                   </div>
                   {oferta.provaItem && (
-                    <p className="font-display text-3xl font-bold">{brl(Number(oferta.provaItem.valor))}</p>
+                    <div className="flex items-end gap-3 flex-wrap">
+                      <p className="font-display text-3xl font-bold">{brl(Number(oferta.provaItem.valor))}</p>
+                      <p className="text-sm text-muted-foreground pb-1">
+                        {PROVA_LABEL[provaNome]} · {dataProva(provaNome, provaDistancia)}
+                      </p>
+                    </div>
                   )}
                   <p className="text-sm text-muted-foreground">
                     Pagamento via Pix ou crédito à vista — sem parcelamento.
