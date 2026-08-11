@@ -1,4 +1,5 @@
 import HeroSection from "@/components/corrida/HeroSection";
+import NbCortesiaBanner from "@/components/corrida/NbCortesiaBanner";
 import CorridaConfigurator from "@/components/corrida/CorridaConfigurator";
 import HowItWorksSection from "@/components/corrida/HowItWorksSection";
 import TrainingLocationsSection from "@/components/corrida/TrainingLocationsSection";
