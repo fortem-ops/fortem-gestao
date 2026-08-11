@@ -370,9 +370,44 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
     }
   };
 
+  const prospectAnual = planos.find(
+    (p) => p.nome === "Corrida - Prospect" && p.periodo_meses === 12,
+  );
+  const prospectMensal = planos.find(
+    (p) => p.nome === "Corrida - Prospect" && p.periodo_meses === 1,
+  );
+
   return (
     <section id="configurador" className="py-20 md:py-28 bg-secondary/60">
       <div className="container mx-auto px-6 max-w-3xl">
+        {/* Faixa de preços (sempre visível) */}
+        <div className="grid sm:grid-cols-2 gap-4 mb-10">
+          <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5">
+            <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">Anual</p>
+            <p className="mt-2 font-display text-3xl font-bold">
+              {prospectAnual ? `a partir de ${brl(Number(prospectAnual.valor) / 12)}` : "—"}
+              <span className="text-base font-normal text-muted-foreground">/mês</span>
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">parcelável em até 10x</p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold">
+              Mensal
+            </p>
+            <p className="mt-2 font-display text-3xl font-bold">
+              {prospectMensal ? brl(Number(prospectMensal.valor)) : "—"}
+              <span className="text-base font-normal text-muted-foreground">/mês</span>
+            </p>
+          </div>
+        </div>
+
+        {!rotaProp ? (
+          <p className="text-center text-muted-foreground">
+            Escolha um dos caminhos acima — informe seu CPF, veja o preço de novo corredor ou
+            inscreva-se só numa prova — para montar a sua oferta.
+          </p>
+        ) : (
+        <>
         <div className="text-center mb-10">
           <p className="text-primary font-display font-semibold tracking-[0.25em] uppercase text-xs mb-3">
             Monte sua oferta
