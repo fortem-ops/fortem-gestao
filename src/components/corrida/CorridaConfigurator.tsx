@@ -630,7 +630,7 @@ const CorridaConfigurator = () => {
                   active={mipoa}
                   onClick={() => setMipoa((v) => !v)}
                   title="+MIPOA 2027"
-                  subtitle={oferta.mipoaItem.descricao ?? undefined}
+                  subtitle={`${oferta.mipoaItem.descricao ?? "42ª Maratona Internacional de Porto Alegre"} · 5 e 6 de junho de 2027`}
                   price={brl(Number(oferta.mipoaItem.valor))}
                 />
               )}
