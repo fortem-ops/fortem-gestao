@@ -17,14 +17,8 @@ const FinalCtaSection = ({ onCtaClick }: { onCtaClick: () => void }) => (
           whileTap={{ scale: 0.98 }}
           className="bg-primary text-primary-foreground px-10 py-4 rounded-full font-display font-semibold text-lg glow-red"
         >
-          Confirmar minha inscrição
+          Montar meu plano de corrida
         </motion.button>
-        <div className="flex justify-center gap-8 mt-12 text-accent-foreground/40 text-sm">
-          <span>1. Revisar plano</span>
-          <span>2. Inserir dados</span>
-          <span>3. Pagamento</span>
-          <span>4. Confirmação</span>
-        </div>
       </ScrollReveal>
     </div>
   </section>
