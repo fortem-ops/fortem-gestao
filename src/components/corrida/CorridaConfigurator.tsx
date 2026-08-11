@@ -53,6 +53,20 @@ const TIER_LABEL: Record<Tier, string> = {
 
 const DISTANCIAS: Distancia[] = ["5K", "10K", "21K", "42K"];
 
+/* Datas oficiais das provas (fixas no componente) */
+const PROVA_LABEL: Record<"NB" | "MIPOA", string> = {
+  NB: "NB 42k 2027",
+  MIPOA: "42ª Maratona Internacional de Porto Alegre 2027",
+};
+
+const PROVA_DATAS: Record<"NB" | "MIPOA", { curtas: string; maratona: string }> = {
+  NB: { curtas: "21 de agosto de 2027", maratona: "22 de agosto de 2027" },
+  MIPOA: { curtas: "5 de junho de 2027", maratona: "6 de junho de 2027" },
+};
+
+const dataProva = (prova: "NB" | "MIPOA", distancia: Distancia) =>
+  distancia === "42K" ? PROVA_DATAS[prova].maratona : PROVA_DATAS[prova].curtas;
+
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -315,7 +329,7 @@ const CorridaConfigurator = () => {
     if (rota === "somente_provas") {
       if (oferta.provaItem) {
         linhas.push({
-          label: `${oferta.provaItem.prova_nome === "NB" ? "Circuito New Balance" : "MIPOA"} — ${provaDistancia}`,
+          label: `${PROVA_LABEL[oferta.provaItem.prova_nome === "NB" ? "NB" : "MIPOA"]} — ${provaDistancia} · ${dataProva(oferta.provaItem.prova_nome === "NB" ? "NB" : "MIPOA", provaDistancia)}`,
           valor: Number(oferta.provaItem.valor),
         });
         hoje += Number(oferta.provaItem.valor);
@@ -340,7 +354,7 @@ const CorridaConfigurator = () => {
       const cortesiaAtiva = oferta.cortesia && (rota !== "prospect" || periodo === "anual");
       if (cortesiaAtiva) {
         linhas.push({
-          label: `Cortesia: ${oferta.cortesia!.descricao} — ${distanciaCortesia}`,
+          label: `Cortesia: ${oferta.cortesia!.descricao} — ${distanciaCortesia} · ${dataProva("NB", distanciaCortesia)}`,
           valor: 0,
         });
       }
@@ -354,7 +368,10 @@ const CorridaConfigurator = () => {
       }
     }
     if (mipoa && oferta.mipoaItem) {
-      linhas.push({ label: `+MIPOA 2027 — ${oferta.mipoaItem.descricao}`, valor: Number(oferta.mipoaItem.valor) });
+      linhas.push({
+        label: `+MIPOA 2027 — ${oferta.mipoaItem.descricao} · 5 e 6 de junho de 2027`,
+        valor: Number(oferta.mipoaItem.valor),
+      });
       hoje += Number(oferta.mipoaItem.valor);
     }
     if (avaliacao && oferta.aval) {
@@ -488,7 +505,7 @@ const CorridaConfigurator = () => {
                     <p className="text-sm font-semibold mb-2">Prova</p>
                     <div className="flex gap-2">
                       <Pill active={provaNome === "NB"} onClick={() => setProvaNome("NB")}>
-                        Circuito New Balance
+                        NB 42k 2027
                       </Pill>
                       <Pill active={provaNome === "MIPOA"} onClick={() => setProvaNome("MIPOA")}>
                         MIPOA
@@ -506,7 +523,12 @@ const CorridaConfigurator = () => {
                     </div>
                   </div>
                   {oferta.provaItem && (
-                    <p className="font-display text-3xl font-bold">{brl(Number(oferta.provaItem.valor))}</p>
+                    <div className="flex items-end gap-3 flex-wrap">
+                      <p className="font-display text-3xl font-bold">{brl(Number(oferta.provaItem.valor))}</p>
+                      <p className="text-sm text-muted-foreground pb-1">
+                        {PROVA_LABEL[provaNome]} · {dataProva(provaNome, provaDistancia)}
+                      </p>
+                    </div>
                   )}
                   <p className="text-sm text-muted-foreground">
                     Pagamento via Pix ou crédito à vista — sem parcelamento.
@@ -548,7 +570,7 @@ const CorridaConfigurator = () => {
                   {/* Cortesia NB */}
                   {rota === "prospect" && periodo === "mensal" ? (
                     <p className="mt-5 text-sm text-muted-foreground rounded-xl bg-muted p-4">
-                      A cortesia de inscrição + kit do Circuito New Balance é exclusiva do plano Anual.
+                      A cortesia de inscrição + kit da NB 42k 2027 é exclusiva do plano Anual.
                     </p>
                   ) : (
                     oferta.cortesia && (
@@ -557,12 +579,15 @@ const CorridaConfigurator = () => {
                           <Gift className="w-4 h-4 text-primary" /> Cortesia inclusa: {oferta.cortesia.descricao}
                         </p>
                         <p className="text-sm text-muted-foreground mt-2 mb-2">Escolha sua distância:</p>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {DISTANCIAS.map((d) => (
                             <Pill key={d} active={distanciaCortesia === d} onClick={() => setDistanciaCortesia(d)}>
                               {d}
                             </Pill>
                           ))}
+                          <span className="text-sm text-muted-foreground ml-1">
+                            NB 42k 2027 · {dataProva("NB", distanciaCortesia)}
+                          </span>
                         </div>
                       </div>
                     )
@@ -605,7 +630,7 @@ const CorridaConfigurator = () => {
                   active={mipoa}
                   onClick={() => setMipoa((v) => !v)}
                   title="+MIPOA 2027"
-                  subtitle={oferta.mipoaItem.descricao ?? undefined}
+                  subtitle={`${oferta.mipoaItem.descricao ?? "42ª Maratona Internacional de Porto Alegre"} · 5 e 6 de junho de 2027`}
                   price={brl(Number(oferta.mipoaItem.valor))}
                 />
               )}

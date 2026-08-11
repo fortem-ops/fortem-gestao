@@ -1,4 +1,5 @@
 import HeroSection from "@/components/corrida/HeroSection";
+import NbCortesiaBanner from "@/components/corrida/NbCortesiaBanner";
 import CorridaConfigurator from "@/components/corrida/CorridaConfigurator";
 import HowItWorksSection from "@/components/corrida/HowItWorksSection";
 import TrainingLocationsSection from "@/components/corrida/TrainingLocationsSection";
@@ -23,6 +24,7 @@ const Corrida = () => {
   return (
     <div className="corrida-landing min-h-screen font-display">
       <HeroSection onCtaClick={scrollToConfigurator} />
+      <NbCortesiaBanner onCtaClick={scrollToConfigurator} />
       <CorridaConfigurator />
       <HowItWorksSection />
       <TrainingLocationsSection />
