@@ -78,6 +78,8 @@ const Toggle = ({
   title,
   subtitle,
   price,
+  priceNode,
+  leading,
   disabled,
 }: {
   active: boolean;
@@ -85,6 +87,8 @@ const Toggle = ({
   title: string;
   subtitle?: string;
   price?: string;
+  priceNode?: React.ReactNode;
+  leading?: React.ReactNode;
   disabled?: boolean;
 }) => (
   <button
@@ -102,13 +106,31 @@ const Toggle = ({
     >
       {active && <Check className="w-3.5 h-3.5" />}
     </span>
+    {leading}
     <span className="flex-1">
       <span className="block font-semibold">{title}</span>
       {subtitle && <span className="block text-sm text-muted-foreground">{subtitle}</span>}
     </span>
-    {price && <span className="font-display font-bold whitespace-nowrap">{price}</span>}
+    {priceNode
+      ? priceNode
+      : price && <span className="font-display font-bold whitespace-nowrap">{price}</span>}
   </button>
 );
+
+const KitThumb = ({ url }: { url?: string | null }) =>
+  url ? (
+    <img
+      src={url}
+      alt=""
+      className="shrink-0 w-14 h-14 rounded-lg object-cover border border-border"
+      loading="lazy"
+    />
+  ) : (
+    <span className="shrink-0 w-14 h-14 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground">
+      <Shirt className="w-6 h-6" />
+    </span>
+  );
+
 
 const Pill = ({
   active,
