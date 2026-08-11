@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Check, ArrowLeft, Gift } from "lucide-react";
+import { Loader2, Check, ArrowLeft, Gift, Shirt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 /* ------------------------------------------------------------------ */
