@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
 import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import nbLogo from "@/assets/new-balance.png";
 
 type Rota = "aluno" | "somente_corrida" | "prospect" | "somente_provas";
 type Tier = "start" | "start_plus" | "power" | "pro" | "max";
 
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const maskCpf = (v: string) =>
   v
@@ -39,21 +38,8 @@ const NbCortesiaBanner = ({
   const [erroCpf, setErroCpf] = useState<string | null>(null);
   const [naoEncontrado, setNaoEncontrado] = useState(false);
 
-  const { data: planos = [] } = useQuery({
-    queryKey: ["corrida-planos-prospect"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("planos_catalogo")
-        .select("nome, periodo_meses, valor")
-        .eq("atividade", "corrida")
-        .eq("nome", "Corrida - Prospect");
-      if (error) throw error;
-      return (data ?? []) as { nome: string; periodo_meses: number; valor: number }[];
-    },
-  });
+  /* preços agora ficam na faixa branca (CorridaConfigurator) */
 
-  const anual = planos.find((p) => p.periodo_meses === 12);
-  const mensal = planos.find((p) => p.periodo_meses === 1);
 
   const verificarCpf = async () => {
     setErroCpf(null);
@@ -102,7 +88,14 @@ const NbCortesiaBanner = ({
           transition={{ duration: 0.6 }}
           className="text-center"
         >
-          <div className="flex items-center justify-center gap-3 md:gap-5 mb-6 flex-wrap">
+          <div className="flex items-center justify-center gap-4 md:gap-6 mb-6 flex-wrap">
+            <img
+              src={nbLogo}
+              alt="New Balance"
+              className="h-10 md:h-14 w-auto"
+              loading="lazy"
+            />
+            <span className="hidden sm:block h-8 w-px bg-accent-foreground/25" />
             <span className="font-display font-bold uppercase tracking-[0.25em] text-accent-foreground text-xl md:text-3xl">
               Porto Alegre
             </span>
@@ -117,32 +110,20 @@ const NbCortesiaBanner = ({
           <p className="mt-6 text-lg md:text-2xl text-accent-foreground/80 font-light">
             Garanta sua vaga até 20/08.
           </p>
+
+          <div className="mt-6 flex items-center justify-center gap-3 opacity-80">
+            <span className="text-[10px] uppercase tracking-[0.3em] text-accent-foreground/60">
+              Prova oficial
+            </span>
+            <img src={nbLogo} alt="" className="h-6 md:h-7 w-auto" loading="lazy" />
+          </div>
         </motion.div>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-2 max-w-5xl mx-auto items-start">
-          {/* Preços + benefícios */}
+          {/* Benefícios */}
           <div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-primary/40 bg-primary/10 p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">Anual</p>
-                <p className="mt-2 font-display text-3xl font-bold text-accent-foreground">
-                  {anual ? `a partir de ${brl(Number(anual.valor) / 12)}` : "—"}
-                  <span className="text-base font-normal text-accent-foreground/70">/mês</span>
-                </p>
-                <p className="mt-1 text-sm text-accent-foreground/70">parcelável em até 10x</p>
-              </div>
-              <div className="rounded-2xl border border-accent-foreground/20 p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-accent-foreground/60 font-semibold">
-                  Mensal
-                </p>
-                <p className="mt-2 font-display text-3xl font-bold text-accent-foreground">
-                  {mensal ? brl(Number(mensal.valor)) : "—"}
-                  <span className="text-base font-normal text-accent-foreground/70">/mês</span>
-                </p>
-              </div>
-            </div>
+            <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
 
-            <ul className="mt-6 grid sm:grid-cols-2 gap-x-6 gap-y-3">
               {BENEFICIOS.map((b) => (
                 <li key={b} className="flex items-start gap-2 text-accent-foreground/90">
                   <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
