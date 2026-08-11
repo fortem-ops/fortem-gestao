@@ -368,7 +368,10 @@ const CorridaConfigurator = () => {
       }
     }
     if (mipoa && oferta.mipoaItem) {
-      linhas.push({ label: `+MIPOA 2027 — ${oferta.mipoaItem.descricao}`, valor: Number(oferta.mipoaItem.valor) });
+      linhas.push({
+        label: `+MIPOA 2027 — ${oferta.mipoaItem.descricao} · 5 e 6 de junho de 2027`,
+        valor: Number(oferta.mipoaItem.valor),
+      });
       hoje += Number(oferta.mipoaItem.valor);
     }
     if (avaliacao && oferta.aval) {
