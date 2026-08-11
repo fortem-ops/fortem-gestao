@@ -39,21 +39,8 @@ const NbCortesiaBanner = ({
   const [erroCpf, setErroCpf] = useState<string | null>(null);
   const [naoEncontrado, setNaoEncontrado] = useState(false);
 
-  const { data: planos = [] } = useQuery({
-    queryKey: ["corrida-planos-prospect"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("planos_catalogo")
-        .select("nome, periodo_meses, valor")
-        .eq("atividade", "corrida")
-        .eq("nome", "Corrida - Prospect");
-      if (error) throw error;
-      return (data ?? []) as { nome: string; periodo_meses: number; valor: number }[];
-    },
-  });
+  /* preços agora ficam na faixa branca (CorridaConfigurator) */
 
-  const anual = planos.find((p) => p.periodo_meses === 12);
-  const mensal = planos.find((p) => p.periodo_meses === 1);
 
   const verificarCpf = async () => {
     setErroCpf(null);
