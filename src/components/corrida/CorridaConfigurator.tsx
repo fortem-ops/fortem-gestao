@@ -507,7 +507,6 @@ const CorridaConfigurator = () => {
                       <Pill active={provaNome === "NB"} onClick={() => setProvaNome("NB")}>
                         NB 42k 2027
                       </Pill>
-                      </Pill>
                       <Pill active={provaNome === "MIPOA"} onClick={() => setProvaNome("MIPOA")}>
                         MIPOA
                       </Pill>
