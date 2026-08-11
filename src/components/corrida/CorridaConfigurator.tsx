@@ -505,7 +505,8 @@ const CorridaConfigurator = () => {
                     <p className="text-sm font-semibold mb-2">Prova</p>
                     <div className="flex gap-2">
                       <Pill active={provaNome === "NB"} onClick={() => setProvaNome("NB")}>
-                        Circuito New Balance
+                        NB 42k 2027
+                      </Pill>
                       </Pill>
                       <Pill active={provaNome === "MIPOA"} onClick={() => setProvaNome("MIPOA")}>
                         MIPOA
