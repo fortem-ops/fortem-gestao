@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import nbLogo from "@/assets/new-balance.png.asset.json";
+import nbLogo from "@/assets/new-balance.png";
 
 type Rota = "aluno" | "somente_corrida" | "prospect" | "somente_provas";
 type Tier = "start" | "start_plus" | "power" | "pro" | "max";
@@ -90,7 +90,7 @@ const NbCortesiaBanner = ({
         >
           <div className="flex items-center justify-center gap-4 md:gap-6 mb-6 flex-wrap">
             <img
-              src={nbLogo.url}
+              src={nbLogo}
               alt="New Balance"
               className="h-10 md:h-14 w-auto"
               loading="lazy"
@@ -115,7 +115,7 @@ const NbCortesiaBanner = ({
             <span className="text-[10px] uppercase tracking-[0.3em] text-accent-foreground/60">
               Prova oficial
             </span>
-            <img src={nbLogo.url} alt="" className="h-6 md:h-7 w-auto" loading="lazy" />
+            <img src={nbLogo} alt="" className="h-6 md:h-7 w-auto" loading="lazy" />
           </div>
         </motion.div>
 
