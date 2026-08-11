@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.rede-salvar-cartao]
 verify_jwt = false
+
+[functions.corrida-lookup-cpf]
+verify_jwt = false
