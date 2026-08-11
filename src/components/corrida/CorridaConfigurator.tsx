@@ -577,23 +577,28 @@ const CorridaConfigurator = () => {
                 {rota === "somente_provas" ? "Adicione ao seu pedido" : "Turbine seu plano"}
               </h4>
 
-              <p className="text-sm font-semibold mb-2">
-                Kit Fortem{" "}
-                {oferta.kits[0]?.isento && (
-                  <span className="text-primary">— grátis, escolha o seu</span>
-                )}
-              </p>
-              <div className="space-y-2 mb-5">
-                {oferta.kits.map((k) => (
-                  <Toggle
-                    key={k.id}
-                    active={kitNivel === k.nivel}
-                    onClick={() => setKitNivel(kitNivel === k.nivel ? null : k.nivel)}
-                    title={k.descricao ?? k.nivel ?? "Kit"}
-                    price={k.isento ? "Grátis" : brl(Number(k.valor))}
-                  />
-                ))}
-              </div>
+              {oferta.kits.length > 0 && (
+                <>
+                  <p className="text-sm font-semibold mb-2">
+                    Kit Fortem{" "}
+                    {oferta.kits[0]?.isento && (
+                      <span className="text-primary">— grátis, escolha o seu</span>
+                    )}
+                  </p>
+                  <div className="space-y-2 mb-5">
+                    {oferta.kits.map((k) => (
+                      <Toggle
+                        key={k.id}
+                        active={kitNivel === k.nivel}
+                        onClick={() => setKitNivel(kitNivel === k.nivel ? null : k.nivel)}
+                        title={k.descricao ?? k.nivel ?? "Kit"}
+                        leading={<KitThumb url={k.imagem_url} />}
+                        price={k.isento ? "Grátis" : brl(Number(k.valor))}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
 
               {oferta.mipoaItem && (
                 <Toggle
@@ -616,7 +621,22 @@ const CorridaConfigurator = () => {
                         ? "Leve o resultado para o seu treinador."
                         : oferta.aval.descricao ?? undefined
                     }
-                    price={brl(Number(oferta.aval.valor))}
+                    priceNode={
+                      Number(oferta.aval.valor) < AVAL_VALOR_CHEIO ? (
+                        <span className="text-right whitespace-nowrap">
+                          <span className="block text-xs text-muted-foreground line-through">
+                            De {brl(AVAL_VALOR_CHEIO)}
+                          </span>
+                          <span className="block font-display font-bold">
+                            por {brl(Number(oferta.aval.valor))}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="font-display font-bold whitespace-nowrap">
+                          {brl(Number(oferta.aval.valor))}
+                        </span>
+                      )
+                    }
                   />
                 </div>
               )}
