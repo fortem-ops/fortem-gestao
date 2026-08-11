@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
 import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import nbLogo from "@/assets/new-balance.png.asset.json";
@@ -8,7 +7,6 @@ import nbLogo from "@/assets/new-balance.png.asset.json";
 type Rota = "aluno" | "somente_corrida" | "prospect" | "somente_provas";
 type Tier = "start" | "start_plus" | "power" | "pro" | "max";
 
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const maskCpf = (v: string) =>
   v
