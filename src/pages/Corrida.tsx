@@ -1,4 +1,5 @@
 import HeroSection from "@/components/corrida/HeroSection";
+import CorridaConfigurator from "@/components/corrida/CorridaConfigurator";
 import HowItWorksSection from "@/components/corrida/HowItWorksSection";
 import TrainingLocationsSection from "@/components/corrida/TrainingLocationsSection";
 import DifferentialsSection from "@/components/corrida/DifferentialsSection";
@@ -16,12 +17,13 @@ import WhatsAppButton from "@/components/corrida/WhatsAppButton";
  * Etapa atual: apenas visual. O configurador de plano será conectado depois.
  */
 const Corrida = () => {
-  // Placeholder: por enquanto o CTA apenas rola a página para o topo.
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const scrollToConfigurator = () =>
+    document.getElementById("configurador")?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <div className="corrida-landing min-h-screen font-display">
-      <HeroSection onCtaClick={scrollToTop} />
+      <HeroSection onCtaClick={scrollToConfigurator} />
+      <CorridaConfigurator />
       <HowItWorksSection />
       <TrainingLocationsSection />
       <DifferentialsSection />
@@ -30,7 +32,7 @@ const Corrida = () => {
       <TestimonialsSection />
       <VideoTestimonialsSection />
       <SocialProofSection />
-      <FinalCtaSection onCtaClick={scrollToTop} />
+      <FinalCtaSection onCtaClick={scrollToConfigurator} />
       <WhatsAppButton />
     </div>
   );
