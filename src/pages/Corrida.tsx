@@ -24,6 +24,7 @@ const Corrida = () => {
   return (
     <div className="corrida-landing min-h-screen font-display">
       <HeroSection onCtaClick={scrollToConfigurator} />
+      <NbCortesiaBanner onCtaClick={scrollToConfigurator} />
       <CorridaConfigurator />
       <HowItWorksSection />
       <TrainingLocationsSection />
