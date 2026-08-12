@@ -141,6 +141,29 @@ serve(async (req) => {
   const cryptoReturnCode = cryptoResp?.returnCode ?? null;
   const tokenCryptogram = cryptoResp?.cryptogramInfo?.tokenCryptogram ?? null;
   if (cryptoStatus < 200 || cryptoStatus >= 300 || cryptoReturnCode !== "00" || !tokenCryptogram) {
+    console.error(
+      "[rede-cobrar-token] criptograma falhou — http:", cryptoStatus,
+      "returnCode:", cryptoReturnCode,
+      "returnMessage:", cryptoResp?.returnMessage ?? null,
+    );
+    try {
+      await supabase.from("system_logs").insert({
+        modulo: "rede-cobrar-token",
+        acao: "criptograma_falhou",
+        mensagem: `Falha ao gerar criptograma (tokenizationId ${tokenizacao.tokenization_id}) — HTTP ${cryptoStatus} / returnCode ${cryptoReturnCode ?? "—"}`,
+        payload: {
+          tokenization_id: tokenizacao.tokenization_id,
+          venda_id,
+          cartao_id,
+          return_code: cryptoReturnCode,
+          return_message: cryptoResp?.returnMessage ?? null,
+          http_status: cryptoStatus,
+          raw_response: cryptoResp,
+        },
+      });
+    } catch (e) {
+      console.error("[rede-cobrar-token] falha ao registrar system_logs do criptograma:", String(e));
+    }
     return new Response(JSON.stringify({
       success: false,
       error: cryptoResp?.returnMessage ?? "Falha ao gerar criptograma de cobrança",
@@ -149,6 +172,7 @@ serve(async (req) => {
       rede_body: cryptoResp,
     }), { status: 502, headers });
   }
+
 
   const payload = {
     capture: true,
