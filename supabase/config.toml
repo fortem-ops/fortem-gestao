@@ -12,3 +12,6 @@ verify_jwt = false
 [functions.corrida-registrar-inscricao]
 verify_jwt = false
 
+[functions.corrida-criar-pedido]
+verify_jwt = true
+

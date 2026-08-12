@@ -7957,6 +7957,10 @@ export type Database = {
       }
       fn_reveal_profile_cpf: { Args: { p_user_id: string }; Returns: string }
       fn_sanitize_rede_response: { Args: { p_raw: Json }; Returns: Json }
+      fn_service_set_cpf: {
+        Args: { p_aluno_id: string; p_cpf: string }
+        Returns: undefined
+      }
       fn_staff_excluir_treino_agendamento: {
         Args: { p_agendamento_id: string; p_estornar?: boolean }
         Returns: Json
