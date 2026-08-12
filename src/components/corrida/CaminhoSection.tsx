@@ -19,7 +19,12 @@ const maskCpf = (v: string) =>
 const CaminhoSection = ({
   onSelect,
 }: {
-  onSelect: (rota: Rota, tier?: Tier | null, nome?: string | null) => void;
+  onSelect: (
+    rota: Rota,
+    tier?: Tier | null,
+    nome?: string | null,
+    prefill?: { email?: string | null; telefone?: string | null; cpfDigits?: string | null },
+  ) => void;
 }) => {
   const [abrirCpf, setAbrirCpf] = useState(false);
   const [cpf, setCpf] = useState("");
