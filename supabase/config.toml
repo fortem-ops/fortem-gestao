@@ -8,3 +8,7 @@ verify_jwt = false
 
 [functions.corrida-lookup-cpf]
 verify_jwt = false
+
+[functions.corrida-registrar-inscricao]
+verify_jwt = false
+

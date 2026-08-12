@@ -2705,6 +2705,111 @@ export type Database = {
         }
         Relationships: []
       }
+      corrida_inscricoes_prova: {
+        Row: {
+          aceite_inscricao: boolean
+          aceite_termo_aptidao: boolean | null
+          aluno_id: string | null
+          camiseta_mipoa: string | null
+          camiseta_nb: string | null
+          como_soube: string
+          cpf_encrypted: string
+          cpf_hash: string
+          cpf_ultimos3: string
+          created_at: string
+          data_nascimento: string
+          email: string
+          endereco_completo: string
+          id: string
+          local_nascimento: string
+          marca_tenis: string
+          nome: string
+          participou_mipoa_2026: boolean | null
+          participou_nb_2026: boolean | null
+          pedido_resumo: Json
+          provas: Json
+          ritmo_corrida: string
+          rota: string
+          sobrenome: string
+          status: string
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          aceite_inscricao: boolean
+          aceite_termo_aptidao?: boolean | null
+          aluno_id?: string | null
+          camiseta_mipoa?: string | null
+          camiseta_nb?: string | null
+          como_soube: string
+          cpf_encrypted: string
+          cpf_hash: string
+          cpf_ultimos3: string
+          created_at?: string
+          data_nascimento: string
+          email: string
+          endereco_completo: string
+          id?: string
+          local_nascimento: string
+          marca_tenis: string
+          nome: string
+          participou_mipoa_2026?: boolean | null
+          participou_nb_2026?: boolean | null
+          pedido_resumo: Json
+          provas: Json
+          ritmo_corrida: string
+          rota: string
+          sobrenome: string
+          status?: string
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          aceite_inscricao?: boolean
+          aceite_termo_aptidao?: boolean | null
+          aluno_id?: string | null
+          camiseta_mipoa?: string | null
+          camiseta_nb?: string | null
+          como_soube?: string
+          cpf_encrypted?: string
+          cpf_hash?: string
+          cpf_ultimos3?: string
+          created_at?: string
+          data_nascimento?: string
+          email?: string
+          endereco_completo?: string
+          id?: string
+          local_nascimento?: string
+          marca_tenis?: string
+          nome?: string
+          participou_mipoa_2026?: boolean | null
+          participou_nb_2026?: boolean | null
+          pedido_resumo?: Json
+          provas?: Json
+          ritmo_corrida?: string
+          rota?: string
+          sobrenome?: string
+          status?: string
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrida_inscricoes_prova_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrida_inscricoes_prova_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+        ]
+      }
       creditos_aluno: {
         Row: {
           aluno_id: string
@@ -5586,6 +5691,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_corrida_inscricao: {
+        Row: {
+          contagem: number
+          ip_address: string
+          janela_min: number
+        }
+        Insert: {
+          contagem?: number
+          ip_address: string
+          janela_min: number
+        }
+        Update: {
+          contagem?: number
+          ip_address?: string
+          janela_min?: number
+        }
+        Relationships: []
+      }
       regras_elegibilidade: {
         Row: {
           ativo: boolean
@@ -7529,6 +7652,32 @@ export type Database = {
           _origem_tabela: string
           _profissional: string
           _tipo: Database["public"]["Enums"]["comissao_tipo"]
+        }
+        Returns: string
+      }
+      fn_inserir_inscricao_prova: {
+        Args: {
+          p_aceite_inscricao: boolean
+          p_aceite_termo_aptidao: boolean
+          p_aluno_id: string
+          p_camiseta_mipoa: string
+          p_camiseta_nb: string
+          p_como_soube: string
+          p_cpf: string
+          p_data_nascimento: string
+          p_email: string
+          p_endereco_completo: string
+          p_local_nascimento: string
+          p_marca_tenis: string
+          p_nome: string
+          p_participou_mipoa_2026: boolean
+          p_participou_nb_2026: boolean
+          p_pedido_resumo: Json
+          p_provas: Json
+          p_ritmo_corrida: string
+          p_rota: string
+          p_sobrenome: string
+          p_telefone: string
         }
         Returns: string
       }
