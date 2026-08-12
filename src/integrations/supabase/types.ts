@@ -5709,6 +5709,82 @@ export type Database = {
         }
         Relationships: []
       }
+      rede_tokenizacoes: {
+        Row: {
+          aluno_id: string
+          bin: string | null
+          brand_name: string | null
+          brand_tid: string | null
+          cartao_salvo_id: string | null
+          created_at: string
+          id: string
+          last4: string | null
+          origem: string
+          raw_response: Json | null
+          status: string
+          token_code: string | null
+          token_expiration: string | null
+          tokenization_id: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          bin?: string | null
+          brand_name?: string | null
+          brand_tid?: string | null
+          cartao_salvo_id?: string | null
+          created_at?: string
+          id?: string
+          last4?: string | null
+          origem?: string
+          raw_response?: Json | null
+          status?: string
+          token_code?: string | null
+          token_expiration?: string | null
+          tokenization_id: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          bin?: string | null
+          brand_name?: string | null
+          brand_tid?: string | null
+          cartao_salvo_id?: string | null
+          created_at?: string
+          id?: string
+          last4?: string | null
+          origem?: string
+          raw_response?: Json | null
+          status?: string
+          token_code?: string | null
+          token_expiration?: string | null
+          tokenization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rede_tokenizacoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rede_tokenizacoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "rede_tokenizacoes_cartao_salvo_id_fkey"
+            columns: ["cartao_salvo_id"]
+            isOneToOne: false
+            referencedRelation: "cartoes_salvos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regras_elegibilidade: {
         Row: {
           ativo: boolean
