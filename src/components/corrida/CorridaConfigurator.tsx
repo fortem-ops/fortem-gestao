@@ -74,6 +74,14 @@ const dataProva = (prova: ProvaKey, distancia: Distancia) =>
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/* Nome do plano exibido ao cliente (esconde nomenclatura interna) */
+const PLANO_NOME_EXIBICAO: Record<string, string> = {
+  "Corrida - Prospect": "Assessoria de Corrida Fortem",
+  "Corrida - Sem Plano": "Corrida Fortem (sem plano de treino)",
+};
+
+const nomePlanoExibicao = (nome: string) => PLANO_NOME_EXIBICAO[nome] ?? nome;
+
 /* ------------------------------------------------------------------ */
 /* UI helpers                                                          */
 /* ------------------------------------------------------------------ */
@@ -337,15 +345,16 @@ const CorridaConfigurator = () => {
       const anual = rota !== "prospect" || periodo === "anual";
       const p = anual ? oferta.planoAnual : oferta.planoMensal;
       if (p) {
+        const nomeExib = nomePlanoExibicao(p.nome);
         if (anual) {
           linhas.push({
-            label: `${p.nome} — Plano Anual`,
+            label: `${nomeExib} — ${brl(Number(p.valor) / 12)}/mês (Plano Anual)`,
             valor: Number(p.valor),
-            nota: `equivale a ${brl(Number(p.valor) / 12)}/mês · parcelável em até ${parcelas}x`,
+            nota: `${brl(Number(p.valor))} em até ${parcelas}x`,
           });
           hoje += Number(p.valor);
         } else {
-          linhas.push({ label: `${p.nome} — Mensal`, valor: Number(p.valor), nota: "recorrência mensal no cartão" });
+          linhas.push({ label: `${nomeExib} — Mensal`, valor: Number(p.valor), nota: "recorrência mensal no cartão" });
           hoje += Number(p.valor);
           recorrente = Number(p.valor);
         }
@@ -508,23 +517,19 @@ const CorridaConfigurator = () => {
         ) : (
           <div>
             <div className="flex items-end gap-3 flex-wrap">
-              <span className="font-display text-4xl font-bold">{brl(Number(p.valor))}</span>
-              {anual ? (
-                <>
-                  <span className="text-muted-foreground">no plano anual</span>
-                  {oferta.planoMensal && (
-                    <span className="text-muted-foreground line-through">
-                      {brl(Number(oferta.planoMensal.valor))}/mês
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span className="text-muted-foreground">/mês</span>
+              <span className="font-display text-4xl font-bold">
+                {brl(anual ? Number(p.valor) / 12 : Number(p.valor))}
+              </span>
+              <span className="text-muted-foreground">/mês</span>
+              {anual && oferta.planoMensal && (
+                <span className="text-muted-foreground line-through">
+                  {brl(Number(oferta.planoMensal.valor))}/mês
+                </span>
               )}
             </div>
             {anual && (
               <p className="text-sm text-muted-foreground mt-1">
-                equivale a {brl(Number(p.valor) / 12)}/mês · parcelável em até {parcelas}x
+                {brl(Number(p.valor))} no plano anual · em até {parcelas}x
               </p>
             )}
           </div>
@@ -615,32 +620,38 @@ const CorridaConfigurator = () => {
       <Card>
         <h3 className="font-display text-xl font-bold mb-4">Serviços</h3>
         {oferta.aval ? (
-          <Toggle
-            active={avaliacao}
-            onClick={() => setAvaliacao((v) => !v)}
-            title="Avaliação Funcional e de Força"
-            subtitle={
-              rota === "somente_provas"
-                ? "Leve o resultado para o seu treinador."
-                : oferta.aval.descricao ?? undefined
-            }
-            priceNode={
-              Number(oferta.aval.valor) < AVAL_VALOR_CHEIO ? (
-                <span className="text-right whitespace-nowrap">
-                  <span className="block text-xs text-muted-foreground line-through">
-                    De {brl(AVAL_VALOR_CHEIO)}
+          <div className="space-y-2">
+            <Toggle
+              active={avaliacao}
+              onClick={() => setAvaliacao(true)}
+              title="Avaliação Funcional e de Força"
+              subtitle={`Análise de assimetria e risco de lesões. Avaliação quantitativa da mobilidade articular, flexibilidade muscular e níveis de força com dinamômetro.${
+                rota === "somente_provas" ? " Leve o resultado para o seu treinador." : ""
+              }`}
+              priceNode={
+                Number(oferta.aval.valor) < AVAL_VALOR_CHEIO ? (
+                  <span className="text-right whitespace-nowrap">
+                    <span className="block text-xs text-muted-foreground line-through">
+                      De {brl(AVAL_VALOR_CHEIO)}
+                    </span>
+                    <span className="block font-display font-bold">
+                      por {brl(Number(oferta.aval.valor))}
+                    </span>
                   </span>
-                  <span className="block font-display font-bold">
-                    por {brl(Number(oferta.aval.valor))}
+                ) : (
+                  <span className="font-display font-bold whitespace-nowrap">
+                    {brl(Number(oferta.aval.valor))}
                   </span>
-                </span>
-              ) : (
-                <span className="font-display font-bold whitespace-nowrap">
-                  {brl(Number(oferta.aval.valor))}
-                </span>
-              )
-            }
-          />
+                )
+              }
+            />
+            <Toggle
+              active={!avaliacao}
+              onClick={() => setAvaliacao(false)}
+              title="Não adicionar avaliação"
+              subtitle="Seguir sem a avaliação por enquanto."
+            />
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">Nenhum serviço adicional disponível.</p>
         )}

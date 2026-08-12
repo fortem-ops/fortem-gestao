@@ -104,7 +104,7 @@ const CaminhoSection = ({
         <Opcao
           icon={<IdCard className="w-5 h-5" />}
           title="Já sou aluno"
-          subtitle="Identifique-se com o CPF para ver o seu preço."
+          subtitle="Identifique-se com o CPF."
           onClick={() => setAbrirCpf((v) => !v)}
           active={abrirCpf}
         />
