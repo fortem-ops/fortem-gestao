@@ -204,7 +204,22 @@ export default function InscricoesCorrida() {
                     <Field label="Local de nascimento" value={detalhe.local_nascimento} />
                     <Field label="Rota" value={ROTA_LABEL[detalhe.rota] ?? detalhe.rota} />
                     <div className="col-span-2">
-                      <Field label="Endereço" value={detalhe.endereco_completo} />
+                      <Field
+                        label="Endereço"
+                        value={
+                          [
+                            detalhe.logradouro,
+                            detalhe.numero,
+                            detalhe.complemento,
+                            detalhe.bairro,
+                            detalhe.cidade,
+                            detalhe.uf,
+                            detalhe.cep,
+                          ]
+                            .filter(Boolean)
+                            .join(" ") || "—"
+                        }
+                      />
                     </div>
                   </div>
                 </section>
