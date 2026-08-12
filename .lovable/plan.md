@@ -1,32 +1,43 @@
-# Estorno confirmado na Rede, mas não gravado no banco
+# Cadastro de cartão: toast "•••• undefined" e lista que não atualiza
 
-## Logs (últimos 10 min)
+## Diagnóstico (confirmado)
 
-```text
-14:43:26 [rede-cancelar] estornando tid=10472608121128082473 amount=100 (centavos) ambiente=producao
-14:43:26 [rede-auth] obtendo token em: https://api.userede.com.br/redelabs/oauth2/token
-14:43:26 [rede-auth] novo access_token obtido, expira em 1439 segundos
-14:43:27 [rede-cancelar] resposta Rede http=201 returnCode=359 returnMessage=Refund successful.
+**1. Onde o toast é montado**
+
+`src/components/pagamentos/CadastrarCartaoDialog.tsx`, dentro de `CartaoForm.submit()`:
+
+```ts
+if (!data?.success) throw new Error(data?.error ?? "Falha ao salvar cartão");
+toast.success(`Cartão •••• ${data.last4} salvo com sucesso`);
+onSuccess?.();
 ```
 
-## Diagnóstico
+**2. O que `rede-salvar-cartao` retorna hoje**
 
-O estorno **foi aprovado pela Rede**: HTTP 201, `returnCode 359`, `returnMessage "Refund successful."`.
+No fluxo atual (tokenização de bandeira, assíncrono), a resposta de sucesso é (linha 263):
 
-A função só considera sucesso quando `returnCode === "00"`. Para estornos, a Rede devolve **359** (refund) — não 00. Consequências:
+```json
+{ "success": true, "status": "pending", "message": "Cartão em validação, você será notificado em instantes." }
+```
 
-- `estornado = false` → nenhum update em `vendas` nem em `pagamentos_rede`.
-- O banco confirma: `pagamentos_rede.status` continua `approved` (tid `10472608121128082473`, amount 100).
-- O frontend recebeu `success: false` com `return_message: "Refund successful."` e exibiu esse texto no toast — por isso "pareceu sucesso" sendo, na verdade, um erro.
+Não há mais `last4` nem `brand` — daí o `undefined`. O retorno com `last4`/`brand` (linha 451) pertence ao fluxo antigo Zero Dollar, marcado no próprio arquivo como "inalcançável".
 
-Ou seja: o dinheiro foi estornado na Rede, mas o sistema não registrou.
+**3. Refresh da lista**
+
+Existe: `src/components/student/financeiro/CartoesSection.tsx` linha 442 invalida `["cartoes-salvos-aluno", student.id]` no `onSuccess`. O problema é de tempo, não de código: no momento do `onSuccess` a linha em `cartoes_salvos` ainda não existe — ela só é criada pelo webhook `rede-tokenizacao-webhook` quando a Rede responde `tokenizationStatus = "Active"`. Na última tokenização real, o intervalo entre solicitação e criação do cartão foi de ~8 segundos (`rede_tokenizacoes`: created_at 14:27:06 → updated_at 14:27:14). A invalidação dispara em ~1s, encontra a lista vazia, e nada mais reconsulta — por isso só aparece após reload manual.
 
 ## Correção proposta
 
-1. **`supabase/functions/rede-cancelar/index.ts`**
-   - Considerar sucesso quando `returnCode` for `"00"` **ou** `"359"` (e aceitar HTTP 200/201 como faixa válida).
-   - Manter o log atual da resposta da Rede.
-2. **Reconciliar a venda de teste**: marcar `pagamentos_rede.status = 'refunded'` para o tid `10472608121128082473` e `vendas.status_pagamento = 'estornado'` para a venda `1824916f-9dbd-4570-99b1-91b6c8be9588`, já que o estorno realmente ocorreu na Rede.
-3. **Frontend (`HistoricoVendas.tsx`)**: sem alteração necessária — passa a exibir sucesso corretamente assim que a função retornar `success: true`.
+**A. Toast honesto ao estado assíncrono** (`CadastrarCartaoDialog.tsx`)
+- Se `data.status === "pending"`: `toast.success("Cartão enviado para validação — aparecerá na lista em instantes.")`, sem `last4`.
+- Se vier `last4` (fluxo legado), manter a mensagem atual.
 
-Escopo: uma edge function + uma atualização pontual de dados. Sem novos testes de cobrança na Rede.
+**B. Lista que converge sozinha** (`CartoesSection.tsx`)
+- Após o cadastro, entrar em modo "aguardando confirmação": exibir uma linha placeholder ("Validando cartão…") e habilitar `refetchInterval` de ~3s na query `cartoes-salvos-aluno` por até ~60s.
+- Encerrar o polling quando a contagem de cartões aumentar (ou ao esgotar o tempo, com aviso de que a confirmação pode demorar).
+
+Alternativa opcional (não incluída por padrão): realtime na tabela `cartoes_salvos` em vez de polling — mais elegante, porém exige publicação/replica identity configurada.
+
+## Escopo
+
+Apenas os dois arquivos acima. Sem mudanças na Edge Function nem no webhook.
