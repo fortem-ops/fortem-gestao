@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     const hash = await sha256Hex(digits);
     const { data: aluno, error: alunoErr } = await admin
       .from("alunos")
-      .select("id, nome, email, telefone")
+      .select("id, nome, email, telefone, data_nascimento, cep, logradouro, numero, complemento, bairro, cidade, uf")
       .eq("cpf_hash", hash)
       .eq("status", "ativo")
       .limit(1)
@@ -89,13 +89,24 @@ Deno.serve(async (req) => {
 
     const tier = plano?.tipo ? TIER_MAP[String(plano.tipo).trim().toLowerCase()] ?? null : null;
 
+    const partesNome = String(aluno.nome ?? "").trim().split(/\s+/).filter(Boolean);
+
     return json(200, {
       found: true,
       rota: tier ? "aluno" : "somente_corrida",
       tier,
-      primeiro_nome: String(aluno.nome ?? "").trim().split(/\s+/)[0] ?? "",
+      primeiro_nome: partesNome[0] ?? "",
+      sobrenome: partesNome.slice(1).join(" "),
       email: aluno.email ?? null,
       telefone: aluno.telefone ?? null,
+      data_nascimento: aluno.data_nascimento ?? null,
+      cep: aluno.cep ?? null,
+      logradouro: aluno.logradouro ?? null,
+      numero: aluno.numero ?? null,
+      complemento: aluno.complemento ?? null,
+      bairro: aluno.bairro ?? null,
+      cidade: aluno.cidade ?? null,
+      uf: aluno.uf ?? null,
     });
 
   } catch (err) {

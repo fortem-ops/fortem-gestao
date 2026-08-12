@@ -263,6 +263,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       status: "pending",
+      tokenization_id: String(tokenizationId),
       message: "Cartão em validação, você será notificado em instantes.",
     }), { status: 200, headers });
   }

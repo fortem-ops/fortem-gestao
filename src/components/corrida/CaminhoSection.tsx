@@ -23,7 +23,7 @@ const CaminhoSection = ({
     rota: Rota,
     tier?: Tier | null,
     nome?: string | null,
-    prefill?: { email?: string | null; telefone?: string | null; cpfDigits?: string | null },
+    prefill?: Record<string, string | null> & { cpfDigits?: string | null },
   ) => void;
 }) => {
   const [abrirCpf, setAbrirCpf] = useState(false);
@@ -51,7 +51,21 @@ const CaminhoSection = ({
           data.rota === "aluno" ? "aluno" : "somente_corrida",
           data.tier ?? null,
           data.primeiro_nome ?? null,
-          { email: data.email ?? null, telefone: data.telefone ?? null, cpfDigits: digits },
+          {
+            nome: data.primeiro_nome ?? null,
+            sobrenome: data.sobrenome ?? null,
+            email: data.email ?? null,
+            telefone: data.telefone ?? null,
+            data_nascimento: data.data_nascimento ?? null,
+            cep: data.cep ?? null,
+            logradouro: data.logradouro ?? null,
+            numero: data.numero ?? null,
+            complemento: data.complemento ?? null,
+            bairro: data.bairro ?? null,
+            cidade: data.cidade ?? null,
+            uf: data.uf ?? null,
+            cpfDigits: digits,
+          },
         );
       } else {
         setNaoEncontrado(true);
