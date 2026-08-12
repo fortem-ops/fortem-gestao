@@ -141,6 +141,11 @@ serve(async (req) => {
   return new Response(JSON.stringify({
     success: estornado,
     return_code: redeResponse?.returnCode,
-    return_message: redeResponse?.returnMessage,
+    return_message: redeResponse?.returnMessage
+      ?? (estornado ? undefined : redeBodyText.slice(0, 300)),
+    ...(estornado ? {} : {
+      rede_http_status: redeStatus,
+      rede_body: redeBodyText.slice(0, 1000),
+    }),
   }), { status: 200, headers });
 });
