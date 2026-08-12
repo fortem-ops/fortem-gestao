@@ -256,6 +256,31 @@ serve(async (req) => {
   const brand = redeResp?.brand ?? redeResp?.brandName ?? detectBrand(cardClean);
   const last4 = cardClean.slice(-4);
 
+  // Auditoria persistente da resposta completa da Rede em caso de sucesso
+  try {
+    await supabase.from("system_logs").insert({
+      modulo: "rede-salvar-cartao",
+      acao: "tokenizacao_sucesso",
+      mensagem: `Cartão tokenizado com sucesso, tid ${tid ?? "ausente"}`,
+      payload: {
+        status: "tokenizacao_sucesso",
+        aluno_id: alunoId,
+        origem,
+        tid: tid ?? null,
+        nsu: redeResp?.nsu ?? null,
+        authorization_code: redeResp?.authorizationCode ?? null,
+        return_code: redeResp?.returnCode ?? null,
+        return_message: redeResp?.returnMessage ?? null,
+        amount: 1,
+        last4,
+        card_token: cardToken,
+        raw_response: redeResp,
+      },
+    });
+  } catch (e) {
+    console.error("[rede-salvar-cartao] falha ao registrar auditoria de sucesso em system_logs:", String(e));
+  }
+
   const { error: insErr } = await supabase.from("cartoes_salvos").insert({
     aluno_id: alunoId,
     token_rede: cardToken,
