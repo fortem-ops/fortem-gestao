@@ -74,6 +74,14 @@ const dataProva = (prova: ProvaKey, distancia: Distancia) =>
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/* Nome do plano exibido ao cliente (esconde nomenclatura interna) */
+const PLANO_NOME_EXIBICAO: Record<string, string> = {
+  "Corrida - Prospect": "Assessoria de Corrida Fortem",
+  "Corrida - Sem Plano": "Corrida Fortem (sem plano de treino)",
+};
+
+const nomePlanoExibicao = (nome: string) => PLANO_NOME_EXIBICAO[nome] ?? nome;
+
 /* ------------------------------------------------------------------ */
 /* UI helpers                                                          */
 /* ------------------------------------------------------------------ */
@@ -337,15 +345,16 @@ const CorridaConfigurator = () => {
       const anual = rota !== "prospect" || periodo === "anual";
       const p = anual ? oferta.planoAnual : oferta.planoMensal;
       if (p) {
+        const nomeExib = nomePlanoExibicao(p.nome);
         if (anual) {
           linhas.push({
-            label: `${p.nome} — Plano Anual`,
+            label: `${nomeExib} — ${brl(Number(p.valor) / 12)}/mês (Plano Anual)`,
             valor: Number(p.valor),
-            nota: `equivale a ${brl(Number(p.valor) / 12)}/mês · parcelável em até ${parcelas}x`,
+            nota: `${brl(Number(p.valor))} em até ${parcelas}x`,
           });
           hoje += Number(p.valor);
         } else {
-          linhas.push({ label: `${p.nome} — Mensal`, valor: Number(p.valor), nota: "recorrência mensal no cartão" });
+          linhas.push({ label: `${nomeExib} — Mensal`, valor: Number(p.valor), nota: "recorrência mensal no cartão" });
           hoje += Number(p.valor);
           recorrente = Number(p.valor);
         }
