@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Check, ArrowLeft, Gift, Shirt } from "lucide-react";
+import { Loader2, Check, ArrowLeft, ArrowRight, Gift, Shirt } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import CorridaStepper, { type StepDef } from "./CorridaStepper";
+import CaminhoSection from "./CaminhoSection";
 
 /* ------------------------------------------------------------------ */
 /* Tipos                                                               */
@@ -12,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 type Rota = "aluno" | "somente_corrida" | "prospect" | "somente_provas";
 type Tier = "start" | "start_plus" | "power" | "pro" | "max";
 type Distancia = "5K" | "10K" | "21K" | "42K";
+type ProvaKey = "NB" | "MIPOA";
 
 interface PlanoCatalogo {
   nome: string;
@@ -55,29 +58,21 @@ const TIER_LABEL: Record<Tier, string> = {
 const DISTANCIAS: Distancia[] = ["5K", "10K", "21K", "42K"];
 
 /* Datas oficiais das provas (fixas no componente) */
-const PROVA_LABEL: Record<"NB" | "MIPOA", string> = {
+const PROVA_LABEL: Record<ProvaKey, string> = {
   NB: "NB 42k 2027",
   MIPOA: "42ª Maratona Internacional de Porto Alegre 2027",
 };
 
-const PROVA_DATAS: Record<"NB" | "MIPOA", { curtas: string; maratona: string }> = {
+const PROVA_DATAS: Record<ProvaKey, { curtas: string; maratona: string }> = {
   NB: { curtas: "21 de agosto de 2027", maratona: "22 de agosto de 2027" },
   MIPOA: { curtas: "5 de junho de 2027", maratona: "6 de junho de 2027" },
 };
 
-const dataProva = (prova: "NB" | "MIPOA", distancia: Distancia) =>
+const dataProva = (prova: ProvaKey, distancia: Distancia) =>
   distancia === "42K" ? PROVA_DATAS[prova].maratona : PROVA_DATAS[prova].curtas;
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-const maskCpf = (v: string) =>
-  v
-    .replace(/\D/g, "")
-    .slice(0, 11)
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
 
 /* ------------------------------------------------------------------ */
 /* UI helpers                                                          */
@@ -146,7 +141,6 @@ const KitThumb = ({ url }: { url?: string | null }) =>
     </span>
   );
 
-
 const Pill = ({
   active,
   onClick,
@@ -173,16 +167,11 @@ const Pill = ({
 /* Componente                                                          */
 /* ------------------------------------------------------------------ */
 
-interface Props {
-  rota: Rota | null;
-  tier: Tier | null;
-  nome: string | null;
-  onTrocarRota?: (rota: Rota, tier?: Tier | null, nome?: string | null) => void;
-}
-
-const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
-  const [step, setStep] = useState<"oferta" | "resumo">("oferta");
-  const rota: Rota = rotaProp ?? "prospect";
+const CorridaConfigurator = () => {
+  const [rota, setRota] = useState<Rota | null>(null);
+  const [tier, setTier] = useState<Tier | null>(null);
+  const [nome, setNome] = useState<string | null>(null);
+  const [stepIdx, setStepIdx] = useState(0);
 
   // seleções
   const [periodo, setPeriodo] = useState<"mensal" | "anual">("anual"); // prospect
@@ -190,20 +179,28 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
   const [kitNivel, setKitNivel] = useState<string | null>(null);
   const [mipoa, setMipoa] = useState(false);
   const [avaliacao, setAvaliacao] = useState(false);
-  const [provaNome, setProvaNome] = useState<"NB" | "MIPOA">("NB");
-  const [provaDistancia, setProvaDistancia] = useState<Distancia>("5K");
+  // somente_provas: seleção múltipla
+  const [provasSel, setProvasSel] = useState<Record<ProvaKey, { ativo: boolean; distancia: Distancia }>>({
+    NB: { ativo: true, distancia: "5K" },
+    MIPOA: { ativo: false, distancia: "5K" },
+  });
 
-  // ao trocar de rota, volta pra oferta e limpa seleções
-  useEffect(() => {
-    setStep("oferta");
+  const escolherRota = (r: Rota, t: Tier | null = null, n: string | null = null) => {
+    setRota(r);
+    setTier(t);
+    setNome(n);
     setKitNivel(null);
     setMipoa(false);
     setAvaliacao(false);
     setDistanciaCortesia("5K");
     setPeriodo("anual");
-    setProvaNome("NB");
-    setProvaDistancia("5K");
-  }, [rotaProp, tier]);
+    setProvasSel({ NB: { ativo: true, distancia: "5K" }, MIPOA: { ativo: false, distancia: "5K" } });
+    setStepIdx(1);
+    setTimeout(
+      () => document.getElementById("configurador")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      60,
+    );
+  };
 
   const { data: planos = [], isLoading: loadingPlanos } = useQuery({
     queryKey: ["corrida-planos-catalogo"],
@@ -231,6 +228,33 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
   const plano = (nomePlano: string, meses: number) =>
     planos.find((p) => p.nome === nomePlano && p.periodo_meses === meses);
 
+  /* --------------------------- Etapas --------------------------- */
+
+  const steps: StepDef[] = useMemo(() => {
+    const base: StepDef[] = [{ id: "identificacao", label: "Identificação" }];
+    if (!rota) return base;
+    base.push({ id: "oferta", label: "Oferta" });
+    if (rota !== "somente_provas") base.push({ id: "provas", label: "Provas" });
+    if (rota === "prospect" || rota === "somente_provas") base.push({ id: "matricula", label: "Matrícula" });
+    base.push({ id: "servicos", label: "Serviços" });
+    base.push({ id: "resumo", label: "Resumo" });
+    return base;
+  }, [rota]);
+
+  const stepAtual = steps[Math.min(stepIdx, steps.length - 1)]?.id ?? "identificacao";
+
+  const irPara = (i: number) => {
+    if (i === 0) {
+      setRota(null);
+      setTier(null);
+      setNome(null);
+    }
+    setStepIdx(i);
+    setTimeout(
+      () => document.getElementById("configurador")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      60,
+    );
+  };
 
   /* --------------------------- Dados da oferta --------------------------- */
 
@@ -241,14 +265,15 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
     const mipoaItem = itens.find((i) => i.tipo === "mipoa" && i.rota === "ambos");
 
     if (rota === "somente_provas") {
-      const provaItem = itens.find(
-        (i) => i.tipo === "prova_avulsa" && i.prova_nome === provaNome && i.distancia === provaDistancia,
-      );
+      const provaValor = (prova: ProvaKey, distancia: Distancia) =>
+        itens.find(
+          (i) => i.tipo === "prova_avulsa" && i.prova_nome === prova && i.distancia === distancia,
+        );
       const kits = itens
         .filter((i) => i.tipo === "kit_fortem" && i.rota === "somente_provas")
         .sort((a, b) => (a.nivel ?? "").localeCompare(b.nivel ?? ""));
       const aval = itens.find((i) => i.tipo === "avaliacao_funcional" && i.tier === "somente_provas");
-      return { provaItem, kits, aval, cortesia: null, mipoaItem: null, planoAnual: null, planoMensal: null };
+      return { provaValor, kits, aval, cortesia: null, mipoaItem: null, planoAnual: null, planoMensal: null };
     }
 
     let nomePlano: string;
@@ -281,10 +306,12 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
       aval,
       cortesia,
       mipoaItem,
-      provaItem: null,
+      provaValor: null,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rota, tier, itens, planos, provaNome, provaDistancia]);
+  }, [rota, tier, itens, planos]);
+
+  const parcelas = rota === "prospect" ? 12 : 10;
 
   /* --------------------------- Resumo --------------------------- */
 
@@ -295,13 +322,17 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
     let recorrente = 0;
 
     if (rota === "somente_provas") {
-      if (oferta.provaItem) {
+      (["NB", "MIPOA"] as ProvaKey[]).forEach((pk) => {
+        const sel = provasSel[pk];
+        if (!sel.ativo) return;
+        const item = oferta.provaValor?.(pk, sel.distancia);
+        if (!item) return;
         linhas.push({
-          label: `${PROVA_LABEL[oferta.provaItem.prova_nome === "NB" ? "NB" : "MIPOA"]} — ${provaDistancia} · ${dataProva(oferta.provaItem.prova_nome === "NB" ? "NB" : "MIPOA", provaDistancia)}`,
-          valor: Number(oferta.provaItem.valor),
+          label: `${PROVA_LABEL[pk]} — ${sel.distancia} · ${dataProva(pk, sel.distancia)}`,
+          valor: Number(item.valor),
         });
-        hoje += Number(oferta.provaItem.valor);
-      }
+        hoje += Number(item.valor);
+      });
     } else {
       const anual = rota !== "prospect" || periodo === "anual";
       const p = anual ? oferta.planoAnual : oferta.planoMensal;
@@ -310,7 +341,7 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
           linhas.push({
             label: `${p.nome} — Plano Anual`,
             valor: Number(p.valor),
-            nota: `equivale a ${brl(Number(p.valor) / 12)}/mês`,
+            nota: `equivale a ${brl(Number(p.valor) / 12)}/mês · parcelável em até ${parcelas}x`,
           });
           hoje += Number(p.valor);
         } else {
@@ -348,12 +379,7 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
     }
 
     return { linhas, hoje, recorrente };
-  }, [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, avaliacao, provaDistancia]);
-
-  /* --------------------------- Render --------------------------- */
-
-  const voltar = () => setStep("oferta");
-
+  }, [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, avaliacao, provasSel, parcelas]);
 
   const tituloRota = () => {
     switch (rota) {
@@ -370,312 +396,367 @@ const CorridaConfigurator = ({ rota: rotaProp, tier, nome }: Props) => {
     }
   };
 
-  const prospectAnual = planos.find(
-    (p) => p.nome === "Corrida - Prospect" && p.periodo_meses === 12,
+  /* --------------------------- Navegação --------------------------- */
+
+  const Nav = ({ podeContinuar = true }: { podeContinuar?: boolean }) => (
+    <div className="flex items-center justify-between gap-3 pt-2">
+      <button
+        onClick={() => irPara(stepIdx - 1)}
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="w-4 h-4" /> Voltar
+      </button>
+      <button
+        onClick={() => irPara(stepIdx + 1)}
+        disabled={!podeContinuar}
+        className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-display font-semibold glow-red flex items-center gap-2 disabled:opacity-50"
+      >
+        Continuar <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
   );
-  const prospectMensal = planos.find(
-    (p) => p.nome === "Corrida - Prospect" && p.periodo_meses === 1,
-  );
 
-  return (
-    <section id="configurador" className="py-20 md:py-28 bg-secondary/60">
-      <div className="container mx-auto px-6 max-w-3xl">
-        {/* Faixa de preços (sempre visível) */}
-        <div className="grid sm:grid-cols-2 gap-4 mb-10">
-          <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">Anual</p>
-            <p className="mt-2 font-display text-3xl font-bold">
-              {prospectAnual ? `a partir de ${brl(Number(prospectAnual.valor) / 12)}` : "—"}
-              <span className="text-base font-normal text-muted-foreground">/mês</span>
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">parcelável em até 10x</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold">
-              Mensal
-            </p>
-            <p className="mt-2 font-display text-3xl font-bold">
-              {prospectMensal ? brl(Number(prospectMensal.valor)) : "—"}
-              <span className="text-base font-normal text-muted-foreground">/mês</span>
-            </p>
-          </div>
-        </div>
+  /* --------------------------- Etapas de conteúdo --------------------------- */
 
-        {!rotaProp ? (
-          <p className="text-center text-muted-foreground">
-            Escolha um dos caminhos acima — informe seu CPF, veja o preço de novo corredor ou
-            inscreva-se só numa prova — para montar a sua oferta.
+  const renderOferta = () => {
+    if (!oferta) return null;
+
+    if (rota === "somente_provas") {
+      return (
+        <Card>
+          <h3 className="font-display text-xl font-bold mb-1">{tituloRota()}</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Escolha uma ou as duas provas — cada uma com a sua distância.
           </p>
-        ) : (
-        <>
-        <div className="text-center mb-10">
-          <p className="text-primary font-display font-semibold tracking-[0.25em] uppercase text-xs mb-3">
-            Monte sua oferta
-          </p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold">
-            Descubra seu plano de corrida
-          </h2>
-        </div>
 
-        {carregando ? (
-          <Card className="flex items-center justify-center gap-3 py-12 text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin" /> Carregando ofertas...
-          </Card>
-        ) : step === "oferta" && oferta ? (
           <div className="space-y-4">
-
-
-            <Card>
-              {nome && <p className="text-primary font-semibold mb-1">Olá, {nome}!</p>}
-              <h3 className="font-display text-xl font-bold mb-4">{tituloRota()}</h3>
-
-              {rota === "prospect" && (
-                <div className="flex gap-2 mb-4">
-                  <Pill active={periodo === "mensal"} onClick={() => setPeriodo("mensal")}>
-                    Mensal
-                  </Pill>
-                  <Pill active={periodo === "anual"} onClick={() => setPeriodo("anual")}>
-                    Anual
-                  </Pill>
-                </div>
-              )}
-
-              {rota === "somente_provas" ? (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-semibold mb-2">Prova</p>
-                    <div className="flex gap-2">
-                      <Pill active={provaNome === "NB"} onClick={() => setProvaNome("NB")}>
-                        NB 42k 2027
-                      </Pill>
-                      <Pill active={provaNome === "MIPOA"} onClick={() => setProvaNome("MIPOA")}>
-                        MIPOA
-                      </Pill>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold mb-2">Distância</p>
-                    <div className="flex flex-wrap gap-2">
+            {(["NB", "MIPOA"] as ProvaKey[]).map((pk) => {
+              const sel = provasSel[pk];
+              const item = oferta.provaValor?.(pk, sel.distancia);
+              return (
+                <div
+                  key={pk}
+                  className={`rounded-xl border p-4 transition-all ${
+                    sel.ativo ? "border-primary bg-primary/5" : "border-border"
+                  }`}
+                >
+                  <Toggle
+                    active={sel.ativo}
+                    onClick={() =>
+                      setProvasSel((s) => ({ ...s, [pk]: { ...s[pk], ativo: !s[pk].ativo } }))
+                    }
+                    title={PROVA_LABEL[pk]}
+                    subtitle={dataProva(pk, sel.distancia)}
+                    price={item ? brl(Number(item.valor)) : "—"}
+                  />
+                  {sel.ativo && (
+                    <div className="mt-3 flex flex-wrap gap-2">
                       {DISTANCIAS.map((d) => (
-                        <Pill key={d} active={provaDistancia === d} onClick={() => setProvaDistancia(d)}>
+                        <Pill
+                          key={d}
+                          active={sel.distancia === d}
+                          onClick={() => setProvasSel((s) => ({ ...s, [pk]: { ...s[pk], distancia: d } }))}
+                        >
                           {d}
                         </Pill>
                       ))}
                     </div>
-                  </div>
-                  {oferta.provaItem && (
-                    <div className="flex items-end gap-3 flex-wrap">
-                      <p className="font-display text-3xl font-bold">{brl(Number(oferta.provaItem.valor))}</p>
-                      <p className="text-sm text-muted-foreground pb-1">
-                        {PROVA_LABEL[provaNome]} · {dataProva(provaNome, provaDistancia)}
-                      </p>
-                    </div>
-                  )}
-                  <ul className="space-y-2">
-                    {["Inscrição da prova", "Retiramos seu kit da prova", "Acesso à estrutura da Fortem no dia da prova"].map(
-                      (b) => (
-                        <li key={b} className="flex items-start gap-2 text-sm">
-                          <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                          <span>{b}</span>
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                  <p className="text-sm text-muted-foreground">
-                    Pagamento via Pix ou crédito à vista — sem parcelamento.
-                  </p>
-
-                </div>
-              ) : (
-                <div>
-                  {(() => {
-                    const anual = rota !== "prospect" || periodo === "anual";
-                    const p = anual ? oferta.planoAnual : oferta.planoMensal;
-                    if (!p) return <p className="text-muted-foreground">Plano indisponível.</p>;
-                    return (
-                      <div>
-                        <div className="flex items-end gap-3 flex-wrap">
-                          <span className="font-display text-4xl font-bold">{brl(Number(p.valor))}</span>
-                          {anual ? (
-                            <>
-                              <span className="text-muted-foreground">no plano anual</span>
-                              {oferta.planoMensal && (
-                                <span className="text-muted-foreground line-through">
-                                  {brl(Number(oferta.planoMensal.valor))}/mês
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">/mês</span>
-                          )}
-                        </div>
-                        {anual && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            equivale a {brl(Number(p.valor) / 12)}/mês
-                            {rota === "prospect" && " · parcelável em até 10x"}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  {/* Cortesia NB */}
-                  {rota === "prospect" && periodo === "mensal" ? (
-                    <p className="mt-5 text-sm text-muted-foreground rounded-xl bg-muted p-4">
-                      A cortesia de inscrição + kit da NB 42k 2027 é exclusiva do plano Anual.
-                    </p>
-                  ) : (
-                    oferta.cortesia && (
-                      <div className="mt-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
-                        <p className="flex items-center gap-2 font-semibold">
-                          <Gift className="w-4 h-4 text-primary" /> Cortesia inclusa: {oferta.cortesia.descricao}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-2 mb-2">Escolha sua distância:</p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {DISTANCIAS.map((d) => (
-                            <Pill key={d} active={distanciaCortesia === d} onClick={() => setDistanciaCortesia(d)}>
-                              {d}
-                            </Pill>
-                          ))}
-                          <span className="text-sm text-muted-foreground ml-1">
-                            NB 42k 2027 · {dataProva("NB", distanciaCortesia)}
-                          </span>
-                        </div>
-                      </div>
-                    )
                   )}
                 </div>
-              )}
-            </Card>
+              );
+            })}
+          </div>
 
-            {/* Upsells */}
-            <Card>
-              <h4 className="font-display font-bold mb-3">
-                {rota === "somente_provas" ? "Adicione ao seu pedido" : "Turbine seu plano"}
-              </h4>
+          <ul className="space-y-2 mt-5">
+            {["Inscrição da prova", "Retiramos seu kit da prova", "Acesso à estrutura da Fortem no dia da prova"].map(
+              (b) => (
+                <li key={b} className="flex items-start gap-2 text-sm">
+                  <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span>{b}</span>
+                </li>
+              ),
+            )}
+          </ul>
+          <p className="text-sm text-muted-foreground mt-4">
+            Pagamento via Pix ou crédito à vista — sem parcelamento.
+          </p>
+        </Card>
+      );
+    }
 
-              {oferta.kits.length > 0 && (
+    const anual = rota !== "prospect" || periodo === "anual";
+    const p = anual ? oferta.planoAnual : oferta.planoMensal;
+
+    return (
+      <Card>
+        {nome && <p className="text-primary font-semibold mb-1">Olá, {nome}!</p>}
+        <h3 className="font-display text-xl font-bold mb-4">{tituloRota()}</h3>
+
+        {rota === "prospect" && (
+          <div className="flex gap-2 mb-4">
+            <Pill active={periodo === "mensal"} onClick={() => setPeriodo("mensal")}>
+              Mensal
+            </Pill>
+            <Pill active={periodo === "anual"} onClick={() => setPeriodo("anual")}>
+              Anual
+            </Pill>
+          </div>
+        )}
+
+        {!p ? (
+          <p className="text-muted-foreground">Plano indisponível.</p>
+        ) : (
+          <div>
+            <div className="flex items-end gap-3 flex-wrap">
+              <span className="font-display text-4xl font-bold">{brl(Number(p.valor))}</span>
+              {anual ? (
                 <>
-                  <p className="text-sm font-semibold mb-2">
-                    Kit Fortem{" "}
-                    {oferta.kits[0]?.isento && (
-                      <span className="text-primary">— grátis, escolha o seu</span>
-                    )}
-                  </p>
-                  <div className="space-y-2 mb-5">
-                    {oferta.kits.map((k) => (
-                      <Toggle
-                        key={k.id}
-                        active={kitNivel === k.nivel}
-                        onClick={() => setKitNivel(kitNivel === k.nivel ? null : k.nivel)}
-                        title={k.descricao ?? k.nivel ?? "Kit"}
-                        leading={<KitThumb url={k.imagem_url} />}
-                        price={k.isento ? "Grátis" : brl(Number(k.valor))}
-                      />
-                    ))}
-                  </div>
+                  <span className="text-muted-foreground">no plano anual</span>
+                  {oferta.planoMensal && (
+                    <span className="text-muted-foreground line-through">
+                      {brl(Number(oferta.planoMensal.valor))}/mês
+                    </span>
+                  )}
                 </>
+              ) : (
+                <span className="text-muted-foreground">/mês</span>
               )}
-
-              {oferta.mipoaItem && (
-                <Toggle
-                  active={mipoa}
-                  onClick={() => setMipoa((v) => !v)}
-                  title="+MIPOA 2027"
-                  subtitle={`${oferta.mipoaItem.descricao ?? "42ª Maratona Internacional de Porto Alegre"} · 5 e 6 de junho de 2027`}
-                  price={brl(Number(oferta.mipoaItem.valor))}
-                />
-              )}
-
-              {oferta.aval && (
-                <div className="mt-2">
-                  <Toggle
-                    active={avaliacao}
-                    onClick={() => setAvaliacao((v) => !v)}
-                    title="Avaliação Funcional e de Força"
-                    subtitle={
-                      rota === "somente_provas"
-                        ? "Leve o resultado para o seu treinador."
-                        : oferta.aval.descricao ?? undefined
-                    }
-                    priceNode={
-                      Number(oferta.aval.valor) < AVAL_VALOR_CHEIO ? (
-                        <span className="text-right whitespace-nowrap">
-                          <span className="block text-xs text-muted-foreground line-through">
-                            De {brl(AVAL_VALOR_CHEIO)}
-                          </span>
-                          <span className="block font-display font-bold">
-                            por {brl(Number(oferta.aval.valor))}
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="font-display font-bold whitespace-nowrap">
-                          {brl(Number(oferta.aval.valor))}
-                        </span>
-                      )
-                    }
-                  />
-                </div>
-              )}
-            </Card>
-
-            <button
-              onClick={() => setStep("resumo")}
-              className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red"
-            >
-              Ver resumo
-            </button>
+            </div>
+            {anual && (
+              <p className="text-sm text-muted-foreground mt-1">
+                equivale a {brl(Number(p.valor) / 12)}/mês · parcelável em até {parcelas}x
+              </p>
+            )}
           </div>
-        ) : step === "resumo" && resumo ? (
-          <div className="space-y-4">
-            <button onClick={voltar} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ArrowLeft className="w-4 h-4" /> Voltar
-            </button>
+        )}
+      </Card>
+    );
+  };
 
-            <Card>
-              <h3 className="font-display text-xl font-bold mb-4">Resumo do seu pedido</h3>
-              <ul className="divide-y divide-border">
-                {resumo.linhas.map((l, i) => (
-                  <li key={i} className="py-3 flex items-start justify-between gap-4">
-                    <span>
-                      <span className="block">{l.label}</span>
-                      {l.nota && <span className="block text-xs text-muted-foreground">{l.nota}</span>}
-                    </span>
-                    <span className="font-semibold whitespace-nowrap">
-                      {l.valor === 0 ? "Grátis" : brl(l.valor)}
-                    </span>
-                  </li>
+  const renderProvas = () => {
+    if (!oferta) return null;
+    return (
+      <Card>
+        <h3 className="font-display text-xl font-bold mb-4">Suas provas</h3>
+
+        {rota === "prospect" && periodo === "mensal" ? (
+          <p className="text-sm text-muted-foreground rounded-xl bg-muted p-4">
+            A cortesia de inscrição + kit da NB 42k 2027 é exclusiva do plano Anual.
+          </p>
+        ) : (
+          oferta.cortesia && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <p className="flex items-center gap-2 font-semibold">
+                <Gift className="w-4 h-4 text-primary" /> Cortesia inclusa: {oferta.cortesia.descricao}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2 mb-2">Escolha sua distância:</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {DISTANCIAS.map((d) => (
+                  <Pill key={d} active={distanciaCortesia === d} onClick={() => setDistanciaCortesia(d)}>
+                    {d}
+                  </Pill>
                 ))}
-              </ul>
-
-              <div className="mt-4 pt-4 border-t border-border space-y-1">
-                <div className="flex justify-between font-display text-lg font-bold">
-                  <span>{rota === "somente_provas" ? "Total" : "Cobrança de hoje"}</span>
-                  <span>{brl(resumo.hoje)}</span>
-                </div>
-                {resumo.recorrente > 0 && (
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Depois</span>
-                    <span>{brl(resumo.recorrente)}/mês</span>
-                  </div>
-                )}
-                {rota === "somente_provas" && (
-                  <p className="text-xs text-muted-foreground pt-2">
-                    Pagamento via Pix ou crédito à vista — sem parcelamento.
-                  </p>
-                )}
+                <span className="text-sm text-muted-foreground ml-1">
+                  NB 42k 2027 · {dataProva("NB", distanciaCortesia)}
+                </span>
               </div>
-            </Card>
+            </div>
+          )
+        )}
 
-            <button
-              onClick={() => toast("Em breve", { description: "A inscrição online será liberada em breve." })}
-              className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red"
-            >
-              Continuar para inscrição
-            </button>
+        {oferta.mipoaItem && (
+          <div className="mt-4">
+            <Toggle
+              active={mipoa}
+              onClick={() => setMipoa((v) => !v)}
+              title="+MIPOA 2027"
+              subtitle={`${oferta.mipoaItem.descricao ?? "42ª Maratona Internacional de Porto Alegre"} · 5 e 6 de junho de 2027`}
+              price={brl(Number(oferta.mipoaItem.valor))}
+            />
           </div>
-        ) : null}
-        </>
+        )}
+      </Card>
+    );
+  };
+
+  const renderMatricula = () => {
+    if (!oferta) return null;
+    return (
+      <Card>
+        <h3 className="font-display text-xl font-bold mb-1">Kit Fortem</h3>
+        {oferta.kits.length === 0 ? (
+          <p className="text-sm text-muted-foreground mt-2">Nenhum kit disponível para esta opção.</p>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground mb-4">
+              {oferta.kits[0]?.isento ? "Grátis — escolha o seu." : "Escolha o seu kit."}
+            </p>
+            <div className="space-y-2">
+              {oferta.kits.map((k) => (
+                <Toggle
+                  key={k.id}
+                  active={kitNivel === k.nivel}
+                  onClick={() => setKitNivel(kitNivel === k.nivel ? null : k.nivel)}
+                  title={k.descricao ?? k.nivel ?? "Kit"}
+                  leading={<KitThumb url={k.imagem_url} />}
+                  price={k.isento ? "Grátis" : brl(Number(k.valor))}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </Card>
+    );
+  };
+
+  const renderServicos = () => {
+    if (!oferta) return null;
+    return (
+      <Card>
+        <h3 className="font-display text-xl font-bold mb-4">Serviços</h3>
+        {oferta.aval ? (
+          <Toggle
+            active={avaliacao}
+            onClick={() => setAvaliacao((v) => !v)}
+            title="Avaliação Funcional e de Força"
+            subtitle={
+              rota === "somente_provas"
+                ? "Leve o resultado para o seu treinador."
+                : oferta.aval.descricao ?? undefined
+            }
+            priceNode={
+              Number(oferta.aval.valor) < AVAL_VALOR_CHEIO ? (
+                <span className="text-right whitespace-nowrap">
+                  <span className="block text-xs text-muted-foreground line-through">
+                    De {brl(AVAL_VALOR_CHEIO)}
+                  </span>
+                  <span className="block font-display font-bold">
+                    por {brl(Number(oferta.aval.valor))}
+                  </span>
+                </span>
+              ) : (
+                <span className="font-display font-bold whitespace-nowrap">
+                  {brl(Number(oferta.aval.valor))}
+                </span>
+              )
+            }
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">Nenhum serviço adicional disponível.</p>
+        )}
+      </Card>
+    );
+  };
+
+  const renderResumo = () => {
+    if (!resumo) return null;
+    return (
+      <>
+        <Card>
+          <h3 className="font-display text-xl font-bold mb-4">Resumo do seu pedido</h3>
+          <ul className="divide-y divide-border">
+            {resumo.linhas.map((l, i) => (
+              <li key={i} className="py-3 flex items-start justify-between gap-4">
+                <span>
+                  <span className="block">{l.label}</span>
+                  {l.nota && <span className="block text-xs text-muted-foreground">{l.nota}</span>}
+                </span>
+                <span className="font-semibold whitespace-nowrap">
+                  {l.valor === 0 ? "Grátis" : brl(l.valor)}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-4 pt-4 border-t border-border space-y-1">
+            <div className="flex justify-between font-display text-lg font-bold">
+              <span>{rota === "somente_provas" ? "Total" : "Cobrança de hoje"}</span>
+              <span>{brl(resumo.hoje)}</span>
+            </div>
+            {resumo.recorrente > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Depois</span>
+                <span>{brl(resumo.recorrente)}/mês</span>
+              </div>
+            )}
+            {rota === "somente_provas" ? (
+              <p className="text-xs text-muted-foreground pt-2">
+                Pagamento via Pix ou crédito à vista — sem parcelamento.
+              </p>
+            ) : (
+              (rota !== "prospect" || periodo === "anual") && (
+                <p className="text-xs text-muted-foreground pt-2">
+                  Plano anual parcelável em até {parcelas}x no cartão.
+                </p>
+              )
+            )}
+          </div>
+        </Card>
+
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <button
+            onClick={() => irPara(stepIdx - 1)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4" /> Voltar
+          </button>
+        </div>
+
+        <button
+          onClick={() => toast("Em breve", { description: "A inscrição online será liberada em breve." })}
+          className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red"
+        >
+          Continuar para inscrição
+        </button>
+      </>
+    );
+  };
+
+  /* --------------------------- Render --------------------------- */
+
+  return (
+    <section id="configurador" className="py-20 md:py-28 bg-secondary/60">
+      <div className="container mx-auto px-6 max-w-3xl">
+        <div className="mb-10">
+          <CorridaStepper steps={steps} current={Math.min(stepIdx, steps.length - 1)} onStepClick={irPara} />
+        </div>
+
+        {stepAtual === "identificacao" ? (
+          <CaminhoSection onSelect={escolherRota} />
+        ) : carregando ? (
+          <Card className="flex items-center justify-center gap-3 py-12 text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin" /> Carregando ofertas...
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {stepAtual === "oferta" && (
+              <>
+                {renderOferta()}
+                <Nav
+                  podeContinuar={rota !== "somente_provas" || provasSel.NB.ativo || provasSel.MIPOA.ativo}
+                />
+              </>
+            )}
+            {stepAtual === "provas" && (
+              <>
+                {renderProvas()}
+                <Nav />
+              </>
+            )}
+            {stepAtual === "matricula" && (
+              <>
+                {renderMatricula()}
+                <Nav />
+              </>
+            )}
+            {stepAtual === "servicos" && (
+              <>
+                {renderServicos()}
+                <Nav />
+              </>
+            )}
+            {stepAtual === "resumo" && renderResumo()}
+          </div>
         )}
       </div>
     </section>
