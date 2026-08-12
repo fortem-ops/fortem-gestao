@@ -67,7 +67,9 @@ const cadastrosMidItems = [
   { title: "Prospects", url: "/prospects", icon: Target },
   { title: "Alunos Ativos", url: "/alunos", icon: Users },
   { title: "Alunos Inativos", url: "/alunos-inativos", icon: UserX },
+  { title: "Clientes Avulsos", url: "/clientes-avulsos", icon: UserRound },
 ];
+
 const cadastrosAdminItems = [
   { title: "Anexos Jurídicos", url: "/anexos", icon: FileSignature },
 ];
