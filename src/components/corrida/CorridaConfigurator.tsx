@@ -265,6 +265,23 @@ const CorridaConfigurator = () => {
   const plano = (nomePlano: string, meses: number) =>
     planos.find((p) => p.nome === nomePlano && p.periodo_meses === meses);
 
+  /* --------------------------- Provas do pedido --------------------------- */
+
+  const provasPedido: ProvaPedido[] = useMemo(() => {
+    if (!rota) return [];
+    const lista: ProvaPedido[] = [];
+    if (rota === "somente_provas") {
+      (["NB", "MIPOA"] as ProvaKey[]).forEach((pk) => {
+        if (provasSel[pk].ativo) lista.push({ prova: pk, distancia: provasSel[pk].distancia });
+      });
+      return lista;
+    }
+    const cortesiaAtiva = rota !== "prospect" || periodo === "anual";
+    if (cortesiaAtiva) lista.push({ prova: "NB", distancia: distanciaCortesia });
+    if (mipoa) lista.push({ prova: "MIPOA", distancia: distanciaMipoa });
+    return lista;
+  }, [rota, periodo, distanciaCortesia, mipoa, distanciaMipoa, provasSel]);
+
   /* --------------------------- Etapas --------------------------- */
 
   const steps: StepDef[] = useMemo(() => {
@@ -274,9 +291,10 @@ const CorridaConfigurator = () => {
     if (rota !== "somente_provas") base.push({ id: "provas", label: "Provas" });
     if (rota === "prospect" || rota === "somente_provas") base.push({ id: "matricula", label: "Matrícula" });
     base.push({ id: "servicos", label: "Serviços" });
+    if (provasPedido.length > 0) base.push({ id: "inscricao", label: "Inscrição" });
     base.push({ id: "resumo", label: "Resumo" });
     return base;
-  }, [rota]);
+  }, [rota, provasPedido]);
 
   const stepAtual = steps[Math.min(stepIdx, steps.length - 1)]?.id ?? "identificacao";
 
