@@ -144,7 +144,7 @@ serve(async (req) => {
     expirationMonth: String(expiration_month).padStart(2, "0"),
     expirationYear: (() => { const y = String(expiration_year).trim(); return y.length === 2 ? "20" + y : y; })(),
     securityCode: String(security_code),
-    storageCard: 1,
+    storageCard: "1",
   };
 
   let redeResp: any = null;
@@ -208,7 +208,11 @@ serve(async (req) => {
   }
 
   // Extrair token do cartão
-  const cardToken = redeResp?.cardToken
+  // Pela documentação e-Rede (fluxo storageCard=1), o identificador a ser
+  // reutilizado nas cobranças futuras é o campo `brandTid`. Mantemos os demais
+  // campos como fallback defensivo caso a Rede mude o formato da resposta.
+  const cardToken = redeResp?.brandTid
+    ?? redeResp?.cardToken
     ?? redeResp?.cardStorage?.cardId
     ?? redeResp?.storageCard?.cardId
     ?? redeResp?.tokenId
@@ -222,10 +226,10 @@ serve(async (req) => {
       await supabase.from("system_logs").insert({
         modulo: "rede-salvar-cartao",
         acao: "tokenizacao_falhou",
-        mensagem: `Pré-autorização de R$0,01 aprovada (tid ${tid ?? "ausente"}), mas a Rede não retornou token de cartão`,
+        mensagem: `Pré-autorização de R$0,01 aprovada (tid ${tid ?? "ausente"}), mas a Rede não retornou brandTid/token de cartão`,
         payload: {
           status: "tokenizacao_falhou",
-          motivo: "resposta da Rede sem cardToken/cardStorage/storageCard/tokenId",
+          motivo: "resposta da Rede sem brandTid/cardToken/cardStorage/storageCard/tokenId",
           aluno_id: alunoId,
           origem,
           tid: tid ?? null,
