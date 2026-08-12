@@ -13,10 +13,38 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-async function loadSecrets(supabase: any) {
-  const { data } = await supabase.schema("vault").from("decrypted_secrets").select("name, decrypted_secret");
+async function loadSecrets(supabase: any): Promise<Record<string, string>> {
   const m: Record<string, string> = {};
-  (data ?? []).forEach((s: any) => { m[s.name] = s.decrypted_secret; });
+
+  // 1. Variáveis de ambiente primeiro (Edge Function Secrets — mais confiável)
+  const envPv      = Deno.env.get("REDE_PV")       ?? "";
+  const envToken   = Deno.env.get("REDE_TOKEN")    ?? "";
+  const envAmbient = Deno.env.get("REDE_AMBIENTE") ?? "";
+
+  if (envPv)      m["rede_pv"]       = envPv;
+  if (envToken)   m["rede_token"]    = envToken;
+  if (envAmbient) m["rede_ambiente"] = envAmbient;
+
+  if (m["rede_pv"] && m["rede_token"]) {
+    if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
+    return m;
+  }
+
+  // 2. Fallback: Supabase Vault
+  try {
+    const { data, error } = await supabase
+      .schema("vault")
+      .from("decrypted_secrets")
+      .select("name, decrypted_secret")
+      .in("name", ["rede_pv", "rede_token", "rede_ambiente"]);
+
+    if (!error && data?.length > 0) {
+      data.forEach((s: any) => { if (s.decrypted_secret) m[s.name] = s.decrypted_secret; });
+    }
+  } catch { /* ignore */ }
+
+  if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
+
   return m;
 }
 
