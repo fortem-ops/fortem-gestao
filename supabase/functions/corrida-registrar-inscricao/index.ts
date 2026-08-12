@@ -67,7 +67,13 @@ Deno.serve(async (req) => {
     const cpf = str(body?.cpf).replace(/\D/g, "");
     const data_nascimento = str(body?.data_nascimento);
     const telefone = str(body?.telefone);
-    const endereco_completo = str(body?.endereco_completo);
+    const cep = str(body?.cep).replace(/\D/g, "");
+    const logradouro = str(body?.logradouro);
+    const numero = str(body?.numero);
+    const complemento = str(body?.complemento);
+    const bairro = str(body?.bairro);
+    const cidade = str(body?.cidade);
+    const uf = str(body?.uf).toUpperCase();
     const ritmo_corrida = str(body?.ritmo_corrida);
     const local_nascimento = str(body?.local_nascimento);
     const marca_tenis = str(body?.marca_tenis);
@@ -80,7 +86,12 @@ Deno.serve(async (req) => {
     if (cpf.length !== 11) errors.push("cpf");
     if (!DATE_RE.test(data_nascimento)) errors.push("data_nascimento");
     if (!telefone) errors.push("telefone");
-    if (!endereco_completo) errors.push("endereco_completo");
+    if (cep.length !== 8) errors.push("cep");
+    if (!logradouro) errors.push("logradouro");
+    if (!numero) errors.push("numero");
+    if (!bairro) errors.push("bairro");
+    if (!cidade) errors.push("cidade");
+    if (uf.length !== 2) errors.push("uf");
     if (!ritmo_corrida) errors.push("ritmo_corrida");
     if (!["RS", "Outros"].includes(local_nascimento)) errors.push("local_nascimento");
     if (!marca_tenis) errors.push("marca_tenis");
@@ -102,7 +113,13 @@ Deno.serve(async (req) => {
       p_cpf: cpf,
       p_data_nascimento: data_nascimento,
       p_telefone: telefone,
-      p_endereco_completo: endereco_completo,
+      p_cep: cep,
+      p_logradouro: logradouro,
+      p_numero: numero,
+      p_complemento: complemento || null,
+      p_bairro: bairro,
+      p_cidade: cidade,
+      p_uf: uf,
       p_ritmo_corrida: ritmo_corrida,
       p_local_nascimento: local_nascimento,
       p_participou_nb_2026:

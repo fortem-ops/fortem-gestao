@@ -174,6 +174,7 @@ Deno.serve(async (req) => {
     let contratoId: string | null = null;
     let vendaId: string | null = null;
     const documentosIds: string[] = [];
+    const documentos: { id: string; nome: string; conteudo_gerado: string }[] = [];
     let catalogoId: string | null = null;
     let nomeSnapshot = "";
     let formaPagamento = "cartao_parcelado";
@@ -340,6 +341,7 @@ Deno.serve(async (req) => {
         IP_ACEITE: "",
       };
 
+      const conteudoPrincipal = preencher(templatePrincipal.conteudo, baseVars);
       const { data: docPrincipal, error: docErr } = await admin
         .from("contratos_documentos")
         .insert({
@@ -348,7 +350,7 @@ Deno.serve(async (req) => {
           template_id: templatePrincipal.id,
           template_versao: templatePrincipal.versao,
           regulamento_versao: regulamento.versao,
-          conteudo_gerado: preencher(templatePrincipal.conteudo, baseVars),
+          conteudo_gerado: conteudoPrincipal,
           variaveis_utilizadas: baseVars,
           aceite: false,
         })
@@ -356,7 +358,9 @@ Deno.serve(async (req) => {
         .single();
       if (docErr || !docPrincipal) throw new Error(`falha_documento_principal: ${docErr?.message}`);
       documentosIds.push(docPrincipal.id);
+      documentos.push({ id: docPrincipal.id, nome: templatePrincipal.nome, conteudo_gerado: conteudoPrincipal });
       criados.push({ tabela: "contratos_documentos", id: docPrincipal.id });
+
 
       if (temProva) {
         const { data: templateProvas } = await admin
@@ -381,6 +385,7 @@ Deno.serve(async (req) => {
           PROVAS_INCLUSAS_DESCRICAO: linhas.join("; "),
         };
 
+        const conteudoProvas = preencher(templateProvas.conteudo, varsProvas);
         const { data: docProvas, error: docProvasErr } = await admin
           .from("contratos_documentos")
           .insert({
@@ -389,7 +394,7 @@ Deno.serve(async (req) => {
             template_id: templateProvas.id,
             template_versao: templateProvas.versao,
             regulamento_versao: regulamento.versao,
-            conteudo_gerado: preencher(templateProvas.conteudo, varsProvas),
+            conteudo_gerado: conteudoProvas,
             variaveis_utilizadas: varsProvas,
             aceite: false,
           })
@@ -397,8 +402,10 @@ Deno.serve(async (req) => {
           .single();
         if (docProvasErr || !docProvas) throw new Error(`falha_documento_provas: ${docProvasErr?.message}`);
         documentosIds.push(docProvas.id);
+        documentos.push({ id: docProvas.id, nome: templateProvas.nome, conteudo_gerado: conteudoProvas });
         criados.push({ tabela: "contratos_documentos", id: docProvas.id });
       }
+
 
       nomeSnapshot = `${catalogo.nome} (${periodo === "mensal" ? "mensal" : "anual"}) — pedido /corrida`;
     }
@@ -454,6 +461,7 @@ Deno.serve(async (req) => {
       contrato_id: contratoId,
       venda_id: vendaId,
       contratos_documentos_ids: documentosIds,
+      contratos_documentos: documentos,
       cartao_token: cartaoTokenValor,
     });
   } catch (err) {
