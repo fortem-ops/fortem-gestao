@@ -5715,6 +5715,7 @@ export type Database = {
           bin: string | null
           brand_name: string | null
           brand_tid: string | null
+          cardholder_name: string | null
           cartao_salvo_id: string | null
           created_at: string
           id: string
@@ -5732,6 +5733,7 @@ export type Database = {
           bin?: string | null
           brand_name?: string | null
           brand_tid?: string | null
+          cardholder_name?: string | null
           cartao_salvo_id?: string | null
           created_at?: string
           id?: string
@@ -5749,6 +5751,7 @@ export type Database = {
           bin?: string | null
           brand_name?: string | null
           brand_tid?: string | null
+          cardholder_name?: string | null
           cartao_salvo_id?: string | null
           created_at?: string
           id?: string
