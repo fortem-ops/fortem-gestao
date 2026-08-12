@@ -149,10 +149,11 @@ Deno.serve(async (req) => {
         const { data: contratoExistente } = await admin
           .from("contratos")
           .select("id")
-          .eq("plano_id", vendaExistente.plano_id ?? "00000000-0000-0000-0000-000000000000")
+          .eq("aluno_id", vendaExistente.aluno_id)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
+
 
         let docsQuery = admin
           .from("contratos_documentos")
