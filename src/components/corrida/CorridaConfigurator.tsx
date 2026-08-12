@@ -1,11 +1,17 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Check, ArrowLeft, ArrowRight, Gift, Shirt } from "lucide-react";
+import { Loader2, Check, ArrowLeft, ArrowRight, Gift, Shirt, CheckCircle2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import CorridaStepper, { type StepDef } from "./CorridaStepper";
 import CaminhoSection from "./CaminhoSection";
+import InscricaoProvaStep, {
+  inscricaoFormInicial,
+  inscricaoValida,
+  type InscricaoForm,
+  type ProvaPedido,
+} from "./InscricaoProvaStep";
 
 /* ------------------------------------------------------------------ */
 /* Tipos                                                               */
@@ -186,6 +192,7 @@ const CorridaConfigurator = () => {
   const [distanciaCortesia, setDistanciaCortesia] = useState<Distancia>("5K");
   const [kitNivel, setKitNivel] = useState<string | null>(null);
   const [mipoa, setMipoa] = useState(false);
+  const [distanciaMipoa, setDistanciaMipoa] = useState<Distancia>("5K");
   const [avaliacao, setAvaliacao] = useState(false);
   // somente_provas: seleção múltipla
   const [provasSel, setProvasSel] = useState<Record<ProvaKey, { ativo: boolean; distancia: Distancia }>>({
@@ -193,16 +200,38 @@ const CorridaConfigurator = () => {
     MIPOA: { ativo: false, distancia: "5K" },
   });
 
-  const escolherRota = (r: Rota, t: Tier | null = null, n: string | null = null) => {
+  // inscrição na prova
+  const [alunoId] = useState<string | null>(null);
+  const [form, setForm] = useState<InscricaoForm>(() => inscricaoFormInicial());
+  const [enviando, setEnviando] = useState(false);
+  const [protocolo, setProtocolo] = useState<string | null>(null);
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
+
+  const escolherRota = (
+    r: Rota,
+    t: Tier | null = null,
+    n: string | null = null,
+    prefill?: { email?: string | null; telefone?: string | null; cpfDigits?: string | null },
+  ) => {
     setRota(r);
     setTier(t);
     setNome(n);
     setKitNivel(null);
     setMipoa(false);
+    setDistanciaMipoa("5K");
     setAvaliacao(false);
     setDistanciaCortesia("5K");
     setPeriodo("anual");
     setProvasSel({ NB: { ativo: true, distancia: "5K" }, MIPOA: { ativo: false, distancia: "5K" } });
+    setProtocolo(null);
+    setErroEnvio(null);
+    setForm(
+      inscricaoFormInicial({
+        email: prefill?.email ?? null,
+        telefone: prefill?.telefone ?? null,
+        cpf: prefill?.cpfDigits ?? null,
+      }),
+    );
     setStepIdx(1);
     setTimeout(
       () => document.getElementById("configurador")?.scrollIntoView({ behavior: "smooth", block: "start" }),
@@ -236,6 +265,23 @@ const CorridaConfigurator = () => {
   const plano = (nomePlano: string, meses: number) =>
     planos.find((p) => p.nome === nomePlano && p.periodo_meses === meses);
 
+  /* --------------------------- Provas do pedido --------------------------- */
+
+  const provasPedido: ProvaPedido[] = useMemo(() => {
+    if (!rota) return [];
+    const lista: ProvaPedido[] = [];
+    if (rota === "somente_provas") {
+      (["NB", "MIPOA"] as ProvaKey[]).forEach((pk) => {
+        if (provasSel[pk].ativo) lista.push({ prova: pk, distancia: provasSel[pk].distancia });
+      });
+      return lista;
+    }
+    const cortesiaAtiva = rota !== "prospect" || periodo === "anual";
+    if (cortesiaAtiva) lista.push({ prova: "NB", distancia: distanciaCortesia });
+    if (mipoa) lista.push({ prova: "MIPOA", distancia: distanciaMipoa });
+    return lista;
+  }, [rota, periodo, distanciaCortesia, mipoa, distanciaMipoa, provasSel]);
+
   /* --------------------------- Etapas --------------------------- */
 
   const steps: StepDef[] = useMemo(() => {
@@ -245,9 +291,10 @@ const CorridaConfigurator = () => {
     if (rota !== "somente_provas") base.push({ id: "provas", label: "Provas" });
     if (rota === "prospect" || rota === "somente_provas") base.push({ id: "matricula", label: "Matrícula" });
     base.push({ id: "servicos", label: "Serviços" });
+    if (provasPedido.length > 0) base.push({ id: "inscricao", label: "Inscrição" });
     base.push({ id: "resumo", label: "Resumo" });
     return base;
-  }, [rota]);
+  }, [rota, provasPedido]);
 
   const stepAtual = steps[Math.min(stepIdx, steps.length - 1)]?.id ?? "identificacao";
 
@@ -377,7 +424,7 @@ const CorridaConfigurator = () => {
     }
     if (mipoa && oferta.mipoaItem) {
       linhas.push({
-        label: `+MIPOA 2027 — ${oferta.mipoaItem.descricao} · 5 e 6 de junho de 2027`,
+        label: `+MIPOA 2027 — ${oferta.mipoaItem.descricao} — ${distanciaMipoa} · ${dataProva("MIPOA", distanciaMipoa)}`,
         valor: Number(oferta.mipoaItem.valor),
       });
       hoje += Number(oferta.mipoaItem.valor);
@@ -388,7 +435,7 @@ const CorridaConfigurator = () => {
     }
 
     return { linhas, hoje, recorrente };
-  }, [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, avaliacao, provasSel, parcelas]);
+  }, [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, distanciaMipoa, avaliacao, provasSel, parcelas]);
 
   const tituloRota = () => {
     switch (rota) {
@@ -575,9 +622,21 @@ const CorridaConfigurator = () => {
               active={mipoa}
               onClick={() => setMipoa((v) => !v)}
               title="+MIPOA 2027"
-              subtitle={`${oferta.mipoaItem.descricao ?? "42ª Maratona Internacional de Porto Alegre"} · 5 e 6 de junho de 2027`}
+              subtitle={`${oferta.mipoaItem.descricao ?? "42ª Maratona Internacional de Porto Alegre"} · ${dataProva("MIPOA", distanciaMipoa)}`}
               price={brl(Number(oferta.mipoaItem.valor))}
             />
+            {mipoa && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {DISTANCIAS.map((d) => (
+                  <Pill key={d} active={distanciaMipoa === d} onClick={() => setDistanciaMipoa(d)}>
+                    {d}
+                  </Pill>
+                ))}
+                <span className="text-sm text-muted-foreground ml-1">
+                  Preço único, independente da distância.
+                </span>
+              </div>
+            )}
           </div>
         )}
       </Card>
@@ -665,8 +724,72 @@ const CorridaConfigurator = () => {
     );
   };
 
+  const exigeTermo = rota !== "somente_provas";
+
+  const enviarInscricao = async () => {
+    if (!rota || !resumo) return;
+    setErroEnvio(null);
+    setEnviando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("corrida-registrar-inscricao", {
+        body: {
+          rota,
+          aluno_id: alunoId,
+          nome: form.nome.trim(),
+          sobrenome: form.sobrenome.trim(),
+          email: form.email.trim(),
+          cpf: form.cpf.replace(/\D/g, ""),
+          data_nascimento: form.data_nascimento,
+          telefone: form.telefone.trim(),
+          endereco_completo: form.endereco_completo.trim(),
+          ritmo_corrida: form.ritmo_corrida,
+          local_nascimento: form.local_nascimento,
+          participou_nb_2026: provasPedido.some((p) => p.prova === "NB") ? form.participou_nb_2026 : null,
+          participou_mipoa_2026: provasPedido.some((p) => p.prova === "MIPOA")
+            ? form.participou_mipoa_2026
+            : null,
+          marca_tenis: form.marca_tenis,
+          como_soube: form.como_soube,
+          camiseta_nb: provasPedido.some((p) => p.prova === "NB") ? form.camiseta_nb : null,
+          camiseta_mipoa: provasPedido.some((p) => p.prova === "MIPOA") ? form.camiseta_mipoa : null,
+          provas: provasPedido,
+          aceite_inscricao: form.aceite_inscricao,
+          aceite_termo_aptidao: exigeTermo ? form.aceite_termo_aptidao : null,
+          pedido_resumo: {
+            linhas: resumo.linhas,
+            total_hoje: resumo.hoje,
+            recorrente_mensal: resumo.recorrente,
+          },
+        },
+      });
+      if (error || !data?.ok) throw error ?? new Error("falha");
+      setProtocolo(String(data.protocolo));
+    } catch {
+      setErroEnvio(
+        "Não conseguimos registrar a sua inscrição agora. Confira os dados e tente novamente em alguns minutos.",
+      );
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   const renderResumo = () => {
     if (!resumo) return null;
+
+    if (protocolo) {
+      return (
+        <Card className="text-center py-10">
+          <CheckCircle2 className="w-14 h-14 text-primary mx-auto mb-4" />
+          <h3 className="font-display text-2xl font-bold mb-2">Inscrição recebida!</h3>
+          <p className="text-sm text-muted-foreground mb-1">Protocolo: {protocolo}</p>
+          <p className="text-muted-foreground">Entraremos em contato em breve.</p>
+        </Card>
+      );
+    }
+
+    const temProvas = provasPedido.length > 0;
+    const podeEnviar = temProvas && inscricaoValida(form, provasPedido, exigeTermo);
+
     return (
       <>
         <Card>
@@ -710,6 +833,10 @@ const CorridaConfigurator = () => {
           </div>
         </Card>
 
+        {erroEnvio && (
+          <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">{erroEnvio}</div>
+        )}
+
         <div className="flex items-center justify-between gap-3 pt-2">
           <button
             onClick={() => irPara(stepIdx - 1)}
@@ -720,10 +847,16 @@ const CorridaConfigurator = () => {
         </div>
 
         <button
-          onClick={() => toast("Em breve", { description: "A inscrição online será liberada em breve." })}
-          className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red"
+          onClick={() =>
+            temProvas
+              ? enviarInscricao()
+              : toast("Em breve", { description: "A contratação online será liberada em breve." })
+          }
+          disabled={enviando || (temProvas && !podeEnviar)}
+          className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red flex items-center justify-center gap-2 disabled:opacity-60"
         >
-          Continuar para inscrição
+          {enviando && <Loader2 className="w-5 h-5 animate-spin" />}
+          {temProvas ? "Enviar inscrição" : "Continuar para inscrição"}
         </button>
       </>
     );
@@ -770,6 +903,17 @@ const CorridaConfigurator = () => {
               <>
                 {renderServicos()}
                 <Nav />
+              </>
+            )}
+            {stepAtual === "inscricao" && (
+              <>
+                <InscricaoProvaStep
+                  form={form}
+                  setForm={setForm}
+                  provas={provasPedido}
+                  exigeTermo={exigeTermo}
+                />
+                <Nav podeContinuar={inscricaoValida(form, provasPedido, exigeTermo)} />
               </>
             )}
             {stepAtual === "resumo" && renderResumo()}

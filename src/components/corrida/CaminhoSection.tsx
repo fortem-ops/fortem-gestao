@@ -19,7 +19,12 @@ const maskCpf = (v: string) =>
 const CaminhoSection = ({
   onSelect,
 }: {
-  onSelect: (rota: Rota, tier?: Tier | null, nome?: string | null) => void;
+  onSelect: (
+    rota: Rota,
+    tier?: Tier | null,
+    nome?: string | null,
+    prefill?: { email?: string | null; telefone?: string | null; cpfDigits?: string | null },
+  ) => void;
 }) => {
   const [abrirCpf, setAbrirCpf] = useState(false);
   const [cpf, setCpf] = useState("");
@@ -46,6 +51,7 @@ const CaminhoSection = ({
           data.rota === "aluno" ? "aluno" : "somente_corrida",
           data.tier ?? null,
           data.primeiro_nome ?? null,
+          { email: data.email ?? null, telefone: data.telefone ?? null, cpfDigits: digits },
         );
       } else {
         setNaoEncontrado(true);
