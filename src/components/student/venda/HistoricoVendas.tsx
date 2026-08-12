@@ -167,8 +167,9 @@ export function HistoricoVendas({ alunoId }: Props) {
     }
     setEstornoLoading(true);
     try {
+      const amount = Number(estornando.valor_final ?? estornando.valor ?? 0);
       const { data, error } = await supabase.functions.invoke("rede-cancelar", {
-        body: { tid, venda_id: estornando.id },
+        body: { tid, venda_id: estornando.id, amount: amount > 0 ? amount : undefined },
       });
       if (error) throw error;
       if (data && (data as any).success === false) {
