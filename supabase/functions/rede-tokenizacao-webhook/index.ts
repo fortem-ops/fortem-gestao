@@ -114,13 +114,22 @@ serve(async (req) => {
     const statusRede = String(consulta?.tokenizationStatus ?? "").trim();
     const statusLower = statusRede.toLowerCase();
 
+    const brandTokenStatus = String(consulta?.brand?.tokenStatus ?? "").trim();
+    const tokenCode = String(consulta?.token?.code ?? "").trim();
+
+    // A Rede pode devolver tokenizationStatus="Active" mesmo quando a bandeira recusou
+    // o token (brand.tokenStatus="Failed"). Tratamos isso como falha mascarada.
+    const falhaMascarada =
+      statusRede === "Active" &&
+      (brandTokenStatus === "Failed" || tokenCode.length === 0);
+
     const update: Record<string, unknown> = {
-      status: statusLower || "pending",
+      status: falhaMascarada ? "failed" : (statusLower || "pending"),
       brand_name: consulta?.brand?.name ?? null,
       brand_tid: consulta?.brand?.brandTid ?? null,
       bin: consulta?.bin ?? null,
       last4: consulta?.last4 ?? null,
-      token_code: consulta?.token?.code ?? null,
+      token_code: tokenCode || null,
       token_expiration: consulta?.token?.expirationDate ?? null,
       raw_response: consulta,
       updated_at: new Date().toISOString(),
@@ -137,7 +146,34 @@ serve(async (req) => {
       console.error("[rede-tokenizacao-webhook] erro ao atualizar registro:", updErr.message);
     }
 
-    if (statusRede === "Active" && registro && !registro.cartao_salvo_id) {
+    if (falhaMascarada && registro) {
+      const motivo = consulta?.brand?.message
+        ? `Bandeira recusou o token: ${consulta.brand.message}`
+        : `Bandeira recusou o token (tokenStatus: ${brandTokenStatus || "ausente"})`;
+      console.warn(
+        `[rede-tokenizacao-webhook] tokenização ${tokenizationId} marcada como failed. ${motivo}`
+      );
+      try {
+        await supabase.from("system_logs").insert({
+          modulo: "rede-tokenizacao-webhook",
+          acao: "tokenizacao_falhou_bandeira",
+          mensagem: `Tokenização ${tokenizationId} falhou: ${motivo}`,
+          payload: {
+            tokenization_id: tokenizationId,
+            aluno_id: registro?.aluno_id ?? null,
+            origem: registro?.origem ?? null,
+            return_code: consulta?.returnCode ?? null,
+            brand_token_status: brandTokenStatus || null,
+            brand_message: consulta?.brand?.message ?? null,
+            raw_response: consulta,
+          },
+        });
+      } catch (e) {
+        console.error("[rede-tokenizacao-webhook] falha ao registrar system_logs:", String(e));
+      }
+    }
+
+    if (statusRede === "Active" && !falhaMascarada && registro && !registro.cartao_salvo_id) {
       // Parse da validade no formato MM/YYYY (ex: "08/2034")
       let expMonth = 0;
       let expYear = 0;
