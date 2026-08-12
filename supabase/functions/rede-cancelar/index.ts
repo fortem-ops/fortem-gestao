@@ -131,7 +131,16 @@ serve(async (req) => {
     }), { status: 502, headers });
   }
 
-  const estornado = redeResponse?.returnCode === "00";
+  // A Rede retorna "00" em algumas APIs e "359"/"360" para estorno bem-sucedido
+  const REFUND_SUCCESS_CODES = ["00", "359", "360"];
+  const returnCode = String(redeResponse?.returnCode ?? "");
+  const estornado = REFUND_SUCCESS_CODES.includes(returnCode);
+
+  if (!estornado && redeStatus >= 200 && redeStatus < 300) {
+    console.warn(
+      `[rede-cancelar] HTTP 2xx com returnCode não reconhecido: http=${redeStatus} returnCode=${returnCode} returnMessage=${redeResponse?.returnMessage ?? redeBodyText.slice(0, 500)}`
+    );
+  }
 
   if (estornado) {
     await supabase.from("vendas").update({ status_pagamento: "estornado" }).eq("id", venda_id);
