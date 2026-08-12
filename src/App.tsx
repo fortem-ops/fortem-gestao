@@ -37,6 +37,7 @@ const Pipeline = lazyWithReload(() => import("./pages/Pipeline"));
 const Notificar = lazyWithReload(() => import("./pages/Notificar"));
 const Leads = lazyWithReload(() => import("./pages/Leads"));
 const Prospects = lazyWithReload(() => import("./pages/Prospects"));
+const InscricoesCorrida = lazyWithReload(() => import("./pages/corrida/InscricoesCorrida"));
 const Clube = lazyWithReload(() => import("./pages/Clube"));
 const ClubeFortem = lazyWithReload(() => import("./pages/ClubeFortem"));
 const AdminParceiros = lazyWithReload(() => import("./pages/AdminParceiros"));
@@ -349,6 +350,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <Prospects />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/corrida/inscricoes"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <InscricoesCorrida />
                   </Suspense>
                 }
               />
