@@ -1,11 +1,17 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Check, ArrowLeft, ArrowRight, Gift, Shirt } from "lucide-react";
+import { Loader2, Check, ArrowLeft, ArrowRight, Gift, Shirt, CheckCircle2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import CorridaStepper, { type StepDef } from "./CorridaStepper";
 import CaminhoSection from "./CaminhoSection";
+import InscricaoProvaStep, {
+  inscricaoFormInicial,
+  inscricaoValida,
+  type InscricaoForm,
+  type ProvaPedido,
+} from "./InscricaoProvaStep";
 
 /* ------------------------------------------------------------------ */
 /* Tipos                                                               */
