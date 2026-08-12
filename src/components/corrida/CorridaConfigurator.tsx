@@ -424,7 +424,7 @@ const CorridaConfigurator = () => {
     }
     if (mipoa && oferta.mipoaItem) {
       linhas.push({
-        label: `+MIPOA 2027 — ${oferta.mipoaItem.descricao} · 5 e 6 de junho de 2027`,
+        label: `+MIPOA 2027 — ${oferta.mipoaItem.descricao} — ${distanciaMipoa} · ${dataProva("MIPOA", distanciaMipoa)}`,
         valor: Number(oferta.mipoaItem.valor),
       });
       hoje += Number(oferta.mipoaItem.valor);
@@ -435,7 +435,7 @@ const CorridaConfigurator = () => {
     }
 
     return { linhas, hoje, recorrente };
-  }, [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, avaliacao, provasSel, parcelas]);
+  }, [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, distanciaMipoa, avaliacao, provasSel, parcelas]);
 
   const tituloRota = () => {
     switch (rota) {
