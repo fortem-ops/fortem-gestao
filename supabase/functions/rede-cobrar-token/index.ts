@@ -74,7 +74,7 @@ serve(async (req) => {
 
   const { data: cartao, error: cartaoErr } = await supabase
     .from("cartoes_salvos")
-    .select("token_rede, brand, last4, expiration_month, expiration_year, ativo")
+    .select("token_rede, brand, last4, holder_name, expiration_month, expiration_year, ativo")
     .eq("id", cartao_id).single();
   if (cartaoErr || !cartao?.ativo) {
     return new Response(JSON.stringify({ error: "Cartão inativo ou não encontrado" }), { status: 400, headers });
