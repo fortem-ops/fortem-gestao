@@ -124,7 +124,8 @@ export function NewNotificacaoDialog() {
           </div>
           <div>
             <Label>Descrição *</Label>
-            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={4} maxLength={2000} />
+            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={4} maxLength={10000} />
+            <p className="text-[11px] text-muted-foreground text-right mt-1">{descricao.length}/10000</p>
           </div>
           {tipo === "reuniao" && (
             <div className="grid grid-cols-2 gap-3">
