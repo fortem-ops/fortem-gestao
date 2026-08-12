@@ -410,6 +410,25 @@ Deno.serve(async (req) => {
     vendaId = venda.id;
     criados.push({ tabela: "vendas", id: vendaId! });
 
+    // ---------- 6. token de sessão para cadastro do cartão ----------
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    const cartaoTokenValor = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+    const { data: linkCartao, error: linkErr } = await admin
+      .from("links_cartao")
+      .insert({
+        aluno_id: alunoId,
+        token: cartaoTokenValor,
+        origem: "link_cadastro",
+        criado_por: null,
+        expira_em: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      })
+      .select("id")
+      .single();
+    if (linkErr || !linkCartao) throw new Error(`falha_criar_link_cartao: ${linkErr?.message}`);
+    criados.push({ tabela: "links_cartao", id: linkCartao.id });
+
     return json(200, {
       ok: true,
       aluno_id: alunoId,
@@ -417,6 +436,7 @@ Deno.serve(async (req) => {
       contrato_id: contratoId,
       venda_id: vendaId,
       contratos_documentos_ids: documentosIds,
+      cartao_token: cartaoTokenValor,
     });
   } catch (err) {
     console.error("corrida-criar-pedido error:", err);
