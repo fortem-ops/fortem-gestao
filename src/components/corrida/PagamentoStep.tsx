@@ -151,6 +151,8 @@ const PagamentoStep = ({
         const { data, error } = await supabase.functions.invoke("corrida-criar-pedido", {
           body: {
             ...payloadPedido,
+            idempotency_key: idempotencyKey,
+
             dadosPessoais: {
               nome: dp.nome.trim(),
               sobrenome: dp.sobrenome.trim(),
