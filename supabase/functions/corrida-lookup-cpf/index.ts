@@ -68,11 +68,12 @@ Deno.serve(async (req) => {
     const hash = await sha256Hex(digits);
     const { data: aluno, error: alunoErr } = await admin
       .from("alunos")
-      .select("id, nome")
+      .select("id, nome, email, telefone")
       .eq("cpf_hash", hash)
       .eq("status", "ativo")
       .limit(1)
       .maybeSingle();
+
     if (alunoErr) throw alunoErr;
     if (!aluno) return json(200, { found: false });
 
