@@ -256,6 +256,15 @@ const App = () => (
                 }
               />
               <Route
+                path="/clientes-avulsos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <ClientesAvulsos />
+                  </Suspense>
+                }
+              />
+
+              <Route
                 path="/alunos/:id"
                 element={
                   <Suspense fallback={<RouteFallback />}>
