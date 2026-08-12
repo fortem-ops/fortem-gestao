@@ -1,28 +1,11 @@
-# Nova cobrança de teste em rede-cobrar-token
+# Configurar REDE_WEBHOOK_TOKEN
 
-## Confirmação do código (já verificada)
+## Objetivo
+Armazenar o secret `REDE_WEBHOOK_TOKEN` no projeto para que a Edge Function `rede-tokenizacao-webhook` possa validar o header `Authorization: Bearer <token>` enviado pela Rede.
 
-O payload atual em `supabase/functions/rede-cobrar-token/index.ts` (linhas 87-98) contém:
+## O que será feito
+1. Usar `secrets--set_secret` para salvar `REDE_WEBHOOK_TOKEN` com o valor fornecido.
+2. Usar `secrets--fetch_secrets` para listar os secrets configurados e confirmar que `REDE_WEBHOOK_TOKEN` aparece na lista (sem revelar valores de outros secrets).
 
-```text
-storageCard: "2"
-brandTid: cartao.token_rede
-expirationMonth: String(cartao.expiration_month).padStart(2, "0")
-expirationYear: normalizado para 4 dígitos
-cardholderName: holder_name em maiúsculas, sem acentos
-```
-
-A correção está no arquivo. Deploy da função ocorre a cada alteração, então a próxima chamada usa esta versão.
-
-## Sobre a suspeita de cache
-
-A função não tem cache de resposta. O que pode devolver um resultado repetido é a **checagem de idempotência em `pagamentos_rede`**: se já existe um registro para o mesmo `venda_id`/tentativa, a função pode retornar a resposta anterior sem chamar a Rede. É a explicação mais provável para "mesma resposta de antes" — não confirmei ainda qual chave de idempotência foi gravada na tentativa das 13:29.
-
-## O que proponho fazer (requer sua aprovação, é cobrança real)
-
-1. Ler as linhas de `pagamentos_rede` referentes ao `venda_id` `1824916f...` para saber se a idempotência vai bloquear/reaproveitar a tentativa.
-2. Se houver bloqueio, informar você e sugerir a saída (novo `venda_id` de teste ou ajuste de chave) antes de qualquer cobrança.
-3. Se não houver bloqueio, invocar `rede-cobrar-token` via POST com o payload informado (`amount` 1.00, `installments` 1) — cobrança real de R$ 1,00 no cartão salvo.
-4. Retornar status HTTP e corpo completos, e buscar os logs da função filtrando pelo horário da invocação nova.
-
-Nenhum código será alterado nesta etapa.
+## Nota
+Este é um shared secret: o mesmo valor deve ser colado no portal da Rede ao configurar o webhook. O valor já foi fornecido pelo usuário, então será salvo diretamente via `set_secret`.
