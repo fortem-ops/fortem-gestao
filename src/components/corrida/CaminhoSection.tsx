@@ -51,6 +51,7 @@ const CaminhoSection = ({
           data.rota === "aluno" ? "aluno" : "somente_corrida",
           data.tier ?? null,
           data.primeiro_nome ?? null,
+          { email: data.email ?? null, telefone: data.telefone ?? null, cpfDigits: digits },
         );
       } else {
         setNaoEncontrado(true);
