@@ -62,7 +62,8 @@ serve(async (req) => {
     reference: venda_id,
     amount: Math.round(Number(amount) * 100),
     installments,
-    storageCard: { cardId: cartao.token_rede },
+    storageCard: "2",
+    brandTid: cartao.token_rede,
     subscription: true,
   };
 
