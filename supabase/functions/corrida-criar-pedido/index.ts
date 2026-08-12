@@ -113,8 +113,110 @@ Deno.serve(async (req) => {
 
     const nomeCompleto = [dp?.nome, dp?.sobrenome].filter(Boolean).join(" ").trim();
 
+    const cpfDigitsPayload = String(dp?.cpf ?? "").replace(/\D/g, "");
+    const cpfHashPayload = cpfDigitsPayload.length === 11 ? await sha256Hex(cpfDigitsPayload) : null;
+
+    // gera um novo token de sessão para cadastro de cartão
+    const gerarTokenCartao = async (aid: string) => {
+      const bytes = new Uint8Array(24);
+      crypto.getRandomValues(bytes);
+      const valor = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+      const { data, error } = await admin
+        .from("links_cartao")
+        .insert({
+          aluno_id: aid,
+          token: valor,
+          origem: "link_cadastro",
+          criado_por: null,
+          expira_em: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        })
+        .select("id")
+        .single();
+      if (error || !data) throw new Error(`falha_criar_link_cartao: ${error?.message}`);
+      return { valor, id: data.id as string };
+    };
+
+    // ---------- 0. idempotência ----------
+    const idempotencyKey = String(body?.idempotency_key ?? "").trim() || null;
+    if (idempotencyKey) {
+      const { data: vendaExistente } = await admin
+        .from("vendas")
+        .select("id, aluno_id, plano_id")
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+
+      if (vendaExistente) {
+        const { data: contratoExistente } = await admin
+          .from("contratos")
+          .select("id")
+          .eq("aluno_id", vendaExistente.aluno_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+
+        let docsQuery = admin
+          .from("contratos_documentos")
+          .select("id, conteudo_gerado, template_id")
+          .order("created_at", { ascending: true });
+        docsQuery = contratoExistente?.id
+          ? docsQuery.eq("contrato_id", contratoExistente.id)
+          : docsQuery.eq("aluno_id", vendaExistente.aluno_id);
+        const { data: docs } = await docsQuery;
+
+        const templateIds = [...new Set((docs ?? []).map((d: any) => d.template_id).filter(Boolean))];
+        const { data: templates } = templateIds.length
+          ? await admin.from("contrato_templates").select("id, nome").in("id", templateIds)
+          : { data: [] as any[] };
+        const nomePorTemplate = new Map((templates ?? []).map((t: any) => [t.id, t.nome]));
+        const docsDoContrato = docs ?? [];
+
+
+        // token de cartão: reaproveita um válido ou gera outro
+        const { data: linkValido } = await admin
+          .from("links_cartao")
+          .select("token")
+          .eq("aluno_id", vendaExistente.aluno_id)
+          .eq("usado", false)
+          .gt("expira_em", new Date().toISOString())
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const tokenCartao = linkValido?.token ?? (await gerarTokenCartao(vendaExistente.aluno_id!)).valor;
+
+        return json(200, {
+          ok: true,
+          reused: true,
+          aluno_id: vendaExistente.aluno_id,
+          plano_id: vendaExistente.plano_id,
+          contrato_id: contratoExistente?.id ?? null,
+          venda_id: vendaExistente.id,
+          contratos_documentos_ids: docsDoContrato.map((d: any) => d.id),
+          contratos_documentos: docsDoContrato.map((d: any) => ({
+            id: d.id,
+            nome: nomePorTemplate.get(d.template_id) ?? "Contrato",
+            conteudo_gerado: d.conteudo_gerado,
+          })),
+          cartao_token: tokenCartao,
+        });
+      }
+    }
+
     // ---------- 1. aluno ----------
     let alunoId: string | null = body?.alunoId ?? null;
+
+    // CPF é a fonte da verdade: se já existe aluno com esse CPF, reaproveita.
+    if (cpfHashPayload) {
+      const { data: alunoCpf } = await admin
+        .from("alunos")
+        .select("id")
+        .eq("cpf_hash", cpfHashPayload)
+        .limit(1)
+        .maybeSingle();
+      if (alunoCpf?.id) alunoId = alunoCpf.id;
+    }
+
     if (!alunoId) {
       if (!nomeCompleto) return json(400, { error: "nome_obrigatorio" });
       const end = dp?.endereco ?? {};
@@ -427,6 +529,7 @@ Deno.serve(async (req) => {
         origem: "corrida_publico",
         status_pagamento: "pendente",
         plano_id: planoId,
+        idempotency_key: idempotencyKey,
         observacoes: JSON.stringify({ rota, pedidoResumo }).slice(0, 4000),
       })
       .select("id")
@@ -436,23 +539,10 @@ Deno.serve(async (req) => {
     criados.push({ tabela: "vendas", id: vendaId! });
 
     // ---------- 6. token de sessão para cadastro do cartão ----------
-    const bytes = new Uint8Array(24);
-    crypto.getRandomValues(bytes);
-    const cartaoTokenValor = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+    const novoToken = await gerarTokenCartao(alunoId!);
+    const cartaoTokenValor = novoToken.valor;
+    criados.push({ tabela: "links_cartao", id: novoToken.id });
 
-    const { data: linkCartao, error: linkErr } = await admin
-      .from("links_cartao")
-      .insert({
-        aluno_id: alunoId,
-        token: cartaoTokenValor,
-        origem: "link_cadastro",
-        criado_por: null,
-        expira_em: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      })
-      .select("id")
-      .single();
-    if (linkErr || !linkCartao) throw new Error(`falha_criar_link_cartao: ${linkErr?.message}`);
-    criados.push({ tabela: "links_cartao", id: linkCartao.id });
 
     return json(200, {
       ok: true,
