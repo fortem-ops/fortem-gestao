@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CreditCard, Star, StarOff, Lock, ChevronDown, ChevronUp,
@@ -255,6 +255,9 @@ export function CartoesSection({ student }: Props) {
   const [linkGerado, setLinkGerado] = useState<string | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [gerandoLink, setGerandoLink] = useState(false);
+  // Aguardando confirmação assíncrona da tokenização (webhook da Rede)
+  const [aguardando, setAguardando] = useState<{ baseCount: number; ate: number } | null>(null);
+  const [demorou, setDemorou] = useState(false);
 
   const { data: cartoes = [], isLoading } = useQuery({
     queryKey: ["cartoes-salvos-aluno", student.id],
@@ -267,7 +270,30 @@ export function CartoesSection({ student }: Props) {
       if (error) throw error;
       return (data ?? []) as unknown as Cartao[];
     },
+    refetchInterval: aguardando ? 3000 : false,
   });
+
+  // Encerra o polling quando o cartão chega ou quando o tempo se esgota
+  useEffect(() => {
+    if (!aguardando) return;
+    if (cartoes.length > aguardando.baseCount) {
+      setAguardando(null);
+      setDemorou(false);
+      toast.success("Cartão validado e adicionado à lista");
+      return;
+    }
+    if (Date.now() > aguardando.ate) {
+      setAguardando(null);
+      setDemorou(true);
+    }
+  }, [cartoes.length, aguardando]);
+
+  function iniciarAguardo() {
+    setDemorou(false);
+    setAguardando({ baseCount: cartoes.length, ate: Date.now() + 60_000 });
+    qc.invalidateQueries({ queryKey: ["cartoes-salvos-aluno", student.id] });
+  }
+
 
   async function gerarLink() {
     setGerandoLink(true);
@@ -368,12 +394,24 @@ export function CartoesSection({ student }: Props) {
           )}
         </CardHeader>
         <CardContent className="p-0">
+          {aguardando && (
+            <p className="text-xs text-muted-foreground px-6 pt-4 flex items-center gap-2">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              Validando cartão com a operadora… a lista atualiza sozinha em instantes.
+            </p>
+          )}
+          {demorou && (
+            <p className="text-xs text-muted-foreground px-6 pt-4">
+              A confirmação da operadora está demorando mais que o normal. O cartão aparecerá aqui assim que for validado.
+            </p>
+          )}
           {isLoading ? (
             <p className="text-sm text-muted-foreground p-6">Carregando…</p>
           ) : cartoes.length === 0 ? (
             <p className="text-sm text-muted-foreground p-6">
               Nenhum cartão cadastrado para este aluno.
             </p>
+
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -439,7 +477,7 @@ export function CartoesSection({ student }: Props) {
         alunoId={student.id}
         alunoNome={student.nome}
         origem="recepcao"
-        onSuccess={() => qc.invalidateQueries({ queryKey: ["cartoes-salvos-aluno", student.id] })}
+        onSuccess={iniciarAguardo}
       />
     </>
   );

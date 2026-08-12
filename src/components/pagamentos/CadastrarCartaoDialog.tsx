@@ -94,8 +94,14 @@ export function CartaoForm({
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error ?? "Falha ao salvar cartão");
 
-      toast.success(`Cartão •••• ${data.last4} salvo com sucesso`);
+      if (data?.status === "pending" || !data?.last4) {
+        toast.success("Cartão enviado para validação — aparecerá na lista em instantes.");
+      } else {
+        toast.success(`Cartão •••• ${data.last4} salvo com sucesso`);
+      }
+
       onSuccess?.();
+
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao salvar cartão");
     } finally {
