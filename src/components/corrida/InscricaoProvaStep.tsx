@@ -408,7 +408,17 @@ const InscricaoProvaStep = ({
               checked={form.aceite_termo_aptidao}
               onChange={() => set("aceite_termo_aptidao", !form.aceite_termo_aptidao)}
             >
-              Li e aceito o Termo de Aptidão Física e Uso de Imagem da Fortem.
+              Li e aceito o{" "}
+              <a
+                href="/termos/aptidao-fisica-uso-imagem"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Termo de Aptidão Física e Uso de Imagem
+              </a>{" "}
+              da Fortem.
             </CheckRow>
           )}
         </Secao>
