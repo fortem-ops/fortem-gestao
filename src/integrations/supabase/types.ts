@@ -6691,6 +6691,7 @@ export type Database = {
           desconto: number
           forma_pagamento: string | null
           id: string
+          idempotency_key: string | null
           modalidade_pagamento: string | null
           motivo_cancelamento_id: string | null
           nome_snapshot: string
@@ -6719,6 +6720,7 @@ export type Database = {
           desconto?: number
           forma_pagamento?: string | null
           id?: string
+          idempotency_key?: string | null
           modalidade_pagamento?: string | null
           motivo_cancelamento_id?: string | null
           nome_snapshot: string
@@ -6747,6 +6749,7 @@ export type Database = {
           desconto?: number
           forma_pagamento?: string | null
           id?: string
+          idempotency_key?: string | null
           modalidade_pagamento?: string | null
           motivo_cancelamento_id?: string | null
           nome_snapshot?: string

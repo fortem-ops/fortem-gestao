@@ -1,0 +1,2 @@
+ALTER TABLE public.vendas ADD COLUMN IF NOT EXISTS idempotency_key text;
+CREATE UNIQUE INDEX IF NOT EXISTS vendas_idempotency_key_uidx ON public.vendas (idempotency_key) WHERE idempotency_key IS NOT NULL;
