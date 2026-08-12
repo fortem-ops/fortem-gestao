@@ -435,7 +435,7 @@ serve(async (req) => {
   });
 
   if (insErr) {
-    console.error("[rede-salvar-cartao] insert erro:", insErr.message);
+    console.error("[rede-salvar-cartao] insert erro:", insErr?.message);
     return new Response(JSON.stringify({ success: false, error: "Falha ao salvar cartão" }), { status: 500, headers });
   }
 
