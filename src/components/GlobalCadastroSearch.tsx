@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDebounce } from "@/hooks/useDebounce";
 
-type Tipo = "lead" | "prospect" | "ativo" | "inativo";
+type Tipo = "lead" | "prospect" | "ativo" | "avulso" | "inativo";
 
 interface Resultado {
   id: string;
@@ -24,6 +24,7 @@ const TIPO_META: Record<Tipo, { label: string; className: string; group: string 
   lead: { label: "Lead", className: "status-info", group: "Leads" },
   prospect: { label: "Prospect", className: "status-warning", group: "Prospects" },
   ativo: { label: "Ativo", className: "status-active", group: "Alunos Ativos" },
+  avulso: { label: "Avulso", className: "status-info", group: "Clientes Avulsos" },
   inativo: { label: "Inativo", className: "status-urgent", group: "Alunos Inativos" },
 };
 
@@ -75,12 +76,13 @@ export function GlobalCadastroSearch() {
   });
 
   const grouped = useMemo(() => {
-    const out: Record<Tipo, Resultado[]> = { lead: [], prospect: [], ativo: [], inativo: [] };
+    const out: Record<Tipo, Resultado[]> = { lead: [], prospect: [], ativo: [], avulso: [], inativo: [] };
     alunos.forEach((a: any) => {
       const stageName = a.current_pipeline_stage_id ? stageMap[a.current_pipeline_stage_id] : null;
       let tipo: Tipo;
       if (stageName === LEAD_STAGE) tipo = "lead";
       else if (stageName && PROSPECT_STAGES.includes(stageName)) tipo = "prospect";
+      else if (a.status === "avulso") tipo = "avulso";
       else if (a.status === "encerrado" || a.status === "inativo") tipo = "inativo";
       else tipo = "ativo";
       if (out[tipo].length < 8) {
@@ -90,12 +92,12 @@ export function GlobalCadastroSearch() {
     return out;
   }, [alunos, stageMap]);
 
-  const totalResultados = grouped.lead.length + grouped.prospect.length + grouped.ativo.length + grouped.inativo.length;
+  const totalResultados = grouped.lead.length + grouped.prospect.length + grouped.ativo.length + grouped.avulso.length + grouped.inativo.length;
 
   function handleSelect(r: Resultado) {
     setOpen(false);
     setTerm("");
-    if (r.tipo === "ativo" || r.tipo === "inativo") {
+    if (r.tipo === "ativo" || r.tipo === "inativo" || r.tipo === "avulso") {
       navigate(`/alunos/${r.id}`);
     } else if (r.tipo === "lead") {
       navigate(`/leads?edit=${r.id}`);
@@ -134,7 +136,7 @@ export function GlobalCadastroSearch() {
         )}
         {!isFetching && totalResultados > 0 && (
           <div className="py-1">
-            {(["ativo", "prospect", "lead", "inativo"] as Tipo[]).map((tipo) => {
+            {(["ativo", "prospect", "lead", "avulso", "inativo"] as Tipo[]).map((tipo) => {
               const items = grouped[tipo];
               if (!items.length) return null;
               const meta = TIPO_META[tipo];

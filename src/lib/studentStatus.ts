@@ -1,7 +1,7 @@
 import { getLicencaVigente, type AlunoLicenca } from "./licencas";
 import { isAutoRenewPlan } from "./planTipo";
 
-export type DisplayStatusKey = "ativo" | "licenca" | "encerrado" | "lead" | "prospect";
+export type DisplayStatusKey = "ativo" | "licenca" | "encerrado" | "lead" | "prospect" | "avulso";
 
 export interface DisplayStatus {
   key: DisplayStatusKey;
@@ -15,6 +15,7 @@ const LABELS: Record<DisplayStatusKey, string> = {
   encerrado: "Inativo",
   lead: "Lead",
   prospect: "Prospect",
+  avulso: "Cliente Avulso",
 };
 
 const CLASSES: Record<DisplayStatusKey, string> = {
@@ -23,6 +24,7 @@ const CLASSES: Record<DisplayStatusKey, string> = {
   encerrado: "status-urgent",
   lead: "status-info",
   prospect: "status-warning",
+  avulso: "status-info",
 };
 
 export function getDisplayStatus(
@@ -35,6 +37,12 @@ export function getDisplayStatus(
   if (rawStatus === "lead" || rawStatus === "prospect") {
     return { key: rawStatus, label: LABELS[rawStatus], className: CLASSES[rawStatus] };
   }
+
+  // Clientes avulsos: fora das contagens de ativos/inativos
+  if (rawStatus === "avulso") {
+    return { key: "avulso", label: LABELS.avulso, className: CLASSES.avulso };
+  }
+
 
   if (getLicencaVigente(licencas)) {
     return { key: "licenca", label: LABELS.licenca, className: CLASSES.licenca };

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag } from "lucide-react";
+import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
@@ -67,7 +67,9 @@ const cadastrosMidItems = [
   { title: "Prospects", url: "/prospects", icon: Target },
   { title: "Alunos Ativos", url: "/alunos", icon: Users },
   { title: "Alunos Inativos", url: "/alunos-inativos", icon: UserX },
+  { title: "Clientes Avulsos", url: "/clientes-avulsos", icon: UserRound },
 ];
+
 const cadastrosAdminItems = [
   { title: "Anexos Jurídicos", url: "/anexos", icon: FileSignature },
 ];
