@@ -181,7 +181,7 @@ const PagamentoStep = ({
         setLoading(false);
       }
     },
-    [payloadPedido, pedido, setPedido],
+    [payloadPedido, pedido, setPedido, idempotencyKey],
   );
 
   // dados vindos da etapa de inscrição: gera o pedido automaticamente
