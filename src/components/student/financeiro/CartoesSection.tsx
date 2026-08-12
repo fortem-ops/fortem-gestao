@@ -477,7 +477,7 @@ export function CartoesSection({ student }: Props) {
         alunoId={student.id}
         alunoNome={student.nome}
         origem="recepcao"
-        onSuccess={() => qc.invalidateQueries({ queryKey: ["cartoes-salvos-aluno", student.id] })}
+        onSuccess={iniciarAguardo}
       />
     </>
   );
