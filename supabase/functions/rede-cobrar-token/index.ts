@@ -7,6 +7,11 @@ const REDE_URLS = {
   producao: "https://api.userede.com.br/erede/v2",
 };
 
+const TOKEN_SERVICE_URLS = {
+  sandbox:  "https://rl7-sandbox-api.useredecloud.com.br/token-service/oauth/v2/cryptogram",
+  producao: "https://api.userede.com.br/redelabs/token-service/oauth/v2/cryptogram",
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -80,9 +85,70 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Cartão inativo ou não encontrado" }), { status: 400, headers });
   }
 
+  // Buscar tokenization_id ativo correspondente a este cartão salvo
+  const { data: tokenizacao } = await supabase
+    .from("rede_tokenizacoes")
+    .select("tokenization_id")
+    .eq("cartao_salvo_id", cartao_id)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!tokenizacao?.tokenization_id) {
+    return new Response(JSON.stringify({ error: "Token de cobrança não encontrado para este cartão. É necessário recadastrar o cartão." }), { status: 400, headers });
+  }
+
   const secrets = await loadSecrets(supabase);
   const pv = secrets["rede_pv"], token = secrets["rede_token"];
-  const baseUrl = REDE_URLS[secrets["rede_ambiente"] as "sandbox" | "producao"] ?? REDE_URLS.sandbox;
+  const ambiente = secrets["rede_ambiente"] as "sandbox" | "producao" ?? "sandbox";
+  const baseUrl = REDE_URLS[ambiente] ?? REDE_URLS.sandbox;
+  const tokenServiceBaseUrl = TOKEN_SERVICE_URLS[ambiente] ?? TOKEN_SERVICE_URLS.sandbox;
+
+  // Gerar access_token OAuth e criptograma de uso único
+  let accessToken: string;
+  try {
+    accessToken = await getRedeAccessToken(pv, token, ambiente);
+  } catch (e) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: "Falha na autenticação Rede",
+      detalhe: String(e),
+    }), { status: 502, headers });
+  }
+
+  let cryptoResp: any = null;
+  let cryptoStatus = 0;
+  let cryptoBodyText = "";
+  try {
+    const resp = await fetch(`${tokenServiceBaseUrl}/${tokenizacao.tokenization_id}`, {
+      method: "POST",
+      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription: true }),
+    });
+    cryptoStatus = resp.status;
+    cryptoBodyText = await resp.text();
+    try { cryptoResp = JSON.parse(cryptoBodyText); } catch { cryptoResp = { rawText: cryptoBodyText }; }
+  } catch (e) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: "Erro de comunicação com a Rede ao gerar criptograma",
+      detalhe: String(e),
+      rede_http_status: cryptoStatus,
+      rede_body: cryptoBodyText.slice(0, 1000),
+    }), { status: 502, headers });
+  }
+
+  const cryptoReturnCode = cryptoResp?.returnCode ?? null;
+  const tokenCryptogram = cryptoResp?.cryptogramInfo?.tokenCryptogram ?? null;
+  if (cryptoStatus < 200 || cryptoStatus >= 300 || cryptoReturnCode !== "00" || !tokenCryptogram) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: cryptoResp?.returnMessage ?? "Falha ao gerar criptograma de cobrança",
+      return_code: cryptoReturnCode,
+      rede_http_status: cryptoStatus,
+      rede_body: cryptoResp,
+    }), { status: 502, headers });
+  }
 
   const payload = {
     capture: true,
@@ -91,10 +157,11 @@ serve(async (req) => {
     amount: Math.round(Number(amount) * 100),
     installments,
     storageCard: "2",
-    brandTid: cartao.token_rede,
+    cardNumber: cartao.token_rede,
     expirationMonth: String(cartao.expiration_month).padStart(2, "0"),
-    expirationYear: (() => { const y = String(cartao.expiration_year).trim(); return y.length === 2 ? "20" + y : y; })(),
+    expirationYear: String(cartao.expiration_year),
     cardholderName: String(cartao.holder_name || "").trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+    tokenCryptogram,
     subscription: true,
   };
 
@@ -104,7 +171,7 @@ serve(async (req) => {
   try {
     const resp = await fetch(`${baseUrl}/transactions`, {
       method: "POST",
-      headers: { Authorization: "Bearer " + (await getRedeAccessToken(pv, token, secrets["rede_ambiente"] ?? "sandbox")), "Content-Type": "application/json" },
+      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     redeStatus = resp.status;
