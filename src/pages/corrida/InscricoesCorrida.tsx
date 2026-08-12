@@ -17,6 +17,8 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Flag } from "lucide-react";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { InscricaoCpfRevealField } from "@/components/corrida/InscricaoCpfRevealField";
 
 type Inscricao = Tables<"corrida_inscricoes_prova">;
 
@@ -55,6 +57,8 @@ export default function InscricoesCorrida() {
   const [busca, setBusca] = useState("");
   const [rota, setRota] = useState<string>("todas");
   const [detalhe, setDetalhe] = useState<Inscricao | null>(null);
+  const { data: roles } = useUserRoles();
+  const isCoordAdmin = !!roles?.isCoordAdmin;
 
   const { data: inscricoes = [], isLoading } = useQuery({
     queryKey: ["corrida-inscricoes"],
@@ -188,7 +192,11 @@ export default function InscricoesCorrida() {
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="E-mail" value={detalhe.email} />
                     <Field label="Telefone" value={detalhe.telefone} />
-                    <Field label="CPF" value={`•••.•••.${detalhe.cpf_ultimos3}`} />
+                    <InscricaoCpfRevealField
+                      inscricaoId={detalhe.id}
+                      cpfUltimos3={detalhe.cpf_ultimos3}
+                      isCoordAdmin={isCoordAdmin}
+                    />
                     <Field
                       label="Data de nascimento"
                       value={format(new Date(`${detalhe.data_nascimento}T12:00:00`), "dd/MM/yyyy")}
