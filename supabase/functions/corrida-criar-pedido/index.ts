@@ -33,6 +33,17 @@ const PLANO_BASE_LABEL: Record<string, string> = {
 
 const VALOR_PROVA = 289;
 
+// Hash SHA-256 do CPF autorizado a testar cobrança real com valor simbólico.
+const CPF_TESTE_HASH = "9d4b1135d02aa574942b053143c2c76ceb5d4d472be2c04138b314d179482ee3";
+const VALOR_TESTE = 10;
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 const brl = (v: number) =>
   `R$ ${Number(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -92,7 +103,7 @@ Deno.serve(async (req) => {
 
     const dp = body?.dadosPessoais ?? {};
     const pedidoResumo = body?.pedidoResumo ?? {};
-    const total = Number(pedidoResumo?.total ?? 0);
+    let total = Number(pedidoResumo?.total ?? 0);
     if (!Number.isFinite(total) || total < 0) return json(400, { error: "total_invalido" });
 
     const cortesiaNb = body?.cortesiaNb ?? null;
@@ -150,6 +161,13 @@ Deno.serve(async (req) => {
     if (!cpfCompleto) {
       const { data: cpfRpc } = await admin.rpc("fn_reveal_cpf", { p_aluno_id: alunoId });
       if (typeof cpfRpc === "string") cpfCompleto = cpfRpc;
+    }
+    cpfCompleto = cpfCompleto.replace(/\D/g, "");
+
+    // Modo teste: CPF autorizado paga valor simbólico (só o valor muda).
+    if (cpfCompleto.length === 11 && (await sha256Hex(cpfCompleto)) === CPF_TESTE_HASH) {
+      total = VALOR_TESTE;
+      console.log("modo_teste_valor_simbolico aplicado");
     }
 
     let planoId: string | null = null;
