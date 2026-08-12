@@ -508,23 +508,19 @@ const CorridaConfigurator = () => {
         ) : (
           <div>
             <div className="flex items-end gap-3 flex-wrap">
-              <span className="font-display text-4xl font-bold">{brl(Number(p.valor))}</span>
-              {anual ? (
-                <>
-                  <span className="text-muted-foreground">no plano anual</span>
-                  {oferta.planoMensal && (
-                    <span className="text-muted-foreground line-through">
-                      {brl(Number(oferta.planoMensal.valor))}/mês
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span className="text-muted-foreground">/mês</span>
+              <span className="font-display text-4xl font-bold">
+                {brl(anual ? Number(p.valor) / 12 : Number(p.valor))}
+              </span>
+              <span className="text-muted-foreground">/mês</span>
+              {anual && oferta.planoMensal && (
+                <span className="text-muted-foreground line-through">
+                  {brl(Number(oferta.planoMensal.valor))}/mês
+                </span>
               )}
             </div>
             {anual && (
               <p className="text-sm text-muted-foreground mt-1">
-                equivale a {brl(Number(p.valor) / 12)}/mês · parcelável em até {parcelas}x
+                {brl(Number(p.valor))} no plano anual · em até {parcelas}x
               </p>
             )}
           </div>
