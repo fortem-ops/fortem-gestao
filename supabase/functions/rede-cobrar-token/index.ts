@@ -7,6 +7,11 @@ const REDE_URLS = {
   producao: "https://api.userede.com.br/erede/v2",
 };
 
+const TOKEN_SERVICE_URLS = {
+  sandbox:  "https://rl7-sandbox-api.useredecloud.com.br/token-service/oauth/v2/cryptogram",
+  producao: "https://api.userede.com.br/redelabs/token-service/oauth/v2/cryptogram",
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
