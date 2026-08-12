@@ -5709,6 +5709,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_corrida_publico: {
+        Row: {
+          contagem: number
+          endpoint: string
+          ip_address: string
+          janela_min: number
+        }
+        Insert: {
+          contagem?: number
+          endpoint: string
+          ip_address: string
+          janela_min: number
+        }
+        Update: {
+          contagem?: number
+          endpoint?: string
+          ip_address?: string
+          janela_min?: number
+        }
+        Relationships: []
+      }
       rede_tokenizacoes: {
         Row: {
           aluno_id: string
