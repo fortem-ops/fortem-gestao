@@ -255,6 +255,9 @@ export function CartoesSection({ student }: Props) {
   const [linkGerado, setLinkGerado] = useState<string | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [gerandoLink, setGerandoLink] = useState(false);
+  // Aguardando confirmação assíncrona da tokenização (webhook da Rede)
+  const [aguardando, setAguardando] = useState<{ baseCount: number; ate: number } | null>(null);
+  const [demorou, setDemorou] = useState(false);
 
   const { data: cartoes = [], isLoading } = useQuery({
     queryKey: ["cartoes-salvos-aluno", student.id],
@@ -267,7 +270,30 @@ export function CartoesSection({ student }: Props) {
       if (error) throw error;
       return (data ?? []) as unknown as Cartao[];
     },
+    refetchInterval: aguardando ? 3000 : false,
   });
+
+  // Encerra o polling quando o cartão chega ou quando o tempo se esgota
+  useEffect(() => {
+    if (!aguardando) return;
+    if (cartoes.length > aguardando.baseCount) {
+      setAguardando(null);
+      setDemorou(false);
+      toast.success("Cartão validado e adicionado à lista");
+      return;
+    }
+    if (Date.now() > aguardando.ate) {
+      setAguardando(null);
+      setDemorou(true);
+    }
+  }, [cartoes.length, aguardando]);
+
+  function iniciarAguardo() {
+    setDemorou(false);
+    setAguardando({ baseCount: cartoes.length, ate: Date.now() + 60_000 });
+    qc.invalidateQueries({ queryKey: ["cartoes-salvos-aluno", student.id] });
+  }
+
 
   async function gerarLink() {
     setGerandoLink(true);
