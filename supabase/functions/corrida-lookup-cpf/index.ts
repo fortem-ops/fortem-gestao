@@ -94,7 +94,10 @@ Deno.serve(async (req) => {
       rota: tier ? "aluno" : "somente_corrida",
       tier,
       primeiro_nome: String(aluno.nome ?? "").trim().split(/\s+/)[0] ?? "",
+      email: aluno.email ?? null,
+      telefone: aluno.telefone ?? null,
     });
+
   } catch (err) {
     console.error("corrida-lookup-cpf error:", err);
     return json(500, { error: "erro_interno" });
