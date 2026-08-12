@@ -164,7 +164,7 @@ export function CpfRevealField({ alunoId, cpfUltimos3, isCoordAdmin, isAdmin }: 
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Editar CPF</DialogTitle>
+            <DialogTitle>{hasCpf ? "Editar CPF" : "Adicionar CPF"}</DialogTitle>
           </DialogHeader>
           <div>
             <Label className="text-xs">CPF</Label>
