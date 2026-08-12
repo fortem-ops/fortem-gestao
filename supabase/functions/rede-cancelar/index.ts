@@ -69,6 +69,26 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes" }), { status: 400, headers });
   }
 
+  // Valor do estorno em centavos: body (reais) ou fallback em pagamentos_rede (já em centavos)
+  let amountCents: number | null =
+    amount != null && Number(amount) > 0 ? Math.round(Number(amount) * 100) : null;
+
+  if (!amountCents) {
+    const { data: pag } = await supabase
+      .from("pagamentos_rede")
+      .select("amount")
+      .eq("tid", tid)
+      .maybeSingle();
+    if (pag?.amount && Number(pag.amount) > 0) amountCents = Math.round(Number(pag.amount));
+  }
+
+  if (!amountCents || amountCents <= 0) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: "Valor do estorno não informado e não encontrado para este TID",
+    }), { status: 400, headers });
+  }
+
   const secrets = await loadSecrets(supabase);
   const pv = secrets["rede_pv"], token = secrets["rede_token"];
   const ambiente = secrets["rede_ambiente"] as "sandbox" | "producao" ?? "sandbox";
@@ -89,14 +109,18 @@ serve(async (req) => {
   let redeStatus = 0;
   let redeBodyText = "";
   try {
+    console.log(`[rede-cancelar] estornando tid=${tid} amount=${amountCents} (centavos) ambiente=${ambiente}`);
     const resp = await fetch(`${baseUrl}/transactions/${tid}/refunds`, {
       method: "POST",
       headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: amount ? Math.round(Number(amount) * 100) : undefined }),
+      body: JSON.stringify({ amount: amountCents }),
     });
     redeStatus = resp.status;
     redeBodyText = await resp.text();
     try { redeResponse = JSON.parse(redeBodyText); } catch { redeResponse = { rawText: redeBodyText }; }
+    console.log(
+      `[rede-cancelar] resposta Rede http=${redeStatus} returnCode=${redeResponse?.returnCode ?? "-"} returnMessage=${redeResponse?.returnMessage ?? redeBodyText.slice(0, 300)}`
+    );
   } catch (e) {
     return new Response(JSON.stringify({
       success: false,
@@ -117,6 +141,11 @@ serve(async (req) => {
   return new Response(JSON.stringify({
     success: estornado,
     return_code: redeResponse?.returnCode,
-    return_message: redeResponse?.returnMessage,
+    return_message: redeResponse?.returnMessage
+      ?? (estornado ? undefined : redeBodyText.slice(0, 300)),
+    ...(estornado ? {} : {
+      rede_http_status: redeStatus,
+      rede_body: redeBodyText.slice(0, 1000),
+    }),
   }), { status: 200, headers });
 });
