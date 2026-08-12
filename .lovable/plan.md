@@ -1,36 +1,32 @@
-# Estorno Rede — erro de "Amount"
+# Estorno confirmado na Rede, mas não gravado no banco
 
-## O que os logs mostram
-
-Logs mais recentes de `rede-cancelar`:
+## Logs (últimos 10 min)
 
 ```text
-2026-08-12T14:36:34Z INFO [rede-auth] novo access_token obtido, expira em 1439 segundos
-2026-08-12T14:36:34Z INFO [rede-auth] obtendo token em: https://api.userede.com.br/redelabs/oauth2/token
-2026-08-12T14:32:36Z ERROR OAuth Rede falhou (401): {"error":"invalid_client"}  (tentativa anterior, sandbox)
+14:43:26 [rede-cancelar] estornando tid=10472608121128082473 amount=100 (centavos) ambiente=producao
+14:43:26 [rede-auth] obtendo token em: https://api.userede.com.br/redelabs/oauth2/token
+14:43:26 [rede-auth] novo access_token obtido, expira em 1439 segundos
+14:43:27 [rede-cancelar] resposta Rede http=201 returnCode=359 returnMessage=Refund successful.
 ```
 
-- A autenticação agora funciona (produção, token obtido às 14:36).
-- **Não há nenhum log com status HTTP, `returnCode` ou `returnMessage` da Rede** — a função não registra a resposta do endpoint de estorno. Por isso o texto exato do erro "Amount" não aparece nos logs; ele chegou ao usuário apenas pelo toast do frontend.
+## Diagnóstico
 
-## Causa provável (confirmada no código, não no log)
+O estorno **foi aprovado pela Rede**: HTTP 201, `returnCode 359`, `returnMessage "Refund successful."`.
 
-- `src/components/student/venda/HistoricoVendas.tsx` (linha 170) chama a função enviando apenas `{ tid, venda_id }` — **sem `amount`**.
-- `supabase/functions/rede-cancelar/index.ts` monta o corpo como `{ amount: amount ? ... : undefined }`, o que serializa para `{}`.
-- A API v2 da Rede exige `amount` (em centavos) no POST `/transactions/{tid}/refunds` — daí a mensagem sobre "Amount".
+A função só considera sucesso quando `returnCode === "00"`. Para estornos, a Rede devolve **359** (refund) — não 00. Consequências:
 
-Isso explica o sintoma, mas o `returnCode`/`returnMessage` exatos só serão confirmados após adicionar log da resposta.
+- `estornado = false` → nenhum update em `vendas` nem em `pagamentos_rede`.
+- O banco confirma: `pagamentos_rede.status` continua `approved` (tid `10472608121128082473`, amount 100).
+- O frontend recebeu `success: false` com `return_message: "Refund successful."` e exibiu esse texto no toast — por isso "pareceu sucesso" sendo, na verdade, um erro.
+
+Ou seja: o dinheiro foi estornado na Rede, mas o sistema não registrou.
 
 ## Correção proposta
 
-1. **Frontend** (`HistoricoVendas.tsx`): enviar `amount` no body do invoke, usando o valor da venda/pagamento aprovado correspondente ao TID (estorno total).
-2. **Edge Function** (`rede-cancelar/index.ts`):
-   - Se `amount` não vier no body, buscar o valor em `pagamentos_rede` pelo `tid` (fallback do servidor) e retornar 400 claro caso não encontre.
-   - Sempre enviar `amount` em centavos no payload.
-   - Adicionar `console.log` do status HTTP e do corpo da resposta da Rede (sem dados sensíveis), para que futuros erros apareçam nos logs.
-   - Repassar `rede_http_status` e o corpo resumido na resposta de erro para o frontend.
-3. **Teste**: reexecutar o estorno da venda `1824916f-9dbd-4570-99b1-91b6c8be9588` (tid `10472608121128082473`) e confirmar `returnCode: "00"` nos logs.
+1. **`supabase/functions/rede-cancelar/index.ts`**
+   - Considerar sucesso quando `returnCode` for `"00"` **ou** `"359"` (e aceitar HTTP 200/201 como faixa válida).
+   - Manter o log atual da resposta da Rede.
+2. **Reconciliar a venda de teste**: marcar `pagamentos_rede.status = 'refunded'` para o tid `10472608121128082473` e `vendas.status_pagamento = 'estornado'` para a venda `1824916f-9dbd-4570-99b1-91b6c8be9588`, já que o estorno realmente ocorreu na Rede.
+3. **Frontend (`HistoricoVendas.tsx`)**: sem alteração necessária — passa a exibir sucesso corretamente assim que a função retornar `success: true`.
 
-## Observação
-
-O estorno de R$ 1,00 dessa venda ainda está pendente — a transação segue aprovada na Rede.
+Escopo: uma edge function + uma atualização pontual de dados. Sem novos testes de cobrança na Rede.
