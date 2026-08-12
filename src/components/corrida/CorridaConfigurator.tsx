@@ -905,6 +905,17 @@ const CorridaConfigurator = () => {
                 <Nav />
               </>
             )}
+            {stepAtual === "inscricao" && (
+              <>
+                <InscricaoProvaStep
+                  form={form}
+                  setForm={setForm}
+                  provas={provasPedido}
+                  exigeTermo={exigeTermo}
+                />
+                <Nav podeContinuar={inscricaoValida(form, provasPedido, exigeTermo)} />
+              </>
+            )}
             {stepAtual === "resumo" && renderResumo()}
           </div>
         )}
