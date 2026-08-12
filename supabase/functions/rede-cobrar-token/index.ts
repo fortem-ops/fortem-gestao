@@ -74,7 +74,7 @@ serve(async (req) => {
 
   const { data: cartao, error: cartaoErr } = await supabase
     .from("cartoes_salvos")
-    .select("token_rede, brand, last4, expiration_month, expiration_year, ativo")
+    .select("token_rede, brand, last4, holder_name, expiration_month, expiration_year, ativo")
     .eq("id", cartao_id).single();
   if (cartaoErr || !cartao?.ativo) {
     return new Response(JSON.stringify({ error: "Cartão inativo ou não encontrado" }), { status: 400, headers });
@@ -92,6 +92,9 @@ serve(async (req) => {
     installments,
     storageCard: "2",
     brandTid: cartao.token_rede,
+    expirationMonth: String(cartao.expiration_month).padStart(2, "0"),
+    expirationYear: (() => { const y = String(cartao.expiration_year).trim(); return y.length === 2 ? "20" + y : y; })(),
+    cardholderName: String(cartao.holder_name || "").trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
     subscription: true,
   };
 
