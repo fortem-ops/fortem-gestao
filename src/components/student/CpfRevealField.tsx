@@ -37,7 +37,8 @@ export function CpfRevealField({ alunoId, cpfUltimos3, isCoordAdmin, isAdmin }: 
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
 
-  const masked = cpfUltimos3
+  const hasCpf = !!cpfUltimos3;
+  const masked = hasCpf
     ? `•••.•••.**${cpfUltimos3}`
     : "Não informado";
 
