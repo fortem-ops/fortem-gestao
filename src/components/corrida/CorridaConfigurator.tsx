@@ -620,32 +620,38 @@ const CorridaConfigurator = () => {
       <Card>
         <h3 className="font-display text-xl font-bold mb-4">Serviços</h3>
         {oferta.aval ? (
-          <Toggle
-            active={avaliacao}
-            onClick={() => setAvaliacao((v) => !v)}
-            title="Avaliação Funcional e de Força"
-            subtitle={
-              rota === "somente_provas"
-                ? "Leve o resultado para o seu treinador."
-                : oferta.aval.descricao ?? undefined
-            }
-            priceNode={
-              Number(oferta.aval.valor) < AVAL_VALOR_CHEIO ? (
-                <span className="text-right whitespace-nowrap">
-                  <span className="block text-xs text-muted-foreground line-through">
-                    De {brl(AVAL_VALOR_CHEIO)}
+          <div className="space-y-2">
+            <Toggle
+              active={avaliacao}
+              onClick={() => setAvaliacao(true)}
+              title="Avaliação Funcional e de Força"
+              subtitle={`Análise de assimetria e risco de lesões. Avaliação quantitativa da mobilidade articular, flexibilidade muscular e níveis de força com dinamômetro.${
+                rota === "somente_provas" ? " Leve o resultado para o seu treinador." : ""
+              }`}
+              priceNode={
+                Number(oferta.aval.valor) < AVAL_VALOR_CHEIO ? (
+                  <span className="text-right whitespace-nowrap">
+                    <span className="block text-xs text-muted-foreground line-through">
+                      De {brl(AVAL_VALOR_CHEIO)}
+                    </span>
+                    <span className="block font-display font-bold">
+                      por {brl(Number(oferta.aval.valor))}
+                    </span>
                   </span>
-                  <span className="block font-display font-bold">
-                    por {brl(Number(oferta.aval.valor))}
+                ) : (
+                  <span className="font-display font-bold whitespace-nowrap">
+                    {brl(Number(oferta.aval.valor))}
                   </span>
-                </span>
-              ) : (
-                <span className="font-display font-bold whitespace-nowrap">
-                  {brl(Number(oferta.aval.valor))}
-                </span>
-              )
-            }
-          />
+                )
+              }
+            />
+            <Toggle
+              active={!avaliacao}
+              onClick={() => setAvaliacao(false)}
+              title="Não adicionar avaliação"
+              subtitle="Seguir sem a avaliação por enquanto."
+            />
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">Nenhum serviço adicional disponível.</p>
         )}
