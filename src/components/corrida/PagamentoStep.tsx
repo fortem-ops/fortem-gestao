@@ -116,6 +116,21 @@ const PagamentoStep = ({
 
   const criandoRef = useRef(false);
 
+  // chave de idempotência: criada uma única vez por sessão de checkout
+  const idempotencyKey = useMemo(() => {
+    const SK = "corrida_checkout_idempotency_key";
+    try {
+      const atual = sessionStorage.getItem(SK);
+      if (atual) return atual;
+      const nova = crypto.randomUUID();
+      sessionStorage.setItem(SK, nova);
+      return nova;
+    } catch {
+      return crypto.randomUUID();
+    }
+  }, []);
+
+
   const dadosValidos =
     dados.nome.trim().length > 1 &&
     dados.sobrenome.trim().length > 1 &&
