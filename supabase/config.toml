@@ -15,3 +15,12 @@ verify_jwt = false
 [functions.corrida-criar-pedido]
 verify_jwt = true
 
+[functions.corrida-status-tokenizacao]
+verify_jwt = false
+
+[functions.corrida-aceitar-contrato]
+verify_jwt = false
+
+[functions.corrida-cobrar-pedido]
+verify_jwt = false
+
