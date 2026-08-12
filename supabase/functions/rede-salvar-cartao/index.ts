@@ -162,6 +162,8 @@ serve(async (req) => {
     const text = await r.text();
     try { redeResp = JSON.parse(text); } catch { redeResp = { rawText: text }; }
     console.log("[rede-salvar-cartao] status:", redeStatus, "returnCode:", redeResp?.returnCode);
+    // Corpo completo da resposta (sem PAN/CVV — a Rede não os retorna), sempre logado
+    console.log("[rede-salvar-cartao] resposta Rede (completa):", JSON.stringify(redeResp));
   } catch (e) {
     console.error("[rede-salvar-cartao] fetch erro:", String(e));
     return new Response(JSON.stringify({ success: false, error: "Erro de comunicação com a Rede" }), { status: 502, headers });
