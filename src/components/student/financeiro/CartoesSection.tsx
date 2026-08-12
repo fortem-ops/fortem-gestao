@@ -394,12 +394,24 @@ export function CartoesSection({ student }: Props) {
           )}
         </CardHeader>
         <CardContent className="p-0">
+          {aguardando && (
+            <p className="text-xs text-muted-foreground px-6 pt-4 flex items-center gap-2">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              Validando cartão com a operadora… a lista atualiza sozinha em instantes.
+            </p>
+          )}
+          {demorou && (
+            <p className="text-xs text-muted-foreground px-6 pt-4">
+              A confirmação da operadora está demorando mais que o normal. O cartão aparecerá aqui assim que for validado.
+            </p>
+          )}
           {isLoading ? (
             <p className="text-sm text-muted-foreground p-6">Carregando…</p>
           ) : cartoes.length === 0 ? (
             <p className="text-sm text-muted-foreground p-6">
               Nenhum cartão cadastrado para este aluno.
             </p>
+
           ) : (
             <div className="overflow-x-auto">
               <Table>
