@@ -1,61 +1,36 @@
-# Relatório de estado atual — Fluxo de Tokenização de Bandeira Rede
+# Estorno Rede — erro de "Amount"
 
-## 1. Edge Functions do fluxo
+## O que os logs mostram
 
-| Function | Papel no fluxo | Estado observado |
-|---|---|---|
-| `rede-salvar-cartao` | Recebe dados do cartão, solicita tokenização de bandeira (`POST /token-service/oauth/v2/tokenization` com `storageCard: "2"` e `embeddedZeroDollar: true`), grava registro `pending` em `rede_tokenizacoes` e retorna status "pending" para o frontend. | Implementado com novo fluxo; fluxo antigo (Zero Dollar + `brandTid`) está comentado/inalcançável. |
-| `rede-tokenizacao-webhook` | Recebe notificações da Rede, valida `Authorization: Bearer REDE_WEBHOOK_TOKEN`, consulta status da tokenização, atualiza `rede_tokenizacoes` e, quando `Active`, insere o cartão em `cartoes_salvos` usando `token_code`, `brand_name`, `last4`, `cardholder_name` e validade parseada de `token_expiration`. | Implementado e já deployado. |
-| `rede-cobrar-token` | Cobrança usando cartão salvo. Atualmente envia `storageCard: "2"` + `brandTid: cartao.token_rede` + dados de validade/titular para `/v2/transactions`. | **AINDA NO FORMATO ANTIGO** — usa `brandTid` (campo `token_rede` do cartão) e NÃO usa `tokenCryptogram`. |
-| `rede-cobrar-cartao` | Cobrança com cartão digitado (PAN completo). Não faz parte do fluxo de tokenização de bandeira. | Inalterado. |
-| `rede-webhook` | Webhook genérico de transações da Rede. Não é o webhook de tokenização. | Inalterado. |
-| `rede-cancelar` | Estorno de transações. | Inalterado. |
+Logs mais recentes de `rede-cancelar`:
 
-Não existe hoje uma Edge Function separada para "geração de criptograma" ou "consulta de status". A consulta de status é feita dentro do próprio `rede-tokenizacao-webhook`.
-
-## 2. URL pública do webhook de tokenização
-
-A function `rede-tokenizacao-webhook` já está deployada e respondendo. Teste realizado com token inválido retornou **HTTP 401** (`{"error":"Não autorizado"}`), confirmando que a validação do `REDE_WEBHOOK_TOKEN` está ativa.
-
-URL para cadastrar no portal da Rede:
-
-```
-https://dmudgqedzeosfpehpgep.supabase.co/functions/v1/rede-tokenizacao-webhook
+```text
+2026-08-12T14:36:34Z INFO [rede-auth] novo access_token obtido, expira em 1439 segundos
+2026-08-12T14:36:34Z INFO [rede-auth] obtendo token em: https://api.userede.com.br/redelabs/oauth2/token
+2026-08-12T14:32:36Z ERROR OAuth Rede falhou (401): {"error":"invalid_client"}  (tentativa anterior, sandbox)
 ```
 
-## 3. Estado da cobrança (`rede-cobrar-token`)
+- A autenticação agora funciona (produção, token obtido às 14:36).
+- **Não há nenhum log com status HTTP, `returnCode` ou `returnMessage` da Rede** — a função não registra a resposta do endpoint de estorno. Por isso o texto exato do erro "Amount" não aparece nos logs; ele chegou ao usuário apenas pelo toast do frontend.
 
-A função `rede-cobrar-token` **ainda não foi migrada para o novo formato de tokenização de bandeira**. O payload atual é:
+## Causa provável (confirmada no código, não no log)
 
-```json
-{
-  "capture": true,
-  "kind": "credit",
-  "reference": "...",
-  "amount": ...,
-  "installments": ...,
-  "storageCard": "2",
-  "brandTid": "<valor de cartoes_salvos.token_rede>",
-  "expirationMonth": "...",
-  "expirationYear": "...",
-  "cardholderName": "...",
-  "subscription": true
-}
-```
+- `src/components/student/venda/HistoricoVendas.tsx` (linha 170) chama a função enviando apenas `{ tid, venda_id }` — **sem `amount`**.
+- `supabase/functions/rede-cancelar/index.ts` monta o corpo como `{ amount: amount ? ... : undefined }`, o que serializa para `{}`.
+- A API v2 da Rede exige `amount` (em centavos) no POST `/transactions/{tid}/refunds` — daí a mensagem sobre "Amount".
 
-Ou seja, ela continua usando `brandTid` (que sabemos que não funciona no novo fluxo). Para o novo produto "Tokenização de Bandeira", a cobrança provavelmente precisará usar `token_code` + `tokenCryptogram` (criptograma gerado previamente) ou outro campo específico da documentação v2 da Rede.
+Isso explica o sintoma, mas o `returnCode`/`returnMessage` exatos só serão confirmados após adicionar log da resposta.
 
-## 4. Etapas pendentes antes do teste ponta a ponta
+## Correção proposta
 
-1. **Cadastrar a URL do webhook no portal da Rede** (vender online > e-Commerce > tokenização de bandeira > cadastro de URL) usando a URL acima e o secret `REDE_WEBHOOK_TOKEN` já configurado.
-2. **Confirmar o mapeamento de campos da Rede** para tokenização de bandeira, especialmente:
-   - Se `token.code` é realmente o campo correto para reutilizar como `token_rede`.
-   - Se a cobrança futura exige `tokenCryptogram` e, se sim, como gerá-lo (pode exigir nova chamada ao Token Service ou endpoint específico da Rede).
-3. **Atualizar `rede-cobrar-token`** para usar o formato correto de cobrança com tokenização de bandeira (`token_code` + `tokenCryptogram` + `storageCard: "2"`), em vez de `brandTid`.
-4. **Testar o fluxo completo:** cadastrar cartão → receber webhook → confirmar cartão salvo em `cartoes_salvos` → tentar cobrança via `rede-cobrar-token`.
+1. **Frontend** (`HistoricoVendas.tsx`): enviar `amount` no body do invoke, usando o valor da venda/pagamento aprovado correspondente ao TID (estorno total).
+2. **Edge Function** (`rede-cancelar/index.ts`):
+   - Se `amount` não vier no body, buscar o valor em `pagamentos_rede` pelo `tid` (fallback do servidor) e retornar 400 claro caso não encontre.
+   - Sempre enviar `amount` em centavos no payload.
+   - Adicionar `console.log` do status HTTP e do corpo da resposta da Rede (sem dados sensíveis), para que futuros erros apareçam nos logs.
+   - Repassar `rede_http_status` e o corpo resumido na resposta de erro para o frontend.
+3. **Teste**: reexecutar o estorno da venda `1824916f-9dbd-4570-99b1-91b6c8be9588` (tid `10472608121128082473`) e confirmar `returnCode: "00"` nos logs.
 
-## Observações
+## Observação
 
-- A coluna `cardholder_name` já existe em `rede_tokenizacoes` (o ALTER TABLE já foi aplicado).
-- O secret `REDE_WEBHOOK_TOKEN` já está configurado e disponível.
-- O fluxo de salvamento (`rede-salvar-cartao`) já persiste o `cardholder_name` no registro de tokenização.
+O estorno de R$ 1,00 dessa venda ainda está pendente — a transação segue aprovada na Rede.
