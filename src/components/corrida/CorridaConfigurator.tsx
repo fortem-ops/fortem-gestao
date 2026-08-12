@@ -724,8 +724,72 @@ const CorridaConfigurator = () => {
     );
   };
 
+  const exigeTermo = rota !== "somente_provas";
+
+  const enviarInscricao = async () => {
+    if (!rota || !resumo) return;
+    setErroEnvio(null);
+    setEnviando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("corrida-registrar-inscricao", {
+        body: {
+          rota,
+          aluno_id: alunoId,
+          nome: form.nome.trim(),
+          sobrenome: form.sobrenome.trim(),
+          email: form.email.trim(),
+          cpf: form.cpf.replace(/\D/g, ""),
+          data_nascimento: form.data_nascimento,
+          telefone: form.telefone.trim(),
+          endereco_completo: form.endereco_completo.trim(),
+          ritmo_corrida: form.ritmo_corrida,
+          local_nascimento: form.local_nascimento,
+          participou_nb_2026: provasPedido.some((p) => p.prova === "NB") ? form.participou_nb_2026 : null,
+          participou_mipoa_2026: provasPedido.some((p) => p.prova === "MIPOA")
+            ? form.participou_mipoa_2026
+            : null,
+          marca_tenis: form.marca_tenis,
+          como_soube: form.como_soube,
+          camiseta_nb: provasPedido.some((p) => p.prova === "NB") ? form.camiseta_nb : null,
+          camiseta_mipoa: provasPedido.some((p) => p.prova === "MIPOA") ? form.camiseta_mipoa : null,
+          provas: provasPedido,
+          aceite_inscricao: form.aceite_inscricao,
+          aceite_termo_aptidao: exigeTermo ? form.aceite_termo_aptidao : null,
+          pedido_resumo: {
+            linhas: resumo.linhas,
+            total_hoje: resumo.hoje,
+            recorrente_mensal: resumo.recorrente,
+          },
+        },
+      });
+      if (error || !data?.ok) throw error ?? new Error("falha");
+      setProtocolo(String(data.protocolo));
+    } catch {
+      setErroEnvio(
+        "Não conseguimos registrar a sua inscrição agora. Confira os dados e tente novamente em alguns minutos.",
+      );
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   const renderResumo = () => {
     if (!resumo) return null;
+
+    if (protocolo) {
+      return (
+        <Card className="text-center py-10">
+          <CheckCircle2 className="w-14 h-14 text-primary mx-auto mb-4" />
+          <h3 className="font-display text-2xl font-bold mb-2">Inscrição recebida!</h3>
+          <p className="text-sm text-muted-foreground mb-1">Protocolo: {protocolo}</p>
+          <p className="text-muted-foreground">Entraremos em contato em breve.</p>
+        </Card>
+      );
+    }
+
+    const temProvas = provasPedido.length > 0;
+    const podeEnviar = temProvas && inscricaoValida(form, provasPedido, exigeTermo);
+
     return (
       <>
         <Card>
@@ -769,6 +833,10 @@ const CorridaConfigurator = () => {
           </div>
         </Card>
 
+        {erroEnvio && (
+          <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">{erroEnvio}</div>
+        )}
+
         <div className="flex items-center justify-between gap-3 pt-2">
           <button
             onClick={() => irPara(stepIdx - 1)}
@@ -779,10 +847,16 @@ const CorridaConfigurator = () => {
         </div>
 
         <button
-          onClick={() => toast("Em breve", { description: "A inscrição online será liberada em breve." })}
-          className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red"
+          onClick={() =>
+            temProvas
+              ? enviarInscricao()
+              : toast("Em breve", { description: "A contratação online será liberada em breve." })
+          }
+          disabled={enviando || (temProvas && !podeEnviar)}
+          className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red flex items-center justify-center gap-2 disabled:opacity-60"
         >
-          Continuar para inscrição
+          {enviando && <Loader2 className="w-5 h-5 animate-spin" />}
+          {temProvas ? "Enviar inscrição" : "Continuar para inscrição"}
         </button>
       </>
     );
