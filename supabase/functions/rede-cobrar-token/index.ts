@@ -96,15 +96,25 @@ serve(async (req) => {
   };
 
   let redeResponse: any = null;
+  let redeStatus = 0;
+  let redeBodyText = "";
   try {
     const resp = await fetch(`${baseUrl}/transactions`, {
       method: "POST",
       headers: { Authorization: "Bearer " + (await getRedeAccessToken(pv, token, secrets["rede_ambiente"] ?? "sandbox")), "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    redeResponse = await resp.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Erro de comunicação com a Rede" }), { status: 502, headers });
+    redeStatus = resp.status;
+    redeBodyText = await resp.text();
+    try { redeResponse = JSON.parse(redeBodyText); } catch { redeResponse = { rawText: redeBodyText }; }
+  } catch (e) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: "Erro de comunicação com a Rede",
+      detalhe: String(e),
+      rede_http_status: redeStatus,
+      rede_body: redeBodyText.slice(0, 1000),
+    }), { status: 502, headers });
   }
 
   const returnCode = redeResponse?.returnCode ?? "XX";
