@@ -622,9 +622,21 @@ const CorridaConfigurator = () => {
               active={mipoa}
               onClick={() => setMipoa((v) => !v)}
               title="+MIPOA 2027"
-              subtitle={`${oferta.mipoaItem.descricao ?? "42ª Maratona Internacional de Porto Alegre"} · 5 e 6 de junho de 2027`}
+              subtitle={`${oferta.mipoaItem.descricao ?? "42ª Maratona Internacional de Porto Alegre"} · ${dataProva("MIPOA", distanciaMipoa)}`}
               price={brl(Number(oferta.mipoaItem.valor))}
             />
+            {mipoa && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {DISTANCIAS.map((d) => (
+                  <Pill key={d} active={distanciaMipoa === d} onClick={() => setDistanciaMipoa(d)}>
+                    {d}
+                  </Pill>
+                ))}
+                <span className="text-sm text-muted-foreground ml-1">
+                  Preço único, independente da distância.
+                </span>
+              </div>
+            )}
           </div>
         )}
       </Card>
