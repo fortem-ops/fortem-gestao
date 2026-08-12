@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Eye, EyeOff, Pencil } from "lucide-react";
+import { Eye, EyeOff, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,8 @@ export function CpfRevealField({ alunoId, cpfUltimos3, isCoordAdmin, isAdmin }: 
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
 
-  const masked = cpfUltimos3
+  const hasCpf = !!cpfUltimos3;
+  const masked = hasCpf
     ? `•••.•••.**${cpfUltimos3}`
     : "Não informado";
 
@@ -129,7 +130,15 @@ export function CpfRevealField({ alunoId, cpfUltimos3, isCoordAdmin, isAdmin }: 
         <p className="text-sm font-semibold text-foreground font-mono">
           {revealed ? formatCPF(revealed) : masked}
         </p>
-        {isCoordAdmin && (
+        {!hasCpf && isAdmin && (
+          <Button size="sm" variant="ghost" className="h-7 px-2 gap-1" onClick={openEdit}>
+            <Plus className="w-3.5 h-3.5" /> Adicionar CPF
+          </Button>
+        )}
+        {!hasCpf && !isAdmin && isCoordAdmin && (
+          <span className="text-xs text-muted-foreground">Somente admin pode cadastrar o CPF</span>
+        )}
+        {hasCpf && isCoordAdmin && (
           revealed ? (
             <Button size="sm" variant="ghost" className="h-7 px-2 gap-1" onClick={hide}>
               <EyeOff className="w-3.5 h-3.5" /> Ocultar
@@ -140,7 +149,7 @@ export function CpfRevealField({ alunoId, cpfUltimos3, isCoordAdmin, isAdmin }: 
             </Button>
           )
         )}
-        {isAdmin && revealed && (
+        {hasCpf && isAdmin && revealed && (
           <Button size="sm" variant="ghost" className="h-7 px-2 gap-1" onClick={openEdit}>
             <Pencil className="w-3.5 h-3.5" /> Editar
           </Button>
@@ -155,7 +164,7 @@ export function CpfRevealField({ alunoId, cpfUltimos3, isCoordAdmin, isAdmin }: 
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Editar CPF</DialogTitle>
+            <DialogTitle>{hasCpf ? "Editar CPF" : "Adicionar CPF"}</DialogTitle>
           </DialogHeader>
           <div>
             <Label className="text-xs">CPF</Label>
