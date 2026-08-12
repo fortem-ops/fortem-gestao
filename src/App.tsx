@@ -18,6 +18,8 @@ const ResetPassword = lazyWithReload(() => import("./pages/ResetPassword"));
 
 // Lazy-loaded routes — keeps initial bundle small and speeds up first paint.
 const StudentList = lazyWithReload(() => import("./pages/StudentList"));
+const ClientesAvulsos = lazyWithReload(() => import("./pages/ClientesAvulsos"));
+
 const StudentProfile = lazyWithReload(() => import("./pages/StudentProfile"));
 const TaskCenter = lazyWithReload(() => import("./pages/TaskCenter"));
 const Admin = lazyWithReload(() => import("./pages/Admin"));
