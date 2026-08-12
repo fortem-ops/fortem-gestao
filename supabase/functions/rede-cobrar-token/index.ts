@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 
 const REDE_URLS = {
-  sandbox:  "https://sandbox-erede.useredecloud.com.br/v1",
-  producao: "https://api.userede.com.br/erede/v1",
+  sandbox:  "https://sandbox-erede.useredecloud.com.br/v2",
+  producao: "https://api.userede.com.br/erede/v2",
 };
 
 const corsHeaders = {
