@@ -154,13 +154,22 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
-        const { data: docs } = await admin
+        let docsQuery = admin
           .from("contratos_documentos")
-          .select("id, conteudo_gerado, template_id, contrato_templates(nome)")
-          .eq("aluno_id", vendaExistente.aluno_id)
+          .select("id, conteudo_gerado, template_id")
           .order("created_at", { ascending: true });
+        docsQuery = contratoExistente?.id
+          ? docsQuery.eq("contrato_id", contratoExistente.id)
+          : docsQuery.eq("aluno_id", vendaExistente.aluno_id);
+        const { data: docs } = await docsQuery;
 
-        const docsDoContrato = (docs ?? []).filter(() => true);
+        const templateIds = [...new Set((docs ?? []).map((d: any) => d.template_id).filter(Boolean))];
+        const { data: templates } = templateIds.length
+          ? await admin.from("contrato_templates").select("id, nome").in("id", templateIds)
+          : { data: [] as any[] };
+        const nomePorTemplate = new Map((templates ?? []).map((t: any) => [t.id, t.nome]));
+        const docsDoContrato = docs ?? [];
+
 
         // token de cartão: reaproveita um válido ou gera outro
         const { data: linkValido } = await admin
