@@ -2710,20 +2710,25 @@ export type Database = {
           aceite_inscricao: boolean
           aceite_termo_aptidao: boolean | null
           aluno_id: string | null
+          bairro: string
           camiseta_mipoa: string | null
           camiseta_nb: string | null
+          cep: string
+          cidade: string
           como_soube: string
+          complemento: string | null
           cpf_encrypted: string
           cpf_hash: string
           cpf_ultimos3: string
           created_at: string
           data_nascimento: string
           email: string
-          endereco_completo: string
           id: string
           local_nascimento: string
+          logradouro: string
           marca_tenis: string
           nome: string
+          numero: string
           participou_mipoa_2026: boolean | null
           participou_nb_2026: boolean | null
           pedido_resumo: Json
@@ -2733,26 +2738,32 @@ export type Database = {
           sobrenome: string
           status: string
           telefone: string
+          uf: string
           updated_at: string
         }
         Insert: {
           aceite_inscricao: boolean
           aceite_termo_aptidao?: boolean | null
           aluno_id?: string | null
+          bairro?: string
           camiseta_mipoa?: string | null
           camiseta_nb?: string | null
+          cep?: string
+          cidade?: string
           como_soube: string
+          complemento?: string | null
           cpf_encrypted: string
           cpf_hash: string
           cpf_ultimos3: string
           created_at?: string
           data_nascimento: string
           email: string
-          endereco_completo: string
           id?: string
           local_nascimento: string
+          logradouro?: string
           marca_tenis: string
           nome: string
+          numero?: string
           participou_mipoa_2026?: boolean | null
           participou_nb_2026?: boolean | null
           pedido_resumo: Json
@@ -2762,26 +2773,32 @@ export type Database = {
           sobrenome: string
           status?: string
           telefone: string
+          uf?: string
           updated_at?: string
         }
         Update: {
           aceite_inscricao?: boolean
           aceite_termo_aptidao?: boolean | null
           aluno_id?: string | null
+          bairro?: string
           camiseta_mipoa?: string | null
           camiseta_nb?: string | null
+          cep?: string
+          cidade?: string
           como_soube?: string
+          complemento?: string | null
           cpf_encrypted?: string
           cpf_hash?: string
           cpf_ultimos3?: string
           created_at?: string
           data_nascimento?: string
           email?: string
-          endereco_completo?: string
           id?: string
           local_nascimento?: string
+          logradouro?: string
           marca_tenis?: string
           nome?: string
+          numero?: string
           participou_mipoa_2026?: boolean | null
           participou_nb_2026?: boolean | null
           pedido_resumo?: Json
@@ -2791,6 +2808,7 @@ export type Database = {
           sobrenome?: string
           status?: string
           telefone?: string
+          uf?: string
           updated_at?: string
         }
         Relationships: [
@@ -7760,16 +7778,21 @@ export type Database = {
           p_aceite_inscricao: boolean
           p_aceite_termo_aptidao: boolean
           p_aluno_id: string
+          p_bairro: string
           p_camiseta_mipoa: string
           p_camiseta_nb: string
+          p_cep: string
+          p_cidade: string
           p_como_soube: string
+          p_complemento: string
           p_cpf: string
           p_data_nascimento: string
           p_email: string
-          p_endereco_completo: string
           p_local_nascimento: string
+          p_logradouro: string
           p_marca_tenis: string
           p_nome: string
+          p_numero: string
           p_participou_mipoa_2026: boolean
           p_participou_nb_2026: boolean
           p_pedido_resumo: Json
@@ -7778,6 +7801,7 @@ export type Database = {
           p_rota: string
           p_sobrenome: string
           p_telefone: string
+          p_uf: string
         }
         Returns: string
       }
