@@ -59,7 +59,7 @@ serve(async (req) => {
   const payload = {
     capture: true,
     kind: "credit",
-    reference: venda_id,
+    reference: String(venda_id).replace(/-/g, "").slice(0, 20),
     amount: Math.round(Number(amount) * 100),
     installments,
     storageCard: "2",
