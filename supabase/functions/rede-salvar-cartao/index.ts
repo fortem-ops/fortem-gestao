@@ -178,20 +178,33 @@ serve(async (req) => {
   }
 
   const tid = redeResp?.tid;
+  console.log("[rede-salvar-cartao] tid da pré-autorização:", tid ?? "(ausente)", "nsu:", redeResp?.nsu ?? "-", "auth:", redeResp?.authorizationCode ?? "-");
 
   // Cancelar imediatamente (pré-auth de R$0,01)
+  let cancelStatus: number | null = null;
+  let cancelBody: string | null = null;
   if (tid) {
     try {
-      await fetch(`${baseUrl}/transactions/${tid}`, {
+      const c = await fetch(`${baseUrl}/transactions/${tid}`, {
         method: "DELETE",
         headers: {
           "Authorization": "Bearer " + accessToken,
           "Content-Type": "application/json",
         },
       });
+      cancelStatus = c.status;
+      cancelBody = (await c.text()).slice(0, 1000);
+      if (c.ok) {
+        console.log("[rede-salvar-cartao] cancelamento tid", tid, "status:", cancelStatus, "body:", cancelBody);
+      } else {
+        console.error("[rede-salvar-cartao] cancelamento NÃO confirmado — tid", tid, "status:", cancelStatus, "body:", cancelBody);
+      }
     } catch (e) {
+      cancelBody = String(e);
       console.warn("[rede-salvar-cartao] cancelamento falhou (não crítico):", String(e));
     }
+  } else {
+    console.error("[rede-salvar-cartao] transação aprovada SEM tid — estorno impossível de rastrear");
   }
 
   // Extrair token do cartão
@@ -202,7 +215,34 @@ serve(async (req) => {
     ?? null;
 
   if (!cardToken) {
-    console.error("[rede-salvar-cartao] tokenização falhou. Chaves:", Object.keys(redeResp ?? {}));
+    console.error("[rede-salvar-cartao] tokenização falhou. tid:", tid ?? "(ausente)", "chaves:", Object.keys(redeResp ?? {}));
+    // Trilha de auditoria: pagamentos_rede exige venda_id (NOT NULL/FK), que não existe
+    // neste fluxo — registramos em system_logs para permitir rastrear/estornar depois.
+    try {
+      await supabase.from("system_logs").insert({
+        modulo: "rede-salvar-cartao",
+        acao: "tokenizacao_falhou",
+        mensagem: `Pré-autorização de R$0,01 aprovada (tid ${tid ?? "ausente"}), mas a Rede não retornou token de cartão`,
+        payload: {
+          status: "tokenizacao_falhou",
+          motivo: "resposta da Rede sem cardToken/cardStorage/storageCard/tokenId",
+          aluno_id: alunoId,
+          origem,
+          tid: tid ?? null,
+          nsu: redeResp?.nsu ?? null,
+          authorization_code: redeResp?.authorizationCode ?? null,
+          return_code: redeResp?.returnCode ?? null,
+          return_message: redeResp?.returnMessage ?? null,
+          amount: 1,
+          last4: cardClean.slice(-4),
+          cancelamento_http_status: cancelStatus,
+          cancelamento_body: cancelBody,
+          raw_response: redeResp,
+        },
+      });
+    } catch (e) {
+      console.error("[rede-salvar-cartao] falha ao registrar auditoria em system_logs:", String(e));
+    }
     return new Response(JSON.stringify({
       success: false,
       error: "Cartão aprovado, mas não foi possível gerar token seguro. Tente novamente.",
