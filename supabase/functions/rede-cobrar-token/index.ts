@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 
 const REDE_URLS = {
-  sandbox:  "https://sandbox-erede.useredecloud.com.br/v1",
-  producao: "https://api.userede.com.br/erede/v1",
+  sandbox:  "https://sandbox-erede.useredecloud.com.br/v2",
+  producao: "https://api.userede.com.br/erede/v2",
 };
 
 const corsHeaders = {
@@ -13,10 +13,38 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-async function loadSecrets(supabase: any) {
-  const { data } = await supabase.schema("vault").from("decrypted_secrets").select("name, decrypted_secret");
+async function loadSecrets(supabase: any): Promise<Record<string, string>> {
   const m: Record<string, string> = {};
-  (data ?? []).forEach((s: any) => { m[s.name] = s.decrypted_secret; });
+
+  // 1. Variáveis de ambiente primeiro (Edge Function Secrets — mais confiável)
+  const envPv      = Deno.env.get("REDE_PV")       ?? "";
+  const envToken   = Deno.env.get("REDE_TOKEN")    ?? "";
+  const envAmbient = Deno.env.get("REDE_AMBIENTE") ?? "";
+
+  if (envPv)      m["rede_pv"]       = envPv;
+  if (envToken)   m["rede_token"]    = envToken;
+  if (envAmbient) m["rede_ambiente"] = envAmbient;
+
+  if (m["rede_pv"] && m["rede_token"]) {
+    if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
+    return m;
+  }
+
+  // 2. Fallback: Supabase Vault
+  try {
+    const { data, error } = await supabase
+      .schema("vault")
+      .from("decrypted_secrets")
+      .select("name, decrypted_secret")
+      .in("name", ["rede_pv", "rede_token", "rede_ambiente"]);
+
+    if (!error && data?.length > 0) {
+      data.forEach((s: any) => { if (s.decrypted_secret) m[s.name] = s.decrypted_secret; });
+    }
+  } catch { /* ignore */ }
+
+  if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
+
   return m;
 }
 
@@ -68,15 +96,25 @@ serve(async (req) => {
   };
 
   let redeResponse: any = null;
+  let redeStatus = 0;
+  let redeBodyText = "";
   try {
     const resp = await fetch(`${baseUrl}/transactions`, {
       method: "POST",
       headers: { Authorization: "Bearer " + (await getRedeAccessToken(pv, token, secrets["rede_ambiente"] ?? "sandbox")), "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    redeResponse = await resp.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Erro de comunicação com a Rede" }), { status: 502, headers });
+    redeStatus = resp.status;
+    redeBodyText = await resp.text();
+    try { redeResponse = JSON.parse(redeBodyText); } catch { redeResponse = { rawText: redeBodyText }; }
+  } catch (e) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: "Erro de comunicação com a Rede",
+      detalhe: String(e),
+      rede_http_status: redeStatus,
+      rede_body: redeBodyText.slice(0, 1000),
+    }), { status: 502, headers });
   }
 
   const returnCode = redeResponse?.returnCode ?? "XX";
