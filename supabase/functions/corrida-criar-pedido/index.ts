@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
           contratos_documentos_ids: docsDoContrato.map((d: any) => d.id),
           contratos_documentos: docsDoContrato.map((d: any) => ({
             id: d.id,
-            nome: d.contrato_templates?.nome ?? "Contrato",
+            nome: nomePorTemplate.get(d.template_id) ?? "Contrato",
             conteudo_gerado: d.conteudo_gerado,
           })),
           cartao_token: tokenCartao,
