@@ -192,6 +192,7 @@ const CorridaConfigurator = () => {
   const [distanciaCortesia, setDistanciaCortesia] = useState<Distancia>("5K");
   const [kitNivel, setKitNivel] = useState<string | null>(null);
   const [mipoa, setMipoa] = useState(false);
+  const [distanciaMipoa, setDistanciaMipoa] = useState<Distancia>("5K");
   const [avaliacao, setAvaliacao] = useState(false);
   // somente_provas: seleção múltipla
   const [provasSel, setProvasSel] = useState<Record<ProvaKey, { ativo: boolean; distancia: Distancia }>>({
@@ -199,16 +200,38 @@ const CorridaConfigurator = () => {
     MIPOA: { ativo: false, distancia: "5K" },
   });
 
-  const escolherRota = (r: Rota, t: Tier | null = null, n: string | null = null) => {
+  // inscrição na prova
+  const [alunoId] = useState<string | null>(null);
+  const [form, setForm] = useState<InscricaoForm>(() => inscricaoFormInicial());
+  const [enviando, setEnviando] = useState(false);
+  const [protocolo, setProtocolo] = useState<string | null>(null);
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
+
+  const escolherRota = (
+    r: Rota,
+    t: Tier | null = null,
+    n: string | null = null,
+    prefill?: { email?: string | null; telefone?: string | null; cpfDigits?: string | null },
+  ) => {
     setRota(r);
     setTier(t);
     setNome(n);
     setKitNivel(null);
     setMipoa(false);
+    setDistanciaMipoa("5K");
     setAvaliacao(false);
     setDistanciaCortesia("5K");
     setPeriodo("anual");
     setProvasSel({ NB: { ativo: true, distancia: "5K" }, MIPOA: { ativo: false, distancia: "5K" } });
+    setProtocolo(null);
+    setErroEnvio(null);
+    setForm(
+      inscricaoFormInicial({
+        email: prefill?.email ?? null,
+        telefone: prefill?.telefone ?? null,
+        cpf: prefill?.cpfDigits ?? null,
+      }),
+    );
     setStepIdx(1);
     setTimeout(
       () => document.getElementById("configurador")?.scrollIntoView({ behavior: "smooth", block: "start" }),
