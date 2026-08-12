@@ -131,7 +131,147 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: false, error: "Falha na autenticação Rede" }), { status: 502, headers });
   }
 
+  // ============================================================
+  // NOVO FLUXO PRINCIPAL: Tokenização de Bandeira (assíncrono)
+  // A Rede processa e nos avisa via webhook rede-tokenizacao-webhook.
+  // ============================================================
+  {
+    const tokenizacaoUrl = ambiente === "producao"
+      ? "https://api.userede.com.br/redelabs/token-service/oauth/v2/tokenization"
+      : "https://rl7-sandbox-api.useredecloud.com.br/token-service/oauth/v2/tokenization";
+
+    // Email do aluno (preferencial) com fallback fixo
+    let email = "cobranca@fortem.app";
+    try {
+      const { data: aluno } = await supabase
+        .from("alunos")
+        .select("email")
+        .eq("id", alunoId)
+        .maybeSingle();
+      if (aluno?.email && String(aluno.email).includes("@")) email = String(aluno.email).trim();
+    } catch { /* usa fallback */ }
+
+    const tokenPayload: Record<string, unknown> = {
+      email,
+      cardNumber: cardClean,
+      expirationMonth: String(expiration_month).padStart(2, "0"),
+      expirationYear: (() => { const y = String(expiration_year).trim(); return y.length === 2 ? "20" + y : y; })(),
+      cardholderName: String(card_holder).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+      storageCard: "2",
+      embeddedZeroDollar: true,
+    };
+    if (security_code) tokenPayload.securityCode = String(security_code);
+
+    let tokResp: any = null;
+    let tokHttpStatus = 0;
+    try {
+      const r = await fetch(tokenizacaoUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + accessToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(tokenPayload),
+      });
+      tokHttpStatus = r.status;
+      const text = await r.text();
+      try { tokResp = JSON.parse(text); } catch { tokResp = { rawText: text }; }
+      console.log("[rede-salvar-cartao] tokenização status:", tokHttpStatus, "resposta:", JSON.stringify(tokResp));
+    } catch (e) {
+      console.error("[rede-salvar-cartao] tokenização fetch erro:", String(e));
+      try {
+        await supabase.from("system_logs").insert({
+          modulo: "rede-salvar-cartao",
+          acao: "tokenizacao_falhou",
+          mensagem: "Erro de comunicação com a Rede ao solicitar tokenização de bandeira",
+          payload: { aluno_id: alunoId, origem, last4: cardClean.slice(-4), erro: String(e) },
+        });
+      } catch { /* ignore */ }
+      return new Response(JSON.stringify({ success: false, error: "Erro de comunicação com a Rede" }), { status: 502, headers });
+    }
+
+    const tokenizationId = tokResp?.tokenizationId ?? tokResp?.data?.tokenizationId ?? null;
+    const httpOk = tokHttpStatus >= 200 && tokHttpStatus < 300;
+    const returnCode = tokResp?.returnCode ?? null;
+    const returnCodeOk = returnCode == null || returnCode === "00";
+
+    if (!httpOk || !tokenizationId || !returnCodeOk) {
+      console.error("[rede-salvar-cartao] solicitação de tokenização falhou:", tokHttpStatus, JSON.stringify(tokResp));
+      try {
+        await supabase.from("system_logs").insert({
+          modulo: "rede-salvar-cartao",
+          acao: "tokenizacao_falhou",
+          mensagem: `Solicitação de tokenização de bandeira rejeitada (HTTP ${tokHttpStatus})`,
+          payload: {
+            status: "solicitacao_tokenizacao_falhou",
+            aluno_id: alunoId,
+            origem,
+            http_status: tokHttpStatus,
+            return_code: returnCode,
+            return_message: tokResp?.returnMessage ?? tokResp?.message ?? null,
+            last4: cardClean.slice(-4),
+            raw_response: tokResp,
+          },
+        });
+      } catch (e) {
+        console.error("[rede-salvar-cartao] falha ao registrar auditoria em system_logs:", String(e));
+      }
+      return new Response(JSON.stringify({
+        success: false,
+        error: tokResp?.returnMessage ?? tokResp?.message ?? "Não foi possível iniciar a validação do cartão",
+        return_code: returnCode,
+      }), { status: 400, headers });
+    }
+
+    const { error: tokInsErr } = await supabase.from("rede_tokenizacoes").insert({
+      tokenization_id: String(tokenizationId),
+      aluno_id: alunoId,
+      origem,
+      status: "pending",
+      raw_response: tokResp,
+    });
+    if (tokInsErr) {
+      console.error("[rede-salvar-cartao] erro ao inserir rede_tokenizacoes:", tokInsErr.message);
+    }
+
+    try {
+      await supabase.from("system_logs").insert({
+        modulo: "rede-salvar-cartao",
+        acao: "tokenizacao_solicitada",
+        mensagem: `Tokenização de bandeira solicitada (tokenizationId ${tokenizationId})`,
+        payload: {
+          status: "pending",
+          aluno_id: alunoId,
+          origem,
+          tokenization_id: tokenizationId,
+          last4: cardClean.slice(-4),
+          raw_response: tokResp,
+        },
+      });
+    } catch (e) {
+      console.error("[rede-salvar-cartao] falha ao registrar auditoria de solicitação:", String(e));
+    }
+
+    // Marcar link como usado
+    if (linkRecord) {
+      await supabase.from("links_cartao")
+        .update({ usado: true, usado_em: new Date().toISOString() })
+        .eq("id", linkRecord.id);
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      status: "pending",
+      message: "Cartão em validação, você será notificado em instantes.",
+    }), { status: 200, headers });
+  }
+
+  // ============================================================
+  // FLUXO ANTIGO (Zero Dollar direto + storageCard=1 / brandTid)
+  // Mantido temporariamente para referência — inalcançável.
+  // ============================================================
   // Pré-autorização de R$ 0,01
+
   const reference = ("save" + Date.now().toString()).slice(0, 20);
   const payload: Record<string, unknown> = {
     capture: false,
