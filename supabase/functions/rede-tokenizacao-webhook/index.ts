@@ -130,7 +130,7 @@ serve(async (req) => {
       .from("rede_tokenizacoes")
       .update(update)
       .eq("tokenization_id", tokenizationId)
-      .select("id, aluno_id, origem, cartao_salvo_id")
+      .select("id, aluno_id, origem, cartao_salvo_id, cardholder_name")
       .maybeSingle();
 
     if (updErr) {
@@ -138,6 +138,26 @@ serve(async (req) => {
     }
 
     if (statusRede === "Active" && registro && !registro.cartao_salvo_id) {
+      // Parse da validade no formato MM/YYYY (ex: "08/2034")
+      let expMonth = 0;
+      let expYear = 0;
+      const expRaw = String(consulta?.token?.expirationDate ?? "").trim();
+      const expParts = expRaw ? expRaw.split("/") : [];
+      if (expParts.length === 2) {
+        expMonth = parseInt(expParts[0], 10);
+        expYear = parseInt(expParts[1], 10);
+      }
+      const validParse = expMonth >= 1 && expMonth <= 12 && expYear >= 2024;
+      if (!validParse) {
+        const now = new Date();
+        expMonth = now.getMonth() + 1;
+        expYear = now.getFullYear() + 5;
+        console.warn(
+          `[rede-tokenizacao-webhook] validade do token não pôde ser parseada (recebido: "${expRaw}"). ` +
+          `Usando fallback ${String(expMonth).padStart(2, "0")}/${expYear}. Isso pode indicar um problema de mapeamento a ser revisado.`
+        );
+      }
+
       const { data: cartao, error: insErr } = await supabase
         .from("cartoes_salvos")
         .insert({
@@ -145,7 +165,9 @@ serve(async (req) => {
           token_rede: consulta?.token?.code ?? null,
           brand: consulta?.brand?.name ?? null,
           last4: consulta?.last4 ?? null,
-          holder_name: null,
+          holder_name: registro?.cardholder_name ?? "TITULAR",
+          expiration_month: expMonth,
+          expiration_year: expYear,
           ativo: true,
           is_default: false,
           origem: registro.origem ?? "tokenizacao_bandeira",

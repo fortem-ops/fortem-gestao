@@ -227,6 +227,7 @@ serve(async (req) => {
       tokenization_id: String(tokenizationId),
       aluno_id: alunoId,
       origem,
+      cardholder_name: tokenPayload.cardholderName,
       status: "pending",
       raw_response: tokResp,
     });
