@@ -130,7 +130,15 @@ export function CpfRevealField({ alunoId, cpfUltimos3, isCoordAdmin, isAdmin }: 
         <p className="text-sm font-semibold text-foreground font-mono">
           {revealed ? formatCPF(revealed) : masked}
         </p>
-        {isCoordAdmin && (
+        {!hasCpf && isAdmin && (
+          <Button size="sm" variant="ghost" className="h-7 px-2 gap-1" onClick={openEdit}>
+            <Plus className="w-3.5 h-3.5" /> Adicionar CPF
+          </Button>
+        )}
+        {!hasCpf && !isAdmin && isCoordAdmin && (
+          <span className="text-xs text-muted-foreground">Somente admin pode cadastrar o CPF</span>
+        )}
+        {hasCpf && isCoordAdmin && (
           revealed ? (
             <Button size="sm" variant="ghost" className="h-7 px-2 gap-1" onClick={hide}>
               <EyeOff className="w-3.5 h-3.5" /> Ocultar
@@ -141,7 +149,7 @@ export function CpfRevealField({ alunoId, cpfUltimos3, isCoordAdmin, isAdmin }: 
             </Button>
           )
         )}
-        {isAdmin && revealed && (
+        {hasCpf && isAdmin && revealed && (
           <Button size="sm" variant="ghost" className="h-7 px-2 gap-1" onClick={openEdit}>
             <Pencil className="w-3.5 h-3.5" /> Editar
           </Button>
