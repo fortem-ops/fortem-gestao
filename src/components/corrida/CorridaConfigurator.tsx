@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, Check, ArrowLeft, ArrowRight, Gift, Shirt } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { type StepDef } from "./CorridaStepper";
+import CorridaStepper, { type StepDef } from "./CorridaStepper";
 import CaminhoSection from "./CaminhoSection";
 import InscricaoProvaStep, {
   inscricaoFormInicial,
@@ -312,6 +312,9 @@ const CorridaConfigurator = () => {
   }, [rota, provasPedido]);
 
   const stepAtual = steps[Math.min(stepIdx, steps.length - 1)]?.id ?? "identificacao";
+
+  const stepsSemIdentificacao = useMemo(() => steps.filter((s) => s.id !== "identificacao"), [steps]);
+  const stepperCurrent = stepsSemIdentificacao.findIndex((s) => s.id === stepAtual);
 
   const irPara = (i: number) => {
     if (i === 0) {
@@ -938,6 +941,12 @@ const CorridaConfigurator = () => {
   return (
     <section id="configurador" className="py-20 md:py-28 bg-secondary/60">
       <div className="container mx-auto px-6 max-w-3xl">
+
+        {stepAtual !== "identificacao" && stepperCurrent >= 0 && (
+          <div className="mb-8">
+            <CorridaStepper steps={stepsSemIdentificacao} current={stepperCurrent} />
+          </div>
+        )}
 
         {stepAtual === "identificacao" ? (
           <CaminhoSection onSelect={escolherRota} />
