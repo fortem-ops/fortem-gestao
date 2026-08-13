@@ -553,7 +553,7 @@ const CorridaConfigurator = () => {
             )}
           </ul>
           <p className="text-sm text-muted-foreground mt-4">
-            Pagamento via Pix ou crédito à vista — sem parcelamento.
+            Pagamento via crédito à vista — sem parcelamento.
           </p>
         </Card>
       );
@@ -899,7 +899,7 @@ const CorridaConfigurator = () => {
             )}
             {rota === "somente_provas" ? (
               <p className="text-xs text-muted-foreground pt-2">
-                Pagamento via Pix ou crédito à vista — sem parcelamento.
+                Pagamento via crédito à vista — sem parcelamento.
               </p>
             ) : (
               (rota !== "prospect" || periodo === "anual") && (
