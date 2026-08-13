@@ -111,7 +111,9 @@ const CaminhoSection = ({
         <p className="text-primary font-display font-semibold tracking-[0.25em] uppercase text-xs mb-3">
           Comece por aqui
         </p>
-        <h2 className="font-display text-3xl md:text-4xl font-bold">Escolha o seu caminho</h2>
+        <h2 className="font-display text-2xl md:text-3xl font-bold max-w-2xl mx-auto leading-tight">
+          Seu plano, seu valor, na hora — sem depender de resposta no WhatsApp.
+        </h2>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

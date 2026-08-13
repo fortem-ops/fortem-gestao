@@ -50,11 +50,6 @@ const NbCortesiaBanner = () => {
             Garanta sua vaga até 20/08.
           </p>
 
-          <p className="mt-3 text-sm md:text-base text-accent-foreground/60 font-light max-w-xl mx-auto">
-            Seu plano, seu valor, na hora — sem depender de resposta no WhatsApp.
-          </p>
-
-
           <div className="mt-4 flex items-center justify-center gap-3 opacity-80">
             <span className="text-[10px] uppercase tracking-[0.3em] text-accent-foreground/60">
               Prova oficial
