@@ -248,13 +248,36 @@ export default function Agenda() {
     return [...s].sort().map((v) => ({ value: v, label: v }));
   }, [agendas]);
 
+  const { data: profissionaisTodos = [] } = useQuery({
+    queryKey: ["profiles_all"],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["admin", "coordenador", "professor", "nutricionista", "fisioterapeuta"]);
+      const ids = [...new Set((roles || []).map((r: any) => r.user_id))];
+      if (ids.length === 0) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids)
+        .order("full_name");
+      return profs || [];
+    },
+    staleTime: 5 * 60_000,
+  });
+
   const opcoesProfissional = useMemo(() => {
     const m = new Map<string, string>();
+    (profissionaisTodos as any[]).forEach((p) => {
+      if (p.user_id && p.full_name) m.set(p.user_id, p.full_name);
+    });
     agendas.forEach((a: any) => {
       if (a.profissional_id && a.profissional_nome) m.set(a.profissional_id, a.profissional_nome);
     });
     return [...m.entries()].map(([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label));
-  }, [agendas]);
+  }, [agendas, profissionaisTodos]);
+
 
   const opcoesAluno = useMemo(() => {
     const m = new Map<string, string>();
