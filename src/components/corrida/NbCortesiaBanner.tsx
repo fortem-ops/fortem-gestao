@@ -32,20 +32,22 @@ const NbCortesiaBanner = () => {
           transition={{ duration: 0.6 }}
           className="text-center"
         >
-          <div className="flex flex-col items-center gap-3 md:gap-4 mb-6">
+          <div className="flex flex-col items-center gap-2 md:gap-4 mb-6">
             <img
               src="/fortem-logo.png"
               alt="Fortem"
-              className="h-8 md:h-10 w-auto"
+              className="h-8 md:h-10 w-auto max-w-[180px] md:max-w-[260px] object-contain"
               loading="lazy"
             />
-            <div className="flex items-center justify-center gap-4 md:gap-6 flex-wrap">
-              <img src={nbLogo} alt="New Balance" className="h-10 md:h-14 w-auto" loading="lazy" />
-              <span className="hidden sm:block h-8 w-px bg-accent-foreground/25" />
-              <span className="font-display font-bold uppercase tracking-[0.25em] text-accent-foreground text-xl md:text-3xl">
-                Porto Alegre
-              </span>
-              <span className="font-display font-bold text-primary text-xl md:text-3xl">2027</span>
+            <div className="flex items-center justify-center gap-2 md:gap-6 flex-wrap">
+              <img src={nbLogo} alt="New Balance" className="h-8 md:h-14 w-auto" loading="lazy" />
+              <span className="hidden sm:block h-6 md:h-8 w-px bg-accent-foreground/25" />
+              <div className="inline-flex items-center justify-center gap-1 md:gap-3 flex-wrap sm:flex-nowrap">
+                <span className="font-display font-bold uppercase tracking-[0.15em] md:tracking-[0.25em] text-accent-foreground text-lg md:text-3xl">
+                  Porto Alegre
+                </span>
+                <span className="font-display font-bold text-primary text-lg md:text-3xl">2027</span>
+              </div>
             </div>
           </div>
 
