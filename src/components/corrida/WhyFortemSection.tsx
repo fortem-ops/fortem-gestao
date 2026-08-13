@@ -2,7 +2,8 @@ import { ScrollReveal } from "./ScrollReveal";
 
 const stats = [
   { value: "10", suffix: " anos", label: "de história da Fortem" },
-  { value: "+180", suffix: "", label: "alunos acompanhados" },
+  { value: "+2.000", suffix: "", label: "atendidos ao longo desses 10 anos" },
+  { value: "+180", suffix: "", label: "sendo acompanhados atualmente" },
 ];
 
 const WhyFortemSection = () => (
@@ -18,7 +19,7 @@ const WhyFortemSection = () => (
       </ScrollReveal>
 
       <ScrollReveal className="max-w-5xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           {stats.map((s) => (
             <div
               key={s.label}
