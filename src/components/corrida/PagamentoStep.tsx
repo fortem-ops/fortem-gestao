@@ -122,6 +122,7 @@ const PagamentoStep = ({
   const [resultado, setResultado] = useState<{ ok: boolean; mensagem: string; protocolo?: string } | null>(null);
 
   const criandoRef = useRef(false);
+  const [tokenizationId, setTokenizationId] = useState<string | null>(null);
 
   // chave de idempotência: criada uma única vez por sessão de checkout
   const idempotencyKey = useMemo(() => {
