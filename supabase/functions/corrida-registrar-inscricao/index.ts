@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
     if (contagem > 5) return json(429, { error: "muitas_tentativas" });
 
-    // --- validação ---
+    // --- validação (somente dados cadastrais) ---
     const errors: string[] = [];
     const rota = str(body?.rota);
     if (!ROTAS.includes(rota)) errors.push("rota");
@@ -74,10 +74,6 @@ Deno.serve(async (req) => {
     const bairro = str(body?.bairro);
     const cidade = str(body?.cidade);
     const uf = str(body?.uf).toUpperCase();
-    const ritmo_corrida = str(body?.ritmo_corrida);
-    const local_nascimento = str(body?.local_nascimento);
-    const marca_tenis = str(body?.marca_tenis);
-    const como_soube = str(body?.como_soube);
     const provas = Array.isArray(body?.provas) ? body.provas : [];
 
     if (!nome) errors.push("nome");
@@ -92,15 +88,6 @@ Deno.serve(async (req) => {
     if (!bairro) errors.push("bairro");
     if (!cidade) errors.push("cidade");
     if (uf.length !== 2) errors.push("uf");
-    if (!ritmo_corrida) errors.push("ritmo_corrida");
-    if (!["RS", "Outros"].includes(local_nascimento)) errors.push("local_nascimento");
-    if (!marca_tenis) errors.push("marca_tenis");
-    if (!como_soube) errors.push("como_soube");
-    if (provas.length === 0) errors.push("provas");
-    if (body?.aceite_inscricao !== true) errors.push("aceite_inscricao");
-    if (rota !== "somente_provas" && body?.aceite_termo_aptidao !== true) {
-      errors.push("aceite_termo_aptidao");
-    }
 
     if (errors.length > 0) return json(400, { error: "validacao", campos: errors });
 
@@ -120,26 +107,24 @@ Deno.serve(async (req) => {
       p_bairro: bairro,
       p_cidade: cidade,
       p_uf: uf,
-      p_ritmo_corrida: ritmo_corrida,
-      p_local_nascimento: local_nascimento,
-      p_participou_nb_2026:
-        typeof body?.participou_nb_2026 === "boolean" ? body.participou_nb_2026 : null,
-      p_participou_mipoa_2026:
-        typeof body?.participou_mipoa_2026 === "boolean" ? body.participou_mipoa_2026 : null,
-      p_marca_tenis: marca_tenis,
-      p_como_soube: como_soube,
-      p_camiseta_nb: str(body?.camiseta_nb) || null,
-      p_camiseta_mipoa: str(body?.camiseta_mipoa) || null,
+      // campos específicos de prova ficam nulos: preenchidos na etapa final
+      p_ritmo_corrida: null,
+      p_local_nascimento: null,
+      p_participou_nb_2026: null,
+      p_participou_mipoa_2026: null,
+      p_marca_tenis: null,
+      p_como_soube: null,
+      p_camiseta_nb: null,
+      p_camiseta_mipoa: null,
       p_provas: provas,
-      p_aceite_inscricao: true,
-      p_aceite_termo_aptidao:
-        typeof body?.aceite_termo_aptidao === "boolean" ? body.aceite_termo_aptidao : null,
+      p_aceite_inscricao: null,
+      p_aceite_termo_aptidao: null,
       p_pedido_resumo: body?.pedido_resumo ?? {},
     });
 
     if (error) throw error;
 
-    return json(200, { ok: true, protocolo: id });
+    return json(200, { ok: true, inscricao_id: id });
   } catch (err) {
     console.error("corrida-registrar-inscricao error:", err);
     return json(500, { error: "erro_interno" });
