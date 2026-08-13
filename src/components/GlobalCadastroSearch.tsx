@@ -98,12 +98,12 @@ export function GlobalCadastroSearch() {
   function handleSelect(r: Resultado) {
     setOpen(false);
     setTerm("");
-    if (r.tipo === "ativo" || r.tipo === "inativo" || r.tipo === "avulso") {
-      navigate(`/alunos/${r.id}`);
-    } else if (r.tipo === "lead") {
+    if (r.tipo === "lead") {
       navigate(`/leads?edit=${r.id}`);
-    } else {
+    } else if (r.tipo === "prospect") {
       navigate(`/prospects?edit=${r.id}`);
+    } else {
+      navigate(`/alunos/${r.id}`);
     }
   }
 
