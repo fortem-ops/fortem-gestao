@@ -1,6 +1,5 @@
 import NbCortesiaBanner from "@/components/corrida/NbCortesiaBanner";
 import CorridaConfigurator from "@/components/corrida/CorridaConfigurator";
-import HowItWorksSection from "@/components/corrida/HowItWorksSection";
 import TrainingLocationsSection from "@/components/corrida/TrainingLocationsSection";
 import DifferentialsSection from "@/components/corrida/DifferentialsSection";
 import RecoverySection from "@/components/corrida/RecoverySection";
@@ -23,7 +22,6 @@ const Corrida = () => {
     <div className="corrida-landing min-h-screen font-display">
       <NbCortesiaBanner />
       <CorridaConfigurator />
-      <HowItWorksSection />
       <TrainingLocationsSection />
       <DifferentialsSection />
       <RecoverySection />
