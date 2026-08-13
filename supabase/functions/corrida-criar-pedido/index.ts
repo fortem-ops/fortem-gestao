@@ -352,6 +352,7 @@ Deno.serve(async (req) => {
           atividade: "corrida",
           data_inicio: dataInicio,
           data_fim: dataFim,
+          proxima_renovacao: dataFim,
           duracao_meses: periodoMeses,
           valor: catalogo.valor,
           ativo: true,
