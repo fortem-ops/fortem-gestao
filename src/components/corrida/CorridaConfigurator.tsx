@@ -224,7 +224,7 @@ const CorridaConfigurator = () => {
     setAvaliacao(false);
     setDistanciaCortesia("5K");
     setPeriodo("anual");
-    setParcelasEscolhidas(r === "prospect" ? 12 : 10);
+    
     setProvasSel({ NB: { ativo: true, distancia: "5K" }, MIPOA: { ativo: false, distancia: "5K" } });
     setProtocolo(null);
     setErroEnvio(null);
