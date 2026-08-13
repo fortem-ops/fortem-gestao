@@ -34,7 +34,7 @@ interface Props {
   setPedido: (p: PedidoCriado | null) => void;
 }
 
-type Fase = "dados" | "contrato" | "cartao" | "confirmando" | "cobrando" | "sucesso" | "erro";
+type Fase = "parcelas" | "dados" | "contrato" | "cartao" | "confirmando" | "cobrando" | "sucesso" | "erro";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -102,7 +102,16 @@ const PagamentoStep = ({
   pedido,
   setPedido,
 }: Props) => {
-  const [fase, setFase] = useState<Fase>(dadosIniciais ? "contrato" : "dados");
+  const rotaPedido = String(payloadPedido.rota ?? "");
+  const periodoPedido = String(payloadPedido.periodo ?? "");
+  const maxParcelas = rotaPedido === "prospect" ? 12 : 10;
+  const parcelamentoDisponivel =
+    rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
+  const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
+
+  const [fase, setFase] = useState<Fase>(
+    parcelamentoDisponivel ? "parcelas" : dadosIniciais ? "contrato" : "dados",
+  );
   const [erro, setErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -142,7 +151,7 @@ const PagamentoStep = ({
   /* ---------------- b) criar pedido (uma única vez) ---------------- */
 
   const criarPedido = useCallback(
-    async (dp: DadosPessoaisPagamento) => {
+    async (dp: DadosPessoaisPagamento, parcelasSel?: number) => {
       if (pedido || criandoRef.current) return true;
       criandoRef.current = true;
       setLoading(true);
@@ -151,6 +160,7 @@ const PagamentoStep = ({
         const { data, error } = await supabase.functions.invoke("corrida-criar-pedido", {
           body: {
             ...payloadPedido,
+            parcelas: parcelamentoDisponivel ? (parcelasSel ?? parcelasEscolhidas) : 1,
             idempotency_key: idempotencyKey,
 
             dadosPessoais: {
@@ -181,12 +191,12 @@ const PagamentoStep = ({
         setLoading(false);
       }
     },
-    [payloadPedido, pedido, setPedido, idempotencyKey],
+    [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas],
   );
 
   // dados vindos da etapa de inscrição: gera o pedido automaticamente
   useEffect(() => {
-    if (dadosIniciais && !pedido) void criarPedido(dadosIniciais);
+    if (dadosIniciais && !pedido && !parcelamentoDisponivel) void criarPedido(dadosIniciais);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -340,8 +350,45 @@ const PagamentoStep = ({
 
   return (
     <div className="space-y-4">
+      {/* 0) parcelamento */}
+      {parcelamentoDisponivel && fase === "parcelas" && (
+        <Card>
+          <h3 className="font-display text-xl font-bold mb-1">Parcelamento</h3>
+          <p className="text-sm text-muted-foreground mb-4">Total do pedido: {brl(totalHoje)}</p>
+          <label htmlFor="parcelas-pagamento" className="block text-sm font-medium mb-1">
+            Número de parcelas
+          </label>
+          <select
+            id="parcelas-pagamento"
+            value={parcelasEscolhidas}
+            onChange={(e) => setParcelasEscolhidas(Number(e.target.value))}
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+          >
+            {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n}x de {brl(totalHoje / n)}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={async () => {
+              if (dadosIniciais) {
+                const ok = await criarPedido(dadosIniciais, parcelasEscolhidas);
+                if (ok) setFase("contrato");
+              } else {
+                setFase("dados");
+              }
+            }}
+            disabled={loading}
+            className="mt-5 w-full bg-primary text-primary-foreground py-3 rounded-xl font-display font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />} Continuar
+          </button>
+        </Card>
+      )}
+
       {/* a) dados pessoais */}
-      {dadosIniciais ? (
+      {fase === "parcelas" ? null : dadosIniciais ? (
         <Card className="flex items-center gap-3">
           <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
           <p className="text-sm">
@@ -376,7 +423,7 @@ const PagamentoStep = ({
           </div>
           <button
             onClick={async () => {
-              const ok = await criarPedido(dados);
+              const ok = await criarPedido(dados, parcelasEscolhidas);
               if (ok) setFase("contrato");
             }}
             disabled={!dadosValidos || loading}
@@ -395,7 +442,7 @@ const PagamentoStep = ({
       )}
 
       {/* carregando pedido */}
-      {!pedido && fase !== "dados" && (
+      {!pedido && fase !== "dados" && fase !== "parcelas" && (
         <Card className="flex items-center justify-center gap-3 py-10 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin" /> Preparando o seu pedido...
         </Card>
