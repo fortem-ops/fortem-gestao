@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import nbLogo from "@/assets/new-balance.png";
-import fortemLogo from "@/assets/fortem-logo.png.asset.json";
 
 const BENEFICIOS = [
   "Inscrição da prova",
