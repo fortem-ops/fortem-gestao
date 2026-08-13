@@ -47,9 +47,6 @@ const TrainingLocationsSection = () => {
           ))}
         </StaggerContainer>
 
-        <ScrollReveal delay={0.3}>
-          <p className="text-center text-muted-foreground mt-10 text-sm">Treinos técnicos, intervalados, educativos e longões.</p>
-        </ScrollReveal>
       </div>
     </section>
   );
