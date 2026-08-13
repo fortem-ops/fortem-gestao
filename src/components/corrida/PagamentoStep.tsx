@@ -358,45 +358,8 @@ const PagamentoStep = ({
 
   return (
     <div className="space-y-4">
-      {/* 0) parcelamento */}
-      {parcelamentoDisponivel && fase === "parcelas" && (
-        <Card>
-          <h3 className="font-display text-xl font-bold mb-1">Parcelamento</h3>
-          <p className="text-sm text-muted-foreground mb-4">Total do pedido: {brl(totalHoje)}</p>
-          <label htmlFor="parcelas-pagamento" className="block text-sm font-medium mb-1">
-            Número de parcelas
-          </label>
-          <select
-            id="parcelas-pagamento"
-            value={parcelasEscolhidas}
-            onChange={(e) => setParcelasEscolhidas(Number(e.target.value))}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-          >
-            {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
-                {n}x de {brl(totalHoje / n)}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={async () => {
-              if (dadosIniciais) {
-                const ok = await criarPedido(dadosIniciais, parcelasEscolhidas);
-                if (ok) setFase("contrato");
-              } else {
-                setFase("dados");
-              }
-            }}
-            disabled={loading}
-            className="mt-5 w-full bg-primary text-primary-foreground py-3 rounded-xl font-display font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />} Continuar
-          </button>
-        </Card>
-      )}
-
       {/* a) dados pessoais */}
-      {fase === "parcelas" ? null : dadosIniciais ? (
+      {dadosIniciais ? (
         <Card className="flex items-center gap-3">
           <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
           <p className="text-sm">
@@ -430,10 +393,7 @@ const PagamentoStep = ({
             />
           </div>
           <button
-            onClick={async () => {
-              const ok = await criarPedido(dados, parcelasEscolhidas);
-              if (ok) setFase("contrato");
-            }}
+            onClick={() => setFase("cartao")}
             disabled={!dadosValidos || loading}
             className="mt-5 w-full bg-primary text-primary-foreground py-3 rounded-xl font-display font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
           >
@@ -449,12 +409,6 @@ const PagamentoStep = ({
         </Card>
       )}
 
-      {/* carregando pedido */}
-      {!pedido && fase !== "dados" && fase !== "parcelas" && (
-        <Card className="flex items-center justify-center gap-3 py-10 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin" /> Preparando o seu pedido...
-        </Card>
-      )}
 
       {/* c) contratos */}
       {pedido && fase === "contrato" && documentos.length > 0 && (
