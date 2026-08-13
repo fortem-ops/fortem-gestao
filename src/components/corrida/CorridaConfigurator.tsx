@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, Check, ArrowLeft, ArrowRight, Gift, Shirt } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import CorridaStepper, { type StepDef } from "./CorridaStepper";
+import { type StepDef } from "./CorridaStepper";
 import CaminhoSection from "./CaminhoSection";
 import InscricaoProvaStep, {
   inscricaoFormInicial,
@@ -930,9 +930,6 @@ const CorridaConfigurator = () => {
   return (
     <section id="configurador" className="py-20 md:py-28 bg-secondary/60">
       <div className="container mx-auto px-6 max-w-3xl">
-        <div className="mb-10">
-          <CorridaStepper steps={steps} current={Math.min(stepIdx, steps.length - 1)} onStepClick={irPara} />
-        </div>
 
         {stepAtual === "identificacao" ? (
           <CaminhoSection onSelect={escolherRota} />
