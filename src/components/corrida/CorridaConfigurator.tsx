@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, Check, ArrowLeft, ArrowRight, Gift, Shirt } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { type StepDef } from "./CorridaStepper";
+import CorridaStepper, { type StepDef } from "./CorridaStepper";
 import CaminhoSection from "./CaminhoSection";
 import InscricaoProvaStep, {
   inscricaoFormInicial,
