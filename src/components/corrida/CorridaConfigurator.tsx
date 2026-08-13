@@ -672,8 +672,13 @@ const CorridaConfigurator = () => {
         ) : (
           <>
             <p className="text-sm text-muted-foreground mb-4">
-              {oferta.kits[0]?.isento ? "Grátis — escolha o seu." : "Escolha o seu kit."}
+              {rota === "prospect"
+                ? "Escolha o seu kit para continuar."
+                : oferta.kits[0]?.isento
+                  ? "Grátis — escolha o seu."
+                  : "Escolha o seu kit."}
             </p>
+
             <div className="space-y-2">
               {oferta.kits.map((k) => (
                 <Toggle
@@ -685,12 +690,15 @@ const CorridaConfigurator = () => {
                   price={k.isento ? "Grátis" : brl(Number(k.valor))}
                 />
               ))}
-              <Toggle
-                active={kitNivel === null}
-                onClick={() => setKitNivel(null)}
-                title="Não adicionar Kit Fortem"
-                subtitle="Seguir sem kit por enquanto."
-              />
+              {rota !== "prospect" && (
+                <Toggle
+                  active={kitNivel === null}
+                  onClick={() => setKitNivel(null)}
+                  title="Não adicionar Kit Fortem"
+                  subtitle="Seguir sem kit por enquanto."
+                />
+              )}
+
             </div>
           </>
         )}
@@ -956,7 +964,12 @@ const CorridaConfigurator = () => {
             {stepAtual === "matricula" && (
               <>
                 {renderMatricula()}
-                <Nav />
+                <Nav
+                  podeContinuar={
+                    rota !== "prospect" || oferta?.kits.length === 0 || kitNivel !== null
+                  }
+                />
+
               </>
             )}
             {stepAtual === "servicos" && (
