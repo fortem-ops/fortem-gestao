@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDebounce } from "@/hooks/useDebounce";
 
-type Tipo = "lead" | "prospect" | "ativo" | "avulso" | "inativo";
+type Tipo = "lead" | "prospect" | "ativo" | "avulso" | "inativo" | "cancelado" | "pausado" | "licenca";
 
 interface Resultado {
   id: string;
@@ -17,16 +17,37 @@ interface Resultado {
   tipo: Tipo;
 }
 
-const PROSPECT_STAGES = ["Prospect", "Treino experimental agendado"];
-const LEAD_STAGE = "Novo lead";
-
 const TIPO_META: Record<Tipo, { label: string; className: string; group: string }> = {
   lead: { label: "Lead", className: "status-info", group: "Leads" },
   prospect: { label: "Prospect", className: "status-warning", group: "Prospects" },
   ativo: { label: "Ativo", className: "status-active", group: "Alunos Ativos" },
   avulso: { label: "Avulso", className: "status-info", group: "Clientes Avulsos" },
   inativo: { label: "Inativo", className: "status-urgent", group: "Alunos Inativos" },
+  cancelado: { label: "Cancelado", className: "status-urgent", group: "Cancelados" },
+  pausado: { label: "Pausado", className: "status-warning", group: "Pausados" },
+  licenca: { label: "Licença", className: "status-license", group: "Em Licença" },
 };
+
+const ORDEM: Tipo[] = ["ativo", "prospect", "lead", "avulso", "licenca", "pausado", "inativo", "cancelado"];
+
+function mapStatus(status: string | null | undefined): Tipo {
+  switch (status) {
+    case "lead":
+    case "prospect":
+    case "avulso":
+    case "cancelado":
+    case "pausado":
+    case "licenca":
+    case "inativo":
+    case "ativo":
+      return status;
+    case "encerrado":
+      return "inativo";
+    default:
+      return "inativo";
+  }
+}
+
 
 export function GlobalCadastroSearch() {
   const navigate = useNavigate();
@@ -47,21 +68,6 @@ export function GlobalCadastroSearch() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const { data: stages = [] } = useQuery({
-    queryKey: ["all-pipeline-stages-mini"],
-    queryFn: async () => {
-      const { data } = await supabase.from("pipeline_stages").select("id,name");
-      return data || [];
-    },
-    staleTime: 5 * 60_000,
-  });
-
-  const stageMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    stages.forEach((s: any) => { m[s.id] = s.name; });
-    return m;
-  }, [stages]);
-
   const { data: alunos = [], isFetching } = useQuery({
     queryKey: ["global-search-cadastros", debounced],
     queryFn: async () => {
@@ -76,33 +82,28 @@ export function GlobalCadastroSearch() {
   });
 
   const grouped = useMemo(() => {
-    const out: Record<Tipo, Resultado[]> = { lead: [], prospect: [], ativo: [], avulso: [], inativo: [] };
+    const out = ORDEM.reduce((acc, t) => { acc[t] = []; return acc; }, {} as Record<Tipo, Resultado[]>);
     alunos.forEach((a: any) => {
-      const stageName = a.current_pipeline_stage_id ? stageMap[a.current_pipeline_stage_id] : null;
-      let tipo: Tipo;
-      if (stageName === LEAD_STAGE) tipo = "lead";
-      else if (stageName && PROSPECT_STAGES.includes(stageName)) tipo = "prospect";
-      else if (a.status === "avulso") tipo = "avulso";
-      else if (a.status === "encerrado" || a.status === "inativo") tipo = "inativo";
-      else tipo = "ativo";
+      const tipo = mapStatus(a.status);
       if (out[tipo].length < 8) {
         out[tipo].push({ id: a.id, nome: a.nome, telefone: a.telefone, tipo });
       }
     });
     return out;
-  }, [alunos, stageMap]);
+  }, [alunos]);
 
-  const totalResultados = grouped.lead.length + grouped.prospect.length + grouped.ativo.length + grouped.avulso.length + grouped.inativo.length;
+  const totalResultados = ORDEM.reduce((n, t) => n + grouped[t].length, 0);
+
 
   function handleSelect(r: Resultado) {
     setOpen(false);
     setTerm("");
-    if (r.tipo === "ativo" || r.tipo === "inativo" || r.tipo === "avulso") {
-      navigate(`/alunos/${r.id}`);
-    } else if (r.tipo === "lead") {
+    if (r.tipo === "lead") {
       navigate(`/leads?edit=${r.id}`);
-    } else {
+    } else if (r.tipo === "prospect") {
       navigate(`/prospects?edit=${r.id}`);
+    } else {
+      navigate(`/alunos/${r.id}`);
     }
   }
 
@@ -136,7 +137,7 @@ export function GlobalCadastroSearch() {
         )}
         {!isFetching && totalResultados > 0 && (
           <div className="py-1">
-            {(["ativo", "prospect", "lead", "avulso", "inativo"] as Tipo[]).map((tipo) => {
+            {ORDEM.map((tipo) => {
               const items = grouped[tipo];
               if (!items.length) return null;
               const meta = TIPO_META[tipo];
