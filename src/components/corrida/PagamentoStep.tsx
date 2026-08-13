@@ -123,6 +123,7 @@ const PagamentoStep = ({
 
   const criandoRef = useRef(false);
   const [tokenizationId, setTokenizationId] = useState<string | null>(null);
+  const [aceiteFeito, setAceiteFeito] = useState(false);
 
   // chave de idempotência: criada uma única vez por sessão de checkout
   const idempotencyKey = useMemo(() => {
@@ -211,6 +212,7 @@ const PagamentoStep = ({
         },
       });
       if (error || !data?.ok) throw new Error(data?.error ?? "falha");
+      setAceiteFeito(true);
       if (tokenizationId) {
         setFase("confirmando");
         void aguardarConfirmacao(tokenizationId, pedido);
@@ -315,7 +317,7 @@ const PagamentoStep = ({
       const tokId = String(data.tokenization_id);
       setTokenizationId(tokId);
 
-      const precisaAceite = !!p.contrato_id && (p.contratos_documentos?.length ?? 0) > 0;
+      const precisaAceite = !aceiteFeito && !!p.contrato_id && (p.contratos_documentos?.length ?? 0) > 0;
       if (precisaAceite) {
         setFase("contrato");
       } else {
