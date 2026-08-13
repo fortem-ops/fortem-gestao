@@ -24,3 +24,6 @@ verify_jwt = false
 [functions.corrida-cobrar-pedido]
 verify_jwt = false
 
+
+[functions.corrida-atualizar-inscricao-prova]
+verify_jwt = false
