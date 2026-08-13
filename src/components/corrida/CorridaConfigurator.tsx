@@ -942,6 +942,12 @@ const CorridaConfigurator = () => {
     <section id="configurador" className="py-20 md:py-28 bg-secondary/60">
       <div className="container mx-auto px-6 max-w-3xl">
 
+        {stepAtual !== "identificacao" && stepperCurrent >= 0 && (
+          <div className="mb-8">
+            <CorridaStepper steps={stepsSemIdentificacao} current={stepperCurrent} />
+          </div>
+        )}
+
         {stepAtual === "identificacao" ? (
           <CaminhoSection onSelect={escolherRota} />
         ) : carregando ? (
