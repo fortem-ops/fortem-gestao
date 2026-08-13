@@ -109,9 +109,7 @@ const PagamentoStep = ({
     rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
   const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
 
-  const [fase, setFase] = useState<Fase>(
-    parcelamentoDisponivel ? "parcelas" : dadosIniciais ? "contrato" : "dados",
-  );
+  const [fase, setFase] = useState<Fase>(dadosIniciais ? "cartao" : "dados");
   const [erro, setErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
