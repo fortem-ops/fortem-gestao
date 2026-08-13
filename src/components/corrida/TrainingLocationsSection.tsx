@@ -4,7 +4,7 @@ import pistaRamiro from "@/assets/corrida/pista-ramiro-souto.jpg";
 import orlaGuaiba from "@/assets/corrida/orla-guaiba.jpg";
 
 const locations = [
-  { id: "redencao", name: "Pista Ramiro Souto – Redenção", image: pistaRamiro, schedules: [{ days: "Terças", times: ["07h30"] }] },
+  { id: "redencao", name: "Pista Ramiro Souto – Redenção", image: pistaRamiro, schedules: [{ days: "Segundas e Quartas", times: ["07h", "07h30"] }, { days: "Terças e Quintas", times: ["18h", "18h30"] }] },
   { id: "orla", name: "Orla do Guaíba", image: orlaGuaiba, schedules: [{ days: "Sábados", times: ["06h30 às 09h30"] }] },
 ];
 
