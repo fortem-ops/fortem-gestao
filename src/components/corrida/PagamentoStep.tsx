@@ -444,8 +444,8 @@ const PagamentoStep = ({
         </Card>
       )}
 
-      {/* d) cartão */}
-      {pedido && fase === "cartao" && (
+      {/* b) cartão + parcelamento (mesma tela) */}
+      {fase === "cartao" && (
         <Card>
           <h3 className="font-display text-xl font-bold mb-1 flex items-center gap-2">
             <CreditCard className="w-5 h-5" /> Pagamento
@@ -480,16 +480,36 @@ const PagamentoStep = ({
                 onChange={(v) => setCartao({ ...cartao, cvv: v.replace(/\D/g, "").slice(0, 4) })}
               />
             </div>
+
+            {parcelamentoDisponivel && (
+              <label className="block">
+                <span className="block text-sm font-medium mb-1">Número de parcelas</span>
+                <select
+                  id="parcelas-pagamento"
+                  value={parcelasEscolhidas}
+                  onChange={(e) => setParcelasEscolhidas(Number(e.target.value))}
+                  disabled={!!pedido}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm disabled:opacity-60"
+                >
+                  {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n}x de {brl(totalHoje / n)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
           <button
-            onClick={enviarCartao}
+            onClick={confirmarCartaoEParcelas}
             disabled={!cartaoValido || loading}
             className="mt-5 w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            {loading && <Loader2 className="w-5 h-5 animate-spin" />} Pagar {brl(totalHoje)}
+            {loading && <Loader2 className="w-5 h-5 animate-spin" />} Continuar
           </button>
         </Card>
       )}
+
 
       {/* e/f) processando */}
       {(fase === "confirmando" || fase === "cobrando") && (
