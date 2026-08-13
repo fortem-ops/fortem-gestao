@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDebounce } from "@/hooks/useDebounce";
 
-type Tipo = "lead" | "prospect" | "ativo" | "avulso" | "inativo";
+type Tipo = "lead" | "prospect" | "ativo" | "avulso" | "inativo" | "cancelado" | "pausado" | "licenca";
 
 interface Resultado {
   id: string;
@@ -17,16 +17,37 @@ interface Resultado {
   tipo: Tipo;
 }
 
-const PROSPECT_STAGES = ["Prospect", "Treino experimental agendado"];
-const LEAD_STAGE = "Novo lead";
-
 const TIPO_META: Record<Tipo, { label: string; className: string; group: string }> = {
   lead: { label: "Lead", className: "status-info", group: "Leads" },
   prospect: { label: "Prospect", className: "status-warning", group: "Prospects" },
   ativo: { label: "Ativo", className: "status-active", group: "Alunos Ativos" },
   avulso: { label: "Avulso", className: "status-info", group: "Clientes Avulsos" },
   inativo: { label: "Inativo", className: "status-urgent", group: "Alunos Inativos" },
+  cancelado: { label: "Cancelado", className: "status-urgent", group: "Cancelados" },
+  pausado: { label: "Pausado", className: "status-warning", group: "Pausados" },
+  licenca: { label: "Licença", className: "status-license", group: "Em Licença" },
 };
+
+const ORDEM: Tipo[] = ["ativo", "prospect", "lead", "avulso", "licenca", "pausado", "inativo", "cancelado"];
+
+function mapStatus(status: string | null | undefined): Tipo {
+  switch (status) {
+    case "lead":
+    case "prospect":
+    case "avulso":
+    case "cancelado":
+    case "pausado":
+    case "licenca":
+    case "inativo":
+    case "ativo":
+      return status;
+    case "encerrado":
+      return "inativo";
+    default:
+      return "inativo";
+  }
+}
+
 
 export function GlobalCadastroSearch() {
   const navigate = useNavigate();
