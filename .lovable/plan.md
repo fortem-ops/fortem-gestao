@@ -1,43 +1,18 @@
-# Cadastro de cartão: toast "•••• undefined" e lista que não atualiza
+# Filtro de profissionais na Agenda de Serviços mostra apenas quem já tem agenda
 
 ## Diagnóstico (confirmado)
 
-**1. Onde o toast é montado**
+Yasmim Rodrigues Avila existe como profissional (perfil ativo, papel `professor`), mas hoje ela tem **0 registros** na agenda de serviços.
 
-`src/components/pagamentos/CadastrarCartaoDialog.tsx`, dentro de `CartaoForm.submit()`:
+O filtro "Todos os profissionais" da Agenda é montado a partir dos agendamentos já carregados na tela: só entra na lista quem aparece como responsável em algum evento. Por isso a Yasmim (e qualquer profissional sem agenda) fica de fora.
 
-```ts
-if (!data?.success) throw new Error(data?.error ?? "Falha ao salvar cartão");
-toast.success(`Cartão •••• ${data.last4} salvo com sucesso`);
-onSuccess?.();
-```
+## O que muda
 
-**2. O que `rede-salvar-cartao` retorna hoje**
+O filtro de profissionais passa a listar **todos os profissionais cadastrados** (admin, coordenador, professor, nutricionista, fisioterapeuta), em ordem alfabética — a mesma lista que já é usada no formulário de criação de agendamento. Assim a seleção fica consistente entre criar e filtrar.
 
-No fluxo atual (tokenização de bandeira, assíncrono), a resposta de sucesso é (linha 263):
+Comportamento mantido: o filtro continua funcionando igual; selecionar alguém sem agenda simplesmente mostra a semana vazia para aquele profissional.
 
-```json
-{ "success": true, "status": "pending", "message": "Cartão em validação, você será notificado em instantes." }
-```
+## Detalhes técnicos
 
-Não há mais `last4` nem `brand` — daí o `undefined`. O retorno com `last4`/`brand` (linha 451) pertence ao fluxo antigo Zero Dollar, marcado no próprio arquivo como "inalcançável".
-
-**3. Refresh da lista**
-
-Existe: `src/components/student/financeiro/CartoesSection.tsx` linha 442 invalida `["cartoes-salvos-aluno", student.id]` no `onSuccess`. O problema é de tempo, não de código: no momento do `onSuccess` a linha em `cartoes_salvos` ainda não existe — ela só é criada pelo webhook `rede-tokenizacao-webhook` quando a Rede responde `tokenizationStatus = "Active"`. Na última tokenização real, o intervalo entre solicitação e criação do cartão foi de ~8 segundos (`rede_tokenizacoes`: created_at 14:27:06 → updated_at 14:27:14). A invalidação dispara em ~1s, encontra a lista vazia, e nada mais reconsulta — por isso só aparece após reload manual.
-
-## Correção proposta
-
-**A. Toast honesto ao estado assíncrono** (`CadastrarCartaoDialog.tsx`)
-- Se `data.status === "pending"`: `toast.success("Cartão enviado para validação — aparecerá na lista em instantes.")`, sem `last4`.
-- Se vier `last4` (fluxo legado), manter a mensagem atual.
-
-**B. Lista que converge sozinha** (`CartoesSection.tsx`)
-- Após o cadastro, entrar em modo "aguardando confirmação": exibir uma linha placeholder ("Validando cartão…") e habilitar `refetchInterval` de ~3s na query `cartoes-salvos-aluno` por até ~60s.
-- Encerrar o polling quando a contagem de cartões aumentar (ou ao esgotar o tempo, com aviso de que a confirmação pode demorar).
-
-Alternativa opcional (não incluída por padrão): realtime na tabela `cartoes_salvos` em vez de polling — mais elegante, porém exige publicação/replica identity configurada.
-
-## Escopo
-
-Apenas os dois arquivos acima. Sem mudanças na Edge Function nem no webhook.
+- `src/pages/Agenda.tsx`: substituir o `useMemo` `opcoesProfissional` (derivado de `agendas`) por uma query TanStack que busca `user_roles` + `profiles`, reaproveitando a mesma chave/lógica de `AddAgendaDialog.tsx` (`profiles_all`), mapeando para `{ value: user_id, label: full_name }`.
+- Nenhuma mudança de banco, RLS ou lógica de filtragem dos eventos.
