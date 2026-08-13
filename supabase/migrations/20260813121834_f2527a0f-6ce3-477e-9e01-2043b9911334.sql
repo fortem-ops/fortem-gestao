@@ -1,0 +1,1 @@
+delete from corrida_inscricoes_prova where email = 'testeqa.parcelas@example.com';
