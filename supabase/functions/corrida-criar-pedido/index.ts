@@ -329,7 +329,15 @@ Deno.serve(async (req) => {
       catalogoId = catalogo.id;
 
       formaPagamento = periodo === "mensal" ? "cartao_recorrencia" : "cartao_parcelado";
-      parcelas = rota === "prospect" ? (periodo === "mensal" ? 1 : 12) : 10;
+      const maxParcelas = rota === "prospect" ? 12 : 10;
+      if (rota === "prospect" && periodo === "mensal") {
+        parcelas = 1;
+      } else {
+        // valor vindo do cliente é validado contra o máximo da rota
+        const pedidas = Math.trunc(Number(body?.parcelas));
+        parcelas = Number.isFinite(pedidas) && pedidas >= 1 && pedidas <= maxParcelas ? pedidas : maxParcelas;
+      }
+
 
       const hoje = new Date();
       const dataInicio = `${hoje.getUTCFullYear()}-${pad(hoje.getUTCMonth() + 1)}-${pad(hoje.getUTCDate())}`;
