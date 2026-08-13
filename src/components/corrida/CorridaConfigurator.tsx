@@ -379,7 +379,9 @@ const CorridaConfigurator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rota, tier, itens, planos]);
 
-  const parcelas = rota === "prospect" ? 12 : 10;
+  const maxParcelas = rota === "prospect" ? 12 : 10;
+  const parcelas = Math.min(Math.max(1, parcelasEscolhidas), maxParcelas);
+
 
   /* --------------------------- Resumo --------------------------- */
 
