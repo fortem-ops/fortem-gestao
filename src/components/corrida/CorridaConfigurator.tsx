@@ -189,7 +189,6 @@ const CorridaConfigurator = () => {
 
   // seleções
   const [periodo, setPeriodo] = useState<"mensal" | "anual">("anual"); // prospect
-  const [parcelasEscolhidas, setParcelasEscolhidas] = useState(10);
 
   const [distanciaCortesia, setDistanciaCortesia] = useState<Distancia>("5K");
   const [kitNivel, setKitNivel] = useState<string | null>(null);
@@ -225,7 +224,7 @@ const CorridaConfigurator = () => {
     setAvaliacao(false);
     setDistanciaCortesia("5K");
     setPeriodo("anual");
-    setParcelasEscolhidas(r === "prospect" ? 12 : 10);
+    
     setProvasSel({ NB: { ativo: true, distancia: "5K" }, MIPOA: { ativo: false, distancia: "5K" } });
     setProtocolo(null);
     setErroEnvio(null);
@@ -383,7 +382,6 @@ const CorridaConfigurator = () => {
   }, [rota, tier, itens, planos]);
 
   const maxParcelas = rota === "prospect" ? 12 : 10;
-  const parcelas = Math.min(Math.max(1, parcelasEscolhidas), maxParcelas);
 
 
   /* --------------------------- Resumo --------------------------- */
@@ -415,7 +413,7 @@ const CorridaConfigurator = () => {
           linhas.push({
             label: `${nomeExib} — ${brl(Number(p.valor) / 12)}/mês (Plano Anual)`,
             valor: Number(p.valor),
-            nota: `${brl(Number(p.valor))} em até ${parcelas}x`,
+            nota: `${brl(Number(p.valor))} em até ${maxParcelas}x`,
           });
           hoje += Number(p.valor);
         } else {
@@ -453,7 +451,7 @@ const CorridaConfigurator = () => {
     }
 
     return { linhas, hoje, recorrente };
-  }, [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, distanciaMipoa, avaliacao, provasSel, parcelas]);
+  }, [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, distanciaMipoa, avaliacao, provasSel, maxParcelas]);
 
   const tituloRota = () => {
     switch (rota) {
@@ -573,10 +571,7 @@ const CorridaConfigurator = () => {
             </Pill>
             <Pill
               active={periodo === "anual"}
-              onClick={() => {
-                setPeriodo("anual");
-                setParcelasEscolhidas(maxParcelas);
-              }}
+              onClick={() => setPeriodo("anual")}
             >
               Anual
             </Pill>
@@ -599,31 +594,9 @@ const CorridaConfigurator = () => {
               )}
             </div>
             {anual && (
-              <>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {brl(Number(p.valor))} no plano anual · em até {maxParcelas}x
-                </p>
-                <div className="mt-4">
-                  <label
-                    htmlFor="parcelas-corrida"
-                    className="block text-sm font-medium mb-1"
-                  >
-                    Número de parcelas
-                  </label>
-                  <select
-                    id="parcelas-corrida"
-                    value={parcelas}
-                    onChange={(e) => setParcelasEscolhidas(Number(e.target.value))}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-                  >
-                    {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
-                      <option key={n} value={n}>
-                        {n}x de {brl(Number(p.valor) / n)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
+              <p className="text-sm text-muted-foreground mt-1">
+                {brl(Number(p.valor))} no plano anual · em até {maxParcelas}x
+              </p>
             )}
           </div>
         )}
@@ -837,7 +810,6 @@ const CorridaConfigurator = () => {
       avaliacao,
       cortesiaNb: { ativo: cortesiaAtiva, distancia: distanciaCortesia },
       mipoa: { ativo: rota !== "somente_provas" && mipoa, distancia: distanciaMipoa },
-      parcelas,
       provasSel: provasPedido.map((p) => ({
         prova: p.prova,
         nome: PROVA_LABEL[p.prova],
@@ -849,7 +821,7 @@ const CorridaConfigurator = () => {
         recorrente_mensal: resumo?.recorrente ?? 0,
       },
     } as Record<string, unknown>;
-  }, [rota, alunoId, tier, periodo, kitNivel, avaliacao, distanciaCortesia, mipoa, distanciaMipoa, provasPedido, resumo, parcelas]);
+  }, [rota, alunoId, tier, periodo, kitNivel, avaliacao, distanciaCortesia, mipoa, distanciaMipoa, provasPedido, resumo]);
 
   const renderPagamento = () => {
     const temInscricao = provasPedido.length > 0;
@@ -921,7 +893,7 @@ const CorridaConfigurator = () => {
             ) : (
               (rota !== "prospect" || periodo === "anual") && (
                 <p className="text-xs text-muted-foreground pt-2">
-                  Plano anual parcelável em até {parcelas}x no cartão.
+                  Parcelável em até {maxParcelas}x — escolha o parcelamento na etapa de pagamento.
                 </p>
               )
             )}
