@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, CheckCircle2, CreditCard, Loader2, ShieldCheck } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { maskCpf } from "./InscricaoProvaStep";
 
 /* ------------------------------------------------------------------ */
 
@@ -26,7 +25,10 @@ export interface PedidoCriado {
 
 interface Props {
   payloadPedido: Record<string, unknown>;
-  dadosIniciais: DadosPessoaisPagamento | null;
+  dadosIniciais: DadosPessoaisPagamento;
+  inscricaoId?: string | null;
+  /** Quando informado, o wizard assume o pós-pagamento (etapa de inscrição na prova). */
+  onSucesso?: (protocolo: string) => void;
   totalHoje: number;
   resumoLinhas: { label: string; valor: number }[];
   onVoltar: () => void;
@@ -96,6 +98,8 @@ const amigavel = (code?: string | null, fallback = "Não foi possível concluir.
 const PagamentoStep = ({
   payloadPedido,
   dadosIniciais,
+  inscricaoId,
+  onSucesso,
   totalHoje,
   resumoLinhas,
   onVoltar,
@@ -109,13 +113,11 @@ const PagamentoStep = ({
     rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
   const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
 
-  const [fase, setFase] = useState<Fase>(dadosIniciais ? "cartao" : "dados");
+  const [fase, setFase] = useState<Fase>("cartao");
   const [erro, setErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [dados, setDados] = useState<DadosPessoaisPagamento>(
-    dadosIniciais ?? { nome: "", sobrenome: "", email: "", cpf: "", telefone: "", data_nascimento: "" },
-  );
+  const dados = dadosIniciais;
 
   const [aceites, setAceites] = useState<Record<string, boolean>>({});
   const [cartao, setCartao] = useState({ holder: "", numero: "", validade: "", cvv: "" });
@@ -140,13 +142,6 @@ const PagamentoStep = ({
   }, []);
 
 
-  const dadosValidos =
-    dados.nome.trim().length > 1 &&
-    dados.sobrenome.trim().length > 1 &&
-    /\S+@\S+\.\S+/.test(dados.email) &&
-    dados.cpf.replace(/\D/g, "").length === 11 &&
-    dados.telefone.replace(/\D/g, "").length >= 10 &&
-    /^\d{4}-\d{2}-\d{2}$/.test(dados.data_nascimento);
 
   /* ---------------- b) criar pedido (uma única vez) ---------------- */
 
@@ -160,6 +155,7 @@ const PagamentoStep = ({
         const { data, error } = await supabase.functions.invoke("corrida-criar-pedido", {
           body: {
             ...payloadPedido,
+            inscricaoId: inscricaoId ?? null,
             parcelas: parcelamentoDisponivel ? (parcelasSel ?? parcelasEscolhidas) : 1,
             idempotency_key: idempotencyKey,
 
@@ -191,7 +187,7 @@ const PagamentoStep = ({
         criandoRef.current = false;
       }
     },
-    [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas],
+    [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas, inscricaoId],
   );
 
 
