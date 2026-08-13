@@ -137,7 +137,7 @@ export function GlobalCadastroSearch() {
         )}
         {!isFetching && totalResultados > 0 && (
           <div className="py-1">
-            {(["ativo", "prospect", "lead", "avulso", "inativo"] as Tipo[]).map((tipo) => {
+            {ORDEM.map((tipo) => {
               const items = grouped[tipo];
               if (!items.length) return null;
               const meta = TIPO_META[tipo];
