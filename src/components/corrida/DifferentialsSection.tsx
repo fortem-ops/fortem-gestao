@@ -11,7 +11,7 @@ const items = [
   { image: diffPresencial, title: "Treinos presenciais", description: "Correção técnica e motivação em grupo." },
   { image: diffApp, title: "Aplicativo exclusivo", description: "Planilha, agenda e acompanhamento." },
   { image: diffRecovery, title: "Recovery com Bota de Compressão", description: "Recuperação muscular gratuita." },
-  { image: diffSede, title: "Sede próxima à Redenção", description: "Usufrua de toda a nossa infraestrutura, como vestiários completos." },
+  { image: diffSede, title: "Sede próxima à Redenção", description: "Usufrua de toda a nossa infraestrutura com vestíarios completos" },
 ];
 
 const DifferentialsSection = () => (
