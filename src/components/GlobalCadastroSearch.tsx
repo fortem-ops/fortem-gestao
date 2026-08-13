@@ -68,21 +68,6 @@ export function GlobalCadastroSearch() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const { data: stages = [] } = useQuery({
-    queryKey: ["all-pipeline-stages-mini"],
-    queryFn: async () => {
-      const { data } = await supabase.from("pipeline_stages").select("id,name");
-      return data || [];
-    },
-    staleTime: 5 * 60_000,
-  });
-
-  const stageMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    stages.forEach((s: any) => { m[s.id] = s.name; });
-    return m;
-  }, [stages]);
-
   const { data: alunos = [], isFetching } = useQuery({
     queryKey: ["global-search-cadastros", debounced],
     queryFn: async () => {
@@ -97,23 +82,18 @@ export function GlobalCadastroSearch() {
   });
 
   const grouped = useMemo(() => {
-    const out: Record<Tipo, Resultado[]> = { lead: [], prospect: [], ativo: [], avulso: [], inativo: [] };
+    const out = ORDEM.reduce((acc, t) => { acc[t] = []; return acc; }, {} as Record<Tipo, Resultado[]>);
     alunos.forEach((a: any) => {
-      const stageName = a.current_pipeline_stage_id ? stageMap[a.current_pipeline_stage_id] : null;
-      let tipo: Tipo;
-      if (stageName === LEAD_STAGE) tipo = "lead";
-      else if (stageName && PROSPECT_STAGES.includes(stageName)) tipo = "prospect";
-      else if (a.status === "avulso") tipo = "avulso";
-      else if (a.status === "encerrado" || a.status === "inativo") tipo = "inativo";
-      else tipo = "ativo";
+      const tipo = mapStatus(a.status);
       if (out[tipo].length < 8) {
         out[tipo].push({ id: a.id, nome: a.nome, telefone: a.telefone, tipo });
       }
     });
     return out;
-  }, [alunos, stageMap]);
+  }, [alunos]);
 
-  const totalResultados = grouped.lead.length + grouped.prospect.length + grouped.ativo.length + grouped.avulso.length + grouped.inativo.length;
+  const totalResultados = ORDEM.reduce((n, t) => n + grouped[t].length, 0);
+
 
   function handleSelect(r: Resultado) {
     setOpen(false);
