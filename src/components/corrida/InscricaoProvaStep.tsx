@@ -1,90 +1,10 @@
-import { useState } from "react";
-import { Check, Loader2 } from "lucide-react";
-import { fetchCep, formatCep } from "@/lib/viacep";
-
-export type ProvaKey = "NB" | "MIPOA";
-export type Distancia = "5K" | "10K" | "21K" | "42K";
-export interface ProvaPedido {
-  prova: ProvaKey;
-  distancia: Distancia;
-}
-
-export interface InscricaoForm {
-  nome: string;
-  sobrenome: string;
-  email: string;
-  cpf: string;
-  data_nascimento: string;
-  telefone: string;
-  cep: string;
-  logradouro: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  cidade: string;
-  uf: string;
-  ritmo_corrida: string;
-  local_nascimento: "" | "RS" | "Outros";
-  participou_nb_2026: boolean | null;
-  participou_mipoa_2026: boolean | null;
-  marca_tenis: string;
-  como_soube: string;
-  camiseta_nb: string;
-  camiseta_mipoa: string;
-  aceite_inscricao: boolean;
-  aceite_termo_aptidao: boolean;
-}
-
-export interface InscricaoPrefill {
-  nome?: string | null;
-  sobrenome?: string | null;
-  email?: string | null;
-  telefone?: string | null;
-  cpf?: string | null;
-  data_nascimento?: string | null;
-  cep?: string | null;
-  logradouro?: string | null;
-  numero?: string | null;
-  complemento?: string | null;
-  bairro?: string | null;
-  cidade?: string | null;
-  uf?: string | null;
-}
-
-export const inscricaoFormInicial = (prefill: InscricaoPrefill = {}): InscricaoForm => ({
-  nome: prefill.nome ?? "",
-  sobrenome: prefill.sobrenome ?? "",
-  email: prefill.email ?? "",
-  cpf: prefill.cpf ? maskCpf(prefill.cpf) : "",
-  data_nascimento: prefill.data_nascimento ?? "",
-  telefone: prefill.telefone ?? "",
-  cep: prefill.cep ? formatCep(prefill.cep) : "",
-  logradouro: prefill.logradouro ?? "",
-  numero: prefill.numero ?? "",
-  complemento: prefill.complemento ?? "",
-  bairro: prefill.bairro ?? "",
-  cidade: prefill.cidade ?? "",
-  uf: prefill.uf ?? "",
-  ritmo_corrida: "",
-  local_nascimento: "",
-  participou_nb_2026: null,
-  participou_mipoa_2026: null,
-  marca_tenis: "",
-  como_soube: "",
-  camiseta_nb: "",
-  camiseta_mipoa: "",
-  aceite_inscricao: false,
-  aceite_termo_aptidao: false,
-});
-
-export function maskCpf(v: string) {
-  return v
-    .replace(/\D/g, "")
-    .slice(0, 11)
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
-}
+import { Check } from "lucide-react";
+import {
+  PROVA_NOME_2026,
+  PROVA_NOME_ATUAL,
+  type InscricaoForm,
+  type ProvaPedido,
+} from "./inscricaoForm";
 
 const RITMOS = [
   "Entre 3:31 e 4:10 min/km",
@@ -123,16 +43,6 @@ const COMO_SOUBE = [
 
 const TAMANHOS = ["Babylook (tamanho único)", "P", "M", "G", "GG"];
 
-const PROVA_NOME_ATUAL: Record<ProvaKey, string> = {
-  NB: "NB 42k 2027",
-  MIPOA: "42ª Maratona Internacional de Porto Alegre 2027",
-};
-
-const PROVA_NOME_2026: Record<ProvaKey, string> = {
-  NB: "NB 42k 2026",
-  MIPOA: "41ª Maratona Internacional de Porto Alegre",
-};
-
 const Pill = ({
   active,
   onClick,
@@ -155,13 +65,7 @@ const Pill = ({
   </button>
 );
 
-const Field = ({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) => (
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <label className="block">
     <span className="block text-sm font-semibold mb-1.5">{label}</span>
     {children}
@@ -179,43 +83,6 @@ const Secao = ({ titulo, children }: { titulo: string; children: React.ReactNode
     <div className="space-y-4">{children}</div>
   </div>
 );
-
-export function inscricaoValida(
-  form: InscricaoForm,
-  provas: ProvaPedido[],
-  exigeTermo: boolean,
-): boolean {
-  const req = [
-    form.nome,
-    form.sobrenome,
-    form.email,
-    form.data_nascimento,
-    form.telefone,
-    form.cep,
-    form.logradouro,
-    form.numero,
-    form.bairro,
-    form.cidade,
-    form.uf,
-    form.ritmo_corrida,
-    form.local_nascimento,
-    form.marca_tenis,
-    form.como_soube,
-  ];
-  if (req.some((v) => !String(v).trim())) return false;
-  if (form.cpf.replace(/\D/g, "").length !== 11) return false;
-  if (form.cep.replace(/\D/g, "").length !== 8) return false;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return false;
-  if (provas.length === 0) return false;
-  for (const p of provas) {
-    if (p.prova === "NB" && (form.participou_nb_2026 === null || !form.camiseta_nb)) return false;
-    if (p.prova === "MIPOA" && (form.participou_mipoa_2026 === null || !form.camiseta_mipoa))
-      return false;
-  }
-  if (!form.aceite_inscricao) return false;
-  if (exigeTermo && !form.aceite_termo_aptidao) return false;
-  return true;
-}
 
 const CheckRow = ({
   checked,
@@ -258,136 +125,16 @@ const InscricaoProvaStep = ({
   const set = <K extends keyof InscricaoForm>(k: K, v: InscricaoForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const [buscandoCep, setBuscandoCep] = useState(false);
-  const [erroCep, setErroCep] = useState<string | null>(null);
-
-  const onCepChange = async (raw: string) => {
-    const masked = formatCep(raw);
-    setForm((f) => ({ ...f, cep: masked }));
-    setErroCep(null);
-    if (masked.replace(/\D/g, "").length !== 8) return;
-    setBuscandoCep(true);
-    const res = await fetchCep(masked);
-    setBuscandoCep(false);
-    if (!res) {
-      setErroCep("CEP não encontrado — preencha o endereço manualmente.");
-      return;
-    }
-    setForm((f) => ({
-      ...f,
-      logradouro: res.logradouro || f.logradouro,
-      bairro: res.bairro || f.bairro,
-      cidade: res.localidade || f.cidade,
-      uf: res.uf || f.uf,
-    }));
-  };
-
   const nomesProvas = provas.map((p) => PROVA_NOME_ATUAL[p.prova]).join(" e ");
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
       <h3 className="font-display text-xl font-bold mb-1">Inscrição na Prova</h3>
       <p className="text-sm text-muted-foreground mb-2">
-        Precisamos destes dados para fazer a sua inscrição{nomesProvas ? ` em ${nomesProvas}` : ""}.
+        Últimos detalhes para fazer a sua inscrição{nomesProvas ? ` em ${nomesProvas}` : ""}.
       </p>
 
       <div className="divide-y divide-border">
-        <Secao titulo="Dados pessoais">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nome*">
-              <input className={inputCls} value={form.nome} onChange={(e) => set("nome", e.target.value)} />
-            </Field>
-            <Field label="Sobrenome*">
-              <input
-                className={inputCls}
-                value={form.sobrenome}
-                onChange={(e) => set("sobrenome", e.target.value)}
-              />
-            </Field>
-            <Field label="E-mail*">
-              <input
-                type="email"
-                className={inputCls}
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-              />
-            </Field>
-            <Field label="CPF*">
-              <input
-                inputMode="numeric"
-                placeholder="000.000.000-00"
-                className={inputCls}
-                value={form.cpf}
-                onChange={(e) => set("cpf", maskCpf(e.target.value))}
-              />
-            </Field>
-            <Field label="Data de nascimento*">
-              <input
-                type="date"
-                className={inputCls}
-                value={form.data_nascimento}
-                onChange={(e) => set("data_nascimento", e.target.value)}
-              />
-            </Field>
-            <Field label="Telefone / WhatsApp*">
-              <input
-                inputMode="tel"
-                className={inputCls}
-                value={form.telefone}
-                onChange={(e) => set("telefone", e.target.value)}
-              />
-            </Field>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="CEP*">
-              <div className="relative">
-                <input
-                  inputMode="numeric"
-                  placeholder="00000-000"
-                  className={inputCls}
-                  value={form.cep}
-                  onChange={(e) => onCepChange(e.target.value)}
-                />
-                {buscandoCep && (
-                  <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                )}
-              </div>
-              {erroCep && <span className="text-xs text-destructive">{erroCep}</span>}
-            </Field>
-            <Field label="Número*">
-              <input className={inputCls} value={form.numero} onChange={(e) => set("numero", e.target.value)} />
-            </Field>
-            <Field label="Logradouro*">
-              <input
-                className={inputCls}
-                value={form.logradouro}
-                onChange={(e) => set("logradouro", e.target.value)}
-              />
-            </Field>
-            <Field label="Complemento">
-              <input
-                className={inputCls}
-                value={form.complemento}
-                onChange={(e) => set("complemento", e.target.value)}
-              />
-            </Field>
-            <Field label="Bairro*">
-              <input className={inputCls} value={form.bairro} onChange={(e) => set("bairro", e.target.value)} />
-            </Field>
-            <Field label="Cidade*">
-              <input className={inputCls} value={form.cidade} onChange={(e) => set("cidade", e.target.value)} />
-            </Field>
-            <Field label="UF*">
-              <input
-                maxLength={2}
-                className={inputCls}
-                value={form.uf}
-                onChange={(e) => set("uf", e.target.value.toUpperCase().slice(0, 2))}
-              />
-            </Field>
-          </div>
-        </Secao>
-
         <Secao titulo="Informações para inscrição">
           <Field label="Ritmo de corrida*">
             <select

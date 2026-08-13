@@ -593,6 +593,16 @@ Deno.serve(async (req) => {
     vendaId = venda.id;
     criados.push({ tabela: "vendas", id: vendaId! });
 
+    // vincula a inscrição registrada na etapa "Dados Cadastrais" à venda
+    const inscricaoIdVinculo = String(body?.inscricaoId ?? "").trim();
+    if (inscricaoIdVinculo) {
+      const { error: vincErr } = await admin
+        .from("corrida_inscricoes_prova")
+        .update({ venda_id: vendaId })
+        .eq("id", inscricaoIdVinculo);
+      if (vincErr) console.error("falha_vincular_inscricao:", vincErr.message);
+    }
+
     // ---------- 6. token de sessão para cadastro do cartão ----------
     const novoToken = await gerarTokenCartao(alunoId!);
     const cartaoTokenValor = novoToken.valor;

@@ -2707,7 +2707,7 @@ export type Database = {
       }
       corrida_inscricoes_prova: {
         Row: {
-          aceite_inscricao: boolean
+          aceite_inscricao: boolean | null
           aceite_termo_aptidao: boolean | null
           aluno_id: string | null
           bairro: string
@@ -2715,7 +2715,7 @@ export type Database = {
           camiseta_nb: string | null
           cep: string
           cidade: string
-          como_soube: string
+          como_soube: string | null
           complemento: string | null
           cpf_encrypted: string
           cpf_hash: string
@@ -2724,25 +2724,27 @@ export type Database = {
           data_nascimento: string
           email: string
           id: string
-          local_nascimento: string
+          inscricao_prova_completa: boolean
+          local_nascimento: string | null
           logradouro: string
-          marca_tenis: string
+          marca_tenis: string | null
           nome: string
           numero: string
           participou_mipoa_2026: boolean | null
           participou_nb_2026: boolean | null
           pedido_resumo: Json
           provas: Json
-          ritmo_corrida: string
+          ritmo_corrida: string | null
           rota: string
           sobrenome: string
           status: string
           telefone: string
           uf: string
           updated_at: string
+          venda_id: string | null
         }
         Insert: {
-          aceite_inscricao: boolean
+          aceite_inscricao?: boolean | null
           aceite_termo_aptidao?: boolean | null
           aluno_id?: string | null
           bairro?: string
@@ -2750,7 +2752,7 @@ export type Database = {
           camiseta_nb?: string | null
           cep?: string
           cidade?: string
-          como_soube: string
+          como_soube?: string | null
           complemento?: string | null
           cpf_encrypted: string
           cpf_hash: string
@@ -2759,25 +2761,27 @@ export type Database = {
           data_nascimento: string
           email: string
           id?: string
-          local_nascimento: string
+          inscricao_prova_completa?: boolean
+          local_nascimento?: string | null
           logradouro?: string
-          marca_tenis: string
+          marca_tenis?: string | null
           nome: string
           numero?: string
           participou_mipoa_2026?: boolean | null
           participou_nb_2026?: boolean | null
           pedido_resumo: Json
           provas: Json
-          ritmo_corrida: string
+          ritmo_corrida?: string | null
           rota: string
           sobrenome: string
           status?: string
           telefone: string
           uf?: string
           updated_at?: string
+          venda_id?: string | null
         }
         Update: {
-          aceite_inscricao?: boolean
+          aceite_inscricao?: boolean | null
           aceite_termo_aptidao?: boolean | null
           aluno_id?: string | null
           bairro?: string
@@ -2785,7 +2789,7 @@ export type Database = {
           camiseta_nb?: string | null
           cep?: string
           cidade?: string
-          como_soube?: string
+          como_soube?: string | null
           complemento?: string | null
           cpf_encrypted?: string
           cpf_hash?: string
@@ -2794,22 +2798,24 @@ export type Database = {
           data_nascimento?: string
           email?: string
           id?: string
-          local_nascimento?: string
+          inscricao_prova_completa?: boolean
+          local_nascimento?: string | null
           logradouro?: string
-          marca_tenis?: string
+          marca_tenis?: string | null
           nome?: string
           numero?: string
           participou_mipoa_2026?: boolean | null
           participou_nb_2026?: boolean | null
           pedido_resumo?: Json
           provas?: Json
-          ritmo_corrida?: string
+          ritmo_corrida?: string | null
           rota?: string
           sobrenome?: string
           status?: string
           telefone?: string
           uf?: string
           updated_at?: string
+          venda_id?: string | null
         }
         Relationships: [
           {
@@ -2825,6 +2831,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "corrida_inscricoes_prova_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "corrida_inscricoes_prova_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "corrida_inscricoes_prova_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
           },
         ]
       }

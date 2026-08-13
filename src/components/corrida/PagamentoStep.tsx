@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, CheckCircle2, CreditCard, Loader2, ShieldCheck } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { maskCpf } from "./InscricaoProvaStep";
 
 /* ------------------------------------------------------------------ */
 
@@ -26,7 +25,10 @@ export interface PedidoCriado {
 
 interface Props {
   payloadPedido: Record<string, unknown>;
-  dadosIniciais: DadosPessoaisPagamento | null;
+  dadosIniciais: DadosPessoaisPagamento;
+  inscricaoId?: string | null;
+  /** Quando informado, o wizard assume o pós-pagamento (etapa de inscrição na prova). */
+  onSucesso?: (protocolo: string) => void;
   totalHoje: number;
   resumoLinhas: { label: string; valor: number }[];
   onVoltar: () => void;
@@ -96,6 +98,8 @@ const amigavel = (code?: string | null, fallback = "Não foi possível concluir.
 const PagamentoStep = ({
   payloadPedido,
   dadosIniciais,
+  inscricaoId,
+  onSucesso,
   totalHoje,
   resumoLinhas,
   onVoltar,
@@ -109,13 +113,11 @@ const PagamentoStep = ({
     rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
   const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
 
-  const [fase, setFase] = useState<Fase>(dadosIniciais ? "cartao" : "dados");
+  const [fase, setFase] = useState<Fase>("cartao");
   const [erro, setErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [dados, setDados] = useState<DadosPessoaisPagamento>(
-    dadosIniciais ?? { nome: "", sobrenome: "", email: "", cpf: "", telefone: "", data_nascimento: "" },
-  );
+  const dados = dadosIniciais;
 
   const [aceites, setAceites] = useState<Record<string, boolean>>({});
   const [cartao, setCartao] = useState({ holder: "", numero: "", validade: "", cvv: "" });
@@ -140,13 +142,6 @@ const PagamentoStep = ({
   }, []);
 
 
-  const dadosValidos =
-    dados.nome.trim().length > 1 &&
-    dados.sobrenome.trim().length > 1 &&
-    /\S+@\S+\.\S+/.test(dados.email) &&
-    dados.cpf.replace(/\D/g, "").length === 11 &&
-    dados.telefone.replace(/\D/g, "").length >= 10 &&
-    /^\d{4}-\d{2}-\d{2}$/.test(dados.data_nascimento);
 
   /* ---------------- b) criar pedido (uma única vez) ---------------- */
 
@@ -160,6 +155,7 @@ const PagamentoStep = ({
         const { data, error } = await supabase.functions.invoke("corrida-criar-pedido", {
           body: {
             ...payloadPedido,
+            inscricaoId: inscricaoId ?? null,
             parcelas: parcelamentoDisponivel ? (parcelasSel ?? parcelasEscolhidas) : 1,
             idempotency_key: idempotencyKey,
 
@@ -191,7 +187,7 @@ const PagamentoStep = ({
         criandoRef.current = false;
       }
     },
-    [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas],
+    [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas, inscricaoId],
   );
 
 
@@ -339,12 +335,27 @@ const PagamentoStep = ({
 
   /* ---------------- render ---------------- */
 
-  if (fase === "sucesso" && resultado?.ok) {
+  const sucesso = fase === "sucesso" && !!resultado?.ok;
+
+  useEffect(() => {
+    if (sucesso && onSucesso && resultado?.protocolo) onSucesso(resultado.protocolo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sucesso]);
+
+  if (sucesso) {
+    if (onSucesso) {
+      return (
+        <Card className="text-center py-10">
+          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="font-display text-lg font-bold">Pagamento confirmado! Seguindo...</p>
+        </Card>
+      );
+    }
     return (
       <Card className="text-center py-10">
         <CheckCircle2 className="w-14 h-14 text-primary mx-auto mb-4" />
         <h3 className="font-display text-2xl font-bold mb-2">Pagamento confirmado!</h3>
-        <p className="text-sm text-muted-foreground mb-4">Protocolo: {resultado.protocolo}</p>
+        <p className="text-sm text-muted-foreground mb-4">Protocolo: {resultado?.protocolo}</p>
         <ul className="text-sm text-left max-w-md mx-auto divide-y divide-border">
           {resumoLinhas.map((l, i) => (
             <li key={i} className="py-2 flex justify-between gap-4">
@@ -360,56 +371,14 @@ const PagamentoStep = ({
 
   return (
     <div className="space-y-4">
-      {/* a) dados pessoais */}
-      {dadosIniciais ? (
-        <Card className="flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-          <p className="text-sm">
-            Pagamento em nome de: <strong>{nomeExibicao}</strong>
-          </p>
-        </Card>
-      ) : fase === "dados" ? (
-        <Card>
-          <h3 className="font-display text-xl font-bold mb-4">Seus dados</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Nome" value={dados.nome} onChange={(v) => setDados({ ...dados, nome: v })} />
-            <Field label="Sobrenome" value={dados.sobrenome} onChange={(v) => setDados({ ...dados, sobrenome: v })} />
-            <Field label="E-mail" type="email" value={dados.email} onChange={(v) => setDados({ ...dados, email: v })} />
-            <Field
-              label="CPF"
-              value={dados.cpf}
-              inputMode="numeric"
-              onChange={(v) => setDados({ ...dados, cpf: maskCpf(v) })}
-            />
-            <Field
-              label="Telefone"
-              value={dados.telefone}
-              inputMode="numeric"
-              onChange={(v) => setDados({ ...dados, telefone: v })}
-            />
-            <Field
-              label="Data de nascimento"
-              type="date"
-              value={dados.data_nascimento}
-              onChange={(v) => setDados({ ...dados, data_nascimento: v })}
-            />
-          </div>
-          <button
-            onClick={() => setFase("cartao")}
-            disabled={!dadosValidos || loading}
-            className="mt-5 w-full bg-primary text-primary-foreground py-3 rounded-xl font-display font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />} Confirmar dados
-          </button>
-        </Card>
-      ) : (
-        <Card className="flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-          <p className="text-sm">
-            Pagamento em nome de: <strong>{nomeExibicao}</strong>
-          </p>
-        </Card>
-      )}
+      {/* a) dados pessoais (já coletados na etapa Dados Cadastrais) */}
+      <Card className="flex items-center gap-3">
+        <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+        <p className="text-sm">
+          Pagamento em nome de: <strong>{nomeExibicao}</strong>
+        </p>
+      </Card>
+
 
 
       {/* c) contratos */}
