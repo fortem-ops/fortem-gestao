@@ -335,12 +335,27 @@ const PagamentoStep = ({
 
   /* ---------------- render ---------------- */
 
-  if (fase === "sucesso" && resultado?.ok) {
+  const sucesso = fase === "sucesso" && !!resultado?.ok;
+
+  useEffect(() => {
+    if (sucesso && onSucesso && resultado?.protocolo) onSucesso(resultado.protocolo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sucesso]);
+
+  if (sucesso) {
+    if (onSucesso) {
+      return (
+        <Card className="text-center py-10">
+          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="font-display text-lg font-bold">Pagamento confirmado! Seguindo...</p>
+        </Card>
+      );
+    }
     return (
       <Card className="text-center py-10">
         <CheckCircle2 className="w-14 h-14 text-primary mx-auto mb-4" />
         <h3 className="font-display text-2xl font-bold mb-2">Pagamento confirmado!</h3>
-        <p className="text-sm text-muted-foreground mb-4">Protocolo: {resultado.protocolo}</p>
+        <p className="text-sm text-muted-foreground mb-4">Protocolo: {resultado?.protocolo}</p>
         <ul className="text-sm text-left max-w-md mx-auto divide-y divide-border">
           {resumoLinhas.map((l, i) => (
             <li key={i} className="py-2 flex justify-between gap-4">
@@ -356,56 +371,14 @@ const PagamentoStep = ({
 
   return (
     <div className="space-y-4">
-      {/* a) dados pessoais */}
-      {dadosIniciais ? (
-        <Card className="flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-          <p className="text-sm">
-            Pagamento em nome de: <strong>{nomeExibicao}</strong>
-          </p>
-        </Card>
-      ) : fase === "dados" ? (
-        <Card>
-          <h3 className="font-display text-xl font-bold mb-4">Seus dados</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Nome" value={dados.nome} onChange={(v) => setDados({ ...dados, nome: v })} />
-            <Field label="Sobrenome" value={dados.sobrenome} onChange={(v) => setDados({ ...dados, sobrenome: v })} />
-            <Field label="E-mail" type="email" value={dados.email} onChange={(v) => setDados({ ...dados, email: v })} />
-            <Field
-              label="CPF"
-              value={dados.cpf}
-              inputMode="numeric"
-              onChange={(v) => setDados({ ...dados, cpf: maskCpf(v) })}
-            />
-            <Field
-              label="Telefone"
-              value={dados.telefone}
-              inputMode="numeric"
-              onChange={(v) => setDados({ ...dados, telefone: v })}
-            />
-            <Field
-              label="Data de nascimento"
-              type="date"
-              value={dados.data_nascimento}
-              onChange={(v) => setDados({ ...dados, data_nascimento: v })}
-            />
-          </div>
-          <button
-            onClick={() => setFase("cartao")}
-            disabled={!dadosValidos || loading}
-            className="mt-5 w-full bg-primary text-primary-foreground py-3 rounded-xl font-display font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />} Confirmar dados
-          </button>
-        </Card>
-      ) : (
-        <Card className="flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-          <p className="text-sm">
-            Pagamento em nome de: <strong>{nomeExibicao}</strong>
-          </p>
-        </Card>
-      )}
+      {/* a) dados pessoais (já coletados na etapa Dados Cadastrais) */}
+      <Card className="flex items-center gap-3">
+        <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+        <p className="text-sm">
+          Pagamento em nome de: <strong>{nomeExibicao}</strong>
+        </p>
+      </Card>
+
 
 
       {/* c) contratos */}
