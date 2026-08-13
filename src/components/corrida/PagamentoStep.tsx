@@ -258,13 +258,13 @@ const PagamentoStep = ({
     }
   };
 
-  const aguardarConfirmacao = async (tokenizationId: string, p: PedidoCriado) => {
+  const aguardarConfirmacao = async (tokId: string, p: PedidoCriado) => {
     const limite = Date.now() + 90_000;
     while (Date.now() < limite) {
       await new Promise((r) => setTimeout(r, 3000));
       try {
         const { data } = await supabase.functions.invoke("corrida-status-tokenizacao", {
-          body: { tokenization_id: tokenizationId },
+          body: { tokenization_id: tokId },
         });
         const status = String(data?.status ?? "").toLowerCase();
         if (status === "active" && data?.cartao_salvo_id) {
@@ -287,15 +287,20 @@ const PagamentoStep = ({
     setFase("erro");
   };
 
-  const enviarCartao = async () => {
-    if (!pedido || loading || !cartaoValido) return;
+  /** Tela combinada: cria o pedido (com o parcelamento escolhido) e, em seguida,
+   *  envia o cartão para tokenização. O pedido só é criado uma vez (idempotência). */
+  const confirmarCartaoEParcelas = async () => {
+    if (loading || !cartaoValido) return;
     setLoading(true);
     setErro(null);
-    const [mm, yy] = cartao.validade.split("/");
     try {
+      const p = pedido ?? (await criarPedido(dados, parcelasEscolhidas));
+      if (!p) return; // erro já sinalizado por criarPedido
+
+      const [mm, yy] = cartao.validade.split("/");
       const { data, error } = await supabase.functions.invoke("rede-salvar-cartao", {
         body: {
-          token: pedido.cartao_token,
+          token: p.cartao_token,
           card_number: cartao.numero.replace(/\D/g, ""),
           card_holder: cartao.holder.trim(),
           expiration_month: mm,
@@ -307,10 +312,18 @@ const PagamentoStep = ({
       if (error || !data?.success || !data?.tokenization_id) {
         throw new Error(data?.error ?? "Não foi possível validar o cartão. Confira os dados e tente novamente.");
       }
-      setFase("confirmando");
-      void aguardarConfirmacao(String(data.tokenization_id), pedido);
+      const tokId = String(data.tokenization_id);
+      setTokenizationId(tokId);
+
+      const precisaAceite = !!p.contrato_id && (p.contratos_documentos?.length ?? 0) > 0;
+      if (precisaAceite) {
+        setFase("contrato");
+      } else {
+        setFase("confirmando");
+        void aguardarConfirmacao(tokId, p);
+      }
     } catch (e) {
-      setErro((e as Error)?.message || "Não foi possível validar o cartão.");
+      setErro(amigavel((e as Error)?.message, (e as Error)?.message || "Não foi possível validar o cartão."));
     } finally {
       setLoading(false);
     }
@@ -320,6 +333,7 @@ const PagamentoStep = ({
     () => [dados.nome, dados.sobrenome].filter(Boolean).join(" ").trim(),
     [dados.nome, dados.sobrenome],
   );
+
 
   /* ---------------- render ---------------- */
 
