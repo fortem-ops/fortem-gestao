@@ -211,7 +211,12 @@ const PagamentoStep = ({
         },
       });
       if (error || !data?.ok) throw new Error(data?.error ?? "falha");
-      setFase("cartao");
+      if (tokenizationId) {
+        setFase("confirmando");
+        void aguardarConfirmacao(tokenizationId, pedido);
+      } else {
+        setFase("cartao");
+      }
     } catch (e) {
       setErro(amigavel((e as Error)?.message, "Não conseguimos registrar o seu aceite. Tente novamente."));
     } finally {
