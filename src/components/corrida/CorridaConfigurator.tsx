@@ -685,12 +685,15 @@ const CorridaConfigurator = () => {
                   price={k.isento ? "Grátis" : brl(Number(k.valor))}
                 />
               ))}
-              <Toggle
-                active={kitNivel === null}
-                onClick={() => setKitNivel(null)}
-                title="Não adicionar Kit Fortem"
-                subtitle="Seguir sem kit por enquanto."
-              />
+              {rota !== "prospect" && (
+                <Toggle
+                  active={kitNivel === null}
+                  onClick={() => setKitNivel(null)}
+                  title="Não adicionar Kit Fortem"
+                  subtitle="Seguir sem kit por enquanto."
+                />
+              )}
+
             </div>
           </>
         )}
