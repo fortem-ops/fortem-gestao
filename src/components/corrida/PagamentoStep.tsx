@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ArrowLeft, CheckCircle2, CreditCard, Loader2, ShieldCheck } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +34,7 @@ interface Props {
   setPedido: (p: PedidoCriado | null) => void;
 }
 
-type Fase = "parcelas" | "dados" | "contrato" | "cartao" | "confirmando" | "cobrando" | "sucesso" | "erro";
+type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "sucesso" | "erro";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -109,9 +109,7 @@ const PagamentoStep = ({
     rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
   const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
 
-  const [fase, setFase] = useState<Fase>(
-    parcelamentoDisponivel ? "parcelas" : dadosIniciais ? "contrato" : "dados",
-  );
+  const [fase, setFase] = useState<Fase>(dadosIniciais ? "cartao" : "dados");
   const [erro, setErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -124,6 +122,8 @@ const PagamentoStep = ({
   const [resultado, setResultado] = useState<{ ok: boolean; mensagem: string; protocolo?: string } | null>(null);
 
   const criandoRef = useRef(false);
+  const [tokenizationId, setTokenizationId] = useState<string | null>(null);
+  const [aceiteFeito, setAceiteFeito] = useState(false);
 
   // chave de idempotência: criada uma única vez por sessão de checkout
   const idempotencyKey = useMemo(() => {
@@ -151,10 +151,10 @@ const PagamentoStep = ({
   /* ---------------- b) criar pedido (uma única vez) ---------------- */
 
   const criarPedido = useCallback(
-    async (dp: DadosPessoaisPagamento, parcelasSel?: number) => {
-      if (pedido || criandoRef.current) return true;
+    async (dp: DadosPessoaisPagamento, parcelasSel?: number): Promise<PedidoCriado | null> => {
+      if (pedido) return pedido;
+      if (criandoRef.current) return null;
       criandoRef.current = true;
-      setLoading(true);
       setErro(null);
       try {
         const { data, error } = await supabase.functions.invoke("corrida-criar-pedido", {
@@ -174,36 +174,26 @@ const PagamentoStep = ({
           },
         });
         if (error || !data?.ok) throw new Error("falha_criar_pedido");
-        setPedido({
+        const novo: PedidoCriado = {
           aluno_id: data.aluno_id,
           contrato_id: data.contrato_id ?? null,
           venda_id: data.venda_id,
           cartao_token: data.cartao_token,
           contratos_documentos_ids: data.contratos_documentos_ids ?? [],
           contratos_documentos: data.contratos_documentos ?? [],
-        });
-        return true;
+        };
+        setPedido(novo);
+        return novo;
       } catch {
         setErro("Não conseguimos gerar o seu pedido agora. Confira os dados e tente novamente.");
-        return false;
+        return null;
       } finally {
         criandoRef.current = false;
-        setLoading(false);
       }
     },
     [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas],
   );
 
-  // dados vindos da etapa de inscrição: gera o pedido automaticamente
-  useEffect(() => {
-    if (dadosIniciais && !pedido && !parcelamentoDisponivel) void criarPedido(dadosIniciais);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // sem contrato (somente provas) pula direto para o cartão
-  useEffect(() => {
-    if (pedido && fase === "contrato" && !pedido.contrato_id) setFase("cartao");
-  }, [pedido, fase]);
 
   const documentos = pedido?.contratos_documentos ?? [];
   const todosAceitos = documentos.length > 0 && documentos.every((d) => aceites[d.id]);
@@ -222,7 +212,13 @@ const PagamentoStep = ({
         },
       });
       if (error || !data?.ok) throw new Error(data?.error ?? "falha");
-      setFase("cartao");
+      setAceiteFeito(true);
+      if (tokenizationId) {
+        setFase("confirmando");
+        void aguardarConfirmacao(tokenizationId, pedido);
+      } else {
+        setFase("cartao");
+      }
     } catch (e) {
       setErro(amigavel((e as Error)?.message, "Não conseguimos registrar o seu aceite. Tente novamente."));
     } finally {
@@ -264,13 +260,13 @@ const PagamentoStep = ({
     }
   };
 
-  const aguardarConfirmacao = async (tokenizationId: string, p: PedidoCriado) => {
+  const aguardarConfirmacao = async (tokId: string, p: PedidoCriado) => {
     const limite = Date.now() + 90_000;
     while (Date.now() < limite) {
       await new Promise((r) => setTimeout(r, 3000));
       try {
         const { data } = await supabase.functions.invoke("corrida-status-tokenizacao", {
-          body: { tokenization_id: tokenizationId },
+          body: { tokenization_id: tokId },
         });
         const status = String(data?.status ?? "").toLowerCase();
         if (status === "active" && data?.cartao_salvo_id) {
@@ -293,15 +289,20 @@ const PagamentoStep = ({
     setFase("erro");
   };
 
-  const enviarCartao = async () => {
-    if (!pedido || loading || !cartaoValido) return;
+  /** Tela combinada: cria o pedido (com o parcelamento escolhido) e, em seguida,
+   *  envia o cartão para tokenização. O pedido só é criado uma vez (idempotência). */
+  const confirmarCartaoEParcelas = async () => {
+    if (loading || !cartaoValido) return;
     setLoading(true);
     setErro(null);
-    const [mm, yy] = cartao.validade.split("/");
     try {
+      const p = pedido ?? (await criarPedido(dados, parcelasEscolhidas));
+      if (!p) return; // erro já sinalizado por criarPedido
+
+      const [mm, yy] = cartao.validade.split("/");
       const { data, error } = await supabase.functions.invoke("rede-salvar-cartao", {
         body: {
-          token: pedido.cartao_token,
+          token: p.cartao_token,
           card_number: cartao.numero.replace(/\D/g, ""),
           card_holder: cartao.holder.trim(),
           expiration_month: mm,
@@ -313,10 +314,18 @@ const PagamentoStep = ({
       if (error || !data?.success || !data?.tokenization_id) {
         throw new Error(data?.error ?? "Não foi possível validar o cartão. Confira os dados e tente novamente.");
       }
-      setFase("confirmando");
-      void aguardarConfirmacao(String(data.tokenization_id), pedido);
+      const tokId = String(data.tokenization_id);
+      setTokenizationId(tokId);
+
+      const precisaAceite = !aceiteFeito && !!p.contrato_id && (p.contratos_documentos?.length ?? 0) > 0;
+      if (precisaAceite) {
+        setFase("contrato");
+      } else {
+        setFase("confirmando");
+        void aguardarConfirmacao(tokId, p);
+      }
     } catch (e) {
-      setErro((e as Error)?.message || "Não foi possível validar o cartão.");
+      setErro(amigavel((e as Error)?.message, (e as Error)?.message || "Não foi possível validar o cartão."));
     } finally {
       setLoading(false);
     }
@@ -326,6 +335,7 @@ const PagamentoStep = ({
     () => [dados.nome, dados.sobrenome].filter(Boolean).join(" ").trim(),
     [dados.nome, dados.sobrenome],
   );
+
 
   /* ---------------- render ---------------- */
 
@@ -350,45 +360,8 @@ const PagamentoStep = ({
 
   return (
     <div className="space-y-4">
-      {/* 0) parcelamento */}
-      {parcelamentoDisponivel && fase === "parcelas" && (
-        <Card>
-          <h3 className="font-display text-xl font-bold mb-1">Parcelamento</h3>
-          <p className="text-sm text-muted-foreground mb-4">Total do pedido: {brl(totalHoje)}</p>
-          <label htmlFor="parcelas-pagamento" className="block text-sm font-medium mb-1">
-            Número de parcelas
-          </label>
-          <select
-            id="parcelas-pagamento"
-            value={parcelasEscolhidas}
-            onChange={(e) => setParcelasEscolhidas(Number(e.target.value))}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-          >
-            {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
-                {n}x de {brl(totalHoje / n)}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={async () => {
-              if (dadosIniciais) {
-                const ok = await criarPedido(dadosIniciais, parcelasEscolhidas);
-                if (ok) setFase("contrato");
-              } else {
-                setFase("dados");
-              }
-            }}
-            disabled={loading}
-            className="mt-5 w-full bg-primary text-primary-foreground py-3 rounded-xl font-display font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />} Continuar
-          </button>
-        </Card>
-      )}
-
       {/* a) dados pessoais */}
-      {fase === "parcelas" ? null : dadosIniciais ? (
+      {dadosIniciais ? (
         <Card className="flex items-center gap-3">
           <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
           <p className="text-sm">
@@ -422,10 +395,7 @@ const PagamentoStep = ({
             />
           </div>
           <button
-            onClick={async () => {
-              const ok = await criarPedido(dados, parcelasEscolhidas);
-              if (ok) setFase("contrato");
-            }}
+            onClick={() => setFase("cartao")}
             disabled={!dadosValidos || loading}
             className="mt-5 w-full bg-primary text-primary-foreground py-3 rounded-xl font-display font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
           >
@@ -441,12 +411,6 @@ const PagamentoStep = ({
         </Card>
       )}
 
-      {/* carregando pedido */}
-      {!pedido && fase !== "dados" && fase !== "parcelas" && (
-        <Card className="flex items-center justify-center gap-3 py-10 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin" /> Preparando o seu pedido...
-        </Card>
-      )}
 
       {/* c) contratos */}
       {pedido && fase === "contrato" && documentos.length > 0 && (
@@ -482,8 +446,8 @@ const PagamentoStep = ({
         </Card>
       )}
 
-      {/* d) cartão */}
-      {pedido && fase === "cartao" && (
+      {/* b) cartão + parcelamento (mesma tela) */}
+      {fase === "cartao" && (
         <Card>
           <h3 className="font-display text-xl font-bold mb-1 flex items-center gap-2">
             <CreditCard className="w-5 h-5" /> Pagamento
@@ -518,16 +482,36 @@ const PagamentoStep = ({
                 onChange={(v) => setCartao({ ...cartao, cvv: v.replace(/\D/g, "").slice(0, 4) })}
               />
             </div>
+
+            {parcelamentoDisponivel && (
+              <label className="block">
+                <span className="block text-sm font-medium mb-1">Número de parcelas</span>
+                <select
+                  id="parcelas-pagamento"
+                  value={parcelasEscolhidas}
+                  onChange={(e) => setParcelasEscolhidas(Number(e.target.value))}
+                  disabled={!!pedido}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm disabled:opacity-60"
+                >
+                  {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n}x de {brl(totalHoje / n)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
           <button
-            onClick={enviarCartao}
+            onClick={confirmarCartaoEParcelas}
             disabled={!cartaoValido || loading}
             className="mt-5 w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            {loading && <Loader2 className="w-5 h-5 animate-spin" />} Pagar {brl(totalHoje)}
+            {loading && <Loader2 className="w-5 h-5 animate-spin" />} Continuar
           </button>
         </Card>
       )}
+
 
       {/* e/f) processando */}
       {(fase === "confirmando" || fase === "cobrando") && (
