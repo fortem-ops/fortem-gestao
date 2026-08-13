@@ -150,10 +150,10 @@ const PagamentoStep = ({
   /* ---------------- b) criar pedido (uma única vez) ---------------- */
 
   const criarPedido = useCallback(
-    async (dp: DadosPessoaisPagamento, parcelasSel?: number) => {
-      if (pedido || criandoRef.current) return true;
+    async (dp: DadosPessoaisPagamento, parcelasSel?: number): Promise<PedidoCriado | null> => {
+      if (pedido) return pedido;
+      if (criandoRef.current) return null;
       criandoRef.current = true;
-      setLoading(true);
       setErro(null);
       try {
         const { data, error } = await supabase.functions.invoke("corrida-criar-pedido", {
@@ -173,36 +173,26 @@ const PagamentoStep = ({
           },
         });
         if (error || !data?.ok) throw new Error("falha_criar_pedido");
-        setPedido({
+        const novo: PedidoCriado = {
           aluno_id: data.aluno_id,
           contrato_id: data.contrato_id ?? null,
           venda_id: data.venda_id,
           cartao_token: data.cartao_token,
           contratos_documentos_ids: data.contratos_documentos_ids ?? [],
           contratos_documentos: data.contratos_documentos ?? [],
-        });
-        return true;
+        };
+        setPedido(novo);
+        return novo;
       } catch {
         setErro("Não conseguimos gerar o seu pedido agora. Confira os dados e tente novamente.");
-        return false;
+        return null;
       } finally {
         criandoRef.current = false;
-        setLoading(false);
       }
     },
     [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas],
   );
 
-  // dados vindos da etapa de inscrição: gera o pedido automaticamente
-  useEffect(() => {
-    if (dadosIniciais && !pedido && !parcelamentoDisponivel) void criarPedido(dadosIniciais);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // sem contrato (somente provas) pula direto para o cartão
-  useEffect(() => {
-    if (pedido && fase === "contrato" && !pedido.contrato_id) setFase("cartao");
-  }, [pedido, fase]);
 
   const documentos = pedido?.contratos_documentos ?? [];
   const todosAceitos = documentos.length > 0 && documentos.every((d) => aceites[d.id]);
