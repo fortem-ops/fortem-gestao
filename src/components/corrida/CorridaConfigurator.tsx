@@ -5,12 +5,15 @@ import { Loader2, Check, ArrowLeft, ArrowRight, Gift, Shirt } from "lucide-react
 import { supabase } from "@/integrations/supabase/client";
 import CorridaStepper, { type StepDef } from "./CorridaStepper";
 import CaminhoSection from "./CaminhoSection";
-import InscricaoProvaStep, {
+import InscricaoProvaStep from "./InscricaoProvaStep";
+import DadosCadastraisStep from "./DadosCadastraisStep";
+import {
   inscricaoFormInicial,
-  inscricaoValida,
+  dadosCadastraisValidos,
+  inscricaoProvaValida,
   type InscricaoForm,
   type ProvaPedido,
-} from "./InscricaoProvaStep";
+} from "./inscricaoForm";
 import PagamentoStep, { type PedidoCriado } from "./PagamentoStep";
 
 /* ------------------------------------------------------------------ */
@@ -208,6 +211,9 @@ const CorridaConfigurator = () => {
   const [protocolo, setProtocolo] = useState<string | null>(null);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
   const [pedido, setPedido] = useState<PedidoCriado | null>(null);
+  const [inscricaoId, setInscricaoId] = useState<string | null>(null);
+  const [pagamentoOk, setPagamentoOk] = useState(false);
+  const [inscricaoProvaOk, setInscricaoProvaOk] = useState(false);
 
   const escolherRota = (
     r: Rota,
@@ -229,6 +235,9 @@ const CorridaConfigurator = () => {
     setProtocolo(null);
     setErroEnvio(null);
     setPedido(null);
+    setInscricaoId(null);
+    setPagamentoOk(false);
+    setInscricaoProvaOk(false);
     setForm(
       inscricaoFormInicial({
         nome: prefill?.nome ?? null,
@@ -305,9 +314,10 @@ const CorridaConfigurator = () => {
     if (rota !== "somente_provas") base.push({ id: "provas", label: "Provas" });
     if (rota === "prospect" || rota === "somente_provas") base.push({ id: "matricula", label: "Matrícula" });
     base.push({ id: "servicos", label: "Serviços" });
-    if (provasPedido.length > 0) base.push({ id: "inscricao", label: "Inscrição" });
+    base.push({ id: "dados", label: "Dados" });
     base.push({ id: "resumo", label: "Resumo" });
     base.push({ id: "pagamento", label: "Pagamento" });
+    if (provasPedido.length > 0) base.push({ id: "inscricao", label: "Inscrição" });
     return base;
   }, [rota, provasPedido]);
 
@@ -756,8 +766,12 @@ const CorridaConfigurator = () => {
 
   const exigeTermo = rota !== "somente_provas";
 
-  const enviarInscricao = async () => {
+  const enviarDadosCadastrais = async () => {
     if (!rota || !resumo) return;
+    if (inscricaoId) {
+      irPara(stepIdx + 1);
+      return;
+    }
     setErroEnvio(null);
     setEnviando(true);
     try {
@@ -778,6 +792,34 @@ const CorridaConfigurator = () => {
           bairro: form.bairro.trim(),
           cidade: form.cidade.trim(),
           uf: form.uf.trim().toUpperCase(),
+          provas: provasPedido,
+          pedido_resumo: {
+            linhas: resumo.linhas,
+            total_hoje: resumo.hoje,
+            recorrente_mensal: resumo.recorrente,
+          },
+        },
+      });
+      if (error || !data?.ok) throw error ?? new Error("falha");
+      setInscricaoId(String(data.inscricao_id));
+      irPara(stepIdx + 1);
+    } catch {
+      setErroEnvio(
+        "Não conseguimos registrar os seus dados agora. Confira o preenchimento e tente novamente em alguns minutos.",
+      );
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const enviarInscricaoProva = async () => {
+    if (!inscricaoId) return;
+    setErroEnvio(null);
+    setEnviando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("corrida-atualizar-inscricao-prova", {
+        body: {
+          inscricao_id: inscricaoId,
           ritmo_corrida: form.ritmo_corrida,
           local_nascimento: form.local_nascimento,
           participou_nb_2026: provasPedido.some((p) => p.prova === "NB") ? form.participou_nb_2026 : null,
@@ -788,22 +830,20 @@ const CorridaConfigurator = () => {
           como_soube: form.como_soube,
           camiseta_nb: provasPedido.some((p) => p.prova === "NB") ? form.camiseta_nb : null,
           camiseta_mipoa: provasPedido.some((p) => p.prova === "MIPOA") ? form.camiseta_mipoa : null,
-          provas: provasPedido,
           aceite_inscricao: form.aceite_inscricao,
           aceite_termo_aptidao: exigeTermo ? form.aceite_termo_aptidao : null,
-          pedido_resumo: {
-            linhas: resumo.linhas,
-            total_hoje: resumo.hoje,
-            recorrente_mensal: resumo.recorrente,
-          },
         },
       });
       if (error || !data?.ok) throw error ?? new Error("falha");
       setProtocolo(String(data.protocolo));
-      irPara(stepIdx + 1);
+      setInscricaoProvaOk(true);
+      setTimeout(
+        () => document.getElementById("configurador")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        60,
+      );
     } catch {
       setErroEnvio(
-        "Não conseguimos registrar a sua inscrição agora. Confira os dados e tente novamente em alguns minutos.",
+        "Não conseguimos concluir a sua inscrição na prova agora. Tente novamente em alguns minutos.",
       );
     } finally {
       setEnviando(false);
@@ -839,17 +879,22 @@ const CorridaConfigurator = () => {
     return (
       <PagamentoStep
         payloadPedido={payloadPedido}
-        dadosIniciais={
+        dadosIniciais={{
+          nome: form.nome.trim(),
+          sobrenome: form.sobrenome.trim(),
+          email: form.email.trim(),
+          cpf: form.cpf,
+          telefone: form.telefone.trim(),
+          data_nascimento: form.data_nascimento,
+        }}
+        inscricaoId={inscricaoId}
+        onSucesso={
           temInscricao
-            ? {
-                nome: form.nome.trim(),
-                sobrenome: form.sobrenome.trim(),
-                email: form.email.trim(),
-                cpf: form.cpf,
-                telefone: form.telefone.trim(),
-                data_nascimento: form.data_nascimento,
+            ? () => {
+                setPagamentoOk(true);
+                irPara(stepIdx + 1);
               }
-            : null
+            : undefined
         }
         totalHoje={resumo?.hoje ?? 0}
         resumoLinhas={resumo?.linhas ?? []}
@@ -864,9 +909,6 @@ const CorridaConfigurator = () => {
     if (!resumo) return null;
 
 
-
-    const temProvas = provasPedido.length > 0;
-    const podeEnviar = temProvas && inscricaoValida(form, provasPedido, exigeTermo);
 
     return (
       <>
@@ -925,12 +967,10 @@ const CorridaConfigurator = () => {
         </div>
 
         <button
-          onClick={() => (temProvas && !protocolo ? enviarInscricao() : irPara(stepIdx + 1))}
-          disabled={enviando || (temProvas && !protocolo && !podeEnviar)}
-          className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red flex items-center justify-center gap-2 disabled:opacity-60"
+          onClick={() => irPara(stepIdx + 1)}
+          className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red flex items-center justify-center gap-2"
         >
-          {enviando && <Loader2 className="w-5 h-5 animate-spin" />}
-          {temProvas && !protocolo ? "Enviar inscrição e continuar" : "Continuar para o pagamento"}
+          Continuar para o pagamento
         </button>
       </>
     );
@@ -987,19 +1027,73 @@ const CorridaConfigurator = () => {
                 <Nav />
               </>
             )}
-            {stepAtual === "inscricao" && (
+            {stepAtual === "dados" && (
               <>
-                <InscricaoProvaStep
-                  form={form}
-                  setForm={setForm}
-                  provas={provasPedido}
-                  exigeTermo={exigeTermo}
-                />
-                <Nav podeContinuar={inscricaoValida(form, provasPedido, exigeTermo)} />
+                <DadosCadastraisStep form={form} setForm={setForm} />
+                {erroEnvio && (
+                  <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">{erroEnvio}</div>
+                )}
+                <div className="flex items-center justify-between gap-3 pt-2">
+                  <button
+                    onClick={() => irPara(stepIdx - 1)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Voltar
+                  </button>
+                  <button
+                    onClick={enviarDadosCadastrais}
+                    disabled={enviando || !dadosCadastraisValidos(form)}
+                    className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-display font-semibold glow-red flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {enviando && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Continuar <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </>
             )}
             {stepAtual === "resumo" && renderResumo()}
             {stepAtual === "pagamento" && renderPagamento()}
+            {stepAtual === "inscricao" &&
+              (inscricaoProvaOk ? (
+                <Card className="text-center py-10">
+                  <Check className="w-14 h-14 text-primary mx-auto mb-4" />
+                  <h3 className="font-display text-2xl font-bold mb-2">Tudo pronto!</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Pagamento confirmado e inscrição enviada. Protocolo: {protocolo}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Enviaremos os próximos passos por e-mail e WhatsApp.
+                  </p>
+                </Card>
+              ) : (
+                <>
+                  {pagamentoOk && (
+                    <Card className="flex items-center gap-3">
+                      <Check className="w-5 h-5 text-primary shrink-0" />
+                      <p className="text-sm">
+                        Pagamento confirmado! Falta só completar os dados da sua inscrição na prova.
+                      </p>
+                    </Card>
+                  )}
+                  <InscricaoProvaStep
+                    form={form}
+                    setForm={setForm}
+                    provas={provasPedido}
+                    exigeTermo={exigeTermo}
+                  />
+                  {erroEnvio && (
+                    <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">{erroEnvio}</div>
+                  )}
+                  <button
+                    onClick={enviarInscricaoProva}
+                    disabled={enviando || !inscricaoProvaValida(form, provasPedido, exigeTermo)}
+                    className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {enviando && <Loader2 className="w-5 h-5 animate-spin" />}
+                    Enviar inscrição
+                  </button>
+                </>
+              ))}
           </div>
         )}
       </div>
