@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     const { data: planos, error } = await supabase
       .from("planos")
-      .select("id, aluno_id, tipo, valor, proxima_renovacao, desconto_recorrente, forma_pagamento_padrao, parcelas_padrao")
+      .select("id, aluno_id, tipo, valor, proxima_renovacao, desconto_recorrente, forma_pagamento_padrao, parcelas_padrao, atividade")
       .eq("ativo", true)
       .eq("renovacao_automatica", true)
       .lte("proxima_renovacao", today);
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
       }
 
       // 2) Só então cria a venda (que dispara plano+contrato+cobrança)
-      const { error: vErr } = await supabase.from("vendas").insert({
+      const { data: vendaCriada, error: vErr } = await supabase.from("vendas").insert({
         aluno_id: p.aluno_id,
         tipo: "plano",
         catalogo_id: escolhido.id,
@@ -140,13 +140,38 @@ Deno.serve(async (req) => {
         status_pagamento: "pendente",
         data_venda: dataVenda,
         origem: "renovacao_automatica",
-      });
+      }).select("plano_id").maybeSingle();
 
       if (vErr) {
         console.error(`Erro ao gerar venda do plano ${p.id}:`, vErr);
         erros.push({ plano_id: p.id, motivo: vErr.message });
         continue;
       }
+
+      // Correção isolada p/ atividade='corrida': o gatilho fn_processar_venda cria o novo
+      // plano sem proxima_renovacao e fn_planos_autorenew_defaults não cobre 'corrida'.
+      if ((p as any).atividade === "corrida" && vendaCriada?.plano_id) {
+        const base = new Date(`${dataVenda}T00:00:00Z`);
+        const hoje = new Date(`${today}T00:00:00Z`);
+        const prox = new Date(base);
+        do {
+          prox.setUTCMonth(prox.getUTCMonth() + 1);
+        } while (prox <= hoje);
+
+        const { error: upErr } = await supabase
+          .from("planos")
+          .update({
+            proxima_renovacao: prox.toISOString().split("T")[0],
+            renovacao_automatica: true,
+          })
+          .eq("id", vendaCriada.plano_id);
+
+        if (upErr) {
+          console.error(`Erro ao definir proxima_renovacao do plano ${vendaCriada.plano_id}:`, upErr);
+          erros.push({ plano_id: p.id, motivo: `proxima_renovacao não definida: ${upErr.message}` });
+        }
+      }
+
       geradas++;
     }
 
