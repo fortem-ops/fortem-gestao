@@ -189,6 +189,8 @@ const CorridaConfigurator = () => {
 
   // seleções
   const [periodo, setPeriodo] = useState<"mensal" | "anual">("anual"); // prospect
+  const [parcelasEscolhidas, setParcelasEscolhidas] = useState(10);
+
   const [distanciaCortesia, setDistanciaCortesia] = useState<Distancia>("5K");
   const [kitNivel, setKitNivel] = useState<string | null>(null);
   const [mipoa, setMipoa] = useState(false);
