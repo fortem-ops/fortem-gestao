@@ -313,6 +313,9 @@ const CorridaConfigurator = () => {
 
   const stepAtual = steps[Math.min(stepIdx, steps.length - 1)]?.id ?? "identificacao";
 
+  const stepsSemIdentificacao = useMemo(() => steps.filter((s) => s.id !== "identificacao"), [steps]);
+  const stepperCurrent = stepsSemIdentificacao.findIndex((s) => s.id === stepAtual);
+
   const irPara = (i: number) => {
     if (i === 0) {
       setRota(null);
