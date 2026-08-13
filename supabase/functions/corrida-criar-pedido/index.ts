@@ -368,37 +368,83 @@ Deno.serve(async (req) => {
       planoId = plano.id;
       criados.push({ tabela: "planos", id: planoId! });
 
-      // o gatilho trg_auto_criar_contrato_ciclo pode ter criado um contrato
-      // placeholder — removemos para escrever o contrato real do pedido
-      const { data: contratosAuto } = await admin.from("contratos").select("id").eq("plano_id", planoId);
-      for (const c of contratosAuto ?? []) {
-        await admin.from("contratos_documentos").delete().eq("contrato_id", c.id);
-        await admin.from("contratos").delete().eq("id", c.id);
+      const ehRecorrencia = formaPagamento === "cartao_recorrencia";
+
+      if (ehRecorrencia) {
+        // o gatilho trg_auto_criar_contrato_ciclo já criou contrato + ciclos + cobrança:
+        // reaproveitamos tudo, apenas ajustando os valores reais do pedido
+        const { data: contratoAuto } = await admin
+          .from("contratos")
+          .select("id")
+          .eq("plano_id", planoId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (contratoAuto?.id) {
+          contratoId = contratoAuto.id;
+          const { error: updErr } = await admin
+            .from("contratos")
+            .update({
+              valor_base: total,
+              valor_cobrado: total,
+              status: "suspenso",
+              observacoes: "Pedido /corrida — aguardando pagamento",
+            })
+            .eq("id", contratoId);
+          if (updErr) throw new Error(`falha_atualizar_contrato_auto: ${updErr.message}`);
+
+          const { data: cobrancaAuto } = await admin
+            .from("cobrancas")
+            .select("id")
+            .eq("contrato_id", contratoId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (cobrancaAuto?.id) {
+            const { error: cobErr } = await admin
+              .from("cobrancas")
+              .update({ valor: total })
+              .eq("id", cobrancaAuto.id);
+            if (cobErr) console.error("falha_atualizar_cobranca_auto:", cobErr.message);
+          }
+        }
+      } else {
+        // o gatilho não deveria disparar aqui (renovacao_automatica=false),
+        // mas removemos qualquer contrato placeholder por segurança
+        const { data: contratosAuto } = await admin.from("contratos").select("id").eq("plano_id", planoId);
+        for (const c of contratosAuto ?? []) {
+          await admin.from("contratos_documentos").delete().eq("contrato_id", c.id);
+          await admin.from("contratos").delete().eq("id", c.id);
+        }
       }
 
-      const { data: contrato, error: contratoErr } = await admin
-        .from("contratos")
-        .insert({
-          aluno_id: alunoId,
-          plano_id: planoId,
-          plano_tipo: "corrida", // único valor aceito pelo CHECK de contratos
-          vigencia_tipo: periodo,
-          data_inicio: dataInicio,
-          data_fim: dataFim,
-          forma_pagamento: formaPagamento,
-          valor_base: catalogo.valor,
-          valor_cobrado: total,
-          parcelas,
-          // não existe status "pendente_pagamento" no CHECK de contratos;
-          // o contrato nasce suspenso e é ativado quando o pagamento entrar
-          status: "suspenso",
-          observacoes: "Pedido /corrida — aguardando pagamento",
-        })
-        .select("id")
-        .single();
-      if (contratoErr || !contrato) throw new Error(`falha_criar_contrato: ${contratoErr?.message}`);
-      contratoId = contrato.id;
-      criados.push({ tabela: "contratos", id: contratoId! });
+      if (!contratoId) {
+        const { data: contrato, error: contratoErr } = await admin
+          .from("contratos")
+          .insert({
+            aluno_id: alunoId,
+            plano_id: planoId,
+            plano_tipo: "corrida", // único valor aceito pelo CHECK de contratos
+            vigencia_tipo: periodo,
+            data_inicio: dataInicio,
+            data_fim: dataFim,
+            forma_pagamento: formaPagamento,
+            valor_base: catalogo.valor,
+            valor_cobrado: total,
+            parcelas,
+            // não existe status "pendente_pagamento" no CHECK de contratos;
+            // o contrato nasce suspenso e é ativado quando o pagamento entrar
+            status: "suspenso",
+            observacoes: "Pedido /corrida — aguardando pagamento",
+          })
+          .select("id")
+          .single();
+        if (contratoErr || !contrato) throw new Error(`falha_criar_contrato: ${contratoErr?.message}`);
+        contratoId = contrato.id;
+        criados.push({ tabela: "contratos", id: contratoId! });
+      }
+
 
       // ---------- 3. documentos ----------
       const planoTipoTemplate = rota === "somente_corrida" ? "corrida_sem_plano" : "corrida";
