@@ -36,7 +36,7 @@ const NbCortesiaBanner = () => {
             <img
               src="/fortem-logo.png"
               alt="Fortem"
-              className="h-8 md:h-10 w-auto max-w-[180px] md:max-w-[260px] object-contain"
+              className="h-7 md:h-10 w-auto max-w-[150px] md:max-w-[260px] object-contain"
               loading="lazy"
             />
             <div className="flex items-center justify-center gap-2 md:gap-6 flex-wrap">
