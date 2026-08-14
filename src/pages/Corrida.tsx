@@ -59,7 +59,7 @@ const Corrida = () => {
       <WhyFortemSection />
       <TrainingLocationsSection />
       <DifferentialsSection />
-      <RecoverySection />
+      <MipoaSection />
       <CommunitySection />
       <TestimonialsSection />
       <VideoTestimonialsSection />
