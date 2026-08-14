@@ -12,6 +12,7 @@ import fortemWordmark from "@/assets/fortem-wordmark.png";
 import { userHasStaffAccess } from "@/lib/authAccess";
 import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
 import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
+import { Seo } from "@/components/Seo";
 
 export default function PortalLogin() {
   const [email, setEmail] = useState("");
@@ -83,13 +84,18 @@ export default function PortalLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Seo
+        title="Portal do Aluno — Fortem"
+        description="Entre no Portal do Aluno Fortem para ver seus treinos, avaliações, agenda de aulas, contratos e pagamentos."
+        path="/portal/login"
+      />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <Card className="w-full max-w-md glass-card">
           <CardHeader className="text-center space-y-3 pb-2">
             <img src={fortemIcon} alt="Fortem" className="mx-auto w-14 h-14" />
             <div className="space-y-1">
               <img src={fortemWordmark} alt="Fortem" className="mx-auto h-5 dark:invert" />
-              <p className="text-xs text-muted-foreground">Portal do Aluno</p>
+              <h1 className="text-xs text-muted-foreground font-normal">Login no Portal do Aluno Fortem</h1>
             </div>
           </CardHeader>
           <CardContent>

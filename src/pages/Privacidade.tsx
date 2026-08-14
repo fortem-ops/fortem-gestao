@@ -1,6 +1,13 @@
+import { Seo } from "@/components/Seo";
+
 const Privacidade = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Seo
+        title="Política de Privacidade — Fortem"
+        description="Como a Fortem Treinamento Físico coleta, usa e protege os dados pessoais de alunos e visitantes, conforme a LGPD."
+        path="/privacidade"
+      />
       <main className="max-w-3xl mx-auto px-4 py-10 sm:py-16">
         <header className="mb-10">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
