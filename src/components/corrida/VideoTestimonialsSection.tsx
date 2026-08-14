@@ -33,7 +33,7 @@ const VideoTestimonialsSection = () => (
     <div className="container mx-auto px-6">
       <ScrollReveal className="text-center mb-16">
         <p className="text-primary font-display font-semibold tracking-[0.2em] uppercase text-sm mb-4">
-          Em ação
+          Depoimentos
         </p>
         <h2 className="font-display text-4xl md:text-5xl font-bold">
           Veja a Fortem <span className="text-gradient">em movimento.</span>
