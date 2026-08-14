@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
     return json(200, {
       found: true,
-      rota: tier ? "aluno" : "somente_corrida",
+      rota: isAgregadora ? "prospect" : tier ? "aluno" : "somente_corrida",
       tier,
       primeiro_nome: partesNome[0] ?? "",
       sobrenome: partesNome.slice(1).join(" "),
