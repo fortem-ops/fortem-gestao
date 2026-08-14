@@ -248,6 +248,17 @@ const PagamentoStep = ({
         setFase("sucesso");
         try {
           if (typeof window.gtag === "function") {
+            const emailNormalizado = dados.email.trim().toLowerCase();
+            const telefoneDigits = dados.telefone.replace(/\D/g, "");
+            const telefoneE164 = telefoneDigits.startsWith("55")
+              ? `+${telefoneDigits}`
+              : `+55${telefoneDigits}`;
+
+            window.gtag("set", "user_data", {
+              email: emailNormalizado,
+              phone_number: telefoneE164,
+            });
+
             window.gtag("event", "conversion", {
               send_to: "AW-797888979/zBA8COv0m6kaENOju_wC",
               value: totalHoje,
