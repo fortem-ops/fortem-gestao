@@ -112,7 +112,7 @@ const CaminhoSection = ({
           Comece por aqui
         </p>
         <h2 className="font-display text-2xl md:text-3xl font-bold max-w-2xl mx-auto leading-tight">
-          Seu plano, seu valor, na hora — sem depender de resposta no WhatsApp.
+          Seu plano, seu valor, na hora - sem depender de resposta no WhatsApp.
         </h2>
       </div>
 
