@@ -4,7 +4,7 @@ import WhyFortemSection from "@/components/corrida/WhyFortemSection";
 import TrainingLocationsSection from "@/components/corrida/TrainingLocationsSection";
 import DifferentialsSection from "@/components/corrida/DifferentialsSection";
 import MipoaSection from "@/components/corrida/MipoaSection";
-import TestimonialsSection from "@/components/corrida/TestimonialsSection";
+
 import VideoTestimonialsSection from "@/components/corrida/VideoTestimonialsSection";
 
 import CorridaFaqSection from "@/components/corrida/CorridaFaqSection";
@@ -59,7 +59,6 @@ const Corrida = () => {
       <TrainingLocationsSection />
       <DifferentialsSection />
       <MipoaSection />
-      <TestimonialsSection />
       <VideoTestimonialsSection />
       
       <CorridaFaqSection />
