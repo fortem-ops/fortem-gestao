@@ -17,7 +17,7 @@ const testimonials = [
   {
     name: "Juliana Bastos",
     role: "Corredora há 1 ano",
-    quote: "A comunidade Fortem é incrível. Treinar em grupo me deu motivação para manter a consistência e bater todos os meus recordes.",
+    quote: "Amo a comunidade da Fortem! Pessoas que me motivam a ter mais saúde.",
     initials: "JB",
   },
   {
