@@ -1,5 +1,54 @@
+import { useEffect, useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 import { ScrollReveal, StaggerContainer, StaggerItem } from "./ScrollReveal";
+import posterAsset from "@/assets/corrida/fortem-highlight-poster.webp.asset.json";
+
+const VIDEO_SRC = "/__l5e/assets-v1/e6dc32c8-781e-446f-ba87-70a9e428cec2/fortem-highlight.mp4";
+
+/** Só baixa e inicia o vídeo quando ele realmente entra no viewport (200px de margem). */
+const LazyTestimonialVideo = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || inView) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setInView(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [inView]);
+
+  useEffect(() => {
+    if (!inView) return;
+    const el = videoRef.current;
+    if (!el) return;
+    el.load();
+    void el.play().catch(() => undefined);
+  }, [inView]);
+
+  return (
+    <video
+      ref={videoRef}
+      muted
+      loop
+      playsInline
+      preload="none"
+      poster={posterAsset.url}
+      className="w-full aspect-[9/16] object-cover"
+    >
+      {inView && <source src={VIDEO_SRC} type="video/mp4" />}
+      Seu navegador não suporta vídeo.
+    </video>
+  );
+};
 
 const testimonials = [
   {
@@ -44,17 +93,7 @@ const VideoTestimonialsSection = () => (
         {/* Video – vertical player */}
         <ScrollReveal delay={0.1}>
           <div className="rounded-2xl overflow-hidden shadow-card-hover mx-auto max-w-sm lg:max-w-none">
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              className="w-full aspect-[9/16] object-cover"
-            >
-              <source src="/__l5e/assets-v1/e6dc32c8-781e-446f-ba87-70a9e428cec2/fortem-highlight.mp4" type="video/mp4" />
-              Seu navegador não suporta vídeo.
-            </video>
+            <LazyTestimonialVideo />
           </div>
         </ScrollReveal>
 

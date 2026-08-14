@@ -8,23 +8,23 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
-import communityImage from "@/assets/corrida/community-race.jpg";
-import runnersDuo from "@/assets/corrida/runners-duo.jpg";
-import runnerWoman from "@/assets/corrida/runner-woman.jpg";
-import runnersUrban from "@/assets/corrida/runners-urban.jpg";
-import runnersPair from "@/assets/corrida/runners-pair.jpg";
-import runnersGirls from "@/assets/corrida/runners-girls.jpg";
-import runnersCouple from "@/assets/corrida/runners-couple.jpg";
-import community1 from "@/assets/corrida/community-1.jpg";
-import community2 from "@/assets/corrida/community-2.jpg";
-import community3 from "@/assets/corrida/community-3.jpg";
-import community4 from "@/assets/corrida/community-4.jpg";
-import community5 from "@/assets/corrida/community-5.jpg";
-import community6 from "@/assets/corrida/community-6.jpg";
-import community7 from "@/assets/corrida/community-7.jpg";
-import community8 from "@/assets/corrida/community-8.jpg";
-import community9 from "@/assets/corrida/community-9.jpg";
-import community10 from "@/assets/corrida/community-10.jpg";
+import communityImage from "@/assets/corrida/community-race.webp";
+import runnersDuo from "@/assets/corrida/runners-duo.webp";
+import runnerWoman from "@/assets/corrida/runner-woman.webp";
+import runnersUrban from "@/assets/corrida/runners-urban.webp";
+import runnersPair from "@/assets/corrida/runners-pair.webp";
+import runnersGirls from "@/assets/corrida/runners-girls.webp";
+import runnersCouple from "@/assets/corrida/runners-couple.webp";
+import community1 from "@/assets/corrida/community-1.webp";
+import community2 from "@/assets/corrida/community-2.webp";
+import community3 from "@/assets/corrida/community-3.webp";
+import community4 from "@/assets/corrida/community-4.webp";
+import community5 from "@/assets/corrida/community-5.webp";
+import community6 from "@/assets/corrida/community-6.webp";
+import community7 from "@/assets/corrida/community-7.webp";
+import community8 from "@/assets/corrida/community-8.webp";
+import community9 from "@/assets/corrida/community-9.webp";
+import community10 from "@/assets/corrida/community-10.webp";
 
 const stats = [
   { value: "10", suffix: " anos", label: "de história da Fortem" },

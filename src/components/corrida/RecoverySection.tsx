@@ -1,4 +1,4 @@
-import recoveryImage from "@/assets/corrida/recovery.jpg";
+import recoveryImage from "@/assets/corrida/recovery.webp";
 import { ScrollReveal } from "./ScrollReveal";
 
 const RecoverySection = () => (

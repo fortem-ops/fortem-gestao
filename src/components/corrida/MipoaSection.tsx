@@ -1,20 +1,20 @@
 import { ScrollReveal, StaggerContainer, StaggerItem } from "./ScrollReveal";
 
-import m1 from "@/assets/corrida/mipoa/mipoa-1.jpg.asset.json";
-import m2 from "@/assets/corrida/mipoa/mipoa-2.jpg.asset.json";
-import m3 from "@/assets/corrida/mipoa/mipoa-3.jpg.asset.json";
-import m4 from "@/assets/corrida/mipoa/mipoa-4.jpg.asset.json";
-import m5 from "@/assets/corrida/mipoa/mipoa-5.jpg.asset.json";
-import m6 from "@/assets/corrida/mipoa/mipoa-6.jpg.asset.json";
-import m7 from "@/assets/corrida/mipoa/mipoa-7.jpg.asset.json";
-import m8 from "@/assets/corrida/mipoa/mipoa-8.jpg.asset.json";
-import m9 from "@/assets/corrida/mipoa/mipoa-9.jpg.asset.json";
-import m10 from "@/assets/corrida/mipoa/mipoa-10.jpg.asset.json";
-import m11 from "@/assets/corrida/mipoa/mipoa-11.jpg.asset.json";
-import m12 from "@/assets/corrida/mipoa/mipoa-12.jpg.asset.json";
-import m13 from "@/assets/corrida/mipoa/mipoa-13.jpg.asset.json";
-import m14 from "@/assets/corrida/mipoa/mipoa-14.jpg.asset.json";
-import m15 from "@/assets/corrida/mipoa/mipoa-15.jpg.asset.json";
+import m1 from "@/assets/corrida/mipoa/mipoa-1.webp.asset.json";
+import m2 from "@/assets/corrida/mipoa/mipoa-2.webp.asset.json";
+import m3 from "@/assets/corrida/mipoa/mipoa-3.webp.asset.json";
+import m4 from "@/assets/corrida/mipoa/mipoa-4.webp.asset.json";
+import m5 from "@/assets/corrida/mipoa/mipoa-5.webp.asset.json";
+import m6 from "@/assets/corrida/mipoa/mipoa-6.webp.asset.json";
+import m7 from "@/assets/corrida/mipoa/mipoa-7.webp.asset.json";
+import m8 from "@/assets/corrida/mipoa/mipoa-8.webp.asset.json";
+import m9 from "@/assets/corrida/mipoa/mipoa-9.webp.asset.json";
+import m10 from "@/assets/corrida/mipoa/mipoa-10.webp.asset.json";
+import m11 from "@/assets/corrida/mipoa/mipoa-11.webp.asset.json";
+import m12 from "@/assets/corrida/mipoa/mipoa-12.webp.asset.json";
+import m13 from "@/assets/corrida/mipoa/mipoa-13.webp.asset.json";
+import m14 from "@/assets/corrida/mipoa/mipoa-14.webp.asset.json";
+import m15 from "@/assets/corrida/mipoa/mipoa-15.webp.asset.json";
 
 const fotos = [
   { src: m1.url, alt: "Equipe Fortem reunida na tenda da Maratona Internacional de Porto Alegre 2026", wide: true },

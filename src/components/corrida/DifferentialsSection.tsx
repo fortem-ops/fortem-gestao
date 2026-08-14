@@ -1,10 +1,10 @@
 import { ScrollReveal, StaggerContainer, StaggerItem } from "./ScrollReveal";
 
-import diffPlanAsset from "@/assets/corrida/diff-plan.jpg.asset.json";
-import diffPresencialAsset from "@/assets/corrida/diff-presencial.jpg.asset.json";
+import diffPlanAsset from "@/assets/corrida/diff-plan.webp.asset.json";
+import diffPresencialAsset from "@/assets/corrida/diff-presencial.webp.asset.json";
 import diffAppAsset from "@/assets/corrida/diff-app.jpg.asset.json";
 import diffRecoveryAsset from "@/assets/corrida/diff-recovery.jpg.asset.json";
-import diffSedeAsset from "@/assets/corrida/diff-sede.jpg.asset.json";
+import diffSedeAsset from "@/assets/corrida/diff-sede.webp.asset.json";
 
 const items = [
   { image: diffPlanAsset.url, title: "Planilha personalizada", description: "Treinamento adaptado ao seu objetivo." },
