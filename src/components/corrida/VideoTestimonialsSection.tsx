@@ -3,28 +3,28 @@ import { ScrollReveal, StaggerContainer, StaggerItem } from "./ScrollReveal";
 
 const testimonials = [
   {
-    name: "Carolina Menezes",
-    role: "Corredora há 2 anos",
+    name: "M. J.",
+    role: "Corredora há 9 meses",
     quote: "Nunca havia corrido e tinha medo de me machucar. A equipe da Fortem me auxiliou a atingir o meu objetivo: correr 5km sem caminhar. Já fiz 4 provas e agora quero os 10km!",
-    initials: "CM",
+    initials: "MJ",
   },
   {
-    name: "Rafael Drummond",
-    role: "Aluno há 3 anos",
+    name: "B.M.",
+    role: "Aluna há 1 ano",
     quote: "A equipe multidisciplinar da Fortem me ajuda a ter uma prática saudável na corrida",
-    initials: "RD",
+    initials: "BM",
   },
   {
-    name: "Juliana Bastos",
-    role: "Corredora há 1 ano",
+    name: "M.P.",
+    role: "Aluna há 2 anos",
     quote: "Amo a comunidade da Fortem! Pessoas que me motivam a ter mais saúde.",
-    initials: "JB",
+    initials: "MP",
   },
   {
-    name: "Marcos Oliveira",
-    role: "Aluno há 4 anos",
+    name: "JN",
+    role: "Aluno há 5 anos",
     quote: "Aqui tenho tudo que preciso para os meus treinos e objetivos. Do profissionalismo à estrutura.",
-    initials: "MO",
+    initials: "JN",
   },
 ];
 
