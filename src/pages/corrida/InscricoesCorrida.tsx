@@ -310,7 +310,7 @@ export default function InscricoesCorrida() {
               <TableHead>CPF</TableHead>
               <TableHead>Rota</TableHead>
               <TableHead>Provas</TableHead>
-              <TableHead>Progresso</TableHead>
+              <TableHead className="min-w-[200px]">Progresso</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
