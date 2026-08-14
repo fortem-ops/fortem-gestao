@@ -21,7 +21,7 @@ const testimonials = [
     initials: "MP",
   },
   {
-    name: "JN",
+    name: "J.N.",
     role: "Aluno há 5 anos",
     quote: "Aqui tenho tudo que preciso para os meus treinos e objetivos. Do profissionalismo à estrutura.",
     initials: "JN",
