@@ -150,7 +150,9 @@ export function StudentListFilters({ filters, onChange, professors }: Props) {
           <MultiSelectFilter
             options={[
               { value: "ativo", label: "Ativos" },
+              { value: "ativo_corrida", label: "Ativos · Corrida" },
               { value: "licenca", label: "Licença" },
+
               { value: "encerrado", label: "Encerrados" },
             ]}
             value={filters.status}
