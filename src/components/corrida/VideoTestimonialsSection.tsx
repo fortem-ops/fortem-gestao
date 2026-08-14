@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 import { ScrollReveal, StaggerContainer, StaggerItem } from "./ScrollReveal";
-import posterAsset from "@/assets/corrida/fortem-highlight-poster.webp.asset.json";
+import posterAsset from "@/assets/corrida/landing-red-poster.webp.asset.json";
+import videoAsset from "@/assets/corrida/landing-red.mp4.asset.json";
 
-const VIDEO_SRC = "/__l5e/assets-v1/e6dc32c8-781e-446f-ba87-70a9e428cec2/fortem-highlight.mp4";
+const VIDEO_SRC = videoAsset.url;
 
 /** Só baixa e inicia o vídeo quando ele realmente entra no viewport (200px de margem). */
 const LazyTestimonialVideo = () => {
