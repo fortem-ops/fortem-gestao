@@ -4,7 +4,7 @@ const Privacidade = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Seo
-        title="Política de Privacidade — Fortem"
+        title="Política de Privacidade — Fortem - Treinamento"
         description="Como a Fortem Treinamento Físico coleta, usa e protege os dados pessoais de alunos e visitantes, conforme a LGPD."
         path="/privacidade"
       />

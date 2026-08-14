@@ -5,7 +5,7 @@ const TermoAptidaoUsoImagem = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Seo
-        title="Termo de Aptidão Física e Uso de Imagem — Fortem"
+        title="Termo de Aptidão Física e Uso de Imagem — Fortem - Treinamento"
         description="Leia o termo de aptidão física e autorização de uso de imagem da Fortem Treinamento Físico, aceito por alunos e participantes das atividades."
         path="/termos/aptidao-fisica-uso-imagem"
       />
