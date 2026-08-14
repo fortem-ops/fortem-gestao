@@ -23,7 +23,7 @@ const testimonials = [
   {
     name: "Marcos Oliveira",
     role: "Aluno há 4 anos",
-    quote: "O recovery com bota de compressão é um diferencial absurdo. Recupero muito mais rápido e consigo manter o volume de treino alto.",
+    quote: "Aqui tenho tudo que preciso para os meus treinos e objetivos. Do profissionalismo à estrutura.",
     initials: "MO",
   },
 ];
