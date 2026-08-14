@@ -3,6 +3,12 @@ import { ArrowLeft, CheckCircle2, CreditCard, Loader2, ShieldCheck } from "lucid
 
 import { supabase } from "@/integrations/supabase/client";
 
+declare global {
+  interface Window {
+    gtag?: (...args: (string | Record<string, unknown>)[]) => void;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 
 export interface DadosPessoaisPagamento {
@@ -240,6 +246,18 @@ const PagamentoStep = ({
       if (data?.success) {
         setResultado({ ok: true, mensagem: "Pagamento confirmado!", protocolo: p.venda_id });
         setFase("sucesso");
+        try {
+          if (typeof window.gtag === "function") {
+            window.gtag("event", "conversion", {
+              send_to: "AW-797888979/pcbICLnAjakZENOju_wC",
+              value: totalHoje,
+              currency: "BRL",
+              transaction_id: String(p.venda_id),
+            });
+          }
+        } catch {
+          /* silencia falhas do gtag para não quebrar o fluxo */
+        }
         return;
       }
       const msg =
