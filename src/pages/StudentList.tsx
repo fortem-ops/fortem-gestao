@@ -23,8 +23,10 @@ import AddStudentDialog from "@/components/student/AddStudentDialog";
 import ImportStudentsCSVDialog from "@/components/student/ImportStudentsCSVDialog";
 import { StudentListFilters, defaultFilters, type StudentFilters } from "@/components/student/StudentListFilters";
 import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
-import { getDisplayStatus } from "@/lib/studentStatus";
+import { getDisplayStatus, ACTIVE_STATUS_KEYS } from "@/lib/studentStatus";
+import { selecionarPlanoExibicao, planoDataFim } from "@/lib/planoPrincipal";
 import type { AlunoLicenca } from "@/lib/licencas";
+
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
@@ -187,9 +189,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         chunk(ids, CHUNK).map(async (part) => {
           const { data, error } = await supabase
             .from("planos")
-            .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
+            .select("id, aluno_id, tipo, atividade, data_inicio, data_fim, duracao_meses, ativo, servicos, created_at")
             .in("aluno_id", part)
             .eq("ativo", true);
+
           if (error) {
             console.error("[StudentList] Erro ao buscar planos dos alunos (continuando sem planos):", error, { chunkSize: part.length });
             // Não quebra toda a query; alunos sem planos aparecerão como encerrados.
@@ -253,15 +256,21 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const planEndMap: Record<string, Date | null> = {};
       const planStartMap: Record<string, Date | null> = {};
       const planTipoMap: Record<string, string | null> = {};
+      const corridaOnlyMap: Record<string, boolean> = {};
 
       const PLAN_SERVICES = ["Avaliação Funcional", "Consultas Nutrição", "Consultas Reabilitação"];
 
+      const planosPorAluno: Record<string, any[]> = {};
+      for (const p of planos) (planosPorAluno[p.aluno_id] ||= []).push(p);
+
       for (const student of students) {
-        const plano: any = planos?.find((p) => p.aluno_id === student.id);
+        // Seleção determinística (mesma regra do perfil): principal vigente →
+        // Corrida vigente → mais recente por created_at.
+        const selecao = selecionarPlanoExibicao(planosPorAluno[student.id] ?? []);
+        const plano: any = selecao.plano;
+        corridaOnlyMap[student.id] = selecao.corridaOnly;
         if (plano) {
-          planEndMap[student.id] = plano.data_fim
-            ? new Date(plano.data_fim + "T00:00:00")
-            : addMonths(new Date(plano.data_inicio), plano.duracao_meses);
+          planEndMap[student.id] = planoDataFim(plano);
           planStartMap[student.id] = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00") : null;
           planTipoMap[student.id] = plano.tipo || null;
         } else {
@@ -269,6 +278,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           planStartMap[student.id] = null;
           planTipoMap[student.id] = null;
         }
+
 
         creditsMap[student.id] = emptyCredits();
 
@@ -303,7 +313,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         bucket.servico[c.atividade] = cur;
       });
 
-      const enriched = students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], licencas: licencasMap[s.id] || [] }));
+      const enriched = students.map((s) => ({ ...s, credits: creditsMap[s.id], planEnd: planEndMap[s.id], planStart: planStartMap[s.id], planTipo: planTipoMap[s.id], corridaOnly: !!corridaOnlyMap[s.id], licencas: licencasMap[s.id] || [] }));
       console.log("[StudentList] Alunos enriquecidos:", enriched.length);
       return enriched;
     },
@@ -329,10 +339,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const c = s.credits;
       const matchSearch = (s.nome ?? "").toLowerCase().includes(term) ||
         (s.email?.toLowerCase().includes(term) ?? false);
-      const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo);
+      const display = getDisplayStatus(s.status, s.planEnd, s.licencas, s.planTipo, { corridaOnly: s.corridaOnly });
       const matchMode = isInativos
         ? display.key === "encerrado"
-        : display.key === "ativo" || display.key === "licenca";
+        : ACTIVE_STATUS_KEYS.includes(display.key);
       if (!matchMode) return false;
       const matchStatus = filters.status.length === 0 || filters.status.includes(display.key);
 
@@ -719,7 +729,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                     </td>
                     <td className="p-4 hidden md:table-cell">
                       {(() => {
-                        const d = getDisplayStatus(student.status, student.planEnd, student.licencas, student.planTipo);
+                        const d = getDisplayStatus(student.status, student.planEnd, student.licencas, student.planTipo, { corridaOnly: student.corridaOnly });
                         return (
                           <Badge variant="outline" className={`text-xs ${d.className}`}>{d.label}</Badge>
                         );
@@ -812,7 +822,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
                   : lastFuncSev.className === "status-warning"
                     ? "text-warning font-medium"
                     : "text-foreground";
-            const statusDisplay = getDisplayStatus(student.status, student.planEnd, student.licencas, student.planTipo);
+            const statusDisplay = getDisplayStatus(student.status, student.planEnd, student.licencas, student.planTipo, { corridaOnly: student.corridaOnly });
             const hasPlanoServ = c && Object.keys(c.plano).length > 0;
             const hasContrServ = c && Object.keys(c.servico).length > 0;
 

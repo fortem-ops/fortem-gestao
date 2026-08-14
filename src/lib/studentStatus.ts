@@ -1,7 +1,14 @@
 import { getLicencaVigente, type AlunoLicenca } from "./licencas";
 import { isAutoRenewPlan } from "./planTipo";
 
-export type DisplayStatusKey = "ativo" | "licenca" | "encerrado" | "lead" | "prospect" | "avulso";
+export type DisplayStatusKey =
+  | "ativo"
+  | "ativo_corrida"
+  | "licenca"
+  | "encerrado"
+  | "lead"
+  | "prospect"
+  | "avulso";
 
 export interface DisplayStatus {
   key: DisplayStatusKey;
@@ -11,6 +18,7 @@ export interface DisplayStatus {
 
 const LABELS: Record<DisplayStatusKey, string> = {
   ativo: "Ativo",
+  ativo_corrida: "Ativo · Corrida",
   licenca: "Licença",
   encerrado: "Inativo",
   lead: "Lead",
@@ -20,6 +28,7 @@ const LABELS: Record<DisplayStatusKey, string> = {
 
 const CLASSES: Record<DisplayStatusKey, string> = {
   ativo: "status-active",
+  ativo_corrida: "status-info",
   licenca: "status-license",
   encerrado: "status-urgent",
   lead: "status-info",
@@ -27,11 +36,24 @@ const CLASSES: Record<DisplayStatusKey, string> = {
   avulso: "status-info",
 };
 
+/** Chaves consideradas "aluno ativo" para listagens e contagens. */
+export const ACTIVE_STATUS_KEYS: DisplayStatusKey[] = ["ativo", "ativo_corrida", "licenca"];
+
+export interface DisplayStatusOptions {
+  /**
+   * true quando o aluno NÃO tem plano principal vigente, mas tem plano de
+   * Corrida vigente. Nesse caso ele é um cliente pagante ativo, porém em uma
+   * modalidade distinta — status "Ativo · Corrida".
+   */
+  corridaOnly?: boolean;
+}
+
 export function getDisplayStatus(
   rawStatus: string | null | undefined,
   planEnd: Date | null,
   licencas: AlunoLicenca[] = [],
   planTipo?: string | null,
+  options: DisplayStatusOptions = {},
 ): DisplayStatus {
   // Pipeline-only statuses
   if (rawStatus === "lead" || rawStatus === "prospect") {
@@ -48,6 +70,11 @@ export function getDisplayStatus(
     return { key: "licenca", label: LABELS.licenca, className: CLASSES.licenca };
   }
 
+  // Só Corrida vigente (sem plano principal vigente): ativo, mas diferenciado
+  if (options.corridaOnly) {
+    return { key: "ativo_corrida", label: LABELS.ativo_corrida, className: CLASSES.ativo_corrida };
+  }
+
   // Planos auto-renováveis vigentes (planTipo só vem de planos.ativo=true) são sempre ativos
   if (isAutoRenewPlan(planTipo)) {
     return { key: "ativo", label: LABELS.ativo, className: CLASSES.ativo };
@@ -61,3 +88,4 @@ export function getDisplayStatus(
 
   return { key: "encerrado", label: LABELS.encerrado, className: CLASSES.encerrado };
 }
+

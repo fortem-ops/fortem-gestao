@@ -30,8 +30,10 @@ import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDia
 import { StudentClubePanel } from "@/components/clube/StudentClubePanel";
 import ContratoFinanceiro from "@/pages/alunos/ContratoFinanceiro";
 import { getDisplayStatus } from "@/lib/studentStatus";
+import { selecionarPlanoExibicao, planoDataFim } from "@/lib/planoPrincipal";
 import type { AlunoLicenca } from "@/lib/licencas";
 import { addMonths } from "date-fns";
+
 
 
 export default function StudentProfile() {
@@ -91,18 +93,16 @@ export default function StudentProfile() {
         .from("planos").select("*").eq("aluno_id", id!).eq("ativo", true)
         .order("created_at", { ascending: false });
       // O aluno pode ter mais de um plano ativo (ex.: plano principal + Corrida).
-      // O status de exibição segue o plano principal (não-Corrida).
-      const plano = (planos ?? []).find((p: any) => p.atividade !== "corrida") ?? planos?.[0];
-      const planEnd = plano
-        ? (plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : addMonths(new Date(plano.data_inicio), plano.duracao_meses))
-        : null;
+      // Seleção determinística: principal vigente → Corrida vigente → mais recente.
+      const { plano, corridaOnly } = selecionarPlanoExibicao(planos as any[]);
+      const planEnd = planoDataFim(plano);
       let licencas: AlunoLicenca[] = [];
-      if (plano) {
+      if (plano?.id) {
         const { data } = await supabase.from("aluno_licencas" as any)
           .select("*").eq("aluno_id", id!).eq("plano_id", plano.id);
         licencas = (data as unknown as AlunoLicenca[]) || [];
       }
-      return { planEnd, licencas, planTipo: plano?.tipo ?? null };
+      return { planEnd, licencas, planTipo: plano?.tipo ?? null, corridaOnly };
     },
     enabled: !!id,
   });
@@ -126,7 +126,9 @@ export default function StudentProfile() {
     statusInfo?.planEnd ?? null,
     statusInfo?.licencas ?? [],
     statusInfo?.planTipo ?? null,
+    { corridaOnly: statusInfo?.corridaOnly },
   );
+
   const podeReativar = displayStatus.key === "encerrado";
 
   return (

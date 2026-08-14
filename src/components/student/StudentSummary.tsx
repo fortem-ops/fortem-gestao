@@ -17,6 +17,8 @@ import ContratoDetailModal, { type ContratoDetail } from "@/components/student/C
 import MarkPresentialSignatureDialog from "@/components/student/MarkPresentialSignatureDialog";
 import { CpfRevealField } from "./CpfRevealField";
 import { Link } from "react-router-dom";
+import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+
 
 
 type Aluno = Tables<"alunos">;
@@ -97,11 +99,12 @@ export function StudentSummary({ student }: { student: Aluno }) {
       return data ?? [];
     },
   });
-  const plano =
-    (planosAtivos as any[]).find((p) => p.atividade !== "corrida") ??
-    (planosAtivos as any[])[0] ??
-    null;
-  const planoCorrida = (planosAtivos as any[]).find((p) => p.atividade === "corrida") ?? null;
+  const selecao = selecionarPlanoExibicao(planosAtivos as any[]);
+  const plano = (selecao.plano as any) ?? null;
+  const planoCorrida = (selecao.corridaVigente as any)
+    ?? (planosAtivos as any[]).find((p) => p.atividade === "corrida")
+    ?? null;
+
 
   const { data: licencas = [] } = useQuery({
     queryKey: ["aluno_licencas_summary", student.id, plano?.id],
@@ -525,7 +528,8 @@ export function StudentSummary({ student }: { student: Aluno }) {
   }
 
   const planEndDate = plano ? (plano.data_fim ? new Date(plano.data_fim + "T00:00:00") : calcEndDate(plano.data_inicio, plano.duracao_meses)) : null;
-  const displayStatus = getDisplayStatus(student.status, planEndDate, licencas, plano?.tipo ?? null);
+  const displayStatus = getDisplayStatus(student.status, planEndDate, licencas, plano?.tipo ?? null, { corridaOnly: selecao.corridaOnly });
+
 
   const severityClass: Record<string, string> = {
     atencao: "status-warning",
