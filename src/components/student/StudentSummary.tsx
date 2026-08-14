@@ -17,6 +17,8 @@ import ContratoDetailModal, { type ContratoDetail } from "@/components/student/C
 import MarkPresentialSignatureDialog from "@/components/student/MarkPresentialSignatureDialog";
 import { CpfRevealField } from "./CpfRevealField";
 import { Link } from "react-router-dom";
+import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+
 
 
 type Aluno = Tables<"alunos">;
