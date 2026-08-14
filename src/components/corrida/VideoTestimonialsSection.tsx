@@ -5,7 +5,7 @@ const testimonials = [
   {
     name: "Carolina Menezes",
     role: "Corredora há 2 anos",
-    quote: "Comecei do zero e já completei minha primeira meia maratona. A planilha personalizada fez toda a diferença na minha evolução.",
+    quote: "Nunca havia corrido e tinha medo de me machucar. A equipe da Fortem me auxiliou a atingir o meu objetivo: correr 5km sem caminhar. Já fiz 4 provas e agora quero os 10km!",
     initials: "CM",
   },
   {
