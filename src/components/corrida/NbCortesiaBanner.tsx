@@ -14,7 +14,11 @@ const BENEFICIOS = [
  * Abertura institucional da página /corrida: campanha NB 42k 2027.
  * Sem interações — a escolha de caminho acontece na seção seguinte.
  */
-const NbCortesiaBanner = () => {
+interface NbCortesiaBannerProps {
+  logoTopOffset?: number;
+}
+
+const NbCortesiaBanner = ({ logoTopOffset = 0 }: NbCortesiaBannerProps) => {
   return (
     <section className="relative w-full overflow-hidden bg-accent py-20 md:py-28">
       {/* Watermark tipo número de peito */}
@@ -37,6 +41,7 @@ const NbCortesiaBanner = () => {
               src="/fortem-logo.png"
               alt="Fortem"
               className="h-7 md:h-10 w-auto max-w-[150px] md:max-w-[260px] object-contain"
+              style={{ transform: `translateY(-${logoTopOffset}px)` }}
               loading="lazy"
             />
             <div className="flex items-center justify-center gap-2 md:gap-6 flex-wrap">
