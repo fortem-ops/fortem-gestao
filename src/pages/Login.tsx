@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { userHasStaffAccess } from "@/lib/authAccess";
 import { diagnoseNetwork, describeDiagnosis, type DiagnosisResult } from "@/lib/networkDiagnostics";
 import { NetworkHelpPanel } from "@/components/NetworkHelpPanel";
+import { Seo } from "@/components/Seo";
 
 
 export default function Login() {
