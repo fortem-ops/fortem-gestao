@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.corrida-atualizar-inscricao-prova]
 verify_jwt = false
+
+[functions.corrida-enviar-confirmacao-email]
+verify_jwt = false

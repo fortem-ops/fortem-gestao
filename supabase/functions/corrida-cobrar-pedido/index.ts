@@ -255,6 +255,20 @@ Deno.serve(async (req) => {
       if (vendaPlano?.plano_id) {
         await supabase.from("planos").update({ cartao_token_id: cartaoId }).eq("id", vendaPlano.plano_id);
       }
+
+      // e-mail de confirmação — fire and forget, nunca afeta o resultado do pagamento
+      try {
+        supabase.functions
+          .invoke("corrida-enviar-confirmacao-email", {
+            body: { venda_id: vendaId, contrato_id: contratoId },
+          })
+          .then((r: any) => {
+            if (r?.error) console.error("[corrida-cobrar-pedido] email confirmacao erro:", String(r.error?.message ?? r.error));
+          })
+          .catch((e: any) => console.error("[corrida-cobrar-pedido] email confirmacao erro:", String(e)));
+      } catch (e) {
+        console.error("[corrida-cobrar-pedido] email confirmacao erro:", String(e));
+      }
     }
 
     if (returnCode === "54") {
