@@ -46,7 +46,7 @@ const MipoaSection = () => (
           Fortem na <span className="text-gradient">MIPOA 2026</span>
         </h2>
         <p className="mt-5 text-accent-foreground/70 text-lg max-w-2xl mx-auto font-light">
-          Nossa equipe na Maratona Internacional de Porto Alegre: estrutura, apoio e muita medalha no peito.
+          Maratona Internacional de Porto Alegre: da entrega dos kits à medalha no peito. Treinos, estrutura, apoio e segurança em toda a jornada.
         </p>
       </ScrollReveal>
 
