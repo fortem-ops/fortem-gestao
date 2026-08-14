@@ -19,8 +19,12 @@ const TIER_MAP: Record<string, string> = {
   "start+": "start_plus",
   "power": "power",
   "pro": "pro",
-  "total pass": "max",
 };
+
+// Alunos de agregadoras não têm plano/contrato direto com a Fortem:
+// devem ser tratados como Prospect (preço cheio, sem cortesia, até 12x).
+const AGREGADORAS = new Set(["gympass/wellhub", "total pass"]);
+
 
 async function sha256Hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
@@ -87,13 +91,16 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const tier = plano?.tipo ? TIER_MAP[String(plano.tipo).trim().toLowerCase()] ?? null : null;
+    const tipoNorm = plano?.tipo ? String(plano.tipo).trim().toLowerCase() : null;
+    const isAgregadora = tipoNorm ? AGREGADORAS.has(tipoNorm) : false;
+    const tier = !isAgregadora && tipoNorm ? TIER_MAP[tipoNorm] ?? null : null;
+
 
     const partesNome = String(aluno.nome ?? "").trim().split(/\s+/).filter(Boolean);
 
     return json(200, {
       found: true,
-      rota: tier ? "aluno" : "somente_corrida",
+      rota: isAgregadora ? "prospect" : tier ? "aluno" : "somente_corrida",
       tier,
       primeiro_nome: partesNome[0] ?? "",
       sobrenome: partesNome.slice(1).join(" "),
