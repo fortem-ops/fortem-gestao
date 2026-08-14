@@ -3,7 +3,7 @@ import { ScrollReveal, StaggerContainer, StaggerItem } from "./ScrollReveal";
 import diffPlanAsset from "@/assets/corrida/diff-plan.jpg.asset.json";
 import diffPresencialAsset from "@/assets/corrida/diff-presencial.jpg.asset.json";
 import diffAppAsset from "@/assets/corrida/diff-app.jpg.asset.json";
-import diffRecovery from "@/assets/corrida/diff-recovery.jpg";
+import diffRecoveryAsset from "@/assets/corrida/diff-recovery.jpg.asset.json";
 import diffSedeAsset from "@/assets/corrida/diff-sede.jpg.asset.json";
 
 const items = [
