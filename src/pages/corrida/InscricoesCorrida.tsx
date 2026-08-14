@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables, Database } from "@/integrations/supabase/types";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -16,11 +16,20 @@ import {
 } from "@/components/ui/sheet";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Flag } from "lucide-react";
+import { Flag, Check } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { InscricaoCpfRevealField } from "@/components/corrida/InscricaoCpfRevealField";
 
-type Inscricao = Tables<"corrida_inscricoes_prova">;
+type InscricaoBase = Tables<"corrida_inscricoes_prova">;
+type VendaStatus = Database["public"]["Enums"]["venda_status"];
+
+type Inscricao = InscricaoBase & {
+  vendas?: {
+    status_pagamento: VendaStatus;
+    valor_final: number;
+    created_at: string;
+  } | null;
+};
 
 const ROTA_LABEL: Record<string, string> = {
   aluno: "Aluno",
@@ -53,6 +62,168 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function StatusBadge({
+  label,
+  state,
+  icon,
+}: {
+  label: string;
+  state: "success" | "warning" | "urgent" | "neutral";
+  icon?: React.ReactNode;
+}) {
+  const statusClass =
+    state === "success"
+      ? "status-active"
+      : state === "warning"
+      ? "status-warning"
+      : state === "urgent"
+      ? "status-urgent"
+      : "border border-border text-muted-foreground bg-transparent";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusClass}`}
+    >
+      {icon}
+      {label}
+    </span>
+  );
+}
+
+function DadosBadge() {
+  return <StatusBadge label="Dados" state="success" icon={<Check className="w-3 h-3" />} />;
+}
+
+function PagamentoBadge({ inscricao }: { inscricao: Inscricao }) {
+  const status = inscricao.vendas?.status_pagamento;
+
+  if (!inscricao.venda_id || !status) {
+    return <StatusBadge label="Pagamento pendente" state="warning" />;
+  }
+
+  if (status === "pago") {
+    return (
+      <StatusBadge
+        label="Pagamento pago"
+        state="success"
+        icon={<Check className="w-3 h-3" />}
+      />
+    );
+  }
+
+  if (status === "pendente") {
+    return <StatusBadge label="Pagamento pendente" state="warning" />;
+  }
+
+  const labelMap: Record<string, string> = {
+    falha: "Pagamento recusado",
+    cancelado: "Pagamento cancelado",
+    estornado: "Pagamento estornado",
+  };
+  return <StatusBadge label={labelMap[status] ?? `Pagamento ${status}`} state="urgent" />;
+}
+
+function InscricaoBadge({ inscricao }: { inscricao: Inscricao }) {
+  const provas = parseProvas(inscricao.provas);
+  if (provas.length === 0) {
+    return <StatusBadge label="Inscrição —" state="neutral" />;
+  }
+
+  if (inscricao.inscricao_prova_completa) {
+    return (
+      <StatusBadge
+        label="Inscrição confirmada"
+        state="success"
+        icon={<Check className="w-3 h-3" />}
+      />
+    );
+  }
+
+  return <StatusBadge label="Inscrição pendente" state="warning" />;
+}
+
+function ProgressoSection({ inscricao }: { inscricao: Inscricao }) {
+  const venda = inscricao.vendas;
+  const provas = parseProvas(inscricao.provas);
+
+  return (
+    <section className="space-y-3">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Progresso</h3>
+      <div className="rounded-lg border border-border divide-y divide-border">
+        <div className="flex items-center justify-between p-3">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-success text-success-foreground">
+              <Check className="w-3 h-3" />
+            </span>
+            <span className="text-sm font-medium">Dados cadastrais</span>
+          </div>
+          <span className="text-xs text-muted-foreground">Concluído</span>
+        </div>
+
+        <div className="p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {venda?.status_pagamento === "pago" ? (
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-success text-success-foreground">
+                  <Check className="w-3 h-3" />
+                </span>
+              ) : (
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-warning text-warning-foreground text-xs font-bold">!</span>
+              )}
+              <span className="text-sm font-medium">Pagamento</span>
+            </div>
+            {venda ? (
+              <Badge
+                variant={venda.status_pagamento === "pago" ? "default" : venda.status_pagamento === "pendente" ? "secondary" : "destructive"}
+              >
+                {venda.status_pagamento}
+              </Badge>
+            ) : (
+              <Badge variant="secondary">Pendente</Badge>
+            )}
+          </div>
+          {venda && (
+            <div className="grid grid-cols-2 gap-3 pl-7 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Valor</p>
+                <p className="font-medium">{brl(Number(venda.valor_final) || 0)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Data</p>
+                <p className="font-medium">
+                  {format(new Date(venda.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between p-3">
+          <div className="flex items-center gap-2">
+            {provas.length === 0 ? (
+              <span className="flex items-center justify-center w-5 h-5 rounded-full border border-border text-muted-foreground text-xs">—</span>
+            ) : inscricao.inscricao_prova_completa ? (
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-success text-success-foreground">
+                <Check className="w-3 h-3" />
+              </span>
+            ) : (
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-warning text-warning-foreground text-xs font-bold">!</span>
+            )}
+            <span className="text-sm font-medium">Inscrição na prova</span>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {provas.length === 0
+              ? "Não aplicável"
+              : inscricao.inscricao_prova_completa
+              ? "Concluído"
+              : "Pendente"}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function InscricoesCorrida() {
   const [busca, setBusca] = useState("");
   const [rota, setRota] = useState<string>("todas");
@@ -65,7 +236,7 @@ export default function InscricoesCorrida() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("corrida_inscricoes_prova")
-        .select("*")
+        .select("*, vendas(status_pagamento, valor_final, created_at)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Inscricao[];
@@ -139,7 +310,7 @@ export default function InscricoesCorrida() {
               <TableHead>CPF</TableHead>
               <TableHead>Rota</TableHead>
               <TableHead>Provas</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Progresso</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -168,7 +339,13 @@ export default function InscricoesCorrida() {
                     ))}
                   </div>
                 </TableCell>
-                <TableCell><Badge>{i.status}</Badge></TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1.5">
+                    <DadosBadge />
+                    <PagamentoBadge inscricao={i} />
+                    <InscricaoBadge inscricao={i} />
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -304,7 +481,7 @@ export default function InscricoesCorrida() {
                   )}
                 </section>
 
-                <Field label="Status" value={<Badge>{detalhe.status}</Badge>} />
+                <ProgressoSection inscricao={detalhe} />
               </div>
             </>
           )}
