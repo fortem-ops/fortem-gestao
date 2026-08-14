@@ -11,7 +11,7 @@ const testimonials = [
   {
     name: "Rafael Drummond",
     role: "Aluno há 3 anos",
-    quote: "O acompanhamento profissional nos treinos de pista corrigiu minha técnica e reduziu minhas lesões. Melhor investimento que fiz.",
+    quote: "A equipe multidisciplinar da Fortem me ajuda a ter uma prática saudável na corrida",
     initials: "RD",
   },
   {
