@@ -187,9 +187,10 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         chunk(ids, CHUNK).map(async (part) => {
           const { data, error } = await supabase
             .from("planos")
-            .select("id, aluno_id, tipo, data_inicio, data_fim, duracao_meses, ativo, servicos")
+            .select("id, aluno_id, tipo, atividade, data_inicio, data_fim, duracao_meses, ativo, servicos, created_at")
             .in("aluno_id", part)
             .eq("ativo", true);
+
           if (error) {
             console.error("[StudentList] Erro ao buscar planos dos alunos (continuando sem planos):", error, { chunkSize: part.length });
             // Não quebra toda a query; alunos sem planos aparecerão como encerrados.
