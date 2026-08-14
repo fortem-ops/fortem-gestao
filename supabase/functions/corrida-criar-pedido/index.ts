@@ -448,7 +448,7 @@ Deno.serve(async (req) => {
 
 
       // ---------- 3. documentos ----------
-      const planoTipoTemplate = rota === "somente_corrida" ? "corrida_sem_plano" : "corrida";
+      const planoTipoTemplate = rota === "somente_corrida" || rota === "prospect" ? "corrida_sem_plano" : "corrida";
       const { data: templatePrincipal } = await admin
         .from("contrato_templates")
         .select("id, nome, conteudo, versao")
