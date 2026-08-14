@@ -48,7 +48,7 @@ const Corrida = () => {
   return (
     <div className="corrida-landing min-h-screen font-display">
       <Seo
-        title="Grupo de Corrida — Fortem Porto Alegre"
+        title="Grupo de Corrida — Fortem - Treinamento"
         description="Treine corrida em grupo com a Fortem em Porto Alegre: assessoria técnica, treinos na orla e na pista, recovery e comunidade. Inscreva-se online."
         path="/corrida"
         jsonLd={corridaJsonLd}
