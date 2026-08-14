@@ -1,7 +1,7 @@
 import { MapPin, Clock } from "lucide-react";
 import { ScrollReveal, StaggerContainer, StaggerItem } from "./ScrollReveal";
-import pistaRamiro from "@/assets/corrida/pista-ramiro-souto.jpg";
-import orlaGuaiba from "@/assets/corrida/orla-guaiba.jpg";
+import pistaRamiro from "@/assets/corrida/pista-ramiro-souto.webp";
+import orlaGuaiba from "@/assets/corrida/orla-guaiba.webp";
 
 const locations = [
   { id: "redencao", name: "Pista Ramiro Souto – Redenção", image: pistaRamiro, schedules: [{ days: "Segundas e Quartas", times: ["07h30"] }, { days: "Terças", times: ["18h", "18h30"] }] },
@@ -22,7 +22,7 @@ const TrainingLocationsSection = () => {
             <StaggerItem key={loc.id}>
               <div className="bg-card rounded-2xl shadow-card border border-border hover:shadow-card-hover transition-all duration-300 overflow-hidden">
                 <div className="w-full h-48 overflow-hidden">
-                  <img src={loc.image} alt={loc.name} className="w-full h-full object-cover" />
+                  <img src={loc.image} alt={loc.name} loading="lazy" className="w-full h-full object-cover" />
                 </div>
 
                 <div className="p-8">

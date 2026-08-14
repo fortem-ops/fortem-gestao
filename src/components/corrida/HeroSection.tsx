@@ -1,4 +1,4 @@
-import heroImage from "@/assets/corrida/hero-runners.jpg";
+import heroImage from "@/assets/corrida/hero-runners.webp";
 import { motion } from "framer-motion";
 
 const HeroSection = ({ onCtaClick }: { onCtaClick: () => void }) => {
