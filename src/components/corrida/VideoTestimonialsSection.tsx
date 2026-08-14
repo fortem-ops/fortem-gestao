@@ -36,7 +36,7 @@ const VideoTestimonialsSection = () => (
           Depoimentos
         </p>
         <h2 className="font-display text-4xl md:text-5xl font-bold">
-          Veja a Fortem <span className="text-gradient">em movimento.</span>
+          o que os nossos alunos dizem
         </h2>
       </ScrollReveal>
 
