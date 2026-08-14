@@ -10,6 +10,11 @@ import m7 from "@/assets/corrida/mipoa/mipoa-7.jpg.asset.json";
 import m8 from "@/assets/corrida/mipoa/mipoa-8.jpg.asset.json";
 import m9 from "@/assets/corrida/mipoa/mipoa-9.jpg.asset.json";
 import m10 from "@/assets/corrida/mipoa/mipoa-10.jpg.asset.json";
+import m11 from "@/assets/corrida/mipoa/mipoa-11.jpg.asset.json";
+import m12 from "@/assets/corrida/mipoa/mipoa-12.jpg.asset.json";
+import m13 from "@/assets/corrida/mipoa/mipoa-13.jpg.asset.json";
+import m14 from "@/assets/corrida/mipoa/mipoa-14.jpg.asset.json";
+import m15 from "@/assets/corrida/mipoa/mipoa-15.jpg.asset.json";
 
 const fotos = [
   { src: m1.url, alt: "Equipe Fortem reunida na tenda da Maratona Internacional de Porto Alegre 2026", wide: true },
@@ -22,7 +27,13 @@ const fotos = [
   { src: m8.url, alt: "Aluna Fortem com medalha dos 5km da MIPOA 2026" },
   { src: m9.url, alt: "Aluna Fortem com medalha dos 10km da MIPOA 2026" },
   { src: m10.url, alt: "Aluna Fortem mordendo a medalha da MIPOA 2026" },
+  { src: m13.url, alt: "Turma da Fortem reunida na Operação Maratona de Porto Alegre", wide: true },
+  { src: m11.url, alt: "Treinador da Fortem apresentando a Operação Maratona de Porto Alegre" },
+  { src: m12.url, alt: "Alunos da Fortem com o kit da Maratona Internacional de Porto Alegre" },
+  { src: m14.url, alt: "Casal de alunos Fortem com o kit da MIPOA em mãos" },
+  { src: m15.url, alt: "Alunos Fortem recebendo as sacolas do kit da MIPOA" },
 ];
+
 
 const MipoaSection = () => (
   <section className="py-24 md:py-32 bg-accent text-accent-foreground overflow-hidden">
