@@ -249,7 +249,7 @@ const PagamentoStep = ({
         try {
           if (typeof window.gtag === "function") {
             window.gtag("event", "conversion", {
-              send_to: "AW-797888979/pcbICLnAjakZENOju_wC",
+              send_to: "AW-797888979/zBA8COv0m6kaENOju_wC",
               value: totalHoje,
               currency: "BRL",
               transaction_id: String(p.venda_id),
