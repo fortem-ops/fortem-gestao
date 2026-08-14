@@ -3,7 +3,7 @@ import CorridaConfigurator from "@/components/corrida/CorridaConfigurator";
 import WhyFortemSection from "@/components/corrida/WhyFortemSection";
 import TrainingLocationsSection from "@/components/corrida/TrainingLocationsSection";
 import DifferentialsSection from "@/components/corrida/DifferentialsSection";
-import RecoverySection from "@/components/corrida/RecoverySection";
+import MipoaSection from "@/components/corrida/MipoaSection";
 import CommunitySection from "@/components/corrida/CommunitySection";
 import TestimonialsSection from "@/components/corrida/TestimonialsSection";
 import VideoTestimonialsSection from "@/components/corrida/VideoTestimonialsSection";
@@ -59,7 +59,7 @@ const Corrida = () => {
       <WhyFortemSection />
       <TrainingLocationsSection />
       <DifferentialsSection />
-      <RecoverySection />
+      <MipoaSection />
       <CommunitySection />
       <TestimonialsSection />
       <VideoTestimonialsSection />
