@@ -53,7 +53,7 @@ const Corrida = () => {
         path="/corrida"
         jsonLd={corridaJsonLd}
       />
-      <NbCortesiaBanner />
+      <NbCortesiaBanner logoTopOffset={24} />
       <CorridaConfigurator />
       <WhyFortemSection />
       <TrainingLocationsSection />
