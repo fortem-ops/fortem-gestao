@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
 
     const { data: venda } = await supabase
       .from("vendas")
-      .select("id, aluno_id, nome_snapshot, valor_final, parcelas, observacoes, contrato_id")
+      .select("id, aluno_id, nome_snapshot, valor_final, parcelas, observacoes")
       .eq("id", vendaId)
       .maybeSingle();
     if (!venda) return json(404, { ok: false, error: "venda_nao_encontrada" });
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     if (!destino) return json(400, { ok: false, error: "email_do_aluno_ausente" });
 
     // contratos vinculados
-    let contratoId: string | null = (venda as any).contrato_id ?? null;
+    let contratoId: string | null = typeof body?.contrato_id === "string" && body.contrato_id.trim() ? body.contrato_id.trim() : null;
     if (!contratoId) {
       const { data: c } = await supabase
         .from("contratos")
