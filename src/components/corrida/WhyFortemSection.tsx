@@ -57,7 +57,7 @@ const WhyFortemSection = () => (
     <div className="container mx-auto px-6">
       <ScrollReveal className="text-center mb-14">
         <p className="text-primary font-display font-semibold tracking-[0.2em] uppercase text-sm mb-4">
-          Por que a Fortem
+          A FORTEM
         </p>
         <h2 className="font-display text-4xl md:text-5xl font-medium text-foreground">
           Assessoria nova.<br />Estrutura madura.
