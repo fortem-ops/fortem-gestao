@@ -110,6 +110,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Seo
+        title="Entrar — Gestão Técnica Fortem"
+        description="Acesse a plataforma de gestão técnica da Fortem: treinos, avaliações, agenda e acompanhamento de alunos em um só lugar."
+        path="/login"
+      />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -120,7 +125,7 @@ export default function Login() {
             <img src={fortemIcon} alt="Fortem" className="mx-auto w-16 h-16 object-contain" />
             <div className="space-y-2">
               <img src={fortemWordmark} alt="Fortem" className="mx-auto h-6 object-contain dark:invert" />
-              <p className="text-sm text-muted-foreground">Gestão Técnica</p>
+              <h1 className="text-sm text-muted-foreground font-normal">Entrar na Gestão Técnica Fortem</h1>
             </div>
           </CardHeader>
           <CardContent>
