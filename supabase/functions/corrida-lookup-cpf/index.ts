@@ -19,8 +19,12 @@ const TIER_MAP: Record<string, string> = {
   "start+": "start_plus",
   "power": "power",
   "pro": "pro",
-  "total pass": "max",
 };
+
+// Alunos de agregadoras não têm plano/contrato direto com a Fortem:
+// devem ser tratados como Prospect (preço cheio, sem cortesia, até 12x).
+const AGREGADORAS = new Set(["gympass/wellhub", "total pass"]);
+
 
 async function sha256Hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
