@@ -24,7 +24,9 @@ import ImportStudentsCSVDialog from "@/components/student/ImportStudentsCSVDialo
 import { StudentListFilters, defaultFilters, type StudentFilters } from "@/components/student/StudentListFilters";
 import { addMonths, format, isAfter, isBefore, startOfDay } from "date-fns";
 import { getDisplayStatus } from "@/lib/studentStatus";
+import { selecionarPlanoExibicao, planoDataFim } from "@/lib/planoPrincipal";
 import type { AlunoLicenca } from "@/lib/licencas";
+
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
@@ -254,15 +256,21 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
       const planEndMap: Record<string, Date | null> = {};
       const planStartMap: Record<string, Date | null> = {};
       const planTipoMap: Record<string, string | null> = {};
+      const corridaOnlyMap: Record<string, boolean> = {};
 
       const PLAN_SERVICES = ["Avaliação Funcional", "Consultas Nutrição", "Consultas Reabilitação"];
 
+      const planosPorAluno: Record<string, any[]> = {};
+      for (const p of planos) (planosPorAluno[p.aluno_id] ||= []).push(p);
+
       for (const student of students) {
-        const plano: any = planos?.find((p) => p.aluno_id === student.id);
+        // Seleção determinística (mesma regra do perfil): principal vigente →
+        // Corrida vigente → mais recente por created_at.
+        const selecao = selecionarPlanoExibicao(planosPorAluno[student.id] ?? []);
+        const plano: any = selecao.plano;
+        corridaOnlyMap[student.id] = selecao.corridaOnly;
         if (plano) {
-          planEndMap[student.id] = plano.data_fim
-            ? new Date(plano.data_fim + "T00:00:00")
-            : addMonths(new Date(plano.data_inicio), plano.duracao_meses);
+          planEndMap[student.id] = planoDataFim(plano);
           planStartMap[student.id] = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00") : null;
           planTipoMap[student.id] = plano.tipo || null;
         } else {
@@ -270,6 +278,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
           planStartMap[student.id] = null;
           planTipoMap[student.id] = null;
         }
+
 
         creditsMap[student.id] = emptyCredits();
 
