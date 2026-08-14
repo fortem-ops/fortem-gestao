@@ -2,14 +2,14 @@ import { ScrollReveal, StaggerContainer, StaggerItem } from "./ScrollReveal";
 
 import diffPlanAsset from "@/assets/corrida/diff-plan.jpg.asset.json";
 import diffPresencialAsset from "@/assets/corrida/diff-presencial.jpg.asset.json";
-import diffApp from "@/assets/corrida/diff-app.jpg";
+import diffAppAsset from "@/assets/corrida/diff-app.jpg.asset.json";
 import diffRecovery from "@/assets/corrida/diff-recovery.jpg";
 import diffSedeAsset from "@/assets/corrida/diff-sede.jpg.asset.json";
 
 const items = [
   { image: diffPlanAsset.url, title: "Planilha personalizada", description: "Treinamento adaptado ao seu objetivo." },
   { image: diffPresencialAsset.url, title: "Treinos presenciais", description: "Correção técnica e motivação em grupo." },
-  { image: diffApp, title: "Aplicativo exclusivo", description: "Planilha, agenda e acompanhamento." },
+  { image: diffAppAsset.url, title: "Aplicativo exclusivo", description: "Planilha, agenda e acompanhamento." },
   { image: diffRecovery, title: "Recovery", description: "Bota de Compressão Gratuita" },
   { image: diffSedeAsset.url, title: "Sede", description: "Próxima à Redenção. Infra completa de vestiários." },
 ];
