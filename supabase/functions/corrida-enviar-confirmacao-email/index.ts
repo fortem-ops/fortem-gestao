@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     if (contratoId) {
       const { data: docs } = await supabase
         .from("contratos_documentos")
-        .select("nome, conteudo_gerado")
+        .select("conteudo_gerado, contrato_templates(nome)")
         .eq("contrato_id", contratoId);
       documentos = docs ?? [];
     }
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
         (d) => `
         <div style="margin-top:28px">
           <h3 style="font-size:15px;margin:0 0 8px;color:#111;border-bottom:2px solid #E11D2E;padding-bottom:6px">
-            ${esc(d?.nome ?? "Contrato")}
+            ${esc(d?.contrato_templates?.nome ?? "Contrato")}
           </h3>
           <div style="font-size:12px;line-height:1.5;color:#333">${d?.conteudo_gerado ?? ""}</div>
         </div>`,
