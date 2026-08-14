@@ -10,7 +10,7 @@ const items = [
   { image: diffPlanAsset.url, title: "Planilha personalizada", description: "Treinamento adaptado ao seu objetivo." },
   { image: diffPresencialAsset.url, title: "Treinos presenciais", description: "Correção técnica e motivação em grupo." },
   { image: diffAppAsset.url, title: "Aplicativo exclusivo", description: "Planilha, agenda e acompanhamento." },
-  { image: diffRecovery, title: "Recovery", description: "Bota de Compressão Gratuita" },
+  { image: diffRecoveryAsset.url, title: "Recovery", description: "Bota de Compressão Gratuita" },
   { image: diffSedeAsset.url, title: "Sede", description: "Próxima à Redenção. Infra completa de vestiários." },
 ];
 
