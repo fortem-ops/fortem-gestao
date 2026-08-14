@@ -6,7 +6,7 @@ import DifferentialsSection from "@/components/corrida/DifferentialsSection";
 import MipoaSection from "@/components/corrida/MipoaSection";
 import TestimonialsSection from "@/components/corrida/TestimonialsSection";
 import VideoTestimonialsSection from "@/components/corrida/VideoTestimonialsSection";
-import SocialProofSection from "@/components/corrida/SocialProofSection";
+
 import CorridaFaqSection from "@/components/corrida/CorridaFaqSection";
 import FinalCtaSection from "@/components/corrida/FinalCtaSection";
 import WhatsAppButton from "@/components/corrida/WhatsAppButton";
@@ -61,7 +61,7 @@ const Corrida = () => {
       <MipoaSection />
       <TestimonialsSection />
       <VideoTestimonialsSection />
-      <SocialProofSection />
+      
       <CorridaFaqSection />
       <FinalCtaSection onCtaClick={scrollToConfigurator} />
 
