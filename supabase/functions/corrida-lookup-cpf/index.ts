@@ -91,7 +91,10 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const tier = plano?.tipo ? TIER_MAP[String(plano.tipo).trim().toLowerCase()] ?? null : null;
+    const tipoNorm = plano?.tipo ? String(plano.tipo).trim().toLowerCase() : null;
+    const isAgregadora = tipoNorm ? AGREGADORAS.has(tipoNorm) : false;
+    const tier = !isAgregadora && tipoNorm ? TIER_MAP[tipoNorm] ?? null : null;
+
 
     const partesNome = String(aluno.nome ?? "").trim().split(/\s+/).filter(Boolean);
 
