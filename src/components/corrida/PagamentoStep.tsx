@@ -3,6 +3,12 @@ import { ArrowLeft, CheckCircle2, CreditCard, Loader2, ShieldCheck } from "lucid
 
 import { supabase } from "@/integrations/supabase/client";
 
+declare global {
+  interface Window {
+    gtag?: (...args: (string | Record<string, unknown>)[]) => void;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 
 export interface DadosPessoaisPagamento {
