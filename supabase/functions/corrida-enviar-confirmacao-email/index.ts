@@ -157,19 +157,6 @@ Deno.serve(async (req) => {
       )
       .join("");
 
-    const avisoHtml = faltaInscricao
-      ? `<div style="margin:24px 0;padding:16px;border-left:4px solid #E11D2E;background:#FFF3F4;border-radius:6px">
-           <strong style="color:#B91021;font-size:15px">Falta completar sua inscrição na prova</strong>
-           <p style="margin:8px 0 12px;font-size:14px;color:#333">
-             Seu pagamento está confirmado, mas ainda precisamos dos dados da sua inscrição na prova
-             (tamanho de camiseta, ritmo, etc.). Leva menos de 2 minutos.
-           </p>
-           <a href="https://www.soufortem.com.br/corrida"
-              style="display:inline-block;background:#E11D2E;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;font-size:14px;font-weight:bold">
-             Completar inscrição
-           </a>
-         </div>`
-      : "";
 
     const html = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif">
       <div style="max-width:680px;margin:0 auto;background:#ffffff">
