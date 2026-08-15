@@ -271,9 +271,18 @@ const PagamentoStep = ({
               currency: "BRL",
               transaction_id: String(p.venda_id),
             });
+
+            if (typeof window.fbq === "function") {
+              window.fbq("track", "Purchase", {
+                value: totalHoje,
+                currency: "BRL",
+              }, {
+                eventID: String(p.venda_id),
+              });
+            }
           }
         } catch {
-          /* silencia falhas do gtag para não quebrar o fluxo */
+          /* silencia falhas de tracking para não quebrar o fluxo */
         }
         return;
       }
