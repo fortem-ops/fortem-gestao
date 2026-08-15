@@ -59,11 +59,10 @@ const NbCortesiaBanner = ({ logoTopOffset = 0 }: NbCortesiaBannerProps) => {
             Garanta sua vaga até 20/08.
           </p>
 
-          <div className="mt-4 flex items-center justify-center gap-3 opacity-80">
+          <div className="mt-4 flex items-center justify-center opacity-80">
             <span className="text-[10px] uppercase tracking-[0.3em] text-accent-foreground/60">
-              Prova oficial
+              Inscrição inclusa
             </span>
-            <img src={nbLogo} alt="" className="h-6 md:h-7 w-auto" loading="lazy" />
           </div>
 
           <ul className="mt-10 grid sm:grid-cols-2 gap-x-8 gap-y-3 max-w-2xl mx-auto text-left">
