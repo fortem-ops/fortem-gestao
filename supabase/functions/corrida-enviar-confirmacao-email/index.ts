@@ -74,20 +74,20 @@ Deno.serve(async (req) => {
 
     const { data: venda } = await supabase
       .from("vendas")
-      .select("id, aluno_id, nome_snapshot, valor_final, parcelas, observacoes")
+      .select("id, aluno_id, nome_snapshot, valor_final, parcelas, forma_pagamento, observacoes")
       .eq("id", vendaId)
       .maybeSingle();
     if (!venda) return json(404, { ok: false, error: "venda_nao_encontrada" });
 
     const { data: aluno } = await supabase
       .from("alunos")
-      .select("id, nome, email")
+      .select("id, nome, email, telefone")
       .eq("id", venda.aluno_id)
       .maybeSingle();
 
     const { data: inscricao } = await supabase
       .from("corrida_inscricoes_prova")
-      .select("id, email, nome, provas, pedido_resumo, inscricao_prova_completa")
+      .select("id, email, nome, sobrenome, telefone, rota, provas, pedido_resumo, inscricao_prova_completa")
       .eq("venda_id", vendaId)
       .order("created_at", { ascending: false })
       .limit(1)
