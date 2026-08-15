@@ -169,8 +169,6 @@ Deno.serve(async (req) => {
           <p style="margin:0 0 16px;font-size:13px;color:#777">Protocolo: ${esc(venda.id)}</p>
           <p style="font-size:15px;color:#111">Olá, ${esc(nome)}! Recebemos seu pagamento e sua vaga está garantida.</p>
 
-          ${avisoHtml}
-
           <h3 style="font-size:15px;margin:24px 0 8px;color:#111">Resumo do pedido</h3>
           <table style="width:100%;border-collapse:collapse">
             ${linhasHtml || `<tr><td style="font-size:14px;color:#111">${esc(venda.nome_snapshot)}</td></tr>`}
