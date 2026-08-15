@@ -74,20 +74,20 @@ Deno.serve(async (req) => {
 
     const { data: venda } = await supabase
       .from("vendas")
-      .select("id, aluno_id, nome_snapshot, valor_final, parcelas, observacoes")
+      .select("id, aluno_id, nome_snapshot, valor_final, parcelas, forma_pagamento, observacoes")
       .eq("id", vendaId)
       .maybeSingle();
     if (!venda) return json(404, { ok: false, error: "venda_nao_encontrada" });
 
     const { data: aluno } = await supabase
       .from("alunos")
-      .select("id, nome, email")
+      .select("id, nome, email, telefone")
       .eq("id", venda.aluno_id)
       .maybeSingle();
 
     const { data: inscricao } = await supabase
       .from("corrida_inscricoes_prova")
-      .select("id, email, nome, provas, pedido_resumo, inscricao_prova_completa")
+      .select("id, email, nome, sobrenome, telefone, rota, provas, pedido_resumo, inscricao_prova_completa")
       .eq("venda_id", vendaId)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -204,9 +204,61 @@ Deno.serve(async (req) => {
       </div>
     </body></html>`;
 
+    // ---- e-mail interno (operacional) — fire-and-forget, nunca afeta o fluxo ----
+    const enviarInterno = async () => {
+      try {
+        let obs: any = null;
+        try { obs = venda.observacoes ? JSON.parse(venda.observacoes) : null; } catch { /* ignore */ }
+        const rota = inscricao?.rota || obs?.rota || "—";
+        const rotaLabel: Record<string, string> = {
+          aluno: "Aluno",
+          somente_corrida: "Somente Corrida",
+          prospect: "Prospect",
+          somente_provas: "Somente Provas",
+        };
+        const tier = obs?.tier ?? null;
+        const telefone = aluno?.telefone || inscricao?.telefone || "—";
+        const emailComprador = destino;
+        const provasTxt = temProva
+          ? provas.map((p: any) => `${esc(p?.nome ?? p?.prova)}${p?.distancia ? ` (${esc(p.distancia)})` : ""}`).join(", ")
+          : "Nenhuma";
+        const itensHtml = (resumo?.linhas ?? [])
+          .map((l: any) => `<li>${esc(l?.label)} — ${Number(l?.valor ?? 0) === 0 ? "Cortesia" : brl(l?.valor)}</li>`)
+          .join("") || `<li>${esc(venda.nome_snapshot)}</li>`;
+
+        const internoHtml = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif">
+          <div style="max-width:640px;margin:0 auto;background:#fff;padding:24px">
+            <h2 style="margin:0 0 12px;font-size:18px;color:#111">Nova compra — Corrida</h2>
+            <p style="margin:0 0 16px;font-size:13px;color:#777">Protocolo: ${esc(venda.id)}</p>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;color:#111">
+              <tr><td style="padding:4px 0;color:#777">Comprador</td><td style="padding:4px 0">${esc(nome)}</td></tr>
+              <tr><td style="padding:4px 0;color:#777">Telefone</td><td style="padding:4px 0">${esc(telefone)}</td></tr>
+              <tr><td style="padding:4px 0;color:#777">E-mail</td><td style="padding:4px 0">${esc(emailComprador)}</td></tr>
+              <tr><td style="padding:4px 0;color:#777">Rota</td><td style="padding:4px 0">${esc(rotaLabel[rota] ?? rota)}${tier ? ` · tier ${esc(tier)}` : ""}</td></tr>
+              <tr><td style="padding:4px 0;color:#777">Pagamento</td><td style="padding:4px 0">${brl(venda.valor_final)}${parcelas > 1 ? ` em ${parcelas}x` : " à vista"} · ${esc(venda.forma_pagamento ?? "—")}</td></tr>
+              <tr><td style="padding:4px 0;color:#777">Provas</td><td style="padding:4px 0">${provasTxt}</td></tr>
+              <tr><td style="padding:4px 0;color:#777">Inscrição na prova</td><td style="padding:4px 0">${temProva ? (faltaInscricao ? "PENDENTE" : "Completa") : "Não se aplica"}</td></tr>
+            </table>
+            <h3 style="font-size:14px;margin:20px 0 6px;color:#111">Itens do pedido</h3>
+            <ul style="font-size:14px;color:#111;padding-left:18px;margin:0">${itensHtml}</ul>
+          </div>
+        </body></html>`;
+
+        await sendGmailEmail(
+          "fortemtreinamento@gmail.com",
+          `Nova compra Corrida — ${nome} — ${brl(venda.valor_final)}`,
+          internoHtml,
+        );
+      } catch (e) {
+        console.error("[corrida-enviar-confirmacao-email] falha no e-mail interno:", String(e));
+      }
+    };
+
     try {
       await sendGmailEmail(destino, `Fortem Corrida — Pagamento confirmado (${String(venda.id).slice(0, 8)})`, html);
+      await enviarInterno();
     } catch (e) {
+      await enviarInterno();
       console.error("[corrida-enviar-confirmacao-email] falha no envio:", String(e));
       try {
         await supabase.from("system_logs").insert({
