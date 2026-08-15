@@ -6,6 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 declare global {
   interface Window {
     gtag?: (...args: (string | Record<string, unknown>)[]) => void;
+    fbq?: (
+      cmd: string,
+      event: string,
+      params?: Record<string, unknown>,
+      opts?: Record<string, unknown>,
+    ) => void;
   }
 }
 
@@ -265,9 +271,18 @@ const PagamentoStep = ({
               currency: "BRL",
               transaction_id: String(p.venda_id),
             });
+
+            if (typeof window.fbq === "function") {
+              window.fbq("track", "Purchase", {
+                value: totalHoje,
+                currency: "BRL",
+              }, {
+                eventID: String(p.venda_id),
+              });
+            }
           }
         } catch {
-          /* silencia falhas do gtag para não quebrar o fluxo */
+          /* silencia falhas de tracking para não quebrar o fluxo */
         }
         return;
       }
