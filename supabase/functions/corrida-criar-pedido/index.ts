@@ -585,7 +585,7 @@ Deno.serve(async (req) => {
         status_pagamento: "pendente",
         plano_id: planoId,
         idempotency_key: idempotencyKey,
-        observacoes: JSON.stringify({ rota, pedidoResumo }).slice(0, 4000),
+        observacoes: JSON.stringify({ rota, tier: body?.tier ?? null, pedidoResumo }).slice(0, 4000),
       })
       .select("id")
       .single();
