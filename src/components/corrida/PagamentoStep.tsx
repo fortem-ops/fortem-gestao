@@ -6,6 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 declare global {
   interface Window {
     gtag?: (...args: (string | Record<string, unknown>)[]) => void;
+    fbq?: (
+      cmd: string,
+      event: string,
+      params?: Record<string, unknown>,
+      opts?: Record<string, unknown>,
+    ) => void;
   }
 }
 
