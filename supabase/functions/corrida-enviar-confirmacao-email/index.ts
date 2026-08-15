@@ -24,9 +24,38 @@ function normalizeEmailSubject(subject: string) {
     .trim();
 }
 
+// Remove quebras de linha/indentação do template literal.
+// Linhas terminadas em espaço viram "=20" no encoding quoted-printable
+// e vazam como texto solto em alguns clientes de e-mail.
+function minifyHtml(html: string) {
+  return html
+    .replace(/\r/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n\s*/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function htmlToText(html: string) {
+  return minifyHtml(html)
+    .replace(/<(br|\/tr|\/p|\/div|\/h[1-3]|\/li)\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .split("\n")
+    .map((l) => l.trim())
+    .join("\n")
+    .trim();
+}
+
 async function sendGmailEmail(to: string, subject: string, htmlBody: string) {
   const password = Deno.env.get("GMAIL_APP_PASSWORD");
   if (!password) throw new Error("GMAIL_APP_PASSWORD not configured");
+  const html = minifyHtml(htmlBody);
   const client = new SMTPClient({
     connection: {
       hostname: "smtp.gmail.com",
@@ -39,11 +68,12 @@ async function sendGmailEmail(to: string, subject: string, htmlBody: string) {
     from: "contatofortem@gmail.com",
     to,
     subject: normalizeEmailSubject(subject),
-    content: "auto",
-    html: htmlBody,
+    content: htmlToText(html),
+    html,
   });
   await client.close();
 }
+
 
 function esc(s: unknown) {
   return String(s ?? "")
