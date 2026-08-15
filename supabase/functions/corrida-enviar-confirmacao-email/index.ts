@@ -24,9 +24,38 @@ function normalizeEmailSubject(subject: string) {
     .trim();
 }
 
+// Remove quebras de linha/indentação do template literal.
+// Linhas terminadas em espaço viram "=20" no encoding quoted-printable
+// e vazam como texto solto em alguns clientes de e-mail.
+function minifyHtml(html: string) {
+  return html
+    .replace(/\r/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n\s*/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function htmlToText(html: string) {
+  return minifyHtml(html)
+    .replace(/<(br|\/tr|\/p|\/div|\/h[1-3]|\/li)\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .split("\n")
+    .map((l) => l.trim())
+    .join("\n")
+    .trim();
+}
+
 async function sendGmailEmail(to: string, subject: string, htmlBody: string) {
   const password = Deno.env.get("GMAIL_APP_PASSWORD");
   if (!password) throw new Error("GMAIL_APP_PASSWORD not configured");
+  const html = minifyHtml(htmlBody);
   const client = new SMTPClient({
     connection: {
       hostname: "smtp.gmail.com",
@@ -39,11 +68,12 @@ async function sendGmailEmail(to: string, subject: string, htmlBody: string) {
     from: "contatofortem@gmail.com",
     to,
     subject: normalizeEmailSubject(subject),
-    content: "auto",
-    html: htmlBody,
+    content: htmlToText(html),
+    html,
   });
   await client.close();
 }
+
 
 function esc(s: unknown) {
   return String(s ?? "")
@@ -157,19 +187,6 @@ Deno.serve(async (req) => {
       )
       .join("");
 
-    const avisoHtml = faltaInscricao
-      ? `<div style="margin:24px 0;padding:16px;border-left:4px solid #E11D2E;background:#FFF3F4;border-radius:6px">
-           <strong style="color:#B91021;font-size:15px">Falta completar sua inscrição na prova</strong>
-           <p style="margin:8px 0 12px;font-size:14px;color:#333">
-             Seu pagamento está confirmado, mas ainda precisamos dos dados da sua inscrição na prova
-             (tamanho de camiseta, ritmo, etc.). Leva menos de 2 minutos.
-           </p>
-           <a href="https://www.soufortem.com.br/corrida"
-              style="display:inline-block;background:#E11D2E;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;font-size:14px;font-weight:bold">
-             Completar inscrição
-           </a>
-         </div>`
-      : "";
 
     const html = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif">
       <div style="max-width:680px;margin:0 auto;background:#ffffff">
@@ -181,8 +198,6 @@ Deno.serve(async (req) => {
           <h2 style="margin:0 0 4px;font-size:20px;color:#111">Pagamento confirmado!</h2>
           <p style="margin:0 0 16px;font-size:13px;color:#777">Protocolo: ${esc(venda.id)}</p>
           <p style="font-size:15px;color:#111">Olá, ${esc(nome)}! Recebemos seu pagamento e sua vaga está garantida.</p>
-
-          ${avisoHtml}
 
           <h3 style="font-size:15px;margin:24px 0 8px;color:#111">Resumo do pedido</h3>
           <table style="width:100%;border-collapse:collapse">
