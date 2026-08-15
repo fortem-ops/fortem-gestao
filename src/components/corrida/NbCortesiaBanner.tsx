@@ -42,15 +42,11 @@ const NbCortesiaBanner = ({ logoTopOffset = 0 }: NbCortesiaBannerProps) => {
               style={{ transform: `translateY(-${logoTopOffset}px)` }}
               loading="lazy"
             />
-            <div className="flex items-center justify-center gap-2 md:gap-6 flex-wrap">
-              <img src={nbLogo} alt="New Balance" className="h-8 md:h-14 w-auto" loading="lazy" />
-              <span className="hidden sm:block h-6 md:h-8 w-px bg-accent-foreground/25" />
-              <div className="inline-flex items-center justify-center gap-1 md:gap-3 flex-wrap sm:flex-nowrap">
-                <span className="font-display font-bold uppercase tracking-[0.15em] md:tracking-[0.25em] text-accent-foreground text-lg md:text-3xl">
-                  Porto Alegre
-                </span>
-                <span className="font-display font-bold text-primary text-lg md:text-3xl">2027</span>
-              </div>
+            <div className="inline-flex items-center justify-center gap-1 md:gap-3 flex-wrap sm:flex-nowrap">
+              <span className="font-display font-bold uppercase tracking-[0.15em] md:tracking-[0.25em] text-accent-foreground text-lg md:text-3xl">
+                Porto Alegre
+              </span>
+              <span className="font-display font-bold text-primary text-lg md:text-3xl">2027</span>
             </div>
           </div>
 
