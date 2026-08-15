@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import nbLogo from "@/assets/new-balance.png";
 
 const BENEFICIOS = [
   "Inscrição da prova",
@@ -44,15 +42,11 @@ const NbCortesiaBanner = ({ logoTopOffset = 0 }: NbCortesiaBannerProps) => {
               style={{ transform: `translateY(-${logoTopOffset}px)` }}
               loading="lazy"
             />
-            <div className="flex items-center justify-center gap-2 md:gap-6 flex-wrap">
-              <img src={nbLogo} alt="New Balance" className="h-8 md:h-14 w-auto" loading="lazy" />
-              <span className="hidden sm:block h-6 md:h-8 w-px bg-accent-foreground/25" />
-              <div className="inline-flex items-center justify-center gap-1 md:gap-3 flex-wrap sm:flex-nowrap">
-                <span className="font-display font-bold uppercase tracking-[0.15em] md:tracking-[0.25em] text-accent-foreground text-lg md:text-3xl">
-                  Porto Alegre
-                </span>
-                <span className="font-display font-bold text-primary text-lg md:text-3xl">2027</span>
-              </div>
+            <div className="inline-flex items-center justify-center gap-1 md:gap-3 flex-wrap sm:flex-nowrap">
+              <span className="font-display font-bold uppercase tracking-[0.15em] md:tracking-[0.25em] text-accent-foreground text-lg md:text-3xl">
+                Porto Alegre
+              </span>
+              <span className="font-display font-bold text-primary text-lg md:text-3xl">2027</span>
             </div>
           </div>
 
@@ -65,11 +59,10 @@ const NbCortesiaBanner = ({ logoTopOffset = 0 }: NbCortesiaBannerProps) => {
             Garanta sua vaga até 20/08.
           </p>
 
-          <div className="mt-4 flex items-center justify-center gap-3 opacity-80">
+          <div className="mt-4 flex items-center justify-center opacity-80">
             <span className="text-[10px] uppercase tracking-[0.3em] text-accent-foreground/60">
-              Prova oficial
+              Inscrição inclusa
             </span>
-            <img src={nbLogo} alt="" className="h-6 md:h-7 w-auto" loading="lazy" />
           </div>
 
           <ul className="mt-10 grid sm:grid-cols-2 gap-x-8 gap-y-3 max-w-2xl mx-auto text-left">
