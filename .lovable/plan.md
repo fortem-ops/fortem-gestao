@@ -1,49 +1,46 @@
-# Investigação: aluno com plano de Corrida ativo aparece como "Inativo"
+# Resumo diário (dia anterior) de Treino Experimental e Avaliação Funcional
 
-## Resumo do diagnóstico
+## Item 2 — Relatório da investigação (o que existe hoje)
 
-O que a tela chama de "contrato" no perfil do aluno são registros da tabela `planos`, não `contratos`. O MARCELO tem dois planos, **ambos com `ativo = true`**:
+### Como funciona o `categoria='agendado'` com `horario_fixo` hoje
 
-| tipo | atividade | data_fim | created_at |
-|---|---|---|---|
-| Start+ | treinamento_funcional | 2026-07-26 (vencido) | 10/06/2026 |
-| Corrida - Sem Plano | corrida | 2027-04-23 (vigente) | 14/08/2026 13:07 |
+Só existe **um** mecanismo agendado em produção e ele é **exclusivo do módulo Ponto**:
 
-O status exibido é calculado no frontend por `getDisplayStatus` (`src/lib/studentStatus.ts`), que só olha **um** plano — e por regra de negócio esse plano é o "principal" (`atividade = 'treinamento_funcional'`). Planos de Corrida são deliberadamente ignorados para efeito de status. Como o plano principal está vencido (26/07) e não há licença vigente, o resultado é "Inativo", mesmo com `alunos.status = 'ativo'` no banco.
+- Cron `whatsapp-disparo-ponto-5min` (jobid 25), agenda `*/5 * * * *`, chama a edge function `whatsapp-disparo-ponto`.
+- `supabase/functions/whatsapp-disparo-ponto/index.ts` tem uma lista fixa de gatilhos no código:
+  `['lembrete_entrada','lembrete_intervalo_inicio','lembrete_intervalo_fim','lembrete_saida','resumo_diario_ponto']`,
+  e busca em `whatsapp_disparos_config` por `categoria='agendado' AND gatilho IN (...)`.
+- Ele calcula a hora atual em `America/Sao_Paulo`, aplica a janela `naJanela()` de 5 min (igual à frequência do cron) e, para o `resumo_diario_ponto`, usa `horario_fixo` apenas como **fallback** quando não há horário previsto na jornada — a âncora principal é saída real + 10 min ou fim previsto + 30 min.
+- Idempotência: `jaEnviado(config_id, usuario_id, referencia_data)` sobre `whatsapp_disparos_log`, com status `enviado` ou `bloqueado_teste`.
+- Envio: helpers de `supabase/functions/_shared/whatsapp.ts` (`normalizarTelefone`, `resolveNumberedTemplate` com placeholders `{{1}}`, `sendWhatsAppText`, `registrarNoChat`).
+- `modo_teste=true` → grava log com status `bloqueado_teste` e **não** envia.
 
-Ou seja: **não é bug de ordenação nem de filtro por `tipo='plano'` vs `'servico'` — é uma regra explícita que exclui Corrida do cálculo de status.**
+### Como funcionam os disparos de agenda (Reabilitação/Nutrição, Cancelamento)
 
-## Onde está cada peça
+- `whatsapp-disparo-agenda` é **event-driven**: recebe `{ evento, agenda_id }` na criação/cancelamento do agendamento, filtra `whatsapp_disparos_config` por `gatilho = evento AND ativo = true`, aplica o filtro `atividades`, e escolhe o template Meta por `configNome.startsWith(...)` em `buildTemplatePayload`. Não tem nenhuma noção de horário/cron.
 
-1. **Perfil do aluno** — `src/pages/StudentProfile.tsx:87-107` (query `aluno_display_status`):
-   busca todos os planos com `ativo = true`, ordena por `created_at desc` e então faz
-   `planos.find(p => p.atividade !== 'corrida') ?? planos[0]`.
-   O comentário no código é explícito: "O status de exibição segue o plano principal (não-Corrida)".
-   Por isso a tela mostra Start+ / 26-07-2026 e ignora o plano de Corrida.
-   O mesmo objeto alimenta `getDisplayStatus` em `StudentProfile.tsx:124` e `StudentSummary.tsx:528`.
+### Conclusão sobre reaproveitamento
 
-2. **Regra de status** — `src/lib/studentStatus.ts:30-62`: só é "Ativo" se houver licença vigente, plano auto-renovável (`isAutoRenewPlan`) ou `planEnd >= hoje`. Nota importante: **o `alunos.status` do banco não é usado** para decidir ativo/inativo — só para os casos `lead`, `prospect` e `avulso`. Então corrigir `alunos.status` no banco não muda a tela.
+Nenhuma das duas funções serve como está:
 
-3. **Lista "Alunos Ativos"** — `src/pages/StudentList.tsx:186-191` e `260-270`: busca planos com `ativo = true` **sem filtrar atividade** e depois pega `planos.find(p => p.aluno_id === student.id)` — ou seja, o **primeiro plano que vier na resposta, sem ordenação nenhuma**. Aqui não há nem o `!== 'corrida'` do perfil: é indeterminístico. No caso do MARCELO ele pegou o Start+ (vencido) → `getDisplayStatus` devolve "encerrado" → o filtro de `mode = 'ativos'` (linha 332-334) o exclui da lista.
+- `whatsapp-disparo-ponto` é acoplado a `ponto_jornadas` / `ponto_horarios_professor` e à lista fixa de gatilhos; enfiar agenda lá misturaria dois domínios.
+- `whatsapp-disparo-agenda` não é agendado e resolve um agendamento por vez, não um resumo consolidado por profissional.
 
-   Consequência: a lista e o perfil podem discordar entre si, e um aluno com dois planos ativos pode aparecer ou sumir dependendo da ordem devolvida pelo PostgREST.
+**Recomendação:** nova edge function `whatsapp-resumo-agenda-amanha`, com cron próprio, copiando o padrão já validado do ponto (timezone SP, janela, log idempotente por `config_id + usuario_id + referencia_data`, helpers compartilhados). Nada dos disparos existentes é tocado.
 
-4. **Coluna "Tipo de plano" e filtros** da lista usam o mesmo `planTipo` derivado desse plano arbitrário, então também são afetados.
+### Observações relevantes para a implementação
 
-## Dimensionamento (dados reais de hoje)
+- `whatsapp_disparos_log` já tem `usuario_id` e `referencia_data` — dá para reaproveitar o mesmo esquema de idempotência do ponto, sem migração de tabela.
+- Os templates pedidos usam placeholders `%NOME_PROFISSIONAL%` etc., enquanto o caminho do ponto usa `{{1}}`. Para envio via template Meta aprovado, os parâmetros vão posicionais na ordem: nome, quantidade, data, lista.
+- `%LISTA_AGENDAMENTOS%` precisa virar **uma linha só** (a Meta não aceita `\n` em parâmetro de body): a lista será montada com separador ` | ` ou `•`, no formato `08:00 João Silva • 09:00 Maria Souza`. Confirmo isso com você antes de submeter os templates.
+- Fonte dos agendamentos: `agenda_servicos` filtrando `data_especifica = amanhã` e `atividade` conforme o campo `atividades` da config, agrupando por `profissional_id`.
 
-- Alunos com plano de Corrida ativo e vigente: **14**
-- Desses, **sem** plano principal vigente (o caso do MARCELO): **4** — 3 com `alunos.status = 'ativo'` e 1 `prospect`.
-- Especificamente com plano principal **vencido** + Corrida vigente: **1** (MARCELO).
-- Contexto geral: dos 222 alunos com `status = 'ativo'` no banco, 25 não têm plano principal ativo e 18 têm plano principal ativo porém já vencido — esses aparecem como "Inativo" na tela pelo mesmo mecanismo, independentemente de Corrida.
+## Próximos passos propostos (só executo após seu OK)
 
-## Conclusão sobre o alcance
+1. Inserir os dois registros em `whatsapp_disparos_config` (ativo=false, modo_teste=true) exatamente como especificado.
+2. Criar `supabase/functions/whatsapp-resumo-agenda-amanha` e o cron `*/5 * * * *` (a função só dispara na janela do `horario_fixo` 20:40 SP).
+3. Não alterar nenhum disparo existente nem os dois registros históricos desativados.
 
-É **sistêmico, não pontual**, e tende a crescer exatamente com o lançamento da Assessoria de Corrida: todo aluno que comprar Corrida sem ter plano principal vigente (ex-aluno que volta pela Corrida, ou corredor que só faz Corrida) vai nascer marcado como "Inativo" no perfil e ficar fora da lista de Alunos Ativos. Hoje isso já atinge 4 pessoas.
+## Pergunta em aberto
 
-Há dois pontos separados a decidir antes de qualquer correção:
-
-- **Regra de negócio:** aluno que só tem plano de Corrida deve contar como "Ativo"? A regra atual foi escrita de propósito para não contar. Se sim, `getDisplayStatus` precisa considerar qualquer plano vigente (ou um conceito novo de "ativo em alguma modalidade"), e possivelmente um rótulo distinto (ex.: "Ativo · Corrida").
-- **Bug real independente da regra:** a `StudentList` escolhe o plano sem ordenação nem filtro de atividade, divergindo do perfil. Isso é inconsistência a corrigir de qualquer forma.
-
-Nenhuma alteração foi feita. Posso preparar o plano de correção assim que você definir a regra de negócio do item acima.
+Confirmar o separador de `%LISTA_AGENDAMENTOS%` (linha única) antes de você submeter os templates à Meta.
