@@ -182,7 +182,22 @@ export default function DiagnosticoBancoHoras() {
     qc.invalidateQueries({ queryKey: ["diag-banco-lancamentos"] });
   };
 
+  const reaplicarFixProducao = async () => {
+    setFixando(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("ponto-fix-divergencias", { body: {} });
+      if (error) throw error;
+      toast.success(`Fix aplicado: ${res?.reprocessadas ?? 0}/${res?.total ?? 0} jornadas reprocessadas${res?.falhas ? ` · ${res.falhas} falhas` : ""}.`);
+      qc.invalidateQueries({ queryKey: ["diag-banco-lancamentos"] });
+    } catch (e: any) {
+      toast.error("Erro ao reaplicar fix: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setFixando(false);
+    }
+  };
+
   const sign = (n: number) => `${n >= 0 ? "+" : "−"}${formatMinutes(Math.abs(n))}`;
+
 
   return (
     <div className="space-y-6 animate-fade-in">
