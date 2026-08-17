@@ -220,30 +220,42 @@ export function FechamentoMensalTable() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {r.status !== "aprovado" ? (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" className="gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Aprovar
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Aprovar fechamento de {r.professor_nome}?</AlertDialogTitle>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => handleExportarPdf(r)}
+                        disabled={exportandoId === r.id}
+                      >
+                        <FileDown className={`w-3.5 h-3.5 ${exportandoId === r.id ? "animate-bounce" : ""}`} />
+                        {exportandoId === r.id ? "Gerando..." : "PDF"}
+                      </Button>
+                      {r.status !== "aprovado" ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" className="gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Aprovar
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Aprovar fechamento de {r.professor_nome}?</AlertDialogTitle>
+                            </AlertDialogHeader>
                             <AlertDialogDescription>
                               Após a aprovação, todas as jornadas deste mês ficarão <strong>bloqueadas para edição</strong>.
                               Esta ação não pode ser desfeita.
                             </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => aprovar.mutate(r.id)}>Aprovar e bloquear</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Bloqueado</span>
-                    )}
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => aprovar.mutate(r.id)}>Aprovar e bloquear</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Bloqueado</span>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
