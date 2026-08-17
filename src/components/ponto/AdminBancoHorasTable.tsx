@@ -97,8 +97,7 @@ export function AdminBancoHorasTable({ profissionais, profId, setProfId }: Props
               <TableRow>
                 <TableHead>Profissional</TableHead>
                 <TableHead className="text-right">Saldo acumulado</TableHead>
-                <TableHead className="text-right">Créditos no mês</TableHead>
-                <TableHead className="text-right">Débitos no mês</TableHead>
+                <TableHead className="text-right">Movimento no mês</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -109,8 +108,12 @@ export function AdminBancoHorasTable({ profissionais, profId, setProfId }: Props
                   <TableCell className={`text-right font-bold ${saldoColor(r.saldo)}`}>
                     {r.saldo >= 0 ? "+" : "-"}{formatMinutes(Math.abs(r.saldo))}
                   </TableCell>
-                  <TableCell className="text-right text-success">+{formatMinutes(r.cred)}</TableCell>
-                  <TableCell className="text-right text-destructive">-{formatMinutes(Math.abs(r.deb))}</TableCell>
+                  <TableCell
+                    className={`text-right font-medium ${r.movMes > 0 ? "text-success" : r.movMes < 0 ? "text-destructive" : "text-muted-foreground"}`}
+                    title={`Créditos: +${formatMinutes(r.cred)} | Débitos: −${formatMinutes(Math.abs(r.deb))}`}
+                  >
+                    {r.movMes === 0 ? "0m" : `${r.movMes > 0 ? "+" : "−"}${formatMinutes(Math.abs(r.movMes))}`}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="outline" onClick={() => { setAlvo({ id: r.user_id, nome: r.nome }); setHistOpen(true); }}>
