@@ -155,6 +155,7 @@ export default function StudentList({ mode = "ativos" }: { mode?: "ativos" | "in
         const { data, error } = await supabase
           .from("alunos")
           .select(ALUNOS_COLUMNS)
+          .eq("is_equipe", false)
           .order("nome")
           .range(from, from + PAGE - 1);
         console.log(`[StudentList] Página alunos from=${from}:`, { count: data?.length, error });
