@@ -399,27 +399,42 @@ export function gerarEspelhoFechamentoPdf(opts: {
   });
 
   const finalY2 = (doc as any).lastAutoTable.finalY + 10;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const espacoNecessario = 80; // mm para resumo + assinatura
+
+  // Se não há espaço suficiente na página atual, adicionar nova página
+  let yResumo = finalY2;
+  if (finalY2 + espacoNecessario > pageHeight - 20) {
+    doc.addPage();
+    header(doc, "Banco de Horas — Assinatura", `${opts.colaborador} — ${opts.mesReferencia}`, FORTEM_RED);
+    yResumo = 44;
+  }
+
+  // Resumo do banco de horas
   const movSinal = opts.movimentoMes >= 0 ? "+" : "-";
   const saldoSinal = opts.saldoAcumulado >= 0 ? "+" : "-";
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("Resumo do banco de horas", 14, finalY2);
+  doc.text("Resumo do banco de horas", 14, yResumo);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(`Movimento do mês: ${movSinal}${formatMinutes(Math.abs(opts.movimentoMes))}`, 14, finalY2 + 8);
-  doc.text(`Saldo acumulado: ${saldoSinal}${formatMinutes(Math.abs(opts.saldoAcumulado))}`, 100, finalY2 + 8);
+  doc.text(`Movimento do mês: ${movSinal}${formatMinutes(Math.abs(opts.movimentoMes))}`, 14, yResumo + 8);
+  doc.text(`Saldo acumulado: ${saldoSinal}${formatMinutes(Math.abs(opts.saldoAcumulado))}`, 100, yResumo + 8);
 
-  const sigY = finalY2 + 30;
+  // Campo de assinatura
+  const sigY = yResumo + 30;
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
-  doc.text("Declaro ter conferido e concordado com o espelho de ponto e movimentações do banco de horas referente ao período acima.", 14, sigY - 6);
+  doc.text(
+    "Declaro ter conferido e concordado com o espelho de ponto e movimentações do banco de horas referente ao período acima.",
+    14, sigY - 6
+  );
   doc.setTextColor(...FORTEM_DARK);
   doc.line(20, sigY + 10, 140, sigY + 10);
   doc.setFontSize(9);
   doc.text(`${opts.colaborador}`, 80, sigY + 15, { align: "center" });
   doc.text("Assinatura do Colaborador", 80, sigY + 20, { align: "center" });
-
   doc.line(160, sigY + 10, 270, sigY + 10);
   doc.text("Coordenação — FORTEM", 215, sigY + 15, { align: "center" });
   doc.text("Assinatura e carimbo", 215, sigY + 20, { align: "center" });
