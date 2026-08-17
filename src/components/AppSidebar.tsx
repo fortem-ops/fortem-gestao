@@ -282,31 +282,36 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Comercial */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Comercial</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {comercialItems.map((item) => (
-                <SidebarItem key={item.title} item={item} isActive={isActive} />
-              ))}
-              {isAdmin && comercialAdminItems.map((item) => (
-                <SidebarItem key={item.title} item={item} isActive={isActive} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isCoordAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Comercial</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {comercialItems.map((item) => (
+                  <SidebarItem key={item.title} item={item} isActive={isActive} />
+                ))}
+                {isAdmin && comercialAdminItems.map((item) => (
+                  <SidebarItem key={item.title} item={item} isActive={isActive} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Financeiro */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Financeiro</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {financeiroItems.map((item) => (
-                <SidebarItem key={item.title} item={item} isActive={isActive} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {isCoordAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Financeiro</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {financeiroItems.map((item) => (
+                  <SidebarItem key={item.title} item={item} isActive={isActive} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
 
         {/* Relatórios */}
         {isCoordAdmin && (
