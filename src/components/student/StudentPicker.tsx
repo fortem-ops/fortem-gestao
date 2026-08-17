@@ -63,8 +63,10 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
           .from("alunos")
           .select("id, nome, status, current_pipeline_stage_id")
           .in("status", ["ativo", "licenca"])
+          .eq("is_equipe", false)
           .order("nome")
           .range(from, from + PAGE - 1);
+
         if (error) throw error;
         const rows = data || [];
         all.push(...rows);
