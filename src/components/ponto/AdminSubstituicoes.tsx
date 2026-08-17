@@ -111,7 +111,7 @@ export function AdminSubstituicoes() {
     onSuccess: (_, vars) => {
       toast(vars.novoStatus === "aprovada" ? "Substituição aprovada" : "Substituição rejeitada");
       qc.invalidateQueries({ queryKey: ["ponto-substituicoes"] });
-      qc.invalidateQueries({ queryKey: ["admin-banco"] });
+      invalidateBancoHoras(qc);
     },
     onError: (e: any) =>
       toast.error("Erro", { description: e.message }),

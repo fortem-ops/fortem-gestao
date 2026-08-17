@@ -47,7 +47,7 @@ export function HistoricoBancoHorasDialog({ open, onOpenChange, usuarioId, usuar
     },
     onSuccess: () => {
       toast("Lançamento excluído");
-      qc.invalidateQueries({ queryKey: ["admin-banco"] });
+      invalidateBancoHoras(qc);
       qc.invalidateQueries({ queryKey: ["admin-banco-historico", usuarioId] });
     },
     onError: (e: any) => toast.error("Erro", { description: e.message }),

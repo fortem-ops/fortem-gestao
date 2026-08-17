@@ -302,7 +302,7 @@ function ParticipantesDialog({
     onSuccess: () => {
       toast("Participante adicionado");
       qc.invalidateQueries({ queryKey: ["ponto-atv-participantes", atividadeId] });
-      qc.invalidateQueries({ queryKey: ["admin-banco"] });
+      invalidateBancoHoras(qc);
       setNovo({ usuario_id: "", qtd_horas: 1, valor_hora: 0, forma_pagamento: "pagamento", observacoes: "" });
     },
     onError: (e: any) => toast.error("Erro", { description: e.message }),
