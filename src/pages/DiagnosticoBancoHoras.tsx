@@ -44,6 +44,8 @@ export default function DiagnosticoBancoHoras() {
   const [mes, setMes] = useState("2026-07");
   const [alvo, setAlvo] = useState<Lancamento | null>(null);
   const [recalc, setRecalc] = useState<{ total: number; done: number } | null>(null);
+  const [fixando, setFixando] = useState(false);
+
 
   const mesIni = `${mes}-01`;
   const mesFimExcl = useMemo(() => {
@@ -180,7 +182,22 @@ export default function DiagnosticoBancoHoras() {
     qc.invalidateQueries({ queryKey: ["diag-banco-lancamentos"] });
   };
 
+  const reaplicarFixProducao = async () => {
+    setFixando(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("ponto-fix-divergencias", { body: {} });
+      if (error) throw error;
+      toast.success(`Fix aplicado: ${res?.reprocessadas ?? 0}/${res?.total ?? 0} jornadas reprocessadas${res?.falhas ? ` · ${res.falhas} falhas` : ""}.`);
+      qc.invalidateQueries({ queryKey: ["diag-banco-lancamentos"] });
+    } catch (e: any) {
+      toast.error("Erro ao reaplicar fix: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setFixando(false);
+    }
+  };
+
   const sign = (n: number) => `${n >= 0 ? "+" : "−"}${formatMinutes(Math.abs(n))}`;
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -214,8 +231,13 @@ export default function DiagnosticoBancoHoras() {
             <RefreshCw className={`w-4 h-4 mr-2 ${recalc ? "animate-spin" : ""}`} />
             {recalc ? `Recalculando ${recalc.done}/${recalc.total}...` : "Recalcular todas as jornadas do mês"}
           </Button>
+          <Button variant="destructive" onClick={reaplicarFixProducao} disabled={fixando}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${fixando ? "animate-spin" : ""}`} />
+            {fixando ? "Reaplicando..." : "Reaplicar fix produção"}
+          </Button>
         </div>
       </Card>
+
 
       <Card className="glass-card p-4 overflow-x-auto">
         {isLoading ? (
