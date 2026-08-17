@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { invalidateBancoHoras } from "@/lib/query-invalidation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
