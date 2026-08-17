@@ -44,6 +44,8 @@ export default function DiagnosticoBancoHoras() {
   const [mes, setMes] = useState("2026-07");
   const [alvo, setAlvo] = useState<Lancamento | null>(null);
   const [recalc, setRecalc] = useState<{ total: number; done: number } | null>(null);
+  const [fixando, setFixando] = useState(false);
+
 
   const mesIni = `${mes}-01`;
   const mesFimExcl = useMemo(() => {
