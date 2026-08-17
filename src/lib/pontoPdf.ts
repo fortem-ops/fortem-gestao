@@ -12,8 +12,8 @@ const FORTEM_DARK: [number, number, number] = [15, 17, 23];
 const NOTA_LEGAL =
   "Cálculo conforme art. 58 §1º da CLT — tolerância de 5 minutos por marcação e até 10 minutos diários.";
 
-function header(doc: jsPDF, titulo: string, subtitulo?: string) {
-  doc.setFillColor(...FORTEM_GREEN);
+function header(doc: jsPDF, titulo: string, subtitulo?: string, cor?: [number, number, number]) {
+  doc.setFillColor(...(cor ?? FORTEM_GREEN));
   doc.rect(0, 0, doc.internal.pageSize.getWidth(), 18, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
