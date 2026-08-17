@@ -35,6 +35,7 @@ const Avaliacoes = lazyWithReload(() => import("./pages/Avaliacoes"));
 const AvaliacoesPremium = lazyWithReload(() => import("./pages/AvaliacoesPremium"));
 const BancoTreinos = lazyWithReload(() => import("./pages/BancoTreinos"));
 const ArquivosMetodologicos = lazyWithReload(() => import("./pages/ArquivosMetodologicos"));
+const MeusTreinos = lazyWithReload(() => import("./pages/MeusTreinos"));
 const PublicWorkout = lazyWithReload(() => import("./pages/PublicWorkout"));
 const Pipeline = lazyWithReload(() => import("./pages/Pipeline"));
 const Notificar = lazyWithReload(() => import("./pages/Notificar"));
