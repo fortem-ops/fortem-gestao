@@ -239,13 +239,13 @@ export function FechamentoMensalTable() {
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Aprovar fechamento de {r.professor_nome}?</AlertDialogTitle>
-                            </AlertDialogHeader>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Aprovar fechamento de {r.professor_nome}?</AlertDialogTitle>
                             <AlertDialogDescription>
                               Após a aprovação, todas as jornadas deste mês ficarão <strong>bloqueadas para edição</strong>.
                               Esta ação não pode ser desfeita.
                             </AlertDialogDescription>
+                          </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction onClick={() => aprovar.mutate(r.id)}>Aprovar e bloquear</AlertDialogAction>
