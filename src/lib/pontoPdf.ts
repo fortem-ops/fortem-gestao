@@ -328,10 +328,15 @@ export function gerarEspelhoFechamentoPdf(opts: {
     bodyStyles: { fontSize: 8 },
     alternateRowStyles: { fillColor: [245, 247, 250] },
     didParseCell: (data) => {
-      if (data.section === "body" && data.column.index === 11) {
+      if (data.section === "body") {
         const j = opts.jornadas[data.row.index];
-        if (j?.tolerancia_excedida) data.cell.styles.textColor = [220, 38, 38];
-        else if (j?.status_ponto === "hora_extra") data.cell.styles.textColor = [22, 163, 74];
+        if (!j?.entrada && j?.ausencia_justificada) {
+          data.cell.styles.textColor = [150, 150, 150];
+          data.cell.styles.fontStyle = "italic";
+        } else if (data.column.index === 11) {
+          if (j?.tolerancia_excedida) data.cell.styles.textColor = [220, 38, 38];
+          else if (j?.status_ponto === "hora_extra") data.cell.styles.textColor = [22, 163, 74];
+        }
       }
     },
   });
