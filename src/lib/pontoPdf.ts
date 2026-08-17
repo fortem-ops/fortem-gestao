@@ -286,20 +286,24 @@ export function gerarEspelhoFechamentoPdf(opts: {
   saldoAcumulado: number;
 }) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const FORTEM_RED: [number, number, number] = [225, 29, 72]; // #E11D48
+  const fHoraS = (ts?: string | null) =>
+    ts ? new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
+
   const cpfFmt = formatCPF(opts.cpf);
   const pisFmt = formatPIS(opts.pisPasep);
   const docLine = [cpfFmt && `CPF: ${cpfFmt}`, pisFmt && `PIS/PASEP: ${pisFmt}`].filter(Boolean).join(" | ");
 
   // ── PÁGINA 1: Espelho de ponto ──────────────────────────────────────────
-  header(doc, "Espelho de Ponto — Fechamento Mensal", `${opts.colaborador} — ${opts.mesReferencia}${docLine ? ` — ${docLine}` : ""}`);
+  header(doc, "Espelho de Ponto — Fechamento Mensal", `${opts.colaborador} — ${opts.mesReferencia}${docLine ? ` — ${docLine}` : ""}`, FORTEM_RED);
 
   const body = opts.jornadas.map((j) => [
     new Date(j.data + "T00:00:00").toLocaleDateString("pt-BR"),
-    fHora(j.prev_entrada),
-    fHora(j.entrada),
-    fHora(j.intervalo_inicio),
-    fHora(j.intervalo_fim),
-    fHora(j.saida),
+    fHoraS(j.prev_entrada),
+    fHoraS(j.entrada),
+    fHoraS(j.intervalo_inicio),
+    fHoraS(j.intervalo_fim),
+    fHoraS(j.saida),
     fDiv(j.divergencia_entrada_min),
     fDiv(j.divergencia_intervalo_min),
     fDiv(j.divergencia_saida_min),
@@ -310,9 +314,9 @@ export function gerarEspelhoFechamentoPdf(opts: {
 
   autoTable(doc, {
     startY: 44,
-    head: [["Data", "Prev. Ent.", "Entrada", "Int. Início", "Int. Fim", "Saída", "Δ Entrada", "Δ Intervalo", "Δ Saída", "Tolerados", "Trabalhado", "Status"]],
+    head: [["Data", "Prev. Ent.", "Entrada", "Iníc. Int.", "Fim Int.", "Saída", "Δ Ent.", "Δ Int.", "Δ Saí.", "Tolerados", "Trabalhado", "Status"]],
     body,
-    headStyles: { fillColor: FORTEM_GREEN, textColor: 255, fontSize: 8 },
+    headStyles: { fillColor: FORTEM_RED, textColor: 255, fontSize: 8 },
     bodyStyles: { fontSize: 8 },
     alternateRowStyles: { fillColor: [245, 247, 250] },
     didParseCell: (data) => {
@@ -339,11 +343,13 @@ export function gerarEspelhoFechamentoPdf(opts: {
 
   // ── PÁGINA 2: Banco de horas ────────────────────────────────────────────
   doc.addPage();
-  header(doc, "Banco de Horas — Movimentações do Mês", `${opts.colaborador} — ${opts.mesReferencia}`);
+  header(doc, "Banco de Horas — Movimentações do Mês", `${opts.colaborador} — ${opts.mesReferencia}`, FORTEM_RED);
 
   const TIPO_LABEL: Record<string, string> = {
-    hora_extra: "Hora extra",
-    tolerancia_excedida: "Tolerância excedida",
+    hora_extra: "Hora extra (auto)",
+    tolerancia_excedida: "Desconto CLT (auto)",
+    ajuste_manual: "Ajuste manual",
+    expiracao: "Expiração automática",
     credito_manual: "Crédito manual",
     debito_manual: "Débito manual",
     compensacao: "Compensação",
@@ -366,7 +372,7 @@ export function gerarEspelhoFechamentoPdf(opts: {
     startY: 44,
     head: [bancoCols],
     body: bancoBody,
-    headStyles: { fillColor: FORTEM_GREEN, textColor: 255, fontSize: 9 },
+    headStyles: { fillColor: FORTEM_RED, textColor: 255, fontSize: 9 },
     bodyStyles: { fontSize: 9 },
     alternateRowStyles: { fillColor: [245, 247, 250] },
     columnStyles: { 3: { halign: "right" } },
