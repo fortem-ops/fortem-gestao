@@ -26,6 +26,8 @@ interface Props {
   usuarioId?: string;
   /** Quando true e `jornadaId` é null, cria a jornada antes de aplicar o ajuste. */
   permitirCriacao?: boolean;
+  /** Estado atual da marcação de jornada partida (2 turnos). */
+  jornadaPartida?: boolean;
 }
 
 const CAMPO_LABEL: Record<string, string> = {
@@ -44,13 +46,20 @@ export function AjustarJornadaDialog({
   data,
   usuarioId,
   permitirCriacao = false,
+  jornadaPartida = false,
 }: Props) {
   const qc = useQueryClient();
   const [campo, setCampo] = useState<string>("entrada");
   const [hora, setHora] = useState<string>("");
   const [motivo, setMotivo] = useState<string>("");
+  const [partida, setPartida] = useState<boolean>(jornadaPartida);
+
+  useEffect(() => {
+    if (open) setPartida(jornadaPartida);
+  }, [open, jornadaPartida]);
 
   const criando = !jornadaId && permitirCriacao;
+  const partidaAlterada = !!jornadaId && partida !== jornadaPartida;
 
   const mut = useMutation({
     mutationFn: async () => {
