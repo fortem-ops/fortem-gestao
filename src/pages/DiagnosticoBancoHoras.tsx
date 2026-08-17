@@ -140,6 +140,20 @@ export default function DiagnosticoBancoHoras() {
   };
 
   const recalcularMes = async () => {
+    // Limpar lançamentos automáticos do mês antes de recalcular
+    const { error: delError } = await supabase
+      .from("ponto_banco_horas")
+      .delete()
+      .eq("usuario_id", profId)
+      .gte("data", mesIni)
+      .lt("data", mesFimExcl)
+      .in("tipo", ["tolerancia_excedida", "hora_extra"])
+      .not("referencia_jornada_id", "is", null);
+    if (delError) {
+      toast.error("Erro ao limpar lançamentos automáticos: " + delError.message);
+      return;
+    }
+
     const { data: js, error } = await supabase
       .from("ponto_jornadas")
       .select("id")
