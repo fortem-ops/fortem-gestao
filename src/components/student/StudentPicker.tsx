@@ -147,14 +147,15 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
           >
             <CommandInput placeholder="Digite para buscar..." />
             <CommandList>
-              <CommandEmpty>Nenhum aluno encontrado.</CommandEmpty>
-              <CommandGroup>
+              <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
+              <CommandGroup heading={includeEquipe ? "Alunos" : undefined}>
                 {alunos.map((a) => (
                   <CommandItem
                     key={a.id}
                     value={a.nome}
                     onSelect={() => {
                       onChange(a.id);
+                      setEquipeSelecionada(null);
                       setOpen(false);
                     }}
                   >
@@ -171,9 +172,33 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
                   </CommandItem>
                 ))}
               </CommandGroup>
+              {includeEquipe && equipe.length > 0 && (
+                <CommandGroup heading="Equipe">
+                  {equipe.map((p) => (
+                    <CommandItem
+                      key={p.user_id}
+                      value={p.nome}
+                      disabled={resolvingEquipe}
+                      onSelect={() => handleSelectEquipe(p.user_id, p.nome)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          equipeSelecionada?.id === value && equipeSelecionada?.nome === p.nome
+                            ? "opacity-100"
+                            : "opacity-0",
+                        )}
+                      />
+                      <span className="flex-1">{p.nome}</span>
+                      <span className="text-xs text-muted-foreground ml-2">Equipe</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
+
       </Popover>
     </div>
   );
