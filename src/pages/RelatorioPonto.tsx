@@ -772,7 +772,13 @@ function DiarioTable({
                       variant="outline"
                       className="gap-1"
                       onClick={() => {
-                        setAjusteAlvo({ id: j.id, usuario_id: j.usuario_id, nome: profMap.get(j.usuario_id) ?? "—", data: j.data });
+                        setAjusteAlvo({
+                          id: j.id,
+                          usuario_id: j.usuario_id,
+                          nome: profMap.get(j.usuario_id) ?? "—",
+                          data: j.data,
+                          partida: !!(j as any).jornada_partida,
+                        });
                         setAjusteOpen(true);
                       }}
                     >
