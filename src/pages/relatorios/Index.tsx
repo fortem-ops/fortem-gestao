@@ -20,7 +20,7 @@ export default function RelatoriosHome() {
       const [vendas, recebidos, alunos, alertas] = await Promise.all([
         supabase.from("v_vendas_resumo").select("valor_final,status_pagamento,data_venda").gte("data_venda", sinceStr),
         supabase.from("v_financeiro_recebimentos").select("valor,data_pagamento").gte("data_pagamento", sinceStr),
-        supabase.from("alunos").select("id", { count: "exact", head: true }).eq("status", "ativo"),
+        supabase.from("alunos").select("id", { count: "exact", head: true }).eq("status", "ativo").eq("is_equipe", false),
         supabase.from("v_tecnico_alertas").select("aluno_id,avaliacao_atrasada,treino_desatualizado"),
       ]);
 

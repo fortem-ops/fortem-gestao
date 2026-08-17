@@ -373,6 +373,7 @@ export type Database = {
           foto_url: string | null
           frequencia_semanal: number | null
           id: string
+          is_equipe: boolean
           logradouro: string | null
           motivo_perda: string | null
           nome: string
@@ -403,6 +404,7 @@ export type Database = {
           foto_url?: string | null
           frequencia_semanal?: number | null
           id?: string
+          is_equipe?: boolean
           logradouro?: string | null
           motivo_perda?: string | null
           nome: string
@@ -433,6 +435,7 @@ export type Database = {
           foto_url?: string | null
           frequencia_semanal?: number | null
           id?: string
+          is_equipe?: boolean
           logradouro?: string | null
           motivo_perda?: string | null
           nome?: string
@@ -7883,6 +7886,7 @@ export type Database = {
         }
         Returns: string
       }
+      fn_get_or_create_ficha_equipe: { Args: never; Returns: string }
       fn_inserir_inscricao_prova: {
         Args: {
           p_aceite_inscricao: boolean

@@ -58,6 +58,7 @@ const tecnicoItems = [
   { title: "Avaliações Premium", url: "/avaliacoes-premium", icon: Activity },
   { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
   { title: "Arquivos Metodológicos", url: "/arquivos-metodologicos", icon: FolderOpen },
+  { title: "Meus Treinos", url: "/meus-treinos", icon: Dumbbell },
 ];
 
 /* ─── Cadastros ─── */
