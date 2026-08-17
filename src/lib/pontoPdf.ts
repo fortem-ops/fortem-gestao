@@ -70,6 +70,7 @@ export interface JornadaPdfRow {
   minutos_trabalhados?: number | null;
   status_ponto?: StatusPonto | null;
   tolerancia_excedida?: boolean | null;
+  ausencia_justificada?: string | null; // ex: "Férias", "Feriado"
 }
 
 const fHora = (ts?: string | null) =>
