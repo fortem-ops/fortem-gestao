@@ -741,11 +741,19 @@ function DiarioTable({
                     </Button>
                   </TableCell>
                   <TableCell className="font-medium">
-                    {new Date(j.data + "T00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col gap-1">
+                      <span>{new Date(j.data + "T00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span>
+                      {(j as any).jornada_partida && (
+                        <Badge variant="outline" className="w-fit text-[10px] border-primary/40 text-primary">
+                          2 turnos
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>{profMap.get(j.usuario_id) ?? "—"}</TableCell>
                   <TableCell className="tabular-nums">{formatHora(j.entrada)}</TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">
+
                     {formatHora(j.intervalo_inicio)}–{formatHora(j.intervalo_fim)}
                   </TableCell>
                   <TableCell className="tabular-nums">{formatHora(j.saida)}</TableCell>
