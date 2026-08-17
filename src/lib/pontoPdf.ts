@@ -298,20 +298,27 @@ export function gerarEspelhoFechamentoPdf(opts: {
   // ── PÁGINA 1: Espelho de ponto ──────────────────────────────────────────
   header(doc, "Espelho de Ponto — Fechamento Mensal", `${opts.colaborador} — ${opts.mesReferencia}${docLine ? ` — ${docLine}` : ""}`, FORTEM_RED);
 
-  const body = opts.jornadas.map((j) => [
-    new Date(j.data + "T00:00:00").toLocaleDateString("pt-BR"),
-    fHoraS(j.prev_entrada),
-    fHoraS(j.entrada),
-    fHoraS(j.intervalo_inicio),
-    fHoraS(j.intervalo_fim),
-    fHoraS(j.saida),
-    fDiv(j.divergencia_entrada_min),
-    fDiv(j.divergencia_intervalo_min),
-    fDiv(j.divergencia_saida_min),
-    `${j.minutos_tolerados ?? 0}m`,
-    formatMinutes(j.minutos_trabalhados),
-    j.status_ponto ? STATUS_PONTO_LABEL[j.status_ponto] : "—",
-  ]);
+  const body = opts.jornadas.map((j) => {
+    const dataFmt = new Date(j.data + "T00:00:00").toLocaleDateString("pt-BR");
+    if (!j.entrada && j.ausencia_justificada) {
+      // Linha de férias/feriado
+      return [dataFmt, "—", "—", "—", "—", "—", "—", "—", "—", "—", "—", j.ausencia_justificada];
+    }
+    return [
+      dataFmt,
+      fHoraS(j.prev_entrada),
+      fHoraS(j.entrada),
+      fHoraS(j.intervalo_inicio),
+      fHoraS(j.intervalo_fim),
+      fHoraS(j.saida),
+      fDiv(j.divergencia_entrada_min),
+      fDiv(j.divergencia_intervalo_min),
+      fDiv(j.divergencia_saida_min),
+      `${j.minutos_tolerados ?? 0}m`,
+      formatMinutes(j.minutos_trabalhados),
+      j.status_ponto ? STATUS_PONTO_LABEL[j.status_ponto] : "—",
+    ];
+  });
 
   autoTable(doc, {
     startY: 44,
