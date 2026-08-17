@@ -854,6 +854,7 @@ function DiarioTable({
         data={ajusteAlvo?.data ?? ""}
         usuarioId={ajusteAlvo?.usuario_id}
         permitirCriacao={!!ajusteAlvo?.criar}
+        jornadaPartida={!!ajusteAlvo?.partida}
       />
     </>
   );
