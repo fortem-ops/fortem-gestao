@@ -46,6 +46,7 @@ export function FechamentoMensalTable() {
   const qc = useQueryClient();
   const hojeMes = new Date().toISOString().slice(0, 7);
   const [mes, setMes] = useState<string>(hojeMes);
+  const [exportandoId, setExportandoId] = useState<string | null>(null);
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["ponto-fechamento-mes", mes],
@@ -92,6 +93,64 @@ export function FechamentoMensalTable() {
     },
     onError: (e: any) => toast.error("Falha ao aprovar", { description: e.message }),
   });
+
+  const handleExportarPdf = async (r: FechamentoRow) => {
+    setExportandoId(r.id);
+    try {
+      const mesIso = isoMesPrimeiroDia(mes);
+      const mesFimIso = new Date(new Date(mesIso).getFullYear(), new Date(mesIso).getMonth() + 1, 0)
+        .toISOString()
+        .slice(0, 10);
+
+      const { data: jornadas } = await supabase
+        .from("ponto_jornadas")
+        .select("*")
+        .eq("usuario_id", r.usuario_id)
+        .gte("data", mesIso)
+        .lte("data", mesFimIso)
+        .order("data");
+
+      const { data: banco } = await supabase
+        .from("ponto_banco_horas" as any)
+        .select("data, minutos, tipo, motivo")
+        .eq("usuario_id", r.usuario_id)
+        .gte("data", mesIso)
+        .lte("data", mesFimIso)
+        .order("data") as any;
+
+      const { data: saldoData } = await supabase
+        .from("ponto_banco_horas" as any)
+        .select("minutos")
+        .eq("usuario_id", r.usuario_id)
+        .lte("data", mesFimIso) as any;
+
+      const saldoAcumulado = (saldoData ?? []).reduce((acc: number, l: any) => acc + l.minutos, 0);
+      const movimentoMes = (banco ?? []).reduce((acc: number, l: any) => acc + l.minutos, 0);
+
+      const { data: perfil } = await supabase
+        .from("profiles")
+        .select("cpf, pis_pasep")
+        .eq("user_id", r.usuario_id)
+        .maybeSingle();
+
+      const mesLabel = new Date(mesIso + "T12:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+      gerarEspelhoFechamentoPdf({
+        colaborador: r.professor_nome,
+        cpf: perfil?.cpf,
+        pisPasep: perfil?.pis_pasep,
+        mesReferencia: mesLabel,
+        jornadas: (jornadas ?? []) as any,
+        bancoHoras: (banco ?? []) as BancoHorasPdfRow[],
+        movimentoMes,
+        saldoAcumulado,
+      });
+    } catch (e: any) {
+      toast.error("Erro ao gerar PDF", { description: e.message });
+    } finally {
+      setExportandoId(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
