@@ -91,6 +91,11 @@ export default function AdminPonto() {
         <TabsContent value="atividades"><AdminAtividadesEspeciais /></TabsContent>
         <TabsContent value="acordos"><AdminAcordosIntervalo /></TabsContent>
         <TabsContent value="banco" className="space-y-4">
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/diagnostico-banco-horas">🔬 Diagnóstico avançado</Link>
+            </Button>
+          </div>
           <AdminBancoHorasConfig />
           <AdminBancoHorasTable profissionais={profissionais} profId={profId} setProfId={setProfId} />
         </TabsContent>

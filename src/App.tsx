@@ -50,6 +50,7 @@ const PontoEquipe = lazyWithReload(() => import("./pages/PontoEquipe"));
 const PontoFechamento = lazyWithReload(() => import("./pages/PontoFechamento"));
 const RelatorioPonto = lazyWithReload(() => import("./pages/RelatorioPonto"));
 const AdminPonto = lazyWithReload(() => import("./pages/AdminPonto"));
+const DiagnosticoBancoHoras = lazyWithReload(() => import("./pages/DiagnosticoBancoHoras"));
 const AnexosJuridicos = lazyWithReload(() => import("./pages/AnexosJuridicos"));
 const Comissionamentos = lazyWithReload(() => import("./pages/Comissionamentos"));
 const LegalAnnexFlow = lazyWithReload(() => import("./pages/LegalAnnexFlow"));
@@ -485,6 +486,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <AdminPonto />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin/diagnostico-banco-horas"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <DiagnosticoBancoHoras />
                   </Suspense>
                 }
               />
