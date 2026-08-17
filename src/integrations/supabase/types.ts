@@ -5325,6 +5325,7 @@ export type Database = {
           id: string
           intervalo_fim: string | null
           intervalo_inicio: string | null
+          jornada_partida: boolean
           minutos_considerados: number
           minutos_descontaveis: number
           minutos_extras_validos: number
@@ -5354,6 +5355,7 @@ export type Database = {
           id?: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
+          jornada_partida?: boolean
           minutos_considerados?: number
           minutos_descontaveis?: number
           minutos_extras_validos?: number
@@ -5383,6 +5385,7 @@ export type Database = {
           id?: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
+          jornada_partida?: boolean
           minutos_considerados?: number
           minutos_descontaveis?: number
           minutos_extras_validos?: number
@@ -8071,6 +8074,10 @@ export type Database = {
           tempo_ocioso_min: number
           tempo_trabalhado_min: number
         }[]
+      }
+      fn_ponto_marcar_jornada_partida: {
+        Args: { _jornada_id: string; _motivo: string; _valor: boolean }
+        Returns: Json
       }
       fn_ponto_registrar: {
         Args: {
