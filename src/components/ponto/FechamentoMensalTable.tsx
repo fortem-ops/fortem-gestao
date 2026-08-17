@@ -97,52 +97,71 @@ export function FechamentoMensalTable() {
   const handleExportarPdf = async (r: FechamentoRow) => {
     setExportandoId(r.id);
     try {
-      const mesIso = isoMesPrimeiroDia(mes);
-      const mesFimIso = new Date(new Date(mesIso).getFullYear(), new Date(mesIso).getMonth() + 1, 0)
-        .toISOString()
-        .slice(0, 10);
+      const mesIso = isoMesPrimeiroDia(mes); // "YYYY-MM-01"
+      const anoMes = new Date(mesIso + "T12:00");
+      const mesFimIso = new Date(anoMes.getFullYear(), anoMes.getMonth() + 1, 0)
+        .toISOString().slice(0, 10); // último dia do mês
 
-      const { data: jornadas } = await supabase
+      // 1. Jornadas do mês — selecionar todos os campos incluindo timestamps completos
+      const { data: jornadas, error: errJ } = await supabase
         .from("ponto_jornadas")
-        .select("*")
+        .select(`
+          data, entrada, intervalo_inicio, intervalo_fim, saida,
+          prev_entrada, prev_saida, prev_intervalo_min,
+          divergencia_entrada_min, divergencia_intervalo_min, divergencia_saida_min,
+          divergencia_total_dia, minutos_tolerados, minutos_considerados,
+          minutos_extras_validos, minutos_descontaveis, minutos_trabalhados,
+          status_ponto, tolerancia_excedida
+        `)
         .eq("usuario_id", r.usuario_id)
         .gte("data", mesIso)
         .lte("data", mesFimIso)
-        .order("data");
+        .order("data", { ascending: true });
+      if (errJ) throw errJ;
 
-      const { data: banco } = await supabase
+      // 2. Todos os lançamentos do banco de horas do mês (automáticos + manuais)
+      const { data: banco, error: errB } = await supabase
         .from("ponto_banco_horas" as any)
         .select("data, minutos, tipo, motivo")
         .eq("usuario_id", r.usuario_id)
         .gte("data", mesIso)
         .lte("data", mesFimIso)
-        .order("data") as any;
+        .order("data", { ascending: true }) as any;
+      if (errB) throw errB;
 
-      const { data: saldoData } = await supabase
+      // 3. Saldo acumulado até o fim do mês (mesma lógica do AdminBancoHorasTable)
+      const { data: saldoTodos, error: errS } = await supabase
         .from("ponto_banco_horas" as any)
         .select("minutos")
         .eq("usuario_id", r.usuario_id)
         .lte("data", mesFimIso) as any;
+      if (errS) throw errS;
 
-      const saldoAcumulado = (saldoData ?? []).reduce((acc: number, l: any) => acc + l.minutos, 0);
-      const movimentoMes = (banco ?? []).reduce((acc: number, l: any) => acc + l.minutos, 0);
+      const saldoAcumulado = (saldoTodos ?? []).reduce((acc: number, l: any) => acc + (l.minutos ?? 0), 0);
+      const movimentoMes   = (banco ?? []).reduce((acc: number, l: any) => acc + (l.minutos ?? 0), 0);
 
+      // 4. Perfil (CPF mascarado e PIS)
       const { data: perfil } = await supabase
         .from("profiles")
-        .select("cpf_ultimos3, pis_pasep")
+        .select("cpf, pis_pasep, full_name")
         .eq("user_id", r.usuario_id)
         .maybeSingle();
 
-      const mesLabel = new Date(mesIso + "T12:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-      const cpfMascara = perfil?.cpf_ultimos3 ? `•••.•••.**${perfil.cpf_ultimos3}` : null;
+      // Mascarar CPF: mostrar apenas últimos 3 dígitos
+      const cpfRaw = (perfil as any)?.cpf as string | null | undefined;
+      const cpfMask = cpfRaw
+        ? `•••.•••.•••-${cpfRaw.replace(/\D/g, "").slice(-2)}`
+        : null;
+
+      const mesRef = anoMes.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
       gerarEspelhoFechamentoPdf({
-        colaborador: r.professor_nome,
-        cpf: cpfMascara,
-        pisPasep: perfil?.pis_pasep,
-        mesReferencia: mesLabel,
-        jornadas: (jornadas ?? []) as any,
-        bancoHoras: (banco ?? []) as BancoHorasPdfRow[],
+        colaborador:   r.professor_nome,
+        cpf:           cpfMask,
+        pisPasep:      (perfil as any)?.pis_pasep ?? null,
+        mesReferencia: mesRef,
+        jornadas:      (jornadas ?? []) as any,
+        bancoHoras:    (banco ?? []) as BancoHorasPdfRow[],
         movimentoMes,
         saldoAcumulado,
       });
