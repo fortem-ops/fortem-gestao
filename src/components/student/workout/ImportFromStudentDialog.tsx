@@ -115,8 +115,10 @@ export function ImportFromStudentDialog({ alunoId, onSaved }: Props) {
                 value={sourceAlunoId}
                 onChange={(id) => setSourceAlunoId(id)}
                 label="Aluno de origem"
-                placeholder="Buscar aluno (pode ser o mesmo)..."
+                placeholder="Buscar aluno ou membro da equipe..."
+                includeEquipe
               />
+
 
               {sourceAlunoId && (
                 <div className="space-y-2">
