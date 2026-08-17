@@ -343,9 +343,15 @@ export function gerarEspelhoFechamentoPdf(opts: {
 
   const TIPO_LABEL: Record<string, string> = {
     hora_extra: "Hora extra",
-    tolerancia_excedida: "Desconto (tolerância excedida)",
-    ajuste_manual: "Ajuste manual",
-    expiracao: "Expiração automática",
+    tolerancia_excedida: "Tolerância excedida",
+    credito_manual: "Crédito manual",
+    debito_manual: "Débito manual",
+    compensacao: "Compensação",
+    ajuste_saldo: "Ajuste de saldo",
+    vencimento: "Vencimento automático",
+    rescisao: "Rescisão",
+    substituicao: "Substituição",
+    atividade_especial: "Atividade especial",
   };
 
   const bancoCols = ["Data", "Tipo", "Motivo", "Minutos"];
