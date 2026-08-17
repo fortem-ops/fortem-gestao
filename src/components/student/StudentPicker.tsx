@@ -82,6 +82,26 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
   });
 
   const selected = alunos.find((a) => a.id === value);
+  const selectedLabel = selected?.nome ?? (equipeSelecionada?.id === value ? equipeSelecionada.nome : null);
+
+  async function handleSelectEquipe(userId: string, nome: string) {
+    setResolvingEquipe(true);
+    try {
+      const { data, error } = await (
+        supabase.rpc as unknown as (n: string, a: Record<string, unknown>) => Promise<{ data: string | null; error: unknown }>
+      )("fn_get_or_create_ficha_equipe_de", { _user_id: userId });
+      if (error) throw error;
+      if (!data) throw new Error("Não foi possível abrir a ficha do profissional.");
+      setEquipeSelecionada({ id: data, nome });
+      onChange(data);
+      setOpen(false);
+    } catch (err) {
+      toast.error((err as Error).message || "Erro ao selecionar profissional.");
+    } finally {
+      setResolvingEquipe(false);
+    }
+  }
+
 
   return (
     <div className="space-y-2">
