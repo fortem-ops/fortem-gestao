@@ -63,8 +63,8 @@ export function AjustarJornadaDialog({
 
   const mut = useMutation({
     mutationFn: async () => {
-      if (!hora) throw new Error("Informe o horário");
       if (motivo.trim().length < 10) throw new Error("Motivo obrigatório (mín. 10 caracteres)");
+      if (!hora && !partidaAlterada) throw new Error("Informe o horário");
 
       let idAlvo = jornadaId;
 
@@ -78,14 +78,24 @@ export function AjustarJornadaDialog({
         idAlvo = novoId as unknown as string;
       }
 
-      const novoTs = new Date(`${data}T${hora}:00`).toISOString();
-      const { error } = await supabase.rpc("fn_ponto_ajustar_jornada", {
-        _jornada_id: idAlvo!,
-        _campo: campo,
-        _novo_valor: novoTs,
-        _motivo: motivo,
-      });
-      if (error) throw error;
+      if (hora) {
+        const novoTs = new Date(`${data}T${hora}:00`).toISOString();
+        const { error } = await supabase.rpc("fn_ponto_ajustar_jornada", {
+          _jornada_id: idAlvo!,
+          _campo: campo,
+          _novo_valor: novoTs,
+          _motivo: motivo,
+        });
+        if (error) throw error;
+      }
+
+      if (partidaAlterada) {
+        const { error: errPartida } = await supabase.rpc(
+          "fn_ponto_marcar_jornada_partida" as any,
+          { _jornada_id: idAlvo!, _valor: partida, _motivo: motivo },
+        );
+        if (errPartida) throw errPartida;
+      }
     },
     onSuccess: () => {
       toast.success(criando ? "Ponto registrado" : "Ajuste registrado", {
