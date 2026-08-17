@@ -129,15 +129,16 @@ export function FechamentoMensalTable() {
 
       const { data: perfil } = await supabase
         .from("profiles")
-        .select("cpf, pis_pasep")
+        .select("cpf_ultimos3, pis_pasep")
         .eq("user_id", r.usuario_id)
         .maybeSingle();
 
       const mesLabel = new Date(mesIso + "T12:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      const cpfMascara = perfil?.cpf_ultimos3 ? `•••.•••.**${perfil.cpf_ultimos3}` : null;
 
       gerarEspelhoFechamentoPdf({
         colaborador: r.professor_nome,
-        cpf: perfil?.cpf,
+        cpf: cpfMascara,
         pisPasep: perfil?.pis_pasep,
         mesReferencia: mesLabel,
         jornadas: (jornadas ?? []) as any,
