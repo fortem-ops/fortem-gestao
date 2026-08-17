@@ -1177,12 +1177,19 @@ export function PersonalizadoEditor({
       <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Aplicar treino a um aluno</DialogTitle>
+            <DialogTitle>Aplicar treino</DialogTitle>
             <DialogDescription>
-              O treino será salvo na ficha do aluno como o treino atual.
+              O treino será salvo como treino atual na ficha do aluno ou do membro da equipe.
             </DialogDescription>
           </DialogHeader>
-          <StudentPicker value={pickedAluno} onChange={setPickedAluno} />
+          <StudentPicker
+            value={pickedAluno}
+            onChange={setPickedAluno}
+            label="Aluno ou equipe"
+            placeholder="Buscar aluno ou membro da equipe..."
+            includeEquipe
+          />
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setApplyOpen(false)}>Cancelar</Button>
             <Button
