@@ -119,16 +119,20 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
           >
             <span className="flex items-center gap-2 truncate">
               <User className="w-4 h-4 text-muted-foreground shrink-0" />
-              {selected ? (
+              {selectedLabel ? (
                 <span className="truncate">
-                  {selected.nome}
-                  {selected.status === "licenca" && (
+                  {selectedLabel}
+                  {selected?.status === "licenca" && (
                     <span className="text-xs text-muted-foreground ml-1">(licença)</span>
+                  )}
+                  {!selected && equipeSelecionada?.id === value && (
+                    <span className="text-xs text-muted-foreground ml-1">(equipe)</span>
                   )}
                 </span>
               ) : (
                 <span className="text-muted-foreground">{placeholder}</span>
               )}
+
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
