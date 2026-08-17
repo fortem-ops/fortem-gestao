@@ -627,6 +627,7 @@ function DiarioTable({
     nome: string;
     data: string;
     criar?: boolean;
+    partida?: boolean;
   } | null>(null);
 
   const { data: eventos = [] } = useQuery({
@@ -740,7 +741,14 @@ function DiarioTable({
                     </Button>
                   </TableCell>
                   <TableCell className="font-medium">
-                    {new Date(j.data + "T00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                    <div className="flex flex-col gap-1">
+                      <span>{new Date(j.data + "T00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span>
+                      {(j as any).jornada_partida && (
+                        <Badge variant="outline" className="w-fit text-[10px] border-primary/40 text-primary">
+                          2 turnos
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>{profMap.get(j.usuario_id) ?? "—"}</TableCell>
                   <TableCell className="tabular-nums">{formatHora(j.entrada)}</TableCell>
@@ -764,7 +772,13 @@ function DiarioTable({
                       variant="outline"
                       className="gap-1"
                       onClick={() => {
-                        setAjusteAlvo({ id: j.id, usuario_id: j.usuario_id, nome: profMap.get(j.usuario_id) ?? "—", data: j.data });
+                        setAjusteAlvo({
+                          id: j.id,
+                          usuario_id: j.usuario_id,
+                          nome: profMap.get(j.usuario_id) ?? "—",
+                          data: j.data,
+                          partida: !!(j as any).jornada_partida,
+                        });
                         setAjusteOpen(true);
                       }}
                     >
@@ -840,6 +854,7 @@ function DiarioTable({
         data={ajusteAlvo?.data ?? ""}
         usuarioId={ajusteAlvo?.usuario_id}
         permitirCriacao={!!ajusteAlvo?.criar}
+        jornadaPartida={!!ajusteAlvo?.partida}
       />
     </>
   );

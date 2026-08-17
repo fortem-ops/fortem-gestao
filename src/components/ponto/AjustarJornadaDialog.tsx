@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 interface Props {
@@ -26,6 +27,8 @@ interface Props {
   usuarioId?: string;
   /** Quando true e `jornadaId` é null, cria a jornada antes de aplicar o ajuste. */
   permitirCriacao?: boolean;
+  /** Estado atual da marcação de jornada partida (2 turnos). */
+  jornadaPartida?: boolean;
 }
 
 const CAMPO_LABEL: Record<string, string> = {
@@ -44,18 +47,25 @@ export function AjustarJornadaDialog({
   data,
   usuarioId,
   permitirCriacao = false,
+  jornadaPartida = false,
 }: Props) {
   const qc = useQueryClient();
   const [campo, setCampo] = useState<string>("entrada");
   const [hora, setHora] = useState<string>("");
   const [motivo, setMotivo] = useState<string>("");
+  const [partida, setPartida] = useState<boolean>(jornadaPartida);
+
+  useEffect(() => {
+    if (open) setPartida(jornadaPartida);
+  }, [open, jornadaPartida]);
 
   const criando = !jornadaId && permitirCriacao;
+  const partidaAlterada = !!jornadaId && partida !== jornadaPartida;
 
   const mut = useMutation({
     mutationFn: async () => {
-      if (!hora) throw new Error("Informe o horário");
       if (motivo.trim().length < 10) throw new Error("Motivo obrigatório (mín. 10 caracteres)");
+      if (!hora && !partidaAlterada) throw new Error("Informe o horário");
 
       let idAlvo = jornadaId;
 
@@ -69,14 +79,24 @@ export function AjustarJornadaDialog({
         idAlvo = novoId as unknown as string;
       }
 
-      const novoTs = new Date(`${data}T${hora}:00`).toISOString();
-      const { error } = await supabase.rpc("fn_ponto_ajustar_jornada", {
-        _jornada_id: idAlvo!,
-        _campo: campo,
-        _novo_valor: novoTs,
-        _motivo: motivo,
-      });
-      if (error) throw error;
+      if (hora) {
+        const novoTs = new Date(`${data}T${hora}:00`).toISOString();
+        const { error } = await supabase.rpc("fn_ponto_ajustar_jornada", {
+          _jornada_id: idAlvo!,
+          _campo: campo,
+          _novo_valor: novoTs,
+          _motivo: motivo,
+        });
+        if (error) throw error;
+      }
+
+      if (partidaAlterada) {
+        const { error: errPartida } = await supabase.rpc(
+          "fn_ponto_marcar_jornada_partida" as any,
+          { _jornada_id: idAlvo!, _valor: partida, _motivo: motivo },
+        );
+        if (errPartida) throw errPartida;
+      }
     },
     onSuccess: () => {
       toast.success(criando ? "Ponto registrado" : "Ajuste registrado", {
@@ -127,6 +147,21 @@ export function AjustarJornadaDialog({
               <Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
             </div>
           </div>
+
+          {!!jornadaId && (
+            <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="jornada-partida">Jornada partida (2 turnos)</Label>
+                <p className="text-xs text-muted-foreground">
+                  O dia é avaliado pelo total trabalhado x total previsto. O intervalo entre os turnos
+                  não gera desconto nem hora extra.
+                </p>
+              </div>
+              <Switch id="jornada-partida" checked={partida} onCheckedChange={setPartida} />
+            </div>
+          )}
+
+
 
           <div>
             <Label>Motivo (obrigatório)</Label>
