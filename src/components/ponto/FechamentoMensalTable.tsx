@@ -140,7 +140,62 @@ export function FechamentoMensalTable() {
       const saldoAcumulado = (saldoTodos ?? []).reduce((acc: number, l: any) => acc + (l.minutos ?? 0), 0);
       const movimentoMes   = (banco ?? []).reduce((acc: number, l: any) => acc + (l.minutos ?? 0), 0);
 
-      // 4. Perfil (CPF mascarado e PIS)
+      // 4. Férias e feriados do mês
+      const { data: ferias } = await supabase
+        .from("ponto_ferias")
+        .select("data_inicio, data_fim, tipo")
+        .eq("usuario_id", r.usuario_id)
+        .lte("data_inicio", mesFimIso)
+        .gte("data_fim", mesIso);
+
+      const { data: feriados } = await supabase
+        .from("ponto_feriados")
+        .select("data, nome")
+        .gte("data", mesIso)
+        .lte("data", mesFimIso);
+
+      // Montar set de dias com ausência justificada
+      const ausencias: Record<string, string> = {};
+      (feriados ?? []).forEach((f: any) => { ausencias[f.data] = `Feriado: ${f.nome}`; });
+      (ferias ?? []).forEach((f: any) => {
+        const start = new Date(f.data_inicio + "T00:00");
+        const end   = new Date(f.data_fim + "T00:00");
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const iso = d.toISOString().slice(0, 10);
+          if (iso >= mesIso && iso <= mesFimIso) {
+            ausencias[iso] = f.tipo === "ferias" ? "Férias" : "Ausência justificada";
+          }
+        }
+      });
+
+      // 5. Horários previstos para identificar dias de trabalho sem jornada registrada
+      const { data: horarios } = await supabase
+        .from("ponto_horarios_professor")
+        .select("dia_semana")
+        .eq("usuario_id", r.usuario_id)
+        .eq("ativo", true);
+      const diasComHorario = new Set((horarios ?? []).map((h: any) => h.dia_semana));
+
+      // Gerar lista de dias do mês que têm horário previsto ou jornada registrada
+      const jornadasMap = new Map((jornadas ?? []).map((j: any) => [j.data, j]));
+      const todasJornadas: any[] = [];
+      const inicio = new Date(mesIso + "T00:00");
+      const fim    = new Date(mesFimIso + "T00:00");
+      for (let d = new Date(inicio); d <= fim; d.setDate(d.getDate() + 1)) {
+        const iso = d.toISOString().slice(0, 10);
+        const dow = d.getDay(); // 0=dom, 6=sab
+        if (jornadasMap.has(iso)) {
+          // Dia com jornada registrada
+          todasJornadas.push({ ...jornadasMap.get(iso), ausencia_justificada: ausencias[iso] ?? null });
+        } else if (diasComHorario.has(dow) && ausencias[iso]) {
+          // Dia com horário previsto e ausência justificada (férias/feriado)
+          todasJornadas.push({ data: iso, entrada: null, ausencia_justificada: ausencias[iso] });
+        }
+        // Dias sem horário previsto e sem jornada: ignorar
+      }
+      todasJornadas.sort((a, b) => a.data.localeCompare(b.data));
+
+      // 6. Perfil (CPF mascarado e PIS)
       const { data: perfil } = await supabase
         .from("profiles")
         .select("cpf, pis_pasep, full_name")
@@ -160,7 +215,7 @@ export function FechamentoMensalTable() {
         cpf:           cpfMask,
         pisPasep:      (perfil as any)?.pis_pasep ?? null,
         mesReferencia: mesRef,
-        jornadas:      (jornadas ?? []) as any,
+        jornadas:      todasJornadas,
         bancoHoras:    (banco ?? []) as BancoHorasPdfRow[],
         movimentoMes,
         saldoAcumulado,
