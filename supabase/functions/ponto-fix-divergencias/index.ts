@@ -11,27 +11,32 @@ Deno.serve(async (req) => {
     })
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401)
-    const token = authHeader.replace('Bearer ', '')
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
 
-    const anonClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-    )
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token)
-    const userId = claimsData?.claims?.sub as string | undefined
-    if (claimsError || !userId) return json({ error: 'Unauthorized' }, 401)
+    const admin = createClient(supabaseUrl, serviceKey)
+    const isServiceRole = authHeader === `Bearer ${serviceKey}`
 
-    const admin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
+    if (!isServiceRole) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      })
+      const { data: { user }, error: authError } = await userClient.auth.getUser()
+      if (authError || !user) return json({ error: 'Unauthorized' }, 401)
 
-    const { data: isAdmin } = await admin.rpc('is_admin', { _user_id: userId })
-    if (!isAdmin) return json({ error: 'Forbidden: admin only' }, 403)
+      const { data: isAdmin } = await admin.rpc('is_admin', { _user_id: user.id })
+      if (!isAdmin) return json({ error: 'Forbidden — requires admin role' }, 403)
+    }
 
-    // Buscar todas as jornadas encerradas (paginado)
+    const { error: delErr } = await admin
+      .from('ponto_banco_horas')
+      .delete()
+      .in('tipo', ['tolerancia_excedida', 'hora_extra'])
+      .not('referencia_jornada_id', 'is', null)
+    if (delErr) return json({ error: delErr.message }, 500)
+
     const ids: string[] = []
     const pageSize = 1000
     for (let from = 0; ; from += pageSize) {
