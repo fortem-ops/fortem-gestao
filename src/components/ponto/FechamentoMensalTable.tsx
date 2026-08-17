@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatMinutes, mesLabel } from "@/lib/ponto";
+import { gerarEspelhoFechamentoPdf, type BancoHorasPdfRow } from "@/lib/pontoPdf";
 import { toast } from "sonner";
-import { CheckCircle2, Lock, RefreshCw, ShieldAlert } from "lucide-react";
+import { CheckCircle2, FileDown, Lock, RefreshCw, ShieldAlert } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
