@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { invalidateBancoHoras } from "@/lib/query-invalidation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -111,7 +112,7 @@ export function AdminSubstituicoes() {
     onSuccess: (_, vars) => {
       toast(vars.novoStatus === "aprovada" ? "Substituição aprovada" : "Substituição rejeitada");
       qc.invalidateQueries({ queryKey: ["ponto-substituicoes"] });
-      qc.invalidateQueries({ queryKey: ["admin-banco"] });
+      invalidateBancoHoras(qc);
     },
     onError: (e: any) =>
       toast.error("Erro", { description: e.message }),

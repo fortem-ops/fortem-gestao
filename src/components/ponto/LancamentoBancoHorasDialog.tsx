@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { invalidateBancoHoras } from "@/lib/query-invalidation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,14 +66,12 @@ export function LancamentoBancoHorasDialog({ open, onOpenChange, usuarioId, usua
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast("Lançamento registrado");
-      qc.invalidateQueries({ queryKey: ["admin-banco"] });
-      qc.invalidateQueries({ queryKey: ["meu-banco-saldo"] });
-      qc.invalidateQueries({ queryKey: ["meu-banco-resumo"] });
-      qc.invalidateQueries({ queryKey: ["meu-banco-lancamentos"] });
+      await invalidateBancoHoras(qc);
       onOpenChange(false);
     },
+
     onError: (e: any) => toast.error("Erro", { description: e.message }),
   });
 

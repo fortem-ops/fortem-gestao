@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateBancoHoras } from "@/lib/query-invalidation";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,7 @@ export function HistoricoBancoHorasDialog({ open, onOpenChange, usuarioId, usuar
     },
     onSuccess: () => {
       toast("Lançamento excluído");
-      qc.invalidateQueries({ queryKey: ["admin-banco"] });
+      invalidateBancoHoras(qc);
       qc.invalidateQueries({ queryKey: ["admin-banco-historico", usuarioId] });
     },
     onError: (e: any) => toast.error("Erro", { description: e.message }),
