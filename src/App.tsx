@@ -327,6 +327,14 @@ const App = () => (
                   </Suspense>
                 }
               />
+              <Route
+                path="/meus-treinos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <MeusTreinos />
+                  </Suspense>
+                }
+              />
 
               <Route
                 path="/carteira"
