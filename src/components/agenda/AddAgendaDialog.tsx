@@ -216,6 +216,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         supabase
           .from("alunos")
           .select("id, nome, status, current_pipeline_stage_id, responsavel_id, email")
+          .eq("is_equipe", false)
           .or(`nome.ilike.${like},email.ilike.${like}`)
           .order("nome")
           .limit(50),

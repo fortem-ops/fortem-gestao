@@ -29,7 +29,7 @@ export function AlertsWidget({ professorId }: Props) {
       const today = new Date();
 
       const [alunosRes, treinosRes, avaliacoesRes, tarefasRes] = await Promise.all([
-        supabase.from("alunos").select("id, nome, status, frequencia_semanal, responsavel_id"),
+        supabase.from("alunos").select("id, nome, status, frequencia_semanal, responsavel_id").eq("is_equipe", false),
         supabase.from("treinos").select("id, aluno_id, created_at, status").eq("status", "atual"),
         supabase.from("avaliacoes").select("id, aluno_id, data, tipo").eq("tipo", "funcional").order("data", { ascending: false }),
         supabase.from("tarefas").select("id, aluno_id, responsavel_id, data_limite, status, tipo_auto").eq("tipo_auto", "atualizar_treino").neq("status", "concluida"),

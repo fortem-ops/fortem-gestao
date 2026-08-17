@@ -353,7 +353,7 @@ function CarteiraDetalhe({ profissionalId }: { profissionalId?: string | null })
     queryFn: async () => {
       const { isAutoRenewPlan } = await import("@/lib/planTipo");
       const { addMonths } = await import("date-fns");
-      let q = supabase.from("alunos").select("id, nome, status, responsavel_id").eq("status", "ativo");
+      let q = supabase.from("alunos").select("id, nome, status, responsavel_id").eq("status", "ativo").eq("is_equipe", false);
       if (profissionalId) q = q.eq("responsavel_id", profissionalId);
       const { data: alunos, error } = await q;
       if (error) throw error;

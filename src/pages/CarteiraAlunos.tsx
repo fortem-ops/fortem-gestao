@@ -66,6 +66,7 @@ export default function CarteiraAlunos() {
         .from("alunos")
         .select("id, nome, email, status, responsavel_id, frequencia_semanal")
         .in("id", alunoIds)
+        .eq("is_equipe", false)
         .eq("status", "ativo")
         .order("nome");
       if (!alunos?.length) return [];
