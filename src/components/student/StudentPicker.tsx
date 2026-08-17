@@ -13,10 +13,28 @@ interface StudentPickerProps {
   onChange: (id: string) => void;
   label?: string;
   placeholder?: string;
+  /** Inclui um grupo "Equipe" com as fichas pessoais dos profissionais. */
+  includeEquipe?: boolean;
 }
 
-export function StudentPicker({ value, onChange, label = "Aluno", placeholder = "Buscar aluno pelo nome..." }: StudentPickerProps) {
+export function StudentPicker({ value, onChange, label = "Aluno", placeholder = "Buscar aluno pelo nome...", includeEquipe = false }: StudentPickerProps) {
   const [open, setOpen] = useState(false);
+  const [resolvingEquipe, setResolvingEquipe] = useState(false);
+  const [equipeSelecionada, setEquipeSelecionada] = useState<{ id: string; nome: string } | null>(null);
+
+  const { data: equipe = [] } = useQuery({
+    queryKey: ["equipe-fichas-picker"],
+    enabled: includeEquipe,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (
+        supabase.rpc as unknown as (n: string) => Promise<{ data: { user_id: string; nome: string }[] | null; error: unknown }>
+      )("fn_listar_equipe_fichas");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
 
   const { data: stagesMap = {} } = useQuery({
     queryKey: ["pipeline-stages-map-picker"],
