@@ -457,6 +457,82 @@ export type Database = {
           },
         ]
       }
+      arquivos_metodologicos_itens: {
+        Row: {
+          created_at: string
+          enviado_por: string | null
+          id: string
+          nome_arquivo: string
+          pasta_id: string | null
+          storage_path: string
+          tamanho_bytes: number | null
+          tipo_mime: string | null
+        }
+        Insert: {
+          created_at?: string
+          enviado_por?: string | null
+          id?: string
+          nome_arquivo: string
+          pasta_id?: string | null
+          storage_path: string
+          tamanho_bytes?: number | null
+          tipo_mime?: string | null
+        }
+        Update: {
+          created_at?: string
+          enviado_por?: string | null
+          id?: string
+          nome_arquivo?: string
+          pasta_id?: string | null
+          storage_path?: string
+          tamanho_bytes?: number | null
+          tipo_mime?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arquivos_metodologicos_itens_pasta_id_fkey"
+            columns: ["pasta_id"]
+            isOneToOne: false
+            referencedRelation: "arquivos_metodologicos_pastas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arquivos_metodologicos_pastas: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          nome: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arquivos_metodologicos_pastas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "arquivos_metodologicos_pastas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assistant_conversations: {
         Row: {
           aluno_id: string | null
