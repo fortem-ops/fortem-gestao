@@ -68,3 +68,29 @@ export function invalidatePlanoECreditos(qc: QueryClient, alunoId?: string) {
 export function invalidateNotificacoes(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: queryKeys.notificacoes });
 }
+
+/**
+ * Invalida todas as queries que leem `ponto_banco_horas` (ou derivados).
+ * Use após QUALQUER mutação de banco de horas (lançamento, exclusão,
+ * substituição, atividade especial, recálculo).
+ */
+export const bancoHorasQueryKeys = [
+  ["admin-banco-lancamentos-mes"],
+  ["admin-banco-historico"],
+  ["admin-banco"],
+  ["relatorio-banco-lancamentos"],
+  ["meu-relatorio-banco-resumo"],
+  ["meu-banco-saldo"],
+  ["meu-banco-resumo"],
+  ["meu-banco-lancamentos"],
+  ["banco-mais-antigo"],
+  ["relatorios-equipe-banco"],
+  ["diag-banco-lancamentos"],
+] as const;
+
+export function invalidateBancoHoras(qc: QueryClient) {
+  return Promise.all(
+    bancoHorasQueryKeys.map((key) => qc.invalidateQueries({ queryKey: key as unknown as string[] })),
+  );
+}
+
