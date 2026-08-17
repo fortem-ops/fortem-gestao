@@ -741,7 +741,6 @@ function DiarioTable({
                     </Button>
                   </TableCell>
                   <TableCell className="font-medium">
-                  <TableCell className="font-medium">
                     <div className="flex flex-col gap-1">
                       <span>{new Date(j.data + "T00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span>
                       {(j as any).jornada_partida && (
@@ -753,7 +752,7 @@ function DiarioTable({
                   </TableCell>
                   <TableCell>{profMap.get(j.usuario_id) ?? "—"}</TableCell>
                   <TableCell className="tabular-nums">{formatHora(j.entrada)}</TableCell>
-
+                  <TableCell className="tabular-nums text-muted-foreground">
                     {formatHora(j.intervalo_inicio)}–{formatHora(j.intervalo_fim)}
                   </TableCell>
                   <TableCell className="tabular-nums">{formatHora(j.saida)}</TableCell>
