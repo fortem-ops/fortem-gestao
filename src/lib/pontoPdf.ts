@@ -267,3 +267,146 @@ export function gerarRelatorioDivergencias(opts: {
   footer(doc);
   doc.save(`divergencias-ponto_${opts.periodoInicio}_a_${opts.periodoFim}.pdf`);
 }
+
+export interface BancoHorasPdfRow {
+  data: string;
+  minutos: number;
+  tipo: string;
+  motivo?: string | null;
+}
+
+export function gerarEspelhoFechamentoPdf(opts: {
+  colaborador: string;
+  cpf?: string | null;
+  pisPasep?: string | null;
+  mesReferencia: string;
+  jornadas: JornadaPdfRow[];
+  bancoHoras: BancoHorasPdfRow[];
+  movimentoMes: number;
+  saldoAcumulado: number;
+}) {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const cpfFmt = formatCPF(opts.cpf);
+  const pisFmt = formatPIS(opts.pisPasep);
+  const docLine = [cpfFmt && `CPF: ${cpfFmt}`, pisFmt && `PIS/PASEP: ${pisFmt}`].filter(Boolean).join(" | ");
+
+  // ── PÁGINA 1: Espelho de ponto ──────────────────────────────────────────
+  header(doc, "Espelho de Ponto — Fechamento Mensal", `${opts.colaborador} — ${opts.mesReferencia}${docLine ? ` — ${docLine}` : ""}`);
+
+  const body = opts.jornadas.map((j) => [
+    new Date(j.data + "T00:00:00").toLocaleDateString("pt-BR"),
+    fHora(j.prev_entrada),
+    fHora(j.entrada),
+    fHora(j.intervalo_inicio),
+    fHora(j.intervalo_fim),
+    fHora(j.saida),
+    fDiv(j.divergencia_entrada_min),
+    fDiv(j.divergencia_intervalo_min),
+    fDiv(j.divergencia_saida_min),
+    `${j.minutos_tolerados ?? 0}m`,
+    formatMinutes(j.minutos_trabalhados),
+    j.status_ponto ? STATUS_PONTO_LABEL[j.status_ponto] : "—",
+  ]);
+
+  autoTable(doc, {
+    startY: 44,
+    head: [["Data", "Prev. Ent.", "Entrada", "Int. Início", "Int. Fim", "Saída", "Δ Entrada", "Δ Intervalo", "Δ Saída", "Tolerados", "Trabalhado", "Status"]],
+    body,
+    headStyles: { fillColor: FORTEM_GREEN, textColor: 255, fontSize: 8 },
+    bodyStyles: { fontSize: 8 },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    didParseCell: (data) => {
+      if (data.section === "body" && data.column.index === 11) {
+        const j = opts.jornadas[data.row.index];
+        if (j?.tolerancia_excedida) data.cell.styles.textColor = [220, 38, 38];
+        else if (j?.status_ponto === "hora_extra") data.cell.styles.textColor = [22, 163, 74];
+      }
+    },
+  });
+
+  const finalY1 = (doc as any).lastAutoTable.finalY + 8;
+  const totTrabalhado = opts.jornadas.reduce((s, j) => s + (j.minutos_trabalhados ?? 0), 0);
+  const totExtras = opts.jornadas.reduce((s, j) => s + (j.minutos_extras_validos ?? 0), 0);
+  const totDescont = opts.jornadas.reduce((s, j) => s + (j.minutos_descontaveis ?? 0), 0);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Totais do período", 14, finalY1);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Total trabalhado: ${formatMinutes(totTrabalhado)}`, 14, finalY1 + 6);
+  doc.text(`Horas extras: +${formatMinutes(totExtras)}`, 90, finalY1 + 6);
+  doc.text(`Descontáveis: -${formatMinutes(totDescont)}`, 170, finalY1 + 6);
+
+  // ── PÁGINA 2: Banco de horas ────────────────────────────────────────────
+  doc.addPage();
+  header(doc, "Banco de Horas — Movimentações do Mês", `${opts.colaborador} — ${opts.mesReferencia}`);
+
+  const TIPO_LABEL: Record<string, string> = {
+    hora_extra: "Hora extra",
+    tolerancia_excedida: "Tolerância excedida",
+    credito_manual: "Crédito manual",
+    debito_manual: "Débito manual",
+    compensacao: "Compensação",
+    ajuste_saldo: "Ajuste de saldo",
+    vencimento: "Vencimento automático",
+    rescisao: "Rescisão",
+    substituicao: "Substituição",
+    atividade_especial: "Atividade especial",
+  };
+
+  const bancoCols = ["Data", "Tipo", "Motivo", "Minutos"];
+  const bancoBody = opts.bancoHoras.map((b) => [
+    new Date(b.data + "T00:00:00").toLocaleDateString("pt-BR"),
+    TIPO_LABEL[b.tipo] ?? b.tipo,
+    b.motivo ?? "—",
+    `${b.minutos > 0 ? "+" : ""}${b.minutos}m`,
+  ]);
+
+  autoTable(doc, {
+    startY: 44,
+    head: [bancoCols],
+    body: bancoBody,
+    headStyles: { fillColor: FORTEM_GREEN, textColor: 255, fontSize: 9 },
+    bodyStyles: { fontSize: 9 },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    columnStyles: { 3: { halign: "right" } },
+    didParseCell: (data) => {
+      if (data.section === "body" && data.column.index === 3) {
+        const b = opts.bancoHoras[data.row.index];
+        if (b?.minutos > 0) data.cell.styles.textColor = [22, 163, 74];
+        else if (b?.minutos < 0) data.cell.styles.textColor = [220, 38, 38];
+      }
+    },
+  });
+
+  const finalY2 = (doc as any).lastAutoTable.finalY + 10;
+  const movSinal = opts.movimentoMes >= 0 ? "+" : "-";
+  const saldoSinal = opts.saldoAcumulado >= 0 ? "+" : "-";
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Resumo do banco de horas", 14, finalY2);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Movimento do mês: ${movSinal}${formatMinutes(Math.abs(opts.movimentoMes))}`, 14, finalY2 + 8);
+  doc.text(`Saldo acumulado: ${saldoSinal}${formatMinutes(Math.abs(opts.saldoAcumulado))}`, 100, finalY2 + 8);
+
+  const sigY = finalY2 + 30;
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Declaro ter conferido e concordado com o espelho de ponto e movimentações do banco de horas referente ao período acima.", 14, sigY - 6);
+  doc.setTextColor(...FORTEM_DARK);
+  doc.line(20, sigY + 10, 140, sigY + 10);
+  doc.setFontSize(9);
+  doc.text(`${opts.colaborador}`, 80, sigY + 15, { align: "center" });
+  doc.text("Assinatura do Colaborador", 80, sigY + 20, { align: "center" });
+
+  doc.line(160, sigY + 10, 270, sigY + 10);
+  doc.text("Coordenação — FORTEM", 215, sigY + 15, { align: "center" });
+  doc.text("Assinatura e carimbo", 215, sigY + 20, { align: "center" });
+
+  footer(doc);
+  const nomeSanitizado = opts.colaborador.replace(/\s+/g, "_").toLowerCase();
+  const mesSanitizado = opts.mesReferencia.replace(/\s+/g, "_").toLowerCase();
+  doc.save(`espelho-fechamento_${nomeSanitizado}_${mesSanitizado}.pdf`);
+}
