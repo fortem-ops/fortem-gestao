@@ -7,16 +7,36 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
 
 interface StudentPickerProps {
   value: string;
   onChange: (id: string) => void;
   label?: string;
   placeholder?: string;
+  /** Inclui um grupo "Equipe" com as fichas pessoais dos profissionais. */
+  includeEquipe?: boolean;
 }
 
-export function StudentPicker({ value, onChange, label = "Aluno", placeholder = "Buscar aluno pelo nome..." }: StudentPickerProps) {
+export function StudentPicker({ value, onChange, label = "Aluno", placeholder = "Buscar aluno pelo nome...", includeEquipe = false }: StudentPickerProps) {
   const [open, setOpen] = useState(false);
+  const [resolvingEquipe, setResolvingEquipe] = useState(false);
+  const [equipeSelecionada, setEquipeSelecionada] = useState<{ id: string; nome: string } | null>(null);
+
+  const { data: equipe = [] } = useQuery({
+    queryKey: ["equipe-fichas-picker"],
+    enabled: includeEquipe,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (
+        supabase.rpc as unknown as (n: string) => Promise<{ data: { user_id: string; nome: string }[] | null; error: unknown }>
+      )("fn_listar_equipe_fichas");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
 
   const { data: stagesMap = {} } = useQuery({
     queryKey: ["pipeline-stages-map-picker"],
@@ -45,8 +65,10 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
           .from("alunos")
           .select("id, nome, status, current_pipeline_stage_id")
           .in("status", ["ativo", "licenca"])
+          .eq("is_equipe", false)
           .order("nome")
           .range(from, from + PAGE - 1);
+
         if (error) throw error;
         const rows = data || [];
         all.push(...rows);
@@ -62,6 +84,26 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
   });
 
   const selected = alunos.find((a) => a.id === value);
+  const selectedLabel = selected?.nome ?? (equipeSelecionada?.id === value ? equipeSelecionada.nome : null);
+
+  async function handleSelectEquipe(userId: string, nome: string) {
+    setResolvingEquipe(true);
+    try {
+      const { data, error } = await (
+        supabase.rpc as unknown as (n: string, a: Record<string, unknown>) => Promise<{ data: string | null; error: unknown }>
+      )("fn_get_or_create_ficha_equipe_de", { _user_id: userId });
+      if (error) throw error;
+      if (!data) throw new Error("Não foi possível abrir a ficha do profissional.");
+      setEquipeSelecionada({ id: data, nome });
+      onChange(data);
+      setOpen(false);
+    } catch (err) {
+      toast.error((err as Error).message || "Erro ao selecionar profissional.");
+    } finally {
+      setResolvingEquipe(false);
+    }
+  }
+
 
   return (
     <div className="space-y-2">
@@ -77,16 +119,20 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
           >
             <span className="flex items-center gap-2 truncate">
               <User className="w-4 h-4 text-muted-foreground shrink-0" />
-              {selected ? (
+              {selectedLabel ? (
                 <span className="truncate">
-                  {selected.nome}
-                  {selected.status === "licenca" && (
+                  {selectedLabel}
+                  {selected?.status === "licenca" && (
                     <span className="text-xs text-muted-foreground ml-1">(licença)</span>
+                  )}
+                  {!selected && equipeSelecionada?.id === value && (
+                    <span className="text-xs text-muted-foreground ml-1">(equipe)</span>
                   )}
                 </span>
               ) : (
                 <span className="text-muted-foreground">{placeholder}</span>
               )}
+
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -101,14 +147,15 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
           >
             <CommandInput placeholder="Digite para buscar..." />
             <CommandList>
-              <CommandEmpty>Nenhum aluno encontrado.</CommandEmpty>
-              <CommandGroup>
+              <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
+              <CommandGroup heading={includeEquipe ? "Alunos" : undefined}>
                 {alunos.map((a) => (
                   <CommandItem
                     key={a.id}
                     value={a.nome}
                     onSelect={() => {
                       onChange(a.id);
+                      setEquipeSelecionada(null);
                       setOpen(false);
                     }}
                   >
@@ -125,9 +172,33 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
                   </CommandItem>
                 ))}
               </CommandGroup>
+              {includeEquipe && equipe.length > 0 && (
+                <CommandGroup heading="Equipe">
+                  {equipe.map((p) => (
+                    <CommandItem
+                      key={p.user_id}
+                      value={p.nome}
+                      disabled={resolvingEquipe}
+                      onSelect={() => handleSelectEquipe(p.user_id, p.nome)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          equipeSelecionada?.id === value && equipeSelecionada?.nome === p.nome
+                            ? "opacity-100"
+                            : "opacity-0",
+                        )}
+                      />
+                      <span className="flex-1">{p.nome}</span>
+                      <span className="text-xs text-muted-foreground ml-2">Equipe</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
+
       </Popover>
     </div>
   );
