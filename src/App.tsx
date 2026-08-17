@@ -318,6 +318,15 @@ const App = () => (
                 }
               />
               <Route
+                path="/arquivos-metodologicos"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <ArquivosMetodologicos />
+                  </Suspense>
+                }
+              />
+
+              <Route
                 path="/carteira"
                 element={
                   <Suspense fallback={<RouteFallback />}>
