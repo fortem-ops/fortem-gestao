@@ -56,7 +56,8 @@ export function AdminBancoHorasTable({ profissionais, profId, setProfId }: Props
       const saldo = ate.reduce((acc, l) => acc + l.minutos, 0);
       const cred = noMes.filter((l) => l.minutos > 0).reduce((a, l) => a + l.minutos, 0);
       const deb = noMes.filter((l) => l.minutos < 0).reduce((a, l) => a + l.minutos, 0);
-      return { user_id: p.user_id, nome: p.full_name, saldo, cred, deb };
+      const movMes = cred + deb;
+      return { user_id: p.user_id, nome: p.full_name, saldo, cred, deb, movMes };
     }).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [usuariosFiltrados, lancamentos, mesIni, mesFim]);
 
