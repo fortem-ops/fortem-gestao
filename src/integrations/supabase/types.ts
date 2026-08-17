@@ -7887,6 +7887,10 @@ export type Database = {
         Returns: string
       }
       fn_get_or_create_ficha_equipe: { Args: never; Returns: string }
+      fn_get_or_create_ficha_equipe_de: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       fn_inserir_inscricao_prova: {
         Args: {
           p_aceite_inscricao: boolean
@@ -7925,6 +7929,13 @@ export type Database = {
         Returns: Json
       }
       fn_lgpd_relatorio_titular: { Args: { p_aluno_id: string }; Returns: Json }
+      fn_listar_equipe_fichas: {
+        Args: never
+        Returns: {
+          nome: string
+          user_id: string
+        }[]
+      }
       fn_local_mais_proximo: {
         Args: { _lat: number; _lng: number }
         Returns: {
