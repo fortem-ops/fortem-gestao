@@ -627,6 +627,7 @@ function DiarioTable({
     nome: string;
     data: string;
     criar?: boolean;
+    partida?: boolean;
   } | null>(null);
 
   const { data: eventos = [] } = useQuery({
