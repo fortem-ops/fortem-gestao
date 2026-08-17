@@ -214,8 +214,13 @@ export default function DiagnosticoBancoHoras() {
             <RefreshCw className={`w-4 h-4 mr-2 ${recalc ? "animate-spin" : ""}`} />
             {recalc ? `Recalculando ${recalc.done}/${recalc.total}...` : "Recalcular todas as jornadas do mês"}
           </Button>
+          <Button variant="destructive" onClick={reaplicarFixProducao} disabled={fixando}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${fixando ? "animate-spin" : ""}`} />
+            {fixando ? "Reaplicando..." : "Reaplicar fix produção"}
+          </Button>
         </div>
       </Card>
+
 
       <Card className="glass-card p-4 overflow-x-auto">
         {isLoading ? (
