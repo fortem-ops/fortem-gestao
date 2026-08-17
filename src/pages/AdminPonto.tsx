@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { AdminPontoHorarios } from "@/components/ponto/AdminPontoHorarios";
 import { AdminPontoFeriados } from "@/components/ponto/AdminPontoFeriados";
 import { AdminPontoFerias } from "@/components/ponto/AdminPontoFerias";
@@ -91,6 +92,11 @@ export default function AdminPonto() {
         <TabsContent value="atividades"><AdminAtividadesEspeciais /></TabsContent>
         <TabsContent value="acordos"><AdminAcordosIntervalo /></TabsContent>
         <TabsContent value="banco" className="space-y-4">
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/diagnostico-banco-horas">🔬 Diagnóstico avançado</Link>
+            </Button>
+          </div>
           <AdminBancoHorasConfig />
           <AdminBancoHorasTable profissionais={profissionais} profId={profId} setProfId={setProfId} />
         </TabsContent>
