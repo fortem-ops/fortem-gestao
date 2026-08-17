@@ -185,12 +185,12 @@ export default function DiagnosticoBancoHoras() {
   const reaplicarFixProducao = async () => {
     setFixando(true);
     try {
-      const { data: res, error } = await supabase.functions.invoke("ponto-fix-divergencias", { body: {} });
+      const { error } = await supabase.rpc("fn_admin_fix_timezone_divergencias" as any);
       if (error) throw error;
-      toast.success(`Fix aplicado: ${res?.reprocessadas ?? 0}/${res?.total ?? 0} jornadas reprocessadas${res?.falhas ? ` · ${res.falhas} falhas` : ""}.`);
+      toast.success("Fix aplicado com sucesso. Reprocessamento concluído.");
       qc.invalidateQueries({ queryKey: ["diag-banco-lancamentos"] });
     } catch (e: any) {
-      toast.error("Erro ao reaplicar fix: " + (e?.message ?? "desconhecido"));
+      toast.error("Erro: " + (e?.message ?? "desconhecido"));
     } finally {
       setFixando(false);
     }
