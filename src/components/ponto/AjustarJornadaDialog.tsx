@@ -147,6 +147,21 @@ export function AjustarJornadaDialog({
             </div>
           </div>
 
+          {!!jornadaId && (
+            <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="jornada-partida">Jornada partida (2 turnos)</Label>
+                <p className="text-xs text-muted-foreground">
+                  O dia é avaliado pelo total trabalhado x total previsto. O intervalo entre os turnos
+                  não gera desconto nem hora extra.
+                </p>
+              </div>
+              <Switch id="jornada-partida" checked={partida} onCheckedChange={setPartida} />
+            </div>
+          )}
+
+
+
           <div>
             <Label>Motivo (obrigatório)</Label>
             <Textarea
