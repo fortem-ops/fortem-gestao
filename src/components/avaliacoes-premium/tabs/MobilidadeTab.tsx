@@ -59,6 +59,87 @@ interface MobilidadeRow {
  * funcional_v2 existente NA MESMA DATA que já tenha força mas ainda não tem
  * métricas. Caso contrário, cria uma nova linha só com mobilidade.
  */
+
+function statsFromArray(arr: number[]): { mean: number; sigma: number } {
+  const n = arr.length;
+  const mean = arr.reduce((a, b) => a + b, 0) / n;
+  const variance = arr.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+  return { mean, sigma: Math.sqrt(variance) || 1 };
+}
+
+interface CurveMarker {
+  id: string;
+  value: number;
+  percentile: number;
+  color: string;
+}
+
+function PercentileCurveCard({
+  metric,
+  mean,
+  sigma,
+  unit,
+  markers,
+}: {
+  metric: string;
+  mean: number;
+  sigma: number;
+  unit: string;
+  markers: CurveMarker[];
+}) {
+  const vMin = Math.max(0, mean - 3 * sigma);
+  const vMax = mean + 3 * sigma;
+  const xPad = 10;
+  const xW = 260;
+  const baseY = 96;
+  const topY = 14;
+  const xOf = (v: number) => xPad + ((v - vMin) / (vMax - vMin || 1)) * xW;
+  const gauss = (v: number) => Math.exp(-((v - mean) ** 2) / (2 * sigma * sigma));
+  const n = 48;
+  const pts = Array.from({ length: n + 1 }, (_, i) => {
+    const v = vMin + ((vMax - vMin) * i) / n;
+    return [xOf(v), baseY - gauss(v) * (baseY - topY)] as [number, number];
+  });
+  const fillPath =
+    `M ${pts[0][0].toFixed(1)},${baseY} ` +
+    pts.map((p) => `L ${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ") +
+    ` L ${pts[pts.length - 1][0].toFixed(1)},${baseY} Z`;
+  const linePath = "M " + pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" L ");
+  const xMean = xOf(mean);
+
+  return (
+    <div className="rounded-lg border border-[hsl(var(--bio-line))] p-3">
+      <p className="text-xs font-medium text-[hsl(var(--bio-ink))] mb-1">{metric}</p>
+      <svg viewBox={`0 0 ${xPad * 2 + xW} 116`} width="100%" height={100}>
+        <path d={fillPath} fill="hsl(210 70% 92%)" />
+        <path d={linePath} fill="none" stroke="hsl(210 60% 60%)" strokeWidth="1.5" />
+        <line x1={xMean} x2={xMean} y1={topY} y2={baseY} stroke="hsl(220 12% 55%)" strokeDasharray="3 3" />
+        <line x1={xPad} x2={xPad + xW} y1={baseY} y2={baseY} stroke="hsl(220 14% 80%)" />
+        {markers.map((m) => {
+          const x = xOf(m.value);
+          const y = baseY - gauss(m.value) * (baseY - topY);
+          return (
+            <g key={m.id}>
+              <line x1={x} x2={x} y1={topY} y2={baseY} stroke={m.color} strokeWidth="2" />
+              <circle cx={x} cy={y} r="4" fill={m.color} />
+            </g>
+          );
+        })}
+      </svg>
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-[10px] text-[hsl(var(--bio-ink-muted))]">média {mean.toFixed(1)}{unit}</span>
+        <div className="flex gap-2">
+          {markers.map((m) => (
+            <span key={m.id} className="text-[10px] font-medium" style={{ color: m.color }}>
+              {m.id} {m.value}{unit} · P{m.percentile}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
   const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
     ? "F"
