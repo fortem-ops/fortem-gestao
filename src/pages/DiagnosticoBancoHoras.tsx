@@ -202,13 +202,16 @@ export default function DiagnosticoBancoHoras() {
     try {
       const { data, error } = await supabase.rpc("fn_admin_testar_resumo_whatsapp" as any);
       if (error) throw error;
-      const body = (data as any)?.body;
-      const parsed = typeof body === 'string' ? JSON.parse(body) : body;
-      if (parsed?.results?.length) {
-        const resumo = parsed.results.map((r: any) => `${r.profissional}: ${r.status}`).join(', ');
-        toast.success(`Resumo enviado: ${resumo}`);
+      const d = data as any;
+      if (d?.motivo === 'feriado') {
+        toast.info(`Amanhã é feriado — nenhuma mensagem seria enviada`);
+      } else if (d?.motivo === 'sem_agendamentos') {
+        toast.info(`Sem agendamentos para amanhã (${d.data})`);
       } else {
-        toast.info(`Resultado: ${JSON.stringify(parsed)}`);
+        const profs = (d?.profissionais ?? []).map((p: any) =>
+          `${p.profissional}: ${p.agendamentos?.length ?? 0} agendamento(s)`
+        ).join('\n');
+        toast.success(`Amanhã (${d.data}): ${d.total_agendamentos} agendamentos\n${profs}`);
       }
     } catch (e: any) {
       toast.error("Erro: " + (e?.message ?? "desconhecido"));
