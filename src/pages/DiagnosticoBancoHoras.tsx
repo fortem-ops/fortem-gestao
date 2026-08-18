@@ -45,6 +45,7 @@ export default function DiagnosticoBancoHoras() {
   const [alvo, setAlvo] = useState<Lancamento | null>(null);
   const [recalc, setRecalc] = useState<{ total: number; done: number } | null>(null);
   const [fixando, setFixando] = useState(false);
+  const [testando, setTestando] = useState(false);
 
 
   const mesIni = `${mes}-01`;
@@ -196,6 +197,26 @@ export default function DiagnosticoBancoHoras() {
     }
   };
 
+  const testarResumo = async () => {
+    setTestando(true);
+    try {
+      const { data, error } = await supabase.rpc("fn_admin_testar_resumo_whatsapp" as any);
+      if (error) throw error;
+      const body = (data as any)?.body;
+      const parsed = typeof body === 'string' ? JSON.parse(body) : body;
+      if (parsed?.results?.length) {
+        const resumo = parsed.results.map((r: any) => `${r.profissional}: ${r.status}`).join(', ');
+        toast.success(`Resumo enviado: ${resumo}`);
+      } else {
+        toast.info(`Resultado: ${JSON.stringify(parsed)}`);
+      }
+    } catch (e: any) {
+      toast.error("Erro: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setTestando(false);
+    }
+  };
+
   const sign = (n: number) => `${n >= 0 ? "+" : "−"}${formatMinutes(Math.abs(n))}`;
 
 
@@ -234,6 +255,16 @@ export default function DiagnosticoBancoHoras() {
           <Button variant="destructive" onClick={reaplicarFixProducao} disabled={fixando}>
             <RefreshCw className={`w-4 h-4 mr-2 ${fixando ? "animate-spin" : ""}`} />
             {fixando ? "Reaplicando..." : "Reaplicar fix produção"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={testarResumo}
+            disabled={testando}
+            className="gap-1"
+          >
+            {testando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "📨"}
+            {testando ? "Enviando..." : "Testar resumo diário"}
           </Button>
         </div>
       </Card>
