@@ -504,29 +504,26 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
           </table>
         </div>
 
-        {chartData.length > 0 && (
+        {curvasData.length > 0 && (
           <div className="bio-card p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="bio-heading text-base">Percentil vs. base Fortem</h3>
+              <h3 className="bio-heading text-base">Distribuição vs. base Fortem</h3>
               <span className="bio-label">{sexoRpc === "F" ? "Mulheres avaliadas" : "Homens avaliados"}</span>
             </div>
-            <ResponsiveContainer width="100%" height={Math.max(280, chartData.length * 46)}>
-              <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 86%)" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} stroke="hsl(220 12% 45%)" unit="%" />
-                <YAxis type="category" dataKey="metrica" tick={{ fontSize: 11 }} width={140} stroke="hsl(220 12% 45%)" />
-                <ReferenceLine x={50} stroke="hsl(220 12% 60%)" strokeDasharray="4 4" />
-                <Tooltip
-                  contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(220 14% 86%)", borderRadius: 8 }}
-                  formatter={(v: number) => [`P${v}`, undefined]}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {curvasData.map((c) => (
+                <PercentileCurveCard
+                  key={c.metric}
+                  metric={c.metric.replace("Mobilidade ", "").replace("Flexibilidade ", "")}
+                  mean={c.mean}
+                  sigma={c.sigma}
+                  unit={c.unit}
+                  markers={c.markers}
                 />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="Esquerdo" fill="#378ADD" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="Direito" fill="#D85A30" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            <p className="text-[11px] text-[hsl(var(--bio-ink-faint))] mt-2">
-              Linha tracejada = mediana da base Fortem (percentil 50). Barra maior = valor mais alto que a maioria do grupo comparável do mesmo sexo.
+              ))}
+            </div>
+            <p className="text-[11px] text-[hsl(var(--bio-ink-faint))] mt-3">
+              Curva representa a distribuição da base Fortem (mesmo sexo). Linha tracejada = média. Pontos coloridos = valores do aluno (E azul, D laranja).
             </p>
           </div>
         )}
