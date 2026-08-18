@@ -27,7 +27,7 @@ import {
   type MetricInput,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
+
 import {
   classifyAngle,
   assessmentReferences,
@@ -59,6 +59,87 @@ interface MobilidadeRow {
  * funcional_v2 existente NA MESMA DATA que já tenha força mas ainda não tem
  * métricas. Caso contrário, cria uma nova linha só com mobilidade.
  */
+
+function statsFromArray(arr: number[]): { mean: number; sigma: number } {
+  const n = arr.length;
+  const mean = arr.reduce((a, b) => a + b, 0) / n;
+  const variance = arr.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+  return { mean, sigma: Math.sqrt(variance) || 1 };
+}
+
+interface CurveMarker {
+  id: string;
+  value: number;
+  percentile: number;
+  color: string;
+}
+
+function PercentileCurveCard({
+  metric,
+  mean,
+  sigma,
+  unit,
+  markers,
+}: {
+  metric: string;
+  mean: number;
+  sigma: number;
+  unit: string;
+  markers: CurveMarker[];
+}) {
+  const vMin = Math.max(0, mean - 3 * sigma);
+  const vMax = mean + 3 * sigma;
+  const xPad = 10;
+  const xW = 260;
+  const baseY = 96;
+  const topY = 14;
+  const xOf = (v: number) => xPad + ((v - vMin) / (vMax - vMin || 1)) * xW;
+  const gauss = (v: number) => Math.exp(-((v - mean) ** 2) / (2 * sigma * sigma));
+  const n = 48;
+  const pts = Array.from({ length: n + 1 }, (_, i) => {
+    const v = vMin + ((vMax - vMin) * i) / n;
+    return [xOf(v), baseY - gauss(v) * (baseY - topY)] as [number, number];
+  });
+  const fillPath =
+    `M ${pts[0][0].toFixed(1)},${baseY} ` +
+    pts.map((p) => `L ${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ") +
+    ` L ${pts[pts.length - 1][0].toFixed(1)},${baseY} Z`;
+  const linePath = "M " + pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" L ");
+  const xMean = xOf(mean);
+
+  return (
+    <div className="rounded-lg border border-[hsl(var(--bio-line))] p-3">
+      <p className="text-xs font-medium text-[hsl(var(--bio-ink))] mb-1">{metric}</p>
+      <svg viewBox={`0 0 ${xPad * 2 + xW} 116`} width="100%" height={100}>
+        <path d={fillPath} fill="hsl(210 70% 92%)" />
+        <path d={linePath} fill="none" stroke="hsl(210 60% 60%)" strokeWidth="1.5" />
+        <line x1={xMean} x2={xMean} y1={topY} y2={baseY} stroke="hsl(220 12% 55%)" strokeDasharray="3 3" />
+        <line x1={xPad} x2={xPad + xW} y1={baseY} y2={baseY} stroke="hsl(220 14% 80%)" />
+        {markers.map((m) => {
+          const x = xOf(m.value);
+          const y = baseY - gauss(m.value) * (baseY - topY);
+          return (
+            <g key={m.id}>
+              <line x1={x} x2={x} y1={topY} y2={baseY} stroke={m.color} strokeWidth="2" />
+              <circle cx={x} cy={y} r="4" fill={m.color} />
+            </g>
+          );
+        })}
+      </svg>
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-[10px] text-[hsl(var(--bio-ink-muted))]">média {mean.toFixed(1)}{unit}</span>
+        <div className="flex gap-2">
+          {markers.map((m) => (
+            <span key={m.id} className="text-[10px] font-medium" style={{ color: m.color }}>
+              {m.id} {m.value}{unit} · P{m.percentile}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
   const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
     ? "F"
@@ -102,15 +183,26 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
     [historico, selectedId],
   );
 
-  const chartData = useMemo(() => {
+  const curvasData = useMemo(() => {
     if (!selecionada || !sexoRpc || !referenceData) return [];
     return selecionada.metricas
-      .map((m) => ({
-        metrica: m.metric.replace("Mobilidade ", "").replace("Flexibilidade ", ""),
-        Esquerdo: percentilMobilidade(m.metric, sexoRpc, m.left, referenceData),
-        Direito: percentilMobilidade(m.metric, sexoRpc, m.right, referenceData),
-      }))
-      .filter((d) => d.Esquerdo !== null || d.Direito !== null);
+      .map((m) => {
+        const arr = referenceData[m.metric]?.[sexoRpc];
+        if (!arr || arr.length < 15) return null;
+        const { mean, sigma } = statsFromArray(arr);
+        const markers: CurveMarker[] = [];
+        if (m.left !== null) {
+          const pct = percentilMobilidade(m.metric, sexoRpc, m.left, referenceData);
+          if (pct !== null) markers.push({ id: "E", value: m.left, percentile: pct, color: "#378ADD" });
+        }
+        if (m.right !== null) {
+          const pct = percentilMobilidade(m.metric, sexoRpc, m.right, referenceData);
+          if (pct !== null) markers.push({ id: "D", value: m.right, percentile: pct, color: "#D85A30" });
+        }
+        if (markers.length === 0) return null;
+        return { metric: m.metric, mean, sigma, unit: "°", markers };
+      })
+      .filter((d): d is NonNullable<typeof d> => d !== null);
   }, [selecionada, sexoRpc, referenceData]);
 
   const [formOpen, setFormOpen] = useState(false);
@@ -412,29 +504,26 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
           </table>
         </div>
 
-        {chartData.length > 0 && (
+        {curvasData.length > 0 && (
           <div className="bio-card p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="bio-heading text-base">Percentil vs. base Fortem</h3>
+              <h3 className="bio-heading text-base">Distribuição vs. base Fortem</h3>
               <span className="bio-label">{sexoRpc === "F" ? "Mulheres avaliadas" : "Homens avaliados"}</span>
             </div>
-            <ResponsiveContainer width="100%" height={Math.max(280, chartData.length * 46)}>
-              <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 86%)" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} stroke="hsl(220 12% 45%)" unit="%" />
-                <YAxis type="category" dataKey="metrica" tick={{ fontSize: 11 }} width={140} stroke="hsl(220 12% 45%)" />
-                <ReferenceLine x={50} stroke="hsl(220 12% 60%)" strokeDasharray="4 4" />
-                <Tooltip
-                  contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(220 14% 86%)", borderRadius: 8 }}
-                  formatter={(v: number) => [`P${v}`, undefined]}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {curvasData.map((c) => (
+                <PercentileCurveCard
+                  key={c.metric}
+                  metric={c.metric.replace("Mobilidade ", "").replace("Flexibilidade ", "")}
+                  mean={c.mean}
+                  sigma={c.sigma}
+                  unit={c.unit}
+                  markers={c.markers}
                 />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="Esquerdo" fill="#378ADD" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="Direito" fill="#D85A30" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            <p className="text-[11px] text-[hsl(var(--bio-ink-faint))] mt-2">
-              Linha tracejada = mediana da base Fortem (percentil 50). Barra maior = valor mais alto que a maioria do grupo comparável do mesmo sexo.
+              ))}
+            </div>
+            <p className="text-[11px] text-[hsl(var(--bio-ink-faint))] mt-3">
+              Curva representa a distribuição da base Fortem (mesmo sexo). Linha tracejada = média. Pontos coloridos = valores do aluno (E azul, D laranja).
             </p>
           </div>
         )}
