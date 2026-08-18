@@ -1004,13 +1004,32 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={!canSubmit || mutation.isPending || (!!alunoId && !hasCredits)}
-          >
-            {mutation.isPending ? "Salvando..." : isEditing ? "Salvar Alterações" : "Salvar"}
-          </Button>
+          {agendamentoSalvo ? (
+            <div className="flex flex-col gap-2 w-full">
+              <p className="text-sm text-muted-foreground text-center">
+                ✅ Agendamento salvo! Deseja notificar o profissional?
+              </p>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={fecharSemNotificar}>
+                  Fechar sem notificar
+                </Button>
+                <Button onClick={notificarProfissional} disabled={notificando} className="gap-2">
+                  {notificando ? <Loader2 className="w-4 h-4 animate-spin" /> : "📱"}
+                  {notificando ? "Enviando..." : "Notificar via WhatsApp"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button
+                onClick={() => mutation.mutate()}
+                disabled={!canSubmit || mutation.isPending || (!!alunoId && !hasCredits)}
+              >
+                {mutation.isPending ? "Salvando..." : isEditing ? "Salvar Alterações" : "Salvar"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
