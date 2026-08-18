@@ -21,9 +21,13 @@ import { toast } from "sonner";
 import {
   ALL_FUNCTIONAL_METRICS,
   percentilMobilidade,
+  severityFromScore,
+  SEVERITY_LABEL,
+  SEVERITY_COLOR_VAR,
   type MetricInput,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
 import {
   classifyAngle,
   assessmentReferences,
@@ -97,6 +101,17 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
     () => historico.find((h) => h.id === selectedId) ?? null,
     [historico, selectedId],
   );
+
+  const chartData = useMemo(() => {
+    if (!selecionada || !sexoRpc || !referenceData) return [];
+    return selecionada.metricas
+      .map((m) => ({
+        metrica: m.metric.replace("Mobilidade ", "").replace("Flexibilidade ", ""),
+        Esquerdo: percentilMobilidade(m.metric, sexoRpc, m.left, referenceData),
+        Direito: percentilMobilidade(m.metric, sexoRpc, m.right, referenceData),
+      }))
+      .filter((d) => d.Esquerdo !== null || d.Direito !== null);
+  }, [selecionada, sexoRpc, referenceData]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -346,11 +361,9 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
               <tr className="border-b border-[hsl(var(--bio-line))]">
                 <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">Métrica</th>
                 <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Esquerdo</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. E</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-28">Resultado E</th>
                 <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Direito</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. D</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Percentil E</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Percentil D</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-28">Resultado D</th>
               </tr>
             </thead>
             <tbody>
@@ -361,47 +374,70 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
                     {m.left !== null ? `${m.left}°` : "—"}
                   </td>
                   <td className="p-3 text-center">
-                    {m.leftClass && (
-                      <span
-                        className={`text-xs font-semibold ${getClassificationColor(m.leftClass as AssessmentClassification)}`}
-                      >
-                        {m.leftClass}
-                      </span>
-                    )}
+                    {sexoRpc && referenceData ? (() => {
+                      const pct = percentilMobilidade(m.metric, sexoRpc, m.left, referenceData);
+                      if (pct === null) return <span className="text-xs text-[hsl(var(--bio-ink-muted))]">—</span>;
+                      const sev = severityFromScore(pct);
+                      return (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-xs font-semibold" style={{ color: SEVERITY_COLOR_VAR[sev] }}>
+                            {SEVERITY_LABEL[sev]}
+                          </span>
+                          <span className="text-[10px] text-[hsl(var(--bio-ink-muted))]">P{pct}</span>
+                        </div>
+                      );
+                    })() : <span className="text-xs text-[hsl(var(--bio-ink-muted))]">—</span>}
                   </td>
                   <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
                     {m.right !== null ? `${m.right}°` : "—"}
                   </td>
                   <td className="p-3 text-center">
-                    {m.rightClass && (
-                      <span
-                        className={`text-xs font-semibold ${getClassificationColor(m.rightClass as AssessmentClassification)}`}
-                      >
-                        {m.rightClass}
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-3 text-center text-xs text-[hsl(var(--bio-ink-muted))]">
-                    {sexoRpc && referenceData
-                      ? (() => {
-                          const pct = percentilMobilidade(m.metric, sexoRpc, m.left, referenceData);
-                          return pct !== null ? `P${pct}` : "—";
-                        })()
-                      : "—"}
-                  </td>
-                  <td className="p-3 text-center text-xs text-[hsl(var(--bio-ink-muted))]">
-                    {sexoRpc && referenceData
-                      ? (() => {
-                          const pct = percentilMobilidade(m.metric, sexoRpc, m.right, referenceData);
-                          return pct !== null ? `P${pct}` : "—";
-                        })()
-                      : "—"}
+                    {sexoRpc && referenceData ? (() => {
+                      const pct = percentilMobilidade(m.metric, sexoRpc, m.right, referenceData);
+                      if (pct === null) return <span className="text-xs text-[hsl(var(--bio-ink-muted))]">—</span>;
+                      const sev = severityFromScore(pct);
+                      return (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-xs font-semibold" style={{ color: SEVERITY_COLOR_VAR[sev] }}>
+                            {SEVERITY_LABEL[sev]}
+                          </span>
+                          <span className="text-[10px] text-[hsl(var(--bio-ink-muted))]">P{pct}</span>
+                        </div>
+                      );
+                    })() : <span className="text-xs text-[hsl(var(--bio-ink-muted))]">—</span>}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {chartData.length > 0 && (
+          <div className="bio-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="bio-heading text-base">Percentil vs. base Fortem</h3>
+              <span className="bio-label">{sexoRpc === "F" ? "Mulheres avaliadas" : "Homens avaliados"}</span>
+            </div>
+            <ResponsiveContainer width="100%" height={Math.max(280, chartData.length * 46)}>
+              <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 86%)" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} stroke="hsl(220 12% 45%)" unit="%" />
+                <YAxis type="category" dataKey="metrica" tick={{ fontSize: 11 }} width={140} stroke="hsl(220 12% 45%)" />
+                <ReferenceLine x={50} stroke="hsl(220 12% 60%)" strokeDasharray="4 4" />
+                <Tooltip
+                  contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(220 14% 86%)", borderRadius: 8 }}
+                  formatter={(v: number) => [`P${v}`, undefined]}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="Esquerdo" fill="#378ADD" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Direito" fill="#D85A30" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="text-[11px] text-[hsl(var(--bio-ink-faint))] mt-2">
+              Linha tracejada = mediana da base Fortem (percentil 50). Barra maior = valor mais alto que a maioria do grupo comparável do mesmo sexo.
+            </p>
+          </div>
+        )}
 
         <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
           <AlertDialogContent>
