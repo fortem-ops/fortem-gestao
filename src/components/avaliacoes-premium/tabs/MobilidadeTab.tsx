@@ -102,6 +102,17 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
     [historico, selectedId],
   );
 
+  const chartData = useMemo(() => {
+    if (!selecionada || !sexoRpc || !referenceData) return [];
+    return selecionada.metricas
+      .map((m) => ({
+        metrica: m.metric.replace("Mobilidade ", "").replace("Flexibilidade ", ""),
+        Esquerdo: percentilMobilidade(m.metric, sexoRpc, m.left, referenceData),
+        Direito: percentilMobilidade(m.metric, sexoRpc, m.right, referenceData),
+      }))
+      .filter((d) => d.Esquerdo !== null || d.Direito !== null);
+  }, [selecionada, sexoRpc, referenceData]);
+
   const [formOpen, setFormOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
