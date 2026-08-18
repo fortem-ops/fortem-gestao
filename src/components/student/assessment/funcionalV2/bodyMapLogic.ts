@@ -211,6 +211,7 @@ export function analyze(
   strengthExercises?: ForcaInput[],
   sexo?: "M" | "F",
   referenceData?: MobilidadeReferenceData,
+  assimetriaReferenceData?: AssimetriaReferenceData,
 ): BodyMapAnalysis {
   const regions: Record<RegionId, RegionState> = Object.fromEntries(
     ALL_REGIONS.map((r) => [r, emptyRegion(r)]),
