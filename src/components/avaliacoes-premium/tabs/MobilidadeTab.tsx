@@ -55,7 +55,12 @@ interface MobilidadeRow {
  * funcional_v2 existente NA MESMA DATA que já tenha força mas ainda não tem
  * métricas. Caso contrário, cria uma nova linha só com mobilidade.
  */
-export function MobilidadeTab({ alunoId }: Props) {
+export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
+  const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
+    ? "F"
+    : aluno?.sexo?.toLowerCase().startsWith("m")
+    ? "M"
+    : undefined;
   const { user } = useAuth();
   const qc = useQueryClient();
 
