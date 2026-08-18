@@ -556,10 +556,17 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         });
       }
 
+      // Se é avulso com profissional, oferecer notificação manual
+      const podeNotificar = inserted?.id && !inserted?.lote &&
+        inserted?.profissional_id && inserted?.data_especifica;
 
-
-      resetForm();
-      onOpenChange(false);
+      if (podeNotificar) {
+        setAgendamentoSalvo(inserted);
+        // Não fecha o dialog ainda — aguarda ação do usuário
+      } else {
+        resetForm();
+        onOpenChange(false);
+      }
     },
     onError: (e: any) => toast.error((isEditing ? "Erro ao atualizar: " : "Erro ao criar: ") + e.message),
   });
