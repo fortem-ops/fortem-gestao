@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import type { ForcaInput, MetricInput } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { ForcaInput, MetricInput, MobilidadeReferenceData } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 
 export interface ForcaSavedRow {
   nome: ForcaInput["nome"];
