@@ -132,7 +132,7 @@ export function AlterarDadosVendaDialog({ open, onOpenChange, contratoId, cobran
         <DialogHeader>
           <DialogTitle>Alterar dados da venda</DialogTitle>
           <DialogDescription>
-            Edite vencimento e valor das cobranças em aberto deste contrato de recorrência.
+            Edite vencimento e valor das cobranças em aberto deste contrato.
           </DialogDescription>
         </DialogHeader>
 
