@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Search, AlertTriangle } from "lucide-react";
+import { Search, AlertTriangle, Loader2 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -109,6 +109,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
   const [creditoOrigem, setCreditoOrigem] = useState<"" | "plano" | "servico">("");
   const [protocolo, setProtocolo] = useState("");
   const [visivelPortal, setVisivelPortal] = useState(false);
+  const [agendamentoSalvo, setAgendamentoSalvo] = useState<any>(null);
+  const [notificando, setNotificando] = useState(false);
 
   const isEditing = !!editEvent;
   // Modo lote: criação de horários fixos em várias combinações dia × horário
@@ -554,10 +556,17 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         });
       }
 
+      // Se é avulso com profissional, oferecer notificação manual
+      const podeNotificar = inserted?.id && !inserted?.lote &&
+        inserted?.profissional_id && inserted?.data_especifica;
 
-
-      resetForm();
-      onOpenChange(false);
+      if (podeNotificar) {
+        setAgendamentoSalvo(inserted);
+        // Não fecha o dialog ainda — aguarda ação do usuário
+      } else {
+        resetForm();
+        onOpenChange(false);
+      }
     },
     onError: (e: any) => toast.error((isEditing ? "Erro ao atualizar: " : "Erro ao criar: ") + e.message),
   });
@@ -581,6 +590,32 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
     setCreditoOrigem("");
     setProtocolo("");
     setVisivelPortal(false);
+    setAgendamentoSalvo(null);
+  };
+
+  const notificarProfissional = async () => {
+    if (!agendamentoSalvo) return;
+    setNotificando(true);
+    try {
+      const { error } = await supabase.functions.invoke("whatsapp-disparo-agenda", {
+        body: { evento: "notificacao_manual", agenda_id: agendamentoSalvo.id },
+      });
+      if (error) throw error;
+      toast.success("Profissional notificado via WhatsApp");
+    } catch (e: any) {
+      toast.error("Erro ao notificar: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setNotificando(false);
+      setAgendamentoSalvo(null);
+      resetForm();
+      onOpenChange(false);
+    }
+  };
+
+  const fecharSemNotificar = () => {
+    setAgendamentoSalvo(null);
+    resetForm();
+    onOpenChange(false);
   };
 
   const canSubmit = atividade && local &&
@@ -969,13 +1004,32 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={!canSubmit || mutation.isPending || (!!alunoId && !hasCredits)}
-          >
-            {mutation.isPending ? "Salvando..." : isEditing ? "Salvar Alterações" : "Salvar"}
-          </Button>
+          {agendamentoSalvo ? (
+            <div className="flex flex-col gap-2 w-full">
+              <p className="text-sm text-muted-foreground text-center">
+                ✅ Agendamento salvo! Deseja notificar o profissional?
+              </p>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={fecharSemNotificar}>
+                  Fechar sem notificar
+                </Button>
+                <Button onClick={notificarProfissional} disabled={notificando} className="gap-2">
+                  {notificando ? <Loader2 className="w-4 h-4 animate-spin" /> : "📱"}
+                  {notificando ? "Enviando..." : "Notificar via WhatsApp"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button
+                onClick={() => mutation.mutate()}
+                disabled={!canSubmit || mutation.isPending || (!!alunoId && !hasCredits)}
+              >
+                {mutation.isPending ? "Salvando..." : isEditing ? "Salvar Alterações" : "Salvar"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

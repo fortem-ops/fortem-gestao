@@ -71,6 +71,44 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Notificação manual — envia resumo direto para o profissional
+    if (evento === 'notificacao_manual') {
+      const ag = ctx.agenda;
+      const profTel = normalizarTelefone(ctx.profTelefone);
+      if (!profTel) {
+        return new Response(JSON.stringify({ error: 'Profissional sem telefone' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const dataFmt = ag.data_especifica
+        ? new Date(ag.data_especifica + 'T12:00').toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            day: '2-digit',
+            month: '2-digit',
+          })
+        : '—';
+      const lista = `${ag.atividade} com ${ctx.aluno?.nome ?? '—'} em ${dataFmt} às ${String(ag.horario_inicio).slice(0, 5)}. Local: ${ag.local ?? '—'}.`;
+      const primeiroNome = ctx.profissional?.full_name?.split(' ')[0] ?? 'Prof';
+
+      const payload = {
+        to: profTel,
+        template_name: 'ponto_resumo_diario',
+        language: 'pt_BR',
+        components: [{
+          type: 'body',
+          parameters: [
+            { type: 'text', text: primeiroNome },
+            { type: 'text', text: lista },
+          ],
+        }],
+      };
+      const send = await callSendWhatsApp(payload);
+      return new Response(JSON.stringify({ ok: send.ok, error: send.error }), {
+        status: send.ok ? 200 : 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { data: configs } = await admin
       .from('whatsapp_disparos_config')
       .select('*')
