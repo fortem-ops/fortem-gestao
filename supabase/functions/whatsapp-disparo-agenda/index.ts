@@ -71,39 +71,52 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Notificação manual — envia resumo direto para o profissional
+    // Notificação manual — envia template correto para o profissional
     if (evento === 'notificacao_manual') {
-      const ag = ctx.agenda;
       const profTel = normalizarTelefone(ctx.profTelefone);
       if (!profTel) {
         return new Response(JSON.stringify({ error: 'Profissional sem telefone' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      const dataFmt = ag.data_especifica
-        ? new Date(ag.data_especifica + 'T12:00').toLocaleDateString('pt-BR', {
-            weekday: 'long',
-            day: '2-digit',
-            month: '2-digit',
-          })
-        : '—';
-      const lista = `${ag.atividade} com ${ctx.aluno?.nome ?? '—'} em ${dataFmt} às ${String(ag.horario_inicio).slice(0, 5)}. Local: ${ag.local ?? '—'}.`;
-      const primeiroNome = ctx.profissional?.full_name?.split(' ')[0] ?? 'Prof';
 
-      const payload = {
-        to: profTel,
-        template_name: 'ponto_resumo_diario',
-        language: 'pt_BR',
-        components: [{
-          type: 'body',
-          parameters: [
-            { type: 'text', text: primeiroNome },
-            { type: 'text', text: lista },
-          ],
-        }],
+      // Usar o template correto para a atividade via buildTemplatePayload
+      // Mapear atividade para o nome de config que buildTemplatePayload espera
+      const atividadeToConfigNome: Record<string, string> = {
+        'Treino Experimental':    'Treino Experimental → Profissional',
+        'Avaliação Funcional':    'Avaliação Funcional → Profissional',
+        'Reabilitação':           'Reabilitação → Profissional',
+        'Nutrição':               'Nutrição → Profissional',
+        'Recovery (Bota de Compressão)': 'Reabilitação → Profissional',
+        'Avaliação Física':       'Nutrição → Profissional',
       };
-      const send = await callSendWhatsApp(payload);
-      return new Response(JSON.stringify({ ok: send.ok, error: send.error }), {
+
+      const configNome = atividadeToConfigNome[ctx.agenda.atividade] ?? ctx.agenda.atividade;
+      const gatilho = 'agendamento_criado';
+
+      const templatePayload = buildTemplatePayload(configNome, gatilho, ctx.vars, profTel);
+
+      // Se não há template específico, enviar texto livre
+      const send = templatePayload
+        ? await callSendWhatsApp(templatePayload)
+        : await sendWhatsAppText(
+            profTel,
+            `📅 Novo agendamento: ${ctx.agenda.atividade} com ${ctx.aluno?.nome ?? '—'} em ${ctx.vars['%DATA%']} às ${ctx.vars['%HORA_INICIO%']}. Local: ${ctx.agenda.local ?? '—'}.`
+          );
+
+      // Log do disparo
+      await admin.from('whatsapp_disparos_log').insert({
+        config_id: null,
+        agenda_id: agendaId,
+        aluno_id: ctx.agenda.aluno_id ?? null,
+        destinatario_telefone: profTel,
+        destinatario_nome: ctx.profissional?.full_name ?? null,
+        mensagem_enviada: `Notificação manual: ${ctx.agenda.atividade}`,
+        status: send.ok ? 'enviado' : 'erro',
+        erro_detalhe: send.ok ? null : JSON.stringify({ error: send.error, details: send.details }),
+      });
+
+      return new Response(JSON.stringify({ ok: send.ok, error: send.error, details: send.details }), {
         status: send.ok ? 200 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
