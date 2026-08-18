@@ -506,6 +506,26 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
 
   const proxCob = cobrancas.find((c) => c.status === "pendente");
 
+  // Valores exibidos: as cobranças são a fonte de verdade quando existem.
+  // Sem cobranças, planos anuais mensalizados (start_plus/power/pro/max)
+  // guardam a MENSALIDADE em valor_cobrado — os demais guardam o total.
+  const valores = (() => {
+    const somaCob = cobrancas.reduce((s, c: any) => s + (Number(c.valor) || 0), 0);
+    if (cobrancas.length > 0 && somaCob > 0) {
+      return { total: somaCob, mensal: somaCob / cobrancas.length };
+    }
+    const meses =
+      contrato.vigencia_tipo === "anual" ? 12 : contrato.vigencia_tipo === "semestral" ? 6 : 1;
+    const mensalizados = ["start_plus", "power", "pro", "max"];
+    if (contrato.vigencia_tipo !== "mensal" && mensalizados.includes(contrato.plano_tipo)) {
+      return { total: contrato.valor_cobrado * meses, mensal: contrato.valor_cobrado };
+    }
+    return {
+      total: contrato.valor_cobrado,
+      mensal: contrato.parcelas ? contrato.valor_cobrado / contrato.parcelas : contrato.valor_cobrado,
+    };
+  })();
+
   return (
     <div className="space-y-4">
       <Card className="p-5 space-y-4">
