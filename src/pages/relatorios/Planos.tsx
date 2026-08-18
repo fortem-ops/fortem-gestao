@@ -91,7 +91,25 @@ export default function RelatoriosPlanos() {
     return [...map.values()].sort((a, b) => b.qtd - a.qtd);
   }, [rows]);
 
+  // Planos com renovação automática cuja próxima renovação está muito além do
+  // ciclo do plano (ex.: +1 ano num plano mensal) nunca entram na fila diária.
+  const renovacaoForaDoCiclo = useMemo(() => {
+    return rows.filter((r) => {
+      if (r.situacao !== "ativo" || !r.renovacao_automatica || !r.proxima_renovacao || !r.data_inicio) return false;
+      const periodo = Math.max(Number(r.duracao_meses || 1), 1);
+      const limite = new Date(r.data_inicio + "T00:00:00");
+      limite.setMonth(limite.getMonth() + periodo + 1);
+      return new Date(r.proxima_renovacao + "T00:00:00") > limite;
+    });
+  }, [rows]);
+
+  const foraDoCicloIds = useMemo(
+    () => new Set(renovacaoForaDoCiclo.map((r) => r.plano_id)),
+    [renovacaoForaDoCiclo],
+  );
+
   const totalAtivos = stats.ativosCount || 1;
+
 
   return (
     <div className="space-y-4">
@@ -140,6 +158,32 @@ export default function RelatoriosPlanos() {
         <KpiCard label="Renov. automática" value={stats.autoRenov} icon={RefreshCw} />
         <KpiCard label="Vencendo 30d" value={stats.proximos} icon={AlertTriangle} tone="warning" />
       </div>
+
+      {renovacaoForaDoCiclo.length > 0 && (
+        <Card className="glass-card border-amber-500/40">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-amber-500">
+              <AlertTriangle className="h-4 w-4" />
+              Renovação fora do ciclo ({renovacaoForaDoCiclo.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            <p className="text-sm text-muted-foreground">
+              Estes planos têm renovação automática, mas a próxima renovação está muito além do ciclo contratado —
+              a rotina diária não vai gerar a mensalidade até essa data.
+            </p>
+            {renovacaoForaDoCiclo.map((r) => (
+              <div key={r.plano_id} className="flex justify-between text-sm border-t border-border pt-1.5">
+                <span className="font-medium">{r.aluno_nome} · <span className="capitalize">{r.tipo}</span></span>
+                <span className="text-muted-foreground">
+                  próx. {new Date(r.proxima_renovacao! + "T00:00:00").toLocaleDateString("pt-BR")}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
 
       <Card className="glass-card">
         <CardHeader><CardTitle className="text-base">Distribuição por tipo (ativos)</CardTitle></CardHeader>
@@ -195,8 +239,15 @@ export default function RelatoriosPlanos() {
                       <TableCell>{r.data_fim ? new Date(r.data_fim).toLocaleDateString("pt-BR") : "—"}</TableCell>
                       <TableCell className="text-right">{brl(Number(r.valor || 0))}</TableCell>
                       <TableCell>
-                        {r.renovacao_automatica ? <Badge variant="secondary">Auto</Badge> : <span className="text-muted-foreground text-xs">—</span>}
+                        {r.renovacao_automatica ? (
+                          <Badge variant={foraDoCicloIds.has(r.plano_id) ? "destructive" : "secondary"}>
+                            {foraDoCicloIds.has(r.plano_id) ? "Auto (fora do ciclo)" : "Auto"}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                       </TableCell>
+
                       <TableCell>
                         <Badge variant={r.situacao === "ativo" ? "default" : "secondary"}>{r.situacao}</Badge>
                       </TableCell>
