@@ -582,18 +582,11 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
           {contrato.vigencia_tipo === "mensal" ? (
-            <Info label="Valor mensal" value={fmt(contrato.valor_cobrado)} />
+            <Info label="Valor mensal" value={fmt(valores.mensal)} />
           ) : (
             <>
-              <Info label="Valor total do contrato" value={fmt(contrato.valor_cobrado)} />
-              <Info
-                label="Valor mensal"
-                value={fmt(
-                  contrato.parcelas
-                    ? contrato.valor_cobrado / contrato.parcelas
-                    : contrato.valor_cobrado,
-                )}
-              />
+              <Info label="Valor total do contrato" value={fmt(valores.total)} />
+              <Info label="Valor mensal" value={fmt(valores.mensal)} />
             </>
           )}
           <Info
