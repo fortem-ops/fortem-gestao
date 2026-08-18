@@ -99,6 +99,31 @@ export function percentilMobilidade(
   return METRICAS_INVERTIDAS.has(metric) ? 100 - pct : pct;
 }
 
+export type AssimetriaReferenceData = Record<string, { M: number[]; F: number[] }>;
+
+/**
+ * Percentil da MAGNITUDE de assimetria (diferença % bruta em graus entre E/D)
+ * dentro da base Fortem, por métrica/sexo. Percentil ALTO = assimetria MAIOR (pior).
+ */
+export function percentilAssimetria(
+  metric: string,
+  sexo: "M" | "F",
+  assimetriaPct: number,
+  ref: AssimetriaReferenceData | undefined,
+): number | null {
+  if (!ref) return null;
+  const arr = ref[metric]?.[sexo];
+  if (!arr || arr.length < 15) return null;
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid] <= assimetriaPct) lo = mid + 1; else hi = mid;
+  }
+  return Math.round((lo / arr.length) * 100);
+}
+
+
+
 
 export function severityFromScore(score: number | null): Severity {
   if (score === null) return "none";
