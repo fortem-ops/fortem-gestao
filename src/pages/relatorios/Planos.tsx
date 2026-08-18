@@ -91,7 +91,25 @@ export default function RelatoriosPlanos() {
     return [...map.values()].sort((a, b) => b.qtd - a.qtd);
   }, [rows]);
 
+  // Planos com renovação automática cuja próxima renovação está muito além do
+  // ciclo do plano (ex.: +1 ano num plano mensal) nunca entram na fila diária.
+  const renovacaoForaDoCiclo = useMemo(() => {
+    return rows.filter((r) => {
+      if (r.situacao !== "ativo" || !r.renovacao_automatica || !r.proxima_renovacao || !r.data_inicio) return false;
+      const periodo = Math.max(Number(r.duracao_meses || 1), 1);
+      const limite = new Date(r.data_inicio + "T00:00:00");
+      limite.setMonth(limite.getMonth() + periodo + 1);
+      return new Date(r.proxima_renovacao + "T00:00:00") > limite;
+    });
+  }, [rows]);
+
+  const foraDoCicloIds = useMemo(
+    () => new Set(renovacaoForaDoCiclo.map((r) => r.plano_id)),
+    [renovacaoForaDoCiclo],
+  );
+
   const totalAtivos = stats.ativosCount || 1;
+
 
   return (
     <div className="space-y-4">
