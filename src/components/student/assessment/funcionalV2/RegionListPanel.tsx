@@ -38,6 +38,7 @@ export interface RegionListItem {
   percentage: number;
   classification: string;
   severity: Severity;
+  isAsymmetry: boolean;
 }
 
 function classificationFor(state: BodyMapAnalysis["regions"][RegionId]): string {
@@ -68,9 +69,10 @@ export function buildRegionList(analysis: BodyMapAnalysis, max = 6): RegionListI
     const metricLabel = firstMetric
       .replace(/^Mobilidade\s+/i, "")
       .replace(/^Flexibilidade\s+/i, "");
-    const percentage = state.asymmetry !== undefined && state.asymmetry > 0
-      ? state.asymmetry
-      : (state.score !== null ? Math.max(0, 100 - state.score) : 0);
+    const isAsymmetry = state.asymmetry !== undefined && state.asymmetry > 0;
+    const percentage = isAsymmetry
+      ? state.asymmetry!
+      : (state.score !== null ? Math.round(state.score) : 0);
     return {
       id,
       number: i + 1,
@@ -79,6 +81,7 @@ export function buildRegionList(analysis: BodyMapAnalysis, max = 6): RegionListI
       percentage,
       classification: classificationFor(state),
       severity: state.severity,
+      isAsymmetry,
     };
   });
 }
@@ -120,7 +123,7 @@ export function RegionListPanel({ items }: { items: RegionListItem[] }) {
             </div>
             <div className="text-right shrink-0">
               <p className="text-[14px] font-bold leading-tight" style={{ color: `hsl(${pctColor})` }}>
-                {it.percentage}%
+                {it.isAsymmetry ? `${it.percentage}%` : `${it.percentage}/100`}
               </p>
               <p className="text-[10px]" style={{ color: `hsl(${color})` }}>
                 {it.classification}
