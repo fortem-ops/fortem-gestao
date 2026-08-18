@@ -558,7 +558,9 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
 
       // Se é avulso com profissional, oferecer notificação manual
       const podeNotificar = inserted?.id && !inserted?.lote &&
-        inserted?.profissional_id && inserted?.data_especifica;
+        inserted?.profissional_id &&
+        (inserted?.data_especifica || inserted?.tipo === 'fixo');
+
 
       if (podeNotificar) {
         setAgendamentoSalvo(inserted);
