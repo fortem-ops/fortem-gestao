@@ -547,7 +547,7 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
                   Copiar link de aceite
                 </Button>
               ))}
-            {podeCancelar && contrato.forma_pagamento === "cartao_recorrencia" && (
+            {podeCancelar && cobrancas.some((c) => c.status === "pendente" || c.status === "atrasado") && (
               <Button variant="outline" size="sm" onClick={() => setAlterarOpen(true)}>
                 Alterar dados da venda
               </Button>
