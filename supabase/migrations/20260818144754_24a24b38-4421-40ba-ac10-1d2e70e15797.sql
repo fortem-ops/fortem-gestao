@@ -1,0 +1,1 @@
+ALTER VIEW public.v_tecnico_alertas SET (security_invoker = on);
