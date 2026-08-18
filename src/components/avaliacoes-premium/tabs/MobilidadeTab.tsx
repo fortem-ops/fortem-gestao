@@ -183,15 +183,26 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
     [historico, selectedId],
   );
 
-  const chartData = useMemo(() => {
+  const curvasData = useMemo(() => {
     if (!selecionada || !sexoRpc || !referenceData) return [];
     return selecionada.metricas
-      .map((m) => ({
-        metrica: m.metric.replace("Mobilidade ", "").replace("Flexibilidade ", ""),
-        Esquerdo: percentilMobilidade(m.metric, sexoRpc, m.left, referenceData),
-        Direito: percentilMobilidade(m.metric, sexoRpc, m.right, referenceData),
-      }))
-      .filter((d) => d.Esquerdo !== null || d.Direito !== null);
+      .map((m) => {
+        const arr = referenceData[m.metric]?.[sexoRpc];
+        if (!arr || arr.length < 15) return null;
+        const { mean, sigma } = statsFromArray(arr);
+        const markers: CurveMarker[] = [];
+        if (m.left !== null) {
+          const pct = percentilMobilidade(m.metric, sexoRpc, m.left, referenceData);
+          if (pct !== null) markers.push({ id: "E", value: m.left, percentile: pct, color: "#378ADD" });
+        }
+        if (m.right !== null) {
+          const pct = percentilMobilidade(m.metric, sexoRpc, m.right, referenceData);
+          if (pct !== null) markers.push({ id: "D", value: m.right, percentile: pct, color: "#D85A30" });
+        }
+        if (markers.length === 0) return null;
+        return { metric: m.metric, mean, sigma, unit: "°", markers };
+      })
+      .filter((d): d is NonNullable<typeof d> => d !== null);
   }, [selecionada, sexoRpc, referenceData]);
 
   const [formOpen, setFormOpen] = useState(false);
