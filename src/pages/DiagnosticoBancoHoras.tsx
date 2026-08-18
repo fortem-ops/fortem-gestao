@@ -13,7 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, RefreshCw, FlaskConical } from "lucide-react";
+import { Trash2, RefreshCw, FlaskConical, Loader2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatMinutes, formatHora } from "@/lib/ponto";
