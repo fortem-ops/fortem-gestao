@@ -109,6 +109,8 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
   const [creditoOrigem, setCreditoOrigem] = useState<"" | "plano" | "servico">("");
   const [protocolo, setProtocolo] = useState("");
   const [visivelPortal, setVisivelPortal] = useState(false);
+  const [agendamentoSalvo, setAgendamentoSalvo] = useState<any>(null);
+  const [notificando, setNotificando] = useState(false);
 
   const isEditing = !!editEvent;
   // Modo lote: criação de horários fixos em várias combinações dia × horário
