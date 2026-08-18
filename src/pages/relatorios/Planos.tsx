@@ -159,6 +159,32 @@ export default function RelatoriosPlanos() {
         <KpiCard label="Vencendo 30d" value={stats.proximos} icon={AlertTriangle} tone="warning" />
       </div>
 
+      {renovacaoForaDoCiclo.length > 0 && (
+        <Card className="glass-card border-amber-500/40">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-amber-500">
+              <AlertTriangle className="h-4 w-4" />
+              Renovação fora do ciclo ({renovacaoForaDoCiclo.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            <p className="text-sm text-muted-foreground">
+              Estes planos têm renovação automática, mas a próxima renovação está muito além do ciclo contratado —
+              a rotina diária não vai gerar a mensalidade até essa data.
+            </p>
+            {renovacaoForaDoCiclo.map((r) => (
+              <div key={r.plano_id} className="flex justify-between text-sm border-t border-border pt-1.5">
+                <span className="font-medium">{r.aluno_nome} · <span className="capitalize">{r.tipo}</span></span>
+                <span className="text-muted-foreground">
+                  próx. {new Date(r.proxima_renovacao! + "T00:00:00").toLocaleDateString("pt-BR")}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+
       <Card className="glass-card">
         <CardHeader><CardTitle className="text-base">Distribuição por tipo (ativos)</CardTitle></CardHeader>
         <CardContent>
