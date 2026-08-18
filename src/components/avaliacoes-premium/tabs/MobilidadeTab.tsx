@@ -27,7 +27,7 @@ import {
   type MetricInput,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
+
 import {
   classifyAngle,
   assessmentReferences,
