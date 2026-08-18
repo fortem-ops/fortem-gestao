@@ -21,9 +21,6 @@ import { toast } from "sonner";
 import {
   ALL_FUNCTIONAL_METRICS,
   percentilMobilidade,
-  severityFromScore,
-  SEVERITY_LABEL,
-  SEVERITY_COLOR_VAR,
   type MetricInput,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
@@ -452,10 +449,8 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
             <thead>
               <tr className="border-b border-[hsl(var(--bio-line))]">
                 <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">Métrica</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Esquerdo</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-28">Resultado E</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Direito</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-28">Resultado D</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Esquerdo</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Direito</th>
               </tr>
             </thead>
             <tbody>
@@ -465,38 +460,8 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
                   <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
                     {m.left !== null ? `${m.left}°` : "—"}
                   </td>
-                  <td className="p-3 text-center">
-                    {sexoRpc && referenceData ? (() => {
-                      const pct = percentilMobilidade(m.metric, sexoRpc, m.left, referenceData);
-                      if (pct === null) return <span className="text-xs text-[hsl(var(--bio-ink-muted))]">—</span>;
-                      const sev = severityFromScore(pct);
-                      return (
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-xs font-semibold" style={{ color: SEVERITY_COLOR_VAR[sev] }}>
-                            {SEVERITY_LABEL[sev]}
-                          </span>
-                          <span className="text-[10px] text-[hsl(var(--bio-ink-muted))]">P{pct}</span>
-                        </div>
-                      );
-                    })() : <span className="text-xs text-[hsl(var(--bio-ink-muted))]">—</span>}
-                  </td>
                   <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
                     {m.right !== null ? `${m.right}°` : "—"}
-                  </td>
-                  <td className="p-3 text-center">
-                    {sexoRpc && referenceData ? (() => {
-                      const pct = percentilMobilidade(m.metric, sexoRpc, m.right, referenceData);
-                      if (pct === null) return <span className="text-xs text-[hsl(var(--bio-ink-muted))]">—</span>;
-                      const sev = severityFromScore(pct);
-                      return (
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-xs font-semibold" style={{ color: SEVERITY_COLOR_VAR[sev] }}>
-                            {SEVERITY_LABEL[sev]}
-                          </span>
-                          <span className="text-[10px] text-[hsl(var(--bio-ink-muted))]">P{pct}</span>
-                        </div>
-                      );
-                    })() : <span className="text-xs text-[hsl(var(--bio-ink-muted))]">—</span>}
                   </td>
                 </tr>
               ))}
