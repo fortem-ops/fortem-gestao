@@ -590,6 +590,32 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
     setCreditoOrigem("");
     setProtocolo("");
     setVisivelPortal(false);
+    setAgendamentoSalvo(null);
+  };
+
+  const notificarProfissional = async () => {
+    if (!agendamentoSalvo) return;
+    setNotificando(true);
+    try {
+      const { error } = await supabase.functions.invoke("whatsapp-disparo-agenda", {
+        body: { evento: "notificacao_manual", agenda_id: agendamentoSalvo.id },
+      });
+      if (error) throw error;
+      toast.success("Profissional notificado via WhatsApp");
+    } catch (e: any) {
+      toast.error("Erro ao notificar: " + (e?.message ?? "desconhecido"));
+    } finally {
+      setNotificando(false);
+      setAgendamentoSalvo(null);
+      resetForm();
+      onOpenChange(false);
+    }
+  };
+
+  const fecharSemNotificar = () => {
+    setAgendamentoSalvo(null);
+    resetForm();
+    onOpenChange(false);
   };
 
   const canSubmit = atividade && local &&
