@@ -3692,6 +3692,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mobilidade_assimetria_fortem: {
+        Row: {
+          assimetria_pct: number
+          created_at: string
+          fonte: string
+          id: string
+          metrica: string
+          sexo: string
+        }
+        Insert: {
+          assimetria_pct: number
+          created_at?: string
+          fonte?: string
+          id?: string
+          metrica: string
+          sexo: string
+        }
+        Update: {
+          assimetria_pct?: number
+          created_at?: string
+          fonte?: string
+          id?: string
+          metrica?: string
+          sexo?: string
+        }
+        Relationships: []
+      }
       notificacao_categorias_custom: {
         Row: {
           ativo: boolean
