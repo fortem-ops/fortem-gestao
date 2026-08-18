@@ -71,6 +71,35 @@ const CLASS_SCORE: Record<AssessmentClassification, number> = {
   Fraco: 25,
 };
 
+export type MobilidadeReferenceData = Record<string, { M: number[]; F: number[] }>;
+
+/** Métricas onde valor MENOR é melhor (hoje só Psoas — teste de encurtamento). */
+const METRICAS_INVERTIDAS = new Set(["Flexibilidade Psoas"]);
+
+/**
+ * Percentil do valor do aluno dentro da base interna Fortem (por métrica/sexo).
+ * Requer amostra mínima de 15 (mesmo limiar usado na Força) para evitar percentil
+ * ruidoso em métricas com poucos dados ainda (ex: recém adicionadas).
+ */
+export function percentilMobilidade(
+  metric: string,
+  sexo: "M" | "F",
+  valor: number | null,
+  ref: MobilidadeReferenceData | undefined,
+): number | null {
+  if (valor === null || !ref) return null;
+  const arr = ref[metric]?.[sexo];
+  if (!arr || arr.length < 15) return null;
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid] <= valor) lo = mid + 1; else hi = mid;
+  }
+  const pct = Math.round((lo / arr.length) * 100);
+  return METRICAS_INVERTIDAS.has(metric) ? 100 - pct : pct;
+}
+
+
 export function severityFromScore(score: number | null): Severity {
   if (score === null) return "none";
   if (score >= 90) return "excellent";
@@ -151,7 +180,13 @@ function emptyRegion(id: RegionId): RegionState {
   };
 }
 
-export function analyze(metrics: MetricInput[], layer: Layer = "mobility", strengthExercises?: ForcaInput[]): BodyMapAnalysis {
+export function analyze(
+  metrics: MetricInput[],
+  layer: Layer = "mobility",
+  strengthExercises?: ForcaInput[],
+  sexo?: "M" | "F",
+  referenceData?: MobilidadeReferenceData,
+): BodyMapAnalysis {
   const regions: Record<RegionId, RegionState> = Object.fromEntries(
     ALL_REGIONS.map((r) => [r, emptyRegion(r)]),
   ) as Record<RegionId, RegionState>;
@@ -160,6 +195,15 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility", stren
     if (layer === "asymmetry") return true;
     if (layer === "pain" || layer === "strength") return false;
     return metricLayer === layer;
+  };
+
+  const scoreForSide = (m: MetricInput, side: "left" | "right"): number | null => {
+    if (sexo && referenceData) {
+      const pct = percentilMobilidade(m.metric, sexo, side === "left" ? m.left : m.right, referenceData);
+      if (pct !== null) return pct;
+    }
+    const cls = side === "left" ? m.leftClass : m.rightClass;
+    return cls ? CLASS_SCORE[cls] : null;
   };
 
   // Aggregate scores per region/side
@@ -173,8 +217,8 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility", stren
     if (!meta || !includeForLayer(meta.layer)) continue;
     for (const r of meta.regions) {
       if ("both" in r) {
-        const lScore = m.leftClass ? CLASS_SCORE[m.leftClass] : null;
-        const rScore = m.rightClass ? CLASS_SCORE[m.rightClass] : null;
+        const lScore = scoreForSide(m, "left");
+        const rScore = scoreForSide(m, "right");
         const avg =
           lScore !== null && rScore !== null ? (lScore + rScore) / 2 :
           lScore ?? rScore;
@@ -184,12 +228,14 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility", stren
           { metric: m.metric, side: "right", value: m.right, classification: m.rightClass },
         );
       } else {
-        if (m.leftClass) {
-          pushScore(r.left, CLASS_SCORE[m.leftClass]);
+        const lScore = scoreForSide(m, "left");
+        if (lScore !== null) {
+          pushScore(r.left, lScore);
           regions[r.left].contributing.push({ metric: m.metric, side: "left", value: m.left, classification: m.leftClass });
         }
-        if (m.rightClass) {
-          pushScore(r.right, CLASS_SCORE[m.rightClass]);
+        const rScore = scoreForSide(m, "right");
+        if (rScore !== null) {
+          pushScore(r.right, rScore);
           regions[r.right].contributing.push({ metric: m.metric, side: "right", value: m.right, classification: m.rightClass });
         }
       }
@@ -223,9 +269,9 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility", stren
   for (const m of metrics) {
     const meta = METRIC_META[m.metric];
     if (!meta || !includeForLayer(meta.layer)) continue;
-    if (!m.leftClass || !m.rightClass) continue;
-    const lScore = CLASS_SCORE[m.leftClass];
-    const rScore = CLASS_SCORE[m.rightClass];
+    const lScore = scoreForSide(m, "left");
+    const rScore = scoreForSide(m, "right");
+    if (lScore === null || rScore === null) continue;
     const diff = Math.abs(lScore - rScore);
     if (diff === 0) continue;
     const weakerSide: "left" | "right" = lScore < rScore ? "left" : "right";
@@ -273,9 +319,11 @@ export function analyze(metrics: MetricInput[], layer: Layer = "mobility", stren
   for (const m of metrics) {
     const meta = METRIC_META[m.metric];
     if (!meta || !includeForLayer(meta.layer)) continue;
-    if (!m.leftClass || !m.rightClass) continue;
     if (meta.regions.every((r) => "both" in r)) continue;
-    asymDiffs.push(Math.abs(CLASS_SCORE[m.leftClass] - CLASS_SCORE[m.rightClass]));
+    const lScore = scoreForSide(m, "left");
+    const rScore = scoreForSide(m, "right");
+    if (lScore === null || rScore === null) continue;
+    asymDiffs.push(Math.abs(lScore - rScore));
   }
   const scoreSimetria = asymDiffs.length
     ? Math.max(0, Math.round(100 - (asymDiffs.reduce((a,b) => a+b, 0) / asymDiffs.length) * 1.6))
