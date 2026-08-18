@@ -6,6 +6,7 @@ import {
   type ForcaInput,
   type MetricInput,
   type MobilidadeReferenceData,
+  type AssimetriaReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import type { ComposicaoSnapshot, FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 
@@ -70,6 +71,7 @@ export function computePremiumScores(
   composicao: ComposicaoSnapshot | null,
   sexo?: "M" | "F",
   referenceData?: MobilidadeReferenceData,
+  assimetriaReferenceData?: AssimetriaReferenceData,
 ): PremiumScores {
   const metrics: MetricInput[] = funcional?.metricas ?? [];
   const forcaInputs: ForcaInput[] = (funcional?.forca ?? []).map((e) => ({
@@ -80,10 +82,10 @@ export function computePremiumScores(
 
   // Analyses isoladas por camada — mobilidade aproveita a já calculada em "mobility",
   // flexibilidade idem; força usa computeForcaScore direto.
-  const analysisMobility = analyze(metrics, "mobility", forcaInputs, sexo, referenceData);
-  const analysisFlex = analyze(metrics, "flexibility", forcaInputs, sexo, referenceData);
-  const analysisAsym = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData);
-  const analysisQualityBase = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData);
+  const analysisMobility = analyze(metrics, "mobility", forcaInputs, sexo, referenceData, assimetriaReferenceData);
+  const analysisFlex = analyze(metrics, "flexibility", forcaInputs, sexo, referenceData, assimetriaReferenceData);
+  const analysisAsym = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData, assimetriaReferenceData);
+  const analysisQualityBase = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData, assimetriaReferenceData);
   const analysisQuality =
     forcaInputs.length > 0 ? applyForcaToRegions(analysisQualityBase, forcaInputs) : analysisQualityBase;
 
