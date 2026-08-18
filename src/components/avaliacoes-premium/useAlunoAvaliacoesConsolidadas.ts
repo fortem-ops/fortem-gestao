@@ -161,3 +161,31 @@ export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefine
     },
   });
 }
+
+/**
+ * Carrega toda a base de referência Fortem de mobilidade/flexibilidade (leve,
+ * ~3 mil linhas) uma vez por sessão e organiza em arrays ordenados por
+ * métrica/sexo, prontos para busca binária de percentil (ver percentilMobilidade).
+ */
+export function useMobilidadeReferenceData() {
+  return useQuery<MobilidadeReferenceData>({
+    queryKey: ["mobilidade-referencia-fortem"],
+    staleTime: 1000 * 60 * 60,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mobilidade_amostras_fortem")
+        .select("metrica, sexo, valor");
+      if (error) throw error;
+      const ref: MobilidadeReferenceData = {};
+      for (const row of data ?? []) {
+        const bucket = (ref[row.metrica] ??= { M: [], F: [] });
+        bucket[row.sexo as "M" | "F"].push(Number(row.valor));
+      }
+      for (const bucket of Object.values(ref)) {
+        bucket.M.sort((a, b) => a - b);
+        bucket.F.sort((a, b) => a - b);
+      }
+      return ref;
+    },
+  });
+}
