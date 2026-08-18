@@ -558,7 +558,9 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
 
       // Se é avulso com profissional, oferecer notificação manual
       const podeNotificar = inserted?.id && !inserted?.lote &&
-        inserted?.profissional_id && inserted?.data_especifica;
+        inserted?.profissional_id &&
+        (inserted?.data_especifica || inserted?.tipo === 'fixo');
+
 
       if (podeNotificar) {
         setAgendamentoSalvo(inserted);
@@ -598,7 +600,11 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
     setNotificando(true);
     try {
       const { error } = await supabase.functions.invoke("whatsapp-disparo-agenda", {
-        body: { evento: "notificacao_manual", agenda_id: agendamentoSalvo.id },
+        body: {
+          evento: "notificacao_manual",
+          agenda_id: agendamentoSalvo.id,
+          agenda_snapshot: agendamentoSalvo, // passa os dados completos para evitar re-busca
+        },
       });
       if (error) throw error;
       toast.success("Profissional notificado via WhatsApp");
@@ -611,6 +617,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
       onOpenChange(false);
     }
   };
+
 
   const fecharSemNotificar = () => {
     setAgendamentoSalvo(null);
