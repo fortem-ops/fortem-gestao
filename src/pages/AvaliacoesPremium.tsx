@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
-import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { AlunoSidebarCard } from "@/components/avaliacoes-premium/AlunoSidebarCard";
 import { DashboardSummary } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
@@ -26,6 +26,7 @@ export default function AvaliacoesPremium() {
 
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(alunoId || null);
   const { data: mobilidadeRef } = useMobilidadeReferenceData();
+  const { data: assimetriaRef } = useMobilidadeAssimetriaReferenceData();
   const sexoAluno: "M" | "F" | undefined = data?.aluno?.sexo?.toLowerCase().startsWith("f")
     ? "F"
     : data?.aluno?.sexo?.toLowerCase().startsWith("m")
@@ -35,9 +36,9 @@ export default function AvaliacoesPremium() {
   const scores = useMemo(
     () =>
       data
-        ? computePremiumScores(data.funcional.latest, data.composicao.latest, sexoAluno, mobilidadeRef)
+        ? computePremiumScores(data.funcional.latest, data.composicao.latest, sexoAluno, mobilidadeRef, assimetriaRef)
         : null,
-    [data, sexoAluno, mobilidadeRef],
+    [data, sexoAluno, mobilidadeRef, assimetriaRef],
   );
   const recomendacoes = useMemo(
     () => (scores && data ? gerarRecomendacoes(scores, data.funcional.latest, data.composicao.latest) : []),

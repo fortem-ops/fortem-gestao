@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import type { ForcaInput, MetricInput, MobilidadeReferenceData } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { AssimetriaReferenceData, ForcaInput, MetricInput, MobilidadeReferenceData } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 
 export interface ForcaSavedRow {
   nome: ForcaInput["nome"];
@@ -180,6 +180,29 @@ export function useMobilidadeReferenceData() {
       for (const row of data ?? []) {
         const bucket = (ref[row.metrica] ??= { M: [], F: [] });
         bucket[row.sexo as "M" | "F"].push(Number(row.valor));
+      }
+      for (const bucket of Object.values(ref)) {
+        bucket.M.sort((a, b) => a - b);
+        bucket.F.sort((a, b) => a - b);
+      }
+      return ref;
+    },
+  });
+}
+
+export function useMobilidadeAssimetriaReferenceData() {
+  return useQuery<AssimetriaReferenceData>({
+    queryKey: ["mobilidade-assimetria-referencia-fortem"],
+    staleTime: 1000 * 60 * 60,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mobilidade_assimetria_fortem")
+        .select("metrica, sexo, assimetria_pct");
+      if (error) throw error;
+      const ref: AssimetriaReferenceData = {};
+      for (const row of data ?? []) {
+        const bucket = (ref[row.metrica] ??= { M: [], F: [] });
+        bucket[row.sexo as "M" | "F"].push(Number(row.assimetria_pct));
       }
       for (const bucket of Object.values(ref)) {
         bucket.M.sort((a, b) => a - b);
