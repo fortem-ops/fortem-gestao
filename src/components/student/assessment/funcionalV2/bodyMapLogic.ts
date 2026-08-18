@@ -290,7 +290,7 @@ export function analyze(
     ["ham-l","ham-r"],
     ["ankle-l","ankle-r"],
   ];
-  const regionDiffs: Partial<Record<RegionId, { diff: number; weakerSide: "left" | "right" }>> = {};
+  const regionDiffs: Partial<Record<RegionId, { diff: number; weakerSide: "left" | "right"; asymPercentile: number | null }>> = {};
 
   for (const m of metrics) {
     const meta = METRIC_META[m.metric];
@@ -299,6 +299,14 @@ export function analyze(
     const rScore = scoreForSide(m, "right");
     if (lScore === null || rScore === null) continue;
     const diff = Math.abs(lScore - rScore);
+    const rawAsymPct =
+      m.left !== null && m.right !== null && Math.max(Math.abs(m.left), Math.abs(m.right)) > 0
+        ? (Math.abs(m.left - m.right) / Math.max(Math.abs(m.left), Math.abs(m.right))) * 100
+        : null;
+    const asymPercentile =
+      rawAsymPct !== null && sexo
+        ? percentilAssimetria(m.metric, sexo, rawAsymPct, assimetriaReferenceData)
+        : null;
     if (diff === 0) continue;
     const weakerSide: "left" | "right" = lScore < rScore ? "left" : "right";
 
@@ -306,7 +314,7 @@ export function analyze(
       if ("both" in r) continue;
       for (const regionId of [r.left, r.right]) {
         const prev = regionDiffs[regionId];
-        if (!prev || diff > prev.diff) regionDiffs[regionId] = { diff, weakerSide };
+        if (!prev || diff > prev.diff) regionDiffs[regionId] = { diff, weakerSide, asymPercentile };
       }
     }
   }
@@ -317,8 +325,14 @@ export function analyze(
     regions[a].asymmetry = info.diff;
     regions[b].asymmetry = info.diff;
     const weakerRegion = info.weakerSide === "left" ? a : b;
-    if (info.diff >= 25) asymmetries.push({ region: weakerRegion, diff: info.diff, severity: "severe" });
-    else if (info.diff >= 15) asymmetries.push({ region: weakerRegion, diff: info.diff, severity: "moderate" });
+    const sevByPercentile: "severe" | "moderate" | null =
+      info.asymPercentile !== null && info.asymPercentile !== undefined
+        ? info.asymPercentile >= 90 ? "severe" : info.asymPercentile >= 75 ? "moderate" : null
+        : null;
+    const sevByFixedCut: "severe" | "moderate" | null =
+      info.diff >= 25 ? "severe" : info.diff >= 15 ? "moderate" : null;
+    const finalSev = sevByPercentile ?? sevByFixedCut;
+    if (finalSev) asymmetries.push({ region: weakerRegion, diff: info.diff, severity: finalSev });
   }
 
   // Compensation chains
