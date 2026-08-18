@@ -298,23 +298,19 @@ export function analyze(
     const lScore = scoreForSide(m, "left");
     const rScore = scoreForSide(m, "right");
     if (lScore === null || rScore === null) continue;
-    const diff = Math.abs(lScore - rScore);
     const rawAsymPct =
       m.left !== null && m.right !== null && Math.max(Math.abs(m.left), Math.abs(m.right)) > 0
         ? (Math.abs(m.left - m.right) / Math.max(Math.abs(m.left), Math.abs(m.right))) * 100
         : null;
-    const asymPercentile =
-      rawAsymPct !== null && sexo
-        ? percentilAssimetria(m.metric, sexo, rawAsymPct, assimetriaReferenceData)
-        : null;
-    if (diff === 0) continue;
+    if (rawAsymPct === null || rawAsymPct === 0) continue;
+    const asymPercentile = sexo ? percentilAssimetria(m.metric, sexo, rawAsymPct, assimetriaReferenceData) : null;
     const weakerSide: "left" | "right" = lScore < rScore ? "left" : "right";
 
     for (const r of meta.regions) {
       if ("both" in r) continue;
       for (const regionId of [r.left, r.right]) {
         const prev = regionDiffs[regionId];
-        if (!prev || diff > prev.diff) regionDiffs[regionId] = { diff, weakerSide, asymPercentile };
+        if (!prev || rawAsymPct > prev.diff) regionDiffs[regionId] = { diff: rawAsymPct, weakerSide, asymPercentile };
       }
     }
   }
