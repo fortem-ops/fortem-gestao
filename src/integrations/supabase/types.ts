@@ -3665,6 +3665,33 @@ export type Database = {
           },
         ]
       }
+      mobilidade_amostras_fortem: {
+        Row: {
+          created_at: string
+          fonte: string
+          id: string
+          metrica: string
+          sexo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          fonte?: string
+          id?: string
+          metrica: string
+          sexo: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          fonte?: string
+          id?: string
+          metrica?: string
+          sexo?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       notificacao_categorias_custom: {
         Row: {
           ativo: boolean
