@@ -20,7 +20,9 @@ import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
   ALL_FUNCTIONAL_METRICS,
+  percentilMobilidade,
   type MetricInput,
+  type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import {
   classifyAngle,
@@ -36,6 +38,8 @@ interface Props {
   alunoId: string;
   latest?: FuncionalSnapshot | null;
   history?: FuncionalSnapshot[];
+  aluno?: { sexo: string | null } | null;
+  referenceData?: MobilidadeReferenceData;
 }
 
 interface MobilidadeRow {
@@ -51,7 +55,12 @@ interface MobilidadeRow {
  * funcional_v2 existente NA MESMA DATA que já tenha força mas ainda não tem
  * métricas. Caso contrário, cria uma nova linha só com mobilidade.
  */
-export function MobilidadeTab({ alunoId }: Props) {
+export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
+  const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
+    ? "F"
+    : aluno?.sexo?.toLowerCase().startsWith("m")
+    ? "M"
+    : undefined;
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -340,6 +349,8 @@ export function MobilidadeTab({ alunoId }: Props) {
                 <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. E</th>
                 <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Direito</th>
                 <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. D</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Percentil E</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Percentil D</th>
               </tr>
             </thead>
             <tbody>
@@ -369,6 +380,22 @@ export function MobilidadeTab({ alunoId }: Props) {
                         {m.rightClass}
                       </span>
                     )}
+                  </td>
+                  <td className="p-3 text-center text-xs text-[hsl(var(--bio-ink-muted))]">
+                    {sexoRpc && referenceData
+                      ? (() => {
+                          const pct = percentilMobilidade(m.metric, sexoRpc, m.left, referenceData);
+                          return pct !== null ? `P${pct}` : "—";
+                        })()
+                      : "—"}
+                  </td>
+                  <td className="p-3 text-center text-xs text-[hsl(var(--bio-ink-muted))]">
+                    {sexoRpc && referenceData
+                      ? (() => {
+                          const pct = percentilMobilidade(m.metric, sexoRpc, m.right, referenceData);
+                          return pct !== null ? `P${pct}` : "—";
+                        })()
+                      : "—"}
                   </td>
                 </tr>
               ))}

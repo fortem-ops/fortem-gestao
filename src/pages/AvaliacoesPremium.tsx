@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
-import { useAlunoAvaliacoesConsolidadas } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { AlunoSidebarCard } from "@/components/avaliacoes-premium/AlunoSidebarCard";
 import { DashboardSummary } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
@@ -25,13 +25,19 @@ export default function AvaliacoesPremium() {
   const [alunoId, setAlunoId] = useState<string>(urlId ?? "");
 
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(alunoId || null);
+  const { data: mobilidadeRef } = useMobilidadeReferenceData();
+  const sexoAluno: "M" | "F" | undefined = data?.aluno?.sexo?.toLowerCase().startsWith("f")
+    ? "F"
+    : data?.aluno?.sexo?.toLowerCase().startsWith("m")
+    ? "M"
+    : undefined;
 
   const scores = useMemo(
     () =>
       data
-        ? computePremiumScores(data.funcional.latest, data.composicao.latest)
+        ? computePremiumScores(data.funcional.latest, data.composicao.latest, sexoAluno, mobilidadeRef)
         : null,
-    [data],
+    [data, sexoAluno, mobilidadeRef],
   );
   const recomendacoes = useMemo(
     () => (scores && data ? gerarRecomendacoes(scores, data.funcional.latest, data.composicao.latest) : []),
@@ -100,7 +106,10 @@ export default function AvaliacoesPremium() {
                   alunoId={alunoId}
                   latest={data.funcional.latest}
                   history={data.funcional.history}
+                  aluno={data.aluno}
+                  referenceData={mobilidadeRef}
                 />
+
 
               </TabsContent>
               <TabsContent value="forca" className="mt-4">

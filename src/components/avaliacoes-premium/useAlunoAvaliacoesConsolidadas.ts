@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import type { ForcaInput, MetricInput } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { ForcaInput, MetricInput, MobilidadeReferenceData } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 
 export interface ForcaSavedRow {
   nome: ForcaInput["nome"];
@@ -158,6 +158,34 @@ export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefine
         pliometria: { latest: plioHistory[0] ?? null, history: plioHistory },
         raw: rows,
       };
+    },
+  });
+}
+
+/**
+ * Carrega toda a base de referência Fortem de mobilidade/flexibilidade (leve,
+ * ~3 mil linhas) uma vez por sessão e organiza em arrays ordenados por
+ * métrica/sexo, prontos para busca binária de percentil (ver percentilMobilidade).
+ */
+export function useMobilidadeReferenceData() {
+  return useQuery<MobilidadeReferenceData>({
+    queryKey: ["mobilidade-referencia-fortem"],
+    staleTime: 1000 * 60 * 60,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mobilidade_amostras_fortem")
+        .select("metrica, sexo, valor");
+      if (error) throw error;
+      const ref: MobilidadeReferenceData = {};
+      for (const row of data ?? []) {
+        const bucket = (ref[row.metrica] ??= { M: [], F: [] });
+        bucket[row.sexo as "M" | "F"].push(Number(row.valor));
+      }
+      for (const bucket of Object.values(ref)) {
+        bucket.M.sort((a, b) => a - b);
+        bucket.F.sort((a, b) => a - b);
+      }
+      return ref;
     },
   });
 }
