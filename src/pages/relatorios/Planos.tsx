@@ -239,8 +239,15 @@ export default function RelatoriosPlanos() {
                       <TableCell>{r.data_fim ? new Date(r.data_fim).toLocaleDateString("pt-BR") : "—"}</TableCell>
                       <TableCell className="text-right">{brl(Number(r.valor || 0))}</TableCell>
                       <TableCell>
-                        {r.renovacao_automatica ? <Badge variant="secondary">Auto</Badge> : <span className="text-muted-foreground text-xs">—</span>}
+                        {r.renovacao_automatica ? (
+                          <Badge variant={foraDoCicloIds.has(r.plano_id) ? "destructive" : "secondary"}>
+                            {foraDoCicloIds.has(r.plano_id) ? "Auto (fora do ciclo)" : "Auto"}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                       </TableCell>
+
                       <TableCell>
                         <Badge variant={r.situacao === "ativo" ? "default" : "secondary"}>{r.situacao}</Badge>
                       </TableCell>
