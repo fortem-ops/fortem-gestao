@@ -5,6 +5,10 @@ import { SEVERITY_COLOR_VAR, SEVERITY_LABEL } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
 import type { OverrideMap } from "./useBodyMapGeometry";
+import { MUSCLE_SHAPES, MUSCLE_SHAPE_ORIGIN } from "./muscleShapes";
+import { FORCA_SHAPE_PLACEMENT, FLEXIBILIDADE_SHAPE_PLACEMENT, type ShapePlacement } from "./shapePlacement";
+import { classifyForca, type ForcaInput, type Layer, type MetricInput } from "./bodyMapLogic";
+import type { ShapeOverrideMap } from "./useMuscleShapeGeometry";
 
 interface RegionGeometry {
   cx: number;
@@ -54,6 +58,12 @@ interface Props {
   numbering?: Partial<Record<RegionId, number>>;
   /** Filter which view(s) to render */
   viewFilter?: "front" | "back" | "both";
+  /** Novos: necessários pras formas musculares de Força/Flexibilidade */
+  layer?: Layer;
+  forcaExercises?: ForcaInput[];
+  metrics?: MetricInput[];
+  shapeOverrides?: ShapeOverrideMap;
+  onDragShape?: (key: string, cx: number, cy: number) => void;
 }
 
 function mergeGeometry(overrides?: OverrideMap): Record<RegionId, RegionGeometry> {
@@ -256,10 +266,102 @@ function CalibrationHandle({
   );
 }
 
+function MuscleShapeRegion({
+  shapeKey, placement, side, fill, override, calibrating, svgRef, onDrag,
+}: {
+  shapeKey: string;
+  placement: ShapePlacement;
+  side: "esquerdo" | "direito";
+  fill: string;
+  override?: { cx: number; cy: number; scale: number };
+  calibrating?: boolean;
+  svgRef: React.RefObject<SVGSVGElement>;
+  onDrag?: (key: string, cx: number, cy: number) => void;
+}) {
+  const draggingRef = useRef(false);
+  const cx = override?.cx ?? placement.cx;
+  const cy = override?.cy ?? placement.cy;
+  const scale = override?.scale ?? placement.scale;
+  const d = MUSCLE_SHAPES[placement.muscle][side];
+  const tx = cx - MUSCLE_SHAPE_ORIGIN.x * scale;
+  const ty = cy - MUSCLE_SHAPE_ORIGIN.y * scale;
+
+  function toViewBox(clientX: number, clientY: number) {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * VIEWBOX.w;
+    const y = ((clientY - rect.top) / rect.height) * VIEWBOX.h;
+    return { x: Math.max(0, Math.min(VIEWBOX.w, x)), y: Math.max(0, Math.min(VIEWBOX.h, y)) };
+  }
+
+  return (
+    <g
+      transform={`translate(${tx}, ${ty}) scale(${scale})`}
+      style={calibrating ? { cursor: "move" } : undefined}
+      onPointerDown={calibrating ? (e) => {
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+        draggingRef.current = true;
+        e.stopPropagation();
+      } : undefined}
+      onPointerMove={calibrating ? (e) => {
+        if (!draggingRef.current || !onDrag) return;
+        const p = toViewBox(e.clientX, e.clientY);
+        if (p) onDrag(shapeKey, Math.round(p.x), Math.round(p.y));
+      } : undefined}
+      onPointerUp={calibrating ? (e) => {
+        draggingRef.current = false;
+        try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch {}
+      } : undefined}
+    >
+      <path
+        d={d}
+        fill={fill}
+        fillOpacity={calibrating ? 0.9 : 0.75}
+        stroke={calibrating ? "white" : "none"}
+        strokeWidth={calibrating ? 2 / scale : 0}
+        strokeDasharray={calibrating ? "4 4" : undefined}
+      />
+    </g>
+  );
+}
+
 export function BodyMapSVG({
   analysis, mode, overrides, calibrating, onDragRegion, numbering, viewFilter = "both",
+  layer, forcaExercises, metrics, shapeOverrides, onDragShape,
 }: Props) {
   const geometry = mergeGeometry(overrides);
+
+  const muscleShapeInstances = (() => {
+    if (layer === "strength" && forcaExercises) {
+      return forcaExercises
+        .filter((ex) => ex.direito_kg != null && ex.esquerdo_kg != null)
+        .flatMap((ex) => {
+          const placement = FORCA_SHAPE_PLACEMENT[ex.nome];
+          if (!placement) return [];
+          const { assimetria } = classifyForca(ex.direito_kg!, ex.esquerdo_kg!);
+          const weakerIsRight = ex.direito_kg! < ex.esquerdo_kg!;
+          const riskColor = assimetria < 10 ? "#639922" : assimetria < 20 ? "#BA7517" : "#E24B4A";
+          return [
+            { key: `forca:${ex.nome}:direito`, placement, side: "direito" as const, fill: weakerIsRight ? riskColor : "#888780" },
+            { key: `forca:${ex.nome}:esquerdo`, placement, side: "esquerdo" as const, fill: !weakerIsRight ? riskColor : "#888780" },
+          ];
+        });
+    }
+    if (layer === "flexibility" && metrics) {
+      return metrics
+        .filter((m) => m.left !== null && m.right !== null && FLEXIBILIDADE_SHAPE_PLACEMENT[m.metric])
+        .flatMap((m) => {
+          const placement = FLEXIBILIDADE_SHAPE_PLACEMENT[m.metric];
+          return [
+            { key: `flex:${m.metric}:direito`, placement, side: "direito" as const, fill: "#7A8B99" },
+            { key: `flex:${m.metric}:esquerdo`, placement, side: "esquerdo" as const, fill: "#7A8B99" },
+          ];
+        });
+    }
+    return [] as Array<{ key: string; placement: ShapePlacement; side: "direito" | "esquerdo"; fill: string }>;
+  })();
+
   const frontSvgRef = useRef<SVGSVGElement>(null);
   const backSvgRef = useRef<SVGSVGElement>(null);
 
@@ -310,6 +412,22 @@ export function BodyMapSVG({
                 )}
 
                 {!calibrating && <Chains analysis={analysis} view={view} geometry={geometry} />}
+
+                {muscleShapeInstances
+                  .filter((s) => s.placement.view === view)
+                  .map((s) => (
+                    <MuscleShapeRegion
+                      key={s.key}
+                      shapeKey={s.key}
+                      placement={s.placement}
+                      side={s.side}
+                      fill={s.fill}
+                      override={shapeOverrides?.[s.key]}
+                      calibrating={calibrating}
+                      svgRef={svgRef}
+                      onDrag={onDragShape}
+                    />
+                  ))}
 
                 {!calibrating && regions.map(([id, geom]) => (
                   <RegionGlow key={`glow-${id}`} id={id} geom={geom} state={analysis.regions[id]} mode={mode} />
