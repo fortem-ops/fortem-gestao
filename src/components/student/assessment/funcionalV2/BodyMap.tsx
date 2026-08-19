@@ -291,7 +291,7 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
             <span>
               {calibrating
                 ? hasDraft
-                  ? `Calibrando — ${Object.keys(draft).length} ponto(s) alterado(s)`
+                  ? `Calibrando — ${Object.keys(draft).length + Object.keys(shapeDraft).length} ponto(s) alterado(s)`
                   : "Calibrando — arraste os pontos sobre a imagem"
                 : "Modo calibração disponível (admin)"}
             </span>
@@ -299,24 +299,24 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
           <div className="flex items-center gap-2">
             {calibrating && hasDraft && (
               <>
-                <Button size="sm" variant="ghost" onClick={() => setDraft({})}>
+                <Button size="sm" variant="ghost" onClick={() => { setDraft({}); setShapeDraft({}); }}>
                   <X className="w-3.5 h-3.5 mr-1" /> Descartar
                 </Button>
-                <Button size="sm" onClick={handleSave} disabled={saveAll.isPending}>
+                <Button size="sm" onClick={handleSave} disabled={saveAll.isPending || saveShapeOverrides.isPending}>
                   <Save className="w-3.5 h-3.5 mr-1" />
-                  {saveAll.isPending ? "Salvando..." : "Salvar para todos"}
+                  {saveAll.isPending || saveShapeOverrides.isPending ? "Salvando..." : "Salvar para todos"}
                 </Button>
               </>
             )}
-            {calibrating && !hasDraft && Object.keys(overrides).length > 0 && (
-              <Button size="sm" variant="ghost" onClick={handleReset} disabled={resetAll.isPending}>
+            {calibrating && !hasDraft && (Object.keys(overrides).length > 0 || Object.keys(shapeOverrides).length > 0) && (
+              <Button size="sm" variant="ghost" onClick={handleReset} disabled={resetAll.isPending || resetShapeOverrides.isPending}>
                 <RotateCcw className="w-3.5 h-3.5 mr-1" /> Resetar padrão
               </Button>
             )}
             <Button
               size="sm"
               variant={calibrating ? "secondary" : "outline"}
-              onClick={() => { setCalibrating((v) => !v); setDraft({}); }}
+              onClick={() => { setCalibrating((v) => !v); setDraft({}); setShapeDraft({}); }}
             >
               {calibrating ? "Sair da calibração" : "Calibrar mapa"}
             </Button>
@@ -334,6 +334,19 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
           onDragRegion={handleDrag}
           numbering={numbering}
           viewFilter={viewFilter}
+          layer={layer}
+          forcaExercises={forcaExercises}
+          metrics={metrics}
+          shapeOverrides={{ ...shapeOverrides, ...shapeDraft }}
+          onDragShape={
+            calibrating
+              ? (key, cx, cy) =>
+                  setShapeDraft((d) => ({
+                    ...d,
+                    [key]: { cx, cy, scale: d[key]?.scale ?? shapeOverrides[key]?.scale ?? 1.6 },
+                  }))
+              : undefined
+          }
         />
 
         {!calibrating && (
