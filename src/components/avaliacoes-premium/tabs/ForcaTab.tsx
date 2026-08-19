@@ -1,5 +1,6 @@
 import { FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import type { FuncionalSnapshot } from "../useAlunoAvaliacoesConsolidadas";
+import { PremiumKinologyImport } from "../PremiumKinologyImport";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { useMemo } from "react";
 import { format, parseISO, differenceInYears } from "date-fns";
