@@ -790,6 +790,82 @@ export default function PortalWorkouts() {
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-warning/20 border border-warning/30 inline-block"></span> Troca</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-muted border border-border inline-block"></span> Pendente</span>
             </div>
+
+            <p className="text-[10px] text-muted-foreground">
+              Toque em um quadrado para registrar um treino que você fez e esqueceu de concluir, ou para corrigir a data.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom sheet: escolher data da sessão */}
+      {editandoSlot && (
+        <div className="fixed inset-0 z-[60] flex items-end bg-black/70" onClick={() => !salvandoData && setEditandoSlot(null)}>
+          <div className="bg-card border-t border-border rounded-t-3xl w-full max-h-[80vh] overflow-y-auto p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-border rounded-full mx-auto -mt-2" />
+            <div className="flex items-center justify-between">
+              <p className="font-black text-base text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
+                {editandoSlot.sessao ? `Corrigir data · ${editandoSlot.variacao}` : `Registrar ${editandoSlot.variacao}`}
+              </p>
+              <button onClick={() => !salvandoData && setEditandoSlot(null)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Escolha o dia em que você treinou. Só aparecem dias com treino agendado.
+            </p>
+
+            {agendamentosPassados.filter((a: any) => !datasOcupadas.has(a.data)).length === 0 ? (
+              <p className="text-xs text-muted-foreground bg-muted rounded-xl p-4 text-center">
+                Nenhuma data disponível: não há agendamentos passados sem treino registrado.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {agendamentosPassados
+                  .filter((a: any) => !datasOcupadas.has(a.data))
+                  .map((ag: any) => {
+                    const atual = editandoSlot.sessao?.data === ag.data;
+                    return (
+                      <button
+                        key={ag.id}
+                        type="button"
+                        disabled={salvandoData}
+                        onClick={() => salvarDataSessao(ag)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-colors disabled:opacity-50 ${
+                          atual
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                            : "bg-background border-border text-foreground"
+                        }`}
+                      >
+                        <span className="font-bold">
+                          {format(parseISO(ag.data + "T12:00:00"), "dd/MM/yyyy · EEEE", { locale: ptBR })}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {(ag.horario_inicio ?? "").slice(0, 5)}
+                        </span>
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
+
+            {editandoSlot.sessao && (
+              <button
+                type="button"
+                disabled={salvandoData}
+                onClick={removerSessao}
+                className="w-full py-3 rounded-xl border border-destructive/40 text-destructive text-sm font-bold disabled:opacity-50"
+              >
+                Remover registro
+              </button>
+            )}
+
+            {salvandoData && (
+              <p className="text-xs text-muted-foreground flex items-center gap-2 justify-center">
+                <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
+              </p>
+            )}
           </div>
         </div>
       )}
