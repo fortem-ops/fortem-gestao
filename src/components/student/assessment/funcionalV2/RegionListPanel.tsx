@@ -58,27 +58,27 @@ export function buildRegionList(analysis: BodyMapAnalysis, max = 6): RegionListI
 export function RegionListPanel({ items }: { items: RegionListItem[] }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center text-[12px] text-white/40">
+      <div className="rounded-xl border border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-surface-2))] p-6 text-center text-[12px] text-[hsl(var(--bio-ink-muted))]">
         Nenhuma assimetria identificada nesta camada.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] divide-y divide-white/5">
+    <div className="rounded-xl border border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-surface-2))] divide-y divide-[hsl(var(--bio-line))]">
       {items.map((it) => (
         <div key={it.id} className="flex items-center gap-3 px-3.5 py-2.5">
-          <div className="flex items-center justify-center w-7 h-7 rounded-full text-[12px] font-bold shrink-0 bg-white/5 text-white/70 border border-white/10">
+          <div className="flex items-center justify-center w-7 h-7 rounded-full text-[12px] font-bold shrink-0 bg-[hsl(var(--bio-surface))] text-[hsl(var(--bio-ink-muted))] border border-[hsl(var(--bio-line))]">
             {it.number}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-white leading-tight truncate">
+            <p className="text-[13px] font-semibold text-[hsl(var(--bio-ink))] leading-tight truncate">
               {it.label}
             </p>
-            <p className="text-[11px] text-white/50 truncate">{it.metricLabel}</p>
+            <p className="text-[11px] text-[hsl(var(--bio-ink-muted))] truncate">{it.metricLabel}</p>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-[14px] font-bold leading-tight text-white/80">
+            <p className="text-[14px] font-bold leading-tight text-[hsl(var(--bio-ink))]">
               {it.percentage}%
             </p>
           </div>
