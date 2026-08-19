@@ -1,4 +1,4 @@
-import type { BodyMapAnalysis, RegionId } from "./bodyMapLogic";
+import type { BodyMapAnalysis, RegionId, Layer } from "./bodyMapLogic";
 import { SEVERITY_LABEL } from "./bodyMapLogic";
 
 const REGION_SHORT_LABEL: Record<RegionId, string> = {
@@ -32,9 +32,11 @@ export interface RegionListItem {
   label: string;
   metricLabel: string;
   percentage: number;
+  riskLabel?: string;
+  riskColor?: string;
 }
 
-export function buildRegionList(analysis: BodyMapAnalysis, max = 6): RegionListItem[] {
+export function buildRegionList(analysis: BodyMapAnalysis, max = 6, layer?: Layer): RegionListItem[] {
   const entries = (Object.entries(analysis.regions) as Array<[RegionId, BodyMapAnalysis["regions"][RegionId]]>)
     .filter(([, s]) => s.asymmetry !== undefined && s.asymmetry > 0);
 
@@ -45,12 +47,20 @@ export function buildRegionList(analysis: BodyMapAnalysis, max = 6): RegionListI
     const metricLabel = firstMetric
       .replace(/^Mobilidade\s+/i, "")
       .replace(/^Flexibilidade\s+/i, "");
+    const asymValue = state.asymmetry ?? 0;
+    const isForca = layer === "strength";
+    const riskLabel = isForca ? (asymValue < 10 ? "BAIXO" : asymValue < 20 ? "ATENÇÃO" : "ALTO") : undefined;
+    const riskColor = isForca
+      ? (asymValue < 10 ? "var(--sev-good)" : asymValue < 20 ? "var(--sev-attention)" : "var(--sev-weak)")
+      : undefined;
     return {
       id,
       number: i + 1,
       label: REGION_SHORT_LABEL[id],
       metricLabel,
       percentage: Math.round(state.asymmetry ?? 0),
+      riskLabel,
+      riskColor,
     };
   });
 }
@@ -78,9 +88,20 @@ export function RegionListPanel({ items }: { items: RegionListItem[] }) {
             <p className="text-[11px] text-[hsl(var(--bio-ink-muted))] truncate">{it.metricLabel}</p>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-[14px] font-bold leading-tight text-[hsl(var(--bio-ink))]">
+            <p
+              className="text-[14px] font-bold leading-tight"
+              style={it.riskColor ? { color: `hsl(${it.riskColor})` } : undefined}
+            >
               {it.percentage}%
             </p>
+            {it.riskLabel && (
+              <p
+                className="text-[10px] font-semibold"
+                style={{ color: `hsl(${it.riskColor})` }}
+              >
+                {it.riskLabel}
+              </p>
+            )}
           </div>
         </div>
       ))}

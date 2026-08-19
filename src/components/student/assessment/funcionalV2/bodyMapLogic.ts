@@ -549,25 +549,31 @@ export function applyForcaToRegions(
   exercises: ForcaInput[],
 ): BodyMapAnalysis {
   const buckets: Partial<Record<RegionId, number[]>> = {};
+  const asymBuckets: Partial<Record<RegionId, { assimetria: number; exercicio: ForcaExercicio }>> = {};
   for (const ex of exercises) {
     if (ex.direito_kg == null || ex.esquerdo_kg == null) continue;
     const region = FORCA_REGIONS[ex.nome];
-    const { score } = classifyForca(ex.direito_kg, ex.esquerdo_kg);
-    if ("both" in region) {
-      (buckets[region.both] ||= []).push(score);
-    } else {
-      (buckets[region.left] ||= []).push(score);
-      (buckets[region.right] ||= []).push(score);
+    const { score, assimetria } = classifyForca(ex.direito_kg, ex.esquerdo_kg);
+    const ids = "both" in region ? [region.both] : [region.left, region.right];
+    for (const id of ids) {
+      (buckets[id] ||= []).push(score);
+      const prev = asymBuckets[id];
+      if (!prev || assimetria > prev.assimetria) asymBuckets[id] = { assimetria, exercicio: ex.nome };
     }
   }
   const newRegions = { ...analysis.regions };
   for (const id of Object.keys(buckets) as RegionId[]) {
     const arr = buckets[id]!;
     const score = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const asym = asymBuckets[id];
     newRegions[id] = {
       ...newRegions[id],
       score: Math.round(score),
       severity: severityFromScore(score),
+      asymmetry: asym ? Math.round(asym.assimetria * 10) / 10 : undefined,
+      contributing: asym
+        ? [{ metric: FORCA_EXERCICIO_LABEL[asym.exercicio], side: newRegions[id].side, value: null, classification: null }]
+        : newRegions[id].contributing,
     };
   }
   return { ...analysis, regions: newRegions };

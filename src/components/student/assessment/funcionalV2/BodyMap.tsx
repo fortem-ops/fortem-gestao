@@ -117,7 +117,7 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
   const asymmetryCountDisplay = canonical ? canonical.asymmetryCount : analysis.asymmetries.length;
   const chainsDisplay = canonical ? canonical.chains : analysis.chains;
 
-  const regionList = useMemo(() => buildRegionList(analysis, 6), [analysis]);
+  const regionList = useMemo(() => buildRegionList(analysis, 6, layer), [analysis, layer]);
   const numbering = useMemo(() => {
     const m: Partial<Record<RegionId, number>> = {};
     regionList.forEach((it) => { m[it.id] = it.number; });
