@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
 import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
-import { useMuscleShapeGeometry, type ShapeOverrideMap } from "./useMuscleShapeGeometry";
+import { useBodyMapShapes } from "./useBodyMapShapes";
 import { Button } from "@/components/ui/button";
 import { RegionListPanel, type RegionListItem } from "./RegionListPanel";
 
@@ -103,8 +103,7 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
   const [draft, setDraft] = useState<OverrideMap>({});
 
   const { overrides, isAdmin, saveAll, resetAll } = useBodyMapGeometry();
-  const { overrides: shapeOverrides, saveAll: saveShapeOverrides, resetAll: resetShapeOverrides } = useMuscleShapeGeometry();
-  const [shapeDraft, setShapeDraft] = useState<ShapeOverrideMap>({});
+  const { shapesMap } = useBodyMapShapes();
 
 
   const analysis = useMemo(() => {
@@ -132,7 +131,7 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
   const numbering = useMemo(() => ({} as Partial<Record<RegionId, number>>), []);
 
   const mergedOverrides: OverrideMap = { ...overrides, ...draft };
-  const hasDraft = Object.keys(draft).length > 0 || Object.keys(shapeDraft).length > 0;
+  const hasDraft = Object.keys(draft).length > 0;
 
   function handleDrag(id: RegionId, cx: number, cy: number) {
     setDraft((d) => ({ ...d, [id]: { cx, cy } }));
@@ -140,12 +139,8 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
 
   async function handleSave() {
     try {
-      await Promise.all([
-        saveAll.mutateAsync(draft),
-        saveShapeOverrides.mutateAsync(shapeDraft),
-      ]);
+      await saveAll.mutateAsync(draft);
       setDraft({});
-      setShapeDraft({});
       toast.success("Posições salvas para todos.");
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar.");
@@ -156,9 +151,7 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
     if (!confirm("Resetar todas as posições para o padrão do código? Esta ação remove os ajustes salvos.")) return;
     try {
       await resetAll.mutateAsync();
-      await resetShapeOverrides.mutateAsync();
       setDraft({});
-      setShapeDraft({});
       toast.success("Posições resetadas.");
     } catch (e: any) {
       toast.error(e.message || "Erro ao resetar.");
@@ -291,7 +284,7 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
             <span>
               {calibrating
                 ? hasDraft
-                  ? `Calibrando — ${Object.keys(draft).length + Object.keys(shapeDraft).length} ponto(s) alterado(s)`
+                  ? `Calibrando — ${Object.keys(draft).length} ponto(s) alterado(s)`
                   : "Calibrando — arraste os pontos sobre a imagem"
                 : "Modo calibração disponível (admin)"}
             </span>
@@ -299,24 +292,24 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
           <div className="flex items-center gap-2">
             {calibrating && hasDraft && (
               <>
-                <Button size="sm" variant="ghost" onClick={() => { setDraft({}); setShapeDraft({}); }}>
+                <Button size="sm" variant="ghost" onClick={() => setDraft({})}>
                   <X className="w-3.5 h-3.5 mr-1" /> Descartar
                 </Button>
-                <Button size="sm" onClick={handleSave} disabled={saveAll.isPending || saveShapeOverrides.isPending}>
+                <Button size="sm" onClick={handleSave} disabled={saveAll.isPending}>
                   <Save className="w-3.5 h-3.5 mr-1" />
-                  {saveAll.isPending || saveShapeOverrides.isPending ? "Salvando..." : "Salvar para todos"}
+                  {saveAll.isPending ? "Salvando..." : "Salvar para todos"}
                 </Button>
               </>
             )}
-            {calibrating && !hasDraft && (Object.keys(overrides).length > 0 || Object.keys(shapeOverrides).length > 0) && (
-              <Button size="sm" variant="ghost" onClick={handleReset} disabled={resetAll.isPending || resetShapeOverrides.isPending}>
+            {calibrating && !hasDraft && Object.keys(overrides).length > 0 && (
+              <Button size="sm" variant="ghost" onClick={handleReset} disabled={resetAll.isPending}>
                 <RotateCcw className="w-3.5 h-3.5 mr-1" /> Resetar padrão
               </Button>
             )}
             <Button
               size="sm"
               variant={calibrating ? "secondary" : "outline"}
-              onClick={() => { setCalibrating((v) => !v); setDraft({}); setShapeDraft({}); }}
+              onClick={() => { setCalibrating((v) => !v); setDraft({}); }}
             >
               {calibrating ? "Sair da calibração" : "Calibrar mapa"}
             </Button>
@@ -337,12 +330,7 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
           layer={layer}
           forcaExercises={forcaExercises}
           metrics={metrics}
-          shapeOverrides={{ ...shapeOverrides, ...shapeDraft }}
-          onChangeShape={
-            calibrating
-              ? (key, cx, cy, scale) => setShapeDraft((d) => ({ ...d, [key]: { cx, cy, scale } }))
-              : undefined
-          }
+          shapesMap={shapesMap}
         />
 
         {!calibrating && (
