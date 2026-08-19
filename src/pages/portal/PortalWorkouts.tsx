@@ -755,9 +755,11 @@ export default function PortalWorkouts() {
                     const sessao = realizados[i];
                     const foiTroca = sessao?.foi_troca;
                     return (
-                      <div
+                      <button
                         key={i}
-                        title={sessao ? format(parseISO(sessao.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR }) : ""}
+                        type="button"
+                        onClick={() => setEditandoSlot({ variacao, sessao: sessao ?? null })}
+                        title={sessao ? format(parseISO(sessao.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR }) : "Registrar treino realizado"}
                         className={`h-8 rounded-lg flex items-center justify-center text-[10px] font-bold border transition-colors ${
                           sessao
                             ? foiTroca
@@ -770,7 +772,7 @@ export default function PortalWorkouts() {
                           ? format(parseISO(sessao.data + "T12:00:00"), "dd/MM", { locale: ptBR })
                           : "—"
                         }
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
