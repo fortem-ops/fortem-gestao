@@ -154,6 +154,25 @@ export default function PortalWorkouts() {
     },
   });
 
+  // Agendamentos passados (últimos 90 dias) elegíveis para registro retroativo
+  const { data: agendamentosPassados = [] } = useQuery({
+    queryKey: ["portal-agendamentos-passados", student?.id],
+    enabled: !!student,
+    queryFn: async () => {
+      const hoje = new Date();
+      const limite = new Date(hoje.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const { data } = await supabase
+        .from("treino_agendamentos")
+        .select("id, data, horario_inicio, status")
+        .eq("aluno_id", student!.id)
+        .gte("data", format(limite, "yyyy-MM-dd"))
+        .lte("data", format(hoje, "yyyy-MM-dd"))
+        .order("data", { ascending: false });
+      return data || [];
+    },
+  });
+
+
   // ── Estado local ─────────────────────────────────────────────
   const [variacaoSelecionada, setVariacaoSelecionada] = useState<string | null>(null);
   const [mostrarTrocar, setMostrarTrocar] = useState(false);
