@@ -13,7 +13,9 @@ import { toast } from "sonner";
 import { AddAgendaDialog } from "@/components/agenda/AddAgendaDialog";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
+
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -57,6 +59,12 @@ export default function Agenda() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date; tipo: string } | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<"dia" | "semana" | null>(null);
+  const [selectedDayIdx, setSelectedDayIdx] = useState(() => (new Date().getDay() + 6) % 7);
+  const isWeek = (viewMode ?? (isMobile ? "dia" : "semana")) === "semana";
+  const dayIdxs = isWeek ? [0, 1, 2, 3, 4, 5, 6] : [selectedDayIdx];
+
   const [prefill, setPrefill] = useState<{ date: Date; hour: number; minute?: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
   const [cellDate, setCellDate] = useState<Date | null>(null);
@@ -356,7 +364,19 @@ export default function Agenda() {
 
   const prevWeek = () => setWeekStart(addDays(weekStart, -7));
   const nextWeek = () => setWeekStart(addDays(weekStart, 7));
-  const goToday = () => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const goToday = () => {
+    setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    setSelectedDayIdx((new Date().getDay() + 6) % 7);
+  };
+  const prevDay = () => {
+    if (selectedDayIdx > 0) setSelectedDayIdx(selectedDayIdx - 1);
+    else { setWeekStart(addDays(weekStart, -7)); setSelectedDayIdx(6); }
+  };
+  const nextDay = () => {
+    if (selectedDayIdx < 6) setSelectedDayIdx(selectedDayIdx + 1);
+    else { setWeekStart(addDays(weekStart, 7)); setSelectedDayIdx(0); }
+  };
+
 
   return (
     <div className="space-y-4">
@@ -376,11 +396,26 @@ export default function Agenda() {
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="outline" size="icon" onClick={prevWeek}>
+        <div className="inline-flex rounded-md border border-border overflow-hidden">
+          <button
+            onClick={() => setViewMode("dia")}
+            className={cn("px-3 h-9 text-xs font-semibold", !isWeek ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground")}
+          >
+            Dia
+          </button>
+          <button
+            onClick={() => setViewMode("semana")}
+            className={cn("px-3 h-9 text-xs font-semibold border-l border-border", isWeek ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground")}
+          >
+            Semana
+          </button>
+        </div>
+
+        <Button variant="outline" size="icon" onClick={isWeek ? prevWeek : prevDay}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="sm" onClick={goToday}>Hoje</Button>
-        <Button variant="outline" size="icon" onClick={nextWeek}>
+        <Button variant="outline" size="icon" onClick={isWeek ? nextWeek : nextDay}>
           <ChevronRight className="h-4 w-4" />
         </Button>
 
@@ -400,7 +435,10 @@ export default function Agenda() {
               mode="single"
               selected={weekStart}
               onSelect={(date) => {
-                if (date) setWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
+                if (date) {
+                  setWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
+                  setSelectedDayIdx((date.getDay() + 6) % 7);
+                }
               }}
               initialFocus
               className={cn("p-3 pointer-events-auto")}
@@ -409,9 +447,12 @@ export default function Agenda() {
         </Popover>
 
         <span className="text-xs sm:text-sm text-muted-foreground ml-1 sm:ml-2 w-full sm:w-auto">
-          {format(weekDates[0], "dd MMM", { locale: ptBR })} — {format(weekDates[6], "dd MMM yyyy", { locale: ptBR })}
+          {isWeek
+            ? `${format(weekDates[0], "dd MMM", { locale: ptBR })} — ${format(weekDates[6], "dd MMM yyyy", { locale: ptBR })}`
+            : format(weekDates[selectedDayIdx], "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
         </span>
       </div>
+
 
       <div className="rounded-lg border border-border bg-card p-3 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
@@ -473,16 +514,22 @@ export default function Agenda() {
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <ScrollArea className="h-[calc(100vh-240px)]">
-          <div className="min-w-[900px]">
-            <div className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border sticky top-0 bg-card z-10">
+          <div className={cn(isWeek && "min-w-[900px]")}>
+            <div
+              className="grid border-b border-border sticky top-0 bg-card z-10"
+              style={{ gridTemplateColumns: `70px repeat(${dayIdxs.length}, minmax(0,1fr))` }}
+            >
               <div className="p-2 text-xs text-muted-foreground text-center">Hora</div>
-              {weekDates.map((date, i) => {
+              {dayIdxs.map((dayIdx) => {
+                const date = weekDates[dayIdx];
                 const isToday = isSameDay(date, new Date());
                 return (
-                  <div key={i} className={`p-2 text-center border-l border-border ${isToday ? "bg-primary/10" : ""}`}>
-                    <div className="text-xs text-muted-foreground">{DIAS_CURTO[date.getDay()]}</div>
+                  <div key={dayIdx} className={`p-2 text-center border-l border-border ${isToday ? "bg-primary/10" : ""}`}>
+                    <div className="text-xs text-muted-foreground">
+                      {isWeek ? DIAS_CURTO[date.getDay()] : format(date, "EEEE", { locale: ptBR })}
+                    </div>
                     <div className={`text-sm font-medium ${isToday ? "text-primary" : "text-foreground"}`}>
-                      {format(date, "dd")}
+                      {isWeek ? format(date, "dd") : format(date, "dd 'de' MMMM", { locale: ptBR })}
                     </div>
                   </div>
                 );
@@ -490,11 +537,15 @@ export default function Agenda() {
             </div>
 
             {SLOTS.map((slot) => (
-              <div key={slot} className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border/50 min-h-[44px]">
+              <div
+                key={slot}
+                className="grid border-b border-border/50 min-h-[44px]"
+                style={{ gridTemplateColumns: `70px repeat(${dayIdxs.length}, minmax(0,1fr))` }}
+              >
                 <div className="p-2 text-xs text-muted-foreground text-right pr-3 pt-1">
                   {slotLabel(slot)}
                 </div>
-                {weekDates.map((_, dayIdx) => {
+                {dayIdxs.map((dayIdx) => {
                   const events = getEventsForCell(dayIdx, slot);
                   const isToday = isSameDay(weekDates[dayIdx], new Date());
                   return (
@@ -553,8 +604,10 @@ export default function Agenda() {
               </div>
             ))}
           </div>
+          <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
+
 
       <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} cellDate={cellDate} />
 

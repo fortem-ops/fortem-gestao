@@ -24,7 +24,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toastSuccess, toastError } from "@/lib/toast-helpers";
 
+import { useIsMobile } from "@/hooks/use-mobile";
+
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
 const DIAS_CURTOS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 type Slot = {
@@ -556,10 +559,26 @@ function WeeklyGrid({
   const qc = useQueryClient();
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selected, setSelected] = useState<SelectedCell>(null);
+  const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<"dia" | "semana" | null>(null);
+  const [selectedDayIdx, setSelectedDayIdx] = useState(() => new Date().getDay());
+  const isWeek = (viewMode ?? (isMobile ? "dia" : "semana")) === "semana";
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+  const displayDays = isWeek ? weekDays : [weekDays[selectedDayIdx]];
+  const goPrev = () => {
+    if (isWeek) setWeekStart(addWeeks(weekStart, -1));
+    else if (selectedDayIdx > 0) setSelectedDayIdx(selectedDayIdx - 1);
+    else { setWeekStart(addWeeks(weekStart, -1)); setSelectedDayIdx(6); }
+  };
+  const goNext = () => {
+    if (isWeek) setWeekStart(addWeeks(weekStart, 1));
+    else if (selectedDayIdx < 6) setSelectedDayIdx(selectedDayIdx + 1);
+    else { setWeekStart(addWeeks(weekStart, 1)); setSelectedDayIdx(0); }
+  };
   const weekStartStr = format(weekStart, "yyyy-MM-dd");
   const weekEndStr = format(addDays(weekStart, 6), "yyyy-MM-dd");
+
 
   // Uma linha por horário de início (independente da duração/atividade)
   const rows = useMemo(() => {
@@ -621,43 +640,66 @@ function WeeklyGrid({
     <TooltipProvider delayDuration={150}>
       <div className="space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, -1))} aria-label="Semana anterior">
+          <div className="inline-flex rounded-md border border-border overflow-hidden">
+            <button
+              onClick={() => setViewMode("dia")}
+              className={cn("px-3 h-9 text-xs font-semibold", !isWeek ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground")}
+            >
+              Dia
+            </button>
+            <button
+              onClick={() => setViewMode("semana")}
+              className={cn("px-3 h-9 text-xs font-semibold border-l border-border", isWeek ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground")}
+            >
+              Semana
+            </button>
+          </div>
+          <Button variant="outline" size="icon" onClick={goPrev} aria-label={isWeek ? "Semana anterior" : "Dia anterior"}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))} aria-label="Próxima semana">
+          <Button variant="outline" size="icon" onClick={goNext} aria-label={isWeek ? "Próxima semana" : "Próximo dia"}>
             <ChevronRight className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }))}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 })); setSelectedDayIdx(new Date().getDay()); }}
+          >
             Hoje
           </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
                 <CalendarIcon className="w-4 h-4 mr-2" />
-                {rangeLabel}
+                {isWeek ? rangeLabel : format(weekDays[selectedDayIdx], "EEE, d MMM", { locale: ptBR })}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={weekStart}
-                onSelect={(d) => d && setWeekStart(startOfWeek(d, { weekStartsOn: 0 }))}
+                onSelect={(d) => {
+                  if (!d) return;
+                  setWeekStart(startOfWeek(d, { weekStartsOn: 0 }));
+                  setSelectedDayIdx(d.getDay());
+                }}
                 className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
         </div>
 
+
         <Card className="p-3 overflow-x-auto">
           <div
-            className="grid min-w-[820px]"
+            className={cn("grid", isWeek && "min-w-[820px]")}
             style={{
-              gridTemplateColumns: `72px repeat(7, minmax(96px, 1fr))`,
+              gridTemplateColumns: `72px repeat(${displayDays.length}, minmax(96px, 1fr))`,
             }}
           >
           {/* Cabeçalho */}
           <div className="border-b border-border" />
-          {weekDays.map((d, i) => {
+          {displayDays.map((d, i) => {
             const isToday = isSameDay(d, today);
             return (
               <div
@@ -668,23 +710,29 @@ function WeeklyGrid({
                 )}
               >
                 <div className={cn("font-bold text-sm", isToday && "text-primary")}>{format(d, "d")}</div>
-                <div className="uppercase text-[10px] text-muted-foreground tracking-wider">{DIAS_CURTOS[i]}</div>
+                <div className="uppercase text-[10px] text-muted-foreground tracking-wider">
+                  {isWeek ? DIAS_CURTOS[d.getDay()] : format(d, "EEEE", { locale: ptBR })}
+                </div>
               </div>
             );
           })}
 
           {/* Linhas */}
           {rows.length === 0 && (
-            <div className="col-span-8 py-10 text-center text-sm text-muted-foreground">
+            <div
+              className="py-10 text-center text-sm text-muted-foreground"
+              style={{ gridColumn: `span ${displayDays.length + 1}` }}
+            >
               Nenhum horário cadastrado.
             </div>
           )}
+
           {rows.map((row) => (
             <div key={row.key} className="contents">
               <div className="border-t border-border/60 text-[11px] text-muted-foreground py-2 pr-2 text-right leading-tight">
                 <div className="font-medium text-foreground">{row.horario_inicio.slice(0, 5)}</div>
               </div>
-              {weekDays.map((d, di) => {
+              {displayDays.map((d, di) => {
                 const dia = d.getDay();
                 const slotsDia = slotIndex.get(`${dia}|${row.horario_inicio}`) ?? [];
                 if (slotsDia.length === 0) {
