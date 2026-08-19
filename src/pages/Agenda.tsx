@@ -356,7 +356,19 @@ export default function Agenda() {
 
   const prevWeek = () => setWeekStart(addDays(weekStart, -7));
   const nextWeek = () => setWeekStart(addDays(weekStart, 7));
-  const goToday = () => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const goToday = () => {
+    setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    setSelectedDayIdx((new Date().getDay() + 6) % 7);
+  };
+  const prevDay = () => {
+    if (selectedDayIdx > 0) setSelectedDayIdx(selectedDayIdx - 1);
+    else { setWeekStart(addDays(weekStart, -7)); setSelectedDayIdx(6); }
+  };
+  const nextDay = () => {
+    if (selectedDayIdx < 6) setSelectedDayIdx(selectedDayIdx + 1);
+    else { setWeekStart(addDays(weekStart, 7)); setSelectedDayIdx(0); }
+  };
+
 
   return (
     <div className="space-y-4">
