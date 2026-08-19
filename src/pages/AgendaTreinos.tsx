@@ -650,14 +650,14 @@ function WeeklyGrid({
 
         <Card className="p-3 overflow-x-auto">
           <div
-            className="grid min-w-[820px]"
+            className={cn("grid", isWeek && "min-w-[820px]")}
             style={{
-              gridTemplateColumns: `72px repeat(7, minmax(96px, 1fr))`,
+              gridTemplateColumns: `72px repeat(${displayDays.length}, minmax(96px, 1fr))`,
             }}
           >
           {/* Cabeçalho */}
           <div className="border-b border-border" />
-          {weekDays.map((d, i) => {
+          {displayDays.map((d, i) => {
             const isToday = isSameDay(d, today);
             return (
               <div
@@ -668,17 +668,23 @@ function WeeklyGrid({
                 )}
               >
                 <div className={cn("font-bold text-sm", isToday && "text-primary")}>{format(d, "d")}</div>
-                <div className="uppercase text-[10px] text-muted-foreground tracking-wider">{DIAS_CURTOS[i]}</div>
+                <div className="uppercase text-[10px] text-muted-foreground tracking-wider">
+                  {isWeek ? DIAS_CURTOS[d.getDay()] : format(d, "EEEE", { locale: ptBR })}
+                </div>
               </div>
             );
           })}
 
           {/* Linhas */}
           {rows.length === 0 && (
-            <div className="col-span-8 py-10 text-center text-sm text-muted-foreground">
+            <div
+              className="py-10 text-center text-sm text-muted-foreground"
+              style={{ gridColumn: `span ${displayDays.length + 1}` }}
+            >
               Nenhum horário cadastrado.
             </div>
           )}
+
           {rows.map((row) => (
             <div key={row.key} className="contents">
               <div className="border-t border-border/60 text-[11px] text-muted-foreground py-2 pr-2 text-right leading-tight">
