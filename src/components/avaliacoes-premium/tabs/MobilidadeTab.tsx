@@ -551,10 +551,8 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
               <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">
                 Mobilidade / Flexibilidade
               </th>
-              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Esquerdo</th>
-              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. E</th>
-              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-20">Direito</th>
-              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Class. D</th>
+              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Esquerdo</th>
+              <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Direito</th>
             </tr>
           </thead>
           <tbody>
