@@ -115,7 +115,7 @@ export default function PortalWorkouts() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("treino_sessoes")
-        .select("id, variacao, variacao_original, foi_troca, data, concluido_em")
+        .select("id, variacao, variacao_original, foi_troca, data, concluido_em, agendamento_id")
         .eq("aluno_id", student!.id)
         .eq("treino_id", treino!.id)
         .not("concluido_em", "is", null)
