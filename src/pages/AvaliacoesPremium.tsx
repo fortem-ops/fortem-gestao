@@ -5,7 +5,6 @@ import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilida
 import { AlunoSidebarCard } from "@/components/avaliacoes-premium/AlunoSidebarCard";
 import { DashboardSummary } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
-import { PremiumKinologyImport } from "@/components/avaliacoes-premium/PremiumKinologyImport";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -89,7 +88,6 @@ export default function AvaliacoesPremium() {
 
           <div className="flex-1 min-w-0 space-y-5">
             <DashboardSummary scores={scores} />
-            <PremiumKinologyImport alunoId={alunoId} />
             <PremiumBodyMap funcional={data.funcional.latest} scores={scores} />
 
             <Tabs defaultValue="mobilidade" className="bio-card p-4">
@@ -114,7 +112,7 @@ export default function AvaliacoesPremium() {
 
               </TabsContent>
               <TabsContent value="forca" className="mt-4">
-                <ForcaTab latest={data.funcional.latest} history={data.funcional.history} aluno={data.aluno} />
+                <ForcaTab alunoId={alunoId} latest={data.funcional.latest} history={data.funcional.history} aluno={data.aluno} />
               </TabsContent>
               <TabsContent value="composicao" className="mt-4">
                 <ComposicaoTab alunoId={alunoId} latest={data.composicao.latest} history={data.composicao.history} />

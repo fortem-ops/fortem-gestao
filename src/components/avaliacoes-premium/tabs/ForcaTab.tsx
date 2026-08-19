@@ -1,5 +1,6 @@
 import { FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import type { FuncionalSnapshot } from "../useAlunoAvaliacoesConsolidadas";
+import { PremiumKinologyImport } from "../PremiumKinologyImport";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { useMemo } from "react";
 import { format, parseISO, differenceInYears } from "date-fns";
@@ -13,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 const KINOLOGY_PCT_SUPRIMIDO = new Set(["extensao_joelho", "flexao_joelho"]);
 
 interface Props {
+  alunoId: string;
   latest: FuncionalSnapshot | null;
   history: FuncionalSnapshot[];
   aluno?: { sexo: string | null; data_nascimento: string | null } | null;
@@ -24,7 +26,7 @@ function classFromDiff(diff: number): { label: string; cls: string } {
   return { label: "ALTO", cls: "text-rose-600 bg-rose-500/10 border-rose-500/30" };
 }
 
-export function ForcaTab({ latest, history, aluno }: Props) {
+export function ForcaTab({ alunoId, latest, history, aluno }: Props) {
   const exercicios = latest?.forca ?? [];
 
   const sexoRpc: "M" | "F" | null =
@@ -87,16 +89,16 @@ export function ForcaTab({ latest, history, aluno }: Props) {
 
   const palette = ["#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#06b6d4", "#84cc16"];
 
-  if (exercicios.length === 0) {
-    return (
-      <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
-        Nenhuma dinamometria importada. Use o módulo Avaliações para fazer upload do laudo Kinology.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
+      <PremiumKinologyImport alunoId={alunoId} />
+
+      {exercicios.length === 0 ? (
+        <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
+          Nenhuma dinamometria importada ainda. Use o botão acima para importar o laudo Kinology.
+        </div>
+      ) : (
+      <>
       <div className="bio-card overflow-hidden">
         <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex items-center justify-between">
           <h3 className="bio-heading text-base">Principais Assimetrias de Força</h3>
@@ -176,6 +178,8 @@ export function ForcaTab({ latest, history, aluno }: Props) {
             </LineChart>
           </ResponsiveContainer>
         </div>
+      )}
+      </>
       )}
     </div>
   );
