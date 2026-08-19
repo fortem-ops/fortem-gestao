@@ -473,16 +473,22 @@ export default function Agenda() {
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <ScrollArea className="h-[calc(100vh-240px)]">
-          <div className="min-w-[900px]">
-            <div className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border sticky top-0 bg-card z-10">
+          <div className={cn(isWeek && "min-w-[900px]")}>
+            <div
+              className="grid border-b border-border sticky top-0 bg-card z-10"
+              style={{ gridTemplateColumns: `70px repeat(${dayIdxs.length}, minmax(0,1fr))` }}
+            >
               <div className="p-2 text-xs text-muted-foreground text-center">Hora</div>
-              {weekDates.map((date, i) => {
+              {dayIdxs.map((dayIdx) => {
+                const date = weekDates[dayIdx];
                 const isToday = isSameDay(date, new Date());
                 return (
-                  <div key={i} className={`p-2 text-center border-l border-border ${isToday ? "bg-primary/10" : ""}`}>
-                    <div className="text-xs text-muted-foreground">{DIAS_CURTO[date.getDay()]}</div>
+                  <div key={dayIdx} className={`p-2 text-center border-l border-border ${isToday ? "bg-primary/10" : ""}`}>
+                    <div className="text-xs text-muted-foreground">
+                      {isWeek ? DIAS_CURTO[date.getDay()] : format(date, "EEEE", { locale: ptBR })}
+                    </div>
                     <div className={`text-sm font-medium ${isToday ? "text-primary" : "text-foreground"}`}>
-                      {format(date, "dd")}
+                      {isWeek ? format(date, "dd") : format(date, "dd 'de' MMMM", { locale: ptBR })}
                     </div>
                   </div>
                 );
@@ -490,11 +496,15 @@ export default function Agenda() {
             </div>
 
             {SLOTS.map((slot) => (
-              <div key={slot} className="grid grid-cols-[70px_repeat(7,1fr)] border-b border-border/50 min-h-[44px]">
+              <div
+                key={slot}
+                className="grid border-b border-border/50 min-h-[44px]"
+                style={{ gridTemplateColumns: `70px repeat(${dayIdxs.length}, minmax(0,1fr))` }}
+              >
                 <div className="p-2 text-xs text-muted-foreground text-right pr-3 pt-1">
                   {slotLabel(slot)}
                 </div>
-                {weekDates.map((_, dayIdx) => {
+                {dayIdxs.map((dayIdx) => {
                   const events = getEventsForCell(dayIdx, slot);
                   const isToday = isSameDay(weekDates[dayIdx], new Date());
                   return (
@@ -553,8 +563,10 @@ export default function Agenda() {
               </div>
             ))}
           </div>
+          <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
+
 
       <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} cellDate={cellDate} />
 
