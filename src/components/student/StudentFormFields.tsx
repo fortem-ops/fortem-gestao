@@ -312,8 +312,9 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Professor Responsável</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select value={field.value || ""} onValueChange={field.onChange}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+
                   <SelectContent>
                     {professors.map((p) => (
                       <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
