@@ -684,7 +684,7 @@ function WeeklyGrid({
               <div className="border-t border-border/60 text-[11px] text-muted-foreground py-2 pr-2 text-right leading-tight">
                 <div className="font-medium text-foreground">{row.horario_inicio.slice(0, 5)}</div>
               </div>
-              {weekDays.map((d, di) => {
+              {displayDays.map((d, di) => {
                 const dia = d.getDay();
                 const slotsDia = slotIndex.get(`${dia}|${row.horario_inicio}`) ?? [];
                 if (slotsDia.length === 0) {
