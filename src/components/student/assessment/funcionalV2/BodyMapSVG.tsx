@@ -413,6 +413,22 @@ export function BodyMapSVG({
 
                 {!calibrating && <Chains analysis={analysis} view={view} geometry={geometry} />}
 
+                {muscleShapeInstances
+                  .filter((s) => s.placement.view === view)
+                  .map((s) => (
+                    <MuscleShapeRegion
+                      key={s.key}
+                      shapeKey={s.key}
+                      placement={s.placement}
+                      side={s.side}
+                      fill={s.fill}
+                      override={shapeOverrides?.[s.key]}
+                      calibrating={calibrating}
+                      svgRef={svgRef}
+                      onDrag={onDragShape}
+                    />
+                  ))}
+
                 {!calibrating && regions.map(([id, geom]) => (
                   <RegionGlow key={`glow-${id}`} id={id} geom={geom} state={analysis.regions[id]} mode={mode} />
                 ))}
