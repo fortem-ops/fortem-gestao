@@ -5,7 +5,6 @@ import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilida
 import { AlunoSidebarCard } from "@/components/avaliacoes-premium/AlunoSidebarCard";
 import { DashboardSummary } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
-import { PremiumKinologyImport } from "@/components/avaliacoes-premium/PremiumKinologyImport";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
