@@ -45,6 +45,18 @@ export const ALL_FUNCTIONAL_METRICS = [
   "Mobilidade Tornozelo",
 ];
 
+export const METRIC_DISPLAY_LABEL: Record<string, string> = {
+  "Flexibilidade Posterior MMII": "Flexibilidade Posterior de Coxa",
+  "Mobilidade Ombro RI": "Mobilidade Ombro - Rotação Interna",
+  "Mobilidade Ombro RE": "Mobilidade Ombro - Rotação Externa",
+  "Mobilidade Quadril RI": "Mobilidade Quadril - Rotação Interna",
+  "Mobilidade Quadril RE": "Mobilidade Quadril - Rotação Externa",
+};
+
+export function getMetricDisplayLabel(metric: string): string {
+  return METRIC_DISPLAY_LABEL[metric] ?? metric;
+}
+
 interface MetricMeta {
   layer: Exclude<Layer, "pain" | "strength" | "asymmetry">;
   regions: ReadonlyArray<{ left: RegionId; right: RegionId } | { both: RegionId }>;
@@ -307,13 +319,19 @@ export function analyze(
     const weakerSide: "left" | "right" = lScore < rScore ? "left" : "right";
 
     for (const r of meta.regions) {
-      if ("both" in r) continue;
+      if ("both" in r) {
+        const prev = regionDiffs[r.both];
+        if (!prev || rawAsymPct > prev.diff) regionDiffs[r.both] = { diff: rawAsymPct, weakerSide, asymPercentile };
+        continue;
+      }
       for (const regionId of [r.left, r.right]) {
         const prev = regionDiffs[regionId];
         if (!prev || rawAsymPct > prev.diff) regionDiffs[regionId] = { diff: rawAsymPct, weakerSide, asymPercentile };
       }
     }
   }
+
+  const pairedRegionIds = new Set<RegionId>(pairs.flat());
 
   for (const [a, b] of pairs) {
     const info = regionDiffs[a] ?? regionDiffs[b];
@@ -329,6 +347,23 @@ export function analyze(
       info.diff >= 25 ? "severe" : info.diff >= 15 ? "moderate" : null;
     const finalSev = sevByPercentile ?? sevByFixedCut;
     if (finalSev) asymmetries.push({ region: weakerRegion, diff: info.diff, severity: finalSev });
+  }
+
+  // Regiões "both" com dado E/D real (ex: torácica — rotação de tronco), atribuídas
+  // a um único RegionId (não têm par esquerdo/direito distinto no mapa).
+  for (const regionId of Object.keys(regionDiffs) as RegionId[]) {
+    if (pairedRegionIds.has(regionId)) continue;
+    const info = regionDiffs[regionId];
+    if (!info) continue;
+    regions[regionId].asymmetry = info.diff;
+    const sevByPercentile: "severe" | "moderate" | null =
+      info.asymPercentile !== null && info.asymPercentile !== undefined
+        ? info.asymPercentile >= 90 ? "severe" : info.asymPercentile >= 75 ? "moderate" : null
+        : null;
+    const sevByFixedCut: "severe" | "moderate" | null =
+      info.diff >= 25 ? "severe" : info.diff >= 15 ? "moderate" : null;
+    const finalSev = sevByPercentile ?? sevByFixedCut;
+    if (finalSev) asymmetries.push({ region: regionId, diff: info.diff, severity: finalSev });
   }
 
   // Compensation chains

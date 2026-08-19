@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import {
   ALL_FUNCTIONAL_METRICS,
   percentilMobilidade,
+  getMetricDisplayLabel,
   type MetricInput,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
@@ -456,7 +457,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
             <tbody>
               {selecionada.metricas.map((m) => (
                 <tr key={m.metric} className="border-b border-[hsl(var(--bio-line))]">
-                  <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">{m.metric}</td>
+                  <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(m.metric)}</td>
                   <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
                     {m.left !== null ? `${m.left}°` : "—"}
                   </td>
@@ -479,7 +480,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
               {curvasData.map((c) => (
                 <PercentileCurveCard
                   key={c.metric}
-                  metric={c.metric.replace("Mobilidade ", "").replace("Flexibilidade ", "")}
+                  metric={getMetricDisplayLabel(c.metric).replace("Mobilidade ", "").replace("Flexibilidade ", "")}
                   mean={c.mean}
                   sigma={c.sigma}
                   unit={c.unit}
@@ -571,7 +572,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
               return (
                 <tr key={metric} className="border-b border-[hsl(var(--bio-line))]">
                   <td className="p-3">
-                    <p className="text-sm text-[hsl(var(--bio-ink))]">{metric}</p>
+                    <p className="text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(metric)}</p>
                     {ref && (
                       <p className="text-[10px] text-[hsl(var(--bio-ink-faint))] mt-0.5 italic">{ref}</p>
                     )}
