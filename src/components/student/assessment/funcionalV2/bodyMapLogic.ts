@@ -194,6 +194,7 @@ export interface BodyMapAnalysis {
   scoreEstabilidade: number | null;
   scoreForca: number | null;
   asymmetries: Array<{ region: RegionId; diff: number; severity: "moderate" | "severe" }>;
+  metricAsymmetries: Array<{ metric: string; diff: number; asymPercentile: number | null }>;
   riskLevel: "low" | "attention" | "high";
   chains: CompensationChain[];
 }
@@ -303,6 +304,7 @@ export function analyze(
     ["ankle-l","ankle-r"],
   ];
   const regionDiffs: Partial<Record<RegionId, { diff: number; weakerSide: "left" | "right"; asymPercentile: number | null }>> = {};
+  const metricAsymmetries: BodyMapAnalysis["metricAsymmetries"] = [];
 
   for (const m of metrics) {
     const meta = METRIC_META[m.metric];
@@ -316,6 +318,7 @@ export function analyze(
         : null;
     if (rawAsymPct === null || rawAsymPct === 0) continue;
     const asymPercentile = sexo ? percentilAssimetria(m.metric, sexo, rawAsymPct, assimetriaReferenceData) : null;
+    metricAsymmetries.push({ metric: m.metric, diff: rawAsymPct, asymPercentile });
     const weakerSide: "left" | "right" = lScore < rScore ? "left" : "right";
 
     for (const r of meta.regions) {
@@ -439,9 +442,28 @@ export function analyze(
     scoreEstabilidade: scoreEstabilidade !== null ? Math.round(scoreEstabilidade) : null,
     scoreForca: scoreForca !== null ? Math.round(scoreForca) : null,
     asymmetries,
+    metricAsymmetries,
     riskLevel,
     chains,
   };
+}
+
+/** Lista de atenção por MÉTRICA (não por região/lado) — usada nas camadas Mobilidade/Flexibilidade/Tudo. */
+export function buildMetricAttentionList(analysis: BodyMapAnalysis, max = 6): Array<{
+  id: string;
+  number: number;
+  label: string;
+  metricLabel: string;
+  percentage: number;
+}> {
+  const items = [...analysis.metricAsymmetries].sort((a, b) => b.diff - a.diff).slice(0, max);
+  return items.map((x, i) => ({
+    id: x.metric,
+    number: i + 1,
+    label: getMetricDisplayLabel(x.metric),
+    metricLabel: "",
+    percentage: Math.round(x.diff * 10) / 10,
+  }));
 }
 
 // ===================== Camada Força (Dinamometria Kinology) =====================

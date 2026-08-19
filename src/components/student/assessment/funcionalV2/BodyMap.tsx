@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Activity, GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
+import { GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, applyForcaToRegions, buildForcaAttentionList, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
+import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
 import { Button } from "@/components/ui/button";
-import { buildRegionList, RegionListPanel, type RegionListItem } from "./RegionListPanel";
+import { RegionListPanel, type RegionListItem } from "./RegionListPanel";
 
 interface Props {
   metrics: MetricInput[];
@@ -28,10 +28,8 @@ interface Props {
   } | null;
 }
 
-const MODES: Array<{ id: Mode; label: string; icon: typeof Activity; desc: string }> = [
-  { id: "quality",   label: "Qualidade",  icon: Activity,        desc: "Heatmap geral por região" },
+const MODES: Array<{ id: Mode; label: string; icon: typeof GitCompareArrows; desc: string }> = [
   { id: "asymmetry", label: "Assimetria", icon: GitCompareArrows, desc: "Diferenças bilaterais" },
-  { id: "risk",      label: "Risco",      icon: ShieldAlert,     desc: "Compensações e déficits" },
 ];
 
 const LAYERS: Array<{ id: Layer; label: string }> = [
@@ -97,7 +95,7 @@ const RISK_STYLE: Record<"low" | "attention" | "high", { label: string; color: s
 };
 
 export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
-  const [mode, setMode] = useState<Mode>("quality");
+  const [mode, setMode] = useState<Mode>("asymmetry");
   const [layer, setLayer] = useState<Layer>("mobility");
   const [viewFilter, setViewFilter] = useState<"both" | "front" | "back">("both");
   const [calibrating, setCalibrating] = useState(false);
@@ -121,15 +119,13 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
     () =>
       (layer === "strength"
         ? buildForcaAttentionList(forcaExercises, 6)
-        : buildRegionList(analysis, 6, layer)) as RegionListItem[],
+        : buildMetricAttentionList(analysis, 6)) as RegionListItem[],
     [analysis, layer, forcaExercises],
   );
-  const numbering = useMemo(() => {
-    if (layer === "strength") return {} as Partial<Record<RegionId, number>>;
-    const m: Partial<Record<RegionId, number>> = {};
-    regionList.forEach((it) => { m[it.id as RegionId] = it.number; });
-    return m;
-  }, [regionList, layer]);
+  // Numeração dos pontos no mapa SVG (badges 1-6) fica desativada por enquanto — a lista
+  // agora é por métrica/exercício, não por região, então não há correspondência 1:1 com
+  // os pontos do heatmap. Isso é revisitado na melhoria futura do body map.
+  const numbering = useMemo(() => ({} as Partial<Record<RegionId, number>>), []);
 
   const mergedOverrides: OverrideMap = { ...overrides, ...draft };
   const hasDraft = Object.keys(draft).length > 0;
