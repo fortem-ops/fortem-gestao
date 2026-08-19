@@ -157,7 +157,7 @@ export default function StudentProfile() {
             <Badge variant="outline" className={displayStatus.className}>{displayStatus.label}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            {student.email || "Sem email"} · {student.frequencia_semanal === 5 ? "Livre" : `${student.frequencia_semanal}x/semana`}
+            {student.email || "Sem email"} · {student.frequencia_semanal === 5 ? "Livre" : `${student.frequencia_semanal}x/semana`} · Prof. responsável: {responsavelNome || "—"}
           </p>
         </div>
         <EditStudentDialog student={student} onStudentUpdated={() => refetch()} />
