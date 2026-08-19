@@ -178,6 +178,8 @@ export function ForcaTab({ alunoId, latest, history, aluno }: Props) {
           </ResponsiveContainer>
         </div>
       )}
+      </>
+      )}
     </div>
   );
 }
