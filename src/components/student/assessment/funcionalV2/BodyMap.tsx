@@ -103,6 +103,9 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
   const [draft, setDraft] = useState<OverrideMap>({});
 
   const { overrides, isAdmin, saveAll, resetAll } = useBodyMapGeometry();
+  const { overrides: shapeOverrides, saveAll: saveShapeOverrides, resetAll: resetShapeOverrides } = useMuscleShapeGeometry();
+  const [shapeDraft, setShapeDraft] = useState<ShapeOverrideMap>({});
+
 
   const analysis = useMemo(() => {
     const base = analyze(metrics, layer, forcaExercises);
@@ -129,7 +132,7 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
   const numbering = useMemo(() => ({} as Partial<Record<RegionId, number>>), []);
 
   const mergedOverrides: OverrideMap = { ...overrides, ...draft };
-  const hasDraft = Object.keys(draft).length > 0;
+  const hasDraft = Object.keys(draft).length > 0 || Object.keys(shapeDraft).length > 0;
 
   function handleDrag(id: RegionId, cx: number, cy: number) {
     setDraft((d) => ({ ...d, [id]: { cx, cy } }));
@@ -137,8 +140,12 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
 
   async function handleSave() {
     try {
-      await saveAll.mutateAsync(draft);
+      await Promise.all([
+        saveAll.mutateAsync(draft),
+        saveShapeOverrides.mutateAsync(shapeDraft),
+      ]);
       setDraft({});
+      setShapeDraft({});
       toast.success("Posições salvas para todos.");
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar.");
@@ -149,7 +156,9 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
     if (!confirm("Resetar todas as posições para o padrão do código? Esta ação remove os ajustes salvos.")) return;
     try {
       await resetAll.mutateAsync();
+      await resetShapeOverrides.mutateAsync();
       setDraft({});
+      setShapeDraft({});
       toast.success("Posições resetadas.");
     } catch (e: any) {
       toast.error(e.message || "Erro ao resetar.");
