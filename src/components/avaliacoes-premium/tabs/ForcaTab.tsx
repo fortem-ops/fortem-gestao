@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 const KINOLOGY_PCT_SUPRIMIDO = new Set(["extensao_joelho", "flexao_joelho"]);
 
 interface Props {
+  alunoId: string;
   latest: FuncionalSnapshot | null;
   history: FuncionalSnapshot[];
   aluno?: { sexo: string | null; data_nascimento: string | null } | null;
