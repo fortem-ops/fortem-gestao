@@ -340,11 +340,11 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
 
       {/* Chain explanations */}
       {chainsDisplay.length > 0 && (
-        <div className="rounded-lg bg-white/5 border border-white/5 p-3 space-y-1.5">
-          <p className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
+        <div className="rounded-lg bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))] p-3 space-y-1.5">
+          <p className="text-[10px] uppercase tracking-wider text-[hsl(var(--bio-ink-muted))] font-semibold">
             Cadeias compensatórias
           </p>
-          <ul className="text-[11px] text-white/70 space-y-1">
+          <ul className="text-[11px] text-[hsl(var(--bio-ink))] space-y-1">
             {chainsDisplay.map((c, i) => (
               <li key={i} className="leading-snug">• {c.reason}</li>
             ))}

@@ -1,5 +1,5 @@
-import type { BodyMapAnalysis, RegionId, Severity } from "./bodyMapLogic";
-import { SEVERITY_COLOR_VAR, SEVERITY_LABEL } from "./bodyMapLogic";
+import type { BodyMapAnalysis, RegionId } from "./bodyMapLogic";
+import { SEVERITY_LABEL } from "./bodyMapLogic";
 
 const REGION_SHORT_LABEL: Record<RegionId, string> = {
   "shoulder-l":     "Ombro (E)",
@@ -26,62 +26,31 @@ const REGION_SHORT_LABEL: Record<RegionId, string> = {
   "ankle-r":        "Tornozelo (D)",
 };
 
-const SEVERITY_ORDER: Record<Severity, number> = {
-  weak: 0, attention: 1, medium: 2, good: 3, excellent: 4, none: 5,
-};
-
 export interface RegionListItem {
   id: RegionId;
   number: number;
   label: string;
   metricLabel: string;
   percentage: number;
-  classification: string;
-  severity: Severity;
-  isAsymmetry: boolean;
-}
-
-function classificationFor(state: BodyMapAnalysis["regions"][RegionId]): string {
-  if (state.asymmetry !== undefined && state.asymmetry >= 25) return "Assimetria elevada";
-  if (state.asymmetry !== undefined && state.asymmetry >= 15) return "Assimetria moderada";
-  if (state.severity === "weak")      return "Déficit de mobilidade";
-  if (state.severity === "attention") return "Atenção";
-  if (state.severity === "medium")    return "Pode melhorar";
-  if (state.severity === "good")      return "Bom";
-  if (state.severity === "excellent") return "Excelente";
-  return "Equilibrado";
 }
 
 export function buildRegionList(analysis: BodyMapAnalysis, max = 6): RegionListItem[] {
   const entries = (Object.entries(analysis.regions) as Array<[RegionId, BodyMapAnalysis["regions"][RegionId]]>)
-    .filter(([, s]) => s.severity !== "none");
+    .filter(([, s]) => s.asymmetry !== undefined && s.asymmetry > 0);
 
-  entries.sort(([, a], [, b]) => {
-    const sa = SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
-    if (sa !== 0) return sa;
-    const asymA = a.asymmetry ?? 0;
-    const asymB = b.asymmetry ?? 0;
-    return asymB - asymA;
-  });
+  entries.sort(([, a], [, b]) => (b.asymmetry ?? 0) - (a.asymmetry ?? 0));
 
   return entries.slice(0, max).map(([id, state], i) => {
     const firstMetric = state.contributing[0]?.metric ?? "—";
     const metricLabel = firstMetric
       .replace(/^Mobilidade\s+/i, "")
       .replace(/^Flexibilidade\s+/i, "");
-    const isAsymmetry = state.asymmetry !== undefined && state.asymmetry > 0;
-    const percentage = isAsymmetry
-      ? state.asymmetry!
-      : (state.score !== null ? Math.round(state.score) : 0);
     return {
       id,
       number: i + 1,
       label: REGION_SHORT_LABEL[id],
       metricLabel,
-      percentage,
-      classification: classificationFor(state),
-      severity: state.severity,
-      isAsymmetry,
+      percentage: Math.round(state.asymmetry ?? 0),
     };
   });
 }
@@ -90,48 +59,31 @@ export function RegionListPanel({ items }: { items: RegionListItem[] }) {
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center text-[12px] text-white/40">
-        Nenhum ponto de atenção identificado nesta camada.
+        Nenhuma assimetria identificada nesta camada.
       </div>
     );
   }
 
   return (
     <div className="rounded-xl border border-white/5 bg-white/[0.02] divide-y divide-white/5">
-      {items.map((it) => {
-        const color = SEVERITY_COLOR_VAR[it.severity];
-        const pctColor =
-          it.severity === "weak" || it.severity === "attention"
-            ? color
-            : "var(--sev-good)";
-        return (
-          <div key={it.id} className="flex items-center gap-3 px-3.5 py-2.5">
-            <div
-              className="flex items-center justify-center w-7 h-7 rounded-full text-[12px] font-bold shrink-0"
-              style={{
-                background: `hsl(${color} / 0.15)`,
-                color: `hsl(${color})`,
-                border: `1.5px solid hsl(${color} / 0.6)`,
-              }}
-            >
-              {it.number}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-white leading-tight truncate">
-                {it.label}
-              </p>
-              <p className="text-[11px] text-white/50 truncate">{it.metricLabel}</p>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-[14px] font-bold leading-tight" style={{ color: `hsl(${pctColor})` }}>
-                {it.isAsymmetry ? `${it.percentage}%` : `${it.percentage}/100`}
-              </p>
-              <p className="text-[10px]" style={{ color: `hsl(${color})` }}>
-                {it.classification}
-              </p>
-            </div>
+      {items.map((it) => (
+        <div key={it.id} className="flex items-center gap-3 px-3.5 py-2.5">
+          <div className="flex items-center justify-center w-7 h-7 rounded-full text-[12px] font-bold shrink-0 bg-white/5 text-white/70 border border-white/10">
+            {it.number}
           </div>
-        );
-      })}
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-white leading-tight truncate">
+              {it.label}
+            </p>
+            <p className="text-[11px] text-white/50 truncate">{it.metricLabel}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[14px] font-bold leading-tight text-white/80">
+              {it.percentage}%
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
