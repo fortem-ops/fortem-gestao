@@ -86,6 +86,20 @@ export default function StudentProfile() {
     enabled: !!id,
   });
 
+  const { data: responsavelNome } = useQuery({
+    queryKey: ["aluno-responsavel-nome", student?.responsavel_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", student!.responsavel_id!)
+        .maybeSingle();
+      return data?.full_name || null;
+    },
+    enabled: !!student?.responsavel_id,
+  });
+
+
   const { data: statusInfo } = useQuery({
     queryKey: ["aluno_display_status", id],
     queryFn: async () => {
