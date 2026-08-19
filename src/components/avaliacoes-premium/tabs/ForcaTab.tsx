@@ -98,6 +98,7 @@ export function ForcaTab({ alunoId, latest, history, aluno }: Props) {
           Nenhuma dinamometria importada ainda. Use o botão acima para importar o laudo Kinology.
         </div>
       ) : (
+      <>
       <div className="bio-card overflow-hidden">
         <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex items-center justify-between">
           <h3 className="bio-heading text-base">Principais Assimetrias de Força</h3>
