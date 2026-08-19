@@ -58,6 +58,12 @@ interface Props {
   numbering?: Partial<Record<RegionId, number>>;
   /** Filter which view(s) to render */
   viewFilter?: "front" | "back" | "both";
+  /** Novos: necessários pras formas musculares de Força/Flexibilidade */
+  layer?: Layer;
+  forcaExercises?: ForcaInput[];
+  metrics?: MetricInput[];
+  shapeOverrides?: ShapeOverrideMap;
+  onDragShape?: (key: string, cx: number, cy: number) => void;
 }
 
 function mergeGeometry(overrides?: OverrideMap): Record<RegionId, RegionGeometry> {
