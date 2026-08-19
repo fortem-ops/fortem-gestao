@@ -1196,6 +1196,33 @@ export type Database = {
         }
         Relationships: []
       }
+      bodymap_shape_overrides: {
+        Row: {
+          cx: number
+          cy: number
+          scale: number
+          shape_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cx: number
+          cy: number
+          scale?: number
+          shape_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cx?: number
+          cy?: number
+          scale?: number
+          shape_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       cadastro_trabalhista: {
         Row: {
           art_62_clt: boolean
