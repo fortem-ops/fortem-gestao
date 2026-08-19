@@ -558,18 +558,10 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
           <tbody>
             {ALL_FUNCTIONAL_METRICS.map((metric) => {
               const v = values[metric] || { left: "", right: "" };
-              const l = parseInt(v.left);
-              const r = parseInt(v.right);
-              const lc = !isNaN(l) ? classifyAngle(metric, l) : null;
-              const rc = !isNaN(r) ? classifyAngle(metric, r) : null;
-              const ref = assessmentReferences[metric]?.referenceText;
               return (
                 <tr key={metric} className="border-b border-[hsl(var(--bio-line))]">
                   <td className="p-3">
                     <p className="text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(metric)}</p>
-                    {ref && (
-                      <p className="text-[10px] text-[hsl(var(--bio-ink-faint))] mt-0.5 italic">{ref}</p>
-                    )}
                   </td>
                   <td className="p-3">
                     <Input
@@ -580,15 +572,6 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
                       placeholder="°"
                     />
                   </td>
-                  <td className="p-3 text-center">
-                    {lc && (
-                      <span
-                        className={`text-xs font-semibold ${getClassificationColor(lc as AssessmentClassification)}`}
-                      >
-                        {lc}
-                      </span>
-                    )}
-                  </td>
                   <td className="p-3">
                     <Input
                       type="number"
@@ -597,15 +580,6 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
                       onChange={(e) => handleChange(metric, "right", e.target.value)}
                       placeholder="°"
                     />
-                  </td>
-                  <td className="p-3 text-center">
-                    {rc && (
-                      <span
-                        className={`text-xs font-semibold ${getClassificationColor(rc as AssessmentClassification)}`}
-                      >
-                        {rc}
-                      </span>
-                    )}
                   </td>
                 </tr>
               );
