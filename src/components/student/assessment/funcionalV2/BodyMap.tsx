@@ -119,9 +119,9 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
 
   const regionList = useMemo(
     () =>
-      layer === "strength"
+      (layer === "strength"
         ? buildForcaAttentionList(forcaExercises, 6)
-        : buildRegionList(analysis, 6, layer),
+        : buildRegionList(analysis, 6, layer)) as RegionListItem[],
     [analysis, layer, forcaExercises],
   );
   const numbering = useMemo(() => {
