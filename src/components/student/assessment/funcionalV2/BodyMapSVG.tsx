@@ -5,6 +5,10 @@ import { SEVERITY_COLOR_VAR, SEVERITY_LABEL } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
 import type { OverrideMap } from "./useBodyMapGeometry";
+import { MUSCLE_SHAPES, MUSCLE_SHAPE_ORIGIN } from "./muscleShapes";
+import { FORCA_SHAPE_PLACEMENT, FLEXIBILIDADE_SHAPE_PLACEMENT, type ShapePlacement } from "./shapePlacement";
+import { classifyForca, type ForcaInput, type Layer, type MetricInput } from "./bodyMapLogic";
+import type { ShapeOverrideMap } from "./useMuscleShapeGeometry";
 
 interface RegionGeometry {
   cx: number;
