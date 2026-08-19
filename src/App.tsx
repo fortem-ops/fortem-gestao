@@ -33,6 +33,7 @@ const CarteiraAlunos = lazyWithReload(() => import("./pages/CarteiraAlunos"));
 const ExerciseBank = lazyWithReload(() => import("./pages/ExerciseBank"));
 const Avaliacoes = lazyWithReload(() => import("./pages/Avaliacoes"));
 const AvaliacoesPremium = lazyWithReload(() => import("./pages/AvaliacoesPremium"));
+const BodyMapShapesConfig = lazyWithReload(() => import("./pages/BodyMapShapesConfig"));
 const BancoTreinos = lazyWithReload(() => import("./pages/BancoTreinos"));
 const ArquivosMetodologicos = lazyWithReload(() => import("./pages/ArquivosMetodologicos"));
 const MeusTreinos = lazyWithReload(() => import("./pages/MeusTreinos"));
@@ -308,6 +309,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <AvaliacoesPremium />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/bodymap-config"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <BodyMapShapesConfig />
                   </Suspense>
                 }
               />

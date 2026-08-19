@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen } from "lucide-react";
+import { LayoutDashboard, Users, UserX, UserRound, ClipboardList, CalendarDays, Settings, LogOut, Briefcase, Dumbbell, ClipboardCheck, Library, KanbanSquare, Sparkles, ScanLine, Clock, Users2, FileCheck2, FileText, UserPlus, Target, Bell, FileSignature, DollarSign, Activity, BarChart3, CheckSquare, CreditCard, Percent, MessageCircle, BookOpen, Star, Store, Flag, FolderOpen, Shapes } from "lucide-react";
 import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes";
 import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
@@ -56,6 +56,7 @@ const tecnicoItems = [
   { title: "Banco de Exercícios", url: "/exercicios", icon: Dumbbell },
   { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
   { title: "Avaliações Premium", url: "/avaliacoes-premium", icon: Activity },
+  { title: "Config. Mapa Corporal", url: "/bodymap-config", icon: Shapes },
   { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
   { title: "Arquivos Metodológicos", url: "/arquivos-metodologicos", icon: FolderOpen },
   { title: "Meus Treinos", url: "/meus-treinos", icon: Dumbbell },

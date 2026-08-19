@@ -1196,30 +1196,39 @@ export type Database = {
         }
         Relationships: []
       }
-      bodymap_shape_overrides: {
+      bodymap_shapes: {
         Row: {
-          cx: number
-          cy: number
-          scale: number
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          points: Json
           shape_key: string
           updated_at: string
           updated_by: string | null
+          view: string
         }
         Insert: {
-          cx: number
-          cy: number
-          scale?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          label: string
+          points?: Json
           shape_key: string
           updated_at?: string
           updated_by?: string | null
+          view: string
         }
         Update: {
-          cx?: number
-          cy?: number
-          scale?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          points?: Json
           shape_key?: string
           updated_at?: string
           updated_by?: string | null
+          view?: string
         }
         Relationships: []
       }
