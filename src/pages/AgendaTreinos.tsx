@@ -556,10 +556,26 @@ function WeeklyGrid({
   const qc = useQueryClient();
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selected, setSelected] = useState<SelectedCell>(null);
+  const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<"dia" | "semana" | null>(null);
+  const [selectedDayIdx, setSelectedDayIdx] = useState(() => new Date().getDay());
+  const isWeek = (viewMode ?? (isMobile ? "dia" : "semana")) === "semana";
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+  const displayDays = isWeek ? weekDays : [weekDays[selectedDayIdx]];
+  const goPrev = () => {
+    if (isWeek) setWeekStart(addWeeks(weekStart, -1));
+    else if (selectedDayIdx > 0) setSelectedDayIdx(selectedDayIdx - 1);
+    else { setWeekStart(addWeeks(weekStart, -1)); setSelectedDayIdx(6); }
+  };
+  const goNext = () => {
+    if (isWeek) setWeekStart(addWeeks(weekStart, 1));
+    else if (selectedDayIdx < 6) setSelectedDayIdx(selectedDayIdx + 1);
+    else { setWeekStart(addWeeks(weekStart, 1)); setSelectedDayIdx(0); }
+  };
   const weekStartStr = format(weekStart, "yyyy-MM-dd");
   const weekEndStr = format(addDays(weekStart, 6), "yyyy-MM-dd");
+
 
   // Uma linha por horário de início (independente da duração/atividade)
   const rows = useMemo(() => {
