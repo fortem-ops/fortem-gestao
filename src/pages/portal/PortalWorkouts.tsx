@@ -267,6 +267,103 @@ export default function PortalWorkouts() {
     return { variacao: v, realizados, total: semanas };
   });
 
+  // Datas já ocupadas por outras sessões registradas
+  const datasOcupadas = new Set(
+    sessoes
+      .filter((s: any) => !editandoSlot?.sessao || s.id !== editandoSlot.sessao.id)
+      .map((s: any) => s.data),
+  );
+
+  function invalidarHistorico() {
+    qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
+    qc.invalidateQueries({ queryKey: ["portal-agendamentos-passados"] });
+    qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
+    qc.invalidateQueries({ queryKey: ["portal-progress"] });
+    qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
+    qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
+  }
+
+  // ── Registrar / mover sessão para uma data agendada ──────────
+  async function salvarDataSessao(ag: { id: string; data: string }) {
+    if (!treino || !student || !editandoSlot) return;
+    setSalvandoData(true);
+    try {
+      const concluidoEm = new Date(ag.data + "T12:00:00").toISOString();
+      const anterior = editandoSlot.sessao;
+
+      if (anterior) {
+        const { error } = await (supabase as any)
+          .from("treino_sessoes")
+          .update({
+            data: ag.data,
+            concluido_em: concluidoEm,
+            agendamento_id: ag.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", anterior.id);
+        if (error) throw error;
+        if (anterior.agendamento_id && anterior.agendamento_id !== ag.id) {
+          await supabase.from("treino_agendamentos")
+            .update({ status: "confirmado", updated_at: new Date().toISOString() })
+            .eq("id", anterior.agendamento_id);
+        }
+      } else {
+        const { error } = await (supabase as any).from("treino_sessoes").insert({
+          aluno_id: student.id,
+          treino_id: treino.id,
+          variacao: editandoSlot.variacao,
+          variacao_original: null,
+          foi_troca: false,
+          agendamento_id: ag.id,
+          data: ag.data,
+          concluido_em: concluidoEm,
+        });
+        if (error) throw error;
+      }
+
+      await supabase.from("treino_agendamentos")
+        .update({ status: "realizado", updated_at: new Date().toISOString() })
+        .eq("id", ag.id);
+
+      invalidarHistorico();
+      setEditandoSlot(null);
+      toast.success(
+        `${editandoSlot.variacao} registrado em ${format(parseISO(ag.data + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}.`,
+      );
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar a data.");
+    } finally {
+      setSalvandoData(false);
+    }
+  }
+
+  // ── Remover sessão registrada ────────────────────────────────
+  async function removerSessao() {
+    if (!editandoSlot?.sessao) return;
+    setSalvandoData(true);
+    try {
+      const sessao = editandoSlot.sessao;
+      const { error } = await (supabase as any)
+        .from("treino_sessoes")
+        .delete()
+        .eq("id", sessao.id);
+      if (error) throw error;
+      if (sessao.agendamento_id) {
+        await supabase.from("treino_agendamentos")
+          .update({ status: "confirmado", updated_at: new Date().toISOString() })
+          .eq("id", sessao.agendamento_id);
+      }
+      invalidarHistorico();
+      setEditandoSlot(null);
+      toast.success("Registro removido.");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao remover o registro.");
+    } finally {
+      setSalvandoData(false);
+    }
+  }
+
+
   // ── Salvar carga individual ──────────────────────────────────
   async function salvarCarga(exercicioNome: string, kg: string) {
     if (!treino || !student) return;
