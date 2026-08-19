@@ -24,9 +24,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toastSuccess, toastError } from "@/lib/toast-helpers";
 
+import { useIsMobile } from "@/hooks/use-mobile";
+
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useIsMobile } from "@/hooks/use-mobile";
+
 const DIAS_CURTOS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 type Slot = {
