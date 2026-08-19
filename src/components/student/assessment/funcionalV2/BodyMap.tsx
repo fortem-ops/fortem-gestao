@@ -338,13 +338,9 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
           forcaExercises={forcaExercises}
           metrics={metrics}
           shapeOverrides={{ ...shapeOverrides, ...shapeDraft }}
-          onDragShape={
+          onChangeShape={
             calibrating
-              ? (key, cx, cy) =>
-                  setShapeDraft((d) => ({
-                    ...d,
-                    [key]: { cx, cy, scale: d[key]?.scale ?? shapeOverrides[key]?.scale ?? 1.6 },
-                  }))
+              ? (key, cx, cy, scale) => setShapeDraft((d) => ({ ...d, [key]: { cx, cy, scale } }))
               : undefined
           }
         />

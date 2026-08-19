@@ -63,7 +63,7 @@ interface Props {
   forcaExercises?: ForcaInput[];
   metrics?: MetricInput[];
   shapeOverrides?: ShapeOverrideMap;
-  onDragShape?: (key: string, cx: number, cy: number) => void;
+  onChangeShape?: (key: string, cx: number, cy: number, scale: number) => void;
 }
 
 function mergeGeometry(overrides?: OverrideMap): Record<RegionId, RegionGeometry> {
