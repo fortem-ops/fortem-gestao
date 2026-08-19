@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
 import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
+import { useMuscleShapeGeometry, type ShapeOverrideMap } from "./useMuscleShapeGeometry";
 import { Button } from "@/components/ui/button";
 import { RegionListPanel, type RegionListItem } from "./RegionListPanel";
 
