@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Activity, GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, applyForcaToRegions, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
+import { analyze, applyForcaToRegions, buildForcaAttentionList, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
 import { Button } from "@/components/ui/button";
 import { buildRegionList, RegionListPanel } from "./RegionListPanel";
@@ -117,12 +117,19 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
   const asymmetryCountDisplay = canonical ? canonical.asymmetryCount : analysis.asymmetries.length;
   const chainsDisplay = canonical ? canonical.chains : analysis.chains;
 
-  const regionList = useMemo(() => buildRegionList(analysis, 6, layer), [analysis, layer]);
+  const regionList = useMemo(
+    () =>
+      layer === "strength"
+        ? buildForcaAttentionList(forcaExercises, 6)
+        : buildRegionList(analysis, 6, layer),
+    [analysis, layer, forcaExercises],
+  );
   const numbering = useMemo(() => {
+    if (layer === "strength") return {} as Partial<Record<RegionId, number>>;
     const m: Partial<Record<RegionId, number>> = {};
-    regionList.forEach((it) => { m[it.id] = it.number; });
+    regionList.forEach((it) => { m[it.id as RegionId] = it.number; });
     return m;
-  }, [regionList]);
+  }, [regionList, layer]);
 
   const mergedOverrides: OverrideMap = { ...overrides, ...draft };
   const hasDraft = Object.keys(draft).length > 0;

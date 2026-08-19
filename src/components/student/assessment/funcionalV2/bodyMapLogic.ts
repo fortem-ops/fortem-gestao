@@ -527,6 +527,43 @@ export function classifyForca(direito: number, esquerdo: number): {
   return { assimetria: diff, classification: "Fraco", score: 30 };
 }
 
+export interface ForcaAttentionItem {
+  id: string;
+  number: number;
+  label: string;
+  percentage: number;
+  riskLabel: string;
+  riskColor: string;
+}
+
+/** Lista de atenção por exercício (não por região/lado) — usada só na camada Força. */
+export function buildForcaAttentionList(exercises: ForcaInput[] | undefined, max = 6): ForcaAttentionItem[] {
+  if (!exercises) return [];
+  const items = exercises
+    .filter((ex) => ex.direito_kg != null && ex.esquerdo_kg != null)
+    .map((ex) => ({
+      nome: ex.nome,
+      assimetria: classifyForca(ex.direito_kg!, ex.esquerdo_kg!).assimetria,
+    }))
+    .filter((x) => x.assimetria > 0)
+    .sort((a, b) => b.assimetria - a.assimetria)
+    .slice(0, max);
+
+  return items.map((x, i) => {
+    const riskLabel = x.assimetria < 10 ? "BAIXO" : x.assimetria < 20 ? "ATENÇÃO" : "ALTO";
+    const riskColor =
+      x.assimetria < 10 ? "var(--sev-good)" : x.assimetria < 20 ? "var(--sev-attention)" : "var(--sev-weak)";
+    return {
+      id: x.nome,
+      number: i + 1,
+      label: FORCA_EXERCICIO_LABEL[x.nome],
+      percentage: Math.round(x.assimetria * 10) / 10,
+      riskLabel,
+      riskColor,
+    };
+  });
+}
+
 export function computeForcaScore(exercises: ForcaInput[] | undefined): number | null {
   if (!exercises || exercises.length === 0) return null;
   const scores: number[] = [];

@@ -27,7 +27,7 @@ const REGION_SHORT_LABEL: Record<RegionId, string> = {
 };
 
 export interface RegionListItem {
-  id: RegionId;
+  id: RegionId | string;
   number: number;
   label: string;
   metricLabel: string;
@@ -85,7 +85,9 @@ export function RegionListPanel({ items }: { items: RegionListItem[] }) {
             <p className="text-[13px] font-semibold text-[hsl(var(--bio-ink))] leading-tight truncate">
               {it.label}
             </p>
-            <p className="text-[11px] text-[hsl(var(--bio-ink-muted))] truncate">{it.metricLabel}</p>
+            {it.metricLabel && (
+              <p className="text-[11px] text-[hsl(var(--bio-ink-muted))] truncate">{it.metricLabel}</p>
+            )}
           </div>
           <div className="text-right shrink-0">
             <p
