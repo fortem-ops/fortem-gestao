@@ -63,7 +63,7 @@ interface Props {
   forcaExercises?: ForcaInput[];
   metrics?: MetricInput[];
   shapeOverrides?: ShapeOverrideMap;
-  onDragShape?: (key: string, cx: number, cy: number) => void;
+  onChangeShape?: (key: string, cx: number, cy: number, scale: number) => void;
 }
 
 function mergeGeometry(overrides?: OverrideMap): Record<RegionId, RegionGeometry> {
@@ -267,7 +267,7 @@ function CalibrationHandle({
 }
 
 function MuscleShapeRegion({
-  shapeKey, placement, side, fill, override, calibrating, svgRef, onDrag,
+  shapeKey, placement, side, fill, override, calibrating, svgRef, onChange,
 }: {
   shapeKey: string;
   placement: ShapePlacement;
@@ -276,7 +276,7 @@ function MuscleShapeRegion({
   override?: { cx: number; cy: number; scale: number };
   calibrating?: boolean;
   svgRef: React.RefObject<SVGSVGElement>;
-  onDrag?: (key: string, cx: number, cy: number) => void;
+  onChange?: (key: string, cx: number, cy: number, scale: number) => void;
 }) {
   const draggingRef = useRef(false);
   const cx = override?.cx ?? placement.cx;
@@ -305,13 +305,21 @@ function MuscleShapeRegion({
         e.stopPropagation();
       } : undefined}
       onPointerMove={calibrating ? (e) => {
-        if (!draggingRef.current || !onDrag) return;
+        if (!draggingRef.current || !onChange) return;
         const p = toViewBox(e.clientX, e.clientY);
-        if (p) onDrag(shapeKey, Math.round(p.x), Math.round(p.y));
+        if (p) onChange(shapeKey, Math.round(p.x), Math.round(p.y), scale);
       } : undefined}
       onPointerUp={calibrating ? (e) => {
         draggingRef.current = false;
         try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch {}
+      } : undefined}
+      onWheel={calibrating ? (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!onChange) return;
+        const delta = e.deltaY > 0 ? -0.04 : 0.04;
+        const nextScale = Math.round(Math.max(0.2, Math.min(4, scale + delta)) * 100) / 100;
+        onChange(shapeKey, cx, cy, nextScale);
       } : undefined}
     >
       <path
@@ -322,13 +330,25 @@ function MuscleShapeRegion({
         strokeWidth={calibrating ? 2 / scale : 0}
         strokeDasharray={calibrating ? "4 4" : undefined}
       />
+      {calibrating && (
+        <text
+          x={MUSCLE_SHAPE_ORIGIN.x}
+          y={MUSCLE_SHAPE_ORIGIN.y}
+          textAnchor="middle"
+          fontSize={20}
+          fill="white"
+          style={{ pointerEvents: "none", fontFamily: "monospace" }}
+        >
+          {scale.toFixed(2)}x
+        </text>
+      )}
     </g>
   );
 }
 
 export function BodyMapSVG({
   analysis, mode, overrides, calibrating, onDragRegion, numbering, viewFilter = "both",
-  layer, forcaExercises, metrics, shapeOverrides, onDragShape,
+  layer, forcaExercises, metrics, shapeOverrides, onChangeShape,
 }: Props) {
   const geometry = mergeGeometry(overrides);
 
@@ -425,7 +445,7 @@ export function BodyMapSVG({
                       override={shapeOverrides?.[s.key]}
                       calibrating={calibrating}
                       svgRef={svgRef}
-                      onDrag={onDragShape}
+                      onChange={onChangeShape}
                     />
                   ))}
 
