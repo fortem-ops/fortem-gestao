@@ -182,6 +182,9 @@ export default function PortalWorkouts() {
   const [concluido, setConcluido] = useState(false);
   const [variacaoConcluida, setVariacaoConcluida] = useState<string | null>(null);
   const [variacaoOriginalConcluida, setVariacaoOriginalConcluida] = useState<string | null>(null);
+  const [editandoSlot, setEditandoSlot] = useState<{ variacao: string; sessao: any | null } | null>(null);
+  const [salvandoData, setSalvandoData] = useState(false);
+
 
   // Popular cargas ao carregar
   useEffect(() => {
