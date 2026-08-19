@@ -89,16 +89,15 @@ export function ForcaTab({ alunoId, latest, history, aluno }: Props) {
 
   const palette = ["#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#06b6d4", "#84cc16"];
 
-  if (exercicios.length === 0) {
-    return (
-      <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
-        Nenhuma dinamometria importada. Use o módulo Avaliações para fazer upload do laudo Kinology.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
+      <PremiumKinologyImport alunoId={alunoId} />
+
+      {exercicios.length === 0 ? (
+        <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
+          Nenhuma dinamometria importada ainda. Use o botão acima para importar o laudo Kinology.
+        </div>
+      ) : (
       <div className="bio-card overflow-hidden">
         <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex items-center justify-between">
           <h3 className="bio-heading text-base">Principais Assimetrias de Força</h3>
