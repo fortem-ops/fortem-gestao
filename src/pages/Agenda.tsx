@@ -57,6 +57,12 @@ export default function Agenda() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date; tipo: string } | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<"dia" | "semana" | null>(null);
+  const [selectedDayIdx, setSelectedDayIdx] = useState(() => (new Date().getDay() + 6) % 7);
+  const isWeek = (viewMode ?? (isMobile ? "dia" : "semana")) === "semana";
+  const dayIdxs = isWeek ? [0, 1, 2, 3, 4, 5, 6] : [selectedDayIdx];
+
   const [prefill, setPrefill] = useState<{ date: Date; hour: number; minute?: number } | null>(null);
   const [editEvent, setEditEvent] = useState<any>(null);
   const [cellDate, setCellDate] = useState<Date | null>(null);
