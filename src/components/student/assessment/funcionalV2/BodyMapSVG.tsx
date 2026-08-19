@@ -348,7 +348,7 @@ function MuscleShapeRegion({
 
 export function BodyMapSVG({
   analysis, mode, overrides, calibrating, onDragRegion, numbering, viewFilter = "both",
-  layer, forcaExercises, metrics, shapeOverrides, onDragShape,
+  layer, forcaExercises, metrics, shapeOverrides, onChangeShape,
 }: Props) {
   const geometry = mergeGeometry(overrides);
 
@@ -445,7 +445,7 @@ export function BodyMapSVG({
                       override={shapeOverrides?.[s.key]}
                       calibrating={calibrating}
                       svgRef={svgRef}
-                      onDrag={onDragShape}
+                      onChange={onChangeShape}
                     />
                   ))}
 
