@@ -26,7 +26,7 @@ function classFromDiff(diff: number): { label: string; cls: string } {
   return { label: "ALTO", cls: "text-rose-600 bg-rose-500/10 border-rose-500/30" };
 }
 
-export function ForcaTab({ latest, history, aluno }: Props) {
+export function ForcaTab({ alunoId, latest, history, aluno }: Props) {
   const exercicios = latest?.forca ?? [];
 
   const sexoRpc: "M" | "F" | null =
