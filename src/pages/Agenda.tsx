@@ -376,11 +376,26 @@ export default function Agenda() {
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="outline" size="icon" onClick={prevWeek}>
+        <div className="inline-flex rounded-md border border-border overflow-hidden">
+          <button
+            onClick={() => setViewMode("dia")}
+            className={cn("px-3 h-9 text-xs font-semibold", !isWeek ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground")}
+          >
+            Dia
+          </button>
+          <button
+            onClick={() => setViewMode("semana")}
+            className={cn("px-3 h-9 text-xs font-semibold border-l border-border", isWeek ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground")}
+          >
+            Semana
+          </button>
+        </div>
+
+        <Button variant="outline" size="icon" onClick={isWeek ? prevWeek : prevDay}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="sm" onClick={goToday}>Hoje</Button>
-        <Button variant="outline" size="icon" onClick={nextWeek}>
+        <Button variant="outline" size="icon" onClick={isWeek ? nextWeek : nextDay}>
           <ChevronRight className="h-4 w-4" />
         </Button>
 
@@ -400,7 +415,10 @@ export default function Agenda() {
               mode="single"
               selected={weekStart}
               onSelect={(date) => {
-                if (date) setWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
+                if (date) {
+                  setWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
+                  setSelectedDayIdx((date.getDay() + 6) % 7);
+                }
               }}
               initialFocus
               className={cn("p-3 pointer-events-auto")}
@@ -409,9 +427,12 @@ export default function Agenda() {
         </Popover>
 
         <span className="text-xs sm:text-sm text-muted-foreground ml-1 sm:ml-2 w-full sm:w-auto">
-          {format(weekDates[0], "dd MMM", { locale: ptBR })} — {format(weekDates[6], "dd MMM yyyy", { locale: ptBR })}
+          {isWeek
+            ? `${format(weekDates[0], "dd MMM", { locale: ptBR })} — ${format(weekDates[6], "dd MMM yyyy", { locale: ptBR })}`
+            : format(weekDates[selectedDayIdx], "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
         </span>
       </div>
+
 
       <div className="rounded-lg border border-border bg-card p-3 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
