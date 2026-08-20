@@ -13,13 +13,29 @@ export interface KinologyParsedExercise {
   data?: string;
 }
 
+export interface KinologyHistoricoEntrada {
+  /** dd/mm/aaaa como vem do laudo */
+  data: string;
+  exercicios: KinologyParsedExercise[];
+}
+
 export interface KinologyParseResult {
   paciente: string | null;
   dataEmissao: string | null;
   exercicios: KinologyParsedExercise[];
+  /** Seção "Evolução de Assimetria" — uma entrada por data encontrada. */
+  historico: KinologyHistoricoEntrada[];
   laudoPath: string;
   source: "deterministic" | "ai";
 }
+
+/** Converte dd/mm/aaaa → aaaa-mm-dd. Retorna null se não casar. */
+export function brDateToISO(d: string | null | undefined): string | null {
+  if (!d) return null;
+  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+}
+
 
 
 /**
@@ -65,10 +81,12 @@ export async function uploadAndParseKinology(
   if (data?.error) throw new Error(data.error);
 
   const exercicios = (data?.exercicios ?? []) as KinologyParsedExercise[];
+  const historico = (data?.historico ?? []) as KinologyHistoricoEntrada[];
   return {
     paciente: data?.paciente ?? null,
     dataEmissao: data?.dataEmissao ?? null,
     exercicios,
+    historico,
     laudoPath: path,
     source: (data?.source === "deterministic" ? "deterministic" : "ai"),
   };
@@ -77,9 +95,13 @@ export async function uploadAndParseKinology(
 
 /**
  * Monta o objeto `dados.forca` no formato canônico gravado por funcional_v2.
+ * `exercicios` permite sobrescrever a lista (usado ao importar datas do histórico).
  */
-export function buildForcaPayload(result: KinologyParseResult) {
-  const exercicios = result.exercicios.map((ex) => {
+export function buildForcaPayload(
+  result: KinologyParseResult,
+  exerciciosOverride?: KinologyParsedExercise[],
+) {
+  const exercicios = (exerciciosOverride ?? result.exercicios).map((ex) => {
     const c = classifyForca(ex.direito_kg, ex.esquerdo_kg);
     return {
       nome: ex.nome,
@@ -101,6 +123,7 @@ export function buildForcaPayload(result: KinologyParseResult) {
     scoreForca: computeForcaScore(forcaInputs),
   };
 }
+
 
 export interface FuncionalV2Row {
   id: string;
@@ -159,4 +182,63 @@ export async function getFuncionalV2DefaultProtocoloId(): Promise<string | null>
     .eq("ativo", true)
     .maybeSingle();
   return proto?.id ?? null;
+}
+
+/**
+ * Retorna as datas (ISO) em que o aluno já tem avaliação funcional_v2 COM força
+ * registrada — usado para marcar "já registrado" no diálogo de histórico.
+ */
+export async function listarDatasForcaExistentes(alunoId: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("avaliacoes")
+    .select("data, dados")
+    .eq("aluno_id", alunoId)
+    .eq("tipo", "funcional_v2");
+  if (error) throw error;
+  const out = new Set<string>();
+  for (const row of data ?? []) {
+    const dados = (row.dados as Record<string, unknown>) || {};
+    const forca = dados.forca as { exercicios?: unknown[] } | null | undefined;
+    if (forca && Array.isArray(forca.exercicios) && forca.exercicios.length > 0) {
+      out.add(row.data as string);
+    }
+  }
+  return out;
+}
+
+/**
+ * Grava a força numa data específica: mescla numa avaliação funcional_v2 da
+ * MESMA data que ainda aguarda força ou cria uma nova linha.
+ * Retorna "merge" ou "insert".
+ */
+export async function persistirForcaNaData(params: {
+  alunoId: string;
+  avaliadorId: string;
+  dataISO: string;
+  forcaPayload: ReturnType<typeof buildForcaPayload>;
+}): Promise<"merge" | "insert"> {
+  const { alunoId, avaliadorId, dataISO, forcaPayload } = params;
+  const pendente = await findFuncionalV2AguardandoForca(alunoId, dataISO);
+
+  if (pendente) {
+    const { error } = await supabase
+      .from("avaliacoes")
+      .update({ dados: { ...pendente.dados, forca: forcaPayload } } as never)
+      .eq("id", pendente.id);
+    if (error) throw error;
+    return "merge";
+  }
+
+  const protocoloId = await getFuncionalV2DefaultProtocoloId();
+  if (!protocoloId) throw new Error("Protocolo padrão de funcional_v2 não encontrado");
+  const { error } = await supabase.from("avaliacoes").insert({
+    aluno_id: alunoId,
+    avaliador_id: avaliadorId,
+    tipo: "funcional_v2",
+    protocolo_id: protocoloId,
+    data: dataISO,
+    dados: { metricas: [], forca: forcaPayload },
+  } as never);
+  if (error) throw error;
+  return "insert";
 }
