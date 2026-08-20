@@ -266,6 +266,16 @@ export default function BodyMapShapesConfig() {
             >
               {view === "front" ? <AnatomyFront /> : <AnatomyBack />}
 
+              <g pointerEvents="none" opacity={0.55}>
+                <text x={40} y={48} fontSize={26} fontWeight={700} fill="hsl(var(--muted-foreground))">
+                  {view === "front" ? "D do aluno" : "E do aluno"}
+                </text>
+                <text x={VIEWBOX.w - 40} y={48} textAnchor="end" fontSize={26} fontWeight={700} fill="hsl(var(--muted-foreground))">
+                  {view === "front" ? "E do aluno" : "D do aluno"}
+                </text>
+              </g>
+
+
               {selected && showOpposite && counterpart && counterpart.points.length >= 3 && (
                 <path
                   d={pointsToSmoothPath(counterpart.points as Array<[number, number]>)}
@@ -324,7 +334,12 @@ export default function BodyMapShapesConfig() {
               Selecione uma forma na lista. Arraste os pontos para moldar; duplo-clique na imagem adiciona um ponto.
               <br />
               Segure <kbd className="px-1 py-0.5 rounded border text-[10px] font-mono">H</kbd> para ocultar os pontos e conferir o tracejado.
+              <br />
+              {view === "front"
+                ? "Vista anterior: o lado ESQUERDO do aluno aparece à direita da tela."
+                : "Vista posterior: o lado ESQUERDO do aluno aparece à esquerda da tela."}
             </p>
+
           </Card>
 
           <div className="space-y-4">
