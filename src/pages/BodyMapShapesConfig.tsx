@@ -287,6 +287,17 @@ export default function BodyMapShapesConfig() {
                 <p className="text-xs font-semibold">{selected.label}</p>
                 <p className="text-[10px] text-muted-foreground">{editingPoints.length} ponto(s)</p>
                 <div className="flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPointsHidden((v) => !v)}
+                  >
+                    {pointsHidden ? (
+                      <><Eye className="w-3.5 h-3.5 mr-1" /> Mostrar pontos</>
+                    ) : (
+                      <><EyeOff className="w-3.5 h-3.5 mr-1" /> Ocultar pontos</>
+                    )}
+                  </Button>
                   <Button size="sm" onClick={handleSave} disabled={saveShape.isPending}>
                     <Save className="w-3.5 h-3.5 mr-1" />
                     {saveShape.isPending ? "Salvando..." : "Salvar contorno"}
