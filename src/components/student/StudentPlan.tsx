@@ -1191,41 +1191,8 @@ function PlanoCorridaCard({
         </div>
       )}
 
+      <DialogEditarCorrida ctrl={ctrl} />
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar plano de Corrida</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Data de início</Label>
-              <Input type="date" value={inicioEdit} onChange={(e) => setInicioEdit(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Data de término</Label>
-              <Input type="date" value={fimEdit} onChange={(e) => setFimEdit(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Valor (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={valorEdit}
-                onChange={(e) => setValorEdit(e.target.value)}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              As datas do contrato vinculado a este plano também serão atualizadas.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
-            <Button onClick={salvar} disabled={saving}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
