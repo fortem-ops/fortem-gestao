@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Save, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
+import { Plus, Save, Trash2, Loader2, Eye, EyeOff, FlipHorizontal, ArrowLeftRight } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,12 +20,23 @@ import { useBodyMapShapes, type BodyMapShape } from "@/components/student/assess
 
 const VIEWBOX = { w: 1024, h: 1024 };
 
+function oppositeKey(key: string): string | null {
+  if (key.endsWith("-direito")) return key.replace(/-direito$/, "-esquerdo");
+  if (key.endsWith("-esquerdo")) return key.replace(/-esquerdo$/, "-direito");
+  return null;
+}
+
+function mirrorPoints(points: Array<[number, number]>): Array<[number, number]> {
+  return points.map(([x, y]) => [VIEWBOX.w - x, y] as [number, number]).reverse();
+}
+
 function hexagon(cx: number, cy: number, r: number): Array<[number, number]> {
   return Array.from({ length: 6 }, (_, i) => {
     const a = (Math.PI / 3) * i - Math.PI / 2;
     return [Math.round(cx + r * Math.cos(a)), Math.round(cy + r * Math.sin(a))] as [number, number];
   });
 }
+
 
 export default function BodyMapShapesConfig() {
   const { shapes, isLoading, saveShape, createShape, deleteShape } = useBodyMapShapes();
@@ -37,7 +49,9 @@ export default function BodyMapShapesConfig() {
   const [newLabel, setNewLabel] = useState("");
   const [pointsHidden, setPointsHidden] = useState(false);
   const [peeking, setPeeking] = useState(false);
+  const [showOpposite, setShowOpposite] = useState(true);
   const showPoints = !pointsHidden && !peeking;
+
 
   useEffect(() => {
     function isTyping(t: EventTarget | null) {
@@ -75,11 +89,38 @@ export default function BodyMapShapesConfig() {
   const articulacoes = viewShapes.filter((s) => s.kind === "articulacao");
   const selected = shapes.find((s) => s.shape_key === selectedKey) ?? null;
 
+  const counterpart = useMemo(() => {
+    if (!selected) return null;
+    const ok = oppositeKey(selected.shape_key);
+    if (!ok) return null;
+    return shapes.find((s) => s.shape_key === ok && s.view === selected.view) ?? null;
+  }, [selected, shapes]);
+
   function selectShape(s: BodyMapShape) {
     setSelectedKey(s.shape_key);
     setEditingPoints(s.points.map((p) => [p[0], p[1]] as [number, number]));
     setSelectedPoint(null);
   }
+
+  async function handleMirrorToOpposite() {
+    if (!selected || !counterpart) return;
+    if (!confirm(`Substituir o contorno de "${counterpart.label}" pelo espelho de "${selected.label}"?`)) return;
+    try {
+      await saveShape.mutateAsync({ ...selected, points: editingPoints });
+      await saveShape.mutateAsync({ ...counterpart, points: mirrorPoints(editingPoints) });
+      setShowOpposite(true);
+      toast.success(`Contorno espelhado para ${counterpart.label}.`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao espelhar contorno.");
+    }
+  }
+
+  function handleSwapSide() {
+    if (!counterpart) return;
+    selectShape(counterpart);
+  }
+
+
 
   function toViewBox(clientX: number, clientY: number) {
     const svg = svgRef.current;
@@ -225,6 +266,20 @@ export default function BodyMapShapesConfig() {
             >
               {view === "front" ? <AnatomyFront /> : <AnatomyBack />}
 
+              {selected && showOpposite && counterpart && counterpart.points.length >= 3 && (
+                <path
+                  d={pointsToSmoothPath(counterpart.points as Array<[number, number]>)}
+                  fill="hsl(var(--muted-foreground))"
+                  fillOpacity={0.14}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={2}
+                  strokeDasharray="10 8"
+                  pointerEvents="none"
+                />
+              )}
+
+
+
               {selected && editingPoints.length >= 3 && (
                 <path
                   d={pointsToSmoothPath(editingPoints)}
@@ -302,6 +357,33 @@ export default function BodyMapShapesConfig() {
                     <Save className="w-3.5 h-3.5 mr-1" />
                     {saveShape.isPending ? "Salvando..." : "Salvar contorno"}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowOpposite((v) => !v)}
+                    disabled={!counterpart}
+                  >
+                    {showOpposite ? "Ocultar lado oposto" : "Mostrar lado oposto"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleSwapSide} disabled={!counterpart}>
+                    <ArrowLeftRight className="w-3.5 h-3.5 mr-1" />
+                    Trocar para o lado oposto
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleMirrorToOpposite}
+                    disabled={!counterpart || saveShape.isPending || editingPoints.length < 3}
+                  >
+                    <FlipHorizontal className="w-3.5 h-3.5 mr-1" />
+                    Copiar e espelhar p/ o oposto
+                  </Button>
+                  {!counterpart && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Sem par correspondente (a chave precisa terminar em -direito ou -esquerdo).
+                    </p>
+                  )}
+
                   <Button
                     size="sm"
                     variant="secondary"
