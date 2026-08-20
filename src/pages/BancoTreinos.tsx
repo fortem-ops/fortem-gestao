@@ -13,6 +13,8 @@ import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, 
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
 import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { useUserRoles } from "@/hooks/useUserRoles";
+
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
 import { toast } from "sonner";
 import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
