@@ -89,11 +89,38 @@ export default function BodyMapShapesConfig() {
   const articulacoes = viewShapes.filter((s) => s.kind === "articulacao");
   const selected = shapes.find((s) => s.shape_key === selectedKey) ?? null;
 
+  const counterpart = useMemo(() => {
+    if (!selected) return null;
+    const ok = oppositeKey(selected.shape_key);
+    if (!ok) return null;
+    return shapes.find((s) => s.shape_key === ok && s.view === selected.view) ?? null;
+  }, [selected, shapes]);
+
   function selectShape(s: BodyMapShape) {
     setSelectedKey(s.shape_key);
     setEditingPoints(s.points.map((p) => [p[0], p[1]] as [number, number]));
     setSelectedPoint(null);
   }
+
+  async function handleMirrorToOpposite() {
+    if (!selected || !counterpart) return;
+    if (!confirm(`Substituir o contorno de "${counterpart.label}" pelo espelho de "${selected.label}"?`)) return;
+    try {
+      await saveShape.mutateAsync({ ...selected, points: editingPoints });
+      await saveShape.mutateAsync({ ...counterpart, points: mirrorPoints(editingPoints) });
+      setShowOpposite(true);
+      toast.success(`Contorno espelhado para ${counterpart.label}.`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao espelhar contorno.");
+    }
+  }
+
+  function handleSwapSide() {
+    if (!counterpart) return;
+    selectShape(counterpart);
+  }
+
+
 
   function toViewBox(clientX: number, clientY: number) {
     const svg = svgRef.current;
