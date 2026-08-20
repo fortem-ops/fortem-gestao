@@ -280,9 +280,10 @@ Deno.serve(async (req) => {
 
 
     const systemPrompt = `Você extrai dados de laudos de dinamometria isométrica do equipamento Kinology.
-Analise APENAS as tabelas das páginas tituladas "Assimetria e Indicativos de Risco | Membros Superiores" e "Assimetria e Indicativos de Risco | Membros Inferiores".
-Ignore seções de Desequilíbrio Muscular, Histórico, Dinâmica e Desempenho.
+Analise as tabelas das páginas tituladas "Assimetria e Indicativos de Risco | Membros Superiores" e "Assimetria e Indicativos de Risco | Membros Inferiores" e, quando existir, também a página "Evolução de Assimetria".
+Ignore seções de Desequilíbrio Muscular, Dinâmica e Desempenho.
 Para cada linha da tabela, extraia o nome do exercício (mapeie para o enum), a data e os valores em kg do lado Direito (D) e Esquerdo (E).
+Na página "Evolução de Assimetria" cada exercício tem uma tabela com várias datas (ano pode vir com 2 dígitos — normalize para 4, ex. 20/03/25 → 20/03/2025). Agrupe esses dados por DATA no campo "historico".
 Mapeamento de nomes:
 - "Rotação interna" → rotacao_interna
 - "Rotação externa" → rotacao_externa
@@ -307,15 +308,19 @@ Mapeamento de nomes:
 - "Adução de quadril" → aducao_quadril
 Retorne SOMENTE JSON válido, sem comentários ou markdown.`;
 
-    const userPrompt = `Extraia os dados das tabelas de Assimetria.
+    const userPrompt = `Extraia os dados das tabelas de Assimetria e, se houver, da Evolução de Assimetria.
 Formato de resposta:
 {
   "paciente": "<nome>",
   "dataEmissao": "<dd/mm/aaaa ou vazio>",
   "exercicios": [
     { "nome": "<enum>", "data": "<dd/mm/aaaa>", "direito_kg": <number>, "esquerdo_kg": <number> }
+  ],
+  "historico": [
+    { "data": "<dd/mm/aaaa>", "exercicios": [ { "nome": "<enum>", "direito_kg": <number>, "esquerdo_kg": <number> } ] }
   ]
 }`;
+
 
     console.log(`[parse-kinology] chamando IA (google/gemini-2.5-pro) via URL assinada`);
     const tAi = Date.now();
