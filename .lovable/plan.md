@@ -1,31 +1,21 @@
-# Pontos editáveis: adicionar e remover livremente
+# Voltar o botão de editar exercícios das Fases (Banco de Treinos)
 
-Hoje cada forma nasce com 6 pontos (hexágono). Existe um duplo-clique escondido que insere ponto e um botão "Remover ponto selecionado", mas isso não fica evidente e o duplo-clique é pouco confiável (concorre com o arraste). O objetivo é tornar adicionar/remover pontos uma ação óbvia e direta na tela de configuração do mapa corporal.
+## O que está acontecendo
 
-## O que muda na tela `/bodymap-config`
+Verifiquei no navegador logado como admin: ao abrir uma Fase em Banco de Treinos, a tela mostra o selo "Somente leitura" e nenhum controle de edição (troca de exercício, categoria, séries, reps, dias).
 
-1. **Alças "+" entre os pontos**
-   Ao selecionar uma forma, aparece um pequeno círculo "+" no meio de cada segmento do contorno. Um clique nele insere um novo ponto exatamente ali (na posição correta da sequência), que já fica selecionado e pronto para arrastar.
+Causa confirmada: a página Banco de Treinos tem uma consulta própria de papéis usando a mesma chave de cache (`["user-roles", user.id]`) que o hook global `useUserRoles`. O hook global escreve nessa chave um objeto (`{ isAdmin, isCoordAdmin, isParceiro }`), a página espera uma lista de papéis. Como o hook global roda antes (menu/layout), a página recebe o objeto do cache, a checagem de lista falha e `canEdit` vira `false` — mesmo para admin e coordenador. Confirmei também que a permissão no banco está correta (o usuário é admin e a leitura de papéis funciona).
 
-2. **Remover ponto direto no ponto**
-   - Duplo-clique sobre um ponto o remove.
-   - O botão "Remover ponto selecionado" continua existindo, com atalho de teclado `Delete`/`Backspace` quando há ponto selecionado.
-   - Mínimo de 3 pontos preservado (botão e ações desabilitados abaixo disso).
+## Correção
 
-3. **Adicionar ponto no fim do contorno**
-   Botão "Adicionar ponto" no painel lateral, que insere um ponto no maior segmento do contorno — útil quando não se quer mirar numa alça pequena.
+Em `src/pages/BancoTreinos.tsx`:
 
-4. **Densidade inicial escolhível**
-   No diálogo de criação de forma, um seletor de número de pontos iniciais (6 / 8 / 12 / 16), em vez de sempre 6. Continua sendo um polígono regular, só com mais vértices.
+- Remover a consulta local de papéis (`useQuery` com chave `["user-roles", ...]`).
+- Passar a usar o hook existente `useUserRoles()` e definir `canEdit = !!data?.isCoordAdmin` (cobre admin e coordenador, mesma regra atual).
+- Enquanto o hook estiver carregando, manter `canEdit` como falso (comportamento atual) e nada mais muda visualmente.
 
-5. **Ajuda em tela**
-   Texto de rodapé atualizado: arrastar move, "+" insere, duplo-clique no ponto remove.
+Nenhuma mudança de banco, SQL ou RLS é necessária.
 
-## Detalhes técnicos
+## Verificação
 
-- Arquivo alterado: `src/pages/BodyMapShapesConfig.tsx` (apenas frontend).
-- `hexagon()` vira `polygon(cx, cy, r, n)` com `n` configurável.
-- Alças "+": derivadas de `editingPoints` como pontos médios entre `i` e `i+1` (fechando o ciclo); clique faz `splice(i+1, 0, ponto)`.
-- Remoção por duplo-clique no `<circle>` com `stopPropagation` para não disparar o `onDoubleClick` do SVG.
-- Atalho de teclado via `useEffect` com listener em `window`, ativo só quando há ponto selecionado e o foco não está num campo de texto.
-- Nenhuma mudança de banco de dados: `bodymap_shapes.points` já é uma lista de tamanho variável.
+Abrir `/banco-treinos` como admin, entrar em uma Fase e confirmar que o selo "Somente leitura" some e voltam: seletor de exercício, selects de categoria/subcategoria, campos de séries/reps e os botões de dias (T1–T4).
