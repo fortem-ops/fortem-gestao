@@ -1114,6 +1114,15 @@ function PlanoCorridaCard({
         </div>
       </div>
 
+      {renovacoes.length > 0 && (
+        <div className="border-t border-border/60 pt-3 space-y-2">
+          {renovacoes.map((r: any) => (
+            <RenovacaoCorridaRow key={r.id} plano={r} alunoId={alunoId} isCoordAdmin={isCoordAdmin} />
+          ))}
+        </div>
+      )}
+
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
