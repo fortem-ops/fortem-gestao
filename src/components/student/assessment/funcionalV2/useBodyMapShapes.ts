@@ -36,9 +36,11 @@ export function useBodyMapShapes() {
     return m;
   }, [query.data]);
 
+  const PERM_MSG = "Sem permissão para alterar as formas (apenas admin e coordenação).";
+
   const saveShape = useMutation({
     mutationFn: async (shape: BodyMapShape) => {
-      const { error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("bodymap_shapes")
         .update({
           points: shape.points,
@@ -46,34 +48,46 @@ export function useBodyMapShapes() {
           updated_by: user?.id ?? null,
           updated_at: new Date().toISOString(),
         })
-        .eq("shape_key", shape.shape_key);
+        .eq("shape_key", shape.shape_key)
+        .select("shape_key");
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error(PERM_MSG);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QK }),
   });
 
   const createShape = useMutation({
     mutationFn: async (shape: BodyMapShape) => {
-      const { error } = await (supabase as any).from("bodymap_shapes").insert({
-        shape_key: shape.shape_key,
-        label: shape.label,
-        view: shape.view,
-        kind: shape.kind,
-        points: shape.points,
-        updated_by: user?.id ?? null,
-      });
+      const { data, error } = await (supabase as any)
+        .from("bodymap_shapes")
+        .insert({
+          shape_key: shape.shape_key,
+          label: shape.label,
+          view: shape.view,
+          kind: shape.kind,
+          points: shape.points,
+          updated_by: user?.id ?? null,
+        })
+        .select("shape_key");
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error(PERM_MSG);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QK }),
   });
 
   const deleteShape = useMutation({
     mutationFn: async (shape_key: string) => {
-      const { error } = await (supabase as any).from("bodymap_shapes").delete().eq("shape_key", shape_key);
+      const { data, error } = await (supabase as any)
+        .from("bodymap_shapes")
+        .delete()
+        .eq("shape_key", shape_key)
+        .select("shape_key");
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error(PERM_MSG);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QK }),
   });
+
 
   return { shapes: query.data ?? [], shapesMap, isLoading: query.isLoading, saveShape, createShape, deleteShape };
 }
