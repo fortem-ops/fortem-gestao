@@ -11,6 +11,7 @@ import { Save, Loader2, Zap, Gauge, Timer, Activity, Sparkles } from "lucide-rea
 import { format, parseISO } from "date-fns";
 import type { PliometriaSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 import { AssessmentDateField, todayISO } from "../AssessmentDateField";
+import { AvaliacaoDeleteList } from "../AvaliacaoDeleteList";
 
 interface Props {
   alunoId: string;
