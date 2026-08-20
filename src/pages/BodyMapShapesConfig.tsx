@@ -20,12 +20,23 @@ import { useBodyMapShapes, type BodyMapShape } from "@/components/student/assess
 
 const VIEWBOX = { w: 1024, h: 1024 };
 
+function oppositeKey(key: string): string | null {
+  if (key.endsWith("-direito")) return key.replace(/-direito$/, "-esquerdo");
+  if (key.endsWith("-esquerdo")) return key.replace(/-esquerdo$/, "-direito");
+  return null;
+}
+
+function mirrorPoints(points: Array<[number, number]>): Array<[number, number]> {
+  return points.map(([x, y]) => [VIEWBOX.w - x, y] as [number, number]).reverse();
+}
+
 function hexagon(cx: number, cy: number, r: number): Array<[number, number]> {
   return Array.from({ length: 6 }, (_, i) => {
     const a = (Math.PI / 3) * i - Math.PI / 2;
     return [Math.round(cx + r * Math.cos(a)), Math.round(cy + r * Math.sin(a))] as [number, number];
   });
 }
+
 
 export default function BodyMapShapesConfig() {
   const { shapes, isLoading, saveShape, createShape, deleteShape } = useBodyMapShapes();
