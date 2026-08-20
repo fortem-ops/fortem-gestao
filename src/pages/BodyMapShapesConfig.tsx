@@ -267,6 +267,8 @@ export default function BodyMapShapesConfig() {
             </svg>
             <p className="text-[11px] text-muted-foreground mt-3 text-center">
               Selecione uma forma na lista. Arraste os pontos para moldar; duplo-clique na imagem adiciona um ponto.
+              <br />
+              Segure <kbd className="px-1 py-0.5 rounded border text-[10px] font-mono">H</kbd> para ocultar os pontos e conferir o tracejado.
             </p>
           </Card>
 
