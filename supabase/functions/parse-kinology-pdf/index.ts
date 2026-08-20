@@ -87,43 +87,42 @@ interface HistoricoEntrada {
   exercicios: ParsedExercise[];
 }
 
-const LABEL_ALT = NOME_LABELS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-
-// Seção "Evolução de Assimetria": para cada exercício, uma tabela com linhas
+// Linhas da seção "Evolução de Assimetria":
 //   <dd/mm/aa|dd/mm/aaaa> <D> kg <E> kg <asym>%
-// Varremos sequencialmente: cada rótulo de exercício encontrado passa a ser o
-// "exercício corrente" e as linhas seguintes pertencem a ele.
-const EVOL_TOKEN_RE = new RegExp(
-  String.raw`(${LABEL_ALT})|(\d{2}\/\d{2}\/(?:\d{4}|\d{2}))\s+([\d.,]+)\s*kg\s+([\d.,]+)\s*kg\s+[\d.,]+\s*%`,
-  "gi",
-);
+// Nessa seção o rótulo do exercício NÃO fica na mesma linha dos valores e a
+// extração de texto embaralha os títulos (layout em 2 colunas). Por isso o
+// pareamento é feito por POSIÇÃO: dentro de cada data, a k-ésima linha
+// corresponde ao k-ésimo exercício na ordem do documento (mesma ordem das
+// tabelas "Assimetria e Indicativos de Risco").
+const EVOL_ROW_RE =
+  /(\d{2}\/\d{2}\/(?:\d{4}|\d{2}))\s+([\d.,]+)\s*kg\s+([\d.,]+)\s*kg\s+[\d.,]+\s*%/g;
 
 function normalizeDate(d: string): string {
   const [dd, mm, yy] = d.split("/");
   return `${dd}/${mm}/${yy.length === 2 ? `20${yy}` : yy}`;
 }
 
-function parseEvolucao(text: string): HistoricoEntrada[] {
-  const idx = text.search(/Evolu[çc][ãa]o de Assimetria/i);
-  if (idx < 0) return [];
-  const trecho = text.slice(idx);
+function parseEvolucao(text: string, atuais: ParsedExercise[]): HistoricoEntrada[] {
+  if (atuais.length === 0) return [];
+  // "Evolução de Assimetria" também aparece no índice da página 1 — usamos a
+  // ÚLTIMA ocorrência, que é o título da seção de fato.
+  const matches = [...text.matchAll(/Evolu[çc][ãa]o de Assimetria/gi)];
+  if (matches.length === 0) return [];
+  const trecho = text.slice(matches[matches.length - 1].index!);
 
-  // data → exercício → valores (última execução da mesma data vence)
-  const byDate = new Map<string, Map<ExercicioEnum, ParsedExercise>>();
-  let atual: ExercicioEnum | null = null;
-
-  for (const m of trecho.matchAll(EVOL_TOKEN_RE)) {
-    if (m[1]) {
-      atual = NOME_LABEL_TO_ENUM[m[1].toLowerCase()] ?? null;
-      continue;
-    }
-    if (!atual) continue;
-    const data = normalizeDate(m[2]);
-    const d = toNumber(m[3]);
-    const e = toNumber(m[4]);
+  const ordem: { data: string; d: number; e: number }[] = [];
+  for (const m of trecho.matchAll(EVOL_ROW_RE)) {
+    const d = toNumber(m[2]);
+    const e = toNumber(m[3]);
     if (!isFinite(d) || !isFinite(e)) continue;
-    if (!byDate.has(data)) byDate.set(data, new Map());
-    byDate.get(data)!.set(atual, { nome: atual, data, direito_kg: d, esquerdo_kg: e });
+    ordem.push({ data: normalizeDate(m[1]), d, e });
+  }
+  if (ordem.length === 0) return [];
+
+  const grupos = new Map<string, { d: number; e: number }[]>();
+  for (const r of ordem) {
+    if (!grupos.has(r.data)) grupos.set(r.data, []);
+    grupos.get(r.data)!.push({ d: r.d, e: r.e });
   }
 
   const toSortKey = (s: string) => {
@@ -131,11 +130,25 @@ function parseEvolucao(text: string): HistoricoEntrada[] {
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  return [...byDate.entries()]
-    .map(([data, exs]) => ({ data, exercicios: [...exs.values()] }))
-    .filter((h) => h.exercicios.length > 0)
-    .sort((a, b) => (toSortKey(a.data) < toSortKey(b.data) ? 1 : -1));
+  const historico: HistoricoEntrada[] = [];
+  for (const [data, linhas] of grupos) {
+    // Só é seguro parear por posição quando a quantidade de linhas bate com a
+    // quantidade de exercícios do laudo.
+    if (linhas.length !== atuais.length) continue;
+    historico.push({
+      data,
+      exercicios: linhas.map((l, i) => ({
+        nome: atuais[i].nome,
+        data,
+        direito_kg: l.d,
+        esquerdo_kg: l.e,
+      })),
+    });
+  }
+
+  return historico.sort((a, b) => (toSortKey(a.data) < toSortKey(b.data) ? 1 : -1));
 }
+
 
 /**
  * Parser determinístico do laudo Kinology. Não usa IA.
