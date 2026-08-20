@@ -270,7 +270,7 @@ export function PremiumKinologyImport({ alunoId }: Props) {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {o.qtd} exercício(s)
-                    {o.jaRegistrada && " · já registrado (será sobrescrito se marcado)"}
+                    {o.jaRegistrada && " · já registrado (marcar cria um registro adicional)"}
                   </p>
                 </div>
               </label>
