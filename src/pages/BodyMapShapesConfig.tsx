@@ -235,7 +235,7 @@ export default function BodyMapShapesConfig() {
                 />
               )}
 
-              {selected &&
+              {selected && showPoints &&
                 editingPoints.map((p, i) => (
                   <circle
                     key={i}
