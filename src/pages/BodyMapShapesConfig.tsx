@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Save, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
+import { Plus, Save, Trash2, Loader2, Eye, EyeOff, FlipHorizontal, ArrowLeftRight } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
