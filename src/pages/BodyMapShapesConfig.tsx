@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Save, Trash2, Loader2 } from "lucide-react";
+import { Plus, Save, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,37 @@ export default function BodyMapShapesConfig() {
   const [dialogKind, setDialogKind] = useState<"musculo" | "articulacao" | null>(null);
   const [newKey, setNewKey] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [pointsHidden, setPointsHidden] = useState(false);
+  const [peeking, setPeeking] = useState(false);
+  const showPoints = !pointsHidden && !peeking;
+
+  useEffect(() => {
+    function isTyping(t: EventTarget | null) {
+      const el = t as HTMLElement | null;
+      if (!el || !el.tagName) return false;
+      const tag = el.tagName.toLowerCase();
+      return tag === "input" || tag === "textarea" || el.isContentEditable;
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.repeat || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key.toLowerCase() === "h") setPeeking(true);
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.key.toLowerCase() === "h") setPeeking(false);
+    }
+    function onBlur() {
+      setPeeking(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
+
 
   const svgRef = useRef<SVGSVGElement>(null);
   const draggingRef = useRef<number | null>(null);
@@ -63,7 +94,7 @@ export default function BodyMapShapesConfig() {
   }
 
   function handleDoubleClick(e: React.MouseEvent) {
-    if (!selected) return;
+    if (!selected || !showPoints) return;
     const p = toViewBox(e.clientX, e.clientY);
     if (!p) return;
     const point: [number, number] = [p.x, p.y];
@@ -204,7 +235,7 @@ export default function BodyMapShapesConfig() {
                 />
               )}
 
-              {selected &&
+              {selected && showPoints &&
                 editingPoints.map((p, i) => (
                   <circle
                     key={i}
@@ -236,6 +267,8 @@ export default function BodyMapShapesConfig() {
             </svg>
             <p className="text-[11px] text-muted-foreground mt-3 text-center">
               Selecione uma forma na lista. Arraste os pontos para moldar; duplo-clique na imagem adiciona um ponto.
+              <br />
+              Segure <kbd className="px-1 py-0.5 rounded border text-[10px] font-mono">H</kbd> para ocultar os pontos e conferir o tracejado.
             </p>
           </Card>
 
@@ -254,6 +287,17 @@ export default function BodyMapShapesConfig() {
                 <p className="text-xs font-semibold">{selected.label}</p>
                 <p className="text-[10px] text-muted-foreground">{editingPoints.length} ponto(s)</p>
                 <div className="flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPointsHidden((v) => !v)}
+                  >
+                    {pointsHidden ? (
+                      <><Eye className="w-3.5 h-3.5 mr-1" /> Mostrar pontos</>
+                    ) : (
+                      <><EyeOff className="w-3.5 h-3.5 mr-1" /> Ocultar pontos</>
+                    )}
+                  </Button>
                   <Button size="sm" onClick={handleSave} disabled={saveShape.isPending}>
                     <Save className="w-3.5 h-3.5 mr-1" />
                     {saveShape.isPending ? "Salvando..." : "Salvar contorno"}
