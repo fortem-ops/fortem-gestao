@@ -10,7 +10,9 @@ export type FormaPagamento =
 
 export interface Contrato {
   id: string;
+  plano_id?: string | null;
   plano_tipo: PlanoTipo;
+
   vigencia_tipo: 'mensal' | 'semestral' | 'anual';
   forma_pagamento: FormaPagamento;
   data_inicio: string;

@@ -170,16 +170,19 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         .eq("status", "ativo");
     }
 
-    // Espelha no plano: encerra renovação automática e ajusta data_fim
-    await supabase
-      .from("planos")
-      .update({
-        renovacao_automatica: false,
-        data_fim: payload.dataCancelamento,
-        ativo: isImediato ? false : true,
-      } as any)
-      .eq("aluno_id", alunoId)
-      .eq("ativo", true);
+    // Espelha APENAS no plano vinculado a este contrato (nunca nos demais
+    // planos ativos do aluno — isso derrubava contratos paralelos).
+    if (alvo.plano_id) {
+      await supabase
+        .from("planos")
+        .update({
+          renovacao_automatica: false,
+          data_fim: payload.dataCancelamento,
+          ativo: isImediato ? false : true,
+        } as any)
+        .eq("id", alvo.plano_id);
+    }
+
 
     // Tratamento da multa
     if (payload.valorMulta > 0) {
