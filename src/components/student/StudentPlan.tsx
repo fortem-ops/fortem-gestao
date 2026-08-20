@@ -209,6 +209,14 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     },
   });
   const corridaFiltrados = (planosCorrida as any[]).filter((p) => !data || p.id !== data.id);
+  // Renovação antecipada: o plano que ainda não começou não é um segundo plano,
+  // é a continuação do vigente. Mostramos um card só, com a renovação embutida.
+  const hojeStr = new Date().toISOString().split("T")[0];
+  const corridaVigentes = corridaFiltrados.filter((p) => !p.data_inicio || p.data_inicio <= hojeStr);
+  const corridaFuturos = corridaFiltrados.filter((p) => p.data_inicio && p.data_inicio > hojeStr);
+  const corridaCards = corridaVigentes.length > 0 ? corridaVigentes : corridaFuturos;
+  const corridaRenovacoes = corridaVigentes.length > 0 ? corridaFuturos : [];
+
 
   async function handleSaveCredit(dbLabel: string) {
     if (!data) return;
