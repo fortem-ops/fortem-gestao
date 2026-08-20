@@ -1007,15 +1007,129 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
   );
 }
 
+function useEditarPlanoCorrida(plano: any, alunoId: string) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [inicioEdit, setInicioEdit] = useState<string>(plano.data_inicio ?? "");
+  const [fimEdit, setFimEdit] = useState<string>(plano.data_fim ?? "");
+  const [valorEdit, setValorEdit] = useState<string>(plano.valor != null ? String(plano.valor) : "");
+
+  function abrirEdicao() {
+    setInicioEdit(plano.data_inicio ?? "");
+    setFimEdit(plano.data_fim ?? "");
+    setValorEdit(plano.valor != null ? String(plano.valor) : "");
+    setOpen(true);
+  }
+
+  async function salvar() {
+    if (!inicioEdit) { toast.error("Data de início é obrigatória"); return; }
+    if (fimEdit && fimEdit < inicioEdit) { toast.error("Término não pode ser anterior ao início"); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("planos")
+        .update({
+          data_inicio: inicioEdit,
+          data_fim: fimEdit || null,
+          valor: valorEdit === "" ? 0 : Number(valorEdit),
+        } as any)
+        .eq("id", plano.id);
+      if (error) throw error;
+
+      const { error: contratoErr } = await supabase
+        .from("contratos")
+        .update({ data_inicio: inicioEdit, data_fim: fimEdit || null } as any)
+        .eq("plano_id", plano.id)
+        .in("status", ["ativo", "suspenso"]);
+      if (contratoErr) throw contratoErr;
+
+      toast.success("Plano de Corrida atualizado");
+      invalidatePlanoCaches(queryClient, alunoId);
+      queryClient.invalidateQueries({ queryKey: ["planos_corrida_ativos", alunoId] });
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar plano");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return { open, setOpen, saving, abrirEdicao, salvar, inicioEdit, setInicioEdit, fimEdit, setFimEdit, valorEdit, setValorEdit };
+}
+
+function DialogEditarCorrida({ ctrl }: { ctrl: ReturnType<typeof useEditarPlanoCorrida> }) {
+  return (
+    <Dialog open={ctrl.open} onOpenChange={ctrl.setOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar plano de Corrida</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Data de início</Label>
+            <Input type="date" value={ctrl.inicioEdit} onChange={(e) => ctrl.setInicioEdit(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Data de término</Label>
+            <Input type="date" value={ctrl.fimEdit} onChange={(e) => ctrl.setFimEdit(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Valor (R$)</Label>
+            <Input type="number" step="0.01" min="0" value={ctrl.valorEdit} onChange={(e) => ctrl.setValorEdit(e.target.value)} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            As datas do contrato vinculado a este plano também serão atualizadas.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => ctrl.setOpen(false)} disabled={ctrl.saving}>Cancelar</Button>
+          <Button onClick={ctrl.salvar} disabled={ctrl.saving}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RenovacaoCorridaRow({ plano, alunoId, isCoordAdmin }: { plano: any; alunoId: string; isCoordAdmin?: boolean }) {
+  const ctrl = useEditarPlanoCorrida(plano, alunoId);
+  const ini = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") : "—";
+  const fim = plano.data_fim
+    ? new Date(plano.data_fim + "T00:00:00").toLocaleDateString("pt-BR")
+    : (plano.data_inicio ? calcEndDate(plano.data_inicio, plano.duracao_meses ?? 1) : "—");
+  return (
+    <div className="flex items-center justify-between flex-wrap gap-2 text-sm">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge variant="outline" className="status-info">Renovação antecipada</Badge>
+        <span className="text-muted-foreground">
+          {ini} → {fim}
+          {plano.valor != null && plano.valor > 0 && (
+            <> · R$ {Number(plano.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>
+          )}
+        </span>
+      </div>
+      {isCoordAdmin && (
+        <Button size="sm" variant="ghost" className="gap-1.5" onClick={ctrl.abrirEdicao}>
+          <Edit3 className="h-3.5 w-3.5" /> Editar
+        </Button>
+      )}
+      <DialogEditarCorrida ctrl={ctrl} />
+    </div>
+  );
+}
+
 function PlanoCorridaCard({
   plano,
   alunoId,
   isCoordAdmin,
+  renovacoes = [],
 }: {
   plano: any;
   alunoId: string;
   isCoordAdmin?: boolean;
+  renovacoes?: any[];
 }) {
+
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
