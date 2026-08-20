@@ -12,6 +12,7 @@ import type { ComposicaoSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 import { DOBRAS_POLLOCK_7, computePollock } from "@/lib/pollockCalculo";
 import { fetchDefaultProtocoloByTipoSlug } from "@/lib/avaliacaoProtocolos";
+import { AvaliacaoDeleteList } from "../AvaliacaoDeleteList";
 
 interface Props {
   alunoId: string;
@@ -225,6 +226,8 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
           </Button>
         </div>
       </div>
+
+      <AvaliacaoDeleteList alunoId={alunoId} mode="composicao" />
 
       {/* ============ HISTÓRICO ============ */}
       {!latest ? (

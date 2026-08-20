@@ -1,6 +1,7 @@
 import { FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import type { FuncionalSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 import { PremiumKinologyImport } from "../PremiumKinologyImport";
+import { AvaliacaoDeleteList } from "../AvaliacaoDeleteList";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { useMemo } from "react";
 import { format, parseISO, differenceInYears } from "date-fns";
@@ -92,6 +93,8 @@ export function ForcaTab({ alunoId, latest, history, aluno }: Props) {
   return (
     <div className="space-y-4">
       <PremiumKinologyImport alunoId={alunoId} />
+
+      <AvaliacaoDeleteList alunoId={alunoId} mode="forca" />
 
       {exercicios.length === 0 ? (
         <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
