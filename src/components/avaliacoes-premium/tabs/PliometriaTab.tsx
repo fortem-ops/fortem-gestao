@@ -162,6 +162,8 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
         </div>
       </div>
 
+      <AvaliacaoDeleteList alunoId={alunoId} mode="pliometria" />
+
       {/* Histórico */}
       {history.length > 0 && (
         <div className="bio-card overflow-hidden">
