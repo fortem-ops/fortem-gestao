@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
 
       const { data: agendamentos, error: agErr } = await admin
         .from('agenda_servicos')
-        .select('id, profissional_id')
+        .select('id, profissional_id, consultor_id')
         .eq('data_especifica', amanha)
         .in('atividade', atividades);
       if (agErr) throw agErr;
@@ -169,7 +169,12 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      const paraConsultor = cfg.destinatario === 'consultor';
+
       for (const ag of agendamentos as any[]) {
+        // Consultor não preenchido: pula silenciosamente (esperado).
+        if (paraConsultor && !ag.consultor_id) continue;
+
         if (await jaEnviado(cfg.id, ag.id)) {
           results.push({ config: cfg.nome, agenda_id: ag.id, status: 'ja_enviado' });
           continue;
@@ -181,9 +186,18 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const destinoTelefone = normalizarTelefone(ctx.profTelefone);
-        const destinoNome = ctx.profissional?.full_name ?? null;
+        // Mesma mensagem/parâmetros do profissional — só muda o destinatário.
+        const consultor = paraConsultor ? await buscarPerfil(ag.consultor_id) : null;
+        if (paraConsultor && !consultor) {
+          results.push({ config: cfg.nome, agenda_id: ag.id, status: 'consultor_nao_encontrado' });
+          continue;
+        }
+
+        const destinoUserId = paraConsultor ? ag.consultor_id : (ag.profissional_id ?? null);
+        const destinoTelefone = normalizarTelefone(paraConsultor ? consultor?.phone ?? null : ctx.profTelefone);
+        const destinoNome = paraConsultor ? consultor?.full_name ?? null : ctx.profissional?.full_name ?? null;
         const mensagem = resolveTemplate(cfg.template_texto ?? '', ctx.vars);
+
 
         if (cfg.modo_teste) {
           await admin.from('whatsapp_disparos_log').insert({
