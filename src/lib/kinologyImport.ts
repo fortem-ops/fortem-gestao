@@ -81,10 +81,12 @@ export async function uploadAndParseKinology(
   if (data?.error) throw new Error(data.error);
 
   const exercicios = (data?.exercicios ?? []) as KinologyParsedExercise[];
+  const historico = (data?.historico ?? []) as KinologyHistoricoEntrada[];
   return {
     paciente: data?.paciente ?? null,
     dataEmissao: data?.dataEmissao ?? null,
     exercicios,
+    historico,
     laudoPath: path,
     source: (data?.source === "deterministic" ? "deterministic" : "ai"),
   };
@@ -93,9 +95,13 @@ export async function uploadAndParseKinology(
 
 /**
  * Monta o objeto `dados.forca` no formato canônico gravado por funcional_v2.
+ * `exercicios` permite sobrescrever a lista (usado ao importar datas do histórico).
  */
-export function buildForcaPayload(result: KinologyParseResult) {
-  const exercicios = result.exercicios.map((ex) => {
+export function buildForcaPayload(
+  result: KinologyParseResult,
+  exerciciosOverride?: KinologyParsedExercise[],
+) {
+  const exercicios = (exerciciosOverride ?? result.exercicios).map((ex) => {
     const c = classifyForca(ex.direito_kg, ex.esquerdo_kg);
     return {
       nome: ex.nome,
@@ -117,6 +123,7 @@ export function buildForcaPayload(result: KinologyParseResult) {
     scoreForca: computeForcaScore(forcaInputs),
   };
 }
+
 
 export interface FuncionalV2Row {
   id: string;
