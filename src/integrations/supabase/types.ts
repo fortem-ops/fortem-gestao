@@ -7864,6 +7864,7 @@ export type Database = {
         Args: { _beneficio_id: string; _token: string }
         Returns: Json
       }
+      fn_comissao_af_ativa: { Args: never; Returns: boolean }
       fn_comissao_valor: {
         Args: { _tipo: Database["public"]["Enums"]["comissao_tipo"] }
         Returns: number
