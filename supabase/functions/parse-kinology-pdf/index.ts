@@ -183,12 +183,13 @@ function tryParseKinologyDeterministic(text: string): {
 
   const pacienteMatch = text.match(/Paciente:\s*([^\n\r]+?)\s{2,}/);
   const emissaoMatch = text.match(/Emiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/);
+  const exercicios = [...seen.values()];
 
   return {
     paciente: pacienteMatch ? pacienteMatch[1].trim() : null,
     dataEmissao: emissaoMatch ? emissaoMatch[1] : null,
-    exercicios: [...seen.values()],
-    historico: parseEvolucao(text),
+    exercicios,
+    historico: parseEvolucao(text, exercicios),
   };
 }
 
