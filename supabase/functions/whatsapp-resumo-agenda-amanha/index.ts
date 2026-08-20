@@ -23,7 +23,21 @@ const JANELA_MIN = 5; // tolerância da janela de disparo (= frequência do cron
 const GATILHOS = [
   'resumo_treino_experimental_amanha',
   'resumo_avaliacao_funcional_amanha',
+  'resumo_treino_experimental_amanha_consultor',
+  'resumo_avaliacao_funcional_amanha_consultor',
 ];
+
+/** Perfil (nome/telefone) de um usuário — usado para resolver o consultor do agendamento. */
+async function buscarPerfil(userId: string | null): Promise<{ full_name: string | null; phone: string | null } | null> {
+  if (!userId) return null;
+  const { data } = await admin
+    .from('profiles')
+    .select('full_name, phone')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
 
 /** Data/hora atuais em America/Sao_Paulo. */
 function agoraSP() {
@@ -159,7 +173,7 @@ Deno.serve(async (req) => {
 
       const { data: agendamentos, error: agErr } = await admin
         .from('agenda_servicos')
-        .select('id, profissional_id')
+        .select('id, profissional_id, consultor_id')
         .eq('data_especifica', amanha)
         .in('atividade', atividades);
       if (agErr) throw agErr;
@@ -169,7 +183,12 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      const paraConsultor = cfg.destinatario === 'consultor';
+
       for (const ag of agendamentos as any[]) {
+        // Consultor não preenchido: pula silenciosamente (esperado).
+        if (paraConsultor && !ag.consultor_id) continue;
+
         if (await jaEnviado(cfg.id, ag.id)) {
           results.push({ config: cfg.nome, agenda_id: ag.id, status: 'ja_enviado' });
           continue;
@@ -181,16 +200,25 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const destinoTelefone = normalizarTelefone(ctx.profTelefone);
-        const destinoNome = ctx.profissional?.full_name ?? null;
+        // Mesma mensagem/parâmetros do profissional — só muda o destinatário.
+        const consultor = paraConsultor ? await buscarPerfil(ag.consultor_id) : null;
+        if (paraConsultor && !consultor) {
+          results.push({ config: cfg.nome, agenda_id: ag.id, status: 'consultor_nao_encontrado' });
+          continue;
+        }
+
+        const destinoUserId = paraConsultor ? ag.consultor_id : (ag.profissional_id ?? null);
+        const destinoTelefone = normalizarTelefone(paraConsultor ? consultor?.phone ?? null : ctx.profTelefone);
+        const destinoNome = paraConsultor ? consultor?.full_name ?? null : ctx.profissional?.full_name ?? null;
         const mensagem = resolveTemplate(cfg.template_texto ?? '', ctx.vars);
+
 
         if (cfg.modo_teste) {
           await admin.from('whatsapp_disparos_log').insert({
             config_id: cfg.id,
             agenda_id: ag.id,
             aluno_id: ctx.agenda.aluno_id ?? null,
-            usuario_id: ag.profissional_id ?? null,
+            usuario_id: destinoUserId,
             referencia_data: amanha,
             destinatario_telefone: destinoTelefone,
             destinatario_nome: destinoNome,
@@ -206,7 +234,7 @@ Deno.serve(async (req) => {
             config_id: cfg.id,
             agenda_id: ag.id,
             aluno_id: ctx.agenda.aluno_id ?? null,
-            usuario_id: ag.profissional_id ?? null,
+            usuario_id: destinoUserId,
             referencia_data: amanha,
             destinatario_telefone: null,
             destinatario_nome: destinoNome,
@@ -227,7 +255,7 @@ Deno.serve(async (req) => {
           config_id: cfg.id,
           agenda_id: ag.id,
           aluno_id: ctx.agenda.aluno_id ?? null,
-          usuario_id: ag.profissional_id ?? null,
+          usuario_id: destinoUserId,
           referencia_data: amanha,
           destinatario_telefone: destinoTelefone,
           destinatario_nome: destinoNome,
