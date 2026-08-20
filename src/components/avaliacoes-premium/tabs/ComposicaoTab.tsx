@@ -226,6 +226,8 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
         </div>
       </div>
 
+      <AvaliacaoDeleteList alunoId={alunoId} mode="composicao" />
+
       {/* ============ HISTÓRICO ============ */}
       {!latest ? (
         <div className="bio-card p-6 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
