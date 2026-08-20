@@ -94,7 +94,7 @@ export default function BodyMapShapesConfig() {
   }
 
   function handleDoubleClick(e: React.MouseEvent) {
-    if (!selected) return;
+    if (!selected || !showPoints) return;
     const p = toViewBox(e.clientX, e.clientY);
     if (!p) return;
     const point: [number, number] = [p.x, p.y];
