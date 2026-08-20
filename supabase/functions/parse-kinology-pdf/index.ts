@@ -243,7 +243,7 @@ function parseEvolucao(text: string, atuais: ParsedExercise[]): EvolucaoResult {
     }
   }
 
-  const historico: HistoricoEntrada[] = [...grupos entries()].map(([data, exercicios]) => ({
+  const historico: HistoricoEntrada[] = [...grupos.entries()].map(([data, exercicios]) => ({
     data,
     exercicios,
   }));
