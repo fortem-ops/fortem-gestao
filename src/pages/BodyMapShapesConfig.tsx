@@ -359,6 +359,33 @@ export default function BodyMapShapesConfig() {
                   </Button>
                   <Button
                     size="sm"
+                    variant="outline"
+                    onClick={() => setShowOpposite((v) => !v)}
+                    disabled={!counterpart}
+                  >
+                    {showOpposite ? "Ocultar lado oposto" : "Mostrar lado oposto"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleSwapSide} disabled={!counterpart}>
+                    <ArrowLeftRight className="w-3.5 h-3.5 mr-1" />
+                    Trocar para o lado oposto
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleMirrorToOpposite}
+                    disabled={!counterpart || saveShape.isPending || editingPoints.length < 3}
+                  >
+                    <FlipHorizontal className="w-3.5 h-3.5 mr-1" />
+                    Copiar e espelhar p/ o oposto
+                  </Button>
+                  {!counterpart && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Sem par correspondente (a chave precisa terminar em -direito ou -esquerdo).
+                    </p>
+                  )}
+
+                  <Button
+                    size="sm"
                     variant="secondary"
                     onClick={removeSelectedPoint}
                     disabled={selectedPoint === null || editingPoints.length <= 3}
