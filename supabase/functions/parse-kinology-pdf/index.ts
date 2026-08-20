@@ -515,11 +515,20 @@ Formato de resposta:
       typeof e.direito_kg === "number" &&
       typeof e.esquerdo_kg === "number";
 
-    const exercicios = (parsed.exercicios ?? []).filter(isValidEx);
+    const aiExercicios = (parsed.exercicios ?? []).filter(isValidEx);
+    // Quando o determinístico já leu a medição atual (e só o histórico ficou
+    // incerto), a medição determinística tem prioridade — ela é exata.
+    const exercicios =
+      deterministicExercicios.length >= 1 ? deterministicExercicios : aiExercicios;
 
     const historico = (parsed.historico ?? [])
       .filter((h) => h && typeof h.data === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(h.data))
-      .map((h) => ({ data: h.data, exercicios: (h.exercicios ?? []).filter(isValidEx) }))
+      .map((h) => ({
+        data: h.data,
+        exercicios: (h.exercicios ?? [])
+          .filter(isValidEx)
+          .map((e) => ({ ...e, data: h.data })),
+      }))
       .filter((h) => h.exercicios.length > 0);
 
     console.log(
@@ -527,14 +536,15 @@ Formato de resposta:
     );
     return new Response(
       JSON.stringify({
-        paciente: parsed.paciente ?? null,
-        dataEmissao: parsed.dataEmissao ?? null,
+        paciente: deterministicPaciente ?? parsed.paciente ?? null,
+        dataEmissao: deterministicDataEmissao ?? parsed.dataEmissao ?? null,
         exercicios,
         historico,
         source: "ai",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
 
 
   } catch (e) {
