@@ -362,7 +362,12 @@ Formato de resposta:
 
     const aiJson = await aiRes.json();
     const content: string = aiJson.choices?.[0]?.message?.content ?? "{}";
-    let parsed: { paciente?: string; dataEmissao?: string; exercicios?: ParsedExercise[] };
+    let parsed: {
+      paciente?: string;
+      dataEmissao?: string;
+      exercicios?: ParsedExercise[];
+      historico?: HistoricoEntrada[];
+    };
     try {
       parsed = JSON.parse(content);
     } catch {
@@ -370,24 +375,33 @@ Formato de resposta:
       parsed = m ? JSON.parse(m[0]) : {};
     }
 
-    const exercicios = (parsed.exercicios ?? []).filter(
-      (e) =>
-        e &&
-        EXERCICIO_ENUM.includes(e.nome) &&
-        typeof e.direito_kg === "number" &&
-        typeof e.esquerdo_kg === "number",
-    );
+    const isValidEx = (e: ParsedExercise) =>
+      !!e &&
+      EXERCICIO_ENUM.includes(e.nome) &&
+      typeof e.direito_kg === "number" &&
+      typeof e.esquerdo_kg === "number";
 
-    console.log(`[parse-kinology] retornando ${exercicios.length} exercício(s) ao cliente (source=ai)`);
+    const exercicios = (parsed.exercicios ?? []).filter(isValidEx);
+
+    const historico = (parsed.historico ?? [])
+      .filter((h) => h && typeof h.data === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(h.data))
+      .map((h) => ({ data: h.data, exercicios: (h.exercicios ?? []).filter(isValidEx) }))
+      .filter((h) => h.exercicios.length > 0);
+
+    console.log(
+      `[parse-kinology] retornando ${exercicios.length} exercício(s) e ${historico.length} data(s) de histórico ao cliente (source=ai)`,
+    );
     return new Response(
       JSON.stringify({
         paciente: parsed.paciente ?? null,
         dataEmissao: parsed.dataEmissao ?? null,
         exercicios,
+        historico,
         source: "ai",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
 
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro desconhecido";
