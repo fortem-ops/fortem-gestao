@@ -798,21 +798,11 @@ export default function BancoTreinos() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: userRolesRaw } = useQuery({
-    queryKey: ["user-roles", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user!.id);
-      if (error) throw error;
-      return (data || []).map((r) => r.role);
-    },
-    staleTime: 5 * 60_000,
-  });
-  const userRoles: string[] = Array.isArray(userRolesRaw) ? userRolesRaw : [];
-  const canEdit = userRoles.includes("admin") || userRoles.includes("coordenador");
+  // Papéis vêm do hook global (mesma chave de cache ["user-roles", uid]),
+  // evitando colisão de formato no React Query.
+  const { data: rolesInfo } = useUserRoles();
+  const canEdit = !!rolesInfo?.isCoordAdmin;
+
 
   const [selected, setSelected] = useState<WorkoutTemplate | null>(null);
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
