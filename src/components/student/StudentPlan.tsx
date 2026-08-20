@@ -398,14 +398,20 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
           </div>
         )}
 
-        {corridaFiltrados.length > 0 && (
+        {corridaCards.length > 0 && (
           <div className="space-y-3">
-            {corridaFiltrados.map((p: any) => (
-              <PlanoCorridaCard key={p.id} plano={p} alunoId={student.id} isCoordAdmin={isCoordAdmin} />
+            {corridaCards.map((p: any, i: number) => (
+              <PlanoCorridaCard
+                key={p.id}
+                plano={p}
+                alunoId={student.id}
+                isCoordAdmin={isCoordAdmin}
+                renovacoes={i === 0 ? corridaRenovacoes : []}
+              />
             ))}
-
           </div>
         )}
+
 
 
         <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
@@ -649,14 +655,20 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         </div>
       )}
 
-      {corridaFiltrados.length > 0 && (
+      {corridaCards.length > 0 && (
         <div className="space-y-3">
-          {corridaFiltrados.map((p: any) => (
-            <PlanoCorridaCard key={p.id} plano={p} alunoId={student.id} isCoordAdmin={isCoordAdmin} />
+          {corridaCards.map((p: any, i: number) => (
+            <PlanoCorridaCard
+              key={p.id}
+              plano={p}
+              alunoId={student.id}
+              isCoordAdmin={isCoordAdmin}
+              renovacoes={i === 0 ? corridaRenovacoes : []}
+            />
           ))}
-
         </div>
       )}
+
 
       <p className="text-xs text-muted-foreground">Editável apenas por Coordenação e Administração</p>
 
