@@ -87,66 +87,171 @@ interface HistoricoEntrada {
   exercicios: ParsedExercise[];
 }
 
-// Linhas da seção "Evolução de Assimetria":
-//   <dd/mm/aa|dd/mm/aaaa> <D> kg <E> kg <asym>%
-// Nessa seção o rótulo do exercício NÃO fica na mesma linha dos valores e a
-// extração de texto embaralha os títulos (layout em 2 colunas). Por isso o
-// pareamento é feito por POSIÇÃO: dentro de cada data, a k-ésima linha
-// corresponde ao k-ésimo exercício na ordem do documento (mesma ordem das
-// tabelas "Assimetria e Indicativos de Risco").
-const EVOL_ROW_RE =
-  /(\d{2}\/\d{2}\/(?:\d{4}|\d{2}))\s+([\d.,]+)\s*kg\s+([\d.,]+)\s*kg\s+[\d.,]+\s*%/g;
+// Tokens da seção "Evolução de Assimetria": ou um RÓTULO de exercício (título
+// da mini-tabela) ou uma LINHA de dados `<dd/mm/aa|aaaa> <D> kg <E> kg <a>%`.
+// O layout é em 2 colunas e a extração de texto intercala as linhas das duas
+// tabelas lado a lado (A1, B1, A2, B2...), com os rótulos vindo em par antes
+// do bloco de linhas. O pareamento abaixo reconstrói isso por bloco.
+const EVOL_TOKEN_RE = new RegExp(
+  `(${NOME_LABELS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})` +
+    String.raw`|(\d{2}\/\d{2}\/(?:\d{4}|\d{2}))\s+([\d.,]+)\s*kg\s+([\d.,]+)\s*kg\s+[\d.,]+\s*%`,
+  "gi",
+);
 
 function normalizeDate(d: string): string {
   const [dd, mm, yy] = d.split("/");
   return `${dd}/${mm}/${yy.length === 2 ? `20${yy}` : yy}`;
 }
 
-function parseEvolucao(text: string, atuais: ParsedExercise[]): HistoricoEntrada[] {
-  if (atuais.length === 0) return [];
-  // "Evolução de Assimetria" também aparece no índice da página 1 — usamos a
-  // ÚLTIMA ocorrência, que é o título da seção de fato.
-  const matches = [...text.matchAll(/Evolu[çc][ãa]o de Assimetria/gi)];
-  if (matches.length === 0) return [];
-  const trecho = text.slice(matches[matches.length - 1].index!);
+const toSortKey = (s: string) => {
+  const [dd, mm, yyyy] = s.split("/");
+  return `${yyyy}-${mm}-${dd}`;
+};
 
-  const ordem: { data: string; d: number; e: number }[] = [];
-  for (const m of trecho.matchAll(EVOL_ROW_RE)) {
-    const d = toNumber(m[2]);
-    const e = toNumber(m[3]);
-    if (!isFinite(d) || !isFinite(e)) continue;
-    ordem.push({ data: normalizeDate(m[1]), d, e });
+interface EvolRow {
+  data: string;
+  d: number;
+  e: number;
+}
+
+/** Resultado da leitura da seção de evolução. `incerto` = não validou; caller cai pra IA. */
+interface EvolucaoResult {
+  historico: HistoricoEntrada[];
+  incerto: boolean;
+}
+
+/**
+ * Distribui as linhas de um bloco entre os rótulos daquele bloco.
+ * Round-robin entre os rótulos ainda "abertos": um rótulo fecha quando recebe
+ * a linha que bate com a medição atual dele (última linha da mini-tabela).
+ */
+function distribuirBloco(
+  labels: ExercicioEnum[],
+  rows: EvolRow[],
+  atuaisPorNome: Map<ExercicioEnum, ParsedExercise>,
+): Map<ExercicioEnum, EvolRow[]> | null {
+  const out = new Map<ExercicioEnum, EvolRow[]>();
+  labels.forEach((l) => out.set(l, []));
+  if (labels.length === 1) {
+    out.set(labels[0], rows);
+    return out;
   }
-  if (ordem.length === 0) return [];
-
-  const grupos = new Map<string, { d: number; e: number }[]>();
-  for (const r of ordem) {
-    if (!grupos.has(r.data)) grupos.set(r.data, []);
-    grupos.get(r.data)!.push({ d: r.d, e: r.e });
+  const fechado = new Set<ExercicioEnum>();
+  let cursor = 0;
+  for (const row of rows) {
+    // acha o próximo rótulo aberto
+    let tentativas = 0;
+    while (fechado.has(labels[cursor % labels.length]) && tentativas < labels.length) {
+      cursor++;
+      tentativas++;
+    }
+    if (tentativas >= labels.length) return null; // todos fechados e ainda sobram linhas
+    const label = labels[cursor % labels.length];
+    out.get(label)!.push(row);
+    const atual = atuaisPorNome.get(label);
+    if (atual && atual.direito_kg === row.d && atual.esquerdo_kg === row.e) {
+      fechado.add(label);
+    }
+    cursor++;
   }
+  return out;
+}
 
-  const toSortKey = (s: string) => {
-    const [dd, mm, yyyy] = s.split("/");
-    return `${yyyy}-${mm}-${dd}`;
+function parseEvolucao(text: string, atuais: ParsedExercise[]): EvolucaoResult {
+  if (atuais.length === 0) return { historico: [], incerto: false };
+  const atuaisPorNome = new Map(atuais.map((a) => [a.nome, a]));
+
+  // "Evolução de Assimetria" também aparece no índice da página 1 (seguido de
+  // "Disponível"). Usamos a PRIMEIRA ocorrência real — a seção pode ocupar
+  // várias páginas, cada uma repetindo o título.
+  const ocorrencias = [...text.matchAll(/Evolu[çc][ãa]o de Assimetria/gi)].filter(
+    (m) => !/Dispon[íi]vel/i.test(text.slice(m.index!, m.index! + 120)),
+  );
+  if (ocorrencias.length === 0) return { historico: [], incerto: false };
+  const trecho = text.slice(ocorrencias[0].index!);
+
+  // Varre em blocos: rótulos consecutivos → linhas consecutivas → próximo bloco.
+  const porExercicio = new Map<ExercicioEnum, EvolRow[]>();
+  let pendentes: ExercicioEnum[] = [];
+  let linhas: EvolRow[] = [];
+  let falhou = false;
+
+  const flush = () => {
+    if (pendentes.length === 0 || linhas.length === 0) {
+      pendentes = [];
+      linhas = [];
+      return;
+    }
+    const dist = distribuirBloco(pendentes, linhas, atuaisPorNome);
+    if (!dist) {
+      falhou = true;
+    } else {
+      for (const [nome, rows] of dist) {
+        porExercicio.set(nome, (porExercicio.get(nome) ?? []).concat(rows));
+      }
+    }
+    pendentes = [];
+    linhas = [];
   };
 
-  const historico: HistoricoEntrada[] = [];
-  for (const [data, linhas] of grupos) {
-    // Só é seguro parear por posição quando a quantidade de linhas bate com a
-    // quantidade de exercícios do laudo.
-    if (linhas.length !== atuais.length) continue;
-    historico.push({
-      data,
-      exercicios: linhas.map((l, i) => ({
-        nome: atuais[i].nome,
-        data,
-        direito_kg: l.d,
-        esquerdo_kg: l.e,
-      })),
-    });
+  for (const m of trecho.matchAll(EVOL_TOKEN_RE)) {
+    if (m[1]) {
+      const enumName = NOME_LABEL_TO_ENUM[m[1].toLowerCase()];
+      if (!enumName) continue;
+      if (linhas.length > 0) flush();
+      pendentes.push(enumName);
+    } else if (m[2]) {
+      const d = toNumber(m[3]);
+      const e = toNumber(m[4]);
+      if (!isFinite(d) || !isFinite(e)) continue;
+      linhas.push({ data: normalizeDate(m[2]), d, e });
+    }
+  }
+  flush();
+
+  if (falhou) return { historico: [], incerto: true };
+  if (porExercicio.size === 0) return { historico: [], incerto: false };
+
+  // Validação: a última linha de cada exercício precisa bater com a medição
+  // atual (tabela "Assimetria e Indicativos de Risco") e as datas precisam
+  // estar em ordem crescente. Se algo não fechar, o histórico é descartado.
+  for (const [nome, rows] of porExercicio) {
+    const atual = atuaisPorNome.get(nome);
+    if (!atual || rows.length === 0) return { historico: [], incerto: true };
+    const ultima = rows[rows.length - 1];
+    if (ultima.d !== atual.direito_kg || ultima.e !== atual.esquerdo_kg) {
+      return { historico: [], incerto: true };
+    }
+    for (let i = 1; i < rows.length; i++) {
+      if (toSortKey(rows[i - 1].data) >= toSortKey(rows[i].data)) {
+        return { historico: [], incerto: true };
+      }
+    }
   }
 
-  return historico.sort((a, b) => (toSortKey(a.data) < toSortKey(b.data) ? 1 : -1));
+  // Agrupa por data (cada data pode ter um subconjunto diferente de exercícios).
+  const grupos = new Map<string, ParsedExercise[]>();
+  for (const [nome, rows] of porExercicio) {
+    for (const r of rows) {
+      if (!grupos.has(r.data)) grupos.set(r.data, []);
+      grupos.get(r.data)!.push({
+        nome,
+        data: r.data,
+        direito_kg: r.d,
+        esquerdo_kg: r.e,
+      });
+    }
+  }
+
+  const historico: HistoricoEntrada[] = [...grupos.entries()].map(([data, exercicios]) => ({
+    data,
+    exercicios,
+  }));
+
+  return {
+    historico: historico.sort((a, b) => (toSortKey(a.data) < toSortKey(b.data) ? 1 : -1)),
+    incerto: false,
+  };
 }
 
 
@@ -160,6 +265,7 @@ function tryParseKinologyDeterministic(text: string): {
   dataEmissao: string | null;
   exercicios: ParsedExercise[];
   historico: HistoricoEntrada[];
+  historicoIncerto: boolean;
 } {
   const seen = new Map<ExercicioEnum, ParsedExercise>();
   // A seção de evolução também casa com LINE_RE? Não: LINE_RE exige o rótulo do
@@ -184,14 +290,17 @@ function tryParseKinologyDeterministic(text: string): {
   const pacienteMatch = text.match(/Paciente:\s*([^\n\r]+?)\s{2,}/);
   const emissaoMatch = text.match(/Emiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/);
   const exercicios = [...seen.values()];
+  const evol = parseEvolucao(text, exercicios);
 
   return {
     paciente: pacienteMatch ? pacienteMatch[1].trim() : null,
     dataEmissao: emissaoMatch ? emissaoMatch[1] : null,
     exercicios,
-    historico: parseEvolucao(text, exercicios),
+    historico: evol.historico,
+    historicoIncerto: evol.incerto,
   };
 }
+
 
 
 Deno.serve(async (req) => {
@@ -229,6 +338,7 @@ Deno.serve(async (req) => {
     let deterministicPaciente: string | null = null;
     let deterministicDataEmissao: string | null = null;
     let deterministicHistorico: HistoricoEntrada[] = [];
+    let historicoIncerto = false;
 
     try {
       const tDl = Date.now();
@@ -254,9 +364,14 @@ Deno.serve(async (req) => {
       deterministicPaciente = det.paciente;
       deterministicDataEmissao = det.dataEmissao;
       deterministicHistorico = det.historico;
+      historicoIncerto = det.historicoIncerto;
       console.log(
         `[parse-kinology] determinístico: ${deterministicExercicios.length} exercício(s) reconhecido(s), ` +
-          `${deterministicHistorico.length} data(s) no histórico`,
+          `${deterministicHistorico.length} data(s) no histórico` +
+          (historicoIncerto ? " (histórico incerto — vai pra IA)" : "") +
+          deterministicHistorico
+            .map((h) => ` | ${h.data}: ${h.exercicios.length}`)
+            .join(""),
       );
     } catch (extractErr) {
       console.log(
@@ -264,7 +379,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (deterministicExercicios.length >= 1) {
+    if (deterministicExercicios.length >= 1 && !historicoIncerto) {
       console.log(`[parse-kinology] usando determinístico — retornando ${deterministicExercicios.length} exercício(s)`);
       return new Response(
         JSON.stringify({
@@ -281,7 +396,12 @@ Deno.serve(async (req) => {
 
     // ETAPA 2 — fallback IA (fluxo original intocado): gera URL assinada curta
     // e deixa o AI Gateway buscar o arquivo diretamente.
-    console.log(`[parse-kinology] fallback IA — 0 exercícios via parser determinístico`);
+    console.log(
+      historicoIncerto
+        ? `[parse-kinology] fallback IA — histórico não validado no parser determinístico`
+        : `[parse-kinology] fallback IA — 0 exercícios via parser determinístico`,
+    );
+
     const tSign = Date.now();
     const { data: signed, error: signErr } = await admin.storage
       .from("aluno-files")
@@ -395,11 +515,20 @@ Formato de resposta:
       typeof e.direito_kg === "number" &&
       typeof e.esquerdo_kg === "number";
 
-    const exercicios = (parsed.exercicios ?? []).filter(isValidEx);
+    const aiExercicios = (parsed.exercicios ?? []).filter(isValidEx);
+    // Quando o determinístico já leu a medição atual (e só o histórico ficou
+    // incerto), a medição determinística tem prioridade — ela é exata.
+    const exercicios =
+      deterministicExercicios.length >= 1 ? deterministicExercicios : aiExercicios;
 
     const historico = (parsed.historico ?? [])
       .filter((h) => h && typeof h.data === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(h.data))
-      .map((h) => ({ data: h.data, exercicios: (h.exercicios ?? []).filter(isValidEx) }))
+      .map((h) => ({
+        data: h.data,
+        exercicios: (h.exercicios ?? [])
+          .filter(isValidEx)
+          .map((e) => ({ ...e, data: h.data })),
+      }))
       .filter((h) => h.exercicios.length > 0);
 
     console.log(
@@ -407,14 +536,15 @@ Formato de resposta:
     );
     return new Response(
       JSON.stringify({
-        paciente: parsed.paciente ?? null,
-        dataEmissao: parsed.dataEmissao ?? null,
+        paciente: deterministicPaciente ?? parsed.paciente ?? null,
+        dataEmissao: deterministicDataEmissao ?? parsed.dataEmissao ?? null,
         exercicios,
         historico,
         source: "ai",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
 
 
   } catch (e) {
