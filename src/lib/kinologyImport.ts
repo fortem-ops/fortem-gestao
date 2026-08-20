@@ -13,13 +13,29 @@ export interface KinologyParsedExercise {
   data?: string;
 }
 
+export interface KinologyHistoricoEntrada {
+  /** dd/mm/aaaa como vem do laudo */
+  data: string;
+  exercicios: KinologyParsedExercise[];
+}
+
 export interface KinologyParseResult {
   paciente: string | null;
   dataEmissao: string | null;
   exercicios: KinologyParsedExercise[];
+  /** Seção "Evolução de Assimetria" — uma entrada por data encontrada. */
+  historico: KinologyHistoricoEntrada[];
   laudoPath: string;
   source: "deterministic" | "ai";
 }
+
+/** Converte dd/mm/aaaa → aaaa-mm-dd. Retorna null se não casar. */
+export function brDateToISO(d: string | null | undefined): string | null {
+  if (!d) return null;
+  const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+}
+
 
 
 /**
