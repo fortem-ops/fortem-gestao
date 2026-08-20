@@ -393,8 +393,9 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         {corridaFiltrados.length > 0 && (
           <div className="space-y-3">
             {corridaFiltrados.map((p: any) => (
-              <PlanoCorridaCard key={p.id} plano={p} />
+              <PlanoCorridaCard key={p.id} plano={p} alunoId={student.id} isCoordAdmin={isCoordAdmin} />
             ))}
+
           </div>
         )}
 
@@ -643,8 +644,9 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
       {corridaFiltrados.length > 0 && (
         <div className="space-y-3">
           {corridaFiltrados.map((p: any) => (
-            <PlanoCorridaCard key={p.id} plano={p} />
+            <PlanoCorridaCard key={p.id} plano={p} alunoId={student.id} isCoordAdmin={isCoordAdmin} />
           ))}
+
         </div>
       )}
 
@@ -985,11 +987,68 @@ function CancelContractDialog({ open, onOpenChange, planoTipo, cancelDate, setCa
   );
 }
 
-function PlanoCorridaCard({ plano }: { plano: any }) {
+function PlanoCorridaCard({
+  plano,
+  alunoId,
+  isCoordAdmin,
+}: {
+  plano: any;
+  alunoId: string;
+  isCoordAdmin?: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [inicioEdit, setInicioEdit] = useState<string>(plano.data_inicio ?? "");
+  const [fimEdit, setFimEdit] = useState<string>(plano.data_fim ?? "");
+  const [valorEdit, setValorEdit] = useState<string>(plano.valor != null ? String(plano.valor) : "");
+
   const inicio = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") : "—";
   const fim = plano.data_fim
     ? new Date(plano.data_fim + "T00:00:00").toLocaleDateString("pt-BR")
     : (plano.data_inicio ? calcEndDate(plano.data_inicio, plano.duracao_meses ?? 1) : "—");
+
+  function abrirEdicao() {
+    setInicioEdit(plano.data_inicio ?? "");
+    setFimEdit(plano.data_fim ?? "");
+    setValorEdit(plano.valor != null ? String(plano.valor) : "");
+    setOpen(true);
+  }
+
+  async function salvar() {
+    if (!inicioEdit) { toast.error("Data de início é obrigatória"); return; }
+    if (fimEdit && fimEdit < inicioEdit) { toast.error("Término não pode ser anterior ao início"); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("planos")
+        .update({
+          data_inicio: inicioEdit,
+          data_fim: fimEdit || null,
+          valor: valorEdit === "" ? 0 : Number(valorEdit),
+        } as any)
+        .eq("id", plano.id);
+      if (error) throw error;
+
+      // mantém o contrato vinculado coerente com o plano
+      const { error: contratoErr } = await supabase
+        .from("contratos")
+        .update({ data_inicio: inicioEdit, data_fim: fimEdit || null } as any)
+        .eq("plano_id", plano.id)
+        .in("status", ["ativo", "suspenso"]);
+      if (contratoErr) throw contratoErr;
+
+      toast.success("Plano de Corrida atualizado");
+      invalidatePlanoCaches(queryClient, alunoId);
+      queryClient.invalidateQueries({ queryKey: ["planos_corrida_ativos", alunoId] });
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar plano");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="glass-card rounded-lg p-5 space-y-3 border-l-4 border-l-primary/70">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -997,12 +1056,19 @@ function PlanoCorridaCard({ plano }: { plano: any }) {
           <Badge className="text-sm px-3 py-1">{plano.tipo}</Badge>
           <Badge variant="outline" className="status-info">Plano adicional · Corrida</Badge>
         </div>
-        {plano.valor != null && plano.valor > 0 && (
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <DollarSign className="h-4 w-4" />
-            <span>R$ {Number(plano.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {plano.valor != null && plano.valor > 0 && (
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <DollarSign className="h-4 w-4" />
+              <span>R$ {Number(plano.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+            </div>
+          )}
+          {isCoordAdmin && (
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={abrirEdicao}>
+              <Edit3 className="h-3.5 w-3.5" /> Editar
+            </Button>
+          )}
+        </div>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="flex items-center gap-2 text-sm">
@@ -1027,9 +1093,45 @@ function PlanoCorridaCard({ plano }: { plano: any }) {
           </div>
         </div>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar plano de Corrida</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Data de início</Label>
+              <Input type="date" value={inicioEdit} onChange={(e) => setInicioEdit(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de término</Label>
+              <Input type="date" value={fimEdit} onChange={(e) => setFimEdit(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={valorEdit}
+                onChange={(e) => setValorEdit(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              As datas do contrato vinculado a este plano também serão atualizadas.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
+            <Button onClick={salvar} disabled={saving}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function PlanoFuturoCard({ plano }: { plano: any }) {
   const inicio = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") : "—";
