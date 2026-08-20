@@ -338,6 +338,7 @@ Deno.serve(async (req) => {
     let deterministicPaciente: string | null = null;
     let deterministicDataEmissao: string | null = null;
     let deterministicHistorico: HistoricoEntrada[] = [];
+    let historicoIncerto = false;
 
     try {
       const tDl = Date.now();
@@ -363,9 +364,14 @@ Deno.serve(async (req) => {
       deterministicPaciente = det.paciente;
       deterministicDataEmissao = det.dataEmissao;
       deterministicHistorico = det.historico;
+      historicoIncerto = det.historicoIncerto;
       console.log(
         `[parse-kinology] determinístico: ${deterministicExercicios.length} exercício(s) reconhecido(s), ` +
-          `${deterministicHistorico.length} data(s) no histórico`,
+          `${deterministicHistorico.length} data(s) no histórico` +
+          (historicoIncerto ? " (histórico incerto — vai pra IA)" : "") +
+          deterministicHistorico
+            .map((h) => ` | ${h.data}: ${h.exercicios.length}`)
+            .join(""),
       );
     } catch (extractErr) {
       console.log(
@@ -373,7 +379,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (deterministicExercicios.length >= 1) {
+    if (deterministicExercicios.length >= 1 && !historicoIncerto) {
       console.log(`[parse-kinology] usando determinístico — retornando ${deterministicExercicios.length} exercício(s)`);
       return new Response(
         JSON.stringify({
@@ -390,7 +396,12 @@ Deno.serve(async (req) => {
 
     // ETAPA 2 — fallback IA (fluxo original intocado): gera URL assinada curta
     // e deixa o AI Gateway buscar o arquivo diretamente.
-    console.log(`[parse-kinology] fallback IA — 0 exercícios via parser determinístico`);
+    console.log(
+      historicoIncerto
+        ? `[parse-kinology] fallback IA — histórico não validado no parser determinístico`
+        : `[parse-kinology] fallback IA — 0 exercícios via parser determinístico`,
+    );
+
     const tSign = Date.now();
     const { data: signed, error: signErr } = await admin.storage
       .from("aluno-files")
