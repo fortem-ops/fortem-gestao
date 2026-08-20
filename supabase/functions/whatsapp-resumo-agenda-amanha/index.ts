@@ -23,7 +23,21 @@ const JANELA_MIN = 5; // tolerância da janela de disparo (= frequência do cron
 const GATILHOS = [
   'resumo_treino_experimental_amanha',
   'resumo_avaliacao_funcional_amanha',
+  'resumo_treino_experimental_amanha_consultor',
+  'resumo_avaliacao_funcional_amanha_consultor',
 ];
+
+/** Perfil (nome/telefone) de um usuário — usado para resolver o consultor do agendamento. */
+async function buscarPerfil(userId: string | null): Promise<{ full_name: string | null; phone: string | null } | null> {
+  if (!userId) return null;
+  const { data } = await admin
+    .from('profiles')
+    .select('full_name, phone')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
 
 /** Data/hora atuais em America/Sao_Paulo. */
 function agoraSP() {
