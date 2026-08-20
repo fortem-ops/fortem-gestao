@@ -214,6 +214,7 @@ Deno.serve(async (req) => {
     let deterministicExercicios: ParsedExercise[] = [];
     let deterministicPaciente: string | null = null;
     let deterministicDataEmissao: string | null = null;
+    let deterministicHistorico: HistoricoEntrada[] = [];
 
     try {
       const tDl = Date.now();
@@ -238,8 +239,10 @@ Deno.serve(async (req) => {
       deterministicExercicios = det.exercicios;
       deterministicPaciente = det.paciente;
       deterministicDataEmissao = det.dataEmissao;
+      deterministicHistorico = det.historico;
       console.log(
-        `[parse-kinology] determinístico: ${deterministicExercicios.length} exercício(s) reconhecido(s)`,
+        `[parse-kinology] determinístico: ${deterministicExercicios.length} exercício(s) reconhecido(s), ` +
+          `${deterministicHistorico.length} data(s) no histórico`,
       );
     } catch (extractErr) {
       console.log(
@@ -254,11 +257,13 @@ Deno.serve(async (req) => {
           paciente: deterministicPaciente,
           dataEmissao: deterministicDataEmissao,
           exercicios: deterministicExercicios,
+          historico: deterministicHistorico,
           source: "deterministic",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
     // ETAPA 2 — fallback IA (fluxo original intocado): gera URL assinada curta
     // e deixa o AI Gateway buscar o arquivo diretamente.
