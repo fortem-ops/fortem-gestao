@@ -49,7 +49,9 @@ export default function BodyMapShapesConfig() {
   const [newLabel, setNewLabel] = useState("");
   const [pointsHidden, setPointsHidden] = useState(false);
   const [peeking, setPeeking] = useState(false);
+  const [showOpposite, setShowOpposite] = useState(true);
   const showPoints = !pointsHidden && !peeking;
+
 
   useEffect(() => {
     function isTyping(t: EventTarget | null) {
