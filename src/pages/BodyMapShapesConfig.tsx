@@ -266,6 +266,20 @@ export default function BodyMapShapesConfig() {
             >
               {view === "front" ? <AnatomyFront /> : <AnatomyBack />}
 
+              {selected && showOpposite && counterpart && counterpart.points.length >= 3 && (
+                <path
+                  d={pointsToSmoothPath(counterpart.points as Array<[number, number]>)}
+                  fill="hsl(var(--muted-foreground))"
+                  fillOpacity={0.14}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={2}
+                  strokeDasharray="10 8"
+                  pointerEvents="none"
+                />
+              )}
+
+
+
               {selected && editingPoints.length >= 3 && (
                 <path
                   d={pointsToSmoothPath(editingPoints)}
