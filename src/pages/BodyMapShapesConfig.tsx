@@ -35,6 +35,37 @@ export default function BodyMapShapesConfig() {
   const [dialogKind, setDialogKind] = useState<"musculo" | "articulacao" | null>(null);
   const [newKey, setNewKey] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [pointsHidden, setPointsHidden] = useState(false);
+  const [peeking, setPeeking] = useState(false);
+  const showPoints = !pointsHidden && !peeking;
+
+  useEffect(() => {
+    function isTyping(t: EventTarget | null) {
+      const el = t as HTMLElement | null;
+      if (!el || !el.tagName) return false;
+      const tag = el.tagName.toLowerCase();
+      return tag === "input" || tag === "textarea" || el.isContentEditable;
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.repeat || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key.toLowerCase() === "h") setPeeking(true);
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.key.toLowerCase() === "h") setPeeking(false);
+    }
+    function onBlur() {
+      setPeeking(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
+
 
   const svgRef = useRef<SVGSVGElement>(null);
   const draggingRef = useRef<number | null>(null);
