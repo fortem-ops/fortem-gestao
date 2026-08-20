@@ -1129,59 +1129,14 @@ function PlanoCorridaCard({
   isCoordAdmin?: boolean;
   renovacoes?: any[];
 }) {
-
-  const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [inicioEdit, setInicioEdit] = useState<string>(plano.data_inicio ?? "");
-  const [fimEdit, setFimEdit] = useState<string>(plano.data_fim ?? "");
-  const [valorEdit, setValorEdit] = useState<string>(plano.valor != null ? String(plano.valor) : "");
+  const ctrl = useEditarPlanoCorrida(plano, alunoId);
+  const abrirEdicao = ctrl.abrirEdicao;
 
   const inicio = plano.data_inicio ? new Date(plano.data_inicio + "T00:00:00").toLocaleDateString("pt-BR") : "—";
   const fim = plano.data_fim
     ? new Date(plano.data_fim + "T00:00:00").toLocaleDateString("pt-BR")
     : (plano.data_inicio ? calcEndDate(plano.data_inicio, plano.duracao_meses ?? 1) : "—");
 
-  function abrirEdicao() {
-    setInicioEdit(plano.data_inicio ?? "");
-    setFimEdit(plano.data_fim ?? "");
-    setValorEdit(plano.valor != null ? String(plano.valor) : "");
-    setOpen(true);
-  }
-
-  async function salvar() {
-    if (!inicioEdit) { toast.error("Data de início é obrigatória"); return; }
-    if (fimEdit && fimEdit < inicioEdit) { toast.error("Término não pode ser anterior ao início"); return; }
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("planos")
-        .update({
-          data_inicio: inicioEdit,
-          data_fim: fimEdit || null,
-          valor: valorEdit === "" ? 0 : Number(valorEdit),
-        } as any)
-        .eq("id", plano.id);
-      if (error) throw error;
-
-      // mantém o contrato vinculado coerente com o plano
-      const { error: contratoErr } = await supabase
-        .from("contratos")
-        .update({ data_inicio: inicioEdit, data_fim: fimEdit || null } as any)
-        .eq("plano_id", plano.id)
-        .in("status", ["ativo", "suspenso"]);
-      if (contratoErr) throw contratoErr;
-
-      toast.success("Plano de Corrida atualizado");
-      invalidatePlanoCaches(queryClient, alunoId);
-      queryClient.invalidateQueries({ queryKey: ["planos_corrida_ativos", alunoId] });
-      setOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao atualizar plano");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   return (
     <div className="glass-card rounded-lg p-5 space-y-3 border-l-4 border-l-primary/70">
