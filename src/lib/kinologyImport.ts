@@ -183,3 +183,62 @@ export async function getFuncionalV2DefaultProtocoloId(): Promise<string | null>
     .maybeSingle();
   return proto?.id ?? null;
 }
+
+/**
+ * Retorna as datas (ISO) em que o aluno já tem avaliação funcional_v2 COM força
+ * registrada — usado para marcar "já registrado" no diálogo de histórico.
+ */
+export async function listarDatasForcaExistentes(alunoId: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("avaliacoes")
+    .select("data, dados")
+    .eq("aluno_id", alunoId)
+    .eq("tipo", "funcional_v2");
+  if (error) throw error;
+  const out = new Set<string>();
+  for (const row of data ?? []) {
+    const dados = (row.dados as Record<string, unknown>) || {};
+    const forca = dados.forca as { exercicios?: unknown[] } | null | undefined;
+    if (forca && Array.isArray(forca.exercicios) && forca.exercicios.length > 0) {
+      out.add(row.data as string);
+    }
+  }
+  return out;
+}
+
+/**
+ * Grava a força numa data específica: mescla numa avaliação funcional_v2 da
+ * MESMA data que ainda aguarda força ou cria uma nova linha.
+ * Retorna "merge" ou "insert".
+ */
+export async function persistirForcaNaData(params: {
+  alunoId: string;
+  avaliadorId: string;
+  dataISO: string;
+  forcaPayload: ReturnType<typeof buildForcaPayload>;
+}): Promise<"merge" | "insert"> {
+  const { alunoId, avaliadorId, dataISO, forcaPayload } = params;
+  const pendente = await findFuncionalV2AguardandoForca(alunoId, dataISO);
+
+  if (pendente) {
+    const { error } = await supabase
+      .from("avaliacoes")
+      .update({ dados: { ...pendente.dados, forca: forcaPayload } } as never)
+      .eq("id", pendente.id);
+    if (error) throw error;
+    return "merge";
+  }
+
+  const protocoloId = await getFuncionalV2DefaultProtocoloId();
+  if (!protocoloId) throw new Error("Protocolo padrão de funcional_v2 não encontrado");
+  const { error } = await supabase.from("avaliacoes").insert({
+    aluno_id: alunoId,
+    avaliador_id: avaliadorId,
+    tipo: "funcional_v2",
+    protocolo_id: protocoloId,
+    data: dataISO,
+    dados: { metricas: [], forca: forcaPayload },
+  } as never);
+  if (error) throw error;
+  return "insert";
+}
