@@ -246,7 +246,7 @@ serve(async (req) => {
 
 
   if (save_card) {
-    payload.storageCard = 1; // integer, não objeto (1=CIT primeira tx, 2=MIT subsequente)
+    payload.storageCard = "1"; // string (1=CIT primeira tx, 2=MIT subsequente)
   }
 
   console.log("[rede] chamando", baseUrl, "amount:", amount, "installments:", installments);
@@ -336,7 +336,8 @@ serve(async (req) => {
   // Salvar token se solicitado e aprovado
   if (approved && save_card) {
     // A Rede pode retornar o token em diferentes campos dependendo da versão
-    const cardToken = redeResponse?.cardToken
+    const cardToken = redeResponse?.brandTid
+      ?? redeResponse?.cardToken
       ?? redeResponse?.cardStorage?.cardId
       ?? redeResponse?.storageCard?.cardId
       ?? redeResponse?.tokenId
