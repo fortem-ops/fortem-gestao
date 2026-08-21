@@ -1,12 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
-
-// e-Rede API v2 (OAuth 2.0 Bearer)
-const REDE_URLS = {
-  sandbox:  "https://sandbox-erede.useredecloud.com.br/v2",
-  producao: "https://api.userede.com.br/erede/v2",
-};
+import {
+  REDE_URLS,
+  loadSecrets,
+  luhn,
+  resolveRedeBaseUrl,
+  calcularAmountCentavos,
+  isRecorrencia as isVendaRecorrencia,
+  normalizarPeriodoMeses,
+  buildReference,
+  normalizeCardholderName,
+  formatExpirationMonth,
+  formatExpirationYear,
+  mapReturnCode,
+} from "../_shared/rede-payload.ts";
 
 const MAX_TENTATIVAS = 5;
 
@@ -15,66 +23,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-function luhn(n: string): boolean {
-  const d = n.replace(/\D/g, "");
-  if (d.length < 12) return false;
-  let s = 0, odd = false;
-  for (let i = d.length - 1; i >= 0; i--) {
-    let digit = parseInt(d[i]);
-    if (odd) { digit *= 2; if (digit > 9) digit -= 9; }
-    s += digit; odd = !odd;
-  }
-  return s % 10 === 0;
-}
-
-
-async function loadSecrets(supabase: any): Promise<Record<string, string>> {
-  const m: Record<string, string> = {};
-
-  // 1. Tentar variáveis de ambiente primeiro (Edge Function Secrets — mais confiável)
-  const envPv      = Deno.env.get("REDE_PV")       ?? "";
-  const envToken   = Deno.env.get("REDE_TOKEN")    ?? "";
-  const envAmbient = Deno.env.get("REDE_AMBIENTE") ?? "";
-
-  if (envPv)      m["rede_pv"]       = envPv;
-  if (envToken)   m["rede_token"]    = envToken;
-  if (envAmbient) m["rede_ambiente"] = envAmbient;
-
-  if (m["rede_pv"] && m["rede_token"]) {
-    console.log("[rede] credenciais via env vars OK — ambiente:", m["rede_ambiente"] || "sandbox (default)");
-    if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
-    return m;
-  }
-
-  // 2. Fallback: Supabase Vault
-  try {
-    const { data, error } = await supabase
-      .schema("vault")
-      .from("decrypted_secrets")
-      .select("name, decrypted_secret")
-      .in("name", ["rede_pv", "rede_token", "rede_ambiente"]);
-
-    if (!error && data?.length > 0) {
-      data.forEach((s: any) => { if (s.decrypted_secret) m[s.name] = s.decrypted_secret; });
-      console.log("[rede] credenciais via Vault:", Object.keys(m).join(", "));
-    } else {
-      console.warn("[rede] Vault indisponível:", error?.message ?? "sem dados");
-    }
-  } catch (e) {
-    console.warn("[rede] Vault exception:", String(e));
-  }
-
-  if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
-
-  console.log("[rede] status final credenciais:", {
-    pv_ok:    (m["rede_pv"] ?? "").length > 0,
-    token_ok: (m["rede_token"] ?? "").length > 0,
-    ambiente: m["rede_ambiente"],
-  });
-
-  return m;
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -86,12 +34,12 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-    const secrets = await loadSecrets(supabaseDiag);
+    const secrets = await loadSecrets(supabaseDiag, { verbose: true });
     const pv    = secrets["rede_pv"]    ?? "";
     const token = secrets["rede_token"] ?? "";
 
     const ambiente = secrets["rede_ambiente"] ?? "sandbox";
-    const baseUrl = REDE_URLS[ambiente as "sandbox" | "producao"] ?? REDE_URLS.sandbox;
+    const baseUrl = resolveRedeBaseUrl(ambiente);
 
     let oauthTest = "não testado";
     let accessTokenForTest: string | null = null;
@@ -251,10 +199,10 @@ serve(async (req) => {
   }
 
   // Carregar credenciais
-  const secrets = await loadSecrets(supabase);
+  const secrets = await loadSecrets(supabase, { verbose: true });
   const pv    = secrets["rede_pv"];
   const token = secrets["rede_token"];
-  const baseUrl = REDE_URLS[secrets["rede_ambiente"] as "sandbox" | "producao"] ?? REDE_URLS.sandbox;
+  const baseUrl = resolveRedeBaseUrl(secrets["rede_ambiente"]);
 
   if (!pv || !token) {
     return new Response(JSON.stringify({
@@ -268,19 +216,15 @@ serve(async (req) => {
     .select("valor_final, valor, desconto, tipo_cobranca, taxa_mensal, catalogo_id, data_venda")
     .eq("id", venda_id).single();
   // Para Recorrência cobramos APENAS a 1ª mensalidade agora (valor mensal + taxa)
-  const isRecorrencia = (venda as any)?.tipo_cobranca === "recorrencia";
-  let amount: number;
+  const isRecorrencia = isVendaRecorrencia(venda as any);
+  let periodoMeses = 1;
   if (isRecorrencia) {
     // Buscar período do plano para calcular valor mensal
     const { data: plano } = await supabase.from("planos_catalogo")
       .select("periodo_meses").eq("id", (venda as any)?.catalogo_id).maybeSingle();
-    const periodo = Math.max(1, Number((plano as any)?.periodo_meses) || 1);
-    const subtotal = Math.max(0, (Number((venda as any)?.valor) || 0) - (Number((venda as any)?.desconto) || 0));
-    const mensal = subtotal / periodo + (Number((venda as any)?.taxa_mensal) || 0);
-    amount = Math.round(mensal * 100);
-  } else {
-    amount = Math.round((Number((venda as any)?.valor_final) || 0) * 100);
+    periodoMeses = normalizarPeriodoMeses((plano as any)?.periodo_meses);
   }
+  const amount = calcularAmountCentavos(venda as any, periodoMeses);
   if (amount <= 0) {
     return new Response(JSON.stringify({ error: "Valor da venda inválido ou zerado" }), { status: 400, headers });
   }
@@ -291,13 +235,13 @@ serve(async (req) => {
   const payload: Record<string, unknown> = {
     capture:          captureFinal,
     kind:             "credit",
-    reference:        String(venda_id).replace(/-/g, "").slice(0, 20),
+    reference:        buildReference(venda_id),
     amount,
     installments:     Number(installments),
-    cardholderName:   String(card_holder).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+    cardholderName:   normalizeCardholderName(card_holder),
     cardNumber:       cardClean,
-    expirationMonth:  String(expiration_month).padStart(2, "0"),
-    expirationYear:   (() => { const y = String(expiration_year).trim(); return y.length === 2 ? "20" + y : y; })(),
+    expirationMonth:  formatExpirationMonth(expiration_month),
+    expirationYear:   formatExpirationYear(expiration_year),
     securityCode:     String(security_code),
   };
 
@@ -354,9 +298,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Erro de comunicação com a Rede", detalhe: String(e) }), { status: 502, headers });
   }
 
-  const returnCode = redeResponse?.returnCode ?? "XX";
-  const approved   = returnCode === "00";
-  const status     = approved ? "approved" : "denied";
+  const { returnCode, approved, status } = mapReturnCode(redeResponse?.returnCode);
 
   // Persistir auditoria (trigger no banco sanitiza o raw_response)
   const { error: insertErr } = await supabase.from("pagamentos_rede").insert({
