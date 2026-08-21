@@ -266,24 +266,41 @@ export function useCancelarContrato() {
 export function useRegistrarPagamento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ cobrancaId, dataPagamento, comprovante_url }: {
-      cobrancaId: string; dataPagamento: string; comprovante_url?: string;
+    mutationFn: async ({ cobrancaId, dataPagamento, formaRecebimento, comprovante_url }: {
+      cobrancaId: string; dataPagamento: string; formaRecebimento: string; comprovante_url?: string;
     }) => {
+      const forma = getFormaRecebimento(formaRecebimento);
+      if (!forma) throw new Error('Forma de recebimento inválida');
       const { error } = await db
         .from('cobrancas')
         .update({
           status: 'pago',
           data_pagamento: dataPagamento,
+          forma_pagamento: forma.value,
+          gateway: forma.gateway,
           meio_registro: 'manual_admin',
           ...(comprovante_url ? { comprovante_url } : {}),
         })
         .eq('id', cobrancaId);
       if (error) throw error;
+
+      await (db as any)
+        .from('vendas')
+        .update({ forma_pagamento: forma.vendaForma, status_pagamento: 'pago' })
+        .eq('cobranca_id', cobrancaId)
+        .or('forma_pagamento.is.null,forma_pagamento.eq.pendente');
+
+      await db
+        .from('inadimplencias')
+        .update({ status: 'regularizada', data_regularizacao: dataPagamento })
+        .eq('cobranca_id', cobrancaId)
+        .eq('status', 'aberta');
     },
     onSuccess: () => {
       toast.success('Pagamento registrado');
       qc.invalidateQueries({ queryKey: ['cobrancas'] });
       qc.invalidateQueries({ queryKey: ['contratos'] });
+      qc.invalidateQueries({ queryKey: ['inadimplencias', 'abertas'] });
     },
     onError: (e: any) => toast.error('Erro ao registrar pagamento: ' + e.message),
   });
@@ -293,26 +310,45 @@ export function useRegistrarPagamento() {
 export function useDarBaixaLote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ cobrancaIds, dataPagamento }: {
-      cobrancaIds: string[]; dataPagamento: string;
+    mutationFn: async ({ cobrancaIds, dataPagamento, formaRecebimento }: {
+      cobrancaIds: string[]; dataPagamento: string; formaRecebimento?: string;
     }) => {
       if (!cobrancaIds.length) return 0;
+      const forma = formaRecebimento ? getFormaRecebimento(formaRecebimento) : undefined;
       const { error } = await db
         .from('cobrancas')
         .update({
           status: 'pago',
           data_pagamento: dataPagamento,
           meio_registro: 'manual_admin',
+          ...(forma ? { forma_pagamento: forma.value, gateway: forma.gateway } : {}),
         })
         .in('id', cobrancaIds);
       if (error) throw error;
+
+      if (forma) {
+        await (db as any)
+          .from('vendas')
+          .update({ forma_pagamento: forma.vendaForma, status_pagamento: 'pago' })
+          .in('cobranca_id', cobrancaIds)
+          .or('forma_pagamento.is.null,forma_pagamento.eq.pendente');
+      }
+
+      await db
+        .from('inadimplencias')
+        .update({ status: 'regularizada', data_regularizacao: dataPagamento })
+        .in('cobranca_id', cobrancaIds)
+        .eq('status', 'aberta');
+
       return cobrancaIds.length;
     },
     onSuccess: (qtd) => {
       toast.success(`${qtd} cobrança(s) regularizada(s)`);
       qc.invalidateQueries({ queryKey: ['cobrancas'] });
       qc.invalidateQueries({ queryKey: ['contratos'] });
+      qc.invalidateQueries({ queryKey: ['inadimplencias', 'abertas'] });
     },
     onError: (e: any) => toast.error('Erro ao dar baixa em lote: ' + e.message),
   });
 }
+
