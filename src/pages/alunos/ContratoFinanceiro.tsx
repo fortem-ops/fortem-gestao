@@ -724,8 +724,9 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs">
-                    {LABEL_PAGAMENTO[c.forma_pagamento as keyof typeof LABEL_PAGAMENTO] ?? c.forma_pagamento}
+                    {labelFormaPagamento(c.forma_pagamento)}
                   </TableCell>
+
                   <TableCell className="text-xs font-mono text-muted-foreground">
                     {c.tid ?? "—"}
                   </TableCell>
