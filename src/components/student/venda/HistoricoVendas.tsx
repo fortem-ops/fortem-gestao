@@ -249,8 +249,10 @@ export function HistoricoVendas({ alunoId }: Props) {
 
   function nomeForma(slug: string | null) {
     if (!slug) return null;
-    return formas.find((f) => f.slug === slug)?.nome || slug;
+    if (slug === "pendente") return "A definir";
+    return formas.find((f) => f.slug === slug)?.nome || labelFormaPagamento(slug);
   }
+
 
   return (
     <div className="space-y-3 mt-6">
