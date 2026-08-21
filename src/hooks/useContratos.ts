@@ -183,10 +183,34 @@ export function useInadimplenciasAbertas() {
         .eq('status', 'aberta')
         .order('data_vencimento', { ascending: true });
       if (error) throw error;
-      return (data ?? []) as (Inadimplencia & { alunos: { id: string; nome: string } })[];
+      const rows = (data ?? []) as any[];
+
+      // Ignora inadimplências cuja cobrança já foi paga ou cancelada
+      // (ex.: contrato encerrado/rescindido) — não são atrasos reais.
+      const cobrancaIds = Array.from(
+        new Set(rows.map((r) => r.cobranca_id).filter(Boolean)),
+      );
+      if (cobrancaIds.length) {
+        const { data: cobs } = await db
+          .from('cobrancas')
+          .select('id, status')
+          .in('id', cobrancaIds);
+        const invalidas = new Set(
+          (cobs ?? [])
+            .filter((c: any) => c.status === 'pago' || c.status === 'cancelado' || c.status === 'isento')
+            .map((c: any) => c.id),
+        );
+        if (invalidas.size) {
+          return rows.filter((r) => !invalidas.has(r.cobranca_id)) as (Inadimplencia & {
+            alunos: { id: string; nome: string };
+          })[];
+        }
+      }
+      return rows as (Inadimplencia & { alunos: { id: string; nome: string } })[];
     },
   });
 }
+
 
 export function useCalcularRescisao(contratoId: string, enabled = true) {
   return useQuery({
