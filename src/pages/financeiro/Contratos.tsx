@@ -149,7 +149,9 @@ export default function Contratos() {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [dataBaixa, setDataBaixa] = useState<Date>(new Date());
+  const [formaBaixa, setFormaBaixa] = useState<string>('dinheiro');
   const darBaixa = useDarBaixaLote();
+
 
   const vencidasVisiveis = useMemo(
     () => filtradas.filter((c) => c.status_pagamento === 'vencida'),
