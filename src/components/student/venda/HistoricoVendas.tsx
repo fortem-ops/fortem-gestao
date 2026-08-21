@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
+import { labelFormaPagamento } from "@/lib/formasRecebimento";
+
 
 type Props = { alunoId: string };
 
