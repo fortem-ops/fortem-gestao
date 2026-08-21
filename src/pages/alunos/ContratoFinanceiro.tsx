@@ -62,6 +62,8 @@ import {
   getFormaRecebimento,
   labelFormaPagamento,
 } from "@/lib/formasRecebimento";
+import { propagarBaixaParaVenda } from "@/lib/baixaVenda";
+
 
 
 interface Props {

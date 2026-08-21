@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Contrato, Cobranca, CicloCredito, Inadimplencia, ResultadoRescisao } from '@/types/financeiro';
 import { toast } from 'sonner';
 import { getFormaRecebimento } from '@/lib/formasRecebimento';
+import { propagarBaixaParaVenda, propagarBaixaEmLote } from '@/lib/baixaVenda';
+
 
 
 // Supabase generated types not yet aware of the new financial tables — cast through any.
