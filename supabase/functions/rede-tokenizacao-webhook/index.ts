@@ -219,6 +219,41 @@ serve(async (req) => {
           .update({ cartao_salvo_id: cartao.id, updated_at: new Date().toISOString() })
           .eq("id", registro.id);
         console.log("[rede-tokenizacao-webhook] cartão salvo:", cartao.id);
+
+        // Fase 2: vincula o cartão recém-criado a TODOS os contratos ativos de
+        // recorrência do aluno que ainda estiverem sem cartão vinculado.
+        const { data: contratosVinculados, error: vincErr } = await supabase
+          .from("contratos")
+          .update({ cartao_token_id: cartao.id, updated_at: new Date().toISOString() })
+          .eq("aluno_id", registro.aluno_id)
+          .eq("status", "ativo")
+          .eq("forma_pagamento", "cartao_recorrencia")
+          .is("cartao_token_id", null)
+          .select("id");
+
+        const idsContratos = Array.isArray(contratosVinculados)
+          ? contratosVinculados.map((c: any) => c.id)
+          : [];
+        try {
+          await supabase.from("system_logs").insert({
+            modulo: "rede-tokenizacao-webhook",
+            acao: "cartao_vinculado_contratos",
+            mensagem: `Cartão ${cartao.id} vinculado a ${idsContratos.length} contrato(s) ativo(s) de recorrência do aluno ${registro.aluno_id}`,
+            payload: {
+              cartao_salvo_id: cartao.id,
+              aluno_id: registro.aluno_id,
+              tokenization_id: tokenizationId,
+              contratos_vinculados: idsContratos.length,
+              contrato_ids: idsContratos,
+              erro: vincErr?.message ?? null,
+            },
+          });
+        } catch (e) {
+          console.error("[rede-tokenizacao-webhook] falha ao registrar system_logs:", String(e));
+        }
+        if (vincErr) {
+          console.error("[rede-tokenizacao-webhook] erro ao vincular cartão a contratos:", vincErr.message);
+        }
       }
     }
 
