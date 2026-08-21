@@ -229,6 +229,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
 
   const handleBaixa = async () => {
     if (!baixaCobranca) return;
+    const forma = getFormaRecebimento(baixaForma);
+    if (!forma) return;
     setBaixaLoading(true);
     try {
       const { error } = await supabase
@@ -236,7 +238,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         .update({
           status: "pago",
           data_pagamento: baixaData,
-          gateway: baixaGateway,
+          forma_pagamento: forma.value,
+          gateway: forma.gateway,
           meio_registro: "manual_admin",
         })
         .eq("id", baixaCobranca.id);
@@ -249,7 +252,28 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         .eq("cobranca_id", baixaCobranca.id)
         .eq("status", "aberta");
 
-      toast({ title: "Baixa registrada", description: `Cobrança de ${fmt(Number(baixaCobranca.valor))} marcada como paga.` });
+      // Propaga a forma recebida para a venda vinculada, quando ela ainda
+      // estiver "a definir" (pendente/nula).
+      const { data: vendasDiretas } = await (supabase as any)
+        .from("vendas")
+        .update({ forma_pagamento: forma.vendaForma, status_pagamento: "pago" })
+        .eq("cobranca_id", baixaCobranca.id)
+        .or("forma_pagamento.is.null,forma_pagamento.eq.pendente")
+        .select("id");
+
+      if (!vendasDiretas?.length) {
+        const contrato = contratos.find((c) => c.id === baixaCobranca.contrato_id) as any;
+        if (contrato?.plano_id) {
+          await (supabase as any)
+            .from("vendas")
+            .update({ forma_pagamento: forma.vendaForma, status_pagamento: "pago" })
+            .eq("aluno_id", alunoId)
+            .eq("plano_id", contrato.plano_id)
+            .or("forma_pagamento.is.null,forma_pagamento.eq.pendente");
+        }
+      }
+
+      toast({ title: "Baixa registrada", description: `Cobrança de ${fmt(Number(baixaCobranca.valor))} recebida via ${forma.label}.` });
       setBaixaOpen(false);
       const contratoId = baixaCobranca.contrato_id;
       setBaixaCobranca(null);
@@ -257,6 +281,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["inadimplencias-contrato", contratoId] });
       qc.invalidateQueries({ queryKey: ["inadimplencias-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias", "abertas"] });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
@@ -267,7 +293,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const pedirBaixa = (c: any) => {
     setBaixaCobranca(c);
     setBaixaData(new Date().toISOString().split("T")[0]);
-    setBaixaGateway("dinheiro");
+    setBaixaForma("dinheiro");
+
     setBaixaOpen(true);
   };
 
