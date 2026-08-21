@@ -6,8 +6,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { useCobrancasContrato, useRegistrarPagamento } from '@/hooks/useContratos';
 import { Cobranca, formatBRL } from '@/types/financeiro';
+import { FORMAS_RECEBIMENTO } from '@/lib/formasRecebimento';
+
 
 interface Props {
   contratoId: string;
