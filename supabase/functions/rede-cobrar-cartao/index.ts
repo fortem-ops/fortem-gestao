@@ -333,7 +333,8 @@ serve(async (req) => {
     }
   }
 
-  // Salvar token se solicitado e aprovado
+  // (a) Salvar token/cartão — só quando solicitado e aprovado
+  let savedCartaoId: string | null = null;
   if (approved && save_card) {
     // A Rede pode retornar o token em diferentes campos dependendo da versão
     const cardToken = redeResponse?.brandTid
@@ -351,7 +352,6 @@ serve(async (req) => {
       allKeys:      Object.keys(redeResponse ?? {}),
     });
 
-    let savedCartaoId: string | null = null;
     if (cardToken) {
       const { data: inserted } = await supabase.from("cartoes_salvos").insert({
         aluno_id,
@@ -369,7 +369,12 @@ serve(async (req) => {
     } else {
       console.warn("[rede] cartão não salvo — token ausente na resposta. Chaves disponíveis:", Object.keys(redeResponse ?? {}));
     }
+  }
 
+  // (b) Criação de contrato + cobranças — sempre que a cobrança for aprovada,
+  // independentemente de save_card. Se não houve cartão salvo, o contrato
+  // nasce sem cartão vinculado (p_cartao_token_id = null).
+  if (approved) {
     // Recorrência: criar contrato + N cobranças (1ª paga), onde N = periodo_meses do plano
     if (isRecorrencia) {
       const periodoQ = await supabase.from("planos_catalogo")
@@ -408,6 +413,7 @@ serve(async (req) => {
       if (rpcTradErr) console.error("[rede] fn_criar_contrato_tradicional:", rpcTradErr.message);
     }
   }
+
 
   return new Response(JSON.stringify({
     success:        approved,
