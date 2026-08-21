@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
+import { labelFormaPagamento } from "@/lib/formasRecebimento";
+
 
 type Props = { alunoId: string };
 
@@ -249,8 +251,10 @@ export function HistoricoVendas({ alunoId }: Props) {
 
   function nomeForma(slug: string | null) {
     if (!slug) return null;
-    return formas.find((f) => f.slug === slug)?.nome || slug;
+    if (slug === "pendente") return "A definir";
+    return formas.find((f) => f.slug === slug)?.nome || labelFormaPagamento(slug);
   }
+
 
   return (
     <div className="space-y-3 mt-6">
@@ -266,7 +270,7 @@ export function HistoricoVendas({ alunoId }: Props) {
                 <TableHead>Tipo</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Valor</TableHead>
-                <TableHead>Pagamento</TableHead>
+                <TableHead>Forma (venda)</TableHead>
                 <TableHead>Vendedor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Créditos</TableHead>

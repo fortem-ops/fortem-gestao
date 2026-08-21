@@ -6,8 +6,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { useCobrancasContrato, useRegistrarPagamento } from '@/hooks/useContratos';
 import { Cobranca, formatBRL } from '@/types/financeiro';
+import { FORMAS_RECEBIMENTO } from '@/lib/formasRecebimento';
+
 
 interface Props {
   contratoId: string;
@@ -71,6 +76,7 @@ export function TimelineCobrancas({ contratoId, canRegister = false }: Props) {
 
 function RegistrarPagamentoDialog({ cobranca, onClose }: { cobranca: Cobranca; onClose: () => void }) {
   const [dataPagamento, setDataPagamento] = useState(new Date().toISOString().split('T')[0]);
+  const [formaRecebimento, setFormaRecebimento] = useState('dinheiro');
   const [comprovante, setComprovante] = useState('');
   const registrar = useRegistrarPagamento();
 
@@ -78,6 +84,7 @@ function RegistrarPagamentoDialog({ cobranca, onClose }: { cobranca: Cobranca; o
     await registrar.mutateAsync({
       cobrancaId: cobranca.id,
       dataPagamento,
+      formaRecebimento,
       comprovante_url: comprovante || undefined,
     });
     onClose();
@@ -99,6 +106,19 @@ function RegistrarPagamentoDialog({ cobranca, onClose }: { cobranca: Cobranca; o
             <Input id="data" type="date" value={dataPagamento} onChange={(e) => setDataPagamento(e.target.value)} />
           </div>
           <div className="space-y-1.5">
+            <Label htmlFor="forma">Forma de recebimento</Label>
+            <Select value={formaRecebimento} onValueChange={setFormaRecebimento}>
+              <SelectTrigger id="forma">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FORMAS_RECEBIMENTO.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor="comp">URL do comprovante (opcional)</Label>
             <Input id="comp" value={comprovante} onChange={(e) => setComprovante(e.target.value)} placeholder="https://..." />
           </div>
@@ -114,6 +134,7 @@ function RegistrarPagamentoDialog({ cobranca, onClose }: { cobranca: Cobranca; o
     </Dialog>
   );
 }
+
 
 const STATUS_META = {
   pago:      { icon: CheckCircle2, bg: 'bg-green-500',   text: 'text-green-600 dark:text-green-400',   label: 'Pago' },

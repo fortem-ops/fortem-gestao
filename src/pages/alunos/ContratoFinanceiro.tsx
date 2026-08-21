@@ -57,6 +57,12 @@ import {
   type Contrato,
   type ServicoUtilizado,
 } from "@/lib/contratos-calc";
+import {
+  FORMAS_RECEBIMENTO,
+  getFormaRecebimento,
+  labelFormaPagamento,
+} from "@/lib/formasRecebimento";
+
 
 interface Props {
   alunoId: string;
@@ -79,7 +85,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaCobranca, setBaixaCobranca] = useState<any | null>(null);
   const [baixaData, setBaixaData] = useState(new Date().toISOString().split("T")[0]);
-  const [baixaGateway, setBaixaGateway] = useState<string>("dinheiro");
+  const [baixaForma, setBaixaForma] = useState<string>("dinheiro");
   const [baixaLoading, setBaixaLoading] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
@@ -229,6 +235,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
 
   const handleBaixa = async () => {
     if (!baixaCobranca) return;
+    const forma = getFormaRecebimento(baixaForma);
+    if (!forma) return;
     setBaixaLoading(true);
     try {
       const { error } = await supabase
@@ -236,7 +244,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         .update({
           status: "pago",
           data_pagamento: baixaData,
-          gateway: baixaGateway,
+          forma_pagamento: forma.value,
+          gateway: forma.gateway,
           meio_registro: "manual_admin",
         })
         .eq("id", baixaCobranca.id);
@@ -249,7 +258,28 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         .eq("cobranca_id", baixaCobranca.id)
         .eq("status", "aberta");
 
-      toast({ title: "Baixa registrada", description: `Cobrança de ${fmt(Number(baixaCobranca.valor))} marcada como paga.` });
+      // Propaga a forma recebida para a venda vinculada, quando ela ainda
+      // estiver "a definir" (pendente/nula).
+      const { data: vendasDiretas } = await (supabase as any)
+        .from("vendas")
+        .update({ forma_pagamento: forma.vendaForma, status_pagamento: "pago" })
+        .eq("cobranca_id", baixaCobranca.id)
+        .or("forma_pagamento.is.null,forma_pagamento.eq.pendente")
+        .select("id");
+
+      if (!vendasDiretas?.length) {
+        const contrato = contratos.find((c) => c.id === baixaCobranca.contrato_id) as any;
+        if (contrato?.plano_id) {
+          await (supabase as any)
+            .from("vendas")
+            .update({ forma_pagamento: forma.vendaForma, status_pagamento: "pago" })
+            .eq("aluno_id", alunoId)
+            .eq("plano_id", contrato.plano_id)
+            .or("forma_pagamento.is.null,forma_pagamento.eq.pendente");
+        }
+      }
+
+      toast({ title: "Baixa registrada", description: `Cobrança de ${fmt(Number(baixaCobranca.valor))} recebida via ${forma.label}.` });
       setBaixaOpen(false);
       const contratoId = baixaCobranca.contrato_id;
       setBaixaCobranca(null);
@@ -257,6 +287,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       qc.invalidateQueries({ queryKey: ["contratos-aluno", alunoId] });
       qc.invalidateQueries({ queryKey: ["inadimplencias-contrato", contratoId] });
       qc.invalidateQueries({ queryKey: ["inadimplencias-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["vendas-aluno", alunoId] });
+      qc.invalidateQueries({ queryKey: ["inadimplencias", "abertas"] });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
@@ -267,7 +299,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const pedirBaixa = (c: any) => {
     setBaixaCobranca(c);
     setBaixaData(new Date().toISOString().split("T")[0]);
-    setBaixaGateway("dinheiro");
+    setBaixaForma("dinheiro");
+
     setBaixaOpen(true);
   };
 
@@ -373,20 +406,22 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="baixa-gateway">Meio de pagamento</Label>
-              <Select value={baixaGateway} onValueChange={setBaixaGateway}>
-                <SelectTrigger id="baixa-gateway">
+              <Label htmlFor="baixa-forma">Forma de recebimento</Label>
+              <Select value={baixaForma} onValueChange={setBaixaForma}>
+                <SelectTrigger id="baixa-forma">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                  <SelectItem value="maquina">Máquina (débito/crédito)</SelectItem>
-                  <SelectItem value="inter_pix">Pix</SelectItem>
-                  <SelectItem value="rede">Cartão de Crédito (Rede)</SelectItem>
-                  <SelectItem value="boleto">Boleto</SelectItem>
+                  {FORMAS_RECEBIMENTO.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Como o valor entrou de fato. Substitui a forma "a definir" da venda.
+              </p>
             </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBaixaOpen(false)} disabled={baixaLoading}>
@@ -657,7 +692,7 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
                 <TableHead>Pgto</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Meio</TableHead>
+                <TableHead>Recebido via</TableHead>
                 <TableHead>TID</TableHead>
                 {podeCancelar && <TableHead className="text-right">Ação</TableHead>}
               </TableRow>
@@ -689,8 +724,9 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs">
-                    {LABEL_PAGAMENTO[c.forma_pagamento as keyof typeof LABEL_PAGAMENTO] ?? c.forma_pagamento}
+                    {labelFormaPagamento(c.forma_pagamento)}
                   </TableCell>
+
                   <TableCell className="text-xs font-mono text-muted-foreground">
                     {c.tid ?? "—"}
                   </TableCell>

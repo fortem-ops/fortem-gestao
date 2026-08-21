@@ -28,6 +28,8 @@ import {
   FORMA_PAGAMENTO_LABELS, formatBRL, ContratoStatus,
 } from '@/types/financeiro';
 import { cn } from '@/lib/utils';
+import { FORMAS_RECEBIMENTO } from '@/lib/formasRecebimento';
+
 
 const STATUS_VARIANT: Record<ContratoStatus, string> = {
   ativo:        'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30',
@@ -149,7 +151,9 @@ export default function Contratos() {
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [dataBaixa, setDataBaixa] = useState<Date>(new Date());
+  const [formaBaixa, setFormaBaixa] = useState<string>('dinheiro');
   const darBaixa = useDarBaixaLote();
+
 
   const vencidasVisiveis = useMemo(
     () => filtradas.filter((c) => c.status_pagamento === 'vencida'),
@@ -179,7 +183,9 @@ export default function Contratos() {
     await darBaixa.mutateAsync({
       cobrancaIds: selecionadasList.map((c) => c.id),
       dataPagamento: format(dataBaixa, 'yyyy-MM-dd'),
+      formaRecebimento: formaBaixa,
     });
+
     setBaixaOpen(false);
     setSelecionadas(new Set());
   };
@@ -420,6 +426,22 @@ export default function Contratos() {
                 </PopoverContent>
               </Popover>
             </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">Forma de recebimento</span>
+              <Select value={formaBaixa} onValueChange={setFormaBaixa}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FORMAS_RECEBIMENTO.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+
 
             <div className="rounded-lg border border-border p-3 text-sm space-y-1">
               <div className="flex justify-between">
