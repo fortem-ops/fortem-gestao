@@ -1,57 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
-
-const REDE_URLS = {
-  sandbox:  "https://sandbox-erede.useredecloud.com.br/v2",
-  producao: "https://api.userede.com.br/erede/v2",
-};
-
-const TOKEN_SERVICE_URLS = {
-  sandbox:  "https://rl7-sandbox-api.useredecloud.com.br/token-service/oauth/v2/cryptogram",
-  producao: "https://api.userede.com.br/redelabs/token-service/oauth/v2/cryptogram",
-};
+import {
+  loadSecrets,
+  resolveRedeBaseUrl,
+  resolveTokenServiceUrl,
+  toCentavos,
+  buildReference,
+  normalizeCardholderName,
+  formatExpirationMonth,
+  mapReturnCode,
+} from "../_shared/rede-payload.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-async function loadSecrets(supabase: any): Promise<Record<string, string>> {
-  const m: Record<string, string> = {};
-
-  // 1. Variáveis de ambiente primeiro (Edge Function Secrets — mais confiável)
-  const envPv      = Deno.env.get("REDE_PV")       ?? "";
-  const envToken   = Deno.env.get("REDE_TOKEN")    ?? "";
-  const envAmbient = Deno.env.get("REDE_AMBIENTE") ?? "";
-
-  if (envPv)      m["rede_pv"]       = envPv;
-  if (envToken)   m["rede_token"]    = envToken;
-  if (envAmbient) m["rede_ambiente"] = envAmbient;
-
-  if (m["rede_pv"] && m["rede_token"]) {
-    if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
-    return m;
-  }
-
-  // 2. Fallback: Supabase Vault
-  try {
-    const { data, error } = await supabase
-      .schema("vault")
-      .from("decrypted_secrets")
-      .select("name, decrypted_secret")
-      .in("name", ["rede_pv", "rede_token", "rede_ambiente"]);
-
-    if (!error && data?.length > 0) {
-      data.forEach((s: any) => { if (s.decrypted_secret) m[s.name] = s.decrypted_secret; });
-    }
-  } catch { /* ignore */ }
-
-  if (!m["rede_ambiente"]) m["rede_ambiente"] = "sandbox";
-
-  return m;
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -100,9 +65,9 @@ serve(async (req) => {
 
   const secrets = await loadSecrets(supabase);
   const pv = secrets["rede_pv"], token = secrets["rede_token"];
-  const ambiente = secrets["rede_ambiente"] as "sandbox" | "producao" ?? "sandbox";
-  const baseUrl = REDE_URLS[ambiente] ?? REDE_URLS.sandbox;
-  const tokenServiceBaseUrl = TOKEN_SERVICE_URLS[ambiente] ?? TOKEN_SERVICE_URLS.sandbox;
+  const ambiente = (secrets["rede_ambiente"] as "sandbox" | "producao") ?? "sandbox";
+  const baseUrl = resolveRedeBaseUrl(ambiente);
+  const tokenServiceBaseUrl = resolveTokenServiceUrl(ambiente);
 
   // Gerar access_token OAuth e criptograma de uso único
   let accessToken: string;
@@ -177,14 +142,15 @@ serve(async (req) => {
   const payload = {
     capture: true,
     kind: "credit",
-    reference: String(venda_id).replace(/-/g, "").slice(0, 20),
-    amount: Math.round(Number(amount) * 100),
+    reference: buildReference(venda_id),
+    amount: toCentavos(amount),
     installments,
+    // Divergência mantida: aqui storageCard é string "2" (MIT), em rede-cobrar-cartao é o inteiro 1.
     storageCard: "2",
     cardNumber: cartao.token_rede,
-    expirationMonth: String(cartao.expiration_month).padStart(2, "0"),
+    expirationMonth: formatExpirationMonth(cartao.expiration_month),
     expirationYear: String(cartao.expiration_year),
-    cardholderName: String(cartao.holder_name || "").trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+    cardholderName: normalizeCardholderName(cartao.holder_name),
     tokenCryptogram,
     subscription: true,
   };
@@ -211,13 +177,11 @@ serve(async (req) => {
     }), { status: 502, headers });
   }
 
-  const returnCode = redeResponse?.returnCode ?? "XX";
-  const approved = returnCode === "00";
-  const status = approved ? "approved" : "denied";
+  const { returnCode, approved, status, desativarCartao } = mapReturnCode(redeResponse?.returnCode);
 
   await supabase.from("pagamentos_rede").insert({
     venda_id,
-    amount: Math.round(Number(amount) * 100),
+    amount: toCentavos(amount),
     installments,
     kind: "token",
     tid: redeResponse?.tid,
@@ -241,7 +205,7 @@ serve(async (req) => {
     }
   }
 
-  if (returnCode === "54") {
+  if (desativarCartao) {
     await supabase.from("cartoes_salvos").update({ ativo: false }).eq("id", cartao_id);
     await supabase.from("planos").update({ cartao_token_id: null }).eq("cartao_token_id", cartao_id);
   }
