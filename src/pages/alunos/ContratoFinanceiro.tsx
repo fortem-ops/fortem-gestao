@@ -57,6 +57,12 @@ import {
   type Contrato,
   type ServicoUtilizado,
 } from "@/lib/contratos-calc";
+import {
+  FORMAS_RECEBIMENTO,
+  getFormaRecebimento,
+  labelFormaPagamento,
+} from "@/lib/formasRecebimento";
+
 
 interface Props {
   alunoId: string;
