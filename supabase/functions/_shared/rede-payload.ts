@@ -100,9 +100,9 @@ export function formatExpirationYear(ano: unknown): string {
   return y.length === 2 ? "20" + y : y;
 }
 
-/** `reference` da Rede: uuid sem hífens, cortado em 20 caracteres. */
+/** `reference` da Rede: uuid completo sem hífens (32 caracteres, limite da Rede é 50). */
 export function buildReference(vendaId: unknown): string {
-  return String(vendaId).replace(/-/g, "").slice(0, 20);
+  return String(vendaId).replace(/-/g, "");
 }
 
 // ── Valores monetários ───────────────────────────────────────

@@ -122,10 +122,10 @@ describe("formatExpirationYear", () => {
 });
 
 describe("buildReference", () => {
-  it("remove hífens do uuid e corta em 20 caracteres", () => {
+  it("remove hífens do uuid e mantém os 32 caracteres completos", () => {
     const ref = buildReference("3f1a2b4c-5d6e-7f80-9a1b-2c3d4e5f6071");
-    expect(ref).toBe("3f1a2b4c5d6e7f809a1b");
-    expect(ref).toHaveLength(20);
+    expect(ref).toBe("3f1a2b4c5d6e7f809a1b2c3d4e5f6071");
+    expect(ref).toHaveLength(32);
   });
   it("mantém referências curtas intactas", () => {
     expect(buildReference("abc-123")).toBe("abc123");
