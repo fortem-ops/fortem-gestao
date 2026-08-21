@@ -181,7 +181,9 @@ export default function Contratos() {
     await darBaixa.mutateAsync({
       cobrancaIds: selecionadasList.map((c) => c.id),
       dataPagamento: format(dataBaixa, 'yyyy-MM-dd'),
+      formaRecebimento: formaBaixa,
     });
+
     setBaixaOpen(false);
     setSelecionadas(new Set());
   };
