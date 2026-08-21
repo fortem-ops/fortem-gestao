@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Contrato, Cobranca, CicloCredito, Inadimplencia, ResultadoRescisao } from '@/types/financeiro';
 import { toast } from 'sonner';
 import { getFormaRecebimento } from '@/lib/formasRecebimento';
+import { propagarBaixaParaVenda, propagarBaixaEmLote } from '@/lib/baixaVenda';
+
 
 
 // Supabase generated types not yet aware of the new financial tables — cast through any.
@@ -286,11 +288,8 @@ export function useRegistrarPagamento() {
         .eq('id', cobrancaId);
       if (error) throw error;
 
-      await (db as any)
-        .from('vendas')
-        .update({ forma_pagamento: forma.vendaForma, status_pagamento: 'pago' })
-        .eq('cobranca_id', cobrancaId)
-        .or('forma_pagamento.is.null,forma_pagamento.eq.pendente');
+      await propagarBaixaParaVenda(cobrancaId, forma);
+
 
       await db
         .from('inadimplencias')
@@ -328,13 +327,8 @@ export function useDarBaixaLote() {
         .in('id', cobrancaIds);
       if (error) throw error;
 
-      if (forma) {
-        await (db as any)
-          .from('vendas')
-          .update({ forma_pagamento: forma.vendaForma, status_pagamento: 'pago' })
-          .in('cobranca_id', cobrancaIds)
-          .or('forma_pagamento.is.null,forma_pagamento.eq.pendente');
-      }
+      await propagarBaixaEmLote(cobrancaIds, forma);
+
 
       await db
         .from('inadimplencias')
