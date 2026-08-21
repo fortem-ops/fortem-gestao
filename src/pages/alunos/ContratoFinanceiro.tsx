@@ -692,7 +692,7 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
                 <TableHead>Pgto</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Meio</TableHead>
+                <TableHead>Recebido via</TableHead>
                 <TableHead>TID</TableHead>
                 {podeCancelar && <TableHead className="text-right">Ação</TableHead>}
               </TableRow>
