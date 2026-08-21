@@ -406,20 +406,22 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="baixa-gateway">Meio de pagamento</Label>
-              <Select value={baixaGateway} onValueChange={setBaixaGateway}>
-                <SelectTrigger id="baixa-gateway">
+              <Label htmlFor="baixa-forma">Forma de recebimento</Label>
+              <Select value={baixaForma} onValueChange={setBaixaForma}>
+                <SelectTrigger id="baixa-forma">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                  <SelectItem value="maquina">Máquina (débito/crédito)</SelectItem>
-                  <SelectItem value="inter_pix">Pix</SelectItem>
-                  <SelectItem value="rede">Cartão de Crédito (Rede)</SelectItem>
-                  <SelectItem value="boleto">Boleto</SelectItem>
+                  {FORMAS_RECEBIMENTO.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Como o valor entrou de fato. Substitui a forma "a definir" da venda.
+              </p>
             </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBaixaOpen(false)} disabled={baixaLoading}>
