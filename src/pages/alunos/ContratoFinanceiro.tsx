@@ -258,26 +258,10 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         .eq("cobranca_id", baixaCobranca.id)
         .eq("status", "aberta");
 
-      // Propaga a forma recebida para a venda vinculada, quando ela ainda
-      // estiver "a definir" (pendente/nula).
-      const { data: vendasDiretas } = await (supabase as any)
-        .from("vendas")
-        .update({ forma_pagamento: forma.vendaForma, status_pagamento: "pago" })
-        .eq("cobranca_id", baixaCobranca.id)
-        .or("forma_pagamento.is.null,forma_pagamento.eq.pendente")
-        .select("id");
+      // Propaga a baixa para a venda vinculada: status sempre vira "pago";
+      // a forma só é sobrescrita quando ainda está "a definir".
+      await propagarBaixaParaVenda(baixaCobranca.id, forma);
 
-      if (!vendasDiretas?.length) {
-        const contrato = contratos.find((c) => c.id === baixaCobranca.contrato_id) as any;
-        if (contrato?.plano_id) {
-          await (supabase as any)
-            .from("vendas")
-            .update({ forma_pagamento: forma.vendaForma, status_pagamento: "pago" })
-            .eq("aluno_id", alunoId)
-            .eq("plano_id", contrato.plano_id)
-            .or("forma_pagamento.is.null,forma_pagamento.eq.pendente");
-        }
-      }
 
       toast({ title: "Baixa registrada", description: `Cobrança de ${fmt(Number(baixaCobranca.valor))} recebida via ${forma.label}.` });
       setBaixaOpen(false);
