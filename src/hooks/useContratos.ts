@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Contrato, Cobranca, CicloCredito, Inadimplencia, ResultadoRescisao } from '@/types/financeiro';
 import { toast } from 'sonner';
+import { getFormaRecebimento } from '@/lib/formasRecebimento';
+
 
 // Supabase generated types not yet aware of the new financial tables — cast through any.
 const db = supabase as any;
