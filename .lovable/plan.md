@@ -1,140 +1,88 @@
-# Releitura arquitetural — Fortem Gestão Técnica (21/08/2026)
+# Estado atual da cobertura de testes — 21/08/2026
 
-Levantamento somente de leitura. Nenhum arquivo de código ou dado foi alterado.
+Investigação somente. Nada foi alterado; a suíte foi executada em modo leitura (`vitest run --coverage`).
 
-## 1. Rotas registradas (`src/App.tsx`, 623 linhas)
+## 1. Arquivos de teste (11 arquivos, 2.071 linhas)
 
-### Públicas (sem autenticação)
-| Rota | Componente |
+| Arquivo | Domínio |
 |---|---|
-| `/login` | Login (eager, único não-lazy) |
-| `/recuperar-senha` | RecoverPassword |
-| `/redefinir-senha` | ResetPassword |
-| `/corrida` | Corrida (landing da campanha) |
-| `/privacidade` | Privacidade |
-| `/termos/aptidao-fisica-uso-imagem` | TermoAptidaoUsoImagem |
-| `/.lovable/oauth/consent` | OAuthConsent (servidor OAuth do MCP) |
-| `/treino/:id` | PublicWorkout (QR do PDF de treino) |
-| `/assinar` | LegalAnnexFlow (`documentType="anexo"`) |
-| `/assinar-experimental` | LegalAnnexFlow (`documentType="experimental"`) |
-| `/cartao/:token` | CadastrarCartao (link tokenizado) |
-| `/cadastrar-cartao` | CadastrarCartao (entrada genérica) |
-| `/contrato/:token` | AceitarContratoToken |
-| `/parceiro/login` | PartnerLogin |
-| `/parceiro` | PartnerPortal |
-| `*` | NotFound |
+| `src/lib/__tests__/contratos-calc.test.ts` | Financeiro — cálculo de contratos |
+| `src/lib/__tests__/financeiro-edge-cases.test.ts` | Financeiro — casos de borda |
+| `src/lib/__tests__/financeiro-queries.test.ts` | Financeiro — queries (Supabase mockado) |
+| `src/test/vendas.test.ts` | Vendas |
+| `src/test/vendasPaginacao.test.ts` | Vendas — paginação (`fetchAllPages`) |
+| `src/test/creditos.test.ts` | Créditos |
+| `src/test/comissionamentos.test.ts` | Comissionamentos |
+| `src/test/useUserRoles.test.ts` | Permissões (papéis) |
+| `src/hooks/__tests__/useUserRoles.test.ts` | Permissões (papéis) — duplicata do anterior, em outra pasta |
+| `src/components/student/workout/exportWorkoutPDF.test.ts` | Técnico — exportação de PDF de treino |
+| `src/test/example.test.ts` | Smoke test do setup |
 
-### Portal do Aluno
-Auth próprio (`/portal/login`, `/portal/cadastro`, `/portal/recuperar-senha`, `/portal/redefinir-senha` ficam fora do guard). O restante roda sob `RequireStudent` + `StudentPortalProvider` + `PortalLayout`:
-`/portal` (redirect → home), `/portal/home`, `/perfil`, `/treinos`, `/avaliacoes`, `/clube`, `/agenda`, `/plano`, `/notificacoes`, `/carteirinha`, `/assistente`, `/contratos`, `/pagamentos`.
+Concentração: **financeiro/vendas/créditos/comissionamentos (6 arquivos)**, permissões (2, redundantes entre si), PDF de treino (1), scaffolding (1). Duas convenções de pasta convivem (`src/test/` e `__tests__/` ao lado do código). Zero testes em `supabase/functions/` — o `vitest.config.ts` só inclui `src/**`.
 
-### Parceiro autenticado (sem AppLayout, UX kiosk)
-`/parceiros/scanner` → PartnerScannerPage, dentro de `ProtectedRoute`.
+## 2. Execução da suíte (`vitest run`)
 
-### Interno / staff (`ProtectedRoute requireStaff` + `AppLayout`)
-- **Núcleo:** `/` Dashboard · `/tarefas` TaskCenter · `/notificar` Notificar · `/comissionamentos` Comissionamentos
-- **Cadastros:** `/alunos` StudentList(ativos) · `/alunos-inativos` StudentList(inativos) · `/clientes-avulsos` · `/alunos/:id` StudentProfile · `/leads` · `/prospects` · `/anexos` AnexosJuridicos
-- **Técnico:** `/exercicios` · `/banco-treinos` · `/meus-treinos` · `/carteira` · `/arquivos-metodologicos` · `/avaliacoes` · `/avaliacoes-premium` e `/avaliacoes-premium/:alunoId` · `/bodymap-config`
-- **Agendas:** `/agenda` · `/agenda-treinos` · `/presencas` · `/knowledge-base`
-- **Clube e parceiros:** `/clube` · `/clube-fortem` · `/admin-parceiros`
-- **Comercial:** `/pipeline` · `/corrida/inscricoes`
-- **Ponto:** `/ponto` · `/ponto/equipe` · `/ponto/fechamento` · `/ponto/relatorio` · `/admin/ponto` · `/admin/diagnostico-banco-horas`
-- **Financeiro:** `/financeiro/cartoes` · `/financeiro/contratos` · `/financeiro/templates-contratos` · `/financeiro/adquirente`
-- **Sistema:** `/admin` · `/admin/notificacoes-email` · `/whatsapp` (+ redirect legado `/configuracoes/whatsapp`)
-- **Relatórios** (`RelatoriosLayout`, rotas filhas relativas): index, `vendas`, `financeiro`, `planos`, `cancelamentos`, `servicos`, `crm`, `equipe`, `tecnicos` (placeholder EmBreve)
+- **11 arquivos, 194 testes, 194 passando, 0 falhando, 0 pulados.**
+- Duração total: **19,04s** (testes em si 4,49s; o resto é setup/ambiente jsdom).
+- Testes mais lentos: `exportWorkoutPDF` (2,1s), `financeiro-queries` (1,1s), `useUserRoles` (0,67s).
 
-Rotas sem item de menu: `/clube`, `/admin/diagnostico-banco-horas`, `/relatorios/tecnicos`.
+## 3. Cobertura (`@vitest/coverage-v8` instalado, sem configuração no `vitest.config.ts`)
 
-## 2. Menu lateral (`AppSidebar.tsx`), na ordem
+Não há bloco `coverage` configurado nem threshold; rodei via flags. Números do provider v8 sobre tudo que foi carregado:
 
-1. **Principal** — Ponto (item especial com dot de status de jornada) · Dashboard · Tarefas · Notificar (badge de não lidas) · Comissionamentos · *[coord/admin]* Equipe Ponto, Relatório Ponto, Fechamento Ponto
-2. **Agendas** — Agenda de Serviços · Agenda de Treinos · Presenças · *[coord/admin]* Base de Conhecimento, Clube FORTEM, Parceiros
-3. **Técnico** — Banco de Treinos · Banco de Exercícios · Avaliações · Avaliações Premium · Config. Mapa Corporal · Carteira de Alunos · Arquivos Metodológicos · Meus Treinos
-4. **Cadastros** — *[admin]* Leads · Prospects · Alunos Ativos · Alunos Inativos · Clientes Avulsos · *[admin]* Anexos Jurídicos
-5. **Comercial** *[coord/admin]* — Inscrições Corrida · *[admin]* Pipeline
-6. **Financeiro** *[coord/admin]* — Contratos · Templates de Contratos · Cartões de Crédito · Adquirente
-7. **Análise** *[coord/admin]* — Relatórios
-8. **Sistema** — *[coord/admin]* Administração, Notificações por Email, WhatsApp (badge verde de não lidas), Admin Ponto · *[parceiro ou admin]* Painel Parceiro
-
-Rodapé: e-mail do usuário + Sair. Gate de papéis via `useUserRoles` (`isAdmin`, `isCoordAdmin`, `isParceiro`).
-
-## 3. Edge functions (55 + `_shared`)
-
-**Pagamentos — e-Rede:** `rede-cobrar-cartao` (cobrança com PAN), `rede-cobrar-token` (cobrança com cartão salvo), `rede-cancelar` (cancelamento/estorno), `rede-webhook` (retorno de transação), `rede-salvar-cartao` (Zero Dollar via link público), `rede-tokenizacao-webhook` (confirmação de tokenização).
-
-**Pagamentos — PIX / Banco Inter:** `inter-auth` (OAuth mTLS, restrito a admin/coord), `pix-criar-cobranca`, `pix-criar-recorrencia`, `pix-cancelar-recorrencia`, `pix-solicitar-confirmacao`, `pix-webhook`.
-
-**Financeiro/recorrência:** `renovar-planos-mensais` (renovação diária, protegida por webhook secret), `comissionar-carteira-mensal` (comissão de carteira ativa no dia 1º).
-
-**Campanha Corrida:** `corrida-lookup-cpf` (dedupe por `cpf_hash`), `corrida-registrar-inscricao`, `corrida-atualizar-inscricao-prova`, `corrida-criar-pedido`, `corrida-aceitar-contrato`, `corrida-cobrar-pedido`, `corrida-status-tokenizacao` (polling), `corrida-enviar-confirmacao-email`.
-
-**WhatsApp:** `send-whatsapp` (envio unitário), `whatsapp-webhook` (recebimento Meta), `subscribe-waba` (assina a WABA — WABA_ID fixo no código), `whatsapp-disparo-agenda` (avisos de agendamento), `whatsapp-resumo-agenda-amanha` (resumo 20:40 para profissional e consultor), `whatsapp-disparo-ponto`, `whatsapp-resumo-ponto`.
-
-**Ponto:** `ponto-alertas-diarios`, `ponto-notificar-pendencias` (jornadas sem saída), `ponto-banco-expirar` (expiração mensal de saldo positivo), `ponto-fix-divergencias` (reprocessamento retroativo de fuso/divergências).
-
-**Agenda e notificações:** `notify-agenda-diaria`, `notify-agenda-proximos` (cron 5 min, janela 25–35 min antes de avaliações/experimentais), `notify-agenda-evento`, `notify-notificacao-evento`, `notify-tarefa-evento`, `agenda-ics` (feed de calendário público), `send-push-notification`, `check-push-triggers`, `generate-vapid-keys`, `processar-horarios-fixos` (materializa vagas fixas semanalmente).
-
-**Avaliações:** `parse-kinology-pdf` (extrai laudo Kinology, incluindo o histórico multi-data de evolução de assimetria).
-
-**Contratos e jurídico:** `aceitar-contrato-documento`, `aceitar-contrato-token`, `submit-legal-annex`, `migrate-from-consent-care` (importação de `legal_annexes` do projeto Consent & Care via token compartilhado).
-
-**Clube/CRM/infra:** `check-clube-clima` (cache de clima para desafios), `lookup-by-cpf`, `admin-users` (CRUD de usuários e papéis com service role + Zod), `assistant-chat` (IA do portal, v1.2), `pipedrive-status`, `pipedrive-list-leads`, `pipedrive-import-leads`, `mcp` (auto-gerada a partir de `src/lib/mcp/`).
-
-**`_shared/` (662 linhas, usada por 18 functions):** `agenda-template.ts` (243) monta payloads de template Meta com fallback `'—'`; `inter.ts` (198); `whatsapp.ts` (106); `rede-auth.ts` (66); `corrida-rate-limit.ts` (49).
-
-## 4. Banco (schema `public`)
-
-- **146 tabelas**, 13 views, 71 rotinas, 172 triggers não internos, 350 migrations versionadas.
-- Tabelas com mais de 15 colunas: `corrida_inscricoes_prova` (35), `alunos` (29), `ponto_jornadas` (28), `contratos` (28), `vendas` (27), `avaliacao_funcional` (22), `legal_annexes` (22), `parceiros` (21), `planos` (19), `notificacoes` (19), `clube_desafios` (19), `whatsapp_disparos_config` (17), `notificacao_email_config` (17), `ponto_fechamentos_mensais` (17), `ponto_substituicoes` (17), `agenda_servicos` (17), `comissionamentos` (16), `ponto_politica_retencao` (16), `clube_recompensas` (16), `rede_tokenizacoes` (16), `pipeline_metadata` (16), `corrida_campanha_itens` (16), `treino_agendamentos` (16).
-
-## 5. Volume de código
-
-| Área | Linhas |
+| Métrica | Valor |
 |---|---|
-| `src/` (483 arquivos .ts/.tsx) | 111.763 |
-| ├ `src/components` | 62.255 |
-| ├ `src/pages` | 29.144 |
-| ├ `src/integrations` (types gerados) | 8.779 |
-| ├ `src/lib` | 7.523 |
-| ├ `src/hooks` (23 arquivos) | 2.249 |
-| └ `src/contexts` | 307 |
-| `supabase/functions` (61 arquivos .ts) | 10.583 |
+| Linhas / statements | **1,01%** (801 de 78.610) |
+| Funções | 8,36% (47 de 562) |
+| Branches | 21,12% (147 de 696) |
+| Arquivos com qualquer cobertura | **7 de 535** |
 
-Divisão: 370 `.tsx` e 113 `.ts` em `src/`. 27 subpastas de domínio em `src/components`.
+Único conjunto realmente coberto:
 
-## 6. Cron jobs ativos (23, todos `active=true`)
-
-| Schedule | Job |
+| Arquivo | Linhas cobertas |
 |---|---|
-| `*/5 * * * *` | notify-agenda-proximos-5min · whatsapp-disparo-ponto-5min · whatsapp-resumo-agenda-amanha-5min |
-| `*/30 * * * *` | rate-limit-cleanup · rate-limit-rede-cleanup |
-| `0 * * * *` | fortem-desafios-progresso |
-| `0 1 * * 2-6` | ponto-pendencias-diario |
-| `0 3 * * *` | clube-fortem-resync-diario · pipeline-detect-evasao-daily · renovar-planos-mensais-daily |
-| `0 7 * * *` | processar-cobrancas-diario |
-| `0 8 * * *` | fortem-clube-clima-daily |
-| `0 10 * * *` | agenda-diaria-email · agendar-reavaliacoes-funcionais-diario |
-| `0 12 * * *` | fortem-push-triggers-daily |
-| `40 23 * * 0-5` | whatsapp-resumo-ponto-diario (20:40 BRT) |
-| `50 23 * * *` | ponto-alertas-diarios |
-| `55 23 * * *` | fortem-finalizar-treinos-dia |
-| `0 9 * * 1` | fortem-horarios-fixos-semanal |
-| `0 2 1 * *` | ponto-fechamento-mensal · ponto-banco-expirar-mensal |
-| `0 3 1 * *` | comissionar-carteira-mensal · audit-log-cleanup-5anos |
+| `src/lib/contratos-calc.ts` | 100% |
+| `src/lib/comissoes-calc.ts` | 100% |
+| `src/lib/creditos-calc.ts` | 100% |
+| `src/lib/vendas-paginacao.ts` | 100% |
+| `src/hooks/useUserRoles.ts` | 100% |
+| `src/components/student/workout/exportWorkoutPDF.ts` | 89,5% |
+| `src/lib/vendas-calc.ts` | 69,8% |
 
-Observação: `agendar-reavaliacoes-funcionais-diario` segue agendado, mas a criação de tarefas/comissões de Avaliação Funcional está pausada em nível de banco (`fn_comissao_af_ativa()` retorna falso), então ele roda sem efeito prático.
+Ressalva: o denominador inclui `src/integrations/supabase/types.ts` e as 55 edge functions (todas 0%), então o 1,01% subestima. Mesmo restringindo a lógica pura de `src/lib` (7.523 linhas), só 7 arquivos têm alguma cobertura — a ordem de grandeza continua de um dígito baixo.
 
-## 7. Mudanças arquiteturais desde ~30/07/2026
+## 4. Áreas críticas — com e sem teste
 
-86 migrations e 544 arquivos de código tocados no período. O que mudou de forma estrutural:
+**Com teste (todas em nível unitário, lógica pura ou Supabase mockado):**
+- Cálculo de contratos, incluindo edge cases (`contratos-calc`)
+- Cálculo de vendas e paginação acima de 1000 linhas (`vendas-calc`, `vendas-paginacao`)
+- Créditos (`creditos-calc`) e comissões (`comissoes-calc`)
+- Queries financeiras com cliente mockado (`financeiro-queries`)
+- Resolução de papéis no cliente (`useUserRoles`)
 
-1. **Camada `supabase/functions/_shared/`** — antes cada function duplicava auth da Rede, cliente Inter, montagem de template Meta e rate limit. Hoje são 5 módulos consumidos por 18 functions. Efeito prático: a correção do erro Meta 131008 (parâmetro vazio → fallback `'—'`) foi feita em um só lugar e valeu para todos os disparos.
-2. **Módulo Campanha Corrida completo** — landing pública, wizard de inscrição, checkout com tokenização/parcelamento, contrato por token e e-mail de confirmação; 8 edge functions dedicadas, tabelas `corrida_*`, rate limits próprios e `verify_jwt=false` explícito no `config.toml`. É hoje o maior domínio novo e a tabela mais larga do schema.
-3. **Avaliações Premium reescritas para base percentil Fortem** — saiu a faixa fixa em graus, entrou severidade por percentil sobre `mobilidade_amostras_fortem` / `forca_*`, com curvas de Gauss, análise de assimetria e "Pontos de Atenção" por métrica (Mobilidade) ou por exercício (Força).
-4. **Mapa corporal virou dado, não código** — as formas musculares deixaram de ser constantes no bundle e passaram a viver em `bodymap_shapes` / `bodymap_region_overrides`, editáveis pela página `/bodymap-config` (pontos Bézier, espelhamento, lado oposto tracejado). Nova rota interna sem menu equivalente até então.
-5. **PDF/protocolos de treino** — família de exportadores (5-3-1, M102, Plan Strong 50) com auto-fit de página e QR para a rota pública `/treino/:id`.
-6. **Financeiro endurecido** — `src/lib/baixaVenda.ts` e `src/lib/formasRecebimento.ts` centralizaram propagação de baixa e forma de recebimento real (antes espalhados em 3 fluxos); trigger + `fn_cancelar_inadimplencias_contratos_anteriores` limpam inadimplências de contratos renovados; suporte a multi-contratos ativos (Plano Corrida) e edição de datas de renovação antecipada.
-7. **CPF criptografado ponta a ponta** — `cpf_ultimos3` + RPCs `fn_reveal_cpf`/`fn_update_cpf` + busca por `cpf_hash`; nenhuma tela lê CPF em claro do banco.
-8. **Ponto maduro** — jornada partida, banco de horas com expiração, fechamento mensal com espelho em PDF, reprocessamento retroativo de fuso via RPC segura, resumos e alertas por WhatsApp; 6 rotas e 3 itens de menu só para o domínio.
-9. **Endurecimento de segurança contínuo** — RLS/GRANT revisados por tabela, `security_invoker` em views, trigger de imutabilidade em `cartoes_salvos`, funções `SECURITY DEFINER` com `search_path` fixo e sem `execute` para `anon`.
-10. **Superfícies novas de integração** — servidor MCP (`src/lib/mcp/` → function `mcp` + rota de consentimento OAuth), Clube FORTEM gamificado com portal do parceiro/scanner, Arquivos Metodológicos e fichas de treino para a própria equipe.
+**Sem nenhum teste:**
+- **Pagamentos e-Rede** — `rede-cobrar-cartao` (477 linhas), `rede-cobrar-token`, `rede-salvar-cartao` (453), `rede-webhook`, `rede-tokenizacao-webhook`, `rede-cancelar`, e o `_shared/rede-auth.ts`. Zero cobertura, inclusive nas rotinas de sanitização PCI.
+- **PIX / Banco Inter** — as 5 functions `pix-*`, `inter-auth` e `_shared/inter.ts`.
+- **Baixa de pagamento e inadimplência** — `src/lib/baixaVenda.ts` e `src/lib/formasRecebimento.ts`, exatamente os módulos criados nas correções desta semana, não têm teste.
+- **RLS e permissões no servidor** — nenhuma verificação automatizada de policy, GRANT ou função `SECURITY DEFINER`. `useUserRoles` cobre só a leitura de papéis no cliente; o gate real (`is_staff()`, `has_role()`, 172 triggers) nunca é exercitado por teste.
+- **WhatsApp** — nenhuma das 7 functions, e o `_shared/agenda-template.ts` (243 linhas, onde mora o fallback `'—'` do erro Meta 131008) não tem teste, apesar de ser código compartilhado por 18 functions.
+- **Ponto** — nenhum teste de tolerância, jornada partida, banco de horas ou fechamento; `src/lib/ponto.ts` e `pontoTolerancia.ts` sem cobertura, e as regras pesadas estão em RPC no banco, fora do alcance do vitest atual.
+- **Campanha Corrida** — as 8 functions e o rate limit compartilhado, sem teste, incluindo o dedupe por `cpf_hash`.
+- **Avaliações** — `pollockCalculo.ts`, `avaliacaoFuncional.ts`, `bodyMapLogic`, percentis de mobilidade, `kinologyImport.ts` e `parse-kinology-pdf` (o parser que já quebrou duas vezes com layouts diferentes) — nenhum teste.
+- **Protocolos de treino** — `m102.ts`, `planStrong.ts`, `wendler531.ts` e os exportadores 5-3-1/M102 sem teste (só o `exportWorkoutPDF` genérico é coberto).
+- **Componentes React** — nenhum teste de render/interação: 370 arquivos `.tsx`, 0 testados.
+
+## 5. Comparação com 30/07/2026
+
+| | 30/07 | 21/08 | Variação |
+|---|---|---|---|
+| Testes | ~182 | 194 | +12 (+6,6%) |
+| Arquivos de teste | — | 11 | — |
+| Linhas em `src/` + functions | ~ metade do atual | 122.346 | ~+100% |
+| Domínios cobertos | vendas, créditos, comissionamentos | os mesmos + contratos e PDF de treino | +2 |
+
+Leitura direta: **não acompanhou**. O código praticamente dobrou (Corrida, Avaliações Premium por percentil, mapa corporal editável, ponto avançado, camada `_shared`, PIX/Inter, MCP), enquanto a suíte cresceu 6,6% e permaneceu ancorada no mesmo núcleo financeiro de julho. Em termos relativos, a cobertura caiu pela metade: o que era "7,5/10 no núcleo financeiro" hoje é "7,5/10 num núcleo que representa uma fatia bem menor do sistema".
+
+Dois agravantes específicos do período: (a) todos os módulos novos de maior risco financeiro e regulatório — e-Rede, PIX, checkout Corrida, baixa de venda — nasceram sem teste; (b) a camada `_shared`, que por definição concentra risco de 18 functions, também nasceu sem teste, e foi justamente onde apareceu o bug Meta 131008 em produção.
+
+Ponto positivo: a suíte está verde, é rápida (19s) e os módulos que ela cobre estão a 100% — a infraestrutura funciona, o que falta é alcance.
