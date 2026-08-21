@@ -153,11 +153,16 @@ export function buildTemplatePayload(
   vars: Record<string, string>,
   destinoTelefone: string,
 ): Record<string, unknown> | null {
-  const p = (v: string) => ({ type: 'text', text: sanitizeTextParam(vars[v] || '') });
-  const dataCompleta = sanitizeTextParam(
+  const safe = (v: unknown) => {
+    if (v === null || v === undefined) return '—';
+    const s = String(v).trim();
+    return s === '' ? '—' : sanitizeTextParam(s);
+  };
+  const p = (v: string) => ({ type: 'text', text: safe(vars[v]) });
+  const dataCompleta = safe(
     vars['%DIA_SEMANA%'] && vars['%DATA%']
       ? `${vars['%DIA_SEMANA%']}, ${vars['%DATA%']}`
-      : vars['%DATA%'] || ''
+      : vars['%DATA%']
   );
 
   if (gatilho === 'agendamento_cancelado') {
