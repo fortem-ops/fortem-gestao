@@ -79,7 +79,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const [baixaOpen, setBaixaOpen] = useState(false);
   const [baixaCobranca, setBaixaCobranca] = useState<any | null>(null);
   const [baixaData, setBaixaData] = useState(new Date().toISOString().split("T")[0]);
-  const [baixaGateway, setBaixaGateway] = useState<string>("dinheiro");
+  const [baixaForma, setBaixaForma] = useState<string>("dinheiro");
   const [baixaLoading, setBaixaLoading] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
