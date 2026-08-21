@@ -270,7 +270,7 @@ export function HistoricoVendas({ alunoId }: Props) {
                 <TableHead>Tipo</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Valor</TableHead>
-                <TableHead>Pagamento</TableHead>
+                <TableHead>Forma (venda)</TableHead>
                 <TableHead>Vendedor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Créditos</TableHead>
