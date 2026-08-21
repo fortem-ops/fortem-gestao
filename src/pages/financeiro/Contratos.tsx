@@ -421,6 +421,22 @@ export default function Contratos() {
               </Popover>
             </div>
 
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">Forma de recebimento</span>
+              <Select value={formaBaixa} onValueChange={setFormaBaixa}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FORMAS_RECEBIMENTO.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+
+
             <div className="rounded-lg border border-border p-3 text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Cobranças</span>
