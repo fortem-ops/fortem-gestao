@@ -28,6 +28,8 @@ import {
   FORMA_PAGAMENTO_LABELS, formatBRL, ContratoStatus,
 } from '@/types/financeiro';
 import { cn } from '@/lib/utils';
+import { FORMAS_RECEBIMENTO } from '@/lib/formasRecebimento';
+
 
 const STATUS_VARIANT: Record<ContratoStatus, string> = {
   ativo:        'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30',
