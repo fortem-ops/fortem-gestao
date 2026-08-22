@@ -145,11 +145,12 @@ describe("kinology-parser · casos sintéticos", () => {
   it("normaliza ano de 2 dígitos e decimais com vírgula no histórico", () => {
     const texto = [
       "Assimetria e Indicativos de Risco | Membros Superiores",
-      "Rotação interna 17/08/2026 14,4 kg 13,0 kg 9,7 %",
+      "1 Rotação interna 17/08/2026 14,4 kg 13,0 kg 9,72% 0%",
       "Evolução de Assimetria",
-      "Rotação interna",
-      "20/03/25 7,8 kg 7,8 kg 0,0 %",
-      "17/08/26 14,4 kg 13,0 kg 9,7 %",
+      "Rotação interna FORÇA (KG) D E 7,8 7,8 20/03/25 D E 14,4 13,0 17/08/26",
+      "Data Direito (D) Esquerdo (E) Assimetria",
+      "20/03/25 7,8 kg 7,8 kg 0%",
+      "17/08/26 14,4 kg 13,0 kg 9,72%",
     ].join("\n");
 
     const r = tryParseKinologyDeterministic(texto);
@@ -163,14 +164,15 @@ describe("kinology-parser · casos sintéticos", () => {
 
   it("ignora a ocorrência do índice (\"Evolução de Assimetria ... Disponível\")", () => {
     const texto = [
-      "Índice",
-      "Evolução de Assimetria .......... Disponível",
+      "Resumo Seção Resultados Página",
+      "Evolução de Assimetria Disponível 4",
       "Assimetria e Indicativos de Risco | Membros Inferiores",
-      "Flexão de joelho 17/08/2026 14,4 kg 17,6 kg 18,2 %",
+      "1 Flexão de joelho 17/08/2026 14,4 kg 17,6 kg 18,18% 0%",
       "Evolução de Assimetria",
-      "Flexão de joelho",
-      "20/03/2025 11,6 kg 14,0 kg 17,1 %",
-      "17/08/2026 14,4 kg 17,6 kg 18,2 %",
+      "Flexão de joelho FORÇA (KG) D E 11,6 14,0 20/03/2025 D E 14,4 17,6 17/08/2026",
+      "Data Direito (D) Esquerdo (E) Assimetria",
+      "20/03/2025 11,6 kg 14,0 kg 17,14%",
+      "17/08/2026 14,4 kg 17,6 kg 18,18%",
     ].join("\n");
 
     const r = tryParseKinologyDeterministic(texto);
@@ -182,21 +184,22 @@ describe("kinology-parser · casos sintéticos", () => {
   it("distribui bloco de 2 colunas e bloco final com rótulo isolado (nº ímpar)", () => {
     const texto = [
       "Assimetria e Indicativos de Risco | Membros Inferiores",
-      "Flexão de joelho 17/08/2026 14,4 kg 17,6 kg 18,2 %",
-      "Extensão de joelho 17/08/2026 45,2 kg 43,4 kg 4,0 %",
-      "Abdução de quadril 17/08/2026 15,6 kg 13,0 kg 16,7 %",
+      "1 Flexão de joelho 17/08/2026 14,4 kg 17,6 kg 18,18% 0%",
+      "2 Extensão de joelho 17/08/2026 45,2 kg 43,4 kg 3,98% 0%",
+      "3 Abdução de quadril 17/08/2026 15,6 kg 13,0 kg 16,67% 0%",
       "Evolução de Assimetria",
-      // bloco 1: duas mini-tabelas lado a lado, linhas intercaladas
-      "Flexão de joelho",
-      "Extensão de joelho",
-      "20/03/2025 11,6 kg 14,0 kg 17,1 %",
-      "20/03/2025 48,0 kg 40,2 kg 16,3 %",
-      "17/08/2026 14,4 kg 17,6 kg 18,2 %",
-      "17/08/2026 45,2 kg 43,4 kg 4,0 %",
+      // bloco 1: duas mini-tabelas lado a lado — rótulos juntos, linhas intercaladas
+      "Flexão de joelho Extensão de joelho",
+      "Data Direito (D) Esquerdo (E) Assimetria",
+      "20/03/2025 11,6 kg 14,0 kg 17,14%",
+      "20/03/2025 48,0 kg 40,2 kg 16,25%",
+      "17/08/2026 14,4 kg 17,6 kg 18,18%",
+      "17/08/2026 45,2 kg 43,4 kg 3,98%",
       // bloco 2: rótulo isolado (número ímpar de tabelas)
       "Abdução de quadril",
-      "20/03/2025 12,8 kg 12,6 kg 1,6 %",
-      "17/08/2026 15,6 kg 13,0 kg 16,7 %",
+      "Data Direito (D) Esquerdo (E) Assimetria",
+      "20/03/2025 12,8 kg 12,6 kg 1,56%",
+      "17/08/2026 15,6 kg 13,0 kg 16,67%",
     ].join("\n");
 
     const r = tryParseKinologyDeterministic(texto);
@@ -209,6 +212,7 @@ describe("kinology-parser · casos sintéticos", () => {
       abducao_quadril: "12.8/12.6",
     });
   });
+
 
   it("marca histórico como incerto quando a última linha não bate com a medição atual", () => {
     const texto = [
