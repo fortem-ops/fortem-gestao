@@ -1,17 +1,20 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import {
   tryParseKinologyDeterministic,
   normalizeDate,
   toNumber,
 } from "../kinology-parser.ts";
 
+const FIXTURES_DIR = path.resolve(
+  process.cwd(),
+  "supabase/functions/_shared/__tests__/fixtures/kinology",
+);
+
 const fixture = (name: string) =>
-  readFileSync(
-    fileURLToPath(new URL(`./fixtures/kinology/${name}.txt`, import.meta.url)),
-    "utf8",
-  );
+  readFileSync(path.join(FIXTURES_DIR, `${name}.txt`), "utf8");
+
 
 /** Atalho: mapa nome → "D/E" de uma entrada de histórico. */
 const porNome = (exs: { nome: string; direito_kg: number; esquerdo_kg: number }[]) =>
