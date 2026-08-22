@@ -21,7 +21,6 @@ import {
   brl,
   nomePlanoExibicao,
   PROVA_LABEL,
-  PROVA_DATAS,
   type Rota,
   type Tier,
   type Distancia,
