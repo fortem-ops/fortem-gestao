@@ -1,4 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  cpfDigits,
+  cpfHashFromRaw,
+  decidirRota,
+  splitNome,
+} from "../_shared/corrida-identidade.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,32 +20,15 @@ function json(status: number, body: unknown) {
   });
 }
 
-const TIER_MAP: Record<string, string> = {
-  "start": "start",
-  "start+": "start_plus",
-  "power": "power",
-  "pro": "pro",
-};
-
-// Alunos de agregadoras não têm plano/contrato direto com a Fortem:
-// devem ser tratados como Prospect (preço cheio, sem cortesia, até 12x).
-const AGREGADORAS = new Set(["gympass/wellhub", "total pass"]);
-
-
-async function sha256Hex(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json().catch(() => ({}));
-    const digits = String(body?.cpf ?? "").replace(/\D/g, "");
+    const digits = cpfDigits(body?.cpf);
     if (digits.length !== 11) return json(400, { error: "cpf_invalido" });
+
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -69,7 +58,8 @@ Deno.serve(async (req) => {
     if (contagem > 8) return json(429, { error: "muitas_tentativas" });
 
     // --- lookup ---
-    const hash = await sha256Hex(digits);
+    const hash = await cpfHashFromRaw(digits);
+
     const { data: aluno, error: alunoErr } = await admin
       .from("alunos")
       .select("id, nome, email, telefone, data_nascimento, cep, logradouro, numero, complemento, bairro, cidade, uf")
@@ -91,19 +81,16 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const tipoNorm = plano?.tipo ? String(plano.tipo).trim().toLowerCase() : null;
-    const isAgregadora = tipoNorm ? AGREGADORAS.has(tipoNorm) : false;
-    const tier = !isAgregadora && tipoNorm ? TIER_MAP[tipoNorm] ?? null : null;
-
-
-    const partesNome = String(aluno.nome ?? "").trim().split(/\s+/).filter(Boolean);
+    const { rota, tier } = decidirRota({ tipoPlano: plano?.tipo ?? null });
+    const { primeiro_nome, sobrenome } = splitNome(aluno.nome);
 
     return json(200, {
       found: true,
-      rota: isAgregadora ? "prospect" : tier ? "aluno" : "somente_corrida",
+      rota,
       tier,
-      primeiro_nome: partesNome[0] ?? "",
-      sobrenome: partesNome.slice(1).join(" "),
+      primeiro_nome,
+      sobrenome,
+
       email: aluno.email ?? null,
       telefone: aluno.telefone ?? null,
       data_nascimento: aluno.data_nascimento ?? null,
