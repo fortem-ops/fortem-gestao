@@ -1,4 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  cpfDigits,
+  cpfHashFromRaw,
+  decidirRota,
+  splitNome,
+} from "../_shared/corrida-identidade.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,24 +20,6 @@ function json(status: number, body: unknown) {
   });
 }
 
-const TIER_MAP: Record<string, string> = {
-  "start": "start",
-  "start+": "start_plus",
-  "power": "power",
-  "pro": "pro",
-};
-
-// Alunos de agregadoras não têm plano/contrato direto com a Fortem:
-// devem ser tratados como Prospect (preço cheio, sem cortesia, até 12x).
-const AGREGADORAS = new Set(["gympass/wellhub", "total pass"]);
-
-
-async function sha256Hex(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
