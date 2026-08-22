@@ -15,36 +15,24 @@ import {
   type ProvaPedido,
 } from "./inscricaoForm";
 import PagamentoStep, { type PedidoCriado } from "./PagamentoStep";
+import {
+  calcularResumoCorrida,
+  dataProva,
+  brl,
+  nomePlanoExibicao,
+  PROVA_LABEL,
+  PROVA_DATAS,
+  type Rota,
+  type Tier,
+  type Distancia,
+  type ProvaKey,
+  type PlanoCatalogo,
+  type CampanhaItem,
+} from "@/lib/corridaPreco";
 
 /* ------------------------------------------------------------------ */
 /* Tipos                                                               */
 /* ------------------------------------------------------------------ */
-
-type Rota = "aluno" | "somente_corrida" | "prospect" | "somente_provas";
-type Tier = "start" | "start_plus" | "power" | "pro" | "max";
-type Distancia = "5K" | "10K" | "21K" | "42K";
-type ProvaKey = "NB" | "MIPOA";
-
-interface PlanoCatalogo {
-  nome: string;
-  periodo_meses: number;
-  valor: number;
-}
-
-interface CampanhaItem {
-  id: string;
-  tipo: string;
-  rota: string | null;
-  tier: string | null;
-  nivel: string | null;
-  prova_nome: string | null;
-  distancia: string | null;
-  descricao: string | null;
-  valor: number;
-  isento: boolean;
-  condicao: string | null;
-  imagem_url?: string | null;
-}
 
 const AVAL_VALOR_CHEIO = 250;
 
@@ -65,31 +53,6 @@ const TIER_LABEL: Record<Tier, string> = {
 };
 
 const DISTANCIAS: Distancia[] = ["5K", "10K", "21K", "42K"];
-
-/* Datas oficiais das provas (fixas no componente) */
-const PROVA_LABEL: Record<ProvaKey, string> = {
-  NB: "NB 42k 2027",
-  MIPOA: "42ª Maratona Internacional de Porto Alegre 2027",
-};
-
-const PROVA_DATAS: Record<ProvaKey, { curtas: string; maratona: string }> = {
-  NB: { curtas: "21 de agosto de 2027", maratona: "22 de agosto de 2027" },
-  MIPOA: { curtas: "5 de junho de 2027", maratona: "6 de junho de 2027" },
-};
-
-const dataProva = (prova: ProvaKey, distancia: Distancia) =>
-  distancia === "42K" ? PROVA_DATAS[prova].maratona : PROVA_DATAS[prova].curtas;
-
-const brl = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-/* Nome do plano exibido ao cliente (esconde nomenclatura interna) */
-const PLANO_NOME_EXIBICAO: Record<string, string> = {
-  "Corrida - Prospect": "Assessoria de Corrida Fortem",
-  "Corrida - Sem Plano": "Corrida Fortem (sem plano de treino)",
-};
-
-const nomePlanoExibicao = (nome: string) => PLANO_NOME_EXIBICAO[nome] ?? nome;
 
 /* ------------------------------------------------------------------ */
 /* UI helpers                                                          */
@@ -399,72 +362,22 @@ const CorridaConfigurator = () => {
 
   /* --------------------------- Resumo --------------------------- */
 
-  const resumo = useMemo(() => {
-    if (!oferta || !rota) return null;
-    const linhas: { label: string; valor: number; nota?: string }[] = [];
-    let hoje = 0;
-    let recorrente = 0;
-
-    if (rota === "somente_provas") {
-      (["NB", "MIPOA"] as ProvaKey[]).forEach((pk) => {
-        const sel = provasSel[pk];
-        if (!sel.ativo) return;
-        const item = oferta.provaValor?.(pk, sel.distancia);
-        if (!item) return;
-        linhas.push({
-          label: `${PROVA_LABEL[pk]} — ${sel.distancia} · ${dataProva(pk, sel.distancia)}`,
-          valor: Number(item.valor),
-        });
-        hoje += Number(item.valor);
-      });
-    } else {
-      const anual = rota !== "prospect" || periodo === "anual";
-      const p = anual ? oferta.planoAnual : oferta.planoMensal;
-      if (p) {
-        const nomeExib = nomePlanoExibicao(p.nome);
-        if (anual) {
-          linhas.push({
-            label: `${nomeExib} — ${brl(Number(p.valor) / 12)}/mês (Plano Anual)`,
-            valor: Number(p.valor),
-            nota: `${brl(Number(p.valor))} em até ${maxParcelas}x`,
-          });
-          hoje += Number(p.valor);
-        } else {
-          linhas.push({ label: `${nomeExib} — Mensal`, valor: Number(p.valor), nota: "recorrência mensal no cartão" });
-          hoje += Number(p.valor);
-          recorrente = Number(p.valor);
-        }
-      }
-      const cortesiaAtiva = oferta.cortesia && (rota !== "prospect" || periodo === "anual");
-      if (cortesiaAtiva) {
-        linhas.push({
-          label: `Cortesia: ${oferta.cortesia!.descricao} — ${distanciaCortesia} · ${dataProva("NB", distanciaCortesia)}`,
-          valor: 0,
-        });
-      }
-    }
-
-    if (kitNivel) {
-      const kit = oferta.kits.find((k) => k.nivel === kitNivel);
-      if (kit) {
-        linhas.push({ label: `Kit Fortem — ${kit.descricao}`, valor: kit.isento ? 0 : Number(kit.valor) });
-        if (!kit.isento) hoje += Number(kit.valor);
-      }
-    }
-    if (mipoa && oferta.mipoaItem) {
-      linhas.push({
-        label: `+MIPOA 2027 — ${oferta.mipoaItem.descricao} — ${distanciaMipoa} · ${dataProva("MIPOA", distanciaMipoa)}`,
-        valor: Number(oferta.mipoaItem.valor),
-      });
-      hoje += Number(oferta.mipoaItem.valor);
-    }
-    if (avaliacao && oferta.aval) {
-      linhas.push({ label: oferta.aval.descricao ?? "Avaliação Funcional", valor: Number(oferta.aval.valor) });
-      hoje += Number(oferta.aval.valor);
-    }
-
-    return { linhas, hoje, recorrente };
-  }, [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, distanciaMipoa, avaliacao, provasSel, maxParcelas]);
+  const resumo = useMemo(
+    () =>
+      calcularResumoCorrida({
+        oferta,
+        rota,
+        periodo,
+        distanciaCortesia,
+        kitNivel,
+        mipoa,
+        distanciaMipoa,
+        avaliacao,
+        provasSel,
+        maxParcelas,
+      }),
+    [oferta, rota, periodo, distanciaCortesia, kitNivel, mipoa, distanciaMipoa, avaliacao, provasSel, maxParcelas],
+  );
 
   const tituloRota = () => {
     switch (rota) {
