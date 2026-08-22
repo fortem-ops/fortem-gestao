@@ -9,8 +9,8 @@ import {
   buildReference,
   normalizeCardholderName,
   formatExpirationMonth,
-  mapReturnCode,
 } from "../_shared/rede-payload.ts";
+import { cobrarComToken } from "../_shared/rede-recorrencia-core.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,49 +81,50 @@ serve(async (req) => {
     }), { status: 502, headers });
   }
 
-  let cryptoResp: any = null;
-  let cryptoStatus = 0;
-  let cryptoBodyText = "";
-  try {
-    const resp = await fetch(`${tokenServiceBaseUrl}/${tokenizacao.tokenization_id}`, {
-      method: "POST",
-      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
-      body: JSON.stringify({ subscription: true }),
-    });
-    cryptoStatus = resp.status;
-    cryptoBodyText = await resp.text();
-    try { cryptoResp = JSON.parse(cryptoBodyText); } catch { cryptoResp = { rawText: cryptoBodyText }; }
-  } catch (e) {
+  // Núcleo compartilhado: criptograma + transação + interpretação do returnCode.
+  const resultado = await cobrarComToken({
+    tokenizationId: tokenizacao.tokenization_id,
+    amountCentavos: toCentavos(amount),
+    installments,
+    reference: buildReference(venda_id),
+    cardNumber: cartao.token_rede,
+    cardholderName: normalizeCardholderName(cartao.holder_name),
+    expirationMonth: formatExpirationMonth(cartao.expiration_month),
+    expirationYear: String(cartao.expiration_year),
+    accessToken,
+    baseUrl,
+    tokenServiceBaseUrl,
+  });
+
+  if (resultado.stage === "cryptogram" && resultado.errorKind === "network") {
     return new Response(JSON.stringify({
       success: false,
       error: "Erro de comunicação com a Rede ao gerar criptograma",
-      detalhe: String(e),
-      rede_http_status: cryptoStatus,
-      rede_body: cryptoBodyText.slice(0, 1000),
+      detalhe: resultado.error,
+      rede_http_status: resultado.httpStatus,
+      rede_body: "",
     }), { status: 502, headers });
   }
 
-  const cryptoReturnCode = cryptoResp?.returnCode ?? null;
-  const tokenCryptogram = cryptoResp?.cryptogramInfo?.tokenCryptogram ?? null;
-  if (cryptoStatus < 200 || cryptoStatus >= 300 || cryptoReturnCode !== "00" || !tokenCryptogram) {
+  if (resultado.stage === "cryptogram") {
     console.error(
-      "[rede-cobrar-token] criptograma falhou — http:", cryptoStatus,
-      "returnCode:", cryptoReturnCode,
-      "returnMessage:", cryptoResp?.returnMessage ?? null,
+      "[rede-cobrar-token] criptograma falhou — http:", resultado.httpStatus,
+      "returnCode:", resultado.returnCode,
+      "returnMessage:", resultado.returnMessage,
     );
     try {
       await supabase.from("system_logs").insert({
         modulo: "rede-cobrar-token",
         acao: "criptograma_falhou",
-        mensagem: `Falha ao gerar criptograma (tokenizationId ${tokenizacao.tokenization_id}) — HTTP ${cryptoStatus} / returnCode ${cryptoReturnCode ?? "—"}`,
+        mensagem: `Falha ao gerar criptograma (tokenizationId ${tokenizacao.tokenization_id}) — HTTP ${resultado.httpStatus} / returnCode ${resultado.returnCode ?? "—"}`,
         payload: {
           tokenization_id: tokenizacao.tokenization_id,
           venda_id,
           cartao_id,
-          return_code: cryptoReturnCode,
-          return_message: cryptoResp?.returnMessage ?? null,
-          http_status: cryptoStatus,
-          raw_response: cryptoResp,
+          return_code: resultado.returnCode,
+          return_message: resultado.returnMessage,
+          http_status: resultado.httpStatus,
+          raw_response: resultado.raw,
         },
       });
     } catch (e) {
@@ -131,66 +132,37 @@ serve(async (req) => {
     }
     return new Response(JSON.stringify({
       success: false,
-      error: cryptoResp?.returnMessage ?? "Falha ao gerar criptograma de cobrança",
-      return_code: cryptoReturnCode,
-      rede_http_status: cryptoStatus,
-      rede_body: cryptoResp,
+      error: resultado.error,
+      return_code: resultado.returnCode,
+      rede_http_status: resultado.httpStatus,
+      rede_body: resultado.raw,
     }), { status: 502, headers });
   }
 
-
-  const payload = {
-    capture: true,
-    kind: "credit",
-    reference: buildReference(venda_id),
-    amount: toCentavos(amount),
-    installments,
-    // Divergência mantida: aqui storageCard é string "2" (MIT), em rede-cobrar-cartao é o inteiro 1.
-    storageCard: "2",
-    cardNumber: cartao.token_rede,
-    expirationMonth: formatExpirationMonth(cartao.expiration_month),
-    expirationYear: String(cartao.expiration_year),
-    cardholderName: normalizeCardholderName(cartao.holder_name),
-    tokenCryptogram,
-    subscription: true,
-  };
-
-  let redeResponse: any = null;
-  let redeStatus = 0;
-  let redeBodyText = "";
-  try {
-    const resp = await fetch(`${baseUrl}/transactions`, {
-      method: "POST",
-      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    redeStatus = resp.status;
-    redeBodyText = await resp.text();
-    try { redeResponse = JSON.parse(redeBodyText); } catch { redeResponse = { rawText: redeBodyText }; }
-  } catch (e) {
+  if (resultado.errorKind === "network") {
     return new Response(JSON.stringify({
       success: false,
       error: "Erro de comunicação com a Rede",
-      detalhe: String(e),
-      rede_http_status: redeStatus,
-      rede_body: redeBodyText.slice(0, 1000),
+      detalhe: resultado.error,
+      rede_http_status: resultado.httpStatus,
+      rede_body: "",
     }), { status: 502, headers });
   }
 
-  const { returnCode, approved, status, desativarCartao } = mapReturnCode(redeResponse?.returnCode);
+  const { approved, returnCode, desativarCartao } = resultado;
 
   await supabase.from("pagamentos_rede").insert({
     venda_id,
     amount: toCentavos(amount),
     installments,
     kind: "token",
-    tid: redeResponse?.tid,
-    nsu: redeResponse?.nsu,
-    authorization_code: redeResponse?.authorizationCode,
+    tid: resultado.tid,
+    nsu: resultado.nsu,
+    authorization_code: resultado.authorizationCode,
     return_code: returnCode,
-    return_message: redeResponse?.returnMessage,
-    status,
-    raw_response: redeResponse,
+    return_message: resultado.returnMessage,
+    status: approved ? "approved" : "denied",
+    raw_response: resultado.raw,
   });
 
   await supabase.from("vendas").update({ status_pagamento: approved ? "pago" : "falha" }).eq("id", venda_id);
@@ -213,7 +185,7 @@ serve(async (req) => {
   return new Response(JSON.stringify({
     success: approved,
     return_code: returnCode,
-    return_message: redeResponse?.returnMessage,
-    tid: redeResponse?.tid,
+    return_message: resultado.returnMessage,
+    tid: resultado.tid,
   }), { status: 200, headers });
 });
