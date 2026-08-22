@@ -736,6 +736,15 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
                        c.status === "cancelado" ? "Cancelado" :
                        c.status}
                     </Badge>
+                    {Number((c as any).tentativas ?? 0) > 0 && (c as any).status !== "pago" && (
+                      <Badge
+                        variant="outline"
+                        className="mt-1 block w-fit border-destructive text-destructive"
+                        title={(c as any).motivo_recusa ?? "Cobrança recusada"}
+                      >
+                        Recusada ({(c as any).tentativas}x)
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs">
                     {labelFormaPagamento(c.forma_pagamento)}
