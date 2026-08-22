@@ -663,6 +663,29 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
         </Alert>
       )}
 
+      {cobrancasRecusadas.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Mensalidade recusada no cartão</AlertTitle>
+          <AlertDescription>
+            <ul className="mt-2 space-y-1">
+              {cobrancasRecusadas.map((c: any) => (
+                <li key={c.id} className="flex justify-between gap-3 text-sm">
+                  <span>
+                    Venc. {fmtDate(c.data_vencimento)} · {c.tentativas}ª tentativa ·{" "}
+                    {c.motivo_recusa ?? "motivo não informado"}
+                    {c.tentativas >= 3 && " · tentativas automáticas esgotadas"}
+                  </span>
+                  <span className="font-semibold">{fmt(Number(c.valor))}</span>
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+
+
       <Card className="p-5">
         <h3 className="font-medium flex items-center gap-2 mb-3">
           <CreditCard className="h-4 w-4" /> Cobranças
