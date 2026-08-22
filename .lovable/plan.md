@@ -1,69 +1,52 @@
-# Fase 3 — Relatório pré-implementação (schema)
+# Aviso visual "Mensalidade recusada" — relatório de investigação
 
-## 1. Status de cobranca: é CHECK em TEXT, não enum
+## 1. Aba Resumo (`src/components/student/StudentSummary.tsx`, 1203 linhas)
 
-`cobrancas.status` é `text NOT NULL DEFAULT 'pendente'`, restrito por:
+A "Seção 1: Plano" (linhas 541–617) é uma grade `grid grid-cols-2 lg:grid-cols-3 gap-4` de cards `glass-card` puramente informativos: Tipo (+ badge "+ Corrida"), Frequência, Status (badge de `getDisplayStatus`), Data Final (com edição por coordenador/admin), Valor e "Aluno desde". Não há espaço natural para texto de alerta dentro dela sem quebrar o ritmo visual da grade.
 
-```sql
-cobrancas_status_check CHECK (status IN ('pendente','pago','atrasado','cancelado','isento'))
+O lugar natural do aviso **já existe**: a "Seção 4: Alertas do Aluno" (linhas 888–913). É um motor de alertas declarativo — um array `alerts: Alert[]` (linha 438) alimentado por vários `push` com `{ id, type, severity: 'atencao' | 'urgente', message, icon }` e renderizado num loop uniforme, com estado vazio "Nenhum alerta para este aluno 🎉".
+
+Já existe ali um alerta financeiro quase idêntico ao proposto (linhas 442–453), vindo de `inadimplencias`:
 ```
-
-Não existe tipo enum `cobranca_status` — o `CobrancaStatus` de `src/types/financeiro.ts` é só o espelho TS desse CHECK.
-
-Distribuição atual: pago 786, pendente 486, atrasado 150, cancelado 113, isento 0.
-
-Sobre "falha definitiva após 3 tentativas": **não há status adequado hoje.**
-- `cancelado` já é usado semanticamente para cobranças anuladas administrativamente (113 registros, incluindo as limpezas de contratos renovados) — reaproveitar polui o histórico financeiro e o relatório de inadimplência.
-- `atrasado` é o estado natural de quem venceu e não pagou, e deve continuar sendo o estado de quem falhou (a dívida continua existindo).
-
-Recomendação: **não criar um novo status**. Cobrança que esgota as tentativas permanece `atrasado` (a dívida é real) e o "desistiu de tentar" vira um campo de controle (`proxima_tentativa_em = NULL` + `tentativas >= limite`), não um status financeiro. Se ainda assim quiser um estado visível, o caminho é `ALTER ... DROP CONSTRAINT / ADD CONSTRAINT` com `'falha_cobranca'` incluído — barato, mas exige atualizar `CobrancaStatus` e todos os filtros de UI que hoje assumem 4 valores.
-
-## 2. Controle de tentativa em cobrancas: NÃO existe
-
-Colunas de `cobrancas`: `id, contrato_id, aluno_id, numero_ciclo, valor, data_vencimento, data_pagamento, status, forma_pagamento, meio_registro, gateway, tid, comprovante_url, registrado_por, created_at`.
-
-Nenhum `tentativas`, `ultima_tentativa_em` ou `proxima_tentativa_em`. Precisa criar.
-
-Existe a tabela `cobranca_tentativas`, mas **ela não serve**: aponta para `parcela_id` (não `cobranca_id`), é orientada a cobrança de régua/contato (`canal`, `resultado`, `observacao`) e está **vazia (0 registros)**. Não reaproveitar — é outro domínio.
-
-Detalhes úteis para a migration futura:
-- Já existe `UNIQUE (contrato_id, numero_ciclo)` — ou seja, a cobrança já é a chave natural do ciclo mensal, o que reforça a arquitetura orientada a cobrança.
-- Índice existente `cobrancas_vencimento_idx ON (data_vencimento) WHERE status = 'pendente'` — **não cobre `atrasado`**, que é onde a maioria dos alvos do cron vai estar. O cron vai querer um índice parcial novo cobrindo `status IN ('pendente','atrasado')` mais `proxima_tentativa_em`.
-
-## 3. pagamentos_rede.venda_id
-
+Inadimplência: Venc. 12/07/2026 · 41 dia(s) em atraso — R$ 479,00
 ```
-venda_id  uuid  NOT NULL
-pagamentos_rede_venda_id_fkey  FOREIGN KEY (venda_id) REFERENCES vendas(id)
-pagamentos_rede_venda_idx  btree (venda_id)
-```
+severidade `urgente` acima de 7 dias, ícone `DollarSign`.
 
-Sem `ON DELETE`, sem unique. Não há nenhum outro CHECK na tabela.
+Recomendação: **não criar UI nova no Resumo** — apenas mais um `push` no mesmo array, tipo `mensalidade_recusada`, ícone `CreditCard` ou `XCircle`, severidade `urgente`, mensagem no formato `⚠️ Mensalidade recusada (N tentativas): <motivo> — última em <data>`. Isso herda estilo, ordenação e responsividade sem tocar no layout.
 
-Tornar nullable é seguro do lado do banco (`DROP NOT NULL` não invalida as linhas existentes, e a FK continua valendo para valores não nulos). Os pontos de atenção são de código, não de schema:
-- `rede-cobrar-token` e `rede-cobrar-cartao` fazem `select ... eq("venda_id", venda_id)` para idempotência — continuam funcionando, mas passam a poder cruzar linhas de cobrança se o filtro não for explícito.
-- O CHECK proposto `(venda_id IS NOT NULL OR cobranca_id IS NOT NULL)` é válido e passa imediatamente, já que todas as linhas atuais têm `venda_id`.
-- Vale acrescentar índice em `cobranca_id` e o índice único parcial de idempotência por cobrança (`WHERE status IN ('approved','pending')`).
+Se quiser reforço visual no bloco Plano, a opção de menor risco é uma badge ao lado do badge de Status (linha 565), no mesmo padrão já usado pela badge "+ Corrida" — mas o alerta é o canal correto e evita duplicar a informação em dois pontos da mesma tela.
 
-## 4. Query do tokenization_id ativo (idêntica à de rede-cobrar-token)
+Nota: hoje o Resumo puxa `inadimplencias`, não `cobrancas`. Como só existe registro em `inadimplencias` quando a régua a gera, um aviso baseado só nela pode atrasar. Ver item 3.
 
-```ts
-const { data: tokenizacao } = await supabase
-  .from("rede_tokenizacoes")
-  .select("tokenization_id")
-  .eq("cartao_salvo_id", cartao_id)
-  .eq("status", "active")
-  .order("created_at", { ascending: false })
-  .limit(1)
-  .maybeSingle();
-if (!tokenizacao?.tokenization_id) { /* cartão precisa ser recadastrado */ }
-```
+## 2. Aba Pagamentos (`src/pages/alunos/ContratoFinanceiro.tsx`, 749 linhas)
 
-Confirmações no schema/dados:
-- `rede_tokenizacoes.cartao_salvo_id` é `uuid NULL`, FK para `cartoes_salvos(id) ON DELETE SET NULL`.
-- `status` é text livre (sem CHECK); valores reais hoje: `active` (6, todos com `cartao_salvo_id`) e `failed` (4, todos sem `cartao_salvo_id`).
-- Índices: `idx_rede_tokenizacoes_status` e `idx_rede_tokenizacoes_aluno`. **Não há índice em `cartao_salvo_id`** — irrelevante com 10 linhas, mas vale criar quando a base crescer.
-- Só 6 cartões tokenizados hoje, ou seja o universo inicial de contratos cobráveis automaticamente é pequeno — bom para um rollout controlado.
+A tela por contrato tem, nesta ordem:
+1. `Card` de dados do contrato (valores, créditos do ciclo) — linhas ~600–639;
+2. `Alert variant="destructive"` "Inadimplências em aberto" — linhas 641–664, renderizado condicionalmente acima da tabela, listando venc. + dias de atraso + valor;
+3. `Card` "Cobranças" com a tabela `#, Vencimento, Pgto, Valor, Status, Recebido via, TID, Ação` — linhas 666–739. A coluna Status já é um `Badge` colorido por status (`pago` verde, `atrasado` vermelho, `cancelado` cinza, resto amarelo) e a coluna Ação mostra "Dar baixa" para pendente/atrasado.
+
+Recomendação: **os dois, com papéis distintos** —
+- **Badge na linha**, dentro da célula Status já existente (linha 693–711): abaixo do badge atual, uma segunda badge pequena `Recusada (Nx)` com `title`/tooltip do motivo. Isso ancora a informação na cobrança específica, que é o que a tabela representa — e é onde a granularidade importa, já que um contrato pode ter várias cobranças e só uma recusada.
+- **Banner acima da tabela** só se houver recusa ativa, reaproveitando o padrão do `Alert variant="destructive"` de inadimplências (mesmo componente, mesmo lugar), com o motivo e a data da última tentativa. Serve para quem abre a aba e não vai ler a tabela linha a linha.
+
+Fazer só o banner perde a granularidade; fazer só a badge deixa o aviso fácil de perder numa tabela longa. O custo de fazer os dois é baixo porque ambos os padrões já existem no arquivo.
+
+## 3. De onde vêm os dados hoje
+
+| Tela | Consulta cobrancas? | Query |
+|---|---|---|
+| Resumo (`StudentSummary`) | **Não** | `inadimplencias` (linha 424, `select id, data_vencimento, valor, status` por `aluno_id`, status `aberta`), além de `planos`, `aluno_licencas`, `creditos_aluno`, `consumo_servicos` etc. |
+| Pagamentos (`ContratoFinanceiro`) | **Sim** | `cobrancas.select('*').eq('contrato_id', …)` na queryKey `["cobrancas-contrato", contrato.id]` (linhas 493–504) |
+| Timeline reutilizável (`TimelineCobrancas` / `useCobrancasContrato`) | **Sim** | `cobrancas.select('*')` por contrato (`src/hooks/useContratos.ts`, linhas 147–161) |
+
+Consequências para a Fase 3:
+
+- **Aba Pagamentos: reaproveitamento total.** As duas queries usam `select('*')`, então as colunas novas (`tentativas`, `ultima_tentativa_em`, `motivo_recusa`) **aparecem automaticamente** assim que a migration rodar — zero mudança de query, só de render. Único ajuste: o tipo `Cobranca` em `src/types/financeiro.ts` (linhas 40–56) precisa dos três campos novos, e `ContratoFinanceiro` usa `supabase` tipado (não o `db as any` de `useContratos.ts`), então sem atualizar os tipos gerados / a interface o TS reclama.
+- **Aba Resumo: precisa de uma query nova (pequena).** Não há nenhum acesso a `cobrancas` ali. O mais barato é um `useQuery` novo, filtrado no servidor, algo como `cobrancas.select('id, data_vencimento, valor, tentativas, ultima_tentativa_em, motivo_recusa').eq('aluno_id', student.id).eq('status','atrasado').gt('tentativas', 0)` — `cobrancas.aluno_id` existe e é indexado (`cobrancas_aluno_idx`), então não precisa passar por contratos. Não vale estender a query de `inadimplencias`: são tabelas diferentes e nem toda cobrança recusada terá inadimplência aberta no momento da recusa.
+
+## Ponto em aberto para a Fase 3
+
+O texto do aviso depende de um campo de motivo legível. Sugiro gravar na cobrança o `return_message` da Rede já traduzido (ex.: "Cartão sem limite", "Cartão expirado"), e não o `return_code` cru — a UI não deveria mapear códigos de adquirente.
 
 ## O que NÃO foi alterado
 
