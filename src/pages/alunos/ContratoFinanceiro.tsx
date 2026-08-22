@@ -530,6 +530,11 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
 
   const proxCob = cobrancas.find((c) => c.status === "pendente");
 
+  // Cobranças com tentativa automática de cartão recusada e ainda não quitadas
+  const cobrancasRecusadas = cobrancas.filter(
+    (c: any) => Number(c.tentativas ?? 0) > 0 && c.status !== "pago",
+  );
+
   // Valores exibidos: as cobranças são a fonte de verdade quando existem.
   // Sem cobranças, planos anuais mensalizados (start_plus/power/pro/max)
   // guardam a MENSALIDADE em valor_cobrado — os demais guardam o total.
@@ -663,6 +668,29 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
         </Alert>
       )}
 
+      {cobrancasRecusadas.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Mensalidade recusada no cartão</AlertTitle>
+          <AlertDescription>
+            <ul className="mt-2 space-y-1">
+              {cobrancasRecusadas.map((c: any) => (
+                <li key={c.id} className="flex justify-between gap-3 text-sm">
+                  <span>
+                    Venc. {fmtDate(c.data_vencimento)} · {c.tentativas}ª tentativa ·{" "}
+                    {c.motivo_recusa ?? "motivo não informado"}
+                    {c.tentativas >= 3 && " · tentativas automáticas esgotadas"}
+                  </span>
+                  <span className="font-semibold">{fmt(Number(c.valor))}</span>
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+
+
       <Card className="p-5">
         <h3 className="font-medium flex items-center gap-2 mb-3">
           <CreditCard className="h-4 w-4" /> Cobranças
@@ -708,6 +736,15 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
                        c.status === "cancelado" ? "Cancelado" :
                        c.status}
                     </Badge>
+                    {Number((c as any).tentativas ?? 0) > 0 && (c as any).status !== "pago" && (
+                      <Badge
+                        variant="outline"
+                        className="mt-1 block w-fit border-destructive text-destructive"
+                        title={(c as any).motivo_recusa ?? "Cobrança recusada"}
+                      >
+                        Recusada ({(c as any).tentativas}x)
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs">
                     {labelFormaPagamento(c.forma_pagamento)}

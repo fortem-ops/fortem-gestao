@@ -2204,10 +2204,14 @@ export type Database = {
           gateway: string | null
           id: string
           meio_registro: string
+          motivo_recusa: string | null
           numero_ciclo: number
+          proxima_tentativa_em: string | null
           registrado_por: string | null
           status: string
+          tentativas: number
           tid: string | null
+          ultima_tentativa_em: string | null
           valor: number
         }
         Insert: {
@@ -2221,10 +2225,14 @@ export type Database = {
           gateway?: string | null
           id?: string
           meio_registro?: string
+          motivo_recusa?: string | null
           numero_ciclo: number
+          proxima_tentativa_em?: string | null
           registrado_por?: string | null
           status?: string
+          tentativas?: number
           tid?: string | null
+          ultima_tentativa_em?: string | null
           valor: number
         }
         Update: {
@@ -2238,10 +2246,14 @@ export type Database = {
           gateway?: string | null
           id?: string
           meio_registro?: string
+          motivo_recusa?: string | null
           numero_ciclo?: number
+          proxima_tentativa_em?: string | null
           registrado_por?: string | null
           status?: string
+          tentativas?: number
           tid?: string | null
+          ultima_tentativa_em?: string | null
           valor?: number
         }
         Relationships: [
@@ -4195,6 +4207,7 @@ export type Database = {
         Row: {
           amount: number
           authorization_code: string | null
+          cobranca_id: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -4206,11 +4219,12 @@ export type Database = {
           return_message: string | null
           status: string
           tid: string | null
-          venda_id: string
+          venda_id: string | null
         }
         Insert: {
           amount: number
           authorization_code?: string | null
+          cobranca_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -4222,11 +4236,12 @@ export type Database = {
           return_message?: string | null
           status?: string
           tid?: string | null
-          venda_id: string
+          venda_id?: string | null
         }
         Update: {
           amount?: number
           authorization_code?: string | null
+          cobranca_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -4238,9 +4253,16 @@ export type Database = {
           return_message?: string | null
           status?: string
           tid?: string | null
-          venda_id?: string
+          venda_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pagamentos_rede_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "cobrancas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pagamentos_rede_venda_id_fkey"
             columns: ["venda_id"]
@@ -7077,6 +7099,7 @@ export type Database = {
           nome: string
           offset_min: number | null
           ordem: number
+          telefone_fixo: string | null
           template_meta_nome: string | null
           template_texto: string
           updated_at: string
@@ -7096,6 +7119,7 @@ export type Database = {
           nome: string
           offset_min?: number | null
           ordem?: number
+          telefone_fixo?: string | null
           template_meta_nome?: string | null
           template_texto: string
           updated_at?: string
@@ -7115,6 +7139,7 @@ export type Database = {
           nome?: string
           offset_min?: number | null
           ordem?: number
+          telefone_fixo?: string | null
           template_meta_nome?: string | null
           template_texto?: string
           updated_at?: string

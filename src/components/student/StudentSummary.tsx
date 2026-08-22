@@ -1,5 +1,5 @@
 import type { Tables } from "@/integrations/supabase/types";
-import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles, Scale, ShieldCheck, Camera, Eye, Smartphone } from "lucide-react";
+import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles, Scale, ShieldCheck, Camera, Eye, Smartphone, CreditCard } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -434,6 +434,21 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
+  // Cobranças de recorrência recusadas pelo cartão (cron cobrar-recorrencias-diario)
+  const { data: cobrancasRecusadas = [] } = useQuery({
+    queryKey: ["cobrancas-recusadas-aluno", student.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cobrancas")
+        .select("id, valor, tentativas, motivo_recusa, ultima_tentativa_em, data_vencimento")
+        .eq("aluno_id", student.id)
+        .eq("status", "atrasado")
+        .gt("tentativas", 0)
+        .order("data_vencimento", { ascending: true });
+      return data ?? [];
+    },
+  });
+
   // Build alerts for this student
   const alerts: Alert[] = [];
   const today = new Date();
@@ -449,6 +464,20 @@ export function StudentSummary({ student }: { student: Aluno }) {
       severity: dias > 7 ? "urgente" : "atencao",
       message: `Inadimplência: Venc. ${venc.toLocaleDateString("pt-BR")} · ${dias} dia(s) em atraso — ${valor}`,
       icon: DollarSign,
+    });
+  });
+
+  // Mensalidade recusada no cartão
+  cobrancasRecusadas.forEach((c: any) => {
+    const ultima = c.ultima_tentativa_em
+      ? new Date(c.ultima_tentativa_em).toLocaleDateString("pt-BR")
+      : "—";
+    alerts.push({
+      id: `recusa-${c.id}`,
+      type: "mensalidade_recusada",
+      severity: "urgente",
+      message: `⚠️ Mensalidade recusada (${c.tentativas}x tentativas): ${c.motivo_recusa ?? "motivo não informado"} — última tentativa em ${ultima}`,
+      icon: CreditCard,
     });
   });
 

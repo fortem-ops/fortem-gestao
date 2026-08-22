@@ -53,6 +53,12 @@ export interface Cobranca {
   comprovante_url?: string | null;
   registrado_por?: string | null;
   created_at: string;
+  /** Cobrança automática de recorrência — controle de tentativas. */
+  tentativas?: number;
+  ultima_tentativa_em?: string | null;
+  proxima_tentativa_em?: string | null;
+  /** Texto humano da última recusa (ex.: "Cartão vencido"). */
+  motivo_recusa?: string | null;
 }
 
 export interface CicloCredito {
