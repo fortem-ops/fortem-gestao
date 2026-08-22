@@ -530,6 +530,11 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
 
   const proxCob = cobrancas.find((c) => c.status === "pendente");
 
+  // Cobranças com tentativa automática de cartão recusada e ainda não quitadas
+  const cobrancasRecusadas = cobrancas.filter(
+    (c: any) => Number(c.tentativas ?? 0) > 0 && c.status !== "pago",
+  );
+
   // Valores exibidos: as cobranças são a fonte de verdade quando existem.
   // Sem cobranças, planos anuais mensalizados (start_plus/power/pro/max)
   // guardam a MENSALIDADE em valor_cobrado — os demais guardam o total.
