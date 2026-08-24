@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import AddClienteAvulsoDialog from "@/components/student/AddClienteAvulsoDialog";
+
 
 interface ClienteAvulso {
   id: string;
