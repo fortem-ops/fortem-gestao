@@ -43,6 +43,7 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(defaultForm());
+  const [historicoId, setHistoricoId] = useState<string | null>(null);
 
   const { data: creditos = [], isLoading } = useQuery({
     queryKey: ["creditos_aluno_lista", student.id],
