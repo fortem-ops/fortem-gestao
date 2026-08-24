@@ -441,6 +441,25 @@ export function VendaDialog({ alunoId, alunoNome, open, onOpenChange }: Props) {
       }
     }
 
+    // Renovação: desativa planos principais anteriores JÁ VENCIDOS para não
+    // acumular registros ativos concorrentes (origem do "plano sumido").
+    if (params.modo === "renovacao") {
+      const hoje = format(new Date(), "yyyy-MM-dd");
+      const { data: vencidos } = await (supabase as any)
+        .from("planos")
+        .select("id")
+        .eq("aluno_id", alunoId)
+        .eq("ativo", true)
+        .eq("atividade", "treinamento_funcional")
+        .neq("id", params.planoId)
+        .lt("data_fim", hoje);
+      const vencidosIds = (vencidos ?? []).map((p: any) => p.id);
+      if (vencidosIds.length > 0) {
+        await (supabase as any).from("planos").update({ ativo: false }).in("id", vencidosIds);
+      }
+    }
+
+
     await (supabase as any).from("planos").update({
       tipo: params.nome,
       valor: params.valor,

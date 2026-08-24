@@ -15,6 +15,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
 import { StudentLicencas } from "./StudentLicencas";
 import { isAutoRenewPlan } from "@/lib/planTipo";
+import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
 import { HorarioFixoManager } from "./HorarioFixoManager";
@@ -107,39 +109,27 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
     queryKey: ["plano_ativo", student.id],
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
-      // Prioriza o plano em vigência hoje (data_inicio <= today). Se houver
-      // apenas planos futuros (caso de renovação ou contrato adicional ainda
-      // não iniciado), cai para o registro mais recente para que algo apareça.
-      const { data: planosAtuais } = await supabase
+      // Regra canônica: busca todos os planos ativos e deixa a seleção para
+      // selecionarPlanoExibicao (prefere o vigente, nunca aborta em um vencido).
+      const { data: planos } = await supabase
         .from("planos")
         .select("*")
         .eq("aluno_id", student.id)
         .eq("ativo", true)
-        .lte("data_inicio", today)
-        .order("data_inicio", { ascending: false });
-      let planos = planosAtuais;
-      if (!planos || planos.length === 0) {
-        const { data: futuros } = await supabase
-          .from("planos")
-          .select("*")
-          .eq("aluno_id", student.id)
-          .eq("ativo", true)
-          .order("created_at", { ascending: false });
-        planos = futuros;
-      }
+        .order("created_at", { ascending: false });
 
       if (!planos || planos.length === 0) return null;
-      // O plano principal é o de treinamento; Corrida é contrato adicional e
-      // é exibido em bloco separado.
-      const plano = planos.find((p: any) => p.atividade !== "corrida") ?? planos[0];
+      const { plano: planoSel } = selecionarPlanoExibicao(planos as any[]);
+      if (!planoSel) return null;
+      const plano = planoSel as any;
 
 
       // Plano vencido sem renovação automática => tratar como inativo
-
       const autoRenew = (plano as any).renovacao_automatica || isAutoRenewPlan(plano.tipo);
       if (!autoRenew && (plano as any).data_fim && (plano as any).data_fim < today) {
         return null;
       }
+
 
       const { data: consumos } = await supabase
         .from("consumo_servicos")

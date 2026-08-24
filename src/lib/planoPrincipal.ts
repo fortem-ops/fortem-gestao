@@ -17,17 +17,34 @@ export const ATIVIDADE_PRINCIPAL = "treinamento_funcional";
  * @param alunoId id do aluno
  * @param columns colunas a selecionar (default "*")
  */
-export function queryPlanoPrincipalAtivo(alunoId: string, columns = "*") {
-  return (supabase as any)
+export async function queryPlanoPrincipalAtivo(alunoId: string, columns = "*") {
+  // Colunas mínimas para avaliar vigência de forma determinística.
+  const select =
+    columns === "*"
+      ? "*"
+      : Array.from(
+          new Set(
+            columns
+              .split(",")
+              .map((c) => c.trim())
+              .filter(Boolean)
+              .concat(["id", "created_at", "data_inicio", "data_fim", "duracao_meses", "ativo", "atividade"]),
+          ),
+        ).join(", ");
+
+  const res = await (supabase as any)
     .from("planos")
-    .select(columns)
+    .select(select)
     .eq("aluno_id", alunoId)
     .eq("ativo", true)
     .eq("atividade", ATIVIDADE_PRINCIPAL)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
+
+  if (res.error) return { data: null, error: res.error };
+  const escolhido = selecionarPlanoPrincipal((res.data as PlanoLike[]) ?? []);
+  return { data: escolhido as any, error: null };
 }
+
 
 /** Versão que já devolve apenas o registro (ou null), ignorando o envelope. */
 export async function getPlanoPrincipalAtivo<T = any>(
@@ -37,6 +54,7 @@ export async function getPlanoPrincipalAtivo<T = any>(
   const { data } = await queryPlanoPrincipalAtivo(alunoId, columns);
   return (data as T) ?? null;
 }
+
 
 /** Atividade dos planos paralelos de Corrida. */
 export const ATIVIDADE_CORRIDA = "corrida";
@@ -117,3 +135,18 @@ export function selecionarPlanoExibicao(planos: PlanoLike[] | null | undefined):
   };
 }
 
+
+/**
+ * Seleção canônica do plano PRINCIPAL (não-Corrida) de uma lista já carregada.
+ * Prefere o vigente; se nenhum estiver vigente, devolve o mais recente
+ * (por created_at desc) para que a tela mostre o vencimento em vez de "nenhum plano".
+ */
+export function selecionarPlanoPrincipal(
+  planos: PlanoLike[] | null | undefined,
+): PlanoLike | null {
+  const principais = (planos ?? [])
+    .filter((p) => p.ativo !== false && p.atividade !== ATIVIDADE_CORRIDA)
+    .slice()
+    .sort(porCreatedAtDesc);
+  return principais.find(planoVigente) ?? principais[0] ?? null;
+}

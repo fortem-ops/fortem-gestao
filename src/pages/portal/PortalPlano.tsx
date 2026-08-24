@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { useCalcularRescisao } from "@/hooks/useContratos";
 import { getLimite, getDiasUsados, calcDias, type LicencaTipo } from "@/lib/licencas";
+import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+
 import { differenceInDays, format, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -94,9 +96,11 @@ export default function PortalPlano() {
   const isCorridaItem = (x: any) =>
     x?.plano_tipo === "corrida" || x?.tipo === "corrida" || x?.atividade === "corrida";
 
-  // Plano/contrato principal = primeiro que não é Corrida (fallback: o primeiro)
-  const plano = planos.find((p: any) => !isCorridaItem(p)) ?? planos[0] ?? null;
+  // Plano principal via regra canônica (prefere o vigente, nunca um vencido
+  // criado depois). Contrato: primeiro que não é Corrida (fallback: o primeiro).
+  const plano = selecionarPlanoExibicao(planos as any[]).plano;
   const contrato = contratos.find((c: any) => !isCorridaItem(c)) ?? contratos[0] ?? null;
+
   const contratosAdicionais = contratos.filter((c: any) => c.id !== contrato?.id);
 
 
