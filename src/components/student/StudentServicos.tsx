@@ -285,3 +285,69 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
     </div>
   );
 }
+
+const TIPO_LABEL: Record<string, string> = {
+  compra: "Compra",
+  consumo: "Consumo",
+  estorno: "Estorno",
+  ajuste: "Ajuste",
+};
+
+function CreditoHistorico({ creditoId }: { creditoId: string }) {
+  const { data: movimentos = [], isLoading } = useQuery({
+    queryKey: ["creditos_movimentos", creditoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("creditos_movimentos")
+        .select("*")
+        .eq("credito_id", creditoId)
+        .order("data", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  return (
+    <div className="px-4 py-3 space-y-1">
+      <p className="text-xs font-medium text-muted-foreground mb-2">Histórico de utilização</p>
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground">Carregando...</p>
+      ) : movimentos.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nenhum movimento registrado.</p>
+      ) : (
+        movimentos.map((m: any) => (
+          <div
+            key={m.id}
+            className="flex items-center justify-between gap-3 text-xs py-1 border-b border-border/30 last:border-0"
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-foreground">
+                {new Date(m.data).toLocaleDateString("pt-BR")}
+              </span>
+              <Badge
+                variant="outline"
+                className={`text-[10px] px-1.5 py-0 ${
+                  m.tipo === "consumo"
+                    ? "border-destructive/40 text-destructive"
+                    : m.tipo === "compra"
+                      ? "border-success/40 text-success"
+                      : "border-border text-muted-foreground"
+                }`}
+              >
+                {TIPO_LABEL[m.tipo] ?? m.tipo}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                {m.agenda_id ? "Agenda" : "Manual"}
+              </Badge>
+              {m.observacao && <span className="text-muted-foreground">{m.observacao}</span>}
+            </div>
+            <span className="text-foreground font-medium whitespace-nowrap">
+              {m.tipo === "consumo" ? "-" : "+"}
+              {m.quantidade}
+            </span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
