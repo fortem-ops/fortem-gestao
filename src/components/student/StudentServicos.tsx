@@ -161,7 +161,6 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                 const origemClass = c.origem_tipo === "plano"
                   ? "border-primary/40 text-primary"
                   : "border-info/40 text-info";
-                return (
                 const aberto = historicoId === c.id;
                 return (
                   <Fragment key={c.id}>
