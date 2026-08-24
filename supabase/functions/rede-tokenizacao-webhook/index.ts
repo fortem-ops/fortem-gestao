@@ -99,32 +99,87 @@ serve(async (req) => {
       ambiente,
     );
 
-    const r = await fetch(`${baseUrl}/${tokenizationId}`, {
-      method: "GET",
-      headers: {
-        "Authorization": "Bearer " + accessToken,
-        "Content-Type": "application/json",
-      },
-    });
-    const text = await r.text();
-    let consulta: any;
-    try { consulta = JSON.parse(text); } catch { consulta = { rawText: text }; }
-    console.log("[rede-tokenizacao-webhook] consulta status:", r.status, "body:", JSON.stringify(consulta));
+    // Consulta o status da tokenização. A Rede às vezes responde
+    // tokenizationStatus="Active" com brand.tokenStatus="Unavailable" e sem o
+    // campo `token` populado — isso é "ainda processando", NÃO falha. Nesse caso
+    // repetimos a mesma consulta algumas vezes antes de desistir.
+    const consultarTokenizacao = async () => {
+      const r = await fetch(`${baseUrl}/${tokenizationId}`, {
+        method: "GET",
+        headers: {
+          "Authorization": "Bearer " + accessToken,
+          "Content-Type": "application/json",
+        },
+      });
+      const text = await r.text();
+      let parsed: any;
+      try { parsed = JSON.parse(text); } catch { parsed = { rawText: text }; }
+      return { httpStatus: r.status, parsed };
+    };
 
-    const statusRede = String(consulta?.tokenizationStatus ?? "").trim();
+    const MAX_TENTATIVAS = 3; // 1 inicial + 2 retries
+    const RETRY_DELAY_MS = 3000;
+
+    let consulta: any = null;
+    let httpStatus = 0;
+    let statusRede = "";
+    let brandTokenStatus = "";
+    let tokenCode = "";
+    let tentativas = 0;
+
+    for (let i = 0; i < MAX_TENTATIVAS; i++) {
+      const res = await consultarTokenizacao();
+      httpStatus = res.httpStatus;
+      consulta = res.parsed;
+      tentativas = i + 1;
+      console.log(
+        `[rede-tokenizacao-webhook] consulta (tentativa ${tentativas}/${MAX_TENTATIVAS}) status:`,
+        httpStatus,
+        "body:",
+        JSON.stringify(consulta),
+      );
+
+      statusRede = String(consulta?.tokenizationStatus ?? "").trim();
+      brandTokenStatus = String(consulta?.brand?.tokenStatus ?? "").trim();
+      tokenCode = String(consulta?.token?.code ?? "").trim();
+
+      // Recusa explícita da bandeira → falha definitiva, não adianta insistir.
+      if (brandTokenStatus === "Failed") break;
+      // Token já disponível ou estado terminal diferente de Active → segue.
+      if (tokenCode.length > 0 || statusRede !== "Active") break;
+      // Active + token vazio + brand != Failed → ainda processando, retry.
+      if (i < MAX_TENTATIVAS - 1) {
+        console.warn(
+          `[rede-tokenizacao-webhook] tokenização ${tokenizationId} ainda sem token ` +
+          `(brand.tokenStatus="${brandTokenStatus || "ausente"}"). Retentando em ${RETRY_DELAY_MS}ms.`,
+        );
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      }
+    }
+
     const statusLower = statusRede.toLowerCase();
 
-    const brandTokenStatus = String(consulta?.brand?.tokenStatus ?? "").trim();
-    const tokenCode = String(consulta?.token?.code ?? "").trim();
+    // Falha mascarada = SOMENTE recusa explícita da bandeira.
+    const falhaMascarada = statusRede === "Active" && brandTokenStatus === "Failed";
 
-    // A Rede pode devolver tokenizationStatus="Active" mesmo quando a bandeira recusou
-    // o token (brand.tokenStatus="Failed"). Tratamos isso como falha mascarada.
-    const falhaMascarada =
-      statusRede === "Active" &&
-      (brandTokenStatus === "Failed" || tokenCode.length === 0);
+    // Active sem token e sem recusa explícita = ainda processando → "pending",
+    // para que uma nova consulta possa acontecer depois.
+    const aindaProcessando =
+      statusRede === "Active" && !falhaMascarada && tokenCode.length === 0;
+
+    if (aindaProcessando) {
+      console.warn(
+        `[rede-tokenizacao-webhook] tokenização ${tokenizationId} permanece sem token após ` +
+        `${tentativas} tentativa(s). Gravando como "pending" (não falha).`,
+      );
+    }
 
     const update: Record<string, unknown> = {
-      status: falhaMascarada ? "failed" : (statusLower || "pending"),
+      status: falhaMascarada
+        ? "failed"
+        : aindaProcessando
+          ? "pending"
+          : (statusLower || "pending"),
       brand_name: consulta?.brand?.name ?? null,
       brand_tid: consulta?.brand?.brandTid ?? null,
       bin: consulta?.bin ?? null,
@@ -134,6 +189,7 @@ serve(async (req) => {
       raw_response: consulta,
       updated_at: new Date().toISOString(),
     };
+
 
     const { data: registro, error: updErr } = await supabase
       .from("rede_tokenizacoes")
