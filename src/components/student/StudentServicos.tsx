@@ -134,7 +134,7 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
         <div className="h-20 flex items-center justify-center text-muted-foreground text-sm">Carregando...</div>
       ) : creditos.length === 0 ? (
         <div className="glass-card rounded-lg p-5">
-          <p className="text-sm text-muted-foreground">Nenhum crédito ativo. Registre uma venda em Nova Venda.</p>
+          <p className="text-sm text-muted-foreground">Nenhum crédito ativo. Créditos do plano, serviços avulsos vendidos e lançamentos manuais aparecem aqui.</p>
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
