@@ -555,6 +555,15 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
     };
   })();
 
+  // Alerta de inconsistência: mensalidade gravada como total do período.
+  // Sinal: contrato não mensal cujo valor_cobrado é ~igual ao total do contrato.
+  const inconsistenciaValor =
+    contrato.vigencia_tipo !== "mensal" &&
+    Number(contrato.parcelas ?? 1) > 1 &&
+    valores.total > 0 &&
+    Number(contrato.valor_cobrado ?? 0) >= valores.total * 0.9;
+
+
   return (
     <div className="space-y-4">
       <Card className="p-5 space-y-4">
