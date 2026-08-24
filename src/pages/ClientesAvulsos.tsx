@@ -55,11 +55,18 @@ export default function ClientesAvulsos() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-foreground">Clientes Avulsos</h1>
-        <p className="text-sm text-muted-foreground">
-          Clientes que usam apenas serviços pontuais, sem vínculo de assessoria ou plano de treino.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold text-foreground">Clientes Avulsos</h1>
+          <p className="text-sm text-muted-foreground">
+            Clientes que usam apenas serviços pontuais, sem vínculo de assessoria ou plano de treino.
+          </p>
+        </div>
+        {canCreate && (
+          <AddClienteAvulsoDialog
+            onCreated={() => queryClient.invalidateQueries({ queryKey: ["clientes-avulsos"] })}
+          />
+        )}
       </div>
 
       <div className="relative max-w-md">
@@ -71,6 +78,7 @@ export default function ClientesAvulsos() {
           className="pl-8"
         />
       </div>
+
 
       {isLoading ? (
         <div className="space-y-2">
