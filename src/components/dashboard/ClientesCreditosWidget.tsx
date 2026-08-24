@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Ticket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { creditoAtivo, creditoDisponivel } from "@/lib/creditos-calc";
-import { saldoTotalPorAtividade, type ConsumoServico, type CreditoAlunoRow } from "@/lib/creditosServicos";
+import { saldoDetalhadoPorAtividade, type ConsumoServico, type CreditoAlunoRow } from "@/lib/creditosServicos";
 
 interface Props {
   /** Atividades de crédito a exibir. Vazio/omitido = todas. */
@@ -16,8 +16,10 @@ interface Linha {
   nome: string;
   atividade: string;
   restante: number;
+  saldoPlano: number;
+  saldoAvulso: number;
   ilimitado: boolean;
-  origem: "Plano" | "Avulso";
+  origem: "Plano" | "Avulso" | "Plano+Avulso";
 }
 
 const chunk = <T,>(arr: T[], size = 300): T[][] => {
@@ -37,7 +39,7 @@ export function ClientesCreditosWidget({ atividades }: Props) {
       const { data: credRows, error: credErr } = await supabase
         .from("creditos_aluno")
         .select(
-          "id, aluno_id, atividade, quantidade_inicial, quantidade_usada, ilimitado, data_validade, ativo, alunos(nome)",
+          "id, aluno_id, atividade, quantidade_inicial, quantidade_usada, ilimitado, origem_tipo, data_validade, ativo, alunos(nome)",
         )
         .eq("ativo", true);
       if (credErr) throw credErr;
@@ -94,22 +96,27 @@ export function ClientesCreditosWidget({ atividades }: Props) {
         const consumosDoAluno = planosDoAluno.flatMap((p) => consumosPorPlano[p.id] ?? []);
         const ledger = ledgerPorAluno[alunoId] ?? [];
 
-        const mapa = saldoTotalPorAtividade(servicosPlano, consumosDoAluno, ledger);
-        const temLedger = new Set(ledger.map((l) => l.atividade));
+        const mapa = saldoDetalhadoPorAtividade(servicosPlano, consumosDoAluno, ledger);
 
         for (const [atividade, info] of Object.entries(mapa)) {
           if (filtro && !filtro.includes(atividade)) continue;
           const ilimitado = info.ilimitado;
-          const restante = Number.isFinite(info.saldo) ? info.saldo : 0;
+          const saldoPlano = Number.isFinite(info.saldoPlano) ? info.saldoPlano : 0;
+          const saldoAvulso = Number.isFinite(info.saldoAvulso) ? info.saldoAvulso : 0;
+          const restante = saldoPlano + saldoAvulso;
           if (!ilimitado && restante <= 0) continue;
+          const origem: Linha["origem"] =
+            saldoPlano > 0 && saldoAvulso > 0 ? "Plano+Avulso" : saldoAvulso > 0 ? "Avulso" : "Plano";
           linhas.push({
             id: `${alunoId}-${atividade}`,
             alunoId,
             nome: nomes[alunoId] || "Cliente",
             atividade,
             restante,
+            saldoPlano,
+            saldoAvulso,
             ilimitado,
-            origem: temLedger.has(atividade) ? "Avulso" : "Plano",
+            origem,
           });
         }
       }
@@ -148,6 +155,11 @@ export function ClientesCreditosWidget({ atividades }: Props) {
                   <span className="ml-1.5 rounded border border-border px-1 py-px text-[10px] uppercase tracking-wide">
                     {l.origem}
                   </span>
+                  {!l.ilimitado && l.saldoPlano > 0 && l.saldoAvulso > 0 && (
+                    <span className="ml-1.5">
+                      {l.saldoPlano} plano + {l.saldoAvulso} avulso
+                    </span>
+                  )}
                 </span>
               </span>
               <span className="text-sm font-semibold text-primary whitespace-nowrap">
