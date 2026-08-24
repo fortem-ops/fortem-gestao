@@ -3045,6 +3045,7 @@ export type Database = {
       creditos_movimentos: {
         Row: {
           agenda_id: string | null
+          consumo_id: string | null
           credito_id: string
           data: string
           id: string
@@ -3055,6 +3056,7 @@ export type Database = {
         }
         Insert: {
           agenda_id?: string | null
+          consumo_id?: string | null
           credito_id: string
           data?: string
           id?: string
@@ -3065,6 +3067,7 @@ export type Database = {
         }
         Update: {
           agenda_id?: string | null
+          consumo_id?: string | null
           credito_id?: string
           data?: string
           id?: string
@@ -7906,6 +7909,10 @@ export type Database = {
           _sexo?: string
         }
         Returns: undefined
+      }
+      fn_creditos_atividade_de_servico: {
+        Args: { _tipo_servico: string }
+        Returns: string
       }
       fn_criar_contrato_recorrencia:
         | {

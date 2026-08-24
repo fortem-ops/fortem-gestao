@@ -555,6 +555,15 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
     };
   })();
 
+  // Alerta de inconsistência: mensalidade gravada como total do período.
+  // Sinal: contrato não mensal cujo valor_cobrado é ~igual ao total do contrato.
+  const inconsistenciaValor =
+    contrato.vigencia_tipo !== "mensal" &&
+    Number(contrato.parcelas ?? 1) > 1 &&
+    valores.total > 0 &&
+    Number(contrato.valor_cobrado ?? 0) >= valores.total * 0.9;
+
+
   return (
     <div className="space-y-4">
       <Card className="p-5 space-y-4">
@@ -609,7 +618,17 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
           </div>
         </div>
 
+        {inconsistenciaValor && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            Atenção: a mensalidade deste contrato está gravada com o valor total do
+            período ({fmt(Number(contrato.valor_cobrado))}). O valor mensal correto é
+            aproximadamente {fmt(valores.total / Number(contrato.parcelas ?? 1))}. Ajuste
+            em "Alterar dados da venda".
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+
           {contrato.vigencia_tipo === "mensal" ? (
             <Info label="Valor mensal" value={fmt(valores.mensal)} />
           ) : (

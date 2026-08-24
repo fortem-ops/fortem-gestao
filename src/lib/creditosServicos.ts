@@ -79,7 +79,14 @@ export function saldoCreditosPorAtividade(
   return map;
 }
 
-/** Saldo consolidado (plano + avulso) por atividade. */
+/**
+ * Saldo consolidado por atividade.
+ *
+ * Regra permanente: `creditos_aluno` é a FONTE ÚNICA de verdade. O cálculo a
+ * partir de `planos.servicos` + `consumo_servicos` é apenas fallback para
+ * planos antigos que não possuem linha em `creditos_aluno` — somar as duas
+ * fontes duplicaria o saldo (os créditos do plano já são gravados no ledger).
+ */
 export function saldoTotalPorAtividade(
   planoServicos: string[] | null | undefined,
   consumos: ConsumoServico[],
@@ -88,9 +95,9 @@ export function saldoTotalPorAtividade(
   const map = saldoCreditosPorAtividade(creditos);
   const plano = saldoPlanoPorAtividade(planoServicos, consumos);
   for (const [atividade, saldo] of Object.entries(plano)) {
-    const atual = map[atividade] ?? { saldo: 0, ilimitado: false };
-    atual.saldo += saldo;
-    map[atividade] = atual;
+    if (map[atividade]) continue; // ledger tem prioridade
+    map[atividade] = { saldo, ilimitado: false };
   }
   return map;
 }
+
