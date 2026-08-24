@@ -4,6 +4,7 @@ import { Users, Pause, AlertCircle, ClipboardList, Dumbbell, ClipboardCheck, Dol
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 interface Props {
   professorId: string | null;
@@ -11,8 +12,11 @@ interface Props {
 
 export function StatsCards({ professorId }: Props) {
   const navigate = useNavigate();
+  const { data: roles } = useUserRoles();
+  const nutriFisio = !!roles?.isNutriFisioOnly;
   // Consolidated query: alunos, tarefas, agenda, aniversariantes via single RPC (cached 60s)
   const { data: dashboardData } = useDashboardData(professorId);
+
   const alunosStats = dashboardData?.alunos;
   const tarefasStats = dashboardData?.tarefas;
   const agendaHojeStats = dashboardData?.agenda
@@ -67,7 +71,9 @@ export function StatsCards({ professorId }: Props) {
       };
     },
     staleTime: 60_000,
+    enabled: !nutriFisio,
   });
+
 
   const { data: avalAtrasadas = 0 } = useQuery({
     queryKey: ["dashboard-aval-funcional-atrasada", professorId],
@@ -96,9 +102,10 @@ export function StatsCards({ professorId }: Props) {
       return count;
     },
     staleTime: 60_000,
+    enabled: !nutriFisio,
   });
 
-  const row1 = [
+  const row1 = nutriFisio ? [] : [
     { label: "Alunos Ativos", value: alunosStats?.ativos ?? 0, icon: Users, color: "text-success", onClick: () => navigate("/carteira") },
     { label: "Agregadores", value: alunosStats?.agregadores ?? 0, icon: UserPlus, color: "text-primary", onClick: () => navigate("/carteira") },
     { label: "VIP", value: alunosStats?.vip ?? 0, icon: Crown, color: "text-[#D4AF37]", onClick: () => navigate("/carteira") },
@@ -108,10 +115,12 @@ export function StatsCards({ professorId }: Props) {
   const row2 = [
     { label: "Tarefas Pendentes", value: tarefasStats?.pendentes ?? 0, icon: ClipboardList, color: "text-info", onClick: () => navigate("/tarefas") },
     { label: "Tarefas Atrasadas", value: tarefasStats?.atrasadas ?? 0, icon: AlertCircle, color: "text-destructive", onClick: () => navigate("/tarefas") },
-    { label: "Aval. Funcional Atrasada", value: avalAtrasadas, icon: AlertTriangle, color: "text-destructive", onClick: () => navigate("/carteira") },
+    ...(nutriFisio
+      ? []
+      : [{ label: "Aval. Funcional Atrasada", value: avalAtrasadas, icon: AlertTriangle, color: "text-destructive", onClick: () => navigate("/carteira") }]),
   ];
 
-  const row3 = [
+  const row3 = nutriFisio ? [] : [
     { label: "Avaliações Hoje", value: agendaHojeStats?.avaliacoes ?? 0, icon: ClipboardCheck, color: "text-accent-foreground", onClick: () => navigate("/agenda") },
     { label: "Treino Exp. Hoje", value: agendaHojeStats?.experimentais ?? 0, icon: Dumbbell, color: "text-info", onClick: () => navigate("/agenda") },
     {
@@ -126,7 +135,11 @@ export function StatsCards({ professorId }: Props) {
     },
   ];
 
-  const renderCard = (stat: typeof row1[0] & { subtitle?: string; onClick?: () => void }, i: number) => (
+
+  const renderCard = (
+    stat: { label: string; value: string | number; icon: any; color: string; subtitle?: string; onClick?: () => void },
+    i: number,
+  ) => (
     <motion.div
       key={stat.label}
       initial={{ opacity: 0, y: 12 }}
@@ -140,7 +153,7 @@ export function StatsCards({ professorId }: Props) {
       </div>
       <p className="text-2xl font-heading font-bold text-foreground">{stat.value}</p>
       <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
-      {"subtitle" in stat && stat.subtitle && (
+      {stat.subtitle && (
         <p className="text-[10px] text-muted-foreground mt-0.5">{stat.subtitle}</p>
       )}
     </motion.div>
@@ -148,15 +161,20 @@ export function StatsCards({ professorId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        {row1.map((s, i) => renderCard(s, i))}
-      </div>
+      {row1.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          {row1.map((s, i) => renderCard(s as any, i))}
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {row2.map((s, i) => renderCard(s as any, i + row1.length))}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        {row3.map((s, i) => renderCard(s as any, i + row1.length + row2.length))}
-      </div>
+      {row3.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          {row3.map((s, i) => renderCard(s as any, i + row1.length + row2.length))}
+        </div>
+      )}
     </div>
   );
 }
+
