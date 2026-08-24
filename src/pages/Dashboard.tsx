@@ -12,10 +12,13 @@ import { PlansDistributionWidget } from "@/components/dashboard/PlansDistributio
 import { PipelineWidget } from "@/components/dashboard/PipelineWidget";
 import { ClubeWidget } from "@/components/dashboard/ClubeWidget";
 import { PontoWidget } from "@/components/dashboard/PontoWidget";
+import { ClientesCreditosWidget } from "@/components/dashboard/ClientesCreditosWidget";
 import { LembretePontoBanner } from "@/components/ponto/LembretePontoBanner";
 import { LembreteAvaliacoesPendentesBanner } from "@/components/dashboard/LembreteAvaliacoesPendentesBanner";
 import { SortableWidget } from "@/components/dashboard/SortableWidget";
 import { useDashboardLayout, type DashboardLayout } from "@/hooks/useDashboardLayout";
+import { useUserRoles } from "@/hooks/useUserRoles";
+
 import {
   Select,
   SelectContent,
@@ -90,8 +93,24 @@ export default function Dashboard() {
     ? (selectedProfessorId === "todos" ? null : selectedProfessorId)
     : user?.id || null;
 
+  const { data: roles } = useUserRoles();
+  const isNutriFisioOnly = !!roles?.isNutriFisioOnly;
+  const atividadesCredito = useMemo(() => {
+    if (!isNutriFisioOnly) return undefined;
+    const list: string[] = [];
+    if (roles?.isNutri) list.push("Nutrição");
+    if (roles?.isFisio) list.push("Reabilitação");
+    return list;
+  }, [isNutriFisioOnly, roles?.isNutri, roles?.isFisio]);
+
   // Default layout per role
   const defaults: DashboardLayout = useMemo(() => {
+    if (isNutriFisioOnly) {
+      return {
+        main: ["alerts", "clientesCreditos"],
+        side: ["tasks"],
+      };
+    }
     if (isCoordAdmin) {
       return {
         main: ["alerts", "plansDistribution", "adminAlerts", "inadimplentes"],
@@ -102,7 +121,7 @@ export default function Dashboard() {
       main: ["alerts", "adminAlerts", "plansDistribution"],
       side: ["tasks", "ponto", "birthdays", "clube"],
     };
-  }, [isCoordAdmin, isAdmin]);
+  }, [isCoordAdmin, isAdmin, isNutriFisioOnly]);
 
   const { layout, setLayout, save, reset } = useDashboardLayout(user?.id, defaults);
 
@@ -121,7 +140,9 @@ export default function Dashboard() {
     clube: <ClubeWidget />,
     tasks: <TasksWidget professorId={effectiveProfessorId} />,
     birthdays: <BirthdaysWidget professorId={effectiveProfessorId} />,
+    clientesCreditos: <ClientesCreditosWidget atividades={atividadesCredito} />,
   };
+
 
   function handleDragEnd(column: "main" | "side") {
     return (event: DragEndEvent) => {
@@ -214,8 +235,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      <LembretePontoBanner />
-      <LembreteAvaliacoesPendentesBanner />
+      {!isNutriFisioOnly && <LembretePontoBanner />}
+      {!isNutriFisioOnly && <LembreteAvaliacoesPendentesBanner />}
+
 
       <StatsCards professorId={effectiveProfessorId} />
 

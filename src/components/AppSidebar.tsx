@@ -207,7 +207,15 @@ export function AppSidebar() {
   const isCoordAdmin = roles?.isCoordAdmin;
   const isAdmin = roles?.isAdmin;
   const isParceiro = roles?.isParceiro;
+  const isNutriFisioOnly = !!roles?.isNutriFisioOnly;
+  const agendasVisiveis = isNutriFisioOnly
+    ? agendasItems.filter((i) => i.url !== "/agenda-treinos")
+    : agendasItems;
+  const tecnicoVisiveis = isNutriFisioOnly
+    ? tecnicoItems.filter((i) => i.url !== "/bodymap-config" && i.url !== "/carteira")
+    : tecnicoItems;
   useWhatsAppNotifications(!!isCoordAdmin);
+
 
   return (
     <Sidebar collapsible="icon">
@@ -224,10 +232,13 @@ export function AppSidebar() {
           <SidebarGroupLabel>Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <PontoSidebarItem
-                item={{ title: "Ponto", url: "/ponto", icon: Clock }}
-                isActive={isActive}
-              />
+              {!isNutriFisioOnly && (
+                <PontoSidebarItem
+                  item={{ title: "Ponto", url: "/ponto", icon: Clock }}
+                  isActive={isActive}
+                />
+              )}
+
               {principalItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
@@ -243,7 +254,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Agendas</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {agendasItems.map((item) => (
+              {agendasVisiveis.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
               {isCoordAdmin && knowledgeBaseItems.map((item) => (
@@ -259,7 +270,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Técnico</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {tecnicoItems.map((item) => (
+              {tecnicoVisiveis.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
             </SidebarMenu>

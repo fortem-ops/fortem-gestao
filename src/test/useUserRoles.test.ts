@@ -90,6 +90,9 @@ describe("useUserRoles", () => {
       isCoordAdmin: true,
       isParceiro: false,
       isNutriFisio: false,
+      isNutri: false,
+      isFisio: false,
+      isNutriFisioOnly: false,
     });
   });
 
@@ -110,6 +113,9 @@ describe("useUserRoles", () => {
       isCoordAdmin: true,
       isParceiro: false,
       isNutriFisio: false,
+      isNutri: false,
+      isFisio: false,
+      isNutriFisioOnly: false,
     });
   });
 
@@ -130,6 +136,9 @@ describe("useUserRoles", () => {
       isCoordAdmin: false,
       isParceiro: true,
       isNutriFisio: false,
+      isNutri: false,
+      isFisio: false,
+      isNutriFisioOnly: false,
     });
   });
 
@@ -150,6 +159,9 @@ describe("useUserRoles", () => {
       isCoordAdmin: false,
       isParceiro: false,
       isNutriFisio: false,
+      isNutri: false,
+      isFisio: false,
+      isNutriFisioOnly: false,
     });
   });
 

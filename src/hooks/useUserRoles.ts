@@ -23,7 +23,11 @@ export function useUserRoles() {
         isCoordAdmin: !!coordAdmin,
         isParceiro: !!parceiro,
         isNutriFisio: !!nutri || !!fisio,
+        isNutri: !!nutri,
+        isFisio: !!fisio,
+        isNutriFisioOnly: (!!nutri || !!fisio) && !coordAdmin,
       };
+
     },
     enabled: !!user,
     staleTime: 5 * 60_000,
