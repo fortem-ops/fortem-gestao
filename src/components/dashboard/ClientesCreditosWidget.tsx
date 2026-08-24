@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Ticket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { creditoAtivo, creditoDisponivel } from "@/lib/creditos-calc";
-import { saldoTotalPorAtividade, type ConsumoServico, type CreditoAlunoRow } from "@/lib/creditosServicos";
+import { saldoDetalhadoPorAtividade, type ConsumoServico, type CreditoAlunoRow } from "@/lib/creditosServicos";
 
 interface Props {
   /** Atividades de crédito a exibir. Vazio/omitido = todas. */
