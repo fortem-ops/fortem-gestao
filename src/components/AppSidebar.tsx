@@ -54,8 +54,8 @@ const principalCoordItems = [
 const tecnicoItems = [
   { title: "Banco de Treinos", url: "/banco-treinos", icon: Library },
   { title: "Banco de Exercícios", url: "/exercicios", icon: Dumbbell },
-  { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
-  { title: "Avaliações Premium", url: "/avaliacoes-premium", icon: Activity },
+  { title: "Avaliação - Experimental", url: "/avaliacoes", icon: ClipboardCheck },
+  { title: "Avaliações", url: "/avaliacoes-premium", icon: Activity },
   { title: "Config. Mapa Corporal", url: "/bodymap-config", icon: Shapes },
   { title: "Carteira de Alunos", url: "/carteira", icon: Briefcase },
   { title: "Arquivos Metodológicos", url: "/arquivos-metodologicos", icon: FolderOpen },

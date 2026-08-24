@@ -65,7 +65,7 @@ export default function Avaliacoes() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-foreground">Avaliações</h1>
+        <h1 className="text-2xl font-heading font-bold text-foreground">Avaliação - Experimental</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Selecione um aluno para realizar uma nova avaliação ou consultar o histórico.
         </p>

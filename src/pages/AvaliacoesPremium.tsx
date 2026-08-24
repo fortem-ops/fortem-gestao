@@ -58,7 +58,7 @@ export default function AvaliacoesPremium() {
           </div>
           <div>
             <p className="bio-label">FORTEM · Central Biomecânica</p>
-            <h1 className="bio-heading text-2xl">Avaliações Premium</h1>
+            <h1 className="bio-heading text-2xl">Avaliações</h1>
           </div>
         </div>
         <div className="md:w-96">
