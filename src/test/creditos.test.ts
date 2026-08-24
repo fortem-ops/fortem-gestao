@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { creditoDisponivel, creditoExpirado, creditoAtivo } from "@/lib/creditos-calc";
-import { saldoTotalPorAtividade } from "@/lib/creditosServicos";
+import { saldoTotalPorAtividade, saldoDetalhadoPorAtividade } from "@/lib/creditosServicos";
 
 describe("creditoDisponivel", () => {
   it("ilimitado retorna Infinity", () => {
@@ -69,5 +69,61 @@ describe("saldoTotalPorAtividade — ledger como fonte única", () => {
     const map = saldoTotalPorAtividade(planoServicos, consumos, []);
     expect(map["Reabilitação"].saldo).toBe(1);
     expect(map["Avaliação Funcional"].saldo).toBe(1);
+  });
+});
+
+describe("saldoDetalhadoPorAtividade — plano + avulso", () => {
+  // Caso real: plano Pro com 2 Consultas Reabilitação sem consumo + venda avulsa de 3 (1 usada)
+  const planoServicos = ["2 Consultas Reabilitação", "2 Avaliação Funcional"];
+
+  it("soma plano e avulso quando o ledger é de origem serviço", () => {
+    const map = saldoDetalhadoPorAtividade(planoServicos, [], [
+      {
+        atividade: "Reabilitação",
+        quantidade_inicial: 3,
+        quantidade_usada: 1,
+        ilimitado: false,
+        origem_tipo: "servico",
+      },
+    ]);
+    expect(map["Reabilitação"].saldoPlano).toBe(2);
+    expect(map["Reabilitação"].saldoAvulso).toBe(2);
+  });
+
+  it("não soma o plano quando o ledger já é de origem plano", () => {
+    const map = saldoDetalhadoPorAtividade(planoServicos, [], [
+      {
+        atividade: "Reabilitação",
+        quantidade_inicial: 2,
+        quantidade_usada: 1,
+        ilimitado: false,
+        origem_tipo: "plano",
+      },
+    ]);
+    expect(map["Reabilitação"].saldoPlano).toBe(1);
+    expect(map["Reabilitação"].saldoAvulso).toBe(0);
+  });
+
+  it("só plano quando não há ledger", () => {
+    const map = saldoDetalhadoPorAtividade(planoServicos, [], []);
+    expect(map["Reabilitação"]).toEqual({ saldoPlano: 2, saldoAvulso: 0, ilimitado: false });
+    expect(map["Avaliação Funcional"].saldoPlano).toBe(2);
+  });
+
+  it("só avulso quando não há serviços no plano", () => {
+    const map = saldoDetalhadoPorAtividade([], [], [
+      { atividade: "Nutrição", quantidade_inicial: 5, quantidade_usada: 2, origem_tipo: "servico" },
+    ]);
+    expect(map["Nutrição"]).toEqual({ saldoPlano: 0, saldoAvulso: 3, ilimitado: false });
+  });
+
+  it("desconta consumos do plano e marca ilimitado do ledger", () => {
+    const map = saldoDetalhadoPorAtividade(
+      planoServicos,
+      [{ tipo_servico: "Consultas Reabilitação", tipo_registro: "uso_manual", quantidade: 1, agenda_id: null }],
+      [{ atividade: "Treino", ilimitado: true, origem_tipo: "plano" }],
+    );
+    expect(map["Reabilitação"].saldoPlano).toBe(1);
+    expect(map["Treino"].ilimitado).toBe(true);
   });
 });
