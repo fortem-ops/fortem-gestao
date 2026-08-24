@@ -146,6 +146,7 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                 <TableHead className="text-center">Usado</TableHead>
                 <TableHead className="text-center">Restante</TableHead>
                 <TableHead>Validade</TableHead>
+                <TableHead className="w-[60px] text-center">Uso</TableHead>
                 {isCoordAdmin && <TableHead className="w-[60px]">Ações</TableHead>}
               </TableRow>
             </TableHeader>
