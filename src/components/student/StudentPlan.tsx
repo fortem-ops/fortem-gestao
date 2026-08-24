@@ -119,8 +119,10 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
         .order("created_at", { ascending: false });
 
       if (!planos || planos.length === 0) return null;
-      const { plano } = selecionarPlanoExibicao(planos as any[]);
-      if (!plano) return null;
+      const { plano: planoSel } = selecionarPlanoExibicao(planos as any[]);
+      if (!planoSel) return null;
+      const plano = planoSel as any;
+
 
       // Plano vencido sem renovação automática => tratar como inativo
       const autoRenew = (plano as any).renovacao_automatica || isAutoRenewPlan(plano.tipo);
