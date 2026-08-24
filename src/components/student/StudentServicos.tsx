@@ -162,7 +162,10 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                   ? "border-primary/40 text-primary"
                   : "border-info/40 text-info";
                 return (
-                  <TableRow key={c.id} className={rowClass}>
+                const aberto = historicoId === c.id;
+                return (
+                  <Fragment key={c.id}>
+                  <TableRow className={rowClass}>
                     <TableCell>
                       <span className="font-medium">{c.atividade}</span>
                     </TableCell>
@@ -181,6 +184,17 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                         ? new Date(c.data_validade + "T12:00:00").toLocaleDateString("pt-BR")
                         : "—"}
                     </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={aberto ? "text-primary" : "text-muted-foreground"}
+                        title="Histórico de utilização"
+                        onClick={() => setHistoricoId(aberto ? null : c.id)}
+                      >
+                        <History className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
                     {isCoordAdmin && (
                       <TableCell>
                         <Button
@@ -196,6 +210,14 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                       </TableCell>
                     )}
                   </TableRow>
+                  {aberto && (
+                    <TableRow className="bg-muted/10 hover:bg-muted/10">
+                      <TableCell colSpan={isCoordAdmin ? 8 : 7} className="p-0">
+                        <CreditoHistorico creditoId={c.id} />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 );
               })}
             </TableBody>
