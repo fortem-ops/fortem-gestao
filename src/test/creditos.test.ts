@@ -50,3 +50,23 @@ describe("creditoAtivo", () => {
     expect(creditoAtivo({ ativo: true, data_validade: null }, now)).toBe(true);
   });
 });
+
+describe("saldoTotalPorAtividade — ledger como fonte única", () => {
+  const consumos = [
+    { tipo_servico: "Consultas Reabilitação", tipo_registro: "uso_manual", quantidade: 1, agenda_id: null },
+  ];
+  const planoServicos = ["2 Consultas Reabilitação", "1 Avaliação Funcional"];
+
+  it("não soma plano + ledger para a mesma atividade", () => {
+    const map = saldoTotalPorAtividade(planoServicos, consumos, [
+      { atividade: "Reabilitação", quantidade_inicial: 2, quantidade_usada: 1, ilimitado: false },
+    ]);
+    expect(map["Reabilitação"].saldo).toBe(1);
+  });
+
+  it("usa o plano como fallback quando não há crédito no ledger", () => {
+    const map = saldoTotalPorAtividade(planoServicos, consumos, []);
+    expect(map["Reabilitação"].saldo).toBe(1);
+    expect(map["Avaliação Funcional"].saldo).toBe(1);
+  });
+});
