@@ -10,19 +10,23 @@ export function useUserRoles() {
     queryFn: async () => {
       const uid = user!.id;
 
-      const [{ data: admin }, { data: coordAdmin }, { data: parceiro }] = await Promise.all([
+      const [{ data: admin }, { data: coordAdmin }, { data: parceiro }, { data: nutri }, { data: fisio }] = await Promise.all([
         supabase.rpc("is_admin", { _user_id: uid }),
         supabase.rpc("is_coordinator_or_admin", { _user_id: uid }),
         supabase.from("parceiros").select("id").eq("user_id", uid).eq("ativo", true).maybeSingle(),
+        supabase.rpc("has_role", { _user_id: uid, _role: "nutricionista" }),
+        supabase.rpc("has_role", { _user_id: uid, _role: "fisioterapeuta" }),
       ]);
 
       return {
         isAdmin: !!admin,
         isCoordAdmin: !!coordAdmin,
         isParceiro: !!parceiro,
+        isNutriFisio: !!nutri || !!fisio,
       };
     },
     enabled: !!user,
     staleTime: 5 * 60_000,
   });
 }
+
