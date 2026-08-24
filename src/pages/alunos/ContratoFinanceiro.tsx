@@ -618,7 +618,17 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
           </div>
         </div>
 
+        {inconsistenciaValor && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            Atenção: a mensalidade deste contrato está gravada com o valor total do
+            período ({fmt(Number(contrato.valor_cobrado))}). O valor mensal correto é
+            aproximadamente {fmt(valores.total / Number(contrato.parcelas ?? 1))}. Ajuste
+            em "Alterar dados da venda".
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+
           {contrato.vigencia_tipo === "mensal" ? (
             <Info label="Valor mensal" value={fmt(valores.mensal)} />
           ) : (
