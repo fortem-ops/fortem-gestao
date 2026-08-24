@@ -404,6 +404,8 @@ export function StudentPlan({ student }: { student: Tables<"alunos"> }) {
 
 
 
+        <StudentServicos student={student} isCoordAdmin={isCoordAdmin} />
+
         <VendaDialog alunoId={student.id} alunoNome={student.nome} open={vendaOpen} onOpenChange={setVendaOpen} />
       </div>
     );
