@@ -35,6 +35,16 @@ function makeQc() {
   });
 }
 
+function mockRoles({ admin = false, coord = false, nutri = false, fisio = false } = {}) {
+  mockRpc.mockImplementation((fn: string, args: any) => {
+    if (fn === "is_admin") return Promise.resolve({ data: admin, error: null });
+    if (fn === "is_coordinator_or_admin") return Promise.resolve({ data: coord, error: null });
+    if (fn === "has_role" && args?._role === "nutricionista") return Promise.resolve({ data: nutri, error: null });
+    if (fn === "has_role" && args?._role === "fisioterapeuta") return Promise.resolve({ data: fisio, error: null });
+    return Promise.resolve({ data: false, error: null });
+  });
+}
+
 function mockParceiro(found: boolean) {
   const chain = {
     select: vi.fn().mockReturnThis(),
@@ -66,9 +76,7 @@ describe("useUserRoles", () => {
   it("admin=true, coordAdmin=true, parceiro=false", async () => {
     mockUseAuth.mockReturnValue({ user: { id: "user-admin" } });
 
-    mockRpc
-      .mockResolvedValueOnce({ data: true, error: null })
-      .mockResolvedValueOnce({ data: true, error: null });
+    mockRoles({ admin: true, coord: true });
 
     mockParceiro(false);
 
@@ -81,15 +89,14 @@ describe("useUserRoles", () => {
       isAdmin: true,
       isCoordAdmin: true,
       isParceiro: false,
+      isNutriFisio: false,
     });
   });
 
   it("coordenador sem admin e sem parceiro", async () => {
     mockUseAuth.mockReturnValue({ user: { id: "user-coord" } });
 
-    mockRpc
-      .mockResolvedValueOnce({ data: false, error: null })
-      .mockResolvedValueOnce({ data: true, error: null });
+    mockRoles({ coord: true });
 
     mockParceiro(false);
 
@@ -102,15 +109,14 @@ describe("useUserRoles", () => {
       isAdmin: false,
       isCoordAdmin: true,
       isParceiro: false,
+      isNutriFisio: false,
     });
   });
 
   it("professor com parceiro ativo", async () => {
     mockUseAuth.mockReturnValue({ user: { id: "user-prof" } });
 
-    mockRpc
-      .mockResolvedValueOnce({ data: false, error: null })
-      .mockResolvedValueOnce({ data: false, error: null });
+    mockRoles();
 
     mockParceiro(true);
 
@@ -123,15 +129,14 @@ describe("useUserRoles", () => {
       isAdmin: false,
       isCoordAdmin: false,
       isParceiro: true,
+      isNutriFisio: false,
     });
   });
 
   it("usuário sem nenhuma role especial", async () => {
     mockUseAuth.mockReturnValue({ user: { id: "user-comum" } });
 
-    mockRpc
-      .mockResolvedValueOnce({ data: false, error: null })
-      .mockResolvedValueOnce({ data: false, error: null });
+    mockRoles();
 
     mockParceiro(false);
 
@@ -144,6 +149,7 @@ describe("useUserRoles", () => {
       isAdmin: false,
       isCoordAdmin: false,
       isParceiro: false,
+      isNutriFisio: false,
     });
   });
 
@@ -151,9 +157,7 @@ describe("useUserRoles", () => {
     const uid = "user-test-uid";
     mockUseAuth.mockReturnValue({ user: { id: uid } });
 
-    mockRpc
-      .mockResolvedValueOnce({ data: true, error: null })
-      .mockResolvedValueOnce({ data: true, error: null });
+    mockRoles({ admin: true, coord: true });
 
     mockParceiro(false);
 
@@ -164,7 +168,9 @@ describe("useUserRoles", () => {
 
     expect(mockRpc).toHaveBeenCalledWith("is_admin", { _user_id: uid });
     expect(mockRpc).toHaveBeenCalledWith("is_coordinator_or_admin", { _user_id: uid });
-    expect(mockRpc).toHaveBeenCalledTimes(2);
+    expect(mockRpc).toHaveBeenCalledWith("has_role", { _user_id: uid, _role: "nutricionista" });
+    expect(mockRpc).toHaveBeenCalledWith("has_role", { _user_id: uid, _role: "fisioterapeuta" });
+    expect(mockRpc).toHaveBeenCalledTimes(4);
 
     expect(mockFrom).toHaveBeenCalledWith("parceiros");
   });
@@ -172,9 +178,11 @@ describe("useUserRoles", () => {
   it("lança erro se o Supabase falhar", async () => {
     mockUseAuth.mockReturnValue({ user: { id: "user-err" } });
 
-    mockRpc
-      .mockRejectedValueOnce(new Error("Supabase offline"))
-      .mockResolvedValueOnce({ data: false, error: null });
+    mockRpc.mockImplementation((fn: string) =>
+      fn === "is_admin"
+        ? Promise.reject(new Error("Supabase offline"))
+        : Promise.resolve({ data: false, error: null }),
+    );
 
     mockParceiro(false);
 
