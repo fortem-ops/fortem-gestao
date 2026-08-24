@@ -99,9 +99,11 @@ describe("selecionarPlanoPrincipal", () => {
 });
 
 describe("planoVigente", () => {
-  it("sem data_fim é vigente", () => {
-    expect(planoVigente({ ...base, id: "x", data_inicio: "2020-01-01" } as any)).toBe(true);
+  it("sem data_fim, a vigência vem de data_inicio + duração", () => {
+    expect(planoVigente({ ...base, id: "x", data_inicio: "2020-01-01" } as any)).toBe(false);
+    expect(planoVigente({ ...base, id: "x", data_inicio: hojeISO } as any)).toBe(true);
   });
+
   it("data_fim hoje ainda é vigente", () => {
     expect(planoVigente({ ...base, id: "x", data_inicio: "2020-01-01", data_fim: hojeISO } as any)).toBe(true);
   });
