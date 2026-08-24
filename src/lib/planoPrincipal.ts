@@ -17,16 +17,18 @@ export const ATIVIDADE_PRINCIPAL = "treinamento_funcional";
  * @param alunoId id do aluno
  * @param columns colunas a selecionar (default "*")
  */
-export function queryPlanoPrincipalAtivo(alunoId: string, columns = "*") {
-  return (supabase as any)
+export async function queryPlanoPrincipalAtivo(alunoId: string, columns = "*") {
+  const res = await (supabase as any)
     .from("planos")
     .select(columns)
     .eq("aluno_id", alunoId)
     .eq("ativo", true)
     .eq("atividade", ATIVIDADE_PRINCIPAL)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
+
+  if (res.error) return { data: null, error: res.error };
+  const escolhido = selecionarPlanoPrincipal((res.data as PlanoLike[]) ?? []);
+  return { data: escolhido as any, error: null };
 }
 
 /** Versão que já devolve apenas o registro (ou null), ignorando o envelope. */
@@ -37,6 +39,7 @@ export async function getPlanoPrincipalAtivo<T = any>(
   const { data } = await queryPlanoPrincipalAtivo(alunoId, columns);
   return (data as T) ?? null;
 }
+
 
 /** Atividade dos planos paralelos de Corrida. */
 export const ATIVIDADE_CORRIDA = "corrida";
