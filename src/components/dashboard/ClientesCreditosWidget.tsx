@@ -16,8 +16,10 @@ interface Linha {
   nome: string;
   atividade: string;
   restante: number;
+  saldoPlano: number;
+  saldoAvulso: number;
   ilimitado: boolean;
-  origem: "Plano" | "Avulso";
+  origem: "Plano" | "Avulso" | "Plano+Avulso";
 }
 
 const chunk = <T,>(arr: T[], size = 300): T[][] => {
@@ -37,7 +39,7 @@ export function ClientesCreditosWidget({ atividades }: Props) {
       const { data: credRows, error: credErr } = await supabase
         .from("creditos_aluno")
         .select(
-          "id, aluno_id, atividade, quantidade_inicial, quantidade_usada, ilimitado, data_validade, ativo, alunos(nome)",
+          "id, aluno_id, atividade, quantidade_inicial, quantidade_usada, ilimitado, origem_tipo, data_validade, ativo, alunos(nome)",
         )
         .eq("ativo", true);
       if (credErr) throw credErr;
