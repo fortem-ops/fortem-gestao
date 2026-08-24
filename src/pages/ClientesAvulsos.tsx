@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import AddClienteAvulsoDialog from "@/components/student/AddClienteAvulsoDialog";
+
 
 interface ClienteAvulso {
   id: string;
@@ -19,8 +22,12 @@ interface ClienteAvulso {
 
 export default function ClientesAvulsos() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: roles } = useUserRoles();
+  const canCreate = !!roles?.isCoordAdmin || !!roles?.isNutriFisio;
   const [search, setSearch] = useState("");
   const term = useDebounce(search, 250).trim().toLowerCase();
+
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["clientes-avulsos"],
@@ -48,11 +55,18 @@ export default function ClientesAvulsos() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-foreground">Clientes Avulsos</h1>
-        <p className="text-sm text-muted-foreground">
-          Clientes que usam apenas serviços pontuais, sem vínculo de assessoria ou plano de treino.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold text-foreground">Clientes Avulsos</h1>
+          <p className="text-sm text-muted-foreground">
+            Clientes que usam apenas serviços pontuais, sem vínculo de assessoria ou plano de treino.
+          </p>
+        </div>
+        {canCreate && (
+          <AddClienteAvulsoDialog
+            onCreated={() => queryClient.invalidateQueries({ queryKey: ["clientes-avulsos"] })}
+          />
+        )}
       </div>
 
       <div className="relative max-w-md">
@@ -64,6 +78,7 @@ export default function ClientesAvulsos() {
           className="pl-8"
         />
       </div>
+
 
       {isLoading ? (
         <div className="space-y-2">
