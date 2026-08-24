@@ -120,3 +120,18 @@ export function selecionarPlanoExibicao(planos: PlanoLike[] | null | undefined):
   };
 }
 
+
+/**
+ * Seleção canônica do plano PRINCIPAL (não-Corrida) de uma lista já carregada.
+ * Prefere o vigente; se nenhum estiver vigente, devolve o mais recente
+ * (por created_at desc) para que a tela mostre o vencimento em vez de "nenhum plano".
+ */
+export function selecionarPlanoPrincipal(
+  planos: PlanoLike[] | null | undefined,
+): PlanoLike | null {
+  const principais = (planos ?? [])
+    .filter((p) => p.ativo !== false && p.atividade !== ATIVIDADE_CORRIDA)
+    .slice()
+    .sort(porCreatedAtDesc);
+  return principais.find(planoVigente) ?? principais[0] ?? null;
+}
