@@ -22,8 +22,12 @@ interface ClienteAvulso {
 
 export default function ClientesAvulsos() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: roles } = useUserRoles();
+  const canCreate = !!roles?.isCoordAdmin || !!roles?.isNutriFisio;
   const [search, setSearch] = useState("");
   const term = useDebounce(search, 250).trim().toLowerCase();
+
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["clientes-avulsos"],
