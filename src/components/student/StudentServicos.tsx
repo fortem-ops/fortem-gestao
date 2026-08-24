@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Trash2, ShoppingBag, Infinity as InfinityIcon } from "lucide-react";
+import { Plus, Trash2, ShoppingBag, Infinity as InfinityIcon, History } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 const ATIVIDADES = [
@@ -43,6 +43,7 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormState>(defaultForm());
+  const [historicoId, setHistoricoId] = useState<string | null>(null);
 
   const { data: creditos = [], isLoading } = useQuery({
     queryKey: ["creditos_aluno_lista", student.id],
@@ -133,7 +134,7 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
         <div className="h-20 flex items-center justify-center text-muted-foreground text-sm">Carregando...</div>
       ) : creditos.length === 0 ? (
         <div className="glass-card rounded-lg p-5">
-          <p className="text-sm text-muted-foreground">Nenhum crédito ativo. Registre uma venda em Nova Venda.</p>
+          <p className="text-sm text-muted-foreground">Nenhum crédito ativo. Créditos do plano, serviços avulsos vendidos e lançamentos manuais aparecem aqui.</p>
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
@@ -146,6 +147,7 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                 <TableHead className="text-center">Usado</TableHead>
                 <TableHead className="text-center">Restante</TableHead>
                 <TableHead>Validade</TableHead>
+                <TableHead className="w-[60px] text-center">Uso</TableHead>
                 {isCoordAdmin && <TableHead className="w-[60px]">Ações</TableHead>}
               </TableRow>
             </TableHeader>
@@ -160,8 +162,10 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                 const origemClass = c.origem_tipo === "plano"
                   ? "border-primary/40 text-primary"
                   : "border-info/40 text-info";
+                const aberto = historicoId === c.id;
                 return (
-                  <TableRow key={c.id} className={rowClass}>
+                  <Fragment key={c.id}>
+                  <TableRow className={rowClass}>
                     <TableCell>
                       <span className="font-medium">{c.atividade}</span>
                     </TableCell>
@@ -180,6 +184,17 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                         ? new Date(c.data_validade + "T12:00:00").toLocaleDateString("pt-BR")
                         : "—"}
                     </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={aberto ? "text-primary" : "text-muted-foreground"}
+                        title="Histórico de utilização"
+                        onClick={() => setHistoricoId(aberto ? null : c.id)}
+                      >
+                        <History className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
                     {isCoordAdmin && (
                       <TableCell>
                         <Button
@@ -195,6 +210,14 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
                       </TableCell>
                     )}
                   </TableRow>
+                  {aberto && (
+                    <TableRow className="bg-muted/10 hover:bg-muted/10">
+                      <TableCell colSpan={isCoordAdmin ? 8 : 7} className="p-0">
+                        <CreditoHistorico creditoId={c.id} />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 );
               })}
             </TableBody>
@@ -259,6 +282,72 @@ export function StudentServicos({ student, isCoordAdmin }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+const TIPO_LABEL: Record<string, string> = {
+  compra: "Compra",
+  consumo: "Consumo",
+  estorno: "Estorno",
+  ajuste: "Ajuste",
+};
+
+function CreditoHistorico({ creditoId }: { creditoId: string }) {
+  const { data: movimentos = [], isLoading } = useQuery({
+    queryKey: ["creditos_movimentos", creditoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("creditos_movimentos")
+        .select("*")
+        .eq("credito_id", creditoId)
+        .order("data", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  return (
+    <div className="px-4 py-3 space-y-1">
+      <p className="text-xs font-medium text-muted-foreground mb-2">Histórico de utilização</p>
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground">Carregando...</p>
+      ) : movimentos.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nenhum movimento registrado.</p>
+      ) : (
+        movimentos.map((m: any) => (
+          <div
+            key={m.id}
+            className="flex items-center justify-between gap-3 text-xs py-1 border-b border-border/30 last:border-0"
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-foreground">
+                {new Date(m.data).toLocaleDateString("pt-BR")}
+              </span>
+              <Badge
+                variant="outline"
+                className={`text-[10px] px-1.5 py-0 ${
+                  m.tipo === "consumo"
+                    ? "border-destructive/40 text-destructive"
+                    : m.tipo === "compra"
+                      ? "border-success/40 text-success"
+                      : "border-border text-muted-foreground"
+                }`}
+              >
+                {TIPO_LABEL[m.tipo] ?? m.tipo}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                {m.agenda_id ? "Agenda" : "Manual"}
+              </Badge>
+              {m.observacao && <span className="text-muted-foreground">{m.observacao}</span>}
+            </div>
+            <span className="text-foreground font-medium whitespace-nowrap">
+              {m.tipo === "consumo" ? "-" : "+"}
+              {m.quantidade}
+            </span>
+          </div>
+        ))
+      )}
     </div>
   );
 }
