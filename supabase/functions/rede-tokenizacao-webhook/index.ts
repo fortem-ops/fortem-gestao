@@ -229,7 +229,7 @@ serve(async (req) => {
       }
     }
 
-    if (statusRede === "Active" && !falhaMascarada && registro && !registro.cartao_salvo_id) {
+    if (statusRede === "Active" && !falhaMascarada && !aindaProcessando && tokenCode.length > 0 && registro && !registro.cartao_salvo_id) {
       // Parse da validade no formato MM/YYYY (ex: "08/2034")
       let expMonth = 0;
       let expYear = 0;
