@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { useCalcularRescisao } from "@/hooks/useContratos";
 import { getLimite, getDiasUsados, calcDias, type LicencaTipo } from "@/lib/licencas";
+import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+
 import { differenceInDays, format, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
