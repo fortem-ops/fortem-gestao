@@ -155,6 +155,11 @@ export function ClientesCreditosWidget({ atividades }: Props) {
                   <span className="ml-1.5 rounded border border-border px-1 py-px text-[10px] uppercase tracking-wide">
                     {l.origem}
                   </span>
+                  {!l.ilimitado && l.saldoPlano > 0 && l.saldoAvulso > 0 && (
+                    <span className="ml-1.5">
+                      {l.saldoPlano} plano + {l.saldoAvulso} avulso
+                    </span>
+                  )}
                 </span>
               </span>
               <span className="text-sm font-semibold text-primary whitespace-nowrap">
