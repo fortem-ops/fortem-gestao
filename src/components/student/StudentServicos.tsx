@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Trash2, ShoppingBag, Infinity as InfinityIcon } from "lucide-react";
+import { Plus, Trash2, ShoppingBag, Infinity as InfinityIcon, History } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 const ATIVIDADES = [
