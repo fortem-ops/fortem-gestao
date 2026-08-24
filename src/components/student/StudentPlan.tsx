@@ -15,6 +15,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { StudentServicos } from "./StudentServicos";
 import { StudentLicencas } from "./StudentLicencas";
 import { isAutoRenewPlan } from "@/lib/planTipo";
+import { selecionarPlanoExibicao } from "@/lib/planoPrincipal";
+
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { VendaDialog } from "./venda/VendaDialog";
 import { HorarioFixoManager } from "./HorarioFixoManager";
