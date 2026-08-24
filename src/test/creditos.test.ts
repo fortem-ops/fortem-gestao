@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { creditoDisponivel, creditoExpirado, creditoAtivo } from "@/lib/creditos-calc";
+import { saldoTotalPorAtividade } from "@/lib/creditosServicos";
 
 describe("creditoDisponivel", () => {
   it("ilimitado retorna Infinity", () => {
