@@ -18,9 +18,23 @@ export const ATIVIDADE_PRINCIPAL = "treinamento_funcional";
  * @param columns colunas a selecionar (default "*")
  */
 export async function queryPlanoPrincipalAtivo(alunoId: string, columns = "*") {
+  // Colunas mínimas para avaliar vigência de forma determinística.
+  const select =
+    columns === "*"
+      ? "*"
+      : Array.from(
+          new Set(
+            columns
+              .split(",")
+              .map((c) => c.trim())
+              .filter(Boolean)
+              .concat(["id", "created_at", "data_inicio", "data_fim", "duracao_meses", "ativo", "atividade"]),
+          ),
+        ).join(", ");
+
   const res = await (supabase as any)
     .from("planos")
-    .select(columns)
+    .select(select)
     .eq("aluno_id", alunoId)
     .eq("ativo", true)
     .eq("atividade", ATIVIDADE_PRINCIPAL)
@@ -30,6 +44,7 @@ export async function queryPlanoPrincipalAtivo(alunoId: string, columns = "*") {
   const escolhido = selecionarPlanoPrincipal((res.data as PlanoLike[]) ?? []);
   return { data: escolhido as any, error: null };
 }
+
 
 /** Versão que já devolve apenas o registro (ou null), ignorando o envelope. */
 export async function getPlanoPrincipalAtivo<T = any>(
