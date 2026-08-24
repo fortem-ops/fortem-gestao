@@ -307,22 +307,76 @@ function CreditoHistorico({ creditoId }: { creditoId: string }) {
     },
   });
 
+  const agendaIds = Array.from(
+    new Set((movimentos as any[]).map((m) => m.agenda_id).filter(Boolean))
+  ) as string[];
+
+  const { data: agendaMap = {} } = useQuery({
+    queryKey: ["creditos_movimentos_agendas", creditoId, agendaIds.join(",")],
+    enabled: agendaIds.length > 0,
+    queryFn: async () => {
+      const [ag, pres] = await Promise.all([
+        supabase
+          .from("agenda_servicos")
+          .select("id, data_especifica, horario_inicio, atividade, local")
+          .in("id", agendaIds),
+        supabase
+          .from("agenda_presencas")
+          .select("agenda_id, data, comparecimento")
+          .in("agenda_id", agendaIds),
+      ]);
+
+      const presMap: Record<string, string> = {};
+      (pres.data || []).forEach((p: any) => {
+        if (!p.comparecimento) return;
+        if (!presMap[p.agenda_id] || p.data > presMap[p.agenda_id]) {
+          presMap[p.agenda_id] = p.data;
+        }
+      });
+
+      const map: Record<string, { dataSessao: string | null; horario: string | null; presente: boolean }> = {};
+      (ag.data || []).forEach((a: any) => {
+        map[a.id] = {
+          dataSessao: presMap[a.id] || a.data_especifica || null,
+          horario: a.horario_inicio ? String(a.horario_inicio).slice(0, 5) : null,
+          presente: !!presMap[a.id],
+        };
+      });
+      return map;
+    },
+  });
+
+  const linhas = (movimentos as any[])
+    .map((m) => {
+      const info = m.agenda_id ? (agendaMap as any)[m.agenda_id] : undefined;
+      const dataSessao: string | null = info?.dataSessao ?? null;
+      return {
+        ...m,
+        dataSessao,
+        horario: info?.horario ?? null,
+        presente: !!info?.presente,
+        dataEfetiva: dataSessao ? new Date(dataSessao + "T12:00:00") : new Date(m.data),
+      };
+    })
+    .sort((a, b) => b.dataEfetiva.getTime() - a.dataEfetiva.getTime());
+
   return (
     <div className="px-4 py-3 space-y-1">
       <p className="text-xs font-medium text-muted-foreground mb-2">Histórico de utilização</p>
       {isLoading ? (
         <p className="text-xs text-muted-foreground">Carregando...</p>
-      ) : movimentos.length === 0 ? (
+      ) : linhas.length === 0 ? (
         <p className="text-xs text-muted-foreground">Nenhum movimento registrado.</p>
       ) : (
-        movimentos.map((m: any) => (
+        linhas.map((m: any) => (
           <div
             key={m.id}
             className="flex items-center justify-between gap-3 text-xs py-1 border-b border-border/30 last:border-0"
           >
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-foreground">
-                {new Date(m.data).toLocaleDateString("pt-BR")}
+                {m.dataEfetiva.toLocaleDateString("pt-BR")}
+                {m.dataSessao && m.horario ? ` ${m.horario}` : ""}
               </span>
               <Badge
                 variant="outline"
@@ -339,7 +393,17 @@ function CreditoHistorico({ creditoId }: { creditoId: string }) {
               <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                 {m.agenda_id ? "Agenda" : "Manual"}
               </Badge>
+              {m.presente && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-success/40 text-success">
+                  Presente
+                </Badge>
+              )}
               {m.observacao && <span className="text-muted-foreground">{m.observacao}</span>}
+              {m.dataSessao && (
+                <span className="text-[10px] text-muted-foreground/70">
+                  lançado em {new Date(m.data).toLocaleDateString("pt-BR")}
+                </span>
+              )}
             </div>
             <span className="text-foreground font-medium whitespace-nowrap">
               {m.tipo === "consumo" ? "-" : "+"}
@@ -351,3 +415,4 @@ function CreditoHistorico({ creditoId }: { creditoId: string }) {
     </div>
   );
 }
+
