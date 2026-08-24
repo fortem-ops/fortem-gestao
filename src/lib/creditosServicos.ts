@@ -15,6 +15,8 @@ export type CreditoAlunoRow = {
   quantidade_inicial?: number | null;
   quantidade_usada?: number | null;
   ilimitado?: boolean | null;
+  /** "plano" = crédito do plano já gravado no ledger; outros = avulso/serviço. */
+  origem_tipo?: string | null;
 };
 
 /** Mapeia o rótulo do serviço no plano para o nome da atividade na agenda. */
