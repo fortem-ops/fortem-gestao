@@ -354,19 +354,28 @@ serve(async (req) => {
     });
 
     if (cardToken) {
-      const { data: inserted } = await supabase.from("cartoes_salvos").insert({
-        aluno_id,
-        token_rede:        cardToken,
-        brand:             redeResponse?.brand ?? redeResponse?.brandName ?? "unknown",
-        last4:             cardClean.slice(-4),
-        holder_name:       card_holder,
-        expiration_month:  Number(expiration_month),
-        expiration_year:   Number(expiration_year),
-        is_default:        true,
+      const resultadoCartao = await salvarCartaoComSubstituicao(supabase, {
+        alunoId:          aluno_id,
+        last4:            cardClean.slice(-4),
+        tokenRede:        cardToken,
+        brand:            redeResponse?.brand ?? redeResponse?.brandName ?? "unknown",
+        expirationMonth:  Number(expiration_month),
+        expirationYear:   Number(expiration_year),
+        holderName:       card_holder,
         origem,
-      }).select("id").single();
-      savedCartaoId = (inserted as any)?.id ?? null;
-      console.log("[rede] cartão salvo com token:", cardToken.slice(0, 8) + "...");
+      });
+      savedCartaoId = resultadoCartao.cartaoId;
+      if (resultadoCartao.erro) {
+        console.error("[rede] falha ao salvar cartão:", resultadoCartao.erro);
+      } else {
+        console.log("[rede] cartão salvo com token:", cardToken.slice(0, 8) + "...");
+        if (resultadoCartao.substituiuId) {
+          console.log(
+            `[rede] cartão anterior ${resultadoCartao.substituiuId} substituído — ` +
+            `${resultadoCartao.contratosRepontados} contrato(s), ${resultadoCartao.planosRepontados} plano(s) repontados`,
+          );
+        }
+      }
     } else {
       console.warn("[rede] cartão não salvo — token ausente na resposta. Chaves disponíveis:", Object.keys(redeResponse ?? {}));
     }
