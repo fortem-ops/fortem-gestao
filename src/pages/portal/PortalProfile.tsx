@@ -1,19 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
 import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
-import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import {
-  ChevronRight, CreditCard, Bell, Star, Trash2,
+  ChevronRight, CreditCard, Bell,
   LogOut, Shield, FileText,
 } from "lucide-react";
 
 
 export default function PortalProfile() {
   const { student } = useStudentPortal();
-  const qc = useQueryClient();
+
 
 
 
