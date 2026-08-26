@@ -1,37 +1,39 @@
-# Corrigir resposta de rede-salvar-cartao para informar substituição
+# Corrigir erro ao lançar "Consultoria Online - 6 meses"
 
-## Diagnóstico (confirmado)
-- Caminho de sucesso 200 retorna apenas `{ success: true, last4, brand }` (linha 451).
-- O helper `salvarCartaoComSubstituicao` já retorna `substituiuId` (id do cartão antigo desativado), mas a function o descarta.
-- Consequência: o toast "substituiu o cartão anterior final XXXX" em `CadastrarCartaoDialog.tsx` nunca dispara, mesmo quando a substituição ocorre.
-- Como a deduplicação é por `last4`, o cartão substituído tem o mesmo final do novo — o campo pode simplesmente ecoar o próprio `last4`.
+## O que está acontecendo
 
-## Mudanças
+O plano `Consultoria Online - 6 meses` foi criado hoje no catálogo (13:29 UTC, R$ 774,00, 6 meses, atividade "treinamento_funcional"). Porém a tabela de planos tem uma regra antiga que só aceita nomes de uma lista fixa:
 
-### 1. `supabase/functions/rede-salvar-cartao/index.ts`
-Na resposta de sucesso (linha 451), incluir campo de substituição derivado de `resultadoCartao.substituiuId`:
+Start, Start+, Power, Pro, Max, Gympass/Wellhub, Total Pass, VIP (e as variantes VIP Livre / VIP 1x a 7x/semana).
 
-```ts
-return new Response(JSON.stringify({
-  success: true,
-  last4,
-  brand,
-  substituiu_last4: resultadoCartao.substituiuId ? last4 : null,
-}), { status: 200, headers });
-```
+Como "Consultoria Online - 6 meses" não está nessa lista, o banco recusa o lançamento com o erro `planos_tipo_check`. Ou seja: qualquer plano novo cadastrado no catálogo hoje falha no momento da venda — não é um problema específico da Talitha.
 
-(Como a chave é `last4`, o final substituído é o mesmo; manter o nome do campo que o diálogo já consome.)
+## Correção proposta
 
-### 2. `CadastrarCartaoDialog.tsx`
-Sem mudanças — já lê `data?.substituiu_last4`. Apenas verificar que o ramo passa a disparar.
+Trocar a lista fixa por uma validação dinâmica: o nome do plano passa a ser aceito se existir no catálogo de planos (mesma atividade), incluindo variantes de frequência do VIP.
 
-### 3. Teste
-Adicionar 1 teste no `_shared` (ou ajustar existente) garantindo que quando `substituiuId` é não-nulo o payload final inclui `substituiu_last4`. Se o teste exigir tocar a function inteira, cobrir apenas a decisão do payload.
+- Remover a regra fixa `planos_tipo_check`.
+- Criar uma validação equivalente que consulta o catálogo, aceitando:
+  - nome exatamente igual a um item do catálogo da mesma atividade (ativo ou inativo, para não invalidar histórico);
+  - nomes derivados como "VIP 3x/semana" (prefixo de um item do catálogo);
+  - os nomes legados da lista atual, para não bloquear planos antigos já registrados.
 
-### 4. Deploy + verificação
-- Rodar suíte completa (esperado ≥ 485 passando).
-- Deploy da `rede-salvar-cartao`.
-- Nenhum dado real alterado.
+Resultado: continua havendo proteção contra digitação errada, e todo plano criado no catálogo funciona automaticamente, sem precisar de ajuste técnico a cada novo produto.
 
-## Fora de escopo
-- Caminho `pending` (tokenização por bandeira): substituição ocorre no webhook, não é possível informar na resposta — o diálogo já cobre com o toast de pendente.
+Depois disso, o lançamento do plano da Talitha pode ser repetido normalmente pela tela de venda.
+
+## Detalhes técnicos
+
+- Migração: `ALTER TABLE public.planos DROP CONSTRAINT planos_tipo_check;`
+- Nova função `public.fn_planos_validar_tipo()` (SECURITY DEFINER, `search_path = public`) + trigger `BEFORE INSERT OR UPDATE OF tipo, atividade ON public.planos`:
+  - passa se `EXISTS (SELECT 1 FROM planos_catalogo c WHERE c.atividade = NEW.atividade AND (NEW.tipo = c.nome OR NEW.tipo LIKE c.nome || ' %'))`;
+  - passa também se `NEW.tipo` estiver na lista legada (Start, Start+, Power, Pro, Max, Gympass/Wellhub, Total Pass, VIP*);
+  - caso contrário `RAISE EXCEPTION` com mensagem em PT-BR citando o valor recebido.
+- `planos_atividade_check` permanece como está.
+- Nenhuma alteração de frontend é necessária; nenhum dado existente é modificado.
+
+## Verificação
+
+- Rodar a suíte de testes (deve seguir passando).
+- Conferir por consulta que nenhum registro atual de `planos` seria rejeitado pela nova regra antes de aplicar o trigger.
+- Após a migração, lançar novamente o plano de consultoria para a Talitha e confirmar criação de plano, contrato e cobrança.
