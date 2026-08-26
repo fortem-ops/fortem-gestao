@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CreditCard, ShieldCheck } from "lucide-react";
+import { Loader2, CreditCard, ShieldCheck, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,13 +94,24 @@ export function CartaoForm({
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error ?? "Falha ao salvar cartão");
 
+      const substituido = data?.substituiu_last4 ?? data?.cartao_substituido_last4 ?? null;
+
       if (data?.status === "pending" || !data?.last4) {
-        toast.success("Cartão enviado para validação — aparecerá na lista em instantes.");
+        toast.success(
+          "Cartão enviado para validação — ao ser aprovado, passará a ser o seu cartão principal para as próximas cobranças.",
+        );
+      } else if (substituido) {
+        toast.success(
+          `Cartão •••• ${data.last4} cadastrado como principal — substituiu o cartão anterior final ${substituido}.`,
+        );
       } else {
-        toast.success(`Cartão •••• ${data.last4} salvo com sucesso`);
+        toast.success(
+          `Cartão •••• ${data.last4} cadastrado como principal — será usado nas próximas cobranças automáticas.`,
+        );
       }
 
       onSuccess?.();
+
 
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao salvar cartão");
@@ -164,6 +175,15 @@ export function CartaoForm({
         </div>
       </div>
 
+      <div className="flex items-start gap-2 text-xs bg-primary/10 border border-primary/20 text-foreground rounded-lg p-3">
+        <Star className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+        <p>
+          Este cartão se tornará seu <strong>método de pagamento principal</strong> e será usado
+          nas próximas cobranças automáticas. Se já houver um cartão com o mesmo final cadastrado,
+          ele será substituído por este.
+        </p>
+      </div>
+
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
         <ShieldCheck className="h-4 w-4 mt-0.5 text-primary shrink-0" />
         <p>
@@ -171,6 +191,7 @@ export function CartaoForm({
           imediatamente. Não armazenamos o número — apenas um token seguro via Rede.
         </p>
       </div>
+
 
       <div className="flex gap-2 justify-end pt-2">
         {onCancel && (

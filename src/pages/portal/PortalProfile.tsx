@@ -1,19 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { supabase } from "@/integrations/supabase/client";
 import { queryPlanoPrincipalAtivo } from "@/lib/planoPrincipal";
-import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import {
-  ChevronRight, CreditCard, Bell, Star, Trash2,
+  ChevronRight, CreditCard, Bell,
   LogOut, Shield, FileText,
 } from "lucide-react";
 
 
 export default function PortalProfile() {
   const { student } = useStudentPortal();
-  const qc = useQueryClient();
+
 
 
 
@@ -44,36 +43,10 @@ export default function PortalProfile() {
     },
   });
 
-  const { data: cartoes = [] } = useQuery({
-    queryKey: ["portal-cartoes", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("cartoes_salvos").select("*")
-        .eq("aluno_id", student!.id).eq("ativo", true)
-        .order("is_default", { ascending: false });
-      return data || [];
-    },
-  });
+  // A gestão de cartões (listar / tornar principal / remover) vive em
+  // /portal/pagamentos via usePortalCartoes — esta tela apenas dá o atalho.
 
-  const removerCartao = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("cartoes_salvos").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Cartão removido"); qc.invalidateQueries({ queryKey: ["portal-cartoes"] }); },
-    onError: (e: any) => toast.error(e.message),
-  });
 
-  const definirPadrao = useMutation({
-    mutationFn: async (id: string) => {
-      await (supabase as any).from("cartoes_salvos").update({ is_default: false }).eq("aluno_id", student!.id);
-      const { error } = await (supabase as any).from("cartoes_salvos").update({ is_default: true }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Cartão padrão atualizado"); qc.invalidateQueries({ queryKey: ["portal-cartoes"] }); },
-    onError: (e: any) => toast.error(e.message),
-  });
 
   if (!student) return null;
 
