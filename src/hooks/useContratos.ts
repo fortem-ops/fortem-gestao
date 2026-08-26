@@ -216,18 +216,26 @@ export function useInadimplenciasAbertas() {
 }
 
 
-export function useCalcularRescisao(contratoId: string, enabled = true) {
+export function useCalcularRescisao(
+  contratoId: string,
+  enabled = true,
+  dataCancelamento?: string,
+) {
   return useQuery({
-    queryKey: ['rescisao', contratoId],
+    queryKey: ['rescisao', contratoId, dataCancelamento ?? null],
     queryFn: async () => {
-      const { data, error } = await db.rpc('fn_calcular_rescisao', { p_contrato_id: contratoId });
+      const { data, error } = await db.rpc('fn_calcular_rescisao', {
+        p_contrato_id: contratoId,
+        ...(dataCancelamento ? { p_data_cancelamento: dataCancelamento } : {}),
+      } as any);
       if (error) throw error;
-      return data as ResultadoRescisao;
+      return data as unknown as ResultadoRescisao;
     },
     enabled: !!contratoId && enabled,
     staleTime: 30_000,
   });
 }
+
 
 export function useCriarContrato() {
   const qc = useQueryClient();

@@ -55,7 +55,6 @@ import {
   LABEL_PAGAMENTO,
   LABEL_STATUS,
   type Contrato,
-  type ServicoUtilizado,
 } from "@/lib/contratos-calc";
 import {
   FORMAS_RECEBIMENTO,
@@ -362,7 +361,6 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       {rescContrato && (
         <RescisaoDialog
           contrato={rescContrato}
-          servicosUtilizados={[] as ServicoUtilizado[]}
           open={!!rescContrato}
           onOpenChange={(v) => !v && setRescContrato(null)}
           onConfirmar={handleCancelar}

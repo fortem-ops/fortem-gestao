@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,12 +25,12 @@ import {
   FilePlus,
 } from "lucide-react";
 import {
-  calcRescisao,
   LABEL_PLANO,
   LABEL_PAGAMENTO,
   type Contrato,
-  type ServicoUtilizado,
 } from "@/lib/contratos-calc";
+import { useCalcularRescisao } from "@/hooks/useContratos";
+import { DetalheServicos } from "@/components/financeiro/DialogRescisao";
 
 export type TratamentoMulta = "estorno" | "nova_cobranca";
 
@@ -43,7 +43,6 @@ export interface CancelamentoPayload {
 
 interface Props {
   contrato: Contrato;
-  servicosUtilizados: ServicoUtilizado[];
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onConfirmar: (payload: CancelamentoPayload) => Promise<void>;
@@ -62,7 +61,6 @@ function addDays(iso: string, days: number) {
 
 export function RescisaoDialog({
   contrato,
-  servicosUtilizados,
   open,
   onOpenChange,
   onConfirmar,
@@ -70,7 +68,33 @@ export function RescisaoDialog({
   const hoje = new Date().toISOString().split("T")[0];
   const [loading, setLoading] = useState(false);
   const [dataCancelamento, setDataCancelamento] = useState(hoje);
-  const r = calcRescisao(contrato, servicosUtilizados);
+
+  // Fonte de verdade única: RPC fn_calcular_rescisao (banco)
+  const { data: rpc, isLoading: loadingCalc } = useCalcularRescisao(
+    contrato.id,
+    open,
+    dataCancelamento,
+  );
+
+  const r = useMemo(
+    () => ({
+      tipo: rpc?.tipo ?? "start_sem_multa",
+      mes_atual: rpc?.mes_atual ?? 0,
+      meses_restantes: rpc?.meses_restantes ?? 0,
+      percentual: rpc?.percentual_multa ?? rpc?.percentual_restituicao ?? 0,
+      valor_vincendo: rpc?.valor_vincendo ?? 0,
+      multa_base: rpc?.multa_base ?? 0,
+      servicos_utilizados: rpc?.valor_servicos_utilizados ?? 0,
+      servicos_detalhe: rpc?.servicos_utilizados_detalhe,
+      valor_total_contrato: rpc?.valor_total_contrato ?? 0,
+      valor_proporcional: rpc?.valor_proporcional ?? 0,
+      restituicao_bruta: rpc?.restituicao_bruta ?? 0,
+      total_devido: rpc?.total_devido ?? 0,
+      total_restituir: rpc?.total_restituir ?? 0,
+      saldo_devedor: rpc?.saldo_devedor ?? 0,
+    }),
+    [rpc],
+  );
 
   const multaCalculada = useMemo(() => {
     if (r.tipo === "recorrencia_com_multa") return r.total_devido;
@@ -78,9 +102,10 @@ export function RescisaoDialog({
     return 0;
   }, [r]);
 
-  const [valorMultaStr, setValorMultaStr] = useState<string>(
-    multaCalculada > 0 ? multaCalculada.toFixed(2) : "0.00",
-  );
+  const [valorMultaStr, setValorMultaStr] = useState<string>("0.00");
+  useEffect(() => {
+    setValorMultaStr(multaCalculada > 0 ? multaCalculada.toFixed(2) : "0.00");
+  }, [multaCalculada]);
   const [vencimentoMulta, setVencimentoMulta] = useState<string>(addDays(hoje, 7));
 
   const valorMulta = Number(valorMultaStr.replace(",", ".")) || 0;
@@ -130,6 +155,12 @@ export function RescisaoDialog({
           </div>
         </Card>
 
+        {loadingCalc && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Calculando rescisão…
+          </div>
+        )}
+
         {/* Seção 2 — Cálculo rescisório */}
         {r.tipo === "start_sem_multa" && (
           <Alert className="border-green-600/40 bg-green-600/10">
@@ -150,7 +181,8 @@ export function RescisaoDialog({
             <Row label="Mensalidades vincendas" value={fmt(r.valor_vincendo ?? 0)} />
             <Row label={`Percentual de multa (mês ${r.mes_atual})`} value={`${r.percentual}%`} />
             <Row label="Multa sobre vincendas" value={fmt(r.multa_base ?? 0)} />
-            <Row label="Serviços vincendos (proporcional)" value={fmt(r.servicos_vincendos ?? 0)} />
+            <Row label="Serviços utilizados (cobrança)" value={fmt(r.servicos_utilizados)} />
+            <DetalheServicos itens={r.servicos_detalhe} />
             <Separator />
             <div className="flex justify-between items-center pt-1">
               <span className="font-semibold">Multa calculada</span>
@@ -169,7 +201,8 @@ export function RescisaoDialog({
             <Row label="Valor total do contrato" value={fmt(r.valor_total_contrato ?? 0)} />
             <Row label="Valor proporcional aos meses restantes" value={fmt(r.valor_proporcional ?? 0)} />
             <Row label={`Restituição (${r.percentual}%)`} value={fmt(r.restituicao_bruta ?? 0)} />
-            <Row label="Dedução de serviços usados" value={`- ${fmt(r.deducao_servicos ?? 0)}`} />
+            <Row label="Serviços utilizados (cobrança)" value={`- ${fmt(r.servicos_utilizados)}`} />
+            <DetalheServicos itens={r.servicos_detalhe} />
             <Separator />
             {r.total_restituir > 0 ? (
               <div className="flex justify-between items-center pt-1">

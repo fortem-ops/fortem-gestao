@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.fn_calcular_rescisao(uuid);
