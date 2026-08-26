@@ -175,6 +175,15 @@ export function CartaoForm({
         </div>
       </div>
 
+      <div className="flex items-start gap-2 text-xs bg-primary/10 border border-primary/20 text-foreground rounded-lg p-3">
+        <Star className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+        <p>
+          Este cartão se tornará seu <strong>método de pagamento principal</strong> e será usado
+          nas próximas cobranças automáticas. Se já houver um cartão com o mesmo final cadastrado,
+          ele será substituído por este.
+        </p>
+      </div>
+
       <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
         <ShieldCheck className="h-4 w-4 mt-0.5 text-primary shrink-0" />
         <p>
@@ -182,6 +191,7 @@ export function CartaoForm({
           imediatamente. Não armazenamos o número — apenas um token seguro via Rede.
         </p>
       </div>
+
 
       <div className="flex gap-2 justify-end pt-2">
         {onCancel && (
