@@ -94,13 +94,24 @@ export function CartaoForm({
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error ?? "Falha ao salvar cartão");
 
+      const substituido = data?.substituiu_last4 ?? data?.cartao_substituido_last4 ?? null;
+
       if (data?.status === "pending" || !data?.last4) {
-        toast.success("Cartão enviado para validação — aparecerá na lista em instantes.");
+        toast.success(
+          "Cartão enviado para validação — ao ser aprovado, passará a ser o seu cartão principal para as próximas cobranças.",
+        );
+      } else if (substituido) {
+        toast.success(
+          `Cartão •••• ${data.last4} cadastrado como principal — substituiu o cartão anterior final ${substituido}.`,
+        );
       } else {
-        toast.success(`Cartão •••• ${data.last4} salvo com sucesso`);
+        toast.success(
+          `Cartão •••• ${data.last4} cadastrado como principal — será usado nas próximas cobranças automáticas.`,
+        );
       }
 
       onSuccess?.();
+
 
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao salvar cartão");
