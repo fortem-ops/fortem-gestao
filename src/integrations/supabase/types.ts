@@ -8266,6 +8266,10 @@ export type Database = {
         Args: { p_aluno_id: string; p_cpf: string }
         Returns: undefined
       }
+      fn_servico_categoria_rescisao: {
+        Args: { p_tipo_servico: string }
+        Returns: string
+      }
       fn_staff_excluir_treino_agendamento: {
         Args: { p_agendamento_id: string; p_estornar?: boolean }
         Returns: Json

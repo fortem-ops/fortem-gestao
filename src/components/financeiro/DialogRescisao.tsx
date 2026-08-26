@@ -184,14 +184,34 @@ function Linha({ label, value, highlight }: { label: string; value: string; high
 export function DetalheServicos({ itens }: { itens?: ServicoUtilizadoDetalhe[] }) {
   if (!itens?.length) return null;
   return (
-    <ul className="pl-3 space-y-0.5 text-xs text-muted-foreground">
+    <ul className="pl-3 space-y-1.5 text-xs text-muted-foreground">
       {itens.map((i) => (
-        <li key={i.id} className="flex justify-between">
-          <span>
-            {i.tipo_servico} — {formatDate(i.data_consumo)}
-            {i.quantidade > 1 ? ` (x${i.quantidade})` : ''}
-          </span>
-          <span>{formatBRL(i.valor_total)}</span>
+        <li key={i.tipo_servico} className="space-y-0.5">
+          <div className="flex justify-between font-medium text-foreground/80">
+            <span>
+              {i.tipo_servico} — {i.quantidade_utilizada}x usada(s) de {i.quantidade_inclusa_plano} inclusa(s)
+            </span>
+            <span>{formatBRL(i.valor_liquido)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Valor bruto utilizado</span>
+            <span>{formatBRL(i.valor_bruto)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>
+              Já coberto pelas mensalidades ({i.meses_pagos}/{i.duracao_meses} meses)
+            </span>
+            <span>- {formatBRL(i.valor_abatido)}</span>
+          </div>
+          {i.sessoes?.map((s) => (
+            <div key={s.id} className="flex justify-between pl-3">
+              <span>
+                • {formatDate(s.data_consumo)}
+                {s.quantidade > 1 ? ` (x${s.quantidade})` : ''}
+              </span>
+              <span>{formatBRL(s.valor_total)}</span>
+            </div>
+          ))}
         </li>
       ))}
     </ul>
