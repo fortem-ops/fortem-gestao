@@ -8,6 +8,8 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { ArrowLeft, CreditCard, Loader2, AlertCircle, CheckCircle2, Clock, XCircle, Plus, Star, Trash2 } from "lucide-react";
 import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
+import { usePortalCartoes } from "@/hooks/usePortalCartoes";
+
 
 function statusInfo(status: string) {
   switch (status) {
