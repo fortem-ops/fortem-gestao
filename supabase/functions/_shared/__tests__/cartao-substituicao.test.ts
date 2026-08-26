@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   decidirSubstituicao,
   salvarCartaoComSubstituicao,
+  respostaSalvarCartaoSucesso,
 } from "../cartao-substituicao.ts";
 
 /* ── mock de client encadeável (padrão de baixaVenda.test.ts) ───────── */
