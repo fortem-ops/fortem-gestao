@@ -7834,12 +7834,10 @@ export type Database = {
         Returns: Json
       }
       fn_aluno_last_access: { Args: { _aluno_id: string }; Returns: Json }
-      fn_calcular_rescisao:
-        | { Args: { p_contrato_id: string }; Returns: Json }
-        | {
-            Args: { p_contrato_id: string; p_data_cancelamento?: string }
-            Returns: Json
-          }
+      fn_calcular_rescisao: {
+        Args: { p_contrato_id: string; p_data_cancelamento?: string }
+        Returns: Json
+      }
       fn_call_edge_function: {
         Args: { p_body: Json; p_name: string }
         Returns: undefined
