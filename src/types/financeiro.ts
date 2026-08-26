@@ -99,8 +99,10 @@ export interface ResultadoRescisao {
   valor_vincendo?: number;
   percentual_multa?: number;
   multa_base?: number;
-  servicos_utilizados?: number;
-  servicos_vincendos?: number;
+  valor_servicos_utilizados?: number;
+  servicos_utilizados_detalhe?: ServicoUtilizadoDetalhe[];
+  data_cancelamento?: string;
+
   valor_total_contrato?: number;
   valor_proporcional?: number;
   percentual_restituicao?: number;
