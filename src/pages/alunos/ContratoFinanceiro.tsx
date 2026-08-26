@@ -362,7 +362,6 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       {rescContrato && (
         <RescisaoDialog
           contrato={rescContrato}
-          servicosUtilizados={[] as ServicoUtilizado[]}
           open={!!rescContrato}
           onOpenChange={(v) => !v && setRescContrato(null)}
           onConfirmar={handleCancelar}
