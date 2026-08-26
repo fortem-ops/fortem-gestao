@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
+import { salvarCartaoComSubstituicao } from "../_shared/cartao-substituicao.ts";
 
 const REDE_URLS = {
   sandbox:  "https://sandbox-erede.useredecloud.com.br/v2",
@@ -423,21 +424,19 @@ serve(async (req) => {
     console.error("[rede-salvar-cartao] falha ao registrar auditoria de sucesso em system_logs:", String(e));
   }
 
-  const { error: insErr } = await supabase.from("cartoes_salvos").insert({
-    aluno_id: alunoId,
-    token_rede: cardToken,
-    brand,
+  const resultadoCartao = await salvarCartaoComSubstituicao(supabase, {
+    alunoId,
     last4,
-    holder_name: String(card_holder).trim().toUpperCase(),
-    expiration_month: Number(expiration_month),
-    expiration_year: Number(String(expiration_year).length === 2 ? "20" + expiration_year : expiration_year),
-    ativo: true,
-    is_default: false,
+    tokenRede: cardToken,
+    brand,
+    expirationMonth: Number(expiration_month),
+    expirationYear: Number(String(expiration_year).length === 2 ? "20" + expiration_year : expiration_year),
+    holderName: String(card_holder).trim().toUpperCase(),
     origem,
   });
 
-  if (insErr) {
-    console.error("[rede-salvar-cartao] insert erro:", insErr?.message);
+  if (resultadoCartao.erro || !resultadoCartao.cartaoId) {
+    console.error("[rede-salvar-cartao] insert erro:", resultadoCartao.erro);
     return new Response(JSON.stringify({ success: false, error: "Falha ao salvar cartão" }), { status: 500, headers });
   }
 
