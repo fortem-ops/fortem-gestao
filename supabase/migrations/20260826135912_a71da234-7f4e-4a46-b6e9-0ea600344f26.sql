@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.fn_planos_validar_tipo() FROM PUBLIC, anon, authenticated;
