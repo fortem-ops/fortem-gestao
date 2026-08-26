@@ -305,33 +305,48 @@ export default function PortalPagamentos() {
           ) : (
             <div className="divide-y divide-border">
               {cartoes.map((c: any) => (
-                <div key={c.id} className="flex items-center gap-3 px-4 py-3.5">
+                <div
+                  key={c.id}
+                  className={`flex items-center gap-3 px-4 py-3.5 ${c.is_default ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
+                >
                   <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <CreditCard className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold text-foreground capitalize">{c.brand} •••• {c.last4}</p>
                       {c.is_default && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">Padrão</span>
+                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
+                          <Star className="w-2.5 h-2.5" /> Principal
+                        </span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {String(c.expiration_month).padStart(2,"0")}/{c.expiration_year} · {c.holder_name}
                     </p>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
                     {!c.is_default && (
-                      <button onClick={() => definirPadrao.mutate(c.id)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                        <Star className="w-3.5 h-3.5 text-muted-foreground" />
+                      <button
+                        onClick={() => definirPrincipal.mutate(c.id)}
+                        disabled={definirPrincipal.isPending}
+                        className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-primary disabled:opacity-50"
+                      >
+                        <Star className="w-3 h-3" /> Tornar principal
                       </button>
                     )}
-                    <button onClick={() => removerCartao.mutate(c.id)} className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      onClick={() => removerCartao.mutate(c.id)}
+                      disabled={removerCartao.isPending}
+                      aria-label="Remover cartão"
+                      className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center disabled:opacity-50"
+                    >
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />
                     </button>
                   </div>
                 </div>
               ))}
+
             </div>
           )}
         </div>
