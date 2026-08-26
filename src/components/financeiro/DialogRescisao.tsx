@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCalcularRescisao, useCancelarContrato } from '@/hooks/useContratos';
 import {
   Contrato, FORMA_PAGAMENTO_LABELS, PLANO_LABELS, FREQUENCIA_LABELS, formatBRL,
+  type ServicoUtilizadoDetalhe,
 } from '@/types/financeiro';
 
 interface Props {
@@ -80,9 +81,10 @@ export function DialogRescisao({ contrato, open, onOpenChange, onConfirm }: Prop
                 <div className="space-y-1.5">
                   <Linha label="Mensalidades vincendas" value={formatBRL(rescisao.valor_vincendo)} />
                   <Linha label={`Multa (${rescisao.percentual_multa}%)`} value={formatBRL(rescisao.multa_base)} />
-                  {(rescisao.servicos_vincendos ?? 0) > 0 && (
-                    <Linha label="Serviços parcelados vincendos" value={formatBRL(rescisao.servicos_vincendos)} />
+                  {(rescisao.valor_servicos_utilizados ?? 0) > 0 && (
+                    <Linha label="Serviços utilizados (cobrança)" value={formatBRL(rescisao.valor_servicos_utilizados)} />
                   )}
+                  <DetalheServicos itens={rescisao.servicos_utilizados_detalhe} />
                   <Separator className="my-2" />
                   <Linha label="Total devido" value={formatBRL(rescisao.total_devido)} highlight="danger" />
                 </div>
@@ -93,9 +95,10 @@ export function DialogRescisao({ contrato, open, onOpenChange, onConfirm }: Prop
                   <Linha label="Valor total do contrato" value={formatBRL(rescisao.valor_total_contrato)} />
                   <Linha label="Proporcional restante" value={formatBRL(rescisao.valor_proporcional)} />
                   <Linha label={`Restituição (${rescisao.percentual_restituicao}%)`} value={formatBRL(rescisao.restituicao_bruta)} />
-                  {(rescisao.deducao_servicos ?? 0) > 0 && (
-                    <Linha label="Dedução serviços utilizados" value={`- ${formatBRL(rescisao.deducao_servicos)}`} />
+                  {(rescisao.valor_servicos_utilizados ?? 0) > 0 && (
+                    <Linha label="Serviços utilizados (cobrança)" value={`- ${formatBRL(rescisao.valor_servicos_utilizados)}`} />
                   )}
+                  <DetalheServicos itens={rescisao.servicos_utilizados_detalhe} />
                   <Separator className="my-2" />
                   {rescisao.total_restituir > 0 ? (
                     <Linha label="A restituir ao aluno" value={formatBRL(rescisao.total_restituir)} highlight="success" />
@@ -175,6 +178,23 @@ function Linha({ label, value, highlight }: { label: string; value: string; high
       <span className="text-muted-foreground">{label}</span>
       <span className={cls || 'font-medium'}>{value}</span>
     </div>
+  );
+}
+
+export function DetalheServicos({ itens }: { itens?: ServicoUtilizadoDetalhe[] }) {
+  if (!itens?.length) return null;
+  return (
+    <ul className="pl-3 space-y-0.5 text-xs text-muted-foreground">
+      {itens.map((i) => (
+        <li key={i.id} className="flex justify-between">
+          <span>
+            {i.tipo_servico} — {formatDate(i.data_consumo)}
+            {i.quantidade > 1 ? ` (x${i.quantidade})` : ''}
+          </span>
+          <span>{formatBRL(i.valor_total)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
