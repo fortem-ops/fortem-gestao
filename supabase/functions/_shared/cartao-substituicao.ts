@@ -68,6 +68,27 @@ export function decidirSubstituicao(
   return { substituirId, limparDefaultIds };
 }
 
+/**
+ * Monta o JSON de resposta de sucesso do cadastro de cartão.
+ *
+ * `substituiu_last4` informa ao front (CadastrarCartaoDialog) quando o
+ * cadastro substituiu um cartão anterior. Como a chave de deduplicação é
+ * `last4`, o final substituído é sempre o mesmo do novo — basta ecoar o
+ * próprio `last4` quando houve substituição.
+ */
+export function respostaSalvarCartaoSucesso(
+  last4: string,
+  brand: string | null,
+  substituiuId: string | null,
+): Record<string, unknown> {
+  return {
+    success: true,
+    last4,
+    brand,
+    substituiu_last4: substituiuId ? last4 : null,
+  };
+}
+
 export interface SalvarCartaoResultado {
   cartaoId: string | null;
   substituiuId: string | null;
