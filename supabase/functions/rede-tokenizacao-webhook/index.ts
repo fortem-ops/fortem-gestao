@@ -250,26 +250,27 @@ serve(async (req) => {
         );
       }
 
-      const { data: cartao, error: insErr } = await supabase
-        .from("cartoes_salvos")
-        .insert({
-          aluno_id: registro.aluno_id,
-          token_rede: consulta?.token?.code ?? null,
-          brand: consulta?.brand?.name ?? null,
-          last4: consulta?.last4 ?? null,
-          holder_name: registro?.cardholder_name ?? "TITULAR",
-          expiration_month: expMonth,
-          expiration_year: expYear,
-          ativo: true,
-          is_default: false,
-          origem: registro.origem ?? "tokenizacao_bandeira",
-        })
-        .select("id")
-        .maybeSingle();
+      const resultadoCartao = await salvarCartaoComSubstituicao(supabase, {
+        alunoId: registro.aluno_id,
+        last4: String(consulta?.last4 ?? "").trim(),
+        tokenRede: consulta?.token?.code ?? null,
+        brand: consulta?.brand?.name ?? null,
+        expirationMonth: expMonth,
+        expirationYear: expYear,
+        holderName: registro?.cardholder_name ?? "TITULAR",
+        origem: registro.origem ?? "tokenizacao_bandeira",
+      });
+      const cartao = resultadoCartao.cartaoId ? { id: resultadoCartao.cartaoId } : null;
 
-      if (insErr) {
-        console.error("[rede-tokenizacao-webhook] erro ao inserir cartão:", insErr.message);
+      if (resultadoCartao.erro) {
+        console.error("[rede-tokenizacao-webhook] erro ao inserir cartão:", resultadoCartao.erro);
       } else if (cartao?.id) {
+        if (resultadoCartao.substituiuId) {
+          console.log(
+            `[rede-tokenizacao-webhook] cartão anterior ${resultadoCartao.substituiuId} substituído por ${cartao.id} — ` +
+            `${resultadoCartao.contratosRepontados} contrato(s), ${resultadoCartao.planosRepontados} plano(s) repontados`,
+          );
+        }
         await supabase
           .from("rede_tokenizacoes")
           .update({ cartao_salvo_id: cartao.id, updated_at: new Date().toISOString() })
