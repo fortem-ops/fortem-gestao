@@ -87,13 +87,28 @@ export interface Inadimplencia {
   created_at: string;
 }
 
-export interface ServicoUtilizadoDetalhe {
+export interface SessaoUtilizada {
   id: string;
   tipo_servico: string;
   data_consumo: string;
   quantidade: number;
   valor_unitario_aplicado: number;
   valor_total: number;
+}
+
+export interface ServicoUtilizadoDetalhe {
+  tipo_servico: string;
+  categoria: string;
+  quantidade_utilizada: number;
+  quantidade_inclusa_plano: number;
+  valor_unitario_aplicado: number;
+  valor_bruto: number;
+  valor_incluso_plano: number;
+  duracao_meses: number;
+  meses_pagos: number;
+  valor_abatido: number;
+  valor_liquido: number;
+  sessoes: SessaoUtilizada[];
 }
 
 export interface ResultadoRescisao {
