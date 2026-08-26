@@ -242,3 +242,22 @@ describe("salvarCartaoComSubstituicao", () => {
     ).toHaveLength(0);
   });
 });
+
+describe("respostaSalvarCartaoSucesso (payload do toast do diálogo)", () => {
+  it("com substituição: inclui substituiu_last4 igual ao last4 (dedupe é por last4)", () => {
+    const r = respostaSalvarCartaoSucesso("4715", "visa", "cartao-antigo-id");
+    expect(r).toEqual({
+      success: true,
+      last4: "4715",
+      brand: "visa",
+      substituiu_last4: "4715",
+    });
+  });
+
+  it("sem substituição: substituiu_last4 é null", () => {
+    const r = respostaSalvarCartaoSucesso("2970", "master", null);
+    expect(r.substituiu_last4).toBeNull();
+    expect(r.success).toBe(true);
+    expect(r.last4).toBe("2970");
+  });
+});
