@@ -87,7 +87,17 @@ export interface Inadimplencia {
   created_at: string;
 }
 
+export interface ServicoUtilizadoDetalhe {
+  id: string;
+  tipo_servico: string;
+  data_consumo: string;
+  quantidade: number;
+  valor_unitario_aplicado: number;
+  valor_total: number;
+}
+
 export interface ResultadoRescisao {
+
   tipo: 'start_sem_multa' | 'recorrencia_com_multa' | 'parcelado_com_restituicao';
   plano_tipo: PlanoTipo;
   data_inicio: string;
