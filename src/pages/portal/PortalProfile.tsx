@@ -44,7 +44,9 @@ export default function PortalProfile() {
     },
   });
 
-  const { cartoes, definirPrincipal, removerCartao } = usePortalCartoes(student?.id);
+  // A gestão de cartões (listar / tornar principal / remover) vive em
+  // /portal/pagamentos via usePortalCartoes — esta tela apenas dá o atalho.
+
 
 
   if (!student) return null;
