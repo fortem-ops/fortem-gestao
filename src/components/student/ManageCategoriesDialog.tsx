@@ -357,6 +357,26 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
           grupoDestino: confirmMove.destino,
         });
         toast.success(`${n} exercício(s) movidos para ${confirmMove.destino}`);
+      } else if (confirmMove.kind === "promover-sub") {
+        const n = await promoverSubParaCategoria.mutateAsync({
+          grupoOrigem: confirmMove.grupo,
+          categoriaOrigem: confirmMove.categoria,
+          sub: confirmMove.sub,
+          grupoDestino: confirmMove.destinoGrupo,
+        });
+        setSelectedGrupo(confirmMove.destinoGrupo);
+        setSelectedCategoria(confirmMove.sub);
+        toast.success(
+          `"${confirmMove.sub}" agora é categoria de "${confirmMove.destinoGrupo}" (${n} exercício(s))`,
+        );
+      } else if (confirmMove.kind === "promover-categoria") {
+        const n = await promoverCategoriaParaGrupo.mutateAsync({
+          grupoOrigem: confirmMove.grupo,
+          categoria: confirmMove.categoria,
+        });
+        setSelectedGrupo(confirmMove.categoria);
+        setSelectedCategoria("");
+        toast.success(`"${confirmMove.categoria}" agora é um grupo (${n} exercício(s))`);
       } else {
         const n = await moverSubParaCategoria.mutateAsync({
           grupoOrigem: confirmMove.grupo,
@@ -367,6 +387,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
         });
         toast.success(`${n} exercício(s) movidos para ${confirmMove.destinoCategoria}`);
       }
+
       setConfirmMove(null);
     } catch (e: any) {
       toast.error(e.message || "Erro ao mover");
