@@ -537,6 +537,8 @@ export function useExerciseCategories() {
     moverGrupoComoCategoria,
     moverCategoriaParaGrupo,
     moverSubParaCategoria,
+    promoverSubParaCategoria,
+    promoverCategoriaParaGrupo,
     contarPorSubcategoria,
     reorderGrupos,
     reorderCategorias,
