@@ -300,7 +300,18 @@ function ExerciseRow({
   canEdit: boolean;
   aquecimentoBloco?: "LIB" | "MOB" | "ATI";
 }) {
-  const { grupoSubcategorias } = useExerciseCategories();
+  const { tree } = useExerciseCategories();
+  /** Subcategorias do alvo resolvido (categoria quando existir, senão grupo inteiro). */
+  const subsDoAlvo = (valor: string): string[] => {
+    const a = resolverAlvo(valor, tree);
+    const g = tree.find((x) => x.nome === a.grupo);
+    if (a.categoria) {
+      const c = g?.categorias.find((x) => x.nome === a.categoria);
+      return c?.subcategorias ?? [];
+    }
+    return Array.from(new Set((g?.categorias ?? []).flatMap((c) => c.subcategorias)));
+  };
+
   const aquecimentoGrupoMap: Record<"LIB" | "MOB" | "ATI", string> = {
     LIB: "Liberação Miofascial",
     MOB: "Mobilidade Articular",
