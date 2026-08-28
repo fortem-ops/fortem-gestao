@@ -329,7 +329,7 @@ export function PersonalizadoEditor({
       aquecimento: {
         ...p.aquecimento,
         [bloco]: [
-          ...p.aquecimento[bloco],
+          ...(p.aquecimento[bloco] ?? []),
           { exercicio: "", repeticoes: "10", dias: ["T1", "T2", "T3", "T4"] },
         ],
       },
@@ -340,7 +340,7 @@ export function PersonalizadoEditor({
       ...p,
       aquecimento: {
         ...p.aquecimento,
-        [bloco]: p.aquecimento[bloco].filter((_, idx) => idx !== i),
+        [bloco]: (p.aquecimento[bloco] ?? []).filter((_, idx) => idx !== i),
       },
     }));
   };
@@ -353,7 +353,7 @@ export function PersonalizadoEditor({
       ...p,
       aquecimento: {
         ...p.aquecimento,
-        [bloco]: p.aquecimento[bloco].map((ex, idx) => (idx === i ? { ...ex, ...patch } : ex)),
+        [bloco]: (p.aquecimento[bloco] ?? []).map((ex, idx) => (idx === i ? { ...ex, ...patch } : ex)),
       },
     }));
   };
@@ -394,7 +394,7 @@ export function PersonalizadoEditor({
       ...p,
       aquecimento: {
         ...p.aquecimento,
-        [bloco]: p.aquecimento[bloco].map((ex, idx) => {
+        [bloco]: (p.aquecimento[bloco] ?? []).map((ex, idx) => {
           if (idx !== i) return ex;
           const has = ex.dias.includes(dia);
           return { ...ex, dias: has ? ex.dias.filter((d) => d !== dia) : [...ex.dias, dia] };
