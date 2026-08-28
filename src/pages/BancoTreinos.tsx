@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil, Copy, Lock, Construction } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
-import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
+import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA, resolverAlvo, itemCasaAlvo, type TaxonomiaGrupo } from "@/lib/exerciseMapping";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
@@ -24,7 +24,7 @@ import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM10
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 
-interface GroupSelection { grupo: string; subcategoria: string }
+interface GroupSelection { grupo: string; categoria?: string; subcategoria: string }
 interface BankExercise {
   id: string;
   nome: string;
@@ -113,14 +113,13 @@ function getCandidatesForCode(
   categoria: string,
   bank: BankExercise[],
   subOverride?: string,
+  tree: TaxonomiaGrupo[] = [],
 ): BankExercise[] {
-  const grupo = CODE_TO_GRUPO[categoria.toUpperCase()];
-  const sub = subOverride ?? CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
-  if (!grupo) return [];
-  return bank.filter((ex) =>
-    ex.grupos.some((g) => g.grupo === grupo && (!sub || g.subcategoria === sub)),
-  );
+  const alvo = resolverAlvo(categoria, tree);
+  if (!alvo.grupo && !alvo.categoria && !alvo.subcategoria) return [];
+  return bank.filter((ex) => ex.grupos.some((g) => itemCasaAlvo(g, alvo, subOverride)));
 }
+
 
 function ExercisePicker({
   categoria,
@@ -145,9 +144,11 @@ function ExercisePicker({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const { tree } = useExerciseCategories();
+  const alvo = useMemo(() => resolverAlvo(categoria, tree), [categoria, tree]);
   const candidates = useMemo(
-    () => getCandidatesForCode(categoria, bank, subcategoriaOverride),
-    [categoria, bank, subcategoriaOverride],
+    () => bank.filter((ex) => ex.grupos.some((g) => itemCasaAlvo(g, alvo, subcategoriaOverride))),
+    [bank, alvo, subcategoriaOverride],
   );
   const filtered = useMemo(() => {
     if (!query) return candidates;
@@ -156,14 +157,14 @@ function ExercisePicker({
   }, [candidates, query]);
 
   // Quando não há subcategoria fixa, agrupar candidatos por subcategoria
-  // (do grupo alvo) para facilitar a navegação visual.
-  const grupoAlvo = CODE_TO_GRUPO[categoria.toUpperCase()] || categoria;
+  // (dentro do alvo resolvido) para facilitar a navegação visual.
+  const grupoAlvo = alvo.label || categoria;
   const shouldGroup = !subcategoriaOverride;
   const grouped = useMemo(() => {
     if (!shouldGroup) return null;
     const map = new Map<string, BankExercise[]>();
     for (const ex of filtered) {
-      const sub = ex.grupos.find((g) => g.grupo === grupoAlvo)?.subcategoria || "—";
+      const sub = ex.grupos.find((g) => itemCasaAlvo(g, alvo))?.subcategoria || "—";
       const arr = map.get(sub) || [];
       arr.push(ex);
       map.set(sub, arr);
@@ -171,7 +172,8 @@ function ExercisePicker({
     return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([sub, items]) => [sub, items.sort((x, y) => x.nome.localeCompare(y.nome))] as const);
-  }, [filtered, shouldGroup, grupoAlvo]);
+  }, [filtered, shouldGroup, alvo]);
+
 
   if (!canEdit) {
     return <>{triggerLabel}</>;
@@ -229,7 +231,7 @@ function ExercisePicker({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Buscar em ${subcategoriaOverride || CODE_TO_SUBCATEGORIA[categoria.toUpperCase()] || CODE_TO_GRUPO[categoria.toUpperCase()] || categoria}...`}
+              placeholder={`Buscar em ${subcategoriaOverride || grupoAlvo}...`}
               className="h-10 pl-9 text-sm"
             />
           </div>
@@ -298,12 +300,20 @@ function ExerciseRow({
   canEdit: boolean;
   aquecimentoBloco?: "LIB" | "MOB" | "ATI";
 }) {
-  const { grupoSubcategorias } = useExerciseCategories();
-  const aquecimentoGrupoMap: Record<"LIB" | "MOB" | "ATI", string> = {
-    LIB: "Liberação Miofascial",
-    MOB: "Mobilidade Articular",
-    ATI: "Ativação Muscular",
+  const { tree } = useExerciseCategories();
+  /** Subcategorias do alvo resolvido (categoria quando existir, senão grupo inteiro). */
+  const subsDoAlvo = (valor: string): string[] => {
+    const a = resolverAlvo(valor, tree);
+    const g = tree.find((x) => x.nome === a.grupo);
+    if (a.categoria) {
+      const c = g?.categorias.find((x) => x.nome === a.categoria);
+      return c?.subcategorias ?? [];
+    }
+    return Array.from(new Set((g?.categorias ?? []).flatMap((c) => c.subcategorias)));
   };
+
+
+
   // (valores efetivos declarados abaixo, junto com a lógica de subcategoria)
 
   // Para aquecimento (LIB/MOB/ATI), o select "Categoria" carrega a subcategoria
@@ -324,7 +334,8 @@ function ExerciseRow({
 
   // Para força/principais: subcategoria efetiva (override > derivada do código > template)
   const grupoForca = !aquecimentoBloco ? CODE_TO_GRUPO[effCategoria.toUpperCase()] : undefined;
-  const subcategoriasGrupo = grupoForca ? grupoSubcategorias[grupoForca] || [] : [];
+  const subcategoriasGrupo = !aquecimentoBloco ? subsDoAlvo(effCategoria) : [];
+
   const defaultSubForca = !aquecimentoBloco
     ? (CODE_TO_SUBCATEGORIA[effCategoria.toUpperCase()] ?? defaultSubcategoria ?? "")
     : "";
@@ -347,7 +358,9 @@ function ExerciseRow({
     aquecimentoBloco ?? effCategoria,
     bank,
     effSubcategoria || undefined,
+    tree,
   ).length;
+
   const hasVideo = match && (match.video_url || match.video_path);
   const isSlotVazio = !ex.exercicio && !escolhaEx;
 
@@ -397,7 +410,7 @@ function ExerciseRow({
               className="bg-background border border-input rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring max-w-[180px]"
             >
               {!effSubcategoria && <option value="">Selecione...</option>}
-              {(grupoSubcategorias[aquecimentoGrupoMap[aquecimentoBloco]] || []).map((sub) => (
+              {subsDoAlvo(aquecimentoBloco).map((sub) => (
                 <option key={sub} value={sub}>{sub}</option>
               ))}
             </select>
