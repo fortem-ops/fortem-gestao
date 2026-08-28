@@ -517,22 +517,27 @@ export function StudentExerciseBank() {
 
   // VIEW: Subcategoria selecionada (nível 4 — exercícios)
   if (selGrupo && selCat && selectedSub) {
+    const folha = categoriaEhFolha(catAtual);
     return (
       <div className="space-y-4 mt-4 animate-fade-in">
         <button
-          onClick={() => setSelectedSub(null)}
+          onClick={() => {
+            setSelectedSub(null);
+            if (folha) setSelCat(null);
+          }}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
-          Voltar a {selCat}
+          Voltar a {folha ? selGrupo : selCat}
         </button>
 
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-heading font-bold text-foreground">
-            {selGrupo} · {selCat} · {selectedSub}
+            {folha ? `${selGrupo} · ${selCat}` : `${selGrupo} · ${selCat} · ${selectedSub}`}
           </h3>
           <Badge variant="secondary">{exerciciosPorSub.length} exercícios</Badge>
         </div>
+
 
         {exerciciosPorSub.length === 0 ? (
           <div className="glass-card rounded-lg p-6 text-center">
