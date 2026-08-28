@@ -8086,6 +8086,10 @@ export type Database = {
         }
         Returns: number
       }
+      fn_migrar_grupo_preservando_subs: {
+        Args: { p_grupo_destino: string; p_grupo_origem: string }
+        Returns: number
+      }
       fn_move_pipeline: {
         Args: {
           _aluno_id: string
