@@ -21,7 +21,7 @@ interface ExerciseSelectorProps {
   placeholder?: string;
 }
 
-interface GroupSelection { grupo: string; subcategoria: string }
+interface GroupSelection { grupo: string; categoria?: string; subcategoria: string }
 interface BankExercise {
   id: string;
   nome: string;
@@ -30,11 +30,12 @@ interface BankExercise {
   video_path: string | null;
 }
 
-import { categoriaToGrupoSub } from "@/lib/exerciseMapping";
+import { resolverAlvo, itemCasaAlvo } from "@/lib/exerciseMapping";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 
 export function ExerciseSelector({ categoria, value, onChange, readOnly, subcategoria, disabled, placeholder }: ExerciseSelectorProps) {
-  const { categories } = useExerciseCategories();
+  const { tree } = useExerciseCategories();
+
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [demo, setDemo] = useState<{ nome: string; url: string } | null>(null);
