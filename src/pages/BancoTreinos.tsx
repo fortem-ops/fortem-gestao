@@ -24,7 +24,7 @@ import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM10
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 
-interface GroupSelection { grupo: string; subcategoria: string }
+interface GroupSelection { grupo: string; categoria?: string; subcategoria: string }
 interface BankExercise {
   id: string;
   nome: string;
