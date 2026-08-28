@@ -396,6 +396,46 @@ export function useExerciseCategories() {
     onSuccess: invalidate,
   });
 
+  /** Subcategoria sobe um nível e vira CATEGORIA do grupo destino */
+  const promoverSubParaCategoria = useMutation({
+    mutationFn: async ({
+      grupoOrigem,
+      categoriaOrigem,
+      sub,
+      grupoDestino,
+    }: {
+      grupoOrigem: string;
+      categoriaOrigem: string;
+      sub: string;
+      grupoDestino: string;
+    }) => {
+      const { data, error } = await supabase.rpc("fn_promover_sub_para_categoria" as any, {
+        p_grupo_origem: grupoOrigem,
+        p_categoria_origem: categoriaOrigem,
+        p_sub: sub,
+        p_grupo_destino: grupoDestino,
+      } as any);
+      if (error) throw error;
+      return (data as unknown as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+
+  /** Categoria sobe um nível e vira GRUPO próprio */
+  const promoverCategoriaParaGrupo = useMutation({
+    mutationFn: async ({ grupoOrigem, categoria }: { grupoOrigem: string; categoria: string }) => {
+      const { data, error } = await supabase.rpc("fn_promover_categoria_para_grupo" as any, {
+        p_grupo_origem: grupoOrigem,
+        p_categoria: categoria,
+      } as any);
+      if (error) throw error;
+      return (data as unknown as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+
+
+
   const migrar = useMutation({
     mutationFn: async ({
       grupoOrigem,
