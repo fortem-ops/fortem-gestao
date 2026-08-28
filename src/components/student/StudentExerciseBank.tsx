@@ -338,16 +338,31 @@ export function StudentExerciseBank() {
   }, [exercicios, search, filterGrupo, filterSub]);
 
   const exerciciosPorSub = useMemo(() => {
-    if (!selectedCategory || !selectedSub) return [];
+  const catAtual = useMemo(
+    () => tree.find((g) => g.nome === selGrupo)?.categorias.find((c) => c.nome === selCat) ?? null,
+    [tree, selGrupo, selCat],
+  );
+
+  const exerciciosPorSub = useMemo(() => {
+    if (!selGrupo || !selCat || !selectedSub) return [];
     return exercicios.filter((ex) =>
-      ex.grupos.some((g) => g.grupo === selectedCategory.name && g.subcategoria === selectedSub),
+      ex.grupos.some(
+        (g) =>
+          g.grupo === selGrupo &&
+          (g.categoria ?? g.grupo) === selCat &&
+          g.subcategoria === selectedSub,
+      ),
     );
-  }, [exercicios, selectedCategory, selectedSub]);
+  }, [exercicios, selGrupo, selCat, selectedSub]);
 
   const handleSave = () => {
     const grupos: GroupSelection[] = Object.entries(selecoes)
       .filter(([, sub]) => !!sub)
-      .map(([grupo, subcategoria]) => ({ grupo, subcategoria }));
+      .map(([grupo, subcategoria]) => ({
+        grupo,
+        categoria: resolverCategoria(grupo, subcategoria),
+        subcategoria,
+      }));
     const result = exerciseSchema.safeParse({ nome, grupos, video_url: videoUrl });
     if (!result.success) {
       toast.error(result.error.errors[0].message);
