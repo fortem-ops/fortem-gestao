@@ -150,10 +150,31 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     return arr;
   };
 
-  const dropGrupo = async (alvo: string) => {
-    if (!dragGrupo || dragGrupo === alvo) return setDragGrupo(null);
-    const nova = reordenar(grupos, dragGrupo, alvo);
+  // Define se a soltura sobre a linha reordena (metade superior) ou aninha (metade inferior)
+  const zonaDeSoltura = (e: React.DragEvent<HTMLDivElement>): "reordenar" | "aninhar" => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return e.clientY - rect.top < rect.height / 2 ? "reordenar" : "aninhar";
+  };
+
+  const dropGrupo = async (alvo: string, modo: "reordenar" | "aninhar") => {
+    const origem = dragGrupo;
     setDragGrupo(null);
+    setHoverNest(null);
+    if (!origem || origem === alvo) return;
+
+    if (modo === "aninhar") {
+      try {
+        const total = await contarExercicios(origem, null);
+        const subsOrigem =
+          categories.find((c) => c.name === origem)?.subcategories ?? [];
+        setConfirmMove({ kind: "grupo", origem, destino: alvo, total, subs: subsOrigem });
+      } catch (e: any) {
+        toast.error(e.message || "Erro ao calcular a prévia");
+      }
+      return;
+    }
+
+    const nova = reordenar(grupos, origem, alvo);
     try {
       await reorderGrupos.mutateAsync(nova);
     } catch (e: any) {
@@ -171,6 +192,48 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
       toast.error(e.message || "Erro ao reordenar");
     }
   };
+
+  const dropSubEmGrupo = async (destino: string) => {
+    const sub = dragSub;
+    setDragSub(null);
+    setHoverGrupoAlvo(null);
+    if (!sub || !selectedGrupo || destino === selectedGrupo) return;
+    try {
+      const total = await contarExercicios(selectedGrupo, sub);
+      setConfirmMove({ kind: "sub", grupo: selectedGrupo, sub, destino, total });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao calcular a prévia");
+    }
+  };
+
+  const confirmarMovimento = async () => {
+    if (!confirmMove) return;
+    setMovendo(true);
+    try {
+      if (confirmMove.kind === "grupo") {
+        const n = await moverGrupoParaGrupo.mutateAsync({
+          grupoOrigem: confirmMove.origem,
+          grupoDestino: confirmMove.destino,
+        });
+        if (selectedGrupo === confirmMove.origem) setSelectedGrupo(confirmMove.destino);
+        toast.success(`${n} exercício(s) movidos para ${confirmMove.destino}`);
+      } else {
+        const n = await moverSubParaGrupo.mutateAsync({
+          grupoOrigem: confirmMove.grupo,
+          sub: confirmMove.sub,
+          grupoDestino: confirmMove.destino,
+        });
+        toast.success(`${n} exercício(s) movidos para ${confirmMove.destino}`);
+      }
+      setConfirmMove(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao mover");
+    } finally {
+      setMovendo(false);
+    }
+  };
+
+
 
   const handleMigrar = async () => {
     if (!origGrupo) return toast.error("Selecione o grupo de origem");
