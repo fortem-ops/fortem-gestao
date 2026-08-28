@@ -113,14 +113,13 @@ function getCandidatesForCode(
   categoria: string,
   bank: BankExercise[],
   subOverride?: string,
+  tree: TaxonomiaGrupo[] = [],
 ): BankExercise[] {
-  const grupo = CODE_TO_GRUPO[categoria.toUpperCase()];
-  const sub = subOverride ?? CODE_TO_SUBCATEGORIA[categoria.toUpperCase()];
-  if (!grupo) return [];
-  return bank.filter((ex) =>
-    ex.grupos.some((g) => g.grupo === grupo && (!sub || g.subcategoria === sub)),
-  );
+  const alvo = resolverAlvo(categoria, tree);
+  if (!alvo.grupo && !alvo.categoria && !alvo.subcategoria) return [];
+  return bank.filter((ex) => ex.grupos.some((g) => itemCasaAlvo(g, alvo, subOverride)));
 }
+
 
 function ExercisePicker({
   categoria,
