@@ -8077,6 +8077,15 @@ export type Database = {
         Returns: Json
       }
       fn_marcar_parcelas_vencidas: { Args: never; Returns: number }
+      fn_migrar_exercicio_categoria: {
+        Args: {
+          p_grupo_destino: string
+          p_grupo_origem: string
+          p_sub_destino: string
+          p_sub_origem: string
+        }
+        Returns: number
+      }
       fn_move_pipeline: {
         Args: {
           _aluno_id: string
