@@ -101,15 +101,17 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly, subcate
     staleTime: 60_000,
   });
 
-  const resolved = categoriaToGrupoSub(categoria, categories);
-  const grupoAlvo = resolved.grupo || categoria;
-  const subAlvo = subcategoria ?? resolved.subcategoria;
+  const alvo = resolverAlvo(categoria, tree);
+  const grupoAlvo = alvo.label || categoria;
+  const subAlvo = subcategoria ?? alvo.subcategoria;
 
   const candidatos = useMemo(() => {
     return exercicios.filter((ex) =>
-      ex.grupos.some((g) => g.grupo === grupoAlvo && (!subAlvo || g.subcategoria === subAlvo)),
+      ex.grupos.some((g) => itemCasaAlvo(g, alvo, subAlvo)),
     );
-  }, [exercicios, grupoAlvo, subAlvo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercicios, alvo.grupo, alvo.categoria, alvo.subcategoria, subAlvo]);
+
 
   const filtered = useMemo(() => {
     if (!query) return candidatos.slice(0, 60);
