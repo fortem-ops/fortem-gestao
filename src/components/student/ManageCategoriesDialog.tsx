@@ -504,7 +504,134 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                 </>
               )}
             </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Move todos os exercícios de uma origem para outro grupo/subcategoria.
+                Exercícios que já estiverem no destino não são duplicados.
+              </p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Origem — Grupo</Label>
+                  <Select
+                    value={origGrupo}
+                    onValueChange={(v) => {
+                      setOrigGrupo(v);
+                      setOrigSub("__todas__");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {grupos.map((g) => (
+                        <SelectItem key={g} value={g}>
+                          {g}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Label>Origem — Subcategoria</Label>
+                  <Select value={origSub} onValueChange={setOrigSub} disabled={!origGrupo}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__todas__">Todas (grupo inteiro)</SelectItem>
+                      {origSubs.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Destino — Grupo</Label>
+                  <Select
+                    value={destGrupo}
+                    onValueChange={(v) => {
+                      setDestGrupo(v);
+                      setDestSub("");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {grupos.map((g) => (
+                        <SelectItem key={g} value={g}>
+                          {g}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Label>Destino — Subcategoria</Label>
+                  <Select value={destSub} onValueChange={setDestSub} disabled={!destGrupo}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {destSubs.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {preview !== null && (
+                <div className="glass-card rounded-md p-3 text-sm flex items-center gap-2">
+                  <ArrowRight className="w-4 h-4 text-primary" />
+                  <span>
+                    {preview} exercício(s) serão movidos de{" "}
+                    <strong>
+                      {origGrupo}
+                      {origSub !== "__todas__" ? ` / ${origSub}` : ""}
+                    </strong>
+                    {destGrupo && destSub ? (
+                      <>
+                        {" "}
+                        para{" "}
+                        <strong>
+                          {destGrupo} / {destSub}
+                        </strong>
+                      </>
+                    ) : null}
+                    .
+                  </span>
+                </div>
+              )}
+
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={excluirOrigem}
+                  onCheckedChange={(c) => setExcluirOrigem(c === true)}
+                />
+                Excluir a categoria de origem após migrar
+              </label>
+
+              <Button
+                onClick={handleMigrar}
+                disabled={migrar.isPending || !origGrupo || !destGrupo || !destSub}
+                className="w-full"
+              >
+                {migrar.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="w-4 h-4" />
+                )}
+                Migrar exercícios
+              </Button>
+            </div>
           )}
+
         </DialogContent>
       </Dialog>
 
