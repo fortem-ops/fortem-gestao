@@ -414,6 +414,10 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                   Adicionar
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Arraste na metade <strong>de cima</strong> de outro grupo para reordenar, ou
+                na metade <strong>de baixo</strong> para colocar a pasta dentro dele.
+              </p>
               <div className="space-y-1">
                 {grupos.length === 0 && (
                   <p className="text-sm text-muted-foreground py-4 text-center">
@@ -425,15 +429,24 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                   return (
                     <div
                       key={g}
-                      className={`glass-card rounded-md p-2 flex items-center gap-2 ${
+                      className={`glass-card rounded-md p-2 flex items-center gap-2 transition-shadow ${
                         dragGrupo === g ? "opacity-50" : ""
-                      }`}
+                      } ${hoverNest === g ? "ring-2 ring-primary" : ""}`}
                       draggable={!isEditing}
                       onDragStart={() => setDragGrupo(g)}
-                      onDragEnd={() => setDragGrupo(null)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => dropGrupo(g)}
+                      onDragEnd={() => {
+                        setDragGrupo(null);
+                        setHoverNest(null);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (!dragGrupo || dragGrupo === g) return;
+                        setHoverNest(zonaDeSoltura(e) === "aninhar" ? g : null);
+                      }}
+                      onDragLeave={() => setHoverNest((h) => (h === g ? null : h))}
+                      onDrop={(e) => dropGrupo(g, zonaDeSoltura(e))}
                     >
+
                       <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
                       {isEditing ? (
 
