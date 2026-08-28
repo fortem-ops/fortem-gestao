@@ -681,10 +681,16 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
 
               <Button
                 onClick={handleMigrar}
-                disabled={migrar.isPending || !origGrupo || !destGrupo || !destSub}
+                disabled={
+                  migrar.isPending ||
+                  migrarGrupoPreservandoSubs.isPending ||
+                  !origGrupo ||
+                  !destGrupo ||
+                  (!(origSub === "__todas__" && modoSubs === "manter") && !destSub)
+                }
                 className="w-full"
               >
-                {migrar.isPending ? (
+                {migrar.isPending || migrarGrupoPreservandoSubs.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <ArrowRight className="w-4 h-4" />
