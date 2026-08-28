@@ -70,7 +70,7 @@ export interface CategoriaTaxonomia {
   subcategories: string[];
 }
 
-/** Blocos de aquecimento: hoje são CATEGORIAS (nível 2), não grupos. */
+/** Blocos de aquecimento legados: hoje são CATEGORIAS do grupo "Aquecimento". */
 export const CODE_TO_CATEGORIA: Record<string, string> = {
   LIB: "Liberação Miofascial",
   MOB: "Mobilidade Articular",
@@ -78,15 +78,35 @@ export const CODE_TO_CATEGORIA: Record<string, string> = {
   PREV: "Preventivo",
 };
 
+export const GRUPO_AQUECIMENTO = "Aquecimento";
+export const GRUPO_PARTE_PRINCIPAL = "Parte Principal";
+
+/**
+ * Escopo (grupo + categoria) dos códigos de FORÇA/principais.
+ * "Força" deixou de ser grupo: hoje é categoria de "Parte Principal".
+ */
+export const CODE_TO_ESCOPO_PRINCIPAL: Record<string, { grupo: string; categoria: string }> =
+  (() => {
+    const out: Record<string, { grupo: string; categoria: string }> = {};
+    for (const code of Object.keys(CODE_TO_GRUPO)) {
+      if (code in CODE_TO_CATEGORIA) continue;
+      const categoria = code === "COND" ? "Cardio" : code === "LPO" ? "Potência" : "Força";
+      out[code] = { grupo: GRUPO_PARTE_PRINCIPAL, categoria };
+    }
+    return out;
+  })();
+
 /** Árvore de 3 níveis vinda de useExerciseCategories().tree */
 export interface TaxonomiaCategoria {
   nome: string;
   subcategorias: string[];
+  sigla?: string;
 }
 export interface TaxonomiaGrupo {
   nome: string;
   categorias: TaxonomiaCategoria[];
 }
+
 
 export interface AlvoExercicio {
   grupo?: string;
