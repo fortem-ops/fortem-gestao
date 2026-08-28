@@ -58,11 +58,12 @@ const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100 MB
 export function StudentExerciseBank() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selGrupo, setSelGrupo] = useState<string | null>(null);
+  const [selCat, setSelCat] = useState<string | null>(null);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
-  const { categories: CATEGORIES } = useExerciseCategories();
+  const { categories: CATEGORIES, tree, resolverCategoria } = useExerciseCategories();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterGrupo, setFilterGrupo] = useState<string>("");
