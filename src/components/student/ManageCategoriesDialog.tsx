@@ -110,11 +110,19 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     let cancelado = false;
     if (!origGrupo) {
       setPreview(null);
+      setPreviewSubs([]);
       return;
     }
     contarExercicios(origGrupo, origSub === "__todas__" ? null : origSub)
       .then((n) => !cancelado && setPreview(n))
       .catch(() => !cancelado && setPreview(null));
+    if (origSub === "__todas__") {
+      contarPorSubcategoria(origGrupo)
+        .then((r) => !cancelado && setPreviewSubs(r))
+        .catch(() => !cancelado && setPreviewSubs([]));
+    } else {
+      setPreviewSubs([]);
+    }
     return () => {
       cancelado = true;
     };
