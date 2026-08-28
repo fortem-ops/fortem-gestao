@@ -89,11 +89,96 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const grupos = categories.map((c) => c.name);
   const subs =
     categories.find((c) => c.name === selectedGrupo)?.subcategories ?? [];
+  const origSubs = useMemo(
+    () => categories.find((c) => c.name === origGrupo)?.subcategories ?? [],
+    [categories, origGrupo],
+  );
+  const destSubs = useMemo(
+    () => categories.find((c) => c.name === destGrupo)?.subcategories ?? [],
+    [categories, destGrupo],
+  );
+
+  // Prévia da quantidade de exercícios afetados pela migração
+  useEffect(() => {
+    let cancelado = false;
+    if (!origGrupo) {
+      setPreview(null);
+      return;
+    }
+    contarExercicios(origGrupo, origSub === "__todas__" ? null : origSub)
+      .then((n) => !cancelado && setPreview(n))
+      .catch(() => !cancelado && setPreview(null));
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origGrupo, origSub]);
+
+  const reordenar = <T,>(list: T[], from: T, to: T): T[] => {
+    const arr = [...list];
+    const fromIdx = arr.indexOf(from);
+    const toIdx = arr.indexOf(to);
+    if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return arr;
+    arr.splice(fromIdx, 1);
+    arr.splice(toIdx, 0, from);
+    return arr;
+  };
+
+  const dropGrupo = async (alvo: string) => {
+    if (!dragGrupo || dragGrupo === alvo) return setDragGrupo(null);
+    const nova = reordenar(grupos, dragGrupo, alvo);
+    setDragGrupo(null);
+    try {
+      await reorderGrupos.mutateAsync(nova);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao reordenar");
+    }
+  };
+
+  const dropSub = async (alvo: string) => {
+    if (!dragSub || dragSub === alvo) return setDragSub(null);
+    const nova = reordenar(subs, dragSub, alvo);
+    setDragSub(null);
+    try {
+      await reorderSubs.mutateAsync({ grupo: selectedGrupo, novaOrdem: nova });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao reordenar");
+    }
+  };
+
+  const handleMigrar = async () => {
+    if (!origGrupo) return toast.error("Selecione o grupo de origem");
+    if (!destGrupo || !destSub) return toast.error("Selecione grupo e subcategoria de destino");
+    const subOrigem = origSub === "__todas__" ? null : origSub;
+    if (origGrupo === destGrupo && subOrigem === destSub) {
+      return toast.error("Origem e destino são iguais");
+    }
+    try {
+      const movidos = await migrar.mutateAsync({
+        grupoOrigem: origGrupo,
+        subOrigem,
+        grupoDestino: destGrupo,
+        subDestino: destSub,
+      });
+      if (excluirOrigem) {
+        if (subOrigem) {
+          await deleteSub.mutateAsync({ grupo: origGrupo, subcategoria: subOrigem });
+        } else {
+          await deleteGrupo.mutateAsync(origGrupo);
+        }
+      }
+      toast.success(`${movidos} exercício(s) migrado(s)`);
+      setPreview(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao migrar");
+    }
+  };
 
   const startEdit = (e: RowEdit) => {
     setEditing(e);
     setEditValue(e.oldName);
   };
+
 
   const saveEdit = async () => {
     if (!editing) return;
