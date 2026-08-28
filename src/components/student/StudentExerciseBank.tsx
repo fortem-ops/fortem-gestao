@@ -337,7 +337,6 @@ export function StudentExerciseBank() {
     return scored;
   }, [exercicios, search, filterGrupo, filterSub]);
 
-  const exerciciosPorSub = useMemo(() => {
   const catAtual = useMemo(
     () => tree.find((g) => g.nome === selGrupo)?.categorias.find((c) => c.nome === selCat) ?? null,
     [tree, selGrupo, selCat],
