@@ -163,18 +163,27 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
 
   const handleMigrar = async () => {
     if (!origGrupo) return toast.error("Selecione o grupo de origem");
-    if (!destGrupo || !destSub) return toast.error("Selecione grupo e subcategoria de destino");
+    if (!destGrupo) return toast.error("Selecione o grupo de destino");
     const subOrigem = origSub === "__todas__" ? null : origSub;
-    if (origGrupo === destGrupo && subOrigem === destSub) {
+    const preservar = subOrigem === null && modoSubs === "manter";
+    if (!preservar && !destSub) {
+      return toast.error("Selecione a subcategoria de destino");
+    }
+    if (origGrupo === destGrupo && (preservar || subOrigem === destSub)) {
       return toast.error("Origem e destino são iguais");
     }
     try {
-      const movidos = await migrar.mutateAsync({
-        grupoOrigem: origGrupo,
-        subOrigem,
-        grupoDestino: destGrupo,
-        subDestino: destSub,
-      });
+      const movidos = preservar
+        ? await migrarGrupoPreservandoSubs.mutateAsync({
+            grupoOrigem: origGrupo,
+            grupoDestino: destGrupo,
+          })
+        : await migrar.mutateAsync({
+            grupoOrigem: origGrupo,
+            subOrigem,
+            grupoDestino: destGrupo,
+            subDestino: destSub,
+          });
       if (excluirOrigem) {
         if (subOrigem) {
           await deleteSub.mutateAsync({ grupo: origGrupo, subcategoria: subOrigem });
