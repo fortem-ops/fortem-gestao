@@ -12,17 +12,29 @@ export interface ExerciseCategory {
 export interface ExerciseCategoriaNode {
   nome: string;
   subcategorias: string[];
+  /** Sigla curta da categoria (LIB, MOB, ATI, PREV, POT...) */
+  sigla?: string;
 }
 export interface ExerciseGrupoNode {
   nome: string;
   categorias: ExerciseCategoriaNode[];
 }
 
+/** Bloco de aquecimento derivado das categorias do grupo "Aquecimento" */
+export interface BlocoAquecimento {
+  sigla: string;
+  categoria: string;
+  subcategorias: string[];
+}
+
+export const GRUPO_AQUECIMENTO = "Aquecimento";
+
 interface CategoriaRow {
   id: string;
   grupo: string;
   categoria: string;
   subcategoria: string;
+  sigla: string | null;
   ordem_grupo: number;
   ordem_categoria: number;
   ordem_sub: number;
@@ -38,7 +50,7 @@ export function useExerciseCategories() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercicio_categorias" as any)
-        .select("id, grupo, categoria, subcategoria, ordem_grupo, ordem_categoria, ordem_sub")
+        .select("id, grupo, categoria, subcategoria, sigla, ordem_grupo, ordem_categoria, ordem_sub")
         .order("ordem_grupo", { ascending: true })
         .order("ordem_categoria", { ascending: true })
         .order("ordem_sub", { ascending: true });
@@ -46,6 +58,7 @@ export function useExerciseCategories() {
       return (data || []) as unknown as CategoriaRow[];
     },
   });
+
 
   /** Árvore de 3 níveis */
   const tree = useMemo<ExerciseGrupoNode[]>(() => {
