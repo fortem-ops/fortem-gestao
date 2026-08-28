@@ -759,10 +759,10 @@ export function StudentExerciseBank() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {CATEGORIES.map((cat) => (
+          {tree.map((g) => (
             <button
-              key={cat.name}
-              onClick={() => setSelectedCategory(cat)}
+              key={g.nome}
+              onClick={() => { setSelGrupo(g.nome); setSelCat(null); setSelectedSub(null); }}
               className="glass-card rounded-lg p-4 flex items-center justify-between gap-3 hover:border-primary/40 transition-colors text-left w-full"
             >
               <div className="flex items-center gap-3">
@@ -770,10 +770,10 @@ export function StudentExerciseBank() {
                   <Dumbbell className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">{cat.name}</p>
+                  <p className="text-sm font-semibold text-foreground">{g.nome}</p>
                   <p className="text-xs text-muted-foreground">
-                    {cat.subcategories.length > 0
-                      ? `${cat.subcategories.length} subcategorias`
+                    {g.categorias.length > 0
+                      ? `${g.categorias.length} categoria(s)`
                       : "Em breve"}
                   </p>
                 </div>
