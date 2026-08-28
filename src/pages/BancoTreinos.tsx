@@ -144,9 +144,11 @@ function ExercisePicker({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const { tree } = useExerciseCategories();
+  const alvo = useMemo(() => resolverAlvo(categoria, tree), [categoria, tree]);
   const candidates = useMemo(
-    () => getCandidatesForCode(categoria, bank, subcategoriaOverride),
-    [categoria, bank, subcategoriaOverride],
+    () => bank.filter((ex) => ex.grupos.some((g) => itemCasaAlvo(g, alvo, subcategoriaOverride))),
+    [bank, alvo, subcategoriaOverride],
   );
   const filtered = useMemo(() => {
     if (!query) return candidates;
@@ -155,14 +157,14 @@ function ExercisePicker({
   }, [candidates, query]);
 
   // Quando não há subcategoria fixa, agrupar candidatos por subcategoria
-  // (do grupo alvo) para facilitar a navegação visual.
-  const grupoAlvo = CODE_TO_GRUPO[categoria.toUpperCase()] || categoria;
+  // (dentro do alvo resolvido) para facilitar a navegação visual.
+  const grupoAlvo = alvo.label || categoria;
   const shouldGroup = !subcategoriaOverride;
   const grouped = useMemo(() => {
     if (!shouldGroup) return null;
     const map = new Map<string, BankExercise[]>();
     for (const ex of filtered) {
-      const sub = ex.grupos.find((g) => g.grupo === grupoAlvo)?.subcategoria || "—";
+      const sub = ex.grupos.find((g) => itemCasaAlvo(g, alvo))?.subcategoria || "—";
       const arr = map.get(sub) || [];
       arr.push(ex);
       map.set(sub, arr);
@@ -170,7 +172,8 @@ function ExercisePicker({
     return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([sub, items]) => [sub, items.sort((x, y) => x.nome.localeCompare(y.nome))] as const);
-  }, [filtered, shouldGroup, grupoAlvo]);
+  }, [filtered, shouldGroup, alvo]);
+
 
   if (!canEdit) {
     return <>{triggerLabel}</>;
