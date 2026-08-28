@@ -86,3 +86,29 @@ describe("itemCasaAlvo", () => {
     expect(itemCasaAlvo({ grupo: "Força", subcategoria: "Auxiliares" }, legado)).toBe(true);
   });
 });
+
+describe("categoriaEhFolha", () => {
+  it("é folha quando há uma única subcategoria com o mesmo nome", () => {
+    expect(categoriaEhFolha({ nome: "LPO", subcategorias: ["LPO"] })).toBe(true);
+  });
+
+  it("ignora acento e caixa na comparação", () => {
+    expect(
+      categoriaEhFolha({ nome: "Coordenativo Corrida", subcategorias: ["coordenativo corrida"] }),
+    ).toBe(true);
+    expect(categoriaEhFolha({ nome: "Pliometria", subcategorias: ["pliométria"] })).toBe(true);
+  });
+
+  it("não é folha com mais de uma subcategoria", () => {
+    expect(categoriaEhFolha({ nome: "LPO", subcategorias: ["LPO", "Arranco"] })).toBe(false);
+  });
+
+  it("não é folha quando a subcategoria tem outro nome", () => {
+    expect(categoriaEhFolha({ nome: "Força", subcategorias: ["Auxiliares"] })).toBe(false);
+  });
+
+  it("retorna false para categoria ausente", () => {
+    expect(categoriaEhFolha(undefined)).toBe(false);
+    expect(categoriaEhFolha(null)).toBe(false);
+  });
+});
