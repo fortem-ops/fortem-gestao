@@ -195,6 +195,42 @@ export function useExerciseCategories() {
     onSuccess: invalidate,
   });
 
+  // Move a "pasta" inteira (grupo) para dentro de outro grupo: as subcategorias
+  // viram subcategorias do destino (mesmo nome) e o grupo de origem deixa de existir.
+  const moverGrupoParaGrupo = useMutation({
+    mutationFn: async ({ grupoOrigem, grupoDestino }: { grupoOrigem: string; grupoDestino: string }) => {
+      const { data, error } = await supabase.rpc("fn_mover_grupo_para_grupo" as any, {
+        p_grupo_origem: grupoOrigem,
+        p_grupo_destino: grupoDestino,
+      } as any);
+      if (error) throw error;
+      return (data as unknown as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+
+  // Move uma subcategoria (com seus exercícios) para outro grupo
+  const moverSubParaGrupo = useMutation({
+    mutationFn: async ({
+      grupoOrigem,
+      sub,
+      grupoDestino,
+    }: {
+      grupoOrigem: string;
+      sub: string;
+      grupoDestino: string;
+    }) => {
+      const { data, error } = await supabase.rpc("fn_mover_sub_para_grupo" as any, {
+        p_grupo_origem: grupoOrigem,
+        p_sub: sub,
+        p_grupo_destino: grupoDestino,
+      } as any);
+      if (error) throw error;
+      return (data as unknown as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+
   // Contagem de exercícios por subcategoria dentro de um grupo (para prévia)
   const contarPorSubcategoria = async (grupo: string): Promise<{ sub: string; total: number }[]> => {
     const { data, error } = await supabase
