@@ -37,7 +37,7 @@ import { exportPlanStrongPDF } from "./exportPlanStrongPDF";
 import { HelpTip } from "@/components/student/workout/HelpTip";
 import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
 import { AuxiliaresBlock } from "@/components/student/workout/AuxiliaresBlock";
-import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
 import type {
   AquecimentoBloco,
   PersonalizadoAquecimentoEx,
@@ -82,18 +82,6 @@ import {
   descreverVariante,
 } from "@/lib/planStrong";
 
-const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
-  { key: "LIB", label: "Liberação (LIB)" },
-  { key: "MOB", label: "Mobilidade (MOB)" },
-  { key: "ATI", label: "Ativação (ATI)" },
-  { key: "PREV", label: "Preventivo (PREV)" },
-];
-const AQUECIMENTO_GRUPO_MAP: Record<AquecimentoBloco, string> = {
-  LIB: "Liberação Miofascial",
-  MOB: "Mobilidade Articular",
-  ATI: "Ativação Muscular",
-  PREV: "Preventivo",
-};
 
 const DIAS_SEMANA_OPCOES = [2, 3, 4, 5];
 
@@ -124,11 +112,20 @@ export function PrescricaoPlanStrongEditor({
   const [dirty, setDirty] = useState(false);
   const skipNext = useRef(true);
 
-  const { grupoSubcategorias, categories } = useExerciseCategories();
-  const forcaCategories = useMemo(
-    () => categories.filter((c) => c.name === "Força"),
-    [categories],
+  const { blocosAquecimento, categoriasForca } = useExerciseCategories();
+  const forcaCategories = categoriasForca;
+  const AQUECIMENTO_BLOCOS = useMemo(
+    () =>
+      blocosAquecimento.map((b) => ({
+        key: b.sigla,
+        label: `${b.categoria} (${b.sigla})`,
+        categoria: b.categoria,
+        subcategorias: b.subcategorias,
+      })),
+    [blocosAquecimento],
   );
+  const siglasAq = useMemo(() => AQUECIMENTO_BLOCOS.map((b) => b.key), [AQUECIMENTO_BLOCOS]);
+
 
   // Sessões concluídas por levantamento (preview ao vivo)
   const { data: sessionCounts = {} } = useQuery({
@@ -214,12 +211,8 @@ export function PrescricaoPlanStrongEditor({
   // ── Aquecimento ─────────────────────────────────────────────
   const ensureAq = (
     aq: PlanStrong50Conteudo["aquecimento"] | undefined,
-  ): Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]> => ({
-    LIB: aq?.LIB ?? [],
-    MOB: aq?.MOB ?? [],
-    ATI: aq?.ATI ?? [],
-    PREV: aq?.PREV ?? [],
-  });
+  ): Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]> =>
+    ensureAquecimentoRecord(aq, siglasAq);
   const addAq = (b: AquecimentoBloco) =>
     setData((p) => {
       const aq = ensureAq(p.aquecimento);
@@ -969,7 +962,7 @@ export function PrescricaoPlanStrongEditor({
         <CardContent className="space-y-4">
           {AQUECIMENTO_BLOCOS.map((b) => {
             const items = ensureAq(data.aquecimento)[b.key];
-            const subs = grupoSubcategorias[AQUECIMENTO_GRUPO_MAP[b.key]] || [];
+            const subs = b.subcategorias;
             return (
               <div key={b.key} className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -1019,7 +1012,8 @@ export function PrescricaoPlanStrongEditor({
                             </Select>
                             <div className="flex-1 min-w-0">
                               <ExerciseSelector
-                                categoria={b.key}
+                                categoria={b.categoria}
+                                grupoPreferido={GRUPO_AQUECIMENTO}
                                 subcategoria={ex.subcategoria}
                                 value={ex.exercicio}
                                 disabled={!ex.subcategoria}

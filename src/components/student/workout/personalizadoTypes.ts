@@ -247,3 +247,23 @@ export function personalizadoFromFlat(raw: unknown): PersonalizadoConteudo {
     observacoes: "",
   };
 }
+
+/**
+ * Normaliza o mapa de aquecimento garantindo as chaves legadas
+ * (LIB/MOB/ATI/PREV) e as siglas dinâmicas das categorias do grupo
+ * "Aquecimento" do Banco de Exercícios.
+ */
+export function ensureAquecimentoRecord(
+  aq: Record<string, PersonalizadoAquecimentoEx[]> | undefined | null,
+  blocos: string[] = [],
+): Record<string, PersonalizadoAquecimentoEx[]> {
+  const base: Record<string, PersonalizadoAquecimentoEx[]> = {
+    LIB: [],
+    MOB: [],
+    ATI: [],
+    PREV: [],
+  };
+  for (const b of blocos) if (b) base[b] = [];
+  for (const [k, v] of Object.entries(aq ?? {})) base[k] = v ?? [];
+  return base;
+}

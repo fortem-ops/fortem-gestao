@@ -56,7 +56,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
 import { ExerciseSelector } from "./ExerciseSelector";
 import { CATEGORY_LABELS } from "./workoutTemplates";
-import { useExerciseCategories, type ExerciseCategory } from "@/hooks/useExerciseCategories";
+import { useExerciseCategories, GRUPO_AQUECIMENTO, type ExerciseCategory } from "@/hooks/useExerciseCategories";
 import { SUBCATEGORIA_TO_CODE, CODE_TO_SUBCATEGORIA } from "@/lib/exerciseMapping";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { exportWorkoutPDF } from "./exportWorkoutPDF";
@@ -96,12 +96,6 @@ const FORCA_CATEGORIAS = [
   "KB","PLIO","ISO","ABD","ET","LPO","AUX",
 ];
 
-const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
-  { key: "LIB", label: "Liberação (LIB)" },
-  { key: "MOB", label: "Mobilidade (MOB)" },
-  { key: "ATI", label: "Ativação (ATI)" },
-  { key: "PREV", label: "Preventivo (PREV)" },
-];
 
 const DAYS = ["T1", "T2", "T3", "T4"];
 
@@ -121,20 +115,20 @@ export function PersonalizadoEditor({
   readOnly = false,
 }: Props) {
   const { user } = useAuth();
-  const { categories, grupoSubcategorias } = useExerciseCategories();
-  const aquecimentoGrupoMap: Record<AquecimentoBloco, string> = {
-    LIB: "Liberação Miofascial",
-    MOB: "Mobilidade Articular",
-    ATI: "Ativação Muscular",
-    PREV: "Preventivo",
-  };
-  // Grupos que pertencem ao bloco de aquecimento (não devem aparecer no seletor de FORÇA).
-  const AQUECIMENTO_GRUPOS = new Set(Object.values(aquecimentoGrupoMap));
-  const forcaCategories: ExerciseCategory[] = useMemo(
-    () => categories.filter((c) => !AQUECIMENTO_GRUPOS.has(c.name)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [categories],
+  const { blocosAquecimento, categoriasForca } = useExerciseCategories();
+  const forcaCategories: ExerciseCategory[] = categoriasForca;
+  const AQUECIMENTO_BLOCOS = useMemo(
+    () =>
+      blocosAquecimento.map((b) => ({
+        key: b.sigla,
+        label: `${b.categoria} (${b.sigla})`,
+        categoria: b.categoria,
+        subcategorias: b.subcategorias,
+      })),
+    [blocosAquecimento],
   );
+  const siglasAq = useMemo(() => AQUECIMENTO_BLOCOS.map((b) => b.key), [AQUECIMENTO_BLOCOS]);
+
   // IMPORTANT: `initial` and `initialName` are treated as initializers only.
   // We deliberately do NOT sync with later prop changes — re-syncing causes
   // the editor to wipe the user's in-progress prescription whenever the
@@ -875,7 +869,7 @@ export function PersonalizadoEditor({
                                     <SelectValue placeholder="Subcategoria..." />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {(grupoSubcategorias[aquecimentoGrupoMap[b.key]] || []).map((sub) => (
+                                    {(b.subcategorias || []).map((sub) => (
                                       <SelectItem key={sub} value={sub} className="text-xs">
                                         {sub}
                                       </SelectItem>
@@ -884,7 +878,8 @@ export function PersonalizadoEditor({
                                 </Select>
                                 <div className="flex-1 min-w-0">
                                   <ExerciseSelector
-                                    categoria={b.key}
+                                    categoria={b.categoria}
+                                    grupoPreferido={GRUPO_AQUECIMENTO}
                                     subcategoria={ex.subcategoria}
                                     value={ex.exercicio}
                                     disabled={!ex.subcategoria}
