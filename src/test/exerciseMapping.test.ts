@@ -112,3 +112,75 @@ describe("categoriaEhFolha", () => {
     expect(categoriaEhFolha(null)).toBe(false);
   });
 });
+
+const treeAtual: TaxonomiaGrupo[] = [
+  {
+    nome: "Aquecimento",
+    categorias: [
+      { nome: "Liberação Miofascial", sigla: "LIB", subcategorias: ["Pé/Tornozelo", "Perna"] },
+      { nome: "Mobilidade Articular", sigla: "MOB", subcategorias: ["Quadril", "Torácica"] },
+      { nome: "Ativação Muscular", sigla: "ATI", subcategorias: ["Glúteo"] },
+      { nome: "Preventivo", sigla: "PREV", subcategorias: ["Ombro"] },
+      { nome: "Potência", sigla: "POT", subcategorias: ["Saltos"] },
+    ],
+  },
+  {
+    nome: "Parte Principal",
+    categorias: [
+      { nome: "Força", subcategorias: ["Dominante de Joelho Simétrico", "Kettlebell", "LPO"] },
+      { nome: "Potência", subcategorias: ["LPO"] },
+      { nome: "Cardio", subcategorias: ["Cardio"] },
+    ],
+  },
+];
+
+describe("resolverAlvo — escopo Aquecimento x Parte Principal", () => {
+  it("resolve sigla legada dentro de Aquecimento", () => {
+    expect(resolverAlvo("LIB", treeAtual)).toMatchObject({
+      grupo: "Aquecimento",
+      categoria: "Liberação Miofascial",
+    });
+  });
+
+  it("resolve nova categoria de aquecimento pela sigla dinâmica", () => {
+    expect(resolverAlvo("POT", treeAtual, { grupoPreferido: "Aquecimento" })).toMatchObject({
+      grupo: "Aquecimento",
+      categoria: "Potência",
+    });
+  });
+
+  it("resolve nome de categoria dentro do grupo preferido", () => {
+    expect(resolverAlvo("Potência", treeAtual, { grupoPreferido: "Aquecimento" })).toMatchObject({
+      grupo: "Aquecimento",
+      categoria: "Potência",
+    });
+  });
+
+  it("códigos de força apontam para Parte Principal > Força", () => {
+    expect(resolverAlvo("DJS", treeAtual)).toMatchObject({
+      grupo: "Parte Principal",
+      categoria: "Força",
+      subcategoria: "Dominante de Joelho Simétrico",
+    });
+    expect(resolverAlvo("KB", treeAtual)).toMatchObject({
+      grupo: "Parte Principal",
+      categoria: "Força",
+      subcategoria: "Kettlebell",
+    });
+  });
+
+  it("LPO resolve em Parte Principal > Potência", () => {
+    expect(resolverAlvo("LPO", treeAtual)).toMatchObject({
+      grupo: "Parte Principal",
+      categoria: "Potência",
+      subcategoria: "LPO",
+    });
+  });
+
+  it("COND resolve em Parte Principal > Cardio", () => {
+    expect(resolverAlvo("COND", treeAtual)).toMatchObject({
+      grupo: "Parte Principal",
+      categoria: "Cardio",
+    });
+  });
+});
