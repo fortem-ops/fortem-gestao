@@ -1010,6 +1010,38 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                       )}
                     </div>
                   </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <Label>Promover subcategoria a categoria</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Arraste uma subcategoria acima e solte sobre um grupo abaixo — ela sobe um
+                      nível e vira categoria desse grupo, levando os exercícios.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {grupos.map((g) => {
+                        const key = `promover-sub///${g}`;
+                        return (
+                          <div
+                            key={key}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setHoverAlvo(key);
+                            }}
+                            onDragLeave={() => setHoverAlvo((h) => (h === key ? null : h))}
+                            onDrop={() => dropSubEmGrupo(g)}
+                            className={`rounded-md border border-dashed px-3 py-2 text-xs transition-colors ${
+                              hoverAlvo === key
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "border-border text-muted-foreground"
+                            }`}
+                          >
+                            ↑ {g}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </>
               )}
             </div>
