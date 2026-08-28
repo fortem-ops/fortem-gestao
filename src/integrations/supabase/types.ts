@@ -3088,27 +3088,33 @@ export type Database = {
       }
       exercicio_categorias: {
         Row: {
+          categoria: string
           created_at: string
           grupo: string
           id: string
+          ordem_categoria: number
           ordem_grupo: number
           ordem_sub: number
           subcategoria: string
           updated_at: string
         }
         Insert: {
+          categoria: string
           created_at?: string
           grupo: string
           id?: string
+          ordem_categoria?: number
           ordem_grupo?: number
           ordem_sub?: number
           subcategoria: string
           updated_at?: string
         }
         Update: {
+          categoria?: string
           created_at?: string
           grupo?: string
           id?: string
+          ordem_categoria?: number
           ordem_grupo?: number
           ordem_sub?: number
           subcategoria?: string
@@ -8079,15 +8085,13 @@ export type Database = {
       fn_marcar_parcelas_vencidas: { Args: never; Returns: number }
       fn_migrar_exercicio_categoria: {
         Args: {
+          p_categoria_destino: string
+          p_categoria_origem: string
           p_grupo_destino: string
           p_grupo_origem: string
           p_sub_destino: string
           p_sub_origem: string
         }
-        Returns: number
-      }
-      fn_migrar_grupo_preservando_subs: {
-        Args: { p_grupo_destino: string; p_grupo_origem: string }
         Returns: number
       }
       fn_move_pipeline: {
@@ -8100,12 +8104,26 @@ export type Database = {
         }
         Returns: string
       }
-      fn_mover_grupo_para_grupo: {
+      fn_mover_categoria_para_grupo: {
+        Args: {
+          p_categoria: string
+          p_grupo_destino: string
+          p_grupo_origem: string
+        }
+        Returns: number
+      }
+      fn_mover_grupo_como_categoria: {
         Args: { p_grupo_destino: string; p_grupo_origem: string }
         Returns: number
       }
-      fn_mover_sub_para_grupo: {
-        Args: { p_grupo_destino: string; p_grupo_origem: string; p_sub: string }
+      fn_mover_sub_para_categoria: {
+        Args: {
+          p_categoria_destino: string
+          p_categoria_origem: string
+          p_grupo_destino: string
+          p_grupo_origem: string
+          p_sub: string
+        }
         Returns: number
       }
       fn_notificar_criar_notificacao: {
@@ -8266,6 +8284,15 @@ export type Database = {
         Args: { _data_inicio: string }
         Returns: string
       }
+      fn_renomear_nivel_exercicio: {
+        Args: {
+          p_categoria: string
+          p_grupo: string
+          p_novo_nome: string
+          p_subcategoria: string
+        }
+        Returns: undefined
+      }
       fn_resolver_prof_avaliacao: {
         Args: { _aluno_id: string; _avaliador: string; _data: string }
         Returns: string
@@ -8350,15 +8377,6 @@ export type Database = {
       is_staff:
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }
-      rename_exercicio_categoria: {
-        Args: {
-          p_new_grupo: string
-          p_new_sub?: string
-          p_old_grupo: string
-          p_old_sub?: string
-        }
-        Returns: undefined
-      }
       search_cadastros: {
         Args: { termo: string }
         Returns: {
