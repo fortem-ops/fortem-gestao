@@ -64,6 +64,8 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     deleteGrupo,
     deleteSub,
     migrar,
+    migrarGrupoPreservandoSubs,
+    contarPorSubcategoria,
     reorderGrupos,
     reorderSubs,
     contarExercicios,
@@ -86,6 +88,9 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const [destSub, setDestSub] = useState("");
   const [excluirOrigem, setExcluirOrigem] = useState(false);
   const [preview, setPreview] = useState<number | null>(null);
+  const [modoSubs, setModoSubs] = useState<"manter" | "unificar">("manter");
+  const [previewSubs, setPreviewSubs] = useState<{ sub: string; total: number }[]>([]);
+
 
 
   const grupos = categories.map((c) => c.name);
@@ -105,11 +110,19 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     let cancelado = false;
     if (!origGrupo) {
       setPreview(null);
+      setPreviewSubs([]);
       return;
     }
     contarExercicios(origGrupo, origSub === "__todas__" ? null : origSub)
       .then((n) => !cancelado && setPreview(n))
       .catch(() => !cancelado && setPreview(null));
+    if (origSub === "__todas__") {
+      contarPorSubcategoria(origGrupo)
+        .then((r) => !cancelado && setPreviewSubs(r))
+        .catch(() => !cancelado && setPreviewSubs([]));
+    } else {
+      setPreviewSubs([]);
+    }
     return () => {
       cancelado = true;
     };
@@ -150,18 +163,27 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
 
   const handleMigrar = async () => {
     if (!origGrupo) return toast.error("Selecione o grupo de origem");
-    if (!destGrupo || !destSub) return toast.error("Selecione grupo e subcategoria de destino");
+    if (!destGrupo) return toast.error("Selecione o grupo de destino");
     const subOrigem = origSub === "__todas__" ? null : origSub;
-    if (origGrupo === destGrupo && subOrigem === destSub) {
+    const preservar = subOrigem === null && modoSubs === "manter";
+    if (!preservar && !destSub) {
+      return toast.error("Selecione a subcategoria de destino");
+    }
+    if (origGrupo === destGrupo && (preservar || subOrigem === destSub)) {
       return toast.error("Origem e destino são iguais");
     }
     try {
-      const movidos = await migrar.mutateAsync({
-        grupoOrigem: origGrupo,
-        subOrigem,
-        grupoDestino: destGrupo,
-        subDestino: destSub,
-      });
+      const movidos = preservar
+        ? await migrarGrupoPreservandoSubs.mutateAsync({
+            grupoOrigem: origGrupo,
+            grupoDestino: destGrupo,
+          })
+        : await migrar.mutateAsync({
+            grupoOrigem: origGrupo,
+            subOrigem,
+            grupoDestino: destGrupo,
+            subDestino: destSub,
+          });
       if (excluirOrigem) {
         if (subOrigem) {
           await deleteSub.mutateAsync({ grupo: origGrupo, subcategoria: subOrigem });
@@ -572,42 +594,80 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                     </SelectContent>
                   </Select>
 
-                  <Label>Destino — Subcategoria</Label>
-                  <Select value={destSub} onValueChange={setDestSub} disabled={!destGrupo}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {destSubs.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {origSub === "__todas__" && (
+                    <>
+                      <Label>Subcategorias</Label>
+                      <Select
+                        value={modoSubs}
+                        onValueChange={(v) => setModoSubs(v as "manter" | "unificar")}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manter">
+                            Manter subcategorias de origem
+                          </SelectItem>
+                          <SelectItem value="unificar">
+                            Unificar em uma subcategoria
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
+
+                  {!(origSub === "__todas__" && modoSubs === "manter") && (
+                    <>
+                      <Label>Destino — Subcategoria</Label>
+                      <Select value={destSub} onValueChange={setDestSub} disabled={!destGrupo}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {destSubs.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
                 </div>
               </div>
 
               {preview !== null && (
-                <div className="glass-card rounded-md p-3 text-sm flex items-center gap-2">
-                  <ArrowRight className="w-4 h-4 text-primary" />
-                  <span>
-                    {preview} exercício(s) serão movidos de{" "}
-                    <strong>
-                      {origGrupo}
-                      {origSub !== "__todas__" ? ` / ${origSub}` : ""}
-                    </strong>
-                    {destGrupo && destSub ? (
-                      <>
-                        {" "}
-                        para{" "}
-                        <strong>
-                          {destGrupo} / {destSub}
-                        </strong>
-                      </>
-                    ) : null}
-                    .
-                  </span>
+                <div className="glass-card rounded-md p-3 text-sm space-y-2">
+                  <div className="flex items-center gap-2">
+                    <ArrowRight className="w-4 h-4 text-primary" />
+                    <span>
+                      {preview} exercício(s) serão movidos de{" "}
+                      <strong>
+                        {origGrupo}
+                        {origSub !== "__todas__" ? ` / ${origSub}` : ""}
+                      </strong>
+                      {destGrupo ? (
+                        <>
+                          {" "}
+                          para{" "}
+                          <strong>
+                            {destGrupo}
+                            {origSub === "__todas__" && modoSubs === "manter"
+                              ? " (mesmas subcategorias)"
+                              : destSub
+                                ? ` / ${destSub}`
+                                : ""}
+                          </strong>
+                        </>
+                      ) : null}
+                      .
+                    </span>
+                  </div>
+                  {origSub === "__todas__" && modoSubs === "manter" && previewSubs.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {previewSubs.map((s) => `${s.sub}: ${s.total}`).join(" · ")}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -621,10 +681,16 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
 
               <Button
                 onClick={handleMigrar}
-                disabled={migrar.isPending || !origGrupo || !destGrupo || !destSub}
+                disabled={
+                  migrar.isPending ||
+                  migrarGrupoPreservandoSubs.isPending ||
+                  !origGrupo ||
+                  !destGrupo ||
+                  (!(origSub === "__todas__" && modoSubs === "manter") && !destSub)
+                }
                 className="w-full"
               >
-                {migrar.isPending ? (
+                {migrar.isPending || migrarGrupoPreservandoSubs.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <ArrowRight className="w-4 h-4" />
