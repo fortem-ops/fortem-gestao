@@ -5,7 +5,12 @@
 
 import type { WorkoutExercise } from "./workoutTemplates";
 
-export type AquecimentoBloco = "LIB" | "MOB" | "ATI" | "PREV";
+/**
+ * Chave de um bloco de aquecimento. Historicamente eram só "LIB" | "MOB" |
+ * "ATI" | "PREV"; hoje é a sigla dinâmica da categoria cadastrada no grupo
+ * "Aquecimento" do Banco de Exercícios (ex.: "POT").
+ */
+export type AquecimentoBloco = string;
 
 export interface PersonalizadoAquecimentoEx {
   subcategoria?: string;
@@ -62,7 +67,7 @@ export interface PersonalizadoTreino {
 }
 
 export interface PersonalizadoConteudo {
-  aquecimento: Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]>;
+  aquecimento: Record<string, PersonalizadoAquecimentoEx[]>;
   treinos: PersonalizadoTreino[];
   observacoes: string;
 }
@@ -101,7 +106,7 @@ export function flattenPersonalizado(c: PersonalizadoConteudo): {
 } {
   const aquecimento: WorkoutExercise[] = [];
   let ord = 1;
-  (["LIB", "MOB", "ATI", "PREV"] as AquecimentoBloco[]).forEach((bloco) => {
+  Object.keys(c.aquecimento || {}).forEach((bloco) => {
     c.aquecimento[bloco]?.forEach((ex) => {
       aquecimento.push({
         ordem: ord++,
@@ -204,10 +209,9 @@ export function personalizadoFromFlat(raw: unknown): PersonalizadoConteudo {
   // Aquecimento → distribuir nos blocos LIB/MOB/ATI
   const aquec: PersonalizadoConteudo["aquecimento"] = { LIB: [], MOB: [], ATI: [], PREV: [] };
   (r.aquecimento || []).forEach((ex) => {
-    const cat = (ex.categoria || "").toUpperCase();
-    const bloco: AquecimentoBloco | null =
-      cat === "LIB" || cat === "MOB" || cat === "ATI" || cat === "PREV" ? (cat as AquecimentoBloco) : null;
+    const bloco = (ex.categoria || "").toUpperCase();
     if (!bloco) return;
+    if (!aquec[bloco]) aquec[bloco] = [];
     aquec[bloco].push({
       subcategoria: ex.subcategoria,
       exercicio: ex.exercicio || "",
@@ -242,4 +246,24 @@ export function personalizadoFromFlat(raw: unknown): PersonalizadoConteudo {
     treinos: treinos.length > 0 ? treinos : base.treinos,
     observacoes: "",
   };
+}
+
+/**
+ * Normaliza o mapa de aquecimento garantindo as chaves legadas
+ * (LIB/MOB/ATI/PREV) e as siglas dinâmicas das categorias do grupo
+ * "Aquecimento" do Banco de Exercícios.
+ */
+export function ensureAquecimentoRecord(
+  aq: Record<string, PersonalizadoAquecimentoEx[]> | undefined | null,
+  blocos: string[] = [],
+): Record<string, PersonalizadoAquecimentoEx[]> {
+  const base: Record<string, PersonalizadoAquecimentoEx[]> = {
+    LIB: [],
+    MOB: [],
+    ATI: [],
+    PREV: [],
+  };
+  for (const b of blocos) if (b) base[b] = [];
+  for (const [k, v] of Object.entries(aq ?? {})) base[k] = v ?? [];
+  return base;
 }

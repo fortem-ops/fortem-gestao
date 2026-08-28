@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil, Copy, Lock, Construction } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
 import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA, resolverAlvo, itemCasaAlvo, categoriaEhFolha, type TaxonomiaGrupo } from "@/lib/exerciseMapping";
-import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
@@ -114,8 +114,9 @@ function getCandidatesForCode(
   bank: BankExercise[],
   subOverride?: string,
   tree: TaxonomiaGrupo[] = [],
+  grupoPreferido?: string,
 ): BankExercise[] {
-  const alvo = resolverAlvo(categoria, tree);
+  const alvo = resolverAlvo(categoria, tree, { grupoPreferido });
   if (!alvo.grupo && !alvo.categoria && !alvo.subcategoria) return [];
   return bank.filter((ex) => ex.grupos.some((g) => itemCasaAlvo(g, alvo, subOverride)));
 }
@@ -131,6 +132,7 @@ function ExercisePicker({
   triggerLabel,
   subcategoriaOverride,
   onPreviewVideo,
+  grupoPreferido,
 }: {
   categoria: string;
   bank: BankExercise[];
@@ -141,11 +143,12 @@ function ExercisePicker({
   triggerLabel: React.ReactNode;
   subcategoriaOverride?: string;
   onPreviewVideo?: (ex: BankExercise) => void;
+  grupoPreferido?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const { tree } = useExerciseCategories();
-  const alvo = useMemo(() => resolverAlvo(categoria, tree), [categoria, tree]);
+  const alvo = useMemo(() => resolverAlvo(categoria, tree, { grupoPreferido }), [categoria, tree, grupoPreferido]);
   const candidates = useMemo(
     () => bank.filter((ex) => ex.grupos.some((g) => itemCasaAlvo(g, alvo, subcategoriaOverride))),
     [bank, alvo, subcategoriaOverride],
@@ -308,12 +311,13 @@ function ExerciseRow({
   onClearChoice: () => void;
   onSaveOverride: (patch: OverridePatch) => void;
   canEdit: boolean;
-  aquecimentoBloco?: "LIB" | "MOB" | "ATI";
+  aquecimentoBloco?: string;
 }) {
   const { tree } = useExerciseCategories();
   /** Subcategorias do alvo resolvido (categoria quando existir, senão grupo inteiro). */
-  const subsDoAlvo = (valor: string): string[] => {
-    const a = resolverAlvo(valor, tree);
+  const grupoAquecimento = aquecimentoBloco ? GRUPO_AQUECIMENTO : undefined;
+  const subsDoAlvo = (valor: string, grupoPreferido?: string): string[] => {
+    const a = resolverAlvo(valor, tree, { grupoPreferido });
     const g = tree.find((x) => x.nome === a.grupo);
     if (a.categoria) {
       const c = g?.categorias.find((x) => x.nome === a.categoria);
@@ -376,6 +380,7 @@ function ExerciseRow({
     bank,
     effSubcategoria || undefined,
     tree,
+    grupoAquecimento,
   ).length;
 
   const hasVideo = match && (match.video_url || match.video_path);
@@ -427,7 +432,7 @@ function ExerciseRow({
               className="bg-background border border-input rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring max-w-[180px]"
             >
               {!effSubcategoria && <option value="">Selecione...</option>}
-              {subsDoAlvo(aquecimentoBloco).map((sub) => (
+              {subsDoAlvo(aquecimentoBloco, GRUPO_AQUECIMENTO).map((sub) => (
                 <option key={sub} value={sub}>{sub}</option>
               ))}
             </select>
@@ -487,6 +492,7 @@ function ExerciseRow({
           <div className="flex items-center gap-2 flex-wrap">
             <ExercisePicker
               categoria={aquecimentoBloco ?? effCategoria}
+              grupoPreferido={grupoAquecimento}
               subcategoriaOverride={effSubcategoria || undefined}
               bank={bank}
               currentId={escolhaEx?.id}
@@ -524,6 +530,7 @@ function ExerciseRow({
         ) : (
           <ExercisePicker
             categoria={aquecimentoBloco ?? effCategoria}
+            grupoPreferido={grupoAquecimento}
             subcategoriaOverride={effSubcategoria || undefined}
             bank={bank}
             canEdit={canEdit && candidatesCount > 0}
@@ -627,7 +634,7 @@ function ExerciseTable({
   onClearChoice: (ex: WorkoutExercise, treino: string) => void;
   onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
-  aquecimentoBloco?: "LIB" | "MOB" | "ATI";
+  aquecimentoBloco?: string;
 }) {
   if (exercicios.length === 0) {
     return <p className="text-sm text-muted-foreground italic">Sem exercícios cadastrados.</p>;
@@ -693,8 +700,26 @@ function TemplateDetail({
   onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
 }) {
-  const blocks = ["LIB", "MOB", "ATI"] as const;
-  const blockLabels: Record<string, string> = { LIB: "Liberação", MOB: "Mobilidade", ATI: "Ativação" };
+  const { blocosAquecimento } = useExerciseCategories();
+  // Blocos = categorias do grupo "Aquecimento" + eventuais códigos legados
+  // presentes no template que ainda não têm categoria correspondente.
+  const blocks = useMemo(() => {
+    const doBanco = blocosAquecimento.map((b) => b.sigla);
+    const noTemplate = Array.from(
+      new Set(template.aquecimento.map((e) => (e.categoria || "").toUpperCase()).filter(Boolean)),
+    );
+    return [...doBanco, ...noTemplate.filter((c) => !doBanco.includes(c))];
+  }, [blocosAquecimento, template.aquecimento]);
+  const blockLabels = useMemo(() => {
+    const map: Record<string, string> = {
+      LIB: "Liberação",
+      MOB: "Mobilidade",
+      ATI: "Ativação",
+      PREV: "Preventivo",
+    };
+    for (const b of blocosAquecimento) map[b.sigla] = b.categoria;
+    return map;
+  }, [blocosAquecimento]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -720,12 +745,12 @@ function TemplateDetail({
           </CardHeader>
           <CardContent className="space-y-4">
             {blocks.map(block => {
-              const items = template.aquecimento.filter(e => e.categoria === block);
+              const items = template.aquecimento.filter(e => (e.categoria || "").toUpperCase() === block);
               if (items.length === 0) return null;
               return (
                 <div key={block} className="space-y-2">
                   <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    {blockLabels[block]} ({block})
+                    {blockLabels[block] ?? block} ({block})
                   </h4>
                   <ExerciseTable
                     exercicios={items}

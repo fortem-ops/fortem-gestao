@@ -36,28 +36,15 @@ import type {
   AquecimentoBloco,
   PersonalizadoAquecimentoEx,
 } from "@/components/student/workout/personalizadoTypes";
+import { ensureAquecimentoRecord } from "@/components/student/workout/personalizadoTypes";
 import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
-import { useExerciseCategories, type ExerciseCategory } from "@/hooks/useExerciseCategories";
+import { useExerciseCategories, GRUPO_AQUECIMENTO, type ExerciseCategory } from "@/hooks/useExerciseCategories";
 import { CATEGORY_LABELS } from "@/components/student/workout/workoutTemplates";
 import { SUBCATEGORIA_TO_CODE } from "@/lib/exerciseMapping";
 import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-
-const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
-  { key: "LIB", label: "Liberação (LIB)" },
-  { key: "MOB", label: "Mobilidade (MOB)" },
-  { key: "ATI", label: "Ativação (ATI)" },
-  { key: "PREV", label: "Preventivo (PREV)" },
-];
-
-const AQUECIMENTO_GRUPO_MAP: Record<AquecimentoBloco, string> = {
-  LIB: "Liberação Miofascial",
-  MOB: "Mobilidade Articular",
-  ATI: "Ativação Muscular",
-  PREV: "Preventivo",
-};
 
 function CategoriaSelectForca({
   value,
@@ -130,11 +117,20 @@ export function Prescricao531Editor({
     () => levantamentosDisponiveis(data.frequencia),
     [data.frequencia],
   );
-  const { categories, grupoSubcategorias } = useExerciseCategories();
-  const forcaCategories = useMemo(
-    () => categories.filter((c) => c.name === "Força"),
-    [categories],
+  const { blocosAquecimento, categoriasForca } = useExerciseCategories();
+  const forcaCategories = categoriasForca;
+  const AQUECIMENTO_BLOCOS = useMemo(
+    () =>
+      blocosAquecimento.map((b) => ({
+        key: b.sigla,
+        label: `${b.categoria} (${b.sigla})`,
+        categoria: b.categoria,
+        subcategorias: b.subcategorias,
+      })),
+    [blocosAquecimento],
   );
+  const siglasAq = useMemo(() => AQUECIMENTO_BLOCOS.map((b) => b.key), [AQUECIMENTO_BLOCOS]);
+
 
 
   // ── Autosave (debounce 800ms) ─────────────────────────────────
@@ -401,12 +397,8 @@ export function Prescricao531Editor({
   // ── Aquecimento (bloco global) ────────────────────────────────
   const ensureAquecimento = (
     aq: Wendler531Conteudo["aquecimento"] | undefined,
-  ): Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]> => ({
-    LIB: aq?.LIB ?? [],
-    MOB: aq?.MOB ?? [],
-    ATI: aq?.ATI ?? [],
-    PREV: aq?.PREV ?? [],
-  });
+  ): Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]> =>
+    ensureAquecimentoRecord(aq, siglasAq);
 
   const addAquecimento = (bloco: AquecimentoBloco) =>
     setData((prev) => {
@@ -632,7 +624,7 @@ export function Prescricao531Editor({
         <CardContent className="space-y-4">
           {AQUECIMENTO_BLOCOS.map((b) => {
             const items = ensureAquecimento(data.aquecimento)[b.key];
-            const subs = grupoSubcategorias[AQUECIMENTO_GRUPO_MAP[b.key]] || [];
+            const subs = b.subcategorias;
             return (
               <div key={b.key} className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -673,7 +665,8 @@ export function Prescricao531Editor({
                             </Select>
                             <div className="flex-1 min-w-0">
                               <ExerciseSelector
-                                categoria={b.key}
+                                categoria={b.categoria}
+                                grupoPreferido={GRUPO_AQUECIMENTO}
                                 subcategoria={ex.subcategoria}
                                 value={ex.exercicio}
                                 disabled={!ex.subcategoria}

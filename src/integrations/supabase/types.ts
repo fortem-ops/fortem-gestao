@@ -3095,6 +3095,7 @@ export type Database = {
           ordem_categoria: number
           ordem_grupo: number
           ordem_sub: number
+          sigla: string | null
           subcategoria: string
           updated_at: string
         }
@@ -3106,6 +3107,7 @@ export type Database = {
           ordem_categoria?: number
           ordem_grupo?: number
           ordem_sub?: number
+          sigla?: string | null
           subcategoria: string
           updated_at?: string
         }
@@ -3117,6 +3119,7 @@ export type Database = {
           ordem_categoria?: number
           ordem_grupo?: number
           ordem_sub?: number
+          sigla?: string | null
           subcategoria?: string
           updated_at?: string
         }
@@ -7976,6 +7979,10 @@ export type Database = {
         Returns: string
       }
       fn_current_aluno_id: { Args: never; Returns: string }
+      fn_definir_sigla_categoria: {
+        Args: { p_categoria: string; p_grupo: string; p_sigla: string }
+        Returns: number
+      }
       fn_desafio_atualizar_progresso: {
         Args: { p_desafio_id: string }
         Returns: Json

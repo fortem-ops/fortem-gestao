@@ -36,26 +36,15 @@ import type {
   AquecimentoBloco,
   PersonalizadoAquecimentoEx,
 } from "@/components/student/workout/personalizadoTypes";
+import { ensureAquecimentoRecord } from "@/components/student/workout/personalizadoTypes";
 import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
-import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
 import { CATEGORY_LABELS } from "@/components/student/workout/workoutTemplates";
 import { SUBCATEGORIA_TO_CODE } from "@/lib/exerciseMapping";
 import { exportM102PDF } from "./exportM102PDF";
 import type { Tables } from "@/integrations/supabase/types";
 
 
-const AQUECIMENTO_BLOCOS: { key: AquecimentoBloco; label: string }[] = [
-  { key: "LIB", label: "Liberação (LIB)" },
-  { key: "MOB", label: "Mobilidade (MOB)" },
-  { key: "ATI", label: "Ativação (ATI)" },
-  { key: "PREV", label: "Preventivo (PREV)" },
-];
-const AQUECIMENTO_GRUPO_MAP: Record<AquecimentoBloco, string> = {
-  LIB: "Liberação Miofascial",
-  MOB: "Mobilidade Articular",
-  ATI: "Ativação Muscular",
-  PREV: "Preventivo",
-};
 
 interface Props {
   alunoId: string;
@@ -82,12 +71,20 @@ export function PrescricaoM102Editor({
   const [dirty, setDirty] = useState(false);
   const skipNext = useRef(true);
 
-  const { categories, grupoSubcategorias } = useExerciseCategories();
-  const AQ_GRUPOS = useMemo(() => new Set(Object.values(AQUECIMENTO_GRUPO_MAP)), []);
-  const forcaCategories = useMemo(
-    () => categories.filter((c) => !AQ_GRUPOS.has(c.name)),
-    [categories, AQ_GRUPOS],
+  const { blocosAquecimento, categoriasForca } = useExerciseCategories();
+  const forcaCategories = categoriasForca;
+  const AQUECIMENTO_BLOCOS = useMemo(
+    () =>
+      blocosAquecimento.map((b) => ({
+        key: b.sigla,
+        label: `${b.categoria} (${b.sigla})`,
+        categoria: b.categoria,
+        subcategorias: b.subcategorias,
+      })),
+    [blocosAquecimento],
   );
+  const siglasAq = useMemo(() => AQUECIMENTO_BLOCOS.map((b) => b.key), [AQUECIMENTO_BLOCOS]);
+
 
   // Contagem de sessões concluídas por slot (para preview ao vivo)
   const { data: sessionCounts = { T1: 0, T2: 0, T3: 0, T4: 0 } } = useQuery({
@@ -176,12 +173,8 @@ export function PrescricaoM102Editor({
   // ── Aquecimento ─────────────────────────────────────────────
   const ensureAq = (
     aq: M102Conteudo["aquecimento"] | undefined,
-  ): Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]> => ({
-    LIB: aq?.LIB ?? [],
-    MOB: aq?.MOB ?? [],
-    ATI: aq?.ATI ?? [],
-    PREV: aq?.PREV ?? [],
-  });
+  ): Record<AquecimentoBloco, PersonalizadoAquecimentoEx[]> =>
+    ensureAquecimentoRecord(aq, siglasAq);
   const addAq = (b: AquecimentoBloco) =>
     setData((p) => {
       const aq = ensureAq(p.aquecimento);
@@ -487,7 +480,7 @@ export function PrescricaoM102Editor({
         <CardContent className="space-y-4">
           {AQUECIMENTO_BLOCOS.map((b) => {
             const items = ensureAq(data.aquecimento)[b.key];
-            const subs = grupoSubcategorias[AQUECIMENTO_GRUPO_MAP[b.key]] || [];
+            const subs = b.subcategorias;
             return (
               <div key={b.key} className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -546,7 +539,8 @@ export function PrescricaoM102Editor({
                             </Select>
                             <div className="flex-1 min-w-0">
                               <ExerciseSelector
-                                categoria={b.key}
+                                categoria={b.categoria}
+                                grupoPreferido={GRUPO_AQUECIMENTO}
                                 subcategoria={ex.subcategoria}
                                 value={ex.exercicio}
                                 disabled={!ex.subcategoria}

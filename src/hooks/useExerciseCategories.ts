@@ -12,17 +12,40 @@ export interface ExerciseCategory {
 export interface ExerciseCategoriaNode {
   nome: string;
   subcategorias: string[];
+  /** Sigla curta da categoria (LIB, MOB, ATI, PREV, POT...) */
+  sigla?: string;
 }
 export interface ExerciseGrupoNode {
   nome: string;
   categorias: ExerciseCategoriaNode[];
 }
 
+/** Bloco de aquecimento derivado das categorias do grupo "Aquecimento" */
+export interface BlocoAquecimento {
+  sigla: string;
+  categoria: string;
+  subcategorias: string[];
+}
+
+export const GRUPO_AQUECIMENTO = "Aquecimento";
+export const GRUPO_PARTE_PRINCIPAL = "Parte Principal";
+
+/** Sugestão de sigla a partir do nome da categoria (sem acentos, 3 letras). */
+export function siglaSugerida(nome: string): string {
+  const limpo = (nome || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9]/g, "");
+  return limpo.slice(0, 3).toUpperCase();
+}
+
+
 interface CategoriaRow {
   id: string;
   grupo: string;
   categoria: string;
   subcategoria: string;
+  sigla: string | null;
   ordem_grupo: number;
   ordem_categoria: number;
   ordem_sub: number;
@@ -38,7 +61,7 @@ export function useExerciseCategories() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercicio_categorias" as any)
-        .select("id, grupo, categoria, subcategoria, ordem_grupo, ordem_categoria, ordem_sub")
+        .select("id, grupo, categoria, subcategoria, sigla, ordem_grupo, ordem_categoria, ordem_sub")
         .order("ordem_grupo", { ascending: true })
         .order("ordem_categoria", { ascending: true })
         .order("ordem_sub", { ascending: true });
@@ -47,13 +70,14 @@ export function useExerciseCategories() {
     },
   });
 
+
   /** Árvore de 3 níveis */
   const tree = useMemo<ExerciseGrupoNode[]>(() => {
     const grupos = new Map<
       string,
       {
         ordem: number;
-        cats: Map<string, { ordem: number; subs: { sub: string; ordem: number }[] }>;
+        cats: Map<string, { ordem: number; sigla?: string; subs: { sub: string; ordem: number }[] }>;
       }
     >();
     for (const r of rows) {
@@ -62,6 +86,7 @@ export function useExerciseCategories() {
       g.ordem = Math.min(g.ordem, r.ordem_grupo);
       const c = g.cats.get(cat) ?? { ordem: r.ordem_categoria, subs: [] };
       c.ordem = Math.min(c.ordem, r.ordem_categoria);
+      if (!c.sigla && r.sigla) c.sigla = r.sigla;
       c.subs.push({ sub: r.subcategoria, ordem: r.ordem_sub });
       g.cats.set(cat, c);
       grupos.set(r.grupo, g);
@@ -74,12 +99,37 @@ export function useExerciseCategories() {
           .sort((a, b) => a[1].ordem - b[1].ordem || a[0].localeCompare(b[0]))
           .map(([cnome, c]) => ({
             nome: cnome,
+            sigla: c.sigla ?? undefined,
             subcategorias: c.subs
               .sort((a, b) => a.ordem - b.ordem || a.sub.localeCompare(b.sub))
               .map((s) => s.sub),
           })),
       }));
   }, [rows]);
+
+  /** Blocos da seção AQUECIMENTO das prescrições, derivados do grupo "Aquecimento" */
+  const blocosAquecimento = useMemo<BlocoAquecimento[]>(() => {
+    const g = tree.find((x) => x.nome.trim().toLowerCase() === GRUPO_AQUECIMENTO.toLowerCase());
+    if (!g) return [];
+    return g.categorias.map((c) => ({
+      sigla: (c.sigla || siglaSugerida(c.nome)).toUpperCase(),
+      categoria: c.nome,
+      subcategorias: c.subcategorias,
+    }));
+  }, [tree]);
+
+  /**
+   * Categorias da seção FORÇA das prescrições. "Força" deixou de ser grupo:
+   * hoje é categoria de "Parte Principal". Cada categoria vira um "grupo"
+   * do select, com suas subcategorias.
+   */
+  const categoriasForca = useMemo<ExerciseCategory[]>(() => {
+    const g = tree.find((x) => x.nome.trim().toLowerCase() === GRUPO_PARTE_PRINCIPAL.toLowerCase());
+    const alvo = g ?? tree.find((x) => x.nome.trim().toLowerCase() === "força");
+    if (!alvo) return [];
+    return alvo.categorias.map((c) => ({ name: c.nome, subcategories: c.subcategorias }));
+  }, [tree]);
+
 
   /** Compatibilidade: grupo -> subcategorias (achatado de todas as categorias) */
   const categories = useMemo<ExerciseCategory[]>(
@@ -518,13 +568,39 @@ export function useExerciseCategories() {
     onSuccess: invalidate,
   });
 
+  /** Define/corrige a sigla curta de uma categoria (coordenador/admin) */
+  const definirSigla = useMutation({
+    mutationFn: async ({
+      grupo,
+      categoria,
+      sigla,
+    }: {
+      grupo: string;
+      categoria: string;
+      sigla: string;
+    }) => {
+      const { data, error } = await supabase.rpc("fn_definir_sigla_categoria" as any, {
+        p_grupo: grupo,
+        p_categoria: categoria,
+        p_sigla: sigla,
+      } as any);
+      if (error) throw error;
+      return (data as unknown as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+
   return {
     isLoading,
     rows,
     tree,
+    blocosAquecimento,
+    categoriasForca,
     categories,
     grupoSubcategorias,
     resolverCategoria,
+    definirSigla,
+
     addGrupo,
     addCategoria,
     addSub,
