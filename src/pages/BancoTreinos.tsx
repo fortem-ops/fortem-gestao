@@ -307,10 +307,17 @@ function ExerciseRow({
     const g = tree.find((x) => x.nome === a.grupo);
     if (a.categoria) {
       const c = g?.categorias.find((x) => x.nome === a.categoria);
+      // Categoria folha: o 3º nível repete o nome e não deve ser exibido.
+      if (categoriaEhFolha(c)) return [];
       return c?.subcategorias ?? [];
     }
-    return Array.from(new Set((g?.categorias ?? []).flatMap((c) => c.subcategorias)));
+    return Array.from(
+      new Set(
+        (g?.categorias ?? []).flatMap((c) => (categoriaEhFolha(c) ? [] : c.subcategorias)),
+      ),
+    );
   };
+
 
 
 
