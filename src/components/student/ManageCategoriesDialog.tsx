@@ -61,15 +61,30 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     renameSub,
     deleteGrupo,
     deleteSub,
+    migrar,
+    reorderGrupos,
+    reorderSubs,
+    contarExercicios,
   } = useExerciseCategories();
 
-  const [tab, setTab] = useState<"grupos" | "subs">("grupos");
+  const [tab, setTab] = useState<"grupos" | "subs" | "migrar">("grupos");
   const [newGrupo, setNewGrupo] = useState("");
   const [selectedGrupo, setSelectedGrupo] = useState<string>("");
   const [newSub, setNewSub] = useState("");
   const [editing, setEditing] = useState<RowEdit | null>(null);
   const [editValue, setEditValue] = useState("");
   const [confirmDel, setConfirmDel] = useState<RowEdit | null>(null);
+  const [dragGrupo, setDragGrupo] = useState<string | null>(null);
+  const [dragSub, setDragSub] = useState<string | null>(null);
+
+  // Migração
+  const [origGrupo, setOrigGrupo] = useState("");
+  const [origSub, setOrigSub] = useState<string>("__todas__");
+  const [destGrupo, setDestGrupo] = useState("");
+  const [destSub, setDestSub] = useState("");
+  const [excluirOrigem, setExcluirOrigem] = useState(false);
+  const [preview, setPreview] = useState<number | null>(null);
+
 
   const grupos = categories.map((c) => c.name);
   const subs =
