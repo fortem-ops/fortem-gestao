@@ -594,42 +594,80 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                     </SelectContent>
                   </Select>
 
-                  <Label>Destino — Subcategoria</Label>
-                  <Select value={destSub} onValueChange={setDestSub} disabled={!destGrupo}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {destSubs.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {origSub === "__todas__" && (
+                    <>
+                      <Label>Subcategorias</Label>
+                      <Select
+                        value={modoSubs}
+                        onValueChange={(v) => setModoSubs(v as "manter" | "unificar")}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manter">
+                            Manter subcategorias de origem
+                          </SelectItem>
+                          <SelectItem value="unificar">
+                            Unificar em uma subcategoria
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
+
+                  {!(origSub === "__todas__" && modoSubs === "manter") && (
+                    <>
+                      <Label>Destino — Subcategoria</Label>
+                      <Select value={destSub} onValueChange={setDestSub} disabled={!destGrupo}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {destSubs.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
                 </div>
               </div>
 
               {preview !== null && (
-                <div className="glass-card rounded-md p-3 text-sm flex items-center gap-2">
-                  <ArrowRight className="w-4 h-4 text-primary" />
-                  <span>
-                    {preview} exercício(s) serão movidos de{" "}
-                    <strong>
-                      {origGrupo}
-                      {origSub !== "__todas__" ? ` / ${origSub}` : ""}
-                    </strong>
-                    {destGrupo && destSub ? (
-                      <>
-                        {" "}
-                        para{" "}
-                        <strong>
-                          {destGrupo} / {destSub}
-                        </strong>
-                      </>
-                    ) : null}
-                    .
-                  </span>
+                <div className="glass-card rounded-md p-3 text-sm space-y-2">
+                  <div className="flex items-center gap-2">
+                    <ArrowRight className="w-4 h-4 text-primary" />
+                    <span>
+                      {preview} exercício(s) serão movidos de{" "}
+                      <strong>
+                        {origGrupo}
+                        {origSub !== "__todas__" ? ` / ${origSub}` : ""}
+                      </strong>
+                      {destGrupo ? (
+                        <>
+                          {" "}
+                          para{" "}
+                          <strong>
+                            {destGrupo}
+                            {origSub === "__todas__" && modoSubs === "manter"
+                              ? " (mesmas subcategorias)"
+                              : destSub
+                                ? ` / ${destSub}`
+                                : ""}
+                          </strong>
+                        </>
+                      ) : null}
+                      .
+                    </span>
+                  </div>
+                  {origSub === "__todas__" && modoSubs === "manter" && previewSubs.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {previewSubs.map((s) => `${s.sub}: ${s.total}`).join(" · ")}
+                    </div>
+                  )}
                 </div>
               )}
 
