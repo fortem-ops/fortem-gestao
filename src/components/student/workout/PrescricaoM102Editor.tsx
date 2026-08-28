@@ -36,6 +36,7 @@ import type {
   AquecimentoBloco,
   PersonalizadoAquecimentoEx,
 } from "@/components/student/workout/personalizadoTypes";
+import { ensureAquecimentoRecord } from "@/components/student/workout/personalizadoTypes";
 import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
 import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
 import { CATEGORY_LABELS } from "@/components/student/workout/workoutTemplates";

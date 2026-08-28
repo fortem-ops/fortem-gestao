@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import type { Json, Tables } from "@/integrations/supabase/types";
 import { exportPlanStrongPDF } from "./exportPlanStrongPDF";
 import { HelpTip } from "@/components/student/workout/HelpTip";
+import { ensureAquecimentoRecord } from "@/components/student/workout/personalizadoTypes";
 import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
 import { AuxiliaresBlock } from "@/components/student/workout/AuxiliaresBlock";
 import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
