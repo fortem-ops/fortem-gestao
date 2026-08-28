@@ -830,6 +830,32 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                         ))}
                     </div>
                   </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <Label>Promover categoria a grupo</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Arraste uma categoria acima e solte aqui — ela sobe um nível e passa a ser um
+                      grupo próprio, mantendo subcategorias e exercícios.
+                    </p>
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setHoverAlvo("promover-categoria");
+                      }}
+                      onDragLeave={() =>
+                        setHoverAlvo((h) => (h === "promover-categoria" ? null : h))
+                      }
+                      onDrop={dropCategoriaPromover}
+                      className={`rounded-md border border-dashed px-3 py-4 text-sm text-center transition-colors ${
+                        hoverAlvo === "promover-categoria"
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border text-muted-foreground"
+                      }`}
+                    >
+                      ↑ Promover a grupo
+                    </div>
+                  </div>
+
                 </>
               )}
             </div>
