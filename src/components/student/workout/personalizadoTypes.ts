@@ -5,7 +5,12 @@
 
 import type { WorkoutExercise } from "./workoutTemplates";
 
-export type AquecimentoBloco = "LIB" | "MOB" | "ATI" | "PREV";
+/**
+ * Chave de um bloco de aquecimento. Historicamente eram só "LIB" | "MOB" |
+ * "ATI" | "PREV"; hoje é a sigla dinâmica da categoria cadastrada no grupo
+ * "Aquecimento" do Banco de Exercícios (ex.: "POT").
+ */
+export type AquecimentoBloco = string;
 
 export interface PersonalizadoAquecimentoEx {
   subcategoria?: string;
