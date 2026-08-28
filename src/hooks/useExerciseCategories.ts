@@ -301,6 +301,8 @@ export function useExerciseCategories() {
     deleteSub,
     migrar,
     migrarGrupoPreservandoSubs,
+    moverGrupoParaGrupo,
+    moverSubParaGrupo,
     contarPorSubcategoria,
     reorderGrupos,
     reorderSubs,
