@@ -90,6 +90,8 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     moverGrupoComoCategoria,
     moverCategoriaParaGrupo,
     moverSubParaCategoria,
+    promoverSubParaCategoria,
+    promoverCategoriaParaGrupo,
     contarPorSubcategoria,
     reorderGrupos,
     reorderCategorias,
