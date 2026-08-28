@@ -28,6 +28,7 @@ export interface BlocoAquecimento {
 }
 
 export const GRUPO_AQUECIMENTO = "Aquecimento";
+export const GRUPO_PARTE_PRINCIPAL = "Parte Principal";
 
 /** Sugestão de sigla a partir do nome da categoria (sem acentos, 3 letras). */
 export function siglaSugerida(nome: string): string {
@@ -594,6 +595,7 @@ export function useExerciseCategories() {
     rows,
     tree,
     blocosAquecimento,
+    categoriasForca,
     categories,
     grupoSubcategorias,
     resolverCategoria,
