@@ -1225,15 +1225,24 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
       <AlertDialog open={!!confirmMove} onOpenChange={(o) => !o && !movendo && setConfirmMove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Mover para dentro</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmMove?.kind === "promover-sub" || confirmMove?.kind === "promover-categoria"
+                ? "Promover nível"
+                : "Mover para dentro"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmMove?.kind === "grupo"
                 ? `Mover "${confirmMove.origem}" (${confirmMove.cats} categoria(s), ${confirmMove.total} exercício(s)) para dentro de "${confirmMove.destino}"? "${confirmMove.origem}" passa a ser uma categoria de "${confirmMove.destino}", mantendo subcategorias e exercícios.`
                 : confirmMove?.kind === "categoria"
                   ? `Mover a categoria "${confirmMove.categoria}" e seus ${confirmMove.total} exercício(s) de "${confirmMove.grupo}" para "${confirmMove.destino}"?`
-                  : confirmMove
-                    ? `Mover a subcategoria "${confirmMove.sub}" e seus ${confirmMove.total} exercício(s) para "${confirmMove.destinoGrupo} › ${confirmMove.destinoCategoria}"?`
-                    : ""}
+                  : confirmMove?.kind === "promover-sub"
+                    ? `Promover a subcategoria "${confirmMove.sub}" (${confirmMove.total} exercício(s)) a categoria de "${confirmMove.destinoGrupo}"? Ela deixa de ficar dentro de "${confirmMove.grupo} › ${confirmMove.categoria}".`
+                    : confirmMove?.kind === "promover-categoria"
+                      ? `Promover a categoria "${confirmMove.categoria}" (${confirmMove.subs} subcategoria(s), ${confirmMove.total} exercício(s)) a grupo próprio? Ela deixa de ficar dentro de "${confirmMove.grupo}".`
+                      : confirmMove
+                        ? `Mover a subcategoria "${confirmMove.sub}" e seus ${confirmMove.total} exercício(s) para "${confirmMove.destinoGrupo} › ${confirmMove.destinoCategoria}"?`
+                        : ""}
+
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
