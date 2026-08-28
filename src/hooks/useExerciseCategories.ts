@@ -117,6 +117,18 @@ export function useExerciseCategories() {
     }));
   }, [tree]);
 
+  /**
+   * Categorias da seção FORÇA das prescrições. "Força" deixou de ser grupo:
+   * hoje é categoria de "Parte Principal". Cada categoria vira um "grupo"
+   * do select, com suas subcategorias.
+   */
+  const categoriasForca = useMemo<ExerciseCategory[]>(() => {
+    const g = tree.find((x) => x.nome.trim().toLowerCase() === GRUPO_PARTE_PRINCIPAL.toLowerCase());
+    const alvo = g ?? tree.find((x) => x.nome.trim().toLowerCase() === "força");
+    if (!alvo) return [];
+    return alvo.categorias.map((c) => ({ name: c.nome, subcategories: c.subcategorias }));
+  }, [tree]);
+
 
   /** Compatibilidade: grupo -> subcategorias (achatado de todas as categorias) */
   const categories = useMemo<ExerciseCategory[]>(
