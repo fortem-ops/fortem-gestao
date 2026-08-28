@@ -158,6 +158,65 @@ export function useExerciseCategories() {
     onSuccess: invalidate,
   });
 
+  const migrar = useMutation({
+    mutationFn: async ({
+      grupoOrigem,
+      subOrigem,
+      grupoDestino,
+      subDestino,
+    }: {
+      grupoOrigem: string;
+      subOrigem: string | null;
+      grupoDestino: string;
+      subDestino: string;
+    }) => {
+      const { data, error } = await supabase.rpc("fn_migrar_exercicio_categoria" as any, {
+        p_grupo_origem: grupoOrigem,
+        p_sub_origem: subOrigem,
+        p_grupo_destino: grupoDestino,
+        p_sub_destino: subDestino,
+      } as any);
+      if (error) throw error;
+      return (data as unknown as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+
+  // Reordena grupos: aplica ordem_grupo em lote conforme a nova sequência
+  const reorderGrupos = useMutation({
+    mutationFn: async (novaOrdem: string[]) => {
+      for (let i = 0; i < novaOrdem.length; i++) {
+        const { error } = await supabase
+          .from("exercicio_categorias" as any)
+          .update({ ordem_grupo: (i + 1) * 10 } as any)
+          .eq("grupo", novaOrdem[i]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: invalidate,
+  });
+
+  // Reordena subcategorias dentro de um grupo
+  const reorderSubs = useMutation({
+    mutationFn: async ({ grupo, novaOrdem }: { grupo: string; novaOrdem: string[] }) => {
+      for (let i = 0; i < novaOrdem.length; i++) {
+        const { error } = await supabase
+          .from("exercicio_categorias" as any)
+          .update({ ordem_sub: (i + 1) * 10 } as any)
+          .eq("grupo", grupo)
+          .eq("subcategoria", novaOrdem[i]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: invalidate,
+  });
+
+  const contarExercicios = async (grupo: string, sub?: string | null) => {
+    const { count, error } = await countExerciciosNoGrupo(grupo, sub ?? undefined);
+    if (error) throw error;
+    return count ?? 0;
+  };
+
   return {
     isLoading,
     rows,
@@ -169,5 +228,10 @@ export function useExerciseCategories() {
     renameSub,
     deleteGrupo,
     deleteSub,
+    migrar,
+    reorderGrupos,
+    reorderSubs,
+    contarExercicios,
   };
 }
+
