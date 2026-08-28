@@ -88,6 +88,9 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const [destSub, setDestSub] = useState("");
   const [excluirOrigem, setExcluirOrigem] = useState(false);
   const [preview, setPreview] = useState<number | null>(null);
+  const [modoSubs, setModoSubs] = useState<"manter" | "unificar">("manter");
+  const [previewSubs, setPreviewSubs] = useState<{ sub: string; total: number }[]>([]);
+
 
 
   const grupos = categories.map((c) => c.name);
