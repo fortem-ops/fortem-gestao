@@ -842,6 +842,38 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmMove}
+        onOpenChange={(o) => !o && !movendo && setConfirmMove(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mover para dentro</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmMove?.kind === "grupo"
+                ? `Mover ${confirmMove.total} exercício(s) de "${confirmMove.origem}" (${confirmMove.subs.length} subcategoria(s)) para dentro de "${confirmMove.destino}"? As subcategorias são mantidas com os mesmos nomes e o grupo "${confirmMove.origem}" deixa de existir.`
+                : confirmMove
+                  ? `Mover a subcategoria "${confirmMove.sub}" e seus ${confirmMove.total} exercício(s) de "${confirmMove.grupo}" para "${confirmMove.destino}"?`
+                  : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={movendo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarMovimento();
+              }}
+              disabled={movendo}
+            >
+              {movendo ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Mover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </>
   );
 }
