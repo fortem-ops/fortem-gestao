@@ -19,6 +19,8 @@ interface ExerciseSelectorProps {
   disabled?: boolean;
   /** Placeholder customizado. */
   placeholder?: string;
+  /** Restringe a resolução da categoria a um grupo (ex: "Aquecimento"). */
+  grupoPreferido?: string;
 }
 
 interface GroupSelection { grupo: string; categoria?: string; subcategoria: string }
@@ -33,7 +35,7 @@ interface BankExercise {
 import { resolverAlvo, itemCasaAlvo } from "@/lib/exerciseMapping";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 
-export function ExerciseSelector({ categoria, value, onChange, readOnly, subcategoria, disabled, placeholder }: ExerciseSelectorProps) {
+export function ExerciseSelector({ categoria, value, onChange, readOnly, subcategoria, disabled, placeholder, grupoPreferido }: ExerciseSelectorProps) {
   const { tree } = useExerciseCategories();
 
   const [query, setQuery] = useState(value);
@@ -101,7 +103,7 @@ export function ExerciseSelector({ categoria, value, onChange, readOnly, subcate
     staleTime: 60_000,
   });
 
-  const alvo = resolverAlvo(categoria, tree);
+  const alvo = resolverAlvo(categoria, tree, { grupoPreferido });
   const grupoAlvo = alvo.label || categoria;
   const subAlvo = subcategoria ?? alvo.subcategoria;
 
