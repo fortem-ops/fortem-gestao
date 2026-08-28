@@ -312,11 +312,8 @@ function ExerciseRow({
     return Array.from(new Set((g?.categorias ?? []).flatMap((c) => c.subcategorias)));
   };
 
-  const aquecimentoGrupoMap: Record<"LIB" | "MOB" | "ATI", string> = {
-    LIB: "Liberação Miofascial",
-    MOB: "Mobilidade Articular",
-    ATI: "Ativação Muscular",
-  };
+
+
   // (valores efetivos declarados abaixo, junto com a lógica de subcategoria)
 
   // Para aquecimento (LIB/MOB/ATI), o select "Categoria" carrega a subcategoria
