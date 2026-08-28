@@ -255,8 +255,10 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
           <DialogHeader>
             <DialogTitle>Gerenciar Categorias</DialogTitle>
             <DialogDescription>
-              Crie, renomeie e exclua Grupos e Subcategorias do Banco de Exercícios.
+              Crie, renomeie, reordene, migre e exclua Grupos e Subcategorias do Banco de
+              Exercícios.
             </DialogDescription>
+
           </DialogHeader>
 
           <div className="flex gap-2 border-b border-border">
