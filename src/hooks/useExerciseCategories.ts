@@ -29,6 +29,16 @@ export interface BlocoAquecimento {
 
 export const GRUPO_AQUECIMENTO = "Aquecimento";
 
+/** Sugestão de sigla a partir do nome da categoria (sem acentos, 3 letras). */
+export function siglaSugerida(nome: string): string {
+  const limpo = (nome || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9]/g, "");
+  return limpo.slice(0, 3).toUpperCase();
+}
+
+
 interface CategoriaRow {
   id: string;
   grupo: string;
