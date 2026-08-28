@@ -515,8 +515,8 @@ export function StudentExerciseBank() {
     );
   };
 
-  // VIEW: Subcategoria selecionada
-  if (selectedCategory && selectedSub) {
+  // VIEW: Subcategoria selecionada (nível 4 — exercícios)
+  if (selGrupo && selCat && selectedSub) {
     return (
       <div className="space-y-4 mt-4 animate-fade-in">
         <button
@@ -524,12 +524,12 @@ export function StudentExerciseBank() {
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
-          Voltar a {selectedCategory.name}
+          Voltar a {selCat}
         </button>
 
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-heading font-bold text-foreground">
-            {selectedCategory.name} · {selectedSub}
+            {selGrupo} · {selCat} · {selectedSub}
           </h3>
           <Badge variant="secondary">{exerciciosPorSub.length} exercícios</Badge>
         </div>
@@ -550,31 +550,37 @@ export function StudentExerciseBank() {
     );
   }
 
-  // VIEW: Categoria selecionada
-  if (selectedCategory) {
+  // VIEW: Categoria selecionada (nível 3 — subcategorias)
+  if (selGrupo && selCat) {
+    const subsCat = catAtual?.subcategorias ?? [];
     return (
       <div className="space-y-4 mt-4 animate-fade-in">
         <button
-          onClick={() => setSelectedCategory(null)}
+          onClick={() => setSelCat(null)}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
-          Voltar às categorias
+          Voltar a {selGrupo}
         </button>
 
         <h3 className="text-lg font-heading font-bold text-foreground">
-          {selectedCategory.name}
+          {selGrupo} · {selCat}
         </h3>
 
-        {selectedCategory.subcategories.length === 0 ? (
+        {subsCat.length === 0 ? (
           <div className="glass-card rounded-lg p-6 text-center">
             <p className="text-sm text-muted-foreground">Nenhuma subcategoria cadastrada</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {selectedCategory.subcategories.map((sub) => {
+            {subsCat.map((sub) => {
               const count = exercicios.filter((ex) =>
-                ex.grupos.some((g) => g.grupo === selectedCategory.name && g.subcategoria === sub),
+                ex.grupos.some(
+                  (g) =>
+                    g.grupo === selGrupo &&
+                    (g.categoria ?? g.grupo) === selCat &&
+                    g.subcategoria === sub,
+                ),
               ).length;
               return (
                 <button
@@ -586,6 +592,59 @@ export function StudentExerciseBank() {
                     <Dumbbell className="w-4 h-4 text-primary" />
                   </div>
                   <span className="text-sm font-medium text-foreground flex-1">{sub}</span>
+                  <Badge variant="secondary" className="text-xs">{count}</Badge>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {renderEditDialog()}
+      </div>
+    );
+  }
+
+  // VIEW: Grupo selecionado (nível 2 — categorias)
+  if (selGrupo) {
+    const catsGrupo = tree.find((g) => g.nome === selGrupo)?.categorias ?? [];
+    return (
+      <div className="space-y-4 mt-4 animate-fade-in">
+        <button
+          onClick={() => setSelGrupo(null)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Voltar aos grupos
+        </button>
+
+        <h3 className="text-lg font-heading font-bold text-foreground">{selGrupo}</h3>
+
+        {catsGrupo.length === 0 ? (
+          <div className="glass-card rounded-lg p-6 text-center">
+            <p className="text-sm text-muted-foreground">Nenhuma categoria cadastrada</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {catsGrupo.map((c) => {
+              const count = exercicios.filter((ex) =>
+                ex.grupos.some(
+                  (g) => g.grupo === selGrupo && (g.categoria ?? g.grupo) === c.nome,
+                ),
+              ).length;
+              return (
+                <button
+                  key={c.nome}
+                  onClick={() => setSelCat(c.nome)}
+                  className="glass-card rounded-lg p-4 flex items-center gap-3 hover:border-primary/40 transition-colors text-left w-full"
+                >
+                  <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                    <Dumbbell className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">{c.nome}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {c.subcategorias.length} subcategoria(s)
+                    </p>
+                  </div>
                   <Badge variant="secondary" className="text-xs">{count}</Badge>
                 </button>
               );
