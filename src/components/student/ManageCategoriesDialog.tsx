@@ -80,6 +80,15 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const [confirmDel, setConfirmDel] = useState<RowEdit | null>(null);
   const [dragGrupo, setDragGrupo] = useState<string | null>(null);
   const [dragSub, setDragSub] = useState<string | null>(null);
+  const [hoverNest, setHoverNest] = useState<string | null>(null);
+  const [hoverGrupoAlvo, setHoverGrupoAlvo] = useState<string | null>(null);
+  const [confirmMove, setConfirmMove] = useState<
+    | { kind: "grupo"; origem: string; destino: string; total: number; subs: string[] }
+    | { kind: "sub"; grupo: string; sub: string; destino: string; total: number }
+    | null
+  >(null);
+  const [movendo, setMovendo] = useState(false);
+
 
   // Migração
   const [origGrupo, setOrigGrupo] = useState("");
