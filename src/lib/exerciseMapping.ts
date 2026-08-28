@@ -99,6 +99,25 @@ export interface AlvoExercicio {
 const eq = (a?: string, b?: string) =>
   !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 
+const norm = (s?: string) =>
+  (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+/**
+ * Categoria "folha": tem uma única subcategoria com o mesmo nome dela.
+ * Nesses casos o 3º nível é redundante e não deve aparecer na navegação.
+ */
+export function categoriaEhFolha(categoria?: TaxonomiaCategoria | null): boolean {
+  if (!categoria) return false;
+  return (
+    categoria.subcategorias.length === 1 &&
+    norm(categoria.subcategorias[0]) === norm(categoria.nome)
+  );
+}
+
 function acharCategoria(nome: string, tree: TaxonomiaGrupo[]) {
   for (const g of tree) {
     const c = g.categorias.find((x) => eq(x.nome, nome));
