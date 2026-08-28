@@ -138,9 +138,24 @@ export function categoriaEhFolha(categoria?: TaxonomiaCategoria | null): boolean
   );
 }
 
-function acharCategoria(nome: string, tree: TaxonomiaGrupo[]) {
-  for (const g of tree) {
+function acharCategoria(nome: string, tree: TaxonomiaGrupo[], grupoPref?: string) {
+  const grupos = grupoPref
+    ? [...tree.filter((g) => eq(g.nome, grupoPref)), ...tree.filter((g) => !eq(g.nome, grupoPref))]
+    : tree;
+  for (const g of grupos) {
     const c = g.categorias.find((x) => eq(x.nome, nome));
+    if (c) return { grupo: g.nome, categoria: c.nome };
+  }
+  return null;
+}
+
+/** Procura uma categoria pela sigla (LIB, MOB, POT...), opcionalmente dentro de um grupo. */
+function acharCategoriaPorSigla(sigla: string, tree: TaxonomiaGrupo[], grupoPref?: string) {
+  const grupos = grupoPref
+    ? [...tree.filter((g) => eq(g.nome, grupoPref)), ...tree.filter((g) => !eq(g.nome, grupoPref))]
+    : tree;
+  for (const g of grupos) {
+    const c = g.categorias.find((x) => x.sigla && eq(x.sigla, sigla));
     if (c) return { grupo: g.nome, categoria: c.nome };
   }
   return null;
@@ -158,46 +173,71 @@ function acharSub(nome: string, tree: TaxonomiaGrupo[], grupoPref?: string, catP
   if (candidatos.length === 0) return null;
   return (
     candidatos.find((c) => (!grupoPref || eq(c.grupo, grupoPref)) && (!catPref || eq(c.categoria, catPref))) ??
+    candidatos.find((c) => !catPref || eq(c.categoria, catPref)) ??
     candidatos.find((c) => !grupoPref || eq(c.grupo, grupoPref)) ??
     candidatos[0]
   );
 }
 
+export interface OpcoesResolucao {
+  /** Restringe/prefere a busca a um grupo (ex.: "Aquecimento"). */
+  grupoPreferido?: string;
+}
+
 /**
- * Resolve o valor armazenado em `ex.categoria` (código curto tipo "DJS",
+ * Resolve o valor armazenado em `ex.categoria` (código/sigla tipo "DJS" ou "POT",
  * nome de categoria ou nome de subcategoria) contra a taxonomia de
  * 3 níveis, devolvendo os níveis conhecidos.
  */
 export function resolverAlvo(
   value: string | undefined | null,
   tree: TaxonomiaGrupo[],
+  opts: OpcoesResolucao = {},
 ): AlvoExercicio {
   if (!value) return { label: "" };
   const upper = value.toUpperCase();
+  const grupoPref = opts.grupoPreferido;
 
-  // 1) blocos de aquecimento → categoria
+  // 0) escopo explícito (blocos de aquecimento dinâmicos): sigla ou nome dentro do grupo
+  if (grupoPref) {
+    const porSigla = acharCategoriaPorSigla(upper, tree, grupoPref);
+    if (porSigla) return { ...porSigla, label: porSigla.categoria };
+    const porNome = acharCategoria(value, tree, grupoPref);
+    if (porNome) return { ...porNome, label: porNome.categoria };
+    const legado = CODE_TO_CATEGORIA[upper];
+    if (legado) {
+      const achado = acharCategoria(legado, tree, grupoPref);
+      if (achado) return { ...achado, label: achado.categoria };
+      return { grupo: grupoPref, categoria: legado, label: legado };
+    }
+    return { grupo: grupoPref, categoria: value, label: value };
+  }
+
+  // 1) blocos de aquecimento legados → categoria dentro de "Aquecimento"
   const catCode = CODE_TO_CATEGORIA[upper];
   if (catCode) {
-    const achado = acharCategoria(catCode, tree);
+    const achado =
+      acharCategoria(catCode, tree, GRUPO_AQUECIMENTO) ??
+      acharCategoriaPorSigla(upper, tree, GRUPO_AQUECIMENTO);
     if (achado) return { ...achado, label: achado.categoria };
     // fallback legado: ainda existe como grupo
     return { grupo: catCode, label: catCode };
   }
 
-  // 2) códigos de força → grupo + subcategoria
-  const grupoCode = CODE_TO_GRUPO[upper];
-  if (grupoCode) {
+  // 2) códigos de força/principais → Parte Principal > categoria > subcategoria
+  const escopo = CODE_TO_ESCOPO_PRINCIPAL[upper];
+  if (escopo) {
     const sub = CODE_TO_SUBCATEGORIA[upper];
     if (sub) {
-      const achado = acharSub(sub, tree, grupoCode);
+      const achado = acharSub(sub, tree, escopo.grupo, escopo.categoria);
       if (achado) return { ...achado, subcategoria: sub, label: sub };
-      return { grupo: grupoCode, subcategoria: sub, label: sub };
+      return { ...escopo, subcategoria: sub, label: sub };
     }
-    const asGrupo = tree.find((g) => eq(g.nome, grupoCode));
-    if (asGrupo) return { grupo: asGrupo.nome, label: asGrupo.nome };
-    const asCat = acharCategoria(grupoCode, tree);
+    const asCat = acharCategoria(escopo.categoria, tree, escopo.grupo);
     if (asCat) return { ...asCat, label: asCat.categoria };
-    return { grupo: grupoCode, label: grupoCode };
+    const asGrupo = tree.find((g) => eq(g.nome, CODE_TO_GRUPO[upper]));
+    if (asGrupo) return { grupo: asGrupo.nome, label: asGrupo.nome };
+    return { ...escopo, label: escopo.categoria };
   }
 
   // 3) nome livre: subcategoria → categoria → grupo
@@ -207,8 +247,11 @@ export function resolverAlvo(
   if (asCat) return { ...asCat, label: asCat.categoria };
   const asGrupo = tree.find((g) => eq(g.nome, value));
   if (asGrupo) return { grupo: asGrupo.nome, label: asGrupo.nome };
+  const porSigla = acharCategoriaPorSigla(upper, tree);
+  if (porSigla) return { ...porSigla, label: porSigla.categoria };
   return { grupo: value, label: value };
 }
+
 
 export interface ItemGrupoExercicio {
   grupo: string;
