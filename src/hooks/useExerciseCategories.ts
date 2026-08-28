@@ -555,13 +555,38 @@ export function useExerciseCategories() {
     onSuccess: invalidate,
   });
 
+  /** Define/corrige a sigla curta de uma categoria (coordenador/admin) */
+  const definirSigla = useMutation({
+    mutationFn: async ({
+      grupo,
+      categoria,
+      sigla,
+    }: {
+      grupo: string;
+      categoria: string;
+      sigla: string;
+    }) => {
+      const { data, error } = await supabase.rpc("fn_definir_sigla_categoria" as any, {
+        p_grupo: grupo,
+        p_categoria: categoria,
+        p_sigla: sigla,
+      } as any);
+      if (error) throw error;
+      return (data as unknown as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+
   return {
     isLoading,
     rows,
     tree,
+    blocosAquecimento,
     categories,
     grupoSubcategorias,
     resolverCategoria,
+    definirSigla,
+
     addGrupo,
     addCategoria,
     addSub,
