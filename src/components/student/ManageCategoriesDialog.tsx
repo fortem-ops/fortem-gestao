@@ -50,7 +50,17 @@ type MoveConfirm =
       destinoGrupo: string;
       destinoCategoria: string;
       total: number;
-    };
+    }
+  | {
+      kind: "promover-sub";
+      grupo: string;
+      categoria: string;
+      sub: string;
+      destinoGrupo: string;
+      total: number;
+    }
+  | { kind: "promover-categoria"; grupo: string; categoria: string; total: number; subs: number };
+
 
 const validate = (name: string, existing: string[], oldName?: string) => {
   const v = name.trim();
