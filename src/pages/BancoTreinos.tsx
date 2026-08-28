@@ -334,7 +334,8 @@ function ExerciseRow({
 
   // Para força/principais: subcategoria efetiva (override > derivada do código > template)
   const grupoForca = !aquecimentoBloco ? CODE_TO_GRUPO[effCategoria.toUpperCase()] : undefined;
-  const subcategoriasGrupo = grupoForca ? grupoSubcategorias[grupoForca] || [] : [];
+  const subcategoriasGrupo = !aquecimentoBloco ? subsDoAlvo(effCategoria) : [];
+
   const defaultSubForca = !aquecimentoBloco
     ? (CODE_TO_SUBCATEGORIA[effCategoria.toUpperCase()] ?? defaultSubcategoria ?? "")
     : "";
