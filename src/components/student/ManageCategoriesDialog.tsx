@@ -65,6 +65,8 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     deleteSub,
     migrar,
     migrarGrupoPreservandoSubs,
+    moverGrupoParaGrupo,
+    moverSubParaGrupo,
     contarPorSubcategoria,
     reorderGrupos,
     reorderSubs,
@@ -80,6 +82,15 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const [confirmDel, setConfirmDel] = useState<RowEdit | null>(null);
   const [dragGrupo, setDragGrupo] = useState<string | null>(null);
   const [dragSub, setDragSub] = useState<string | null>(null);
+  const [hoverNest, setHoverNest] = useState<string | null>(null);
+  const [hoverGrupoAlvo, setHoverGrupoAlvo] = useState<string | null>(null);
+  const [confirmMove, setConfirmMove] = useState<
+    | { kind: "grupo"; origem: string; destino: string; total: number; subs: string[] }
+    | { kind: "sub"; grupo: string; sub: string; destino: string; total: number }
+    | null
+  >(null);
+  const [movendo, setMovendo] = useState(false);
+
 
   // Migração
   const [origGrupo, setOrigGrupo] = useState("");
@@ -139,10 +150,31 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     return arr;
   };
 
-  const dropGrupo = async (alvo: string) => {
-    if (!dragGrupo || dragGrupo === alvo) return setDragGrupo(null);
-    const nova = reordenar(grupos, dragGrupo, alvo);
+  // Define se a soltura sobre a linha reordena (metade superior) ou aninha (metade inferior)
+  const zonaDeSoltura = (e: React.DragEvent<HTMLDivElement>): "reordenar" | "aninhar" => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return e.clientY - rect.top < rect.height / 2 ? "reordenar" : "aninhar";
+  };
+
+  const dropGrupo = async (alvo: string, modo: "reordenar" | "aninhar") => {
+    const origem = dragGrupo;
     setDragGrupo(null);
+    setHoverNest(null);
+    if (!origem || origem === alvo) return;
+
+    if (modo === "aninhar") {
+      try {
+        const total = await contarExercicios(origem, null);
+        const subsOrigem =
+          categories.find((c) => c.name === origem)?.subcategories ?? [];
+        setConfirmMove({ kind: "grupo", origem, destino: alvo, total, subs: subsOrigem });
+      } catch (e: any) {
+        toast.error(e.message || "Erro ao calcular a prévia");
+      }
+      return;
+    }
+
+    const nova = reordenar(grupos, origem, alvo);
     try {
       await reorderGrupos.mutateAsync(nova);
     } catch (e: any) {
@@ -160,6 +192,48 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
       toast.error(e.message || "Erro ao reordenar");
     }
   };
+
+  const dropSubEmGrupo = async (destino: string) => {
+    const sub = dragSub;
+    setDragSub(null);
+    setHoverGrupoAlvo(null);
+    if (!sub || !selectedGrupo || destino === selectedGrupo) return;
+    try {
+      const total = await contarExercicios(selectedGrupo, sub);
+      setConfirmMove({ kind: "sub", grupo: selectedGrupo, sub, destino, total });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao calcular a prévia");
+    }
+  };
+
+  const confirmarMovimento = async () => {
+    if (!confirmMove) return;
+    setMovendo(true);
+    try {
+      if (confirmMove.kind === "grupo") {
+        const n = await moverGrupoParaGrupo.mutateAsync({
+          grupoOrigem: confirmMove.origem,
+          grupoDestino: confirmMove.destino,
+        });
+        if (selectedGrupo === confirmMove.origem) setSelectedGrupo(confirmMove.destino);
+        toast.success(`${n} exercício(s) movidos para ${confirmMove.destino}`);
+      } else {
+        const n = await moverSubParaGrupo.mutateAsync({
+          grupoOrigem: confirmMove.grupo,
+          sub: confirmMove.sub,
+          grupoDestino: confirmMove.destino,
+        });
+        toast.success(`${n} exercício(s) movidos para ${confirmMove.destino}`);
+      }
+      setConfirmMove(null);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao mover");
+    } finally {
+      setMovendo(false);
+    }
+  };
+
+
 
   const handleMigrar = async () => {
     if (!origGrupo) return toast.error("Selecione o grupo de origem");
@@ -340,6 +414,10 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                   Adicionar
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Arraste na metade <strong>de cima</strong> de outro grupo para reordenar, ou
+                na metade <strong>de baixo</strong> para colocar a pasta dentro dele.
+              </p>
               <div className="space-y-1">
                 {grupos.length === 0 && (
                   <p className="text-sm text-muted-foreground py-4 text-center">
@@ -351,15 +429,24 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                   return (
                     <div
                       key={g}
-                      className={`glass-card rounded-md p-2 flex items-center gap-2 ${
+                      className={`glass-card rounded-md p-2 flex items-center gap-2 transition-shadow ${
                         dragGrupo === g ? "opacity-50" : ""
-                      }`}
+                      } ${hoverNest === g ? "ring-2 ring-primary" : ""}`}
                       draggable={!isEditing}
                       onDragStart={() => setDragGrupo(g)}
-                      onDragEnd={() => setDragGrupo(null)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => dropGrupo(g)}
+                      onDragEnd={() => {
+                        setDragGrupo(null);
+                        setHoverNest(null);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (!dragGrupo || dragGrupo === g) return;
+                        setHoverNest(zonaDeSoltura(e) === "aninhar" ? g : null);
+                      }}
+                      onDragLeave={() => setHoverNest((h) => (h === g ? null : h))}
+                      onDrop={(e) => dropGrupo(g, zonaDeSoltura(e))}
                     >
+
                       <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
                       {isEditing ? (
 
@@ -525,7 +612,40 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                       );
                     })}
                   </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <Label>Mover para outro grupo</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Arraste uma subcategoria acima e solte sobre um grupo abaixo — os
+                      exercícios vão junto.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {grupos
+                        .filter((g) => g !== selectedGrupo)
+                        .map((g) => (
+                          <div
+                            key={g}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setHoverGrupoAlvo(g);
+                            }}
+                            onDragLeave={() =>
+                              setHoverGrupoAlvo((h) => (h === g ? null : h))
+                            }
+                            onDrop={() => dropSubEmGrupo(g)}
+                            className={`rounded-md border border-dashed px-3 py-2 text-sm transition-colors ${
+                              hoverGrupoAlvo === g
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "border-border text-muted-foreground"
+                            }`}
+                          >
+                            {g}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                 </>
+
               )}
             </div>
           ) : (
@@ -722,6 +842,38 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmMove}
+        onOpenChange={(o) => !o && !movendo && setConfirmMove(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mover para dentro</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmMove?.kind === "grupo"
+                ? `Mover ${confirmMove.total} exercício(s) de "${confirmMove.origem}" (${confirmMove.subs.length} subcategoria(s)) para dentro de "${confirmMove.destino}"? As subcategorias são mantidas com os mesmos nomes e o grupo "${confirmMove.origem}" deixa de existir.`
+                : confirmMove
+                  ? `Mover a subcategoria "${confirmMove.sub}" e seus ${confirmMove.total} exercício(s) de "${confirmMove.grupo}" para "${confirmMove.destino}"?`
+                  : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={movendo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarMovimento();
+              }}
+              disabled={movendo}
+            >
+              {movendo ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Mover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </>
   );
 }

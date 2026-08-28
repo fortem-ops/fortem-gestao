@@ -8100,6 +8100,14 @@ export type Database = {
         }
         Returns: string
       }
+      fn_mover_grupo_para_grupo: {
+        Args: { p_grupo_destino: string; p_grupo_origem: string }
+        Returns: number
+      }
+      fn_mover_sub_para_grupo: {
+        Args: { p_grupo_destino: string; p_grupo_origem: string; p_sub: string }
+        Returns: number
+      }
       fn_notificar_criar_notificacao: {
         Args: {
           p_aluno_id?: string
