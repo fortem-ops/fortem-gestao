@@ -32,6 +32,7 @@ interface Category {
 
 interface GroupSelection {
   grupo: string;
+  categoria?: string;
   subcategoria: string;
 }
 
@@ -48,6 +49,7 @@ const exerciseSchema = z.object({
   nome: z.string().trim().min(1, "Nome obrigatório").max(120, "Máx. 120 caracteres"),
   grupos: z.array(z.object({
     grupo: z.string().min(1),
+    categoria: z.string().optional(),
     subcategoria: z.string().min(1),
   })).min(1, "Selecione pelo menos um grupo e subcategoria"),
   video_url: z.string().trim().url("URL inválida").max(500).optional().or(z.literal("")),
