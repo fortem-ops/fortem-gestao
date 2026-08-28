@@ -231,7 +231,7 @@ function ExercisePicker({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Buscar em ${subcategoriaOverride || CODE_TO_SUBCATEGORIA[categoria.toUpperCase()] || CODE_TO_GRUPO[categoria.toUpperCase()] || categoria}...`}
+              placeholder={`Buscar em ${subcategoriaOverride || grupoAlvo}...`}
               className="h-10 pl-9 text-sm"
             />
           </div>
