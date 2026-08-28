@@ -635,10 +635,14 @@ export function StudentExerciseBank() {
                   (g) => g.grupo === selGrupo && (g.categoria ?? g.grupo) === c.nome,
                 ),
               ).length;
+              const folha = categoriaEhFolha(c);
               return (
                 <button
                   key={c.nome}
-                  onClick={() => setSelCat(c.nome)}
+                  onClick={() => {
+                    setSelCat(c.nome);
+                    if (folha) setSelectedSub(c.subcategorias[0]);
+                  }}
                   className="glass-card rounded-lg p-4 flex items-center gap-3 hover:border-primary/40 transition-colors text-left w-full"
                 >
                   <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
@@ -647,9 +651,12 @@ export function StudentExerciseBank() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">{c.nome}</p>
                     <p className="text-xs text-muted-foreground">
-                      {c.subcategorias.length} subcategoria(s)
+                      {folha
+                        ? `${count} exercício(s)`
+                        : `${c.subcategorias.length} subcategoria(s)`}
                     </p>
                   </div>
+
                   <Badge variant="secondary" className="text-xs">{count}</Badge>
                 </button>
               );
