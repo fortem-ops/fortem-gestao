@@ -64,6 +64,8 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     deleteGrupo,
     deleteSub,
     migrar,
+    migrarGrupoPreservandoSubs,
+    contarPorSubcategoria,
     reorderGrupos,
     reorderSubs,
     contarExercicios,
