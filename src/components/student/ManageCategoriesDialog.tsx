@@ -383,7 +383,8 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                 })}
               </div>
             </div>
-          ) : (
+          ) : tab === "subs" ? (
+
             <div className="space-y-3">
               <div>
                 <Label>Grupo</Label>
