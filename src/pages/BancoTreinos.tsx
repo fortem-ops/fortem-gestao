@@ -358,7 +358,9 @@ function ExerciseRow({
     aquecimentoBloco ?? effCategoria,
     bank,
     effSubcategoria || undefined,
+    tree,
   ).length;
+
   const hasVideo = match && (match.video_url || match.video_path);
   const isSlotVazio = !ex.exercicio && !escolhaEx;
 
