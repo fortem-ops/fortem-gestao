@@ -8280,6 +8280,19 @@ export type Database = {
         Returns: number
       }
       fn_processar_horarios_fixos: { Args: never; Returns: Json }
+      fn_promover_categoria_para_grupo: {
+        Args: { p_categoria: string; p_grupo_origem: string }
+        Returns: number
+      }
+      fn_promover_sub_para_categoria: {
+        Args: {
+          p_categoria_origem: string
+          p_grupo_destino: string
+          p_grupo_origem: string
+          p_sub: string
+        }
+        Returns: number
+      }
       fn_proxima_renovacao_from: {
         Args: { _data_inicio: string }
         Returns: string

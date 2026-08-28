@@ -50,7 +50,17 @@ type MoveConfirm =
       destinoGrupo: string;
       destinoCategoria: string;
       total: number;
-    };
+    }
+  | {
+      kind: "promover-sub";
+      grupo: string;
+      categoria: string;
+      sub: string;
+      destinoGrupo: string;
+      total: number;
+    }
+  | { kind: "promover-categoria"; grupo: string; categoria: string; total: number; subs: number };
+
 
 const validate = (name: string, existing: string[], oldName?: string) => {
   const v = name.trim();
@@ -80,6 +90,8 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     moverGrupoComoCategoria,
     moverCategoriaParaGrupo,
     moverSubParaCategoria,
+    promoverSubParaCategoria,
+    promoverCategoriaParaGrupo,
     contarPorSubcategoria,
     reorderGrupos,
     reorderCategorias,
@@ -276,6 +288,52 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     }
   };
 
+  /** Subcategoria sobe de nível: vira categoria do grupo destino */
+  const dropSubEmGrupo = async (destinoGrupo: string) => {
+    const sub = dragSub;
+    setDragSub(null);
+    setHoverAlvo(null);
+    if (!sub || !selectedGrupo || !selectedCategoria) return;
+    if (destinoGrupo === selectedGrupo && selectedCategoria === sub) return;
+    try {
+      const total = await contarExercicios(selectedGrupo, selectedCategoria, sub);
+      setConfirmMove({
+        kind: "promover-sub",
+        grupo: selectedGrupo,
+        categoria: selectedCategoria,
+        sub,
+        destinoGrupo,
+        total,
+      });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao calcular a prévia");
+    }
+  };
+
+  /** Categoria sobe de nível: vira grupo próprio */
+  const dropCategoriaPromover = async () => {
+    const categoria = dragCategoria;
+    setDragCategoria(null);
+    setHoverAlvo(null);
+    if (!categoria || !selectedGrupo) return;
+    if (grupos.some((g) => g.toLowerCase() === categoria.toLowerCase())) {
+      toast.error("Já existe um grupo com esse nome");
+      return;
+    }
+    try {
+      const total = await contarExercicios(selectedGrupo, categoria);
+      setConfirmMove({
+        kind: "promover-categoria",
+        grupo: selectedGrupo,
+        categoria,
+        total,
+        subs: subsDe(selectedGrupo, categoria).length,
+      });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao calcular a prévia");
+    }
+  };
+
   const confirmarMovimento = async () => {
     if (!confirmMove) return;
     setMovendo(true);
@@ -299,6 +357,26 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
           grupoDestino: confirmMove.destino,
         });
         toast.success(`${n} exercício(s) movidos para ${confirmMove.destino}`);
+      } else if (confirmMove.kind === "promover-sub") {
+        const n = await promoverSubParaCategoria.mutateAsync({
+          grupoOrigem: confirmMove.grupo,
+          categoriaOrigem: confirmMove.categoria,
+          sub: confirmMove.sub,
+          grupoDestino: confirmMove.destinoGrupo,
+        });
+        setSelectedGrupo(confirmMove.destinoGrupo);
+        setSelectedCategoria(confirmMove.sub);
+        toast.success(
+          `"${confirmMove.sub}" agora é categoria de "${confirmMove.destinoGrupo}" (${n} exercício(s))`,
+        );
+      } else if (confirmMove.kind === "promover-categoria") {
+        const n = await promoverCategoriaParaGrupo.mutateAsync({
+          grupoOrigem: confirmMove.grupo,
+          categoria: confirmMove.categoria,
+        });
+        setSelectedGrupo(confirmMove.categoria);
+        setSelectedCategoria("");
+        toast.success(`"${confirmMove.categoria}" agora é um grupo (${n} exercício(s))`);
       } else {
         const n = await moverSubParaCategoria.mutateAsync({
           grupoOrigem: confirmMove.grupo,
@@ -309,6 +387,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
         });
         toast.success(`${n} exercício(s) movidos para ${confirmMove.destinoCategoria}`);
       }
+
       setConfirmMove(null);
     } catch (e: any) {
       toast.error(e.message || "Erro ao mover");
@@ -751,6 +830,32 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                         ))}
                     </div>
                   </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <Label>Promover categoria a grupo</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Arraste uma categoria acima e solte aqui — ela sobe um nível e passa a ser um
+                      grupo próprio, mantendo subcategorias e exercícios.
+                    </p>
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setHoverAlvo("promover-categoria");
+                      }}
+                      onDragLeave={() =>
+                        setHoverAlvo((h) => (h === "promover-categoria" ? null : h))
+                      }
+                      onDrop={dropCategoriaPromover}
+                      className={`rounded-md border border-dashed px-3 py-4 text-sm text-center transition-colors ${
+                        hoverAlvo === "promover-categoria"
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border text-muted-foreground"
+                      }`}
+                    >
+                      ↑ Promover a grupo
+                    </div>
+                  </div>
+
                 </>
               )}
             </div>
@@ -931,6 +1036,38 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                       )}
                     </div>
                   </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <Label>Promover subcategoria a categoria</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Arraste uma subcategoria acima e solte sobre um grupo abaixo — ela sobe um
+                      nível e vira categoria desse grupo, levando os exercícios.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {grupos.map((g) => {
+                        const key = `promover-sub///${g}`;
+                        return (
+                          <div
+                            key={key}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setHoverAlvo(key);
+                            }}
+                            onDragLeave={() => setHoverAlvo((h) => (h === key ? null : h))}
+                            onDrop={() => dropSubEmGrupo(g)}
+                            className={`rounded-md border border-dashed px-3 py-2 text-xs transition-colors ${
+                              hoverAlvo === key
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "border-border text-muted-foreground"
+                            }`}
+                          >
+                            ↑ {g}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </>
               )}
             </div>
@@ -1146,15 +1283,24 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
       <AlertDialog open={!!confirmMove} onOpenChange={(o) => !o && !movendo && setConfirmMove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Mover para dentro</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmMove?.kind === "promover-sub" || confirmMove?.kind === "promover-categoria"
+                ? "Promover nível"
+                : "Mover para dentro"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmMove?.kind === "grupo"
                 ? `Mover "${confirmMove.origem}" (${confirmMove.cats} categoria(s), ${confirmMove.total} exercício(s)) para dentro de "${confirmMove.destino}"? "${confirmMove.origem}" passa a ser uma categoria de "${confirmMove.destino}", mantendo subcategorias e exercícios.`
                 : confirmMove?.kind === "categoria"
                   ? `Mover a categoria "${confirmMove.categoria}" e seus ${confirmMove.total} exercício(s) de "${confirmMove.grupo}" para "${confirmMove.destino}"?`
-                  : confirmMove
-                    ? `Mover a subcategoria "${confirmMove.sub}" e seus ${confirmMove.total} exercício(s) para "${confirmMove.destinoGrupo} › ${confirmMove.destinoCategoria}"?`
-                    : ""}
+                  : confirmMove?.kind === "promover-sub"
+                    ? `Promover a subcategoria "${confirmMove.sub}" (${confirmMove.total} exercício(s)) a categoria de "${confirmMove.destinoGrupo}"? Ela deixa de ficar dentro de "${confirmMove.grupo} › ${confirmMove.categoria}".`
+                    : confirmMove?.kind === "promover-categoria"
+                      ? `Promover a categoria "${confirmMove.categoria}" (${confirmMove.subs} subcategoria(s), ${confirmMove.total} exercício(s)) a grupo próprio? Ela deixa de ficar dentro de "${confirmMove.grupo}".`
+                      : confirmMove
+                        ? `Mover a subcategoria "${confirmMove.sub}" e seus ${confirmMove.total} exercício(s) para "${confirmMove.destinoGrupo} › ${confirmMove.destinoCategoria}"?`
+                        : ""}
+
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
