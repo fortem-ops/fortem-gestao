@@ -288,6 +288,52 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     }
   };
 
+  /** Subcategoria sobe de nível: vira categoria do grupo destino */
+  const dropSubEmGrupo = async (destinoGrupo: string) => {
+    const sub = dragSub;
+    setDragSub(null);
+    setHoverAlvo(null);
+    if (!sub || !selectedGrupo || !selectedCategoria) return;
+    if (destinoGrupo === selectedGrupo && selectedCategoria === sub) return;
+    try {
+      const total = await contarExercicios(selectedGrupo, selectedCategoria, sub);
+      setConfirmMove({
+        kind: "promover-sub",
+        grupo: selectedGrupo,
+        categoria: selectedCategoria,
+        sub,
+        destinoGrupo,
+        total,
+      });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao calcular a prévia");
+    }
+  };
+
+  /** Categoria sobe de nível: vira grupo próprio */
+  const dropCategoriaPromover = async () => {
+    const categoria = dragCategoria;
+    setDragCategoria(null);
+    setHoverAlvo(null);
+    if (!categoria || !selectedGrupo) return;
+    if (grupos.some((g) => g.toLowerCase() === categoria.toLowerCase())) {
+      toast.error("Já existe um grupo com esse nome");
+      return;
+    }
+    try {
+      const total = await contarExercicios(selectedGrupo, categoria);
+      setConfirmMove({
+        kind: "promover-categoria",
+        grupo: selectedGrupo,
+        categoria,
+        total,
+        subs: subsDe(selectedGrupo, categoria).length,
+      });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao calcular a prévia");
+    }
+  };
+
   const confirmarMovimento = async () => {
     if (!confirmMove) return;
     setMovendo(true);
