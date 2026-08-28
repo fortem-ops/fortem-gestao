@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolverAlvo, itemCasaAlvo, type TaxonomiaGrupo } from "@/lib/exerciseMapping";
+import { resolverAlvo, itemCasaAlvo, categoriaEhFolha, type TaxonomiaGrupo } from "@/lib/exerciseMapping";
 
 const tree: TaxonomiaGrupo[] = [
   {
