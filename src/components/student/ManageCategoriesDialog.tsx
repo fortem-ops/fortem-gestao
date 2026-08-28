@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, Check, X, Loader2, GripVertical, ArrowRight } fro
 
 import { toast } from "sonner";
 
-import { useExerciseCategories } from "@/hooks/useExerciseCategories";
+import { useExerciseCategories, siglaSugerida } from "@/hooks/useExerciseCategories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,6 +97,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     reorderCategorias,
     reorderSubs,
     contarExercicios,
+    definirSigla,
   } = useExerciseCategories();
 
   const [tab, setTab] = useState<"grupos" | "categorias" | "subs" | "migrar">("grupos");
@@ -108,6 +109,8 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const [editing, setEditing] = useState<RowEdit | null>(null);
   const [editValue, setEditValue] = useState("");
   const [confirmDel, setConfirmDel] = useState<RowEdit | null>(null);
+  const [siglaEdit, setSiglaEdit] = useState<string | null>(null);
+  const [siglaValue, setSiglaValue] = useState("");
 
   const [dragGrupo, setDragGrupo] = useState<string | null>(null);
   const [dragCategoria, setDragCategoria] = useState<string | null>(null);
@@ -131,6 +134,23 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const grupos = tree.map((g) => g.nome);
   const categoriasDoGrupo = (grupo: string) =>
     tree.find((g) => g.nome === grupo)?.categorias.map((c) => c.nome) ?? [];
+  const catNode = (grupo: string, categoria: string) =>
+    tree.find((g) => g.nome === grupo)?.categorias.find((c) => c.nome === categoria);
+  const siglaDe = (grupo: string, categoria: string) =>
+    (catNode(grupo, categoria)?.sigla || siglaSugerida(categoria)).toUpperCase();
+
+  const salvarSigla = async (categoria: string) => {
+    const val = siglaValue.trim().toUpperCase();
+    setSiglaEdit(null);
+    if (!val || val === siglaDe(selectedGrupo, categoria)) return;
+    try {
+      await definirSigla.mutateAsync({ grupo: selectedGrupo, categoria, sigla: val });
+      toast.success(`Sigla de "${categoria}" agora é ${val}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao definir sigla");
+    }
+  };
+
   const subsDe = (grupo: string, categoria: string) =>
     tree.find((g) => g.nome === grupo)?.categorias.find((c) => c.nome === categoria)
       ?.subcategorias ?? [];
@@ -764,9 +784,35 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                             </>
                           ) : (
                             <>
-                              <span className="flex-1 text-sm">
+                              <span className="flex-1 text-sm flex items-center gap-2">
+                                {siglaEdit === c ? (
+                                  <Input
+                                    value={siglaValue}
+                                    onChange={(e) => setSiglaValue(e.target.value.toUpperCase())}
+                                    onBlur={() => salvarSigla(c)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") salvarSigla(c);
+                                      if (e.key === "Escape") setSiglaEdit(null);
+                                    }}
+                                    maxLength={8}
+                                    autoFocus
+                                    className="h-6 w-20 text-[11px] font-mono"
+                                  />
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSiglaValue(siglaDe(selectedGrupo, c));
+                                      setSiglaEdit(c);
+                                    }}
+                                    title="Editar sigla usada nas prescrições"
+                                    className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-border text-muted-foreground hover:text-foreground"
+                                  >
+                                    {siglaDe(selectedGrupo, c)}
+                                  </button>
+                                )}
                                 {c}
-                                <span className="ml-2 text-xs text-muted-foreground">
+                                <span className="ml-1 text-xs text-muted-foreground">
                                   {subsDe(selectedGrupo, c).length} subcategoria(s)
                                 </span>
                               </span>
