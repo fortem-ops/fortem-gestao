@@ -66,7 +66,7 @@ export function useExerciseCategories() {
       string,
       {
         ordem: number;
-        cats: Map<string, { ordem: number; subs: { sub: string; ordem: number }[] }>;
+        cats: Map<string, { ordem: number; sigla?: string; subs: { sub: string; ordem: number }[] }>;
       }
     >();
     for (const r of rows) {
@@ -75,6 +75,7 @@ export function useExerciseCategories() {
       g.ordem = Math.min(g.ordem, r.ordem_grupo);
       const c = g.cats.get(cat) ?? { ordem: r.ordem_categoria, subs: [] };
       c.ordem = Math.min(c.ordem, r.ordem_categoria);
+      if (!c.sigla && r.sigla) c.sigla = r.sigla;
       c.subs.push({ sub: r.subcategoria, ordem: r.ordem_sub });
       g.cats.set(cat, c);
       grupos.set(r.grupo, g);
@@ -87,12 +88,25 @@ export function useExerciseCategories() {
           .sort((a, b) => a[1].ordem - b[1].ordem || a[0].localeCompare(b[0]))
           .map(([cnome, c]) => ({
             nome: cnome,
+            sigla: c.sigla ?? undefined,
             subcategorias: c.subs
               .sort((a, b) => a.ordem - b.ordem || a.sub.localeCompare(b.sub))
               .map((s) => s.sub),
           })),
       }));
   }, [rows]);
+
+  /** Blocos da seção AQUECIMENTO das prescrições, derivados do grupo "Aquecimento" */
+  const blocosAquecimento = useMemo<BlocoAquecimento[]>(() => {
+    const g = tree.find((x) => x.nome.trim().toLowerCase() === GRUPO_AQUECIMENTO.toLowerCase());
+    if (!g) return [];
+    return g.categorias.map((c) => ({
+      sigla: (c.sigla || siglaSugerida(c.nome)).toUpperCase(),
+      categoria: c.nome,
+      subcategorias: c.subcategorias,
+    }));
+  }, [tree]);
+
 
   /** Compatibilidade: grupo -> subcategorias (achatado de todas as categorias) */
   const categories = useMemo<ExerciseCategory[]>(
