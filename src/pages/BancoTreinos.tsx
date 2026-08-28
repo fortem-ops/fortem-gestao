@@ -159,7 +159,17 @@ function ExercisePicker({
   // Quando não há subcategoria fixa, agrupar candidatos por subcategoria
   // (dentro do alvo resolvido) para facilitar a navegação visual.
   const grupoAlvo = alvo.label || categoria;
-  const shouldGroup = !subcategoriaOverride;
+  const catFolha = useMemo(
+    () =>
+      categoriaEhFolha(
+        tree
+          .find((g) => g.nome === alvo.grupo)
+          ?.categorias.find((c) => c.nome === alvo.categoria),
+      ),
+    [tree, alvo.grupo, alvo.categoria],
+  );
+  const shouldGroup = !subcategoriaOverride && !catFolha;
+
   const grouped = useMemo(() => {
     if (!shouldGroup) return null;
     const map = new Map<string, BankExercise[]>();
