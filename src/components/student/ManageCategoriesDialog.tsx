@@ -36,15 +36,27 @@ import {
 
 type RowEdit =
   | { kind: "grupo"; oldName: string }
-  | { kind: "sub"; grupo: string; oldName: string };
+  | { kind: "categoria"; grupo: string; oldName: string }
+  | { kind: "sub"; grupo: string; categoria: string; oldName: string };
+
+type MoveConfirm =
+  | { kind: "grupo"; origem: string; destino: string; total: number; cats: number }
+  | { kind: "categoria"; grupo: string; categoria: string; destino: string; total: number }
+  | {
+      kind: "sub";
+      grupo: string;
+      categoria: string;
+      sub: string;
+      destinoGrupo: string;
+      destinoCategoria: string;
+      total: number;
+    };
 
 const validate = (name: string, existing: string[], oldName?: string) => {
   const v = name.trim();
   if (!v) return "Nome obrigatório";
   if (v.length > 80) return "Máx. 80 caracteres";
-  const dup = existing.some(
-    (e) => e.toLowerCase() === v.toLowerCase() && e !== oldName,
-  );
+  const dup = existing.some((e) => e.toLowerCase() === v.toLowerCase() && e !== oldName);
   if (dup) return "Nome já existe";
   return null;
 };
@@ -56,67 +68,84 @@ interface Props {
 
 export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const {
-    categories,
+    tree,
     addGrupo,
+    addCategoria,
     addSub,
-    renameGrupo,
-    renameSub,
+    renomear,
     deleteGrupo,
+    deleteCategoria,
     deleteSub,
     migrar,
-    migrarGrupoPreservandoSubs,
-    moverGrupoParaGrupo,
-    moverSubParaGrupo,
+    moverGrupoComoCategoria,
+    moverCategoriaParaGrupo,
+    moverSubParaCategoria,
     contarPorSubcategoria,
     reorderGrupos,
+    reorderCategorias,
     reorderSubs,
     contarExercicios,
   } = useExerciseCategories();
 
-  const [tab, setTab] = useState<"grupos" | "subs" | "migrar">("grupos");
+  const [tab, setTab] = useState<"grupos" | "categorias" | "subs" | "migrar">("grupos");
   const [newGrupo, setNewGrupo] = useState("");
-  const [selectedGrupo, setSelectedGrupo] = useState<string>("");
+  const [newCategoria, setNewCategoria] = useState("");
   const [newSub, setNewSub] = useState("");
+  const [selectedGrupo, setSelectedGrupo] = useState<string>("");
+  const [selectedCategoria, setSelectedCategoria] = useState<string>("");
   const [editing, setEditing] = useState<RowEdit | null>(null);
   const [editValue, setEditValue] = useState("");
   const [confirmDel, setConfirmDel] = useState<RowEdit | null>(null);
+
   const [dragGrupo, setDragGrupo] = useState<string | null>(null);
+  const [dragCategoria, setDragCategoria] = useState<string | null>(null);
   const [dragSub, setDragSub] = useState<string | null>(null);
   const [hoverNest, setHoverNest] = useState<string | null>(null);
-  const [hoverGrupoAlvo, setHoverGrupoAlvo] = useState<string | null>(null);
-  const [confirmMove, setConfirmMove] = useState<
-    | { kind: "grupo"; origem: string; destino: string; total: number; subs: string[] }
-    | { kind: "sub"; grupo: string; sub: string; destino: string; total: number }
-    | null
-  >(null);
+  const [hoverAlvo, setHoverAlvo] = useState<string | null>(null);
+  const [confirmMove, setConfirmMove] = useState<MoveConfirm | null>(null);
   const [movendo, setMovendo] = useState(false);
-
 
   // Migração
   const [origGrupo, setOrigGrupo] = useState("");
+  const [origCat, setOrigCat] = useState<string>("__todas__");
   const [origSub, setOrigSub] = useState<string>("__todas__");
   const [destGrupo, setDestGrupo] = useState("");
+  const [destCat, setDestCat] = useState("");
   const [destSub, setDestSub] = useState("");
   const [excluirOrigem, setExcluirOrigem] = useState(false);
   const [preview, setPreview] = useState<number | null>(null);
-  const [modoSubs, setModoSubs] = useState<"manter" | "unificar">("manter");
   const [previewSubs, setPreviewSubs] = useState<{ sub: string; total: number }[]>([]);
 
+  const grupos = tree.map((g) => g.nome);
+  const categoriasDoGrupo = (grupo: string) =>
+    tree.find((g) => g.nome === grupo)?.categorias.map((c) => c.nome) ?? [];
+  const subsDe = (grupo: string, categoria: string) =>
+    tree.find((g) => g.nome === grupo)?.categorias.find((c) => c.nome === categoria)
+      ?.subcategorias ?? [];
 
+  const cats = categoriasDoGrupo(selectedGrupo);
+  const subs = subsDe(selectedGrupo, selectedCategoria);
 
-  const grupos = categories.map((c) => c.name);
-  const subs =
-    categories.find((c) => c.name === selectedGrupo)?.subcategories ?? [];
+  const origCats = useMemo(() => categoriasDoGrupo(origGrupo), [tree, origGrupo]);
   const origSubs = useMemo(
-    () => categories.find((c) => c.name === origGrupo)?.subcategories ?? [],
-    [categories, origGrupo],
+    () => (origCat === "__todas__" ? [] : subsDe(origGrupo, origCat)),
+    [tree, origGrupo, origCat],
   );
+  const destCats = useMemo(() => categoriasDoGrupo(destGrupo), [tree, destGrupo]);
   const destSubs = useMemo(
-    () => categories.find((c) => c.name === destGrupo)?.subcategories ?? [],
-    [categories, destGrupo],
+    () => (destCat ? subsDe(destGrupo, destCat) : []),
+    [tree, destGrupo, destCat],
   );
 
-  // Prévia da quantidade de exercícios afetados pela migração
+  // Mantém as seleções coerentes com a árvore
+  useEffect(() => {
+    if (selectedGrupo && !cats.includes(selectedCategoria)) {
+      setSelectedCategoria(cats[0] ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGrupo, tree]);
+
+  // Prévia da migração
   useEffect(() => {
     let cancelado = false;
     if (!origGrupo) {
@@ -124,21 +153,19 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
       setPreviewSubs([]);
       return;
     }
-    contarExercicios(origGrupo, origSub === "__todas__" ? null : origSub)
+    const cat = origCat === "__todas__" ? null : origCat;
+    const sub = origSub === "__todas__" ? null : origSub;
+    contarExercicios(origGrupo, cat, sub)
       .then((n) => !cancelado && setPreview(n))
       .catch(() => !cancelado && setPreview(null));
-    if (origSub === "__todas__") {
-      contarPorSubcategoria(origGrupo)
-        .then((r) => !cancelado && setPreviewSubs(r))
-        .catch(() => !cancelado && setPreviewSubs([]));
-    } else {
-      setPreviewSubs([]);
-    }
+    contarPorSubcategoria(origGrupo, cat)
+      .then((r) => !cancelado && setPreviewSubs(r))
+      .catch(() => !cancelado && setPreviewSubs([]));
     return () => {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origGrupo, origSub]);
+  }, [origGrupo, origCat, origSub]);
 
   const reordenar = <T,>(list: T[], from: T, to: T): T[] => {
     const arr = [...list];
@@ -150,11 +177,12 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     return arr;
   };
 
-  // Define se a soltura sobre a linha reordena (metade superior) ou aninha (metade inferior)
   const zonaDeSoltura = (e: React.DragEvent<HTMLDivElement>): "reordenar" | "aninhar" => {
     const rect = e.currentTarget.getBoundingClientRect();
     return e.clientY - rect.top < rect.height / 2 ? "reordenar" : "aninhar";
   };
+
+  // --------------------------------------------------------------- grupos
 
   const dropGrupo = async (alvo: string, modo: "reordenar" | "aninhar") => {
     const origem = dragGrupo;
@@ -164,43 +192,85 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
 
     if (modo === "aninhar") {
       try {
-        const total = await contarExercicios(origem, null);
-        const subsOrigem =
-          categories.find((c) => c.name === origem)?.subcategories ?? [];
-        setConfirmMove({ kind: "grupo", origem, destino: alvo, total, subs: subsOrigem });
+        const total = await contarExercicios(origem);
+        const nCats = categoriasDoGrupo(origem).length;
+        setConfirmMove({ kind: "grupo", origem, destino: alvo, total, cats: nCats });
       } catch (e: any) {
         toast.error(e.message || "Erro ao calcular a prévia");
       }
       return;
     }
 
-    const nova = reordenar(grupos, origem, alvo);
     try {
-      await reorderGrupos.mutateAsync(nova);
+      await reorderGrupos.mutateAsync(reordenar(grupos, origem, alvo));
     } catch (e: any) {
       toast.error(e.message || "Erro ao reordenar");
     }
   };
+
+  // ----------------------------------------------------------- categorias
+
+  const dropCategoria = async (alvo: string) => {
+    const origem = dragCategoria;
+    setDragCategoria(null);
+    if (!origem || origem === alvo) return;
+    try {
+      await reorderCategorias.mutateAsync({
+        grupo: selectedGrupo,
+        novaOrdem: reordenar(cats, origem, alvo),
+      });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao reordenar");
+    }
+  };
+
+  const dropCategoriaEmGrupo = async (destino: string) => {
+    const categoria = dragCategoria;
+    setDragCategoria(null);
+    setHoverAlvo(null);
+    if (!categoria || !selectedGrupo || destino === selectedGrupo) return;
+    try {
+      const total = await contarExercicios(selectedGrupo, categoria);
+      setConfirmMove({ kind: "categoria", grupo: selectedGrupo, categoria, destino, total });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao calcular a prévia");
+    }
+  };
+
+  // --------------------------------------------------------- subcategorias
 
   const dropSub = async (alvo: string) => {
-    if (!dragSub || dragSub === alvo) return setDragSub(null);
-    const nova = reordenar(subs, dragSub, alvo);
+    const origem = dragSub;
     setDragSub(null);
+    if (!origem || origem === alvo) return;
     try {
-      await reorderSubs.mutateAsync({ grupo: selectedGrupo, novaOrdem: nova });
+      await reorderSubs.mutateAsync({
+        grupo: selectedGrupo,
+        categoria: selectedCategoria,
+        novaOrdem: reordenar(subs, origem, alvo),
+      });
     } catch (e: any) {
       toast.error(e.message || "Erro ao reordenar");
     }
   };
 
-  const dropSubEmGrupo = async (destino: string) => {
+  const dropSubEmCategoria = async (destinoGrupo: string, destinoCategoria: string) => {
     const sub = dragSub;
     setDragSub(null);
-    setHoverGrupoAlvo(null);
-    if (!sub || !selectedGrupo || destino === selectedGrupo) return;
+    setHoverAlvo(null);
+    if (!sub || !selectedGrupo || !selectedCategoria) return;
+    if (destinoGrupo === selectedGrupo && destinoCategoria === selectedCategoria) return;
     try {
-      const total = await contarExercicios(selectedGrupo, sub);
-      setConfirmMove({ kind: "sub", grupo: selectedGrupo, sub, destino, total });
+      const total = await contarExercicios(selectedGrupo, selectedCategoria, sub);
+      setConfirmMove({
+        kind: "sub",
+        grupo: selectedGrupo,
+        categoria: selectedCategoria,
+        sub,
+        destinoGrupo,
+        destinoCategoria,
+        total,
+      });
     } catch (e: any) {
       toast.error(e.message || "Erro ao calcular a prévia");
     }
@@ -211,19 +281,33 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     setMovendo(true);
     try {
       if (confirmMove.kind === "grupo") {
-        const n = await moverGrupoParaGrupo.mutateAsync({
+        const n = await moverGrupoComoCategoria.mutateAsync({
           grupoOrigem: confirmMove.origem,
           grupoDestino: confirmMove.destino,
         });
-        if (selectedGrupo === confirmMove.origem) setSelectedGrupo(confirmMove.destino);
-        toast.success(`${n} exercício(s) movidos para ${confirmMove.destino}`);
-      } else {
-        const n = await moverSubParaGrupo.mutateAsync({
+        if (selectedGrupo === confirmMove.origem) {
+          setSelectedGrupo(confirmMove.destino);
+          setSelectedCategoria(confirmMove.origem);
+        }
+        toast.success(
+          `"${confirmMove.origem}" agora é categoria de "${confirmMove.destino}" (${n} exercício(s))`,
+        );
+      } else if (confirmMove.kind === "categoria") {
+        const n = await moverCategoriaParaGrupo.mutateAsync({
           grupoOrigem: confirmMove.grupo,
-          sub: confirmMove.sub,
+          categoria: confirmMove.categoria,
           grupoDestino: confirmMove.destino,
         });
         toast.success(`${n} exercício(s) movidos para ${confirmMove.destino}`);
+      } else {
+        const n = await moverSubParaCategoria.mutateAsync({
+          grupoOrigem: confirmMove.grupo,
+          categoriaOrigem: confirmMove.categoria,
+          sub: confirmMove.sub,
+          grupoDestino: confirmMove.destinoGrupo,
+          categoriaDestino: confirmMove.destinoCategoria,
+        });
+        toast.success(`${n} exercício(s) movidos para ${confirmMove.destinoCategoria}`);
       }
       setConfirmMove(null);
     } catch (e: any) {
@@ -233,34 +317,40 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     }
   };
 
-
+  // -------------------------------------------------------------- migrar
 
   const handleMigrar = async () => {
     if (!origGrupo) return toast.error("Selecione o grupo de origem");
     if (!destGrupo) return toast.error("Selecione o grupo de destino");
+    if (!destCat) return toast.error("Selecione a categoria de destino");
+    if (!destSub) return toast.error("Selecione a subcategoria de destino");
+    const catOrigem = origCat === "__todas__" ? null : origCat;
     const subOrigem = origSub === "__todas__" ? null : origSub;
-    const preservar = subOrigem === null && modoSubs === "manter";
-    if (!preservar && !destSub) {
-      return toast.error("Selecione a subcategoria de destino");
-    }
-    if (origGrupo === destGrupo && (preservar || subOrigem === destSub)) {
+    if (
+      origGrupo === destGrupo &&
+      catOrigem === destCat &&
+      subOrigem === destSub
+    ) {
       return toast.error("Origem e destino são iguais");
     }
     try {
-      const movidos = preservar
-        ? await migrarGrupoPreservandoSubs.mutateAsync({
-            grupoOrigem: origGrupo,
-            grupoDestino: destGrupo,
-          })
-        : await migrar.mutateAsync({
-            grupoOrigem: origGrupo,
-            subOrigem,
-            grupoDestino: destGrupo,
-            subDestino: destSub,
-          });
+      const movidos = await migrar.mutateAsync({
+        grupoOrigem: origGrupo,
+        categoriaOrigem: catOrigem,
+        subOrigem,
+        grupoDestino: destGrupo,
+        categoriaDestino: destCat,
+        subDestino: destSub,
+      });
       if (excluirOrigem) {
-        if (subOrigem) {
-          await deleteSub.mutateAsync({ grupo: origGrupo, subcategoria: subOrigem });
+        if (subOrigem && catOrigem) {
+          await deleteSub.mutateAsync({
+            grupo: origGrupo,
+            categoria: catOrigem,
+            subcategoria: subOrigem,
+          });
+        } else if (catOrigem) {
+          await deleteCategoria.mutateAsync({ grupo: origGrupo, categoria: catOrigem });
         } else {
           await deleteGrupo.mutateAsync(origGrupo);
         }
@@ -272,27 +362,37 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     }
   };
 
+  // ---------------------------------------------------- editar / excluir
+
   const startEdit = (e: RowEdit) => {
     setEditing(e);
     setEditValue(e.oldName);
   };
 
-
   const saveEdit = async () => {
     if (!editing) return;
     const value = editValue.trim();
-    const list = editing.kind === "grupo" ? grupos : subs;
+    const list =
+      editing.kind === "grupo" ? grupos : editing.kind === "categoria" ? cats : subs;
     const err = validate(value, list, editing.oldName);
     if (err) return toast.error(err);
     try {
       if (editing.kind === "grupo") {
-        await renameGrupo.mutateAsync({ oldGrupo: editing.oldName, newGrupo: value });
+        await renomear.mutateAsync({ grupo: editing.oldName, novoNome: value });
         if (selectedGrupo === editing.oldName) setSelectedGrupo(value);
-      } else {
-        await renameSub.mutateAsync({
+      } else if (editing.kind === "categoria") {
+        await renomear.mutateAsync({
           grupo: editing.grupo,
-          oldSub: editing.oldName,
-          newSub: value,
+          categoria: editing.oldName,
+          novoNome: value,
+        });
+        if (selectedCategoria === editing.oldName) setSelectedCategoria(value);
+      } else {
+        await renomear.mutateAsync({
+          grupo: editing.grupo,
+          categoria: editing.categoria,
+          subcategoria: editing.oldName,
+          novoNome: value,
         });
       }
       setEditing(null);
@@ -308,9 +408,16 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
       if (confirmDel.kind === "grupo") {
         await deleteGrupo.mutateAsync(confirmDel.oldName);
         if (selectedGrupo === confirmDel.oldName) setSelectedGrupo("");
+      } else if (confirmDel.kind === "categoria") {
+        await deleteCategoria.mutateAsync({
+          grupo: confirmDel.grupo,
+          categoria: confirmDel.oldName,
+        });
+        if (selectedCategoria === confirmDel.oldName) setSelectedCategoria("");
       } else {
         await deleteSub.mutateAsync({
           grupo: confirmDel.grupo,
+          categoria: confirmDel.categoria,
           subcategoria: confirmDel.oldName,
         });
       }
@@ -327,24 +434,48 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     try {
       await addGrupo.mutateAsync(newGrupo.trim());
       setNewGrupo("");
-      toast.success("Grupo adicionado (com subcategoria padrão 'Geral')");
+      toast.success("Grupo adicionado (com categoria e subcategoria padrão)");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao adicionar");
+    }
+  };
+
+  const handleAddCategoria = async () => {
+    if (!selectedGrupo) return toast.error("Selecione um grupo");
+    const err = validate(newCategoria, cats);
+    if (err) return toast.error(err);
+    try {
+      await addCategoria.mutateAsync({ grupo: selectedGrupo, categoria: newCategoria.trim() });
+      setNewCategoria("");
+      toast.success("Categoria adicionada");
     } catch (e: any) {
       toast.error(e.message || "Erro ao adicionar");
     }
   };
 
   const handleAddSub = async () => {
-    if (!selectedGrupo) return toast.error("Selecione um grupo");
+    if (!selectedGrupo || !selectedCategoria) return toast.error("Selecione grupo e categoria");
     const err = validate(newSub, subs);
     if (err) return toast.error(err);
     try {
-      await addSub.mutateAsync({ grupo: selectedGrupo, subcategoria: newSub.trim() });
+      await addSub.mutateAsync({
+        grupo: selectedGrupo,
+        categoria: selectedCategoria,
+        subcategoria: newSub.trim(),
+      });
       setNewSub("");
       toast.success("Subcategoria adicionada");
     } catch (e: any) {
       toast.error(e.message || "Erro ao adicionar");
     }
   };
+
+  const abas: { key: typeof tab; label: string }[] = [
+    { key: "grupos", label: "Grupos" },
+    { key: "categorias", label: "Categorias" },
+    { key: "subs", label: "Subcategorias" },
+    { key: "migrar", label: "Migrar" },
+  ];
 
   return (
     <>
@@ -353,50 +484,29 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
           <DialogHeader>
             <DialogTitle>Gerenciar Categorias</DialogTitle>
             <DialogDescription>
-              Crie, renomeie, reordene, migre e exclua Grupos e Subcategorias do Banco de
-              Exercícios.
+              Estrutura em três níveis: Grupo &gt; Categoria &gt; Subcategoria &gt; exercícios.
             </DialogDescription>
-
           </DialogHeader>
 
           <div className="flex gap-2 border-b border-border">
-            <button
-              type="button"
-              onClick={() => setTab("grupos")}
-              className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === "grupos"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Grupos
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("subs")}
-              className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === "subs"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Subcategorias
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("migrar")}
-              className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === "migrar"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Migrar
-            </button>
+            {abas.map((a) => (
+              <button
+                key={a.key}
+                type="button"
+                onClick={() => setTab(a.key)}
+                className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  tab === a.key
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {a.label}
+              </button>
+            ))}
           </div>
 
-
-          {tab === "grupos" ? (
+          {/* ------------------------------------------------------ GRUPOS */}
+          {tab === "grupos" && (
             <div className="space-y-3">
               <div className="flex gap-2">
                 <Input
@@ -415,8 +525,9 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Arraste na metade <strong>de cima</strong> de outro grupo para reordenar, ou
-                na metade <strong>de baixo</strong> para colocar a pasta dentro dele.
+                Arraste na metade <strong>de cima</strong> de outro grupo para reordenar, ou na
+                metade <strong>de baixo</strong> para colocar a pasta dentro dele — o grupo
+                arrastado vira uma <strong>categoria</strong> do destino, com todo o conteúdo.
               </p>
               <div className="space-y-1">
                 {grupos.length === 0 && (
@@ -424,32 +535,30 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                     Nenhum grupo cadastrado
                   </p>
                 )}
-                {grupos.map((g) => {
-                  const isEditing = editing?.kind === "grupo" && editing.oldName === g;
+                {tree.map((g) => {
+                  const isEditing = editing?.kind === "grupo" && editing.oldName === g.nome;
                   return (
                     <div
-                      key={g}
+                      key={g.nome}
                       className={`glass-card rounded-md p-2 flex items-center gap-2 transition-shadow ${
-                        dragGrupo === g ? "opacity-50" : ""
-                      } ${hoverNest === g ? "ring-2 ring-primary" : ""}`}
+                        dragGrupo === g.nome ? "opacity-50" : ""
+                      } ${hoverNest === g.nome ? "ring-2 ring-primary" : ""}`}
                       draggable={!isEditing}
-                      onDragStart={() => setDragGrupo(g)}
+                      onDragStart={() => setDragGrupo(g.nome)}
                       onDragEnd={() => {
                         setDragGrupo(null);
                         setHoverNest(null);
                       }}
                       onDragOver={(e) => {
                         e.preventDefault();
-                        if (!dragGrupo || dragGrupo === g) return;
-                        setHoverNest(zonaDeSoltura(e) === "aninhar" ? g : null);
+                        if (!dragGrupo || dragGrupo === g.nome) return;
+                        setHoverNest(zonaDeSoltura(e) === "aninhar" ? g.nome : null);
                       }}
-                      onDragLeave={() => setHoverNest((h) => (h === g ? null : h))}
-                      onDrop={(e) => dropGrupo(g, zonaDeSoltura(e))}
+                      onDragLeave={() => setHoverNest((h) => (h === g.nome ? null : h))}
+                      onDrop={(e) => dropGrupo(g.nome, zonaDeSoltura(e))}
                     >
-
                       <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
                       {isEditing ? (
-
                         <>
                           <Input
                             value={editValue}
@@ -460,21 +569,22 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                           <Button size="icon" variant="ghost" onClick={saveEdit}>
                             <Check className="w-4 h-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setEditing(null)}
-                          >
+                          <Button size="icon" variant="ghost" onClick={() => setEditing(null)}>
                             <X className="w-4 h-4" />
                           </Button>
                         </>
                       ) : (
                         <>
-                          <span className="flex-1 text-sm">{g}</span>
+                          <span className="flex-1 text-sm">
+                            {g.nome}
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              {g.categorias.length} categoria(s)
+                            </span>
+                          </span>
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => startEdit({ kind: "grupo", oldName: g })}
+                            onClick={() => startEdit({ kind: "grupo", oldName: g.nome })}
                             aria-label="Renomear grupo"
                           >
                             <Pencil className="w-4 h-4" />
@@ -482,7 +592,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => setConfirmDel({ kind: "grupo", oldName: g })}
+                            onClick={() => setConfirmDel({ kind: "grupo", oldName: g.nome })}
                             aria-label="Excluir grupo"
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
@@ -494,8 +604,10 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                 })}
               </div>
             </div>
-          ) : tab === "subs" ? (
+          )}
 
+          {/* -------------------------------------------------- CATEGORIAS */}
+          {tab === "categorias" && (
             <div className="space-y-3">
               <div>
                 <Label>Grupo</Label>
@@ -517,6 +629,177 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                 <>
                   <div className="flex gap-2">
                     <Input
+                      placeholder="Nova categoria"
+                      value={newCategoria}
+                      onChange={(e) => setNewCategoria(e.target.value)}
+                      maxLength={80}
+                    />
+                    <Button onClick={handleAddCategoria} disabled={addCategoria.isPending}>
+                      {addCategoria.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Plus className="w-4 h-4" />
+                      )}
+                      Adicionar
+                    </Button>
+                  </div>
+
+                  <div className="space-y-1">
+                    {cats.length === 0 && (
+                      <p className="text-sm text-muted-foreground py-4 text-center">
+                        Nenhuma categoria
+                      </p>
+                    )}
+                    {cats.map((c) => {
+                      const isEditing =
+                        editing?.kind === "categoria" &&
+                        editing.grupo === selectedGrupo &&
+                        editing.oldName === c;
+                      return (
+                        <div
+                          key={c}
+                          className={`glass-card rounded-md p-2 flex items-center gap-2 ${
+                            dragCategoria === c ? "opacity-50" : ""
+                          }`}
+                          draggable={!isEditing}
+                          onDragStart={() => setDragCategoria(c)}
+                          onDragEnd={() => setDragCategoria(null)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => dropCategoria(c)}
+                        >
+                          <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
+                          {isEditing ? (
+                            <>
+                              <Input
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                maxLength={80}
+                                autoFocus
+                              />
+                              <Button size="icon" variant="ghost" onClick={saveEdit}>
+                                <Check className="w-4 h-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => setEditing(null)}>
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="flex-1 text-sm">
+                                {c}
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  {subsDe(selectedGrupo, c).length} subcategoria(s)
+                                </span>
+                              </span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  startEdit({ kind: "categoria", grupo: selectedGrupo, oldName: c })
+                                }
+                                aria-label="Renomear categoria"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  setConfirmDel({
+                                    kind: "categoria",
+                                    grupo: selectedGrupo,
+                                    oldName: c,
+                                  })
+                                }
+                                aria-label="Excluir categoria"
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <Label>Mover categoria para outro grupo</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Arraste uma categoria acima e solte sobre um grupo abaixo — subcategorias e
+                      exercícios vão junto.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {grupos
+                        .filter((g) => g !== selectedGrupo)
+                        .map((g) => (
+                          <div
+                            key={g}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setHoverAlvo(g);
+                            }}
+                            onDragLeave={() => setHoverAlvo((h) => (h === g ? null : h))}
+                            onDrop={() => dropCategoriaEmGrupo(g)}
+                            className={`rounded-md border border-dashed px-3 py-2 text-sm transition-colors ${
+                              hoverAlvo === g
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "border-border text-muted-foreground"
+                            }`}
+                          >
+                            {g}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ------------------------------------------------ SUBCATEGORIAS */}
+          {tab === "subs" && (
+            <div className="space-y-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <Label>Grupo</Label>
+                  <Select value={selectedGrupo} onValueChange={setSelectedGrupo}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {grupos.map((g) => (
+                        <SelectItem key={g} value={g}>
+                          {g}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Categoria</Label>
+                  <Select
+                    value={selectedCategoria}
+                    onValueChange={setSelectedCategoria}
+                    disabled={!selectedGrupo}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cats.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {selectedGrupo && selectedCategoria && (
+                <>
+                  <div className="flex gap-2">
+                    <Input
                       placeholder="Nova subcategoria"
                       value={newSub}
                       onChange={(e) => setNewSub(e.target.value)}
@@ -531,6 +814,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                       Adicionar
                     </Button>
                   </div>
+
                   <div className="space-y-1">
                     {subs.length === 0 && (
                       <p className="text-sm text-muted-foreground py-4 text-center">
@@ -541,6 +825,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                       const isEditing =
                         editing?.kind === "sub" &&
                         editing.grupo === selectedGrupo &&
+                        editing.categoria === selectedCategoria &&
                         editing.oldName === s;
                       return (
                         <div
@@ -556,7 +841,6 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                         >
                           <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
                           {isEditing ? (
-
                             <>
                               <Input
                                 value={editValue}
@@ -567,11 +851,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                               <Button size="icon" variant="ghost" onClick={saveEdit}>
                                 <Check className="w-4 h-4" />
                               </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => setEditing(null)}
-                              >
+                              <Button size="icon" variant="ghost" onClick={() => setEditing(null)}>
                                 <X className="w-4 h-4" />
                               </Button>
                             </>
@@ -585,6 +865,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                                   startEdit({
                                     kind: "sub",
                                     grupo: selectedGrupo,
+                                    categoria: selectedCategoria,
                                     oldName: s,
                                   })
                                 }
@@ -599,6 +880,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                                   setConfirmDel({
                                     kind: "sub",
                                     grupo: selectedGrupo,
+                                    categoria: selectedCategoria,
                                     oldName: s,
                                   })
                                 }
@@ -614,45 +896,52 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                   </div>
 
                   <div className="space-y-2 pt-2 border-t border-border">
-                    <Label>Mover para outro grupo</Label>
+                    <Label>Mover subcategoria para outra categoria</Label>
                     <p className="text-xs text-muted-foreground">
-                      Arraste uma subcategoria acima e solte sobre um grupo abaixo — os
+                      Arraste uma subcategoria acima e solte sobre uma categoria abaixo — os
                       exercícios vão junto.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {grupos
-                        .filter((g) => g !== selectedGrupo)
-                        .map((g) => (
-                          <div
-                            key={g}
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              setHoverGrupoAlvo(g);
-                            }}
-                            onDragLeave={() =>
-                              setHoverGrupoAlvo((h) => (h === g ? null : h))
-                            }
-                            onDrop={() => dropSubEmGrupo(g)}
-                            className={`rounded-md border border-dashed px-3 py-2 text-sm transition-colors ${
-                              hoverGrupoAlvo === g
-                                ? "border-primary bg-primary/10 text-foreground"
-                                : "border-border text-muted-foreground"
-                            }`}
-                          >
-                            {g}
-                          </div>
-                        ))}
+                      {tree.flatMap((g) =>
+                        g.categorias
+                          .filter(
+                            (c) => !(g.nome === selectedGrupo && c.nome === selectedCategoria),
+                          )
+                          .map((c) => {
+                            const key = `${g.nome}///${c.nome}`;
+                            return (
+                              <div
+                                key={key}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  setHoverAlvo(key);
+                                }}
+                                onDragLeave={() => setHoverAlvo((h) => (h === key ? null : h))}
+                                onDrop={() => dropSubEmCategoria(g.nome, c.nome)}
+                                className={`rounded-md border border-dashed px-3 py-2 text-xs transition-colors ${
+                                  hoverAlvo === key
+                                    ? "border-primary bg-primary/10 text-foreground"
+                                    : "border-border text-muted-foreground"
+                                }`}
+                              >
+                                {g.nome} › {c.nome}
+                              </div>
+                            );
+                          }),
+                      )}
                     </div>
                   </div>
                 </>
-
               )}
             </div>
-          ) : (
+          )}
+
+          {/* ------------------------------------------------------ MIGRAR */}
+          {tab === "migrar" && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Move todos os exercícios de uma origem para outro grupo/subcategoria.
-                Exercícios que já estiverem no destino não são duplicados.
+                Move todos os exercícios de uma origem para um destino específico. Exercícios que
+                já estiverem no destino não são duplicados.
               </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -662,6 +951,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                     value={origGrupo}
                     onValueChange={(v) => {
                       setOrigGrupo(v);
+                      setOrigCat("__todas__");
                       setOrigSub("__todas__");
                     }}
                   >
@@ -677,13 +967,39 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                     </SelectContent>
                   </Select>
 
-                  <Label>Origem — Subcategoria</Label>
-                  <Select value={origSub} onValueChange={setOrigSub} disabled={!origGrupo}>
+                  <Label>Origem — Categoria</Label>
+                  <Select
+                    value={origCat}
+                    onValueChange={(v) => {
+                      setOrigCat(v);
+                      setOrigSub("__todas__");
+                    }}
+                    disabled={!origGrupo}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Todas" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__todas__">Todas (grupo inteiro)</SelectItem>
+                      {origCats.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Label>Origem — Subcategoria</Label>
+                  <Select
+                    value={origSub}
+                    onValueChange={setOrigSub}
+                    disabled={origCat === "__todas__"}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__todas__">Todas (categoria inteira)</SelectItem>
                       {origSubs.map((s) => (
                         <SelectItem key={s} value={s}>
                           {s}
@@ -699,6 +1015,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                     value={destGrupo}
                     onValueChange={(v) => {
                       setDestGrupo(v);
+                      setDestCat("");
                       setDestSub("");
                     }}
                   >
@@ -714,45 +1031,40 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                     </SelectContent>
                   </Select>
 
-                  {origSub === "__todas__" && (
-                    <>
-                      <Label>Subcategorias</Label>
-                      <Select
-                        value={modoSubs}
-                        onValueChange={(v) => setModoSubs(v as "manter" | "unificar")}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="manter">
-                            Manter subcategorias de origem
-                          </SelectItem>
-                          <SelectItem value="unificar">
-                            Unificar em uma subcategoria
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </>
-                  )}
+                  <Label>Destino — Categoria</Label>
+                  <Select
+                    value={destCat}
+                    onValueChange={(v) => {
+                      setDestCat(v);
+                      setDestSub("");
+                    }}
+                    disabled={!destGrupo}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {destCats.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                  {!(origSub === "__todas__" && modoSubs === "manter") && (
-                    <>
-                      <Label>Destino — Subcategoria</Label>
-                      <Select value={destSub} onValueChange={setDestSub} disabled={!destGrupo}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {destSubs.map((s) => (
-                            <SelectItem key={s} value={s}>
-                              {s}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </>
-                  )}
+                  <Label>Destino — Subcategoria</Label>
+                  <Select value={destSub} onValueChange={setDestSub} disabled={!destCat}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {destSubs.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -764,26 +1076,22 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                       {preview} exercício(s) serão movidos de{" "}
                       <strong>
                         {origGrupo}
+                        {origCat !== "__todas__" ? ` / ${origCat}` : ""}
                         {origSub !== "__todas__" ? ` / ${origSub}` : ""}
                       </strong>
-                      {destGrupo ? (
+                      {destGrupo && destCat && destSub ? (
                         <>
                           {" "}
                           para{" "}
                           <strong>
-                            {destGrupo}
-                            {origSub === "__todas__" && modoSubs === "manter"
-                              ? " (mesmas subcategorias)"
-                              : destSub
-                                ? ` / ${destSub}`
-                                : ""}
+                            {destGrupo} / {destCat} / {destSub}
                           </strong>
                         </>
                       ) : null}
                       .
                     </span>
                   </div>
-                  {origSub === "__todas__" && modoSubs === "manter" && previewSubs.length > 0 && (
+                  {previewSubs.length > 0 && (
                     <div className="text-xs text-muted-foreground">
                       {previewSubs.map((s) => `${s.sub}: ${s.total}`).join(" · ")}
                     </div>
@@ -796,21 +1104,15 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                   checked={excluirOrigem}
                   onCheckedChange={(c) => setExcluirOrigem(c === true)}
                 />
-                Excluir a categoria de origem após migrar
+                Excluir a pasta de origem após migrar
               </label>
 
               <Button
                 onClick={handleMigrar}
-                disabled={
-                  migrar.isPending ||
-                  migrarGrupoPreservandoSubs.isPending ||
-                  !origGrupo ||
-                  !destGrupo ||
-                  (!(origSub === "__todas__" && modoSubs === "manter") && !destSub)
-                }
+                disabled={migrar.isPending || !origGrupo || !destGrupo || !destCat || !destSub}
                 className="w-full"
               >
-                {migrar.isPending || migrarGrupoPreservandoSubs.isPending ? (
+                {migrar.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <ArrowRight className="w-4 h-4" />
@@ -819,21 +1121,19 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
               </Button>
             </div>
           )}
-
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
-        open={!!confirmDel}
-        onOpenChange={(o) => !o && setConfirmDel(null)}
-      >
+      <AlertDialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               {confirmDel?.kind === "grupo"
-                ? `Excluir o grupo "${confirmDel.oldName}" e todas as suas subcategorias? Não será possível se houver exercícios vinculados.`
-                : `Excluir a subcategoria "${confirmDel?.oldName}"? Não será possível se houver exercícios vinculados.`}
+                ? `Excluir o grupo "${confirmDel.oldName}" e todo o seu conteúdo? Não será possível se houver exercícios vinculados.`
+                : confirmDel?.kind === "categoria"
+                  ? `Excluir a categoria "${confirmDel.oldName}" e suas subcategorias? Não será possível se houver exercícios vinculados.`
+                  : `Excluir a subcategoria "${confirmDel?.oldName}"? Não será possível se houver exercícios vinculados.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -843,19 +1143,18 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={!!confirmMove}
-        onOpenChange={(o) => !o && !movendo && setConfirmMove(null)}
-      >
+      <AlertDialog open={!!confirmMove} onOpenChange={(o) => !o && !movendo && setConfirmMove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Mover para dentro</AlertDialogTitle>
             <AlertDialogDescription>
               {confirmMove?.kind === "grupo"
-                ? `Mover ${confirmMove.total} exercício(s) de "${confirmMove.origem}" (${confirmMove.subs.length} subcategoria(s)) para dentro de "${confirmMove.destino}"? As subcategorias são mantidas com os mesmos nomes e o grupo "${confirmMove.origem}" deixa de existir.`
-                : confirmMove
-                  ? `Mover a subcategoria "${confirmMove.sub}" e seus ${confirmMove.total} exercício(s) de "${confirmMove.grupo}" para "${confirmMove.destino}"?`
-                  : ""}
+                ? `Mover "${confirmMove.origem}" (${confirmMove.cats} categoria(s), ${confirmMove.total} exercício(s)) para dentro de "${confirmMove.destino}"? "${confirmMove.origem}" passa a ser uma categoria de "${confirmMove.destino}", mantendo subcategorias e exercícios.`
+                : confirmMove?.kind === "categoria"
+                  ? `Mover a categoria "${confirmMove.categoria}" e seus ${confirmMove.total} exercício(s) de "${confirmMove.grupo}" para "${confirmMove.destino}"?`
+                  : confirmMove
+                    ? `Mover a subcategoria "${confirmMove.sub}" e seus ${confirmMove.total} exercício(s) para "${confirmMove.destinoGrupo} › ${confirmMove.destinoCategoria}"?`
+                    : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -873,7 +1172,6 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </>
   );
 }
