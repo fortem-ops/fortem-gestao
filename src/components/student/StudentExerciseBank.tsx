@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { getYouTubeEmbedUrl } from "@/lib/youtube";
+import { categoriaEhFolha } from "@/lib/exerciseMapping";
 import { z } from "zod";
 
 interface Category {
@@ -517,22 +518,27 @@ export function StudentExerciseBank() {
 
   // VIEW: Subcategoria selecionada (nível 4 — exercícios)
   if (selGrupo && selCat && selectedSub) {
+    const folha = categoriaEhFolha(catAtual);
     return (
       <div className="space-y-4 mt-4 animate-fade-in">
         <button
-          onClick={() => setSelectedSub(null)}
+          onClick={() => {
+            setSelectedSub(null);
+            if (folha) setSelCat(null);
+          }}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
-          Voltar a {selCat}
+          Voltar a {folha ? selGrupo : selCat}
         </button>
 
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-heading font-bold text-foreground">
-            {selGrupo} · {selCat} · {selectedSub}
+            {folha ? `${selGrupo} · ${selCat}` : `${selGrupo} · ${selCat} · ${selectedSub}`}
           </h3>
           <Badge variant="secondary">{exerciciosPorSub.length} exercícios</Badge>
         </div>
+
 
         {exerciciosPorSub.length === 0 ? (
           <div className="glass-card rounded-lg p-6 text-center">
@@ -630,10 +636,14 @@ export function StudentExerciseBank() {
                   (g) => g.grupo === selGrupo && (g.categoria ?? g.grupo) === c.nome,
                 ),
               ).length;
+              const folha = categoriaEhFolha(c);
               return (
                 <button
                   key={c.nome}
-                  onClick={() => setSelCat(c.nome)}
+                  onClick={() => {
+                    setSelCat(c.nome);
+                    if (folha) setSelectedSub(c.subcategorias[0]);
+                  }}
                   className="glass-card rounded-lg p-4 flex items-center gap-3 hover:border-primary/40 transition-colors text-left w-full"
                 >
                   <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
@@ -642,9 +652,12 @@ export function StudentExerciseBank() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">{c.nome}</p>
                     <p className="text-xs text-muted-foreground">
-                      {c.subcategorias.length} subcategoria(s)
+                      {folha
+                        ? `${count} exercício(s)`
+                        : `${c.subcategorias.length} subcategoria(s)`}
                     </p>
                   </div>
+
                   <Badge variant="secondary" className="text-xs">{count}</Badge>
                 </button>
               );

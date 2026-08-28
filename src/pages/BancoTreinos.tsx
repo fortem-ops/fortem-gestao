@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil, Copy, Lock, Construction } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
-import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA, resolverAlvo, itemCasaAlvo, type TaxonomiaGrupo } from "@/lib/exerciseMapping";
+import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA, resolverAlvo, itemCasaAlvo, categoriaEhFolha, type TaxonomiaGrupo } from "@/lib/exerciseMapping";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { useUserRoles } from "@/hooks/useUserRoles";
 
@@ -159,7 +159,17 @@ function ExercisePicker({
   // Quando não há subcategoria fixa, agrupar candidatos por subcategoria
   // (dentro do alvo resolvido) para facilitar a navegação visual.
   const grupoAlvo = alvo.label || categoria;
-  const shouldGroup = !subcategoriaOverride;
+  const catFolha = useMemo(
+    () =>
+      categoriaEhFolha(
+        tree
+          .find((g) => g.nome === alvo.grupo)
+          ?.categorias.find((c) => c.nome === alvo.categoria),
+      ),
+    [tree, alvo.grupo, alvo.categoria],
+  );
+  const shouldGroup = !subcategoriaOverride && !catFolha;
+
   const grouped = useMemo(() => {
     if (!shouldGroup) return null;
     const map = new Map<string, BankExercise[]>();
@@ -307,10 +317,17 @@ function ExerciseRow({
     const g = tree.find((x) => x.nome === a.grupo);
     if (a.categoria) {
       const c = g?.categorias.find((x) => x.nome === a.categoria);
+      // Categoria folha: o 3º nível repete o nome e não deve ser exibido.
+      if (categoriaEhFolha(c)) return [];
       return c?.subcategorias ?? [];
     }
-    return Array.from(new Set((g?.categorias ?? []).flatMap((c) => c.subcategorias)));
+    return Array.from(
+      new Set(
+        (g?.categorias ?? []).flatMap((c) => (categoriaEhFolha(c) ? [] : c.subcategorias)),
+      ),
+    );
   };
+
 
 
 
