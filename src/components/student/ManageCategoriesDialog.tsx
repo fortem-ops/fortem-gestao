@@ -434,9 +434,18 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
                       return (
                         <div
                           key={s}
-                          className="glass-card rounded-md p-2 flex items-center gap-2"
+                          className={`glass-card rounded-md p-2 flex items-center gap-2 ${
+                            dragSub === s ? "opacity-50" : ""
+                          }`}
+                          draggable={!isEditing}
+                          onDragStart={() => setDragSub(s)}
+                          onDragEnd={() => setDragSub(null)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => dropSub(s)}
                         >
+                          <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
                           {isEditing ? (
+
                             <>
                               <Input
                                 value={editValue}
