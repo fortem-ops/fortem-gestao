@@ -182,6 +182,41 @@ export function useExerciseCategories() {
     onSuccess: invalidate,
   });
 
+  // Migra o grupo inteiro para outro grupo mantendo a subcategoria de cada exercício
+  const migrarGrupoPreservandoSubs = useMutation({
+    mutationFn: async ({ grupoOrigem, grupoDestino }: { grupoOrigem: string; grupoDestino: string }) => {
+      const { data, error } = await supabase.rpc("fn_migrar_grupo_preservando_subs" as any, {
+        p_grupo_origem: grupoOrigem,
+        p_grupo_destino: grupoDestino,
+      } as any);
+      if (error) throw error;
+      return (data as unknown as number) ?? 0;
+    },
+    onSuccess: invalidate,
+  });
+
+  // Contagem de exercícios por subcategoria dentro de um grupo (para prévia)
+  const contarPorSubcategoria = async (grupo: string): Promise<{ sub: string; total: number }[]> => {
+    const { data, error } = await supabase
+      .from("exercicios_personalizados")
+      .select("grupos")
+      .filter("grupos", "cs", JSON.stringify([{ grupo }]));
+    if (error) throw error;
+    const map = new Map<string, number>();
+    for (const row of (data || []) as { grupos: unknown }[]) {
+      const gs = (row.grupos as { grupo: string; subcategoria?: string }[]) || [];
+      for (const g of gs) {
+        if (g.grupo !== grupo) continue;
+        const key = g.subcategoria || "(sem subcategoria)";
+        map.set(key, (map.get(key) ?? 0) + 1);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([sub, total]) => ({ sub, total }))
+      .sort((a, b) => a.sub.localeCompare(b.sub));
+  };
+
+
   // Reordena grupos: aplica ordem_grupo em lote conforme a nova sequência
   const reorderGrupos = useMutation({
     mutationFn: async (novaOrdem: string[]) => {
