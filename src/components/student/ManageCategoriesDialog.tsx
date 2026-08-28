@@ -284,7 +284,19 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
             >
               Subcategorias
             </button>
+            <button
+              type="button"
+              onClick={() => setTab("migrar")}
+              className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+                tab === "migrar"
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Migrar
+            </button>
           </div>
+
 
           {tab === "grupos" ? (
             <div className="space-y-3">
