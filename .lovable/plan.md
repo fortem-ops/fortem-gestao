@@ -1,49 +1,39 @@
-# Registro retroativo de aceite de contrato (64 alunos)
+# Diagnóstico — Avaliações Premium (somente leitura)
 
-## O que a verificação prévia já confirmou (somente leitura, nada foi alterado)
+## 1. Rótulo "Risco de Lesão" invisível — causa raiz
 
-- **Grupo 1 (20 doc_ids):** todos os 20 existem em `contratos_documentos`, todos com `aceite = false` e `data_aceite = null`. Nenhum já aceito, nenhum ausente.
-- **Grupo 2 (44 pares):** os 44 contratos existem, o `aluno_id` informado bate com o `aluno_id` do contrato em todos os casos, e **nenhum** deles tem linha em `contratos_documentos` (nem por `contrato_id`, nem por `aluno_id`). Não há risco de duplicação hoje — a checagem será repetida na hora da execução.
-- **Distribuição de planos do Grupo 2:** 32 Gympass, 9 Totalpass, 3 Start (todos `forma_pagamento = cartao_recorrencia`, vigência mensal). Templates ativos correspondentes:
-  - Gympass → `67e1fc10…` (versão 2, ativo)
-  - Totalpass → `84317e7f…` (versão 3, ativo)
-  - Start → `5197281a…` (versão 2, ativo)
-  Esses são exatamente os IDs que o `TEMPLATE_MAP` de `src/lib/contratosDocumentos.ts` resolve para esses planos, então o documento gerado será idêntico ao do fluxo normal.
-- **Regulamento interno:** existe uma única versão ativa (versão 1) — será gravada em `regulamento_versao`.
-- **Ponto de atenção:** 1 dos 44 contratos (Gympass) está com `status = cancelado`; os outros 43 estão `ativo`. Confirme se ele deve entrar no lote mesmo assim (a premissa atual é que sim, por ser registro histórico).
+O rótulo está em `src/components/student/assessment/funcionalV2/BodyMap.tsx` (linha ~254), dentro da moldura do trio de anéis:
 
-## Como a geração vai acontecer (ponto técnico importante)
+```
+<p className="text-[9px] ... text-white/45 ...">Risco de Lesão</p>
+<div className="rounded-xl border border-white/10 bg-white/[0.03] ...">
+```
 
-`gerarDocumentoContrato` roda no navegador e chama `fn_reveal_cpf`, que exige uma sessão de admin/coordenador — não é executável a partir de um script de servidor ou Edge Function. Para gerar os 44 documentos com o mesmo resultado, será criada uma **função temporária no banco** que reproduz fielmente a mesma lógica:
+A tela Premium roda em tema claro via `[data-bio-theme="light"] .bodymap-surface` (`src/index.css`, linhas ~298-320). Esse bloco converte texto branco para tinta escura, mas a lista de seletores cobre apenas:
 
-- resolve o mesmo `template_id` por plano (mapa fixo, idêntico ao do código);
-- lê os dados do aluno e decifra o CPF pelo mesmo mecanismo do `fn_reveal_cpf` (mesma chave do cofre), sem afrouxar nenhuma permissão para o app;
-- preenche as mesmas variáveis (`%NOME%`, `%CPF%`, `%RG%`, `%ENDERECO%`, `%BAIRRO%`, `%CIDADE%`, `%UF%`, `%CEP%`, `%EMAIL%`, `%DATA_NASCIMENTO%`, `%NOME_CONTRATO%`, `%VALOR_FINAL_CONTRATO%`, `%DIA%`, `%MES%`, `%ANO%`) com a mesma formatação (CPF 000.000.000-00, CEP 00000-000, datas dd/MM/yyyy, valor `R$ 0.000,00`) e zera os marcadores de assinatura;
-- **`%DIA%/%MES%/%ANO%` usarão a data de aceite histórica informada** (não a data de hoje), por se tratar de importação retroativa — confirme se concorda;
-- insere a linha em `contratos_documentos` com `template_versao`, `regulamento_versao`, `variaveis_utilizadas`, e já com `aceite = true`, `data_aceite = <data informada>`, `formato_aceite = 'Aceite registrado — importação de dados históricos'`, `ip_aceite = null`.
+`.text-white`, `.text-white/40`, `.text-white/50`, `.text-white/55`, `.text-white/60`
 
-Nenhum campo de `contratos` (ou de qualquer outra tabela) é tocado.
+`text-white/45` **não está na lista** — logo o rótulo continua branco quase puro sobre a superfície clara (`--bm-l-surface: 220 16% 93%`), ficando ilegível. Pelo mesmo motivo `bg-white/[0.03]` e `border-white/10` também não são convertidos (a lista de superfícies cobre `bg-white/5` etc.), por isso só a moldura aparece, difusa.
 
-## Ordem de execução
+Correção futura (1 linha): usar uma opacidade já mapeada (`text-white/50`) ou incluir `/45` e `bg-white/[0.03]` nos overrides do tema claro.
 
-1. **Pré-checagem (2 consultas de leitura, sem alteração):**
-   - Grupo 1: reconfirmar que os 20 ids seguem com `aceite = false`.
-   - Grupo 2: reconfirmar que os 44 contratos seguem sem documento e que o vínculo aluno↔contrato continua igual.
-   Qualquer divergência é listada e a linha correspondente é **excluída do lote** (não aborta o resto).
-2. **Grupo 1 — 1 UPDATE em lote** (`WHERE id IN (...) AND aceite = false`), com `data_aceite` vindo de uma lista de valores por id. Retorna as linhas afetadas para conferência.
-3. **Grupo 2 — 1 execução da função temporária**, que percorre os 44 pares em laço com `BEGIN … EXCEPTION WHEN OTHERS` por item: cada falha (aluno sem CPF, template inexistente, documento criado no meio-tempo) é registrada em uma tabela de resultado com o motivo e o laço segue. Um item com erro **não** desfaz os anteriores.
-4. **Remoção da função temporária** logo após o uso.
-5. **Conferência final (1 consulta):** total de documentos com `formato_aceite = 'Aceite registrado — importação de dados históricos'`, esperado 64; mais a lista de eventuais falhas.
+## 2. Anel ">20%" mostrando 1 — não é bug de cálculo
 
-Total: 2 consultas de pré-checagem + 1 update + 1 rotina em lote + 1 limpeza + 1 conferência.
+Rastreamento: `BodyMap.tsx` → `rings.geral.alta` ← `assimetriasPorCategoria()` (`DashboardSummary.tsx` linha 35) → `contarAssimetriasPorFaixa([...mob, ...flex, ...forcaPcts])`. **Sim, o anel agrega Mobilidade + Flexibilidade + Força**, enquanto o painel "Pontos de Atenção" exibe só a camada selecionada (Força) — daí a impressão de contradição.
 
-## Tratamento de erros
+Dados reais do aluno AIRTON LUIZ MORAES JUNIOR (avaliação funcional_v2 mais recente, 05/08/2026, id `e6b04e1c…`):
 
-- Grupo 1: update idempotente (só afeta linhas ainda pendentes); reexecução não causa efeito duplicado.
-- Grupo 2: geração idempotente — antes de inserir, cada item verifica novamente se já existe documento para aquele `contrato_id` e, se existir, é pulado com status `ja_existia`.
-- Ao final é apresentada uma tabela item a item: `aluno_id`, `contrato_id`, `status` (`criado` / `ja_existia` / `erro`), motivo do erro quando houver.
+- Força — maior assimetria: Abdução de quadril 13,2 / 15,4 kg = **14,29%** (moderada). Nenhuma acima de 20%. Confere com o painel.
+- Mobilidade — **Mobilidade Tornozelo: 45 (E) vs 35 (D) → 22,2%** de diferença. É esta métrica que produz o `1` em `alta`.
+- Mobilidade Quadril RE: 46 vs 40 → ~13% (moderada).
 
-## Confirmações antes de executar
+O próprio JSON salvo da avaliação já registra `asymmetries: [{region: "ankle-r", diff: 30, severity: "severe"}]`, coerente com a assimetria de tornozelo.
 
-1. Incluir o contrato Gympass com status `cancelado`?
-2. Usar a data de aceite histórica em `%DIA%/%MES%/%ANO%` do corpo do contrato (em vez da data de hoje)?
+Sem NaN, sem duplicidade e sem resíduo antigo: existem 3 avaliações funcionais_v2 do Airton (2024-09-05, 2025-07-22, 2026-08-05) mais uma "experimental" de 31/08/2026, e `useAlunoAvaliacoesConsolidadas` usa apenas a mais recente ordenada por `data` — a de 05/08/2026, que é a fonte dos números acima.
+
+**Conclusão:** o `1` está correto do ponto de vista do dado; o problema é de comunicação — o anel é agregado (geral) e o painel de atenção é por camada, sem nenhuma indicação disso na UI.
+
+## Se quiser corrigir depois
+
+- Bug 1: ajustar classe/override CSS do rótulo e da moldura para o tema claro.
+- Bug 2 (opcional, UX): rotular o trio como agregado (ex.: "Risco de Lesão · todas as camadas") ou listar a métrica responsável ao passar o mouse.
