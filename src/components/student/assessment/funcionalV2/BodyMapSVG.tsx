@@ -286,7 +286,7 @@ export function BodyMapSVG({
           if (!muscle) return [];
           const { assimetria } = classifyForca(ex.direito_kg!, ex.esquerdo_kg!);
           const weakerIsRight = ex.direito_kg! < ex.esquerdo_kg!;
-          const riskColor = assimetria < 10 ? "#639922" : assimetria < 20 ? "#BA7517" : "#E24B4A";
+          const riskColor = corGradienteAssimetria(assimetria);
           const out: Array<{ key: string; shape: BodyMapShape; fill: string }> = [];
           const shapeR = shapesMap[`${muscle}-direito`];
           const shapeL = shapesMap[`${muscle}-esquerdo`];
