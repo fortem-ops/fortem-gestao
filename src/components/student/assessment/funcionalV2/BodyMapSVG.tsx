@@ -120,12 +120,12 @@ function RegionNumber({
   state: BodyMapAnalysis["regions"][RegionId];
   number: number;
 }) {
-  const color = SEVERITY_COLOR_VAR[state.severity];
+  const color = corGradienteAssimetria(state.asymmetry ?? null);
   return (
     <g pointerEvents="none">
       <circle
         cx={geom.cx} cy={geom.cy} r={16}
-        fill={`hsl(${color})`}
+        fill={color}
         stroke="hsl(220 13% 9%)"
         strokeWidth={2}
       />
@@ -151,31 +151,27 @@ function RegionHit({
   geom: RegionGeometry;
   state: BodyMapAnalysis["regions"][RegionId];
 }) {
-  const color = SEVERITY_COLOR_VAR[state.severity];
+  const hasAsym = state.asymmetry !== undefined && state.asymmetry !== null;
+  const color = corGradienteAssimetria(state.asymmetry ?? null);
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <g style={{ cursor: state.severity !== "none" ? "pointer" : "default" }}>
+        <g style={{ cursor: hasAsym || state.score !== null ? "pointer" : "default" }}>
           <circle cx={geom.cx} cy={geom.cy} r={geom.r + 6} fill="transparent" />
         </g>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-[260px]">
         <div className="space-y-1">
           <p className="font-semibold text-xs">{geom.label}</p>
-          {state.score !== null && (
+          {hasAsym && (
             <p className="text-xs">
-              Score:{" "}
-              <span className="font-semibold" style={{ color: `hsl(${color})` }}>
-                {state.score}/100
-              </span>{" "}
-              · {SEVERITY_LABEL[state.severity]}
+              Assimetria:{" "}
+              <span className="font-semibold" style={{ color }}>
+                {Math.round(state.asymmetry! * 10) / 10}%
+              </span>
             </p>
           )}
-          {state.asymmetry !== undefined && state.asymmetry >= 15 && (
-            <p className="text-[11px] text-warning">
-              Assimetria {state.asymmetry >= 25 ? "severa" : "moderada"} ({state.asymmetry} pts)
-            </p>
-          )}
+
           {state.contributing.length > 0 && (
             <ul className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border/40">
               {state.contributing.slice(0, 4).map((c, i) => (
