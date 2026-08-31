@@ -7,24 +7,27 @@ interface Props {
   label: string;
   contagem: ContagemAssimetrias;
   tooltip?: string;
+  /** Quando true, exibe apenas o número principal (sem tooltip e sem detalhamento por faixa). */
+  simples?: boolean;
 }
 
 /**
  * Card de resumo baseado em CONTAGEM de assimetrias (sem classificação textual).
  * Destaca o total de assimetrias detectadas e o detalhe por faixa.
  */
-export function DashboardCountCard({ label, contagem, tooltip }: Props) {
+export function DashboardCountCard({ label, contagem, tooltip, simples }: Props) {
   const { alta, moderada, baixa, total } = contagem;
   const cor = corGradienteAssimetria(alta > 0 ? 25 : moderada > 0 ? 14 : 4);
+  const showTooltip = !simples && !!tooltip;
 
   const card = (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className={`bio-card bio-card-hover p-4 relative overflow-hidden ${tooltip ? "cursor-help" : ""}`}
+      className={`bio-card bio-card-hover p-4 relative overflow-hidden ${showTooltip ? "cursor-help" : ""}`}
     >
-      {tooltip && (
+      {showTooltip && (
         <Info className="absolute top-2 right-2 w-3.5 h-3.5 text-[hsl(var(--bio-ink-faint))]" aria-hidden />
       )}
       <p className="bio-label">{label}</p>
@@ -36,13 +39,16 @@ export function DashboardCountCard({ label, contagem, tooltip }: Props) {
           {total > 0 ? "assimetria(s)" : "sem dado"}
         </span>
       </div>
-      <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold">
-        <span style={{ color: corGradienteAssimetria(25) }}>{alta} &gt;20%</span>
-        <span className="text-[hsl(var(--bio-ink-faint))]">·</span>
-        <span style={{ color: corGradienteAssimetria(14) }}>{moderada} 10–20%</span>
-        <span className="text-[hsl(var(--bio-ink-faint))]">·</span>
-        <span style={{ color: corGradienteAssimetria(4) }}>{baixa} &lt;10%</span>
-      </div>
+      {!simples && (
+        <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold">
+          <span style={{ color: corGradienteAssimetria(25) }}>{alta} &gt;20%</span>
+          <span className="text-[hsl(var(--bio-ink-faint))]">·</span>
+          <span style={{ color: corGradienteAssimetria(14) }}>{moderada} 10–20%</span>
+          <span className="text-[hsl(var(--bio-ink-faint))]">·</span>
+          <span style={{ color: corGradienteAssimetria(4) }}>{baixa} &lt;10%</span>
+        </div>
+      )}
+
     </motion.div>
   );
 
