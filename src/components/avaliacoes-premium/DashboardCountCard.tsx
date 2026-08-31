@@ -52,7 +52,7 @@ export function DashboardCountCard({ label, contagem, tooltip, simples }: Props)
     </motion.div>
   );
 
-  if (!tooltip) return card;
+  if (!showTooltip) return card;
 
   return (
     <TooltipProvider delayDuration={150}>
