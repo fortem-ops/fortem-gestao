@@ -95,4 +95,4 @@ export function RegionListPanel({ items }: { items: RegionListItem[] }) {
   );
 }
 
-export { SEVERITY_LABEL };
+
