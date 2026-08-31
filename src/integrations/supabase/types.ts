@@ -3305,6 +3305,36 @@ export type Database = {
           },
         ]
       }
+      import_aceite_historico_log: {
+        Row: {
+          aluno_id: string | null
+          contrato_id: string | null
+          created_at: string
+          documento_id: string | null
+          id: string
+          motivo: string | null
+          status: string
+        }
+        Insert: {
+          aluno_id?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          documento_id?: string | null
+          id?: string
+          motivo?: string | null
+          status: string
+        }
+        Update: {
+          aluno_id?: string | null
+          contrato_id?: string | null
+          created_at?: string
+          documento_id?: string | null
+          id?: string
+          motivo?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       inadimplencias: {
         Row: {
           aluno_id: string
