@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
+import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ContagemAssimetrias, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
 import { useBodyMapShapes } from "./useBodyMapShapes";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,19 @@ interface Props {
     asymmetryCount: number;
     chains: Array<{ from: RegionId; to: RegionId; reason: string }>;
   } | null;
+  /**
+   * Quando fornecido, os anéis do topo passam a exibir NÚMEROS ABSOLUTOS
+   * (contagem de assimetrias por categoria) em vez de scores 0–100.
+   */
+  rings?: {
+    mobilidade: ContagemAssimetrias;
+    flexibilidade: ContagemAssimetrias;
+    forca: ContagemAssimetrias;
+    geral: ContagemAssimetrias;
+    composicao: number | null;
+  } | null;
 }
+
 
 const MODES: Array<{ id: Mode; label: string; icon: typeof GitCompareArrows; desc: string }> = [
   { id: "asymmetry", label: "Assimetria", icon: GitCompareArrows, desc: "Diferenças bilaterais" },
@@ -106,7 +118,38 @@ const RISK_STYLE: Record<"low" | "attention" | "high", { label: string; color: s
   high:      { label: "Alto risco compensatório", color: "var(--sev-weak)" },
 };
 
-export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
+/** Anel de número absoluto (contagem de assimetrias). `tone` = % representativo p/ cor. */
+function CountRing({ value, label, size = 88, tone }: { value: number; label: string; size?: number; tone?: number }) {
+  const radius = size / 2 - 6;
+  const circ = 2 * Math.PI * radius;
+  const frac = Math.min(1, value / 5);
+  const pctTone = tone ?? (value === 0 ? 0 : value >= 3 ? 24 : 14);
+  const color = value === 0 && tone === undefined
+    ? "hsl(var(--bodymap-silhouette))"
+    : corGradienteAssimetria(pctTone);
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(0 0% 100% / 0.08)" strokeWidth={5} />
+          <circle
+            cx={size / 2} cy={size / 2} r={radius} fill="none"
+            stroke={color} strokeWidth={5}
+            strokeDasharray={`${Math.max(frac, value > 0 ? 0.08 : 0) * circ} ${circ}`}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-xl font-heading font-bold leading-none text-white">{value}</p>
+        </div>
+      </div>
+      <p className="text-[10px] uppercase tracking-wider text-white/60 font-medium">{label}</p>
+    </div>
+  );
+}
+
+export function BodyMap({ metrics, forcaExercises, canonical, rings }: Props) {
   const [mode, setMode] = useState<Mode>("asymmetry");
   const [layer, setLayer] = useState<Layer>("mobility");
   const [viewFilter, setViewFilter] = useState<"both" | "front" | "back">("both");
@@ -200,13 +243,34 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <ScoreRing value={canonical ? canonical.mobilidade : analysis.scoreMobilidade} label="Mobilidade" />
-
-          <ScoreRing value={canonical ? canonical.simetria : analysis.scoreSimetria} label="Simetria" />
-          <ScoreRing value={canonical ? canonical.estabilidade : analysis.scoreEstabilidade} label="Estabilidade" />
-          <ScoreRing value={canonical ? canonical.forca : analysis.scoreForca} label="Força" />
+        <div className="flex items-center gap-4 flex-wrap">
+          {rings ? (
+            <>
+              <CountRing value={rings.mobilidade.alta + rings.mobilidade.moderada} label="Mobilidade" />
+              <CountRing value={rings.flexibilidade.alta + rings.flexibilidade.moderada} label="Flexibilidade" />
+              <CountRing value={rings.forca.alta + rings.forca.moderada} label="Força" />
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                <p className="text-[9px] uppercase tracking-[0.2em] text-white/45 font-semibold text-center mb-1">
+                  Risco de Lesão
+                </p>
+                <div className="flex items-center gap-2">
+                  <CountRing value={rings.geral.alta} label=">20%" size={66} tone={26} />
+                  <CountRing value={rings.geral.moderada} label="10-20%" size={66} tone={15} />
+                  <CountRing value={rings.geral.baixa} label="<10%" size={66} tone={4} />
+                </div>
+              </div>
+              <ScoreRing value={rings.composicao} label="Composição" />
+            </>
+          ) : (
+            <>
+              <ScoreRing value={canonical ? canonical.mobilidade : analysis.scoreMobilidade} label="Mobilidade" />
+              <ScoreRing value={canonical ? canonical.simetria : analysis.scoreSimetria} label="Simetria" />
+              <ScoreRing value={canonical ? canonical.estabilidade : analysis.scoreEstabilidade} label="Estabilidade" />
+              <ScoreRing value={canonical ? canonical.forca : analysis.scoreForca} label="Força" />
+            </>
+          )}
         </div>
+
       </div>
 
       {/* Controls row 1: modes + view filter */}

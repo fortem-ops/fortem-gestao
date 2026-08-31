@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { AlunoSidebarCard } from "@/components/avaliacoes-premium/AlunoSidebarCard";
-import { DashboardSummary, assimetriasPorCategoria } from "@/components/avaliacoes-premium/DashboardSummary";
+import { assimetriasPorCategoria } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
@@ -109,7 +109,7 @@ export default function AvaliacoesPremium() {
                 </span>
               </div>
             )}
-            <DashboardSummary scores={scores} forca={forcaResumo} />
+            
 
             <PremiumBodyMap funcional={data.funcional.latest} scores={scores} />
 
