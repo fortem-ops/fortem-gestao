@@ -27,7 +27,19 @@ interface Props {
     asymmetryCount: number;
     chains: Array<{ from: RegionId; to: RegionId; reason: string }>;
   } | null;
+  /**
+   * Quando fornecido, os anéis do topo passam a exibir NÚMEROS ABSOLUTOS
+   * (contagem de assimetrias por categoria) em vez de scores 0–100.
+   */
+  rings?: {
+    mobilidade: ContagemAssimetrias;
+    flexibilidade: ContagemAssimetrias;
+    forca: ContagemAssimetrias;
+    geral: ContagemAssimetrias;
+    composicao: number | null;
+  } | null;
 }
+
 
 const MODES: Array<{ id: Mode; label: string; icon: typeof GitCompareArrows; desc: string }> = [
   { id: "asymmetry", label: "Assimetria", icon: GitCompareArrows, desc: "Diferenças bilaterais" },
