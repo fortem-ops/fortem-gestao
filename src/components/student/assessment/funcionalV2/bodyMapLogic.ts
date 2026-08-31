@@ -170,21 +170,41 @@ export const SEVERITY_COLOR_VAR: Record<Severity, string> = {
 };
 
 /**
- * Rampa contínua verde → âmbar → vermelho a partir do % BRUTO de assimetria.
- * Substitui os 5 degraus fixos de severidade na coloração do mapa corporal.
- * 0% = verde (hue 140), 15% = âmbar (hue ~45), >=30% = vermelho (hue 0).
- * Retorna uma cor CSS `hsl(...)` pronta para uso.
+ * Escala por faixas com transição suave DENTRO de cada faixa:
+ *  - 0–10%  → verde  (hue ~140, praticamente constante)
+ *  - 11–19% → amarelo (hue ~45)
+ *  - >=20%  → vermelho (hue 0)
+ * A troca de cor acontece perto dos limiares 10% e 20%.
  */
 export function corGradienteAssimetria(pct: number | null | undefined): string {
   if (pct === null || pct === undefined || Number.isNaN(pct)) {
     return "hsl(var(--bodymap-silhouette))";
   }
-  const p = Math.max(0, Math.min(30, pct)) / 30; // 0..1
-  const hue = 140 - 140 * p;                     // 140 (verde) → 0 (vermelho)
-  const sat = 62 + 18 * p;                       // 62% → 80%
-  const light = 48 - 2 * p;                      // 48% → 46%
+  const p = Math.max(0, pct);
+  let hue: number, sat: number, light: number;
+
+  if (p < 10) {
+    // verde: leve escurecimento conforme se aproxima de 10%
+    const t = p / 10;
+    hue = 142 - 4 * t;
+    sat = 60 + 6 * t;
+    light = 44 - 6 * t;
+  } else if (p < 20) {
+    // amarelo: mais intenso perto de 19%
+    const t = (p - 10) / 10;
+    hue = 48 - 8 * t;
+    sat = 88 + 6 * t;
+    light = 50 - 4 * t;
+  } else {
+    // vermelho: satura levemente até 30%
+    const t = Math.min(1, (p - 20) / 10);
+    hue = 4 - 4 * t;
+    sat = 78 + 8 * t;
+    light = 50 - 6 * t;
+  }
   return `hsl(${hue.toFixed(1)} ${sat.toFixed(0)}% ${light.toFixed(0)}%)`;
 }
+
 
 export interface ContagemAssimetrias {
   /** assimetria > 20% */
