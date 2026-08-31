@@ -5981,6 +5981,33 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_parceiro_login: {
+        Row: {
+          bloqueado_ate: string | null
+          contagem: number
+          created_at: string
+          email_login: string
+          id: string
+          janela_min: number
+        }
+        Insert: {
+          bloqueado_ate?: string | null
+          contagem?: number
+          created_at?: string
+          email_login: string
+          id?: string
+          janela_min: number
+        }
+        Update: {
+          bloqueado_ate?: string | null
+          contagem?: number
+          created_at?: string
+          email_login?: string
+          id?: string
+          janela_min?: number
+        }
+        Relationships: []
+      }
       rede_tokenizacoes: {
         Row: {
           aluno_id: string
