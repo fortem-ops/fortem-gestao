@@ -232,21 +232,9 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Severity legend */}
-          <div className="hidden md:flex items-center gap-2.5">
-            {LEGEND.map(({ s, label }) => (
-              <div key={s} className="flex items-center gap-1">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{
-                    background: `hsl(var(--sev-${s}))`,
-                    boxShadow: `0 0 8px hsl(var(--sev-${s}) / 0.7)`,
-                  }}
-                />
-                <span className="text-[10px] text-white/60">{label}</span>
-              </div>
-            ))}
-          </div>
+          {/* Escala contínua de assimetria */}
+          <AsymmetryGradientLegend />
+
 
           {/* View toggle */}
           <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">
