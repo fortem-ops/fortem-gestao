@@ -111,12 +111,10 @@ export function ForcaTab({ alunoId, latest, history, aluno }: Props) {
           <thead>
             <tr className="text-[hsl(var(--bio-ink-muted))]">
               <th className="text-left p-3 font-medium text-xs">Exercício</th>
-              <th className="text-center p-3 font-medium text-xs w-24">Direito</th>
-              <th className="text-center p-3 font-medium text-xs w-24">Esquerdo</th>
+              <th className="text-center p-3 font-medium text-xs w-28">Direito</th>
+              <th className="text-center p-3 font-medium text-xs w-28">Esquerdo</th>
               <th className="text-center p-3 font-medium text-xs w-28">Assimetria</th>
-              <th className="text-center p-3 font-medium text-xs w-24">Risco</th>
-              <th className="text-center p-3 font-medium text-xs w-32">% Referência</th>
-              <th className="text-center p-3 font-medium text-xs w-32">Percentil Fortem</th>
+              <th className="text-center p-3 font-medium text-xs w-28">Risco</th>
             </tr>
           </thead>
           <tbody>
@@ -138,22 +136,6 @@ export function ForcaTab({ alunoId, latest, history, aluno }: Props) {
                     <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border ${c.cls}`}>
                       {c.label}
                     </span>
-                  </td>
-                  <td className="p-3 text-center text-[hsl(var(--bio-ink-muted))]">
-                    {KINOLOGY_PCT_SUPRIMIDO.has(ex.nome) ? (
-                      <span title="Protocolo em validação com a Kinology">—</span>
-                    ) : comparativos?.[ex.nome]?.kinology_pct != null ? (
-                      `${comparativos[ex.nome]!.kinology_pct}%`
-                    ) : (
-                      "Sem referência"
-                    )}
-                  </td>
-                  <td className="p-3 text-center text-[hsl(var(--bio-ink-muted))]">
-                    {comparativos?.[ex.nome]?.fortem_disponivel ? (
-                      `Percentil ${comparativos[ex.nome]!.fortem_percentil}`
-                    ) : (
-                      `Base insuficiente (n=${comparativos?.[ex.nome]?.fortem_n ?? 0})`
-                    )}
                   </td>
                 </tr>
               );
