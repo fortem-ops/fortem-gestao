@@ -83,23 +83,24 @@ function RegionGlow({
   state: BodyMapAnalysis["regions"][RegionId];
   mode: Mode;
 }) {
-  const color = SEVERITY_COLOR_VAR[state.severity];
-  const showHalo = state.severity !== "none" && (
-    mode !== "asymmetry" || (state.asymmetry !== undefined && state.asymmetry >= 15)
-  );
-  const isPulsing = state.severity === "weak" || state.severity === "attention";
+  const hasAsym = state.asymmetry !== undefined && state.asymmetry !== null;
+  const color = hasAsym ? corGradienteAssimetria(state.asymmetry!) : null;
+  const showHalo = hasAsym && state.asymmetry! > 0;
+  const isPulsing = hasAsym && state.asymmetry! > 20;
   const gradId = `glow-${id}`;
-  if (!showHalo) return null;
+  if (!showHalo || !color) return null;
 
   // Halo minimalista: leve brilho difuso atrás do marcador numerado.
+  // Intensidade proporcional ao % de assimetria (gradiente contínuo).
   const r = 26;
+  const intensity = Math.min(1, state.asymmetry! / 25);
   return (
     <g pointerEvents="none">
       <defs>
         <radialGradient id={gradId} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor={`hsl(${color})`} stopOpacity={0.45} />
-          <stop offset="70%" stopColor={`hsl(${color})`} stopOpacity={0.12} />
-          <stop offset="100%" stopColor={`hsl(${color})`} stopOpacity={0} />
+          <stop offset="0%" stopColor={color} stopOpacity={0.2 + 0.35 * intensity} />
+          <stop offset="70%" stopColor={color} stopOpacity={0.06 + 0.12 * intensity} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
         </radialGradient>
       </defs>
       <circle
@@ -110,6 +111,7 @@ function RegionGlow({
     </g>
   );
 }
+
 
 function RegionNumber({
   geom, state, number,
