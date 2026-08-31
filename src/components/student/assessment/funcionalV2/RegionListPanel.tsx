@@ -1,5 +1,5 @@
 import type { BodyMapAnalysis, RegionId, Layer } from "./bodyMapLogic";
-import { SEVERITY_LABEL } from "./bodyMapLogic";
+import { corGradienteAssimetria } from "./bodyMapLogic";
 
 const REGION_SHORT_LABEL: Record<RegionId, string> = {
   "shoulder-l":     "Ombro (E)",
