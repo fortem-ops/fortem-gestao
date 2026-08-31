@@ -177,7 +177,8 @@ function RegionHit({
               {state.contributing.slice(0, 4).map((c, i) => (
                 <li key={i}>
                   {c.metric}{c.side !== "center" ? ` (${c.side === "left" ? "E" : "D"})` : ""}:{" "}
-                  {c.value !== null ? `${c.value}°` : "—"} {c.classification ? `· ${c.classification}` : ""}
+                  {c.value !== null ? `${c.value}°` : "—"}
+
                 </li>
               ))}
             </ul>
