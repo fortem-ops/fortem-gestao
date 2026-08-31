@@ -43,6 +43,20 @@ export default function AvaliacoesPremium() {
     () => (scores && data ? gerarRecomendacoes(scores, data.funcional.latest, data.composicao.latest) : []),
     [scores, data],
   );
+  const forcaResumo = useMemo(
+    () =>
+      (data?.funcional.latest?.forca ?? []).map((e) => ({
+        nome: e.nome,
+        direito_kg: e.direito_kg,
+        esquerdo_kg: e.esquerdo_kg,
+      })),
+    [data],
+  );
+  const resumoGeral = useMemo(
+    () => (scores ? assimetriasPorCategoria(scores, forcaResumo).geral : null),
+    [scores, forcaResumo],
+  );
+
 
   function handlePick(id: string) {
     setAlunoId(id);
