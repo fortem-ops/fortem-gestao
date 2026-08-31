@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId, type Severity } from "./bodyMapLogic";
+import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
 import { useBodyMapShapes } from "./useBodyMapShapes";
 import { Button } from "@/components/ui/button";
@@ -46,13 +46,24 @@ const VIEW_OPTIONS: Array<{ id: "both" | "front" | "back"; label: string }> = [
   { id: "back",  label: "Posterior" },
 ];
 
-const LEGEND: Array<{ s: Severity; label: string }> = [
-  { s: "excellent", label: "Excelente" },
-  { s: "good",      label: "Bom" },
-  { s: "medium",    label: "Médio" },
-  { s: "attention", label: "Atenção" },
-  { s: "weak",      label: "Alto risco" },
-];
+/** Barra de gradiente contínuo de assimetria (sem categorias nomeadas). */
+function AsymmetryGradientLegend() {
+  const stops = [0, 5, 10, 15, 20, 25, 30]
+    .map((p) => `${corGradienteAssimetria(p)} ${(p / 30) * 100}%`)
+    .join(", ");
+  return (
+    <div className="hidden md:flex items-center gap-2">
+      <span className="text-[10px] text-white/50">menor assimetria</span>
+      <span
+        className="h-2 w-28 rounded-full"
+        style={{ background: `linear-gradient(90deg, ${stops})` }}
+        aria-hidden
+      />
+      <span className="text-[10px] text-white/50">maior assimetria</span>
+    </div>
+  );
+}
+
 
 function ScoreRing({ value, label, size = 88 }: { value: number | null; label: string; size?: number }) {
   const radius = size / 2 - 6;
@@ -221,21 +232,9 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Severity legend */}
-          <div className="hidden md:flex items-center gap-2.5">
-            {LEGEND.map(({ s, label }) => (
-              <div key={s} className="flex items-center gap-1">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{
-                    background: `hsl(var(--sev-${s}))`,
-                    boxShadow: `0 0 8px hsl(var(--sev-${s}) / 0.7)`,
-                  }}
-                />
-                <span className="text-[10px] text-white/60">{label}</span>
-              </div>
-            ))}
-          </div>
+          {/* Escala contínua de assimetria */}
+          <AsymmetryGradientLegend />
+
 
           {/* View toggle */}
           <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">

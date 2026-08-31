@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { AlunoSidebarCard } from "@/components/avaliacoes-premium/AlunoSidebarCard";
-import { DashboardSummary } from "@/components/avaliacoes-premium/DashboardSummary";
+import { DashboardSummary, assimetriasPorCategoria } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
@@ -43,6 +43,20 @@ export default function AvaliacoesPremium() {
     () => (scores && data ? gerarRecomendacoes(scores, data.funcional.latest, data.composicao.latest) : []),
     [scores, data],
   );
+  const forcaResumo = useMemo(
+    () =>
+      (data?.funcional.latest?.forca ?? []).map((e) => ({
+        nome: e.nome,
+        direito_kg: e.direito_kg,
+        esquerdo_kg: e.esquerdo_kg,
+      })),
+    [data],
+  );
+  const resumoGeral = useMemo(
+    () => (scores ? assimetriasPorCategoria(scores, forcaResumo).geral : null),
+    [scores, forcaResumo],
+  );
+
 
   function handlePick(id: string) {
     setAlunoId(id);
@@ -87,7 +101,16 @@ export default function AvaliacoesPremium() {
           />
 
           <div className="flex-1 min-w-0 space-y-5">
-            <DashboardSummary scores={scores} />
+            {resumoGeral && (
+              <div className="bio-card px-4 py-3 flex items-center gap-3">
+                <span className="bio-label">Resumo geral</span>
+                <span className="text-sm font-semibold text-[hsl(var(--bio-ink))]">
+                  {resumoGeral.alta + resumoGeral.moderada} alerta(s) ativo(s) — {resumoGeral.alta} elevada(s), {resumoGeral.moderada} moderada(s)
+                </span>
+              </div>
+            )}
+            <DashboardSummary scores={scores} forca={forcaResumo} />
+
             <PremiumBodyMap funcional={data.funcional.latest} scores={scores} />
 
             <Tabs defaultValue="mobilidade" className="bio-card p-4">

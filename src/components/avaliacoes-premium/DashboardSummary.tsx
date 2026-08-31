@@ -1,21 +1,44 @@
+import { useMemo } from "react";
 import { DashboardScoreCard } from "./DashboardScoreCard";
+import { DashboardCountCard, DashboardRiscoCard } from "./DashboardCountCard";
 import { bandFromScore, type PremiumScores } from "./scoringPremium";
+import {
+  classifyForca,
+  contarAssimetriasPorFaixa,
+  type ContagemAssimetrias,
+} from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+
+export interface ForcaResumoInput {
+  nome: string;
+  direito_kg: number | null;
+  esquerdo_kg: number | null;
+}
 
 interface Props {
   scores: PremiumScores;
+  forca?: ForcaResumoInput[];
 }
 
-export function DashboardSummary({ scores }: Props) {
-  const riscoBand =
-    scores.risco === null
-      ? "none"
-      : scores.risco >= 75
-      ? "good"
-      : scores.risco >= 55
-      ? "warn"
-      : "risk";
+/** Percentuais de assimetria separados por categoria a partir do nome da métrica. */
+export function assimetriasPorCategoria(scores: PremiumScores, forca: ForcaResumoInput[] = []) {
+  const metricas = scores.analysisAsym?.metricAsymmetries ?? [];
+  const mob = metricas.filter((m) => /^mobilidade/i.test(m.metric)).map((m) => m.diff);
+  const flex = metricas.filter((m) => /^flexibilidade/i.test(m.metric)).map((m) => m.diff);
+  const forcaPcts = forca
+    .filter((e) => e.direito_kg != null && e.esquerdo_kg != null)
+    .map((e) => classifyForca(e.direito_kg!, e.esquerdo_kg!).assimetria);
 
+  return {
+    mobilidade: contarAssimetriasPorFaixa(mob),
+    flexibilidade: contarAssimetriasPorFaixa(flex),
+    forca: contarAssimetriasPorFaixa(forcaPcts),
+    geral: contarAssimetriasPorFaixa([...mob, ...flex, ...forcaPcts]),
+  } satisfies Record<string, ContagemAssimetrias>;
+}
+
+export function DashboardSummary({ scores, forca = [] }: Props) {
   const j = scores.justificativas;
+  const contagens = useMemo(() => assimetriasPorCategoria(scores, forca), [scores, forca]);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
@@ -26,26 +49,11 @@ export function DashboardSummary({ scores }: Props) {
         band={bandFromScore(scores.indiceFortem)}
         tooltip={j.indiceFortem}
       />
-      <DashboardScoreCard label="Mobilidade" value={scores.mobilidade} subtle tooltip={j.mobilidade} />
-      <DashboardScoreCard label="Força" value={scores.forca} subtle tooltip={j.forca} />
-      <DashboardScoreCard label="Flexibilidade" value={scores.flexibilidade} subtle tooltip={j.flexibilidade} />
+      <DashboardCountCard label="Mobilidade" contagem={contagens.mobilidade} tooltip={j.mobilidade} />
+      <DashboardCountCard label="Força" contagem={contagens.forca} tooltip={j.forca} />
+      <DashboardCountCard label="Flexibilidade" contagem={contagens.flexibilidade} tooltip={j.flexibilidade} />
       <DashboardScoreCard label="Composição" value={scores.composicao} subtle tooltip={j.composicao} />
-      <DashboardScoreCard label="Simetria" value={scores.assimetria} subtle tooltip={j.assimetria} />
-      <DashboardScoreCard
-        label="Risco de Lesão"
-        value={scores.risco}
-        band={riscoBand}
-        tooltip={j.risco}
-        statusLabel={
-          scores.risco === null
-            ? "Sem dado"
-            : scores.risco >= 75
-            ? "Baixo"
-            : scores.risco >= 55
-            ? "Atenção"
-            : "Alto"
-        }
-      />
+      <DashboardRiscoCard contagem={contagens.geral} />
     </div>
   );
 }

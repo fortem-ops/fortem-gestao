@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BodyMapAnalysis, Mode, RegionId, Severity } from "./bodyMapLogic";
-import { SEVERITY_COLOR_VAR, SEVERITY_LABEL } from "./bodyMapLogic";
+import { corGradienteAssimetria } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
 import type { OverrideMap } from "./useBodyMapGeometry";
@@ -83,23 +83,24 @@ function RegionGlow({
   state: BodyMapAnalysis["regions"][RegionId];
   mode: Mode;
 }) {
-  const color = SEVERITY_COLOR_VAR[state.severity];
-  const showHalo = state.severity !== "none" && (
-    mode !== "asymmetry" || (state.asymmetry !== undefined && state.asymmetry >= 15)
-  );
-  const isPulsing = state.severity === "weak" || state.severity === "attention";
+  const hasAsym = state.asymmetry !== undefined && state.asymmetry !== null;
+  const color = hasAsym ? corGradienteAssimetria(state.asymmetry!) : null;
+  const showHalo = hasAsym && state.asymmetry! > 0;
+  const isPulsing = hasAsym && state.asymmetry! > 20;
   const gradId = `glow-${id}`;
-  if (!showHalo) return null;
+  if (!showHalo || !color) return null;
 
   // Halo minimalista: leve brilho difuso atrás do marcador numerado.
+  // Intensidade proporcional ao % de assimetria (gradiente contínuo).
   const r = 26;
+  const intensity = Math.min(1, state.asymmetry! / 25);
   return (
     <g pointerEvents="none">
       <defs>
         <radialGradient id={gradId} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor={`hsl(${color})`} stopOpacity={0.45} />
-          <stop offset="70%" stopColor={`hsl(${color})`} stopOpacity={0.12} />
-          <stop offset="100%" stopColor={`hsl(${color})`} stopOpacity={0} />
+          <stop offset="0%" stopColor={color} stopOpacity={0.2 + 0.35 * intensity} />
+          <stop offset="70%" stopColor={color} stopOpacity={0.06 + 0.12 * intensity} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
         </radialGradient>
       </defs>
       <circle
@@ -111,6 +112,7 @@ function RegionGlow({
   );
 }
 
+
 function RegionNumber({
   geom, state, number,
 }: {
@@ -118,12 +120,12 @@ function RegionNumber({
   state: BodyMapAnalysis["regions"][RegionId];
   number: number;
 }) {
-  const color = SEVERITY_COLOR_VAR[state.severity];
+  const color = corGradienteAssimetria(state.asymmetry ?? null);
   return (
     <g pointerEvents="none">
       <circle
         cx={geom.cx} cy={geom.cy} r={16}
-        fill={`hsl(${color})`}
+        fill={color}
         stroke="hsl(220 13% 9%)"
         strokeWidth={2}
       />
@@ -149,37 +151,34 @@ function RegionHit({
   geom: RegionGeometry;
   state: BodyMapAnalysis["regions"][RegionId];
 }) {
-  const color = SEVERITY_COLOR_VAR[state.severity];
+  const hasAsym = state.asymmetry !== undefined && state.asymmetry !== null;
+  const color = corGradienteAssimetria(state.asymmetry ?? null);
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <g style={{ cursor: state.severity !== "none" ? "pointer" : "default" }}>
+        <g style={{ cursor: hasAsym || state.score !== null ? "pointer" : "default" }}>
           <circle cx={geom.cx} cy={geom.cy} r={geom.r + 6} fill="transparent" />
         </g>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-[260px]">
         <div className="space-y-1">
           <p className="font-semibold text-xs">{geom.label}</p>
-          {state.score !== null && (
+          {hasAsym && (
             <p className="text-xs">
-              Score:{" "}
-              <span className="font-semibold" style={{ color: `hsl(${color})` }}>
-                {state.score}/100
-              </span>{" "}
-              · {SEVERITY_LABEL[state.severity]}
+              Assimetria:{" "}
+              <span className="font-semibold" style={{ color }}>
+                {Math.round(state.asymmetry! * 10) / 10}%
+              </span>
             </p>
           )}
-          {state.asymmetry !== undefined && state.asymmetry >= 15 && (
-            <p className="text-[11px] text-warning">
-              Assimetria {state.asymmetry >= 25 ? "severa" : "moderada"} ({state.asymmetry} pts)
-            </p>
-          )}
+
           {state.contributing.length > 0 && (
             <ul className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border/40">
               {state.contributing.slice(0, 4).map((c, i) => (
                 <li key={i}>
                   {c.metric}{c.side !== "center" ? ` (${c.side === "left" ? "E" : "D"})` : ""}:{" "}
-                  {c.value !== null ? `${c.value}°` : "—"} {c.classification ? `· ${c.classification}` : ""}
+                  {c.value !== null ? `${c.value}°` : "—"}
+
                 </li>
               ))}
             </ul>
@@ -287,7 +286,7 @@ export function BodyMapSVG({
           if (!muscle) return [];
           const { assimetria } = classifyForca(ex.direito_kg!, ex.esquerdo_kg!);
           const weakerIsRight = ex.direito_kg! < ex.esquerdo_kg!;
-          const riskColor = assimetria < 10 ? "#639922" : assimetria < 20 ? "#BA7517" : "#E24B4A";
+          const riskColor = corGradienteAssimetria(assimetria);
           const out: Array<{ key: string; shape: BodyMapShape; fill: string }> = [];
           const shapeR = shapesMap[`${muscle}-direito`];
           const shapeL = shapesMap[`${muscle}-esquerdo`];
