@@ -66,6 +66,14 @@ export function PremiumBodyMap({ funcional, scores }: Props) {
         <BodyMap
           metrics={funcional.metricas}
           forcaExercises={forcaInputs}
+          rings={
+            scores
+              ? {
+                  ...assimetriasPorCategoria(scores, forcaInputs),
+                  composicao: scores.composicao,
+                }
+              : null
+          }
           canonical={
             scores
               ? {
