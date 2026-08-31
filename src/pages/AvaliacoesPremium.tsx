@@ -109,7 +109,7 @@ export default function AvaliacoesPremium() {
                 </span>
               </div>
             )}
-            <DashboardSummary scores={scores} forca={forcaResumo} />
+            
 
             <PremiumBodyMap funcional={data.funcional.latest} scores={scores} />
 
