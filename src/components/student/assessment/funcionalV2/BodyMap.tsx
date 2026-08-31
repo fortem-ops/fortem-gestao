@@ -118,7 +118,38 @@ const RISK_STYLE: Record<"low" | "attention" | "high", { label: string; color: s
   high:      { label: "Alto risco compensatório", color: "var(--sev-weak)" },
 };
 
-export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
+/** Anel de número absoluto (contagem de assimetrias). `tone` = % representativo p/ cor. */
+function CountRing({ value, label, size = 88, tone }: { value: number; label: string; size?: number; tone?: number }) {
+  const radius = size / 2 - 6;
+  const circ = 2 * Math.PI * radius;
+  const frac = Math.min(1, value / 5);
+  const pctTone = tone ?? (value === 0 ? 0 : value >= 3 ? 24 : 14);
+  const color = value === 0 && tone === undefined
+    ? "hsl(var(--bodymap-silhouette))"
+    : corGradienteAssimetria(pctTone);
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(0 0% 100% / 0.08)" strokeWidth={5} />
+          <circle
+            cx={size / 2} cy={size / 2} r={radius} fill="none"
+            stroke={color} strokeWidth={5}
+            strokeDasharray={`${Math.max(frac, value > 0 ? 0.08 : 0) * circ} ${circ}`}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-xl font-heading font-bold leading-none text-white">{value}</p>
+        </div>
+      </div>
+      <p className="text-[10px] uppercase tracking-wider text-white/60 font-medium">{label}</p>
+    </div>
+  );
+}
+
+export function BodyMap({ metrics, forcaExercises, canonical, rings }: Props) {
   const [mode, setMode] = useState<Mode>("asymmetry");
   const [layer, setLayer] = useState<Layer>("mobility");
   const [viewFilter, setViewFilter] = useState<"both" | "front" | "back">("both");
