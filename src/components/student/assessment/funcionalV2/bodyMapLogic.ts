@@ -169,6 +169,59 @@ export const SEVERITY_COLOR_VAR: Record<Severity, string> = {
   none: "var(--bodymap-silhouette)",
 };
 
+/**
+ * Rampa contínua verde → âmbar → vermelho a partir do % BRUTO de assimetria.
+ * Substitui os 5 degraus fixos de severidade na coloração do mapa corporal.
+ * 0% = verde (hue 140), 15% = âmbar (hue ~45), >=30% = vermelho (hue 0).
+ * Retorna uma cor CSS `hsl(...)` pronta para uso.
+ */
+export function corGradienteAssimetria(pct: number | null | undefined): string {
+  if (pct === null || pct === undefined || Number.isNaN(pct)) {
+    return "hsl(var(--bodymap-silhouette))";
+  }
+  const p = Math.max(0, Math.min(30, pct)) / 30; // 0..1
+  const hue = 140 - 140 * p;                     // 140 (verde) → 0 (vermelho)
+  const sat = 62 + 18 * p;                       // 62% → 80%
+  const light = 48 - 2 * p;                      // 48% → 46%
+  return `hsl(${hue.toFixed(1)} ${sat.toFixed(0)}% ${light.toFixed(0)}%)`;
+}
+
+export interface ContagemAssimetrias {
+  /** assimetria > 20% */
+  alta: number;
+  /** assimetria entre 10% e 20% (inclusive 10, exclusive 20) */
+  moderada: number;
+  /** assimetria < 10% */
+  baixa: number;
+  /** total de itens considerados */
+  total: number;
+}
+
+/**
+ * Conta assimetrias por faixa (>20% / 10–20% / <10%).
+ * Aceita um BodyMapAnalysis (usa `metricAsymmetries`) ou uma lista de percentuais
+ * (ex.: assimetrias de força já calculadas).
+ */
+export function contarAssimetriasPorFaixa(
+  origem: BodyMapAnalysis | ReadonlyArray<number> | null | undefined,
+): ContagemAssimetrias {
+  const pcts: number[] = !origem
+    ? []
+    : Array.isArray(origem)
+    ? (origem as ReadonlyArray<number>).slice()
+    : (origem as BodyMapAnalysis).metricAsymmetries.map((a) => a.diff);
+
+  const validos = pcts.filter((p) => typeof p === "number" && !Number.isNaN(p));
+  let alta = 0, moderada = 0, baixa = 0;
+  for (const p of validos) {
+    if (p > 20) alta++;
+    else if (p >= 10) moderada++;
+    else baixa++;
+  }
+  return { alta, moderada, baixa, total: validos.length };
+}
+
+
 export interface RegionState {
   region: RegionId;
   side: Side | "center";
