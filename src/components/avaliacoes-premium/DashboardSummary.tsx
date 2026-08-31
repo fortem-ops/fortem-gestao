@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { DashboardScoreCard } from "./DashboardScoreCard";
 import { DashboardCountCard, DashboardRiscoCard } from "./DashboardCountCard";
-import { bandFromScore, type PremiumScores } from "./scoringPremium";
+import { type PremiumScores } from "./scoringPremium";
 import {
   classifyForca,
   contarAssimetriasPorFaixa,
