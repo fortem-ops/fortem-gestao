@@ -310,6 +310,7 @@
   /* Texto */
   [data-bio-theme="light"] .bodymap-surface .text-white { color: hsl(var(--bm-l-ink)); }
   [data-bio-theme="light"] .bodymap-surface .text-white\/40,
+  [data-bio-theme="light"] .bodymap-surface .text-white\/45,
   [data-bio-theme="light"] .bodymap-surface .text-white\/50,
   [data-bio-theme="light"] .bodymap-surface .text-white\/55,
   [data-bio-theme="light"] .bodymap-surface .text-white\/60 { color: hsl(var(--bm-l-muted)); }
@@ -328,6 +329,7 @@
 
   /* Bordas e divisórias */
   [data-bio-theme="light"] .bodymap-surface .border-white\/5,
+  [data-bio-theme="light"] .bodymap-surface .border-white\/10,
   [data-bio-theme="light"] .bodymap-surface .border-b { border-color: hsl(var(--bm-l-line)); }
   [data-bio-theme="light"] .bodymap-surface .divide-white\/5 > * + * { border-color: hsl(var(--bm-l-line)); }
 

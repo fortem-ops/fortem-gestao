@@ -246,13 +246,21 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings }: Props) {
         <div className="flex items-center gap-4 flex-wrap">
           {rings ? (
             <>
-              <CountRing value={rings.mobilidade.alta + rings.mobilidade.moderada} label="Mobilidade" />
-              <CountRing value={rings.flexibilidade.alta + rings.flexibilidade.moderada} label="Flexibilidade" />
-              <CountRing value={rings.forca.alta + rings.forca.moderada} label="Força" />
               <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
                 <p className="text-[9px] uppercase tracking-[0.2em] text-white/45 font-semibold text-center mb-1">
-                  Risco de Lesão
+                  Assimetrias
                 </p>
+                <div className="flex items-center gap-2">
+                  <CountRing value={rings.mobilidade.alta + rings.mobilidade.moderada} label="Mobilidade" />
+                  <CountRing value={rings.flexibilidade.alta + rings.flexibilidade.moderada} label="Flexibilidade" />
+                  <CountRing value={rings.forca.alta + rings.forca.moderada} label="Força" />
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                <p className="text-[9px] uppercase tracking-[0.2em] text-white/45 font-semibold text-center mb-1">
+                  Risco de Lesões
+                </p>
+                <p className="text-[8px] text-white/40 text-center mb-1.5">saúde muscular · todas as camadas</p>
                 <div className="flex items-center gap-2">
                   <CountRing value={rings.geral.alta} label=">20%" size={66} tone={26} />
                   <CountRing value={rings.geral.moderada} label="10-20%" size={66} tone={15} />
