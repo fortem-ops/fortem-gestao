@@ -83,19 +83,12 @@ export function RegionListPanel({ items }: { items: RegionListItem[] }) {
           <div className="text-right shrink-0">
             <p
               className="text-[14px] font-bold leading-tight"
-              style={it.riskColor ? { color: `hsl(${it.riskColor})` } : undefined}
+              style={{ color: corGradienteAssimetria(it.percentage) }}
             >
               {it.percentage}%
             </p>
-            {it.riskLabel && (
-              <p
-                className="text-[10px] font-semibold"
-                style={{ color: `hsl(${it.riskColor})` }}
-              >
-                {it.riskLabel}
-              </p>
-            )}
           </div>
+
         </div>
       ))}
     </div>
