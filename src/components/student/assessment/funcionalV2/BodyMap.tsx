@@ -46,13 +46,24 @@ const VIEW_OPTIONS: Array<{ id: "both" | "front" | "back"; label: string }> = [
   { id: "back",  label: "Posterior" },
 ];
 
-const LEGEND: Array<{ s: Severity; label: string }> = [
-  { s: "excellent", label: "Excelente" },
-  { s: "good",      label: "Bom" },
-  { s: "medium",    label: "Médio" },
-  { s: "attention", label: "Atenção" },
-  { s: "weak",      label: "Alto risco" },
-];
+/** Barra de gradiente contínuo de assimetria (sem categorias nomeadas). */
+function AsymmetryGradientLegend() {
+  const stops = [0, 5, 10, 15, 20, 25, 30]
+    .map((p) => `${corGradienteAssimetria(p)} ${(p / 30) * 100}%`)
+    .join(", ");
+  return (
+    <div className="hidden md:flex items-center gap-2">
+      <span className="text-[10px] text-white/50">menor assimetria</span>
+      <span
+        className="h-2 w-28 rounded-full"
+        style={{ background: `linear-gradient(90deg, ${stops})` }}
+        aria-hidden
+      />
+      <span className="text-[10px] text-white/50">maior assimetria</span>
+    </div>
+  );
+}
+
 
 function ScoreRing({ value, label, size = 88 }: { value: number | null; label: string; size?: number }) {
   const radius = size / 2 - 6;
