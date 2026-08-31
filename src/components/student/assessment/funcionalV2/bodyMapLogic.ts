@@ -587,6 +587,40 @@ const FORCA_REGIONS: Record<ForcaExercicio, { left: RegionId; right: RegionId } 
   aducao_quadril: { left: "hip-l", right: "hip-r" },
 };
 
+export type GrupoFuncional = "superior" | "inferior";
+
+export const GRUPO_FUNCIONAL_LABEL: Record<GrupoFuncional, string> = {
+  superior: "Membros superiores",
+  inferior: "Membros inferiores",
+};
+
+/** Movimento de dinamometria → grupo funcional (ombro/cotovelo/punho = superior; quadril/joelho/tornozelo = inferior). */
+export const FORCA_GRUPO_FUNCIONAL: Record<ForcaExercicio, GrupoFuncional> = {
+  rotacao_interna: "superior",
+  rotacao_externa: "superior",
+  flexao_ombro: "superior",
+  extensao_ombro: "superior",
+  abducao_ombro: "superior",
+  aducao_ombro: "superior",
+  flexao_cotovelo: "superior",
+  extensao_cotovelo: "superior",
+  pronacao_antebraco: "superior",
+  supinacao_antebraco: "superior",
+  flexao_punho: "superior",
+  extensao_punho: "superior",
+  dorsiflexao: "inferior",
+  flexao_plantar: "inferior",
+  inversao: "inferior",
+  flexao_joelho: "inferior",
+  extensao_joelho: "inferior",
+  flexao_quadril: "inferior",
+  extensao_quadril: "inferior",
+  abducao_quadril: "inferior",
+  aducao_quadril: "inferior",
+};
+
+
+
 
 /** Classifica um exercício pela assimetria relativa (Kinology). */
 export function classifyForca(direito: number, esquerdo: number): {
