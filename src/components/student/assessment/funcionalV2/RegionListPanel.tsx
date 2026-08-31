@@ -32,11 +32,9 @@ export interface RegionListItem {
   label: string;
   metricLabel: string;
   percentage: number;
-  riskLabel?: string;
-  riskColor?: string;
 }
 
-export function buildRegionList(analysis: BodyMapAnalysis, max = 6, layer?: Layer): RegionListItem[] {
+export function buildRegionList(analysis: BodyMapAnalysis, max = 6, _layer?: Layer): RegionListItem[] {
   const entries = (Object.entries(analysis.regions) as Array<[RegionId, BodyMapAnalysis["regions"][RegionId]]>)
     .filter(([, s]) => s.asymmetry !== undefined && s.asymmetry > 0);
 
@@ -47,23 +45,16 @@ export function buildRegionList(analysis: BodyMapAnalysis, max = 6, layer?: Laye
     const metricLabel = firstMetric
       .replace(/^Mobilidade\s+/i, "")
       .replace(/^Flexibilidade\s+/i, "");
-    const asymValue = state.asymmetry ?? 0;
-    const isForca = layer === "strength";
-    const riskLabel = isForca ? (asymValue < 10 ? "BAIXO" : asymValue < 20 ? "ATENÇÃO" : "ALTO") : undefined;
-    const riskColor = isForca
-      ? (asymValue < 10 ? "var(--sev-good)" : asymValue < 20 ? "var(--sev-attention)" : "var(--sev-weak)")
-      : undefined;
     return {
       id,
       number: i + 1,
       label: REGION_SHORT_LABEL[id],
       metricLabel,
       percentage: Math.round(state.asymmetry ?? 0),
-      riskLabel,
-      riskColor,
     };
   });
 }
+
 
 export function RegionListPanel({ items }: { items: RegionListItem[] }) {
   if (items.length === 0) {
