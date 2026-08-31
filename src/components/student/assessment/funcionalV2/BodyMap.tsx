@@ -202,7 +202,7 @@ export function BodyMap({ metrics, forcaExercises, canonical }: Props) {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <ScoreRing value={canonical ? canonical.mobilidade : analysis.scoreMobilidade} label="Mobilidade" />
-          <ScoreRing value={canonical ? canonical.mobilidade : analysis.scoreMobilidade} label="Mobilidade" />
+
           <ScoreRing value={canonical ? canonical.simetria : analysis.scoreSimetria} label="Simetria" />
           <ScoreRing value={canonical ? canonical.estabilidade : analysis.scoreEstabilidade} label="Estabilidade" />
           <ScoreRing value={canonical ? canonical.forca : analysis.scoreForca} label="Força" />
