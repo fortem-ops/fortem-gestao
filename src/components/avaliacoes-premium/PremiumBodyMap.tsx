@@ -2,6 +2,7 @@ import { BodyMap } from "@/components/student/assessment/funcionalV2/BodyMap";
 import { AlertTriangle } from "lucide-react";
 import type { FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 import type { PremiumScores } from "./scoringPremium";
+import { assimetriasPorCategoria } from "./DashboardSummary";
 
 interface Props {
   funcional: FuncionalSnapshot | null;
