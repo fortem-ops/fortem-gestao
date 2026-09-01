@@ -73,6 +73,7 @@ const RelatoriosCRM = lazyWithReload(() => import("./pages/relatorios/CRM"));
 const RelatoriosEquipe = lazyWithReload(() => import("./pages/relatorios/Equipe"));
 const WhatsApp = lazyWithReload(() => import("./pages/WhatsApp"));
 const Corrida = lazyWithReload(() => import("./pages/Corrida"));
+const Planos = lazyWithReload(() => import("./pages/Planos"));
 const Privacidade = lazyWithReload(() => import("./pages/Privacidade"));
 const TermoAptidaoUsoImagem = lazyWithReload(() => import("./pages/TermoAptidaoUsoImagem"));
 const OAuthConsent = lazyWithReload(() => import("./pages/OAuthConsent"));
@@ -140,6 +141,7 @@ const App = () => (
             <Route path="/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><RecoverPassword /></Suspense>} />
             <Route path="/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><ResetPassword /></Suspense>} />
             <Route path="/corrida" element={<Suspense fallback={<RouteFallback />}><Corrida /></Suspense>} />
+            <Route path="/planos" element={<Suspense fallback={<RouteFallback />}><Planos /></Suspense>} />
             <Route path="/privacidade" element={<Suspense fallback={<RouteFallback />}><Privacidade /></Suspense>} />
             <Route path="/termos/aptidao-fisica-uso-imagem" element={<Suspense fallback={<RouteFallback />}><TermoAptidaoUsoImagem /></Suspense>} />
             
