@@ -2,15 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StudentAssessments } from "@/components/student/StudentAssessments";
+import { StudentAssessments, TIPOS_ESTRUTURAIS } from "@/components/student/StudentAssessments";
 import { StudentNotes } from "@/components/student/StudentNotes";
 import { StudentTasks } from "@/components/student/StudentTasks";
 import { StudentUploads } from "@/components/student/StudentUploads";
 
-export const REGISTROS_SUBTABS = ["avaliacoes", "observacoes", "tarefas", "uploads"] as const;
+export const REGISTROS_SUBTABS = ["tarefas", "relatorios", "avaliacoes", "observacoes", "uploads"] as const;
 export type RegistroSubTab = (typeof REGISTROS_SUBTABS)[number];
 
-function useCount(table: "avaliacoes" | "historico_profissional" | "tarefas" | "uploads", alunoId: string) {
+function useCount(table: "historico_profissional" | "tarefas" | "uploads", alunoId: string) {
   return useQuery({
     queryKey: ["registros-count", table, alunoId],
     queryFn: async () => {
@@ -18,6 +18,21 @@ function useCount(table: "avaliacoes" | "historico_profissional" | "tarefas" | "
         .from(table)
         .select("id", { count: "exact", head: true })
         .eq("aluno_id", alunoId);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    staleTime: 30_000,
+  });
+}
+
+function useAvaliacoesCount(alunoId: string, modo: "avaliacoes" | "relatorios") {
+  return useQuery({
+    queryKey: ["registros-count", "avaliacoes", modo, alunoId],
+    queryFn: async () => {
+      const lista = `(${TIPOS_ESTRUTURAIS.join(",")})`;
+      let q = supabase.from("avaliacoes").select("id", { count: "exact", head: true }).eq("aluno_id", alunoId);
+      q = modo === "avaliacoes" ? q.in("tipo", TIPOS_ESTRUTURAIS) : q.not("tipo", "in", lista);
+      const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
     },
@@ -41,7 +56,8 @@ interface Props {
 }
 
 export function StudentRegistros({ student, value, onValueChange }: Props) {
-  const { data: nAval } = useCount("avaliacoes", student.id);
+  const { data: nAval } = useAvaliacoesCount(student.id, "avaliacoes");
+  const { data: nRel } = useAvaliacoesCount(student.id, "relatorios");
   const { data: nObs } = useCount("historico_profissional", student.id);
   const { data: nTar } = useCount("tarefas", student.id);
   const { data: nUp } = useCount("uploads", student.id);
@@ -50,23 +66,27 @@ export function StudentRegistros({ student, value, onValueChange }: Props) {
     <div className="mt-4">
       <Tabs value={value} onValueChange={(v) => onValueChange(v as RegistroSubTab)} className="w-full">
         <TabsList className="bg-secondary/30 border border-border/60 w-full justify-start overflow-x-auto h-9">
+          <TabsTrigger value="tarefas" className="text-xs">
+            Tarefas<Counter value={nTar} />
+          </TabsTrigger>
+          <TabsTrigger value="relatorios" className="text-xs">
+            Relatórios<Counter value={nRel} />
+          </TabsTrigger>
           <TabsTrigger value="avaliacoes" className="text-xs">
-            Avaliações/Relatórios<Counter value={nAval} />
+            Avaliações<Counter value={nAval} />
           </TabsTrigger>
           <TabsTrigger value="observacoes" className="text-xs">
             Observações<Counter value={nObs} />
-          </TabsTrigger>
-          <TabsTrigger value="tarefas" className="text-xs">
-            Tarefas<Counter value={nTar} />
           </TabsTrigger>
           <TabsTrigger value="uploads" className="text-xs">
             Uploads<Counter value={nUp} />
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="avaliacoes"><StudentAssessments student={student} /></TabsContent>
-        <TabsContent value="observacoes"><StudentNotes student={student} /></TabsContent>
         <TabsContent value="tarefas"><StudentTasks student={student} /></TabsContent>
+        <TabsContent value="relatorios"><StudentAssessments student={student} modo="relatorios" /></TabsContent>
+        <TabsContent value="avaliacoes"><StudentAssessments student={student} modo="avaliacoes" /></TabsContent>
+        <TabsContent value="observacoes"><StudentNotes student={student} /></TabsContent>
         <TabsContent value="uploads"><StudentUploads student={student} /></TabsContent>
       </Tabs>
     </div>

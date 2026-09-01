@@ -22,7 +22,13 @@ import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
 import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import { cn } from "@/lib/utils";
 
-export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
+// Motores estruturais: ficam na sub-aba "Avaliações". Todo o resto é Relatório.
+export const TIPOS_ESTRUTURAIS = ["funcional", "funcional_v2", "composicao_corporal"];
+
+export type ModoRegistros = "avaliacoes" | "relatorios";
+
+export function StudentAssessments({ student, modo = "avaliacoes" }: { student: Tables<"alunos">; modo?: ModoRegistros }) {
+  const isAval = modo === "avaliacoes";
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -74,6 +80,12 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
     },
   });
 
+  const lista = (avaliacoes ?? []).filter((a) =>
+    isAval ? TIPOS_ESTRUTURAIS.includes(a.tipo) : !TIPOS_ESTRUTURAIS.includes(a.tipo),
+  );
+
+
+
   const openViewer = (a: Tables<"avaliacoes">) => {
     setSelected(a);
     setViewerOpen(true);
@@ -105,6 +117,7 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
 
   return (
     <div className="space-y-4 mt-4">
+      {isAval && (
       <div className="glass-card rounded-lg p-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -136,31 +149,38 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
           )}
         </div>
       </div>
+      )}
 
       <div className="flex items-center justify-between">
-        <h3 className="font-heading font-semibold text-foreground">Histórico de Avaliações</h3>
+        <h3 className="font-heading font-semibold text-foreground">
+          {isAval ? "Histórico de Avaliações" : "Relatórios"}
+        </h3>
         <div className="flex items-center gap-2">
-          <Button
-            onClick={() => navigate(`/avaliacoes-premium/${student.id}`)}
-            size="sm"
-            variant="outline"
-          >
-            Avaliações
-          </Button>
-          <Button onClick={() => navigate(`/avaliacoes?aluno=${student.id}&new=1`)} size="sm">
-            <Plus className="w-4 h-4 mr-1" /> Relatório
-          </Button>
+          {isAval ? (
+            <Button
+              onClick={() => navigate(`/avaliacoes-premium/${student.id}`)}
+              size="sm"
+              variant="outline"
+            >
+              Avaliações
+            </Button>
+          ) : (
+            <Button onClick={() => navigate(`/avaliacoes?aluno=${student.id}&new=1`)} size="sm">
+              <Plus className="w-4 h-4 mr-1" /> Novo Relatório
+            </Button>
+          )}
         </div>
+
       </div>
 
 
-      {(!avaliacoes || avaliacoes.length === 0) ? (
+      {lista.length === 0 ? (
         <div className="glass-card rounded-lg p-8 text-center text-sm text-muted-foreground">
-          Nenhuma avaliação realizada para este aluno.
+          {isAval ? "Nenhuma avaliação realizada para este aluno." : "Nenhum relatório gerado para este aluno."}
         </div>
       ) : (
         <div className="space-y-2">
-          {avaliacoes.map((a) => (
+          {lista.map((a) => (
             <div
               key={a.id}
               role="button"
