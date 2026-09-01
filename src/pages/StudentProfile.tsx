@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,13 @@ export default function StudentProfile() {
   const [reativarOpen, setReativarOpen] = useState(false);
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["resumo","pipeline","clube","plano","financeiro","contrato","treinos","frequencia","avaliacoes","tarefas","observacoes","uploads"];
+  const { data: roles } = useUserRoles();
+  const podeVerComercial = !!roles?.isCoordAdmin;
+  const validTabs = [
+    "resumo",
+    ...(podeVerComercial ? ["pipeline","clube","plano","financeiro","contrato"] : []),
+    "treinos","frequencia","avaliacoes","tarefas","observacoes","uploads",
+  ];
   const tabParam = searchParams.get("tab");
   const tabValue = tabParam && validTabs.includes(tabParam) ? tabParam : "resumo";
 
@@ -226,11 +233,13 @@ export default function StudentProfile() {
       >
         <TabsList className="bg-secondary/50 border border-border w-full justify-start overflow-x-auto">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
-          <TabsTrigger value="clube">Clube FORTEM</TabsTrigger>
-          <TabsTrigger value="plano">Plano/Serviços</TabsTrigger>
-          <TabsTrigger value="financeiro">Carteira</TabsTrigger>
-          <TabsTrigger value="contrato">Pagamentos</TabsTrigger>
+          {podeVerComercial && <>
+            <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+            <TabsTrigger value="clube">Clube FORTEM</TabsTrigger>
+            <TabsTrigger value="plano">Plano/Serviços</TabsTrigger>
+            <TabsTrigger value="financeiro">Carteira</TabsTrigger>
+            <TabsTrigger value="contrato">Pagamentos</TabsTrigger>
+          </>}
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
           <TabsTrigger value="frequencia">Frequência</TabsTrigger>
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
@@ -240,11 +249,13 @@ export default function StudentProfile() {
         </TabsList>
 
         <TabsContent value="resumo"><StudentSummary student={student} /></TabsContent>
-        <TabsContent value="pipeline"><StudentPipelinePanel student={student} onChanged={() => refetch()} /></TabsContent>
-        <TabsContent value="clube"><StudentClubePanel student={student} /></TabsContent>
-        <TabsContent value="plano"><StudentPlan student={student} /></TabsContent>
-        <TabsContent value="financeiro"><StudentFinanceiro student={student} /></TabsContent>
-        <TabsContent value="contrato"><ContratoFinanceiro alunoId={student.id} /></TabsContent>
+        {podeVerComercial && <>
+          <TabsContent value="pipeline"><StudentPipelinePanel student={student} onChanged={() => refetch()} /></TabsContent>
+          <TabsContent value="clube"><StudentClubePanel student={student} /></TabsContent>
+          <TabsContent value="plano"><StudentPlan student={student} /></TabsContent>
+          <TabsContent value="financeiro"><StudentFinanceiro student={student} /></TabsContent>
+          <TabsContent value="contrato"><ContratoFinanceiro alunoId={student.id} /></TabsContent>
+        </>}
         <TabsContent value="treinos"><StudentWorkouts student={student} /></TabsContent>
         <TabsContent value="frequencia"><StudentFrequencia student={student} /></TabsContent>
         <TabsContent value="avaliacoes"><StudentAssessments student={student} /></TabsContent>
