@@ -55,7 +55,7 @@ export default function Avaliacoes() {
           <Button variant="ghost" size="sm" onClick={() => setView("select")}>
             <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
           </Button>
-          <h1 className="text-2xl font-heading font-bold text-foreground">Nova Avaliação — {aluno.nome}</h1>
+          <h1 className="text-2xl font-heading font-bold text-foreground">Novo Relatório — {aluno.nome}</h1>
         </div>
         <AssessmentForm student={aluno} />
       </div>

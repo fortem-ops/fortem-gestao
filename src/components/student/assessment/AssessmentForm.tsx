@@ -409,7 +409,7 @@ export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
     <div className="space-y-4">
       <div className="glass-card rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <Label className="text-xs text-muted-foreground">Tipo de avaliação</Label>
+          <Label className="text-xs text-muted-foreground">Tipo</Label>
           <Select value={tipoId} onValueChange={setTipoId}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -418,7 +418,7 @@ export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
           </Select>
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Protocolo</Label>
+          <Label className="text-xs text-muted-foreground">Categoria</Label>
           <Select value={protocoloId} onValueChange={setProtocoloId} disabled={protocolosAtivos.length === 0}>
             <SelectTrigger><SelectValue placeholder={protocolosAtivos.length ? "Selecione" : "Nenhum protocolo"} /></SelectTrigger>
             <SelectContent>
