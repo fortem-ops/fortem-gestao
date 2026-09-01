@@ -1,12 +1,7 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Users } from "lucide-react";
 
-interface Props {
-  onCtaClick: () => void;
-}
-
-const HeroSection = ({ onCtaClick }: Props) => (
+const HeroSection = () => (
   <section className="min-h-[70vh] flex items-center justify-center relative overflow-hidden bg-dark">
     <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent" />
     <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
