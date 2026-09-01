@@ -32,9 +32,6 @@ const planosJsonLd = {
 const Planos = () => {
   const [selecao, setSelecao] = useState<SelecaoPlano | null>(null);
 
-  const scrollToFunil = () =>
-    document.getElementById("funil")?.scrollIntoView({ behavior: "smooth", block: "start" });
-
   const selecionar = (s: SelecaoPlano) => {
     setSelecao(s);
     requestAnimationFrame(() =>
@@ -51,7 +48,7 @@ const Planos = () => {
         jsonLd={planosJsonLd}
       />
 
-      <HeroSection onCtaClick={scrollToFunil} />
+      <HeroSection />
 
       <main id="funil" className="max-w-6xl mx-auto px-4 py-12 space-y-12 scroll-mt-4">
         <PlanosGrid value={selecao} onSelect={selecionar} />
