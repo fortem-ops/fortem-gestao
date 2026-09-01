@@ -117,6 +117,7 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
 
   return (
     <div className="space-y-4 mt-4">
+      {isAval && (
       <div className="glass-card rounded-lg p-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -148,21 +149,28 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
           )}
         </div>
       </div>
+      )}
 
       <div className="flex items-center justify-between">
-        <h3 className="font-heading font-semibold text-foreground">Histórico de Avaliações</h3>
+        <h3 className="font-heading font-semibold text-foreground">
+          {isAval ? "Histórico de Avaliações" : "Relatórios"}
+        </h3>
         <div className="flex items-center gap-2">
-          <Button
-            onClick={() => navigate(`/avaliacoes-premium/${student.id}`)}
-            size="sm"
-            variant="outline"
-          >
-            Avaliações
-          </Button>
-          <Button onClick={() => navigate(`/avaliacoes?aluno=${student.id}&new=1`)} size="sm">
-            <Plus className="w-4 h-4 mr-1" /> Relatório
-          </Button>
+          {isAval ? (
+            <Button
+              onClick={() => navigate(`/avaliacoes-premium/${student.id}`)}
+              size="sm"
+              variant="outline"
+            >
+              Avaliações
+            </Button>
+          ) : (
+            <Button onClick={() => navigate(`/avaliacoes?aluno=${student.id}&new=1`)} size="sm">
+              <Plus className="w-4 h-4 mr-1" /> Novo Relatório
+            </Button>
+          )}
         </div>
+
       </div>
 
 
