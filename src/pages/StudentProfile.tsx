@@ -19,12 +19,10 @@ import { StudentSummary } from "@/components/student/StudentSummary";
 import { StudentFinanceiro } from "@/components/student/StudentFinanceiro";
 import { StudentWorkouts } from "@/components/student/StudentWorkouts";
 import { StudentFrequencia } from "@/components/student/StudentFrequencia";
-import { StudentAssessments } from "@/components/student/StudentAssessments";
 import { StudentHistory } from "@/components/student/StudentHistory";
-import { StudentUploads } from "@/components/student/StudentUploads";
 import { StudentPlan } from "@/components/student/StudentPlan";
-import { StudentTasks } from "@/components/student/StudentTasks";
-import { StudentNotes } from "@/components/student/StudentNotes";
+import { StudentRegistros, REGISTROS_SUBTABS, type RegistroSubTab } from "@/components/student/StudentRegistros";
+
 import EditStudentDialog from "@/components/student/EditStudentDialog";
 import { VendaDialog } from "@/components/student/venda/VendaDialog";
 import { StudentPipelinePanel } from "@/components/pipeline/StudentPipelinePanel";
@@ -52,10 +50,25 @@ export default function StudentProfile() {
   const validTabs = [
     "resumo",
     ...(podeVerComercial ? ["pipeline","clube","plano","financeiro","contrato"] : []),
-    "treinos","frequencia","avaliacoes","tarefas","observacoes","uploads",
+    "treinos","frequencia","registros",
   ];
+  const LEGACY_TAB_MAP: Record<string, RegistroSubTab> = {
+    avaliacoes: "avaliacoes",
+    observacoes: "observacoes",
+    tarefas: "tarefas",
+    uploads: "uploads",
+  };
   const tabParam = searchParams.get("tab");
-  const tabValue = tabParam && validTabs.includes(tabParam) ? tabParam : "resumo";
+  const legacySub = tabParam ? LEGACY_TAB_MAP[tabParam] : undefined;
+  const tabValue = legacySub
+    ? "registros"
+    : tabParam && validTabs.includes(tabParam)
+      ? tabParam
+      : "resumo";
+  const subParam = searchParams.get("sub") as RegistroSubTab | null;
+  const subValue: RegistroSubTab =
+    legacySub ?? (subParam && REGISTROS_SUBTABS.includes(subParam) ? subParam : "avaliacoes");
+
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -228,7 +241,9 @@ export default function StudentProfile() {
 
       <Tabs
         value={tabValue}
-        onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })}
+        onValueChange={(v) =>
+          setSearchParams(v === "registros" ? { tab: v, sub: subValue } : { tab: v }, { replace: true })
+        }
         className="w-full"
       >
         <TabsList className="bg-secondary/50 border border-border w-full justify-start overflow-x-auto">
@@ -242,10 +257,7 @@ export default function StudentProfile() {
           </>}
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
           <TabsTrigger value="frequencia">Frequência</TabsTrigger>
-          <TabsTrigger value="avaliacoes">Avaliações/Relatórios</TabsTrigger>
-          <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
-          <TabsTrigger value="observacoes">Observações</TabsTrigger>
-          <TabsTrigger value="uploads">Uploads</TabsTrigger>
+          <TabsTrigger value="registros">Registros</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumo"><StudentSummary student={student} /></TabsContent>
@@ -258,10 +270,14 @@ export default function StudentProfile() {
         </>}
         <TabsContent value="treinos"><StudentWorkouts student={student} /></TabsContent>
         <TabsContent value="frequencia"><StudentFrequencia student={student} /></TabsContent>
-        <TabsContent value="avaliacoes"><StudentAssessments student={student} /></TabsContent>
-        <TabsContent value="tarefas"><StudentTasks student={student} /></TabsContent>
-        <TabsContent value="observacoes"><StudentNotes student={student} /></TabsContent>
-        <TabsContent value="uploads"><StudentUploads student={student} /></TabsContent>
+        <TabsContent value="registros">
+          <StudentRegistros
+            student={student}
+            value={subValue}
+            onValueChange={(s) => setSearchParams({ tab: "registros", sub: s }, { replace: true })}
+          />
+        </TabsContent>
+
       </Tabs>
     </div>
   );
