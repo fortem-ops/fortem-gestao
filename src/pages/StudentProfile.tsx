@@ -246,6 +246,7 @@ export default function StudentProfile() {
         <TabsContent value="financeiro"><StudentFinanceiro student={student} /></TabsContent>
         <TabsContent value="contrato"><ContratoFinanceiro alunoId={student.id} /></TabsContent>
         <TabsContent value="treinos"><StudentWorkouts student={student} /></TabsContent>
+        <TabsContent value="frequencia"><StudentFrequencia student={student} /></TabsContent>
         <TabsContent value="avaliacoes"><StudentAssessments student={student} /></TabsContent>
         <TabsContent value="tarefas"><StudentTasks student={student} /></TabsContent>
         <TabsContent value="observacoes"><StudentNotes student={student} /></TabsContent>
