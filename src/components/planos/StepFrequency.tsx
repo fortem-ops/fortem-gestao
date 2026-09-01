@@ -26,7 +26,7 @@ const StepFrequency = ({ value, onSelect }: Props) => {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl sm:text-3xl font-bold">Quantas vezes por semana tu queres treinar?</h2>
-        <p className="mt-2 text-muted-foreground">A frequência define os valores dos planos.</p>
+        <p className="mt-2 text-muted-foreground">Selecione a frequência ideal para o seu objetivo</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
