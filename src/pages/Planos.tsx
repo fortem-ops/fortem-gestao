@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import HeroSection from "@/components/planos/HeroSection";
 import ProgressBar from "@/components/planos/ProgressBar";
+import SocialProof from "@/components/planos/SocialProof";
 import StepFrequency from "@/components/planos/StepFrequency";
 import StepPlans from "@/components/planos/StepPlans";
 import StepSummary from "@/components/planos/StepSummary";
@@ -61,7 +62,7 @@ const Planos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background font-display">
+    <div className="planos-landing min-h-screen font-display">
       <Seo
         title="Planos de Treinamento — Fortem"
         description="Monte seu plano de treinamento na Fortem em Porto Alegre: escolha a frequência semanal, compare START, START+, POWER, PRO e MAX e fale com a equipe."
@@ -96,6 +97,12 @@ const Planos = () => {
           />
         )}
       </main>
+
+      <SocialProof />
+
+      <footer className="py-8 flex flex-col items-center gap-3 border-t border-border bg-background">
+        <img src="/fortem-logo.png" alt="Fortem" className="h-6" />
+      </footer>
     </div>
   );
 };
