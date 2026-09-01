@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Settings, Users, CreditCard, Briefcase, ClipboardList, Dumbbell } from "lucide-react";
+import { Settings, Users, CreditCard, Briefcase, ClipboardList, Dumbbell, Activity } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminPlanos } from "@/components/admin/AdminPlanos";
@@ -14,6 +14,7 @@ const allTabs = [
   { value: "planos", label: "Planos", icon: CreditCard, adminOnly: true },
   { value: "servicos", label: "Serviços", icon: Briefcase, adminOnly: true },
   { value: "avaliacoes", label: "Relatórios", icon: ClipboardList, adminOnly: false },
+  { value: "tipos-avaliacoes", label: "Avaliações", icon: Activity, adminOnly: false },
   { value: "templates", label: "Templates de Treino", icon: Dumbbell, adminOnly: false },
 ];
 
@@ -62,7 +63,8 @@ export default function Admin() {
             
           </>
         )}
-        <TabsContent value="avaliacoes" className="mt-4"><AdminTiposAvaliacao /></TabsContent>
+        <TabsContent value="avaliacoes" className="mt-4"><AdminTiposAvaliacao escopo="relatorios" /></TabsContent>
+        <TabsContent value="tipos-avaliacoes" className="mt-4"><AdminTiposAvaliacao escopo="avaliacoes" /></TabsContent>
         <TabsContent value="templates" className="mt-4"><AdminComingSoon title="Templates de Treino" /></TabsContent>
       </Tabs>
     </div>
