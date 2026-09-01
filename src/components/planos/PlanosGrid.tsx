@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Check, Clock } from "lucide-react";
 import {
   BENEFICIOS,
-  FREQUENCIAS,
-  PLANOS,
   formatBRL,
+  getFrequencia,
+  getPlano,
   nomePlano,
   precoDe,
   type FrequenciaPlano,
@@ -25,7 +25,13 @@ interface Props {
 
 /** Todos os planos e valores em uma única grade. */
 const PlanosGrid = ({ value, onSelect }: Props) => {
-  const opcoes = FREQUENCIAS.flatMap((f) => PLANOS.map((p) => ({ freq: f, plano: p })));
+  // Ordem solicitada: 2x HR, 2x, 3x HR, 3x
+  const opcoes = [
+    { freq: getFrequencia("2x"), plano: getPlano("ocioso") },
+    { freq: getFrequencia("2x"), plano: getPlano("padrao") },
+    { freq: getFrequencia("3x"), plano: getPlano("ocioso") },
+    { freq: getFrequencia("3x"), plano: getPlano("padrao") },
+  ];
 
   return (
     <div className="space-y-6">
