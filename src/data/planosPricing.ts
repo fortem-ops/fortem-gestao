@@ -10,7 +10,7 @@ export type PlanoId = "start" | "start_plus" | "power" | "pro" | "max";
 export const RECORRENCIA_EXTRA = 30;
 
 /** WhatsApp comercial da Fortem (somente dígitos, com DDI). */
-export const WHATSAPP_NUMERO = "5551991519640";
+export const WHATSAPP_NUMERO = "5135199451";
 
 export interface FrequenciaDef {
   id: FrequenciaPlano;

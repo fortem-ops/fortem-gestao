@@ -55,7 +55,7 @@ const StepSummary = ({ frequencia, plano, recorrencia, onRecorrenciaChange }: Pr
           <div className="border-t border-border pt-4 space-y-2">
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="recorrencia" className="text-sm font-medium">
-                Quero recorrência mensal (sem fidelidade de 12 meses)
+                Quero recorrência mensal
               </Label>
               <Switch id="recorrencia" checked={recorrencia} onCheckedChange={onRecorrenciaChange} />
             </div>
