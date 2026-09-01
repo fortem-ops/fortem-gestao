@@ -20,11 +20,10 @@ export interface FrequenciaDef {
 }
 
 export const FREQUENCIAS: FrequenciaDef[] = [
-  { id: "1x", label: "1x por semana", descricao: "Para começar com constância." },
   { id: "2x", label: "2x por semana", descricao: "Equilíbrio entre rotina e resultado." },
   { id: "3x", label: "3x por semana", descricao: "O mais escolhido pelos alunos.", destaque: true },
-  { id: "livre", label: "Livre", descricao: "Treine quantas vezes quiser." },
 ];
+
 
 export interface PlanoDef {
   id: PlanoId;
@@ -127,10 +126,9 @@ export const PRECOS: Record<FrequenciaPlano, Record<PlanoId, number>> = {
 
 /** Upsell de frequência: sugere adicionar mais um treino semanal. */
 export const PROXIMA_FREQUENCIA: Partial<Record<FrequenciaPlano, FrequenciaPlano>> = {
-  "1x": "2x",
   "2x": "3x",
-  "3x": "livre",
 };
+
 
 /** Upgrade inteligente de plano (sem upgrade a partir do MAX). */
 export const PROXIMO_PLANO: Partial<Record<PlanoId, PlanoId>> = {
