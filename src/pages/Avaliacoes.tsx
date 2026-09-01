@@ -80,7 +80,7 @@ export default function Avaliacoes() {
           <div className="flex items-center justify-between">
             <h2 className="font-heading font-semibold text-foreground">Histórico de {aluno?.nome}</h2>
             <Button onClick={() => setView("new")}>
-              <Plus className="w-4 h-4 mr-1" /> Nova Avaliação
+              <Plus className="w-4 h-4 mr-1" /> + Novo Relatório
             </Button>
           </div>
 
