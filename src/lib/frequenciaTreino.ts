@@ -157,8 +157,9 @@ export async function registrarSessao(params: {
   data: string;
   sessaoExistenteId?: string | null;
   registradoPelaEquipe?: boolean;
+  concluidoEm?: string;
 }) {
-  const concluidoEm = new Date(params.data + "T12:00:00").toISOString();
+  const concluidoEm = params.concluidoEm ?? new Date(params.data + "T12:00:00").toISOString();
   const payload: Record<string, unknown> = {
     aluno_id: params.alunoId,
     treino_id: params.treinoId,
