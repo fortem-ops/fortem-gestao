@@ -19,12 +19,10 @@ import { StudentSummary } from "@/components/student/StudentSummary";
 import { StudentFinanceiro } from "@/components/student/StudentFinanceiro";
 import { StudentWorkouts } from "@/components/student/StudentWorkouts";
 import { StudentFrequencia } from "@/components/student/StudentFrequencia";
-import { StudentAssessments } from "@/components/student/StudentAssessments";
 import { StudentHistory } from "@/components/student/StudentHistory";
-import { StudentUploads } from "@/components/student/StudentUploads";
 import { StudentPlan } from "@/components/student/StudentPlan";
-import { StudentTasks } from "@/components/student/StudentTasks";
-import { StudentNotes } from "@/components/student/StudentNotes";
+import { StudentRegistros, REGISTROS_SUBTABS, type RegistroSubTab } from "@/components/student/StudentRegistros";
+
 import EditStudentDialog from "@/components/student/EditStudentDialog";
 import { VendaDialog } from "@/components/student/venda/VendaDialog";
 import { StudentPipelinePanel } from "@/components/pipeline/StudentPipelinePanel";
