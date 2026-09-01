@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { registrarSessao } from "@/lib/frequenciaTreino";
 import {
   computeWave as compute531Wave,
   trainingMax as tm531,
@@ -1096,21 +1097,16 @@ async function registrarSessaoConcluida(params: {
   foiTroca?: boolean;
   agendamentoId: string;
 }) {
-  const { error } = await (supabase as any).from("treino_sessoes").insert({
-    aluno_id: params.alunoId,
-    treino_id: params.treinoId,
+  await registrarSessao({
+    alunoId: params.alunoId,
+    treinoId: params.treinoId,
     variacao: params.variacao,
-    variacao_original: params.variacaoOriginal ?? null,
-    foi_troca: params.foiTroca ?? false,
-    agendamento_id: params.agendamentoId,
+    variacaoOriginal: params.variacaoOriginal ?? null,
+    foiTroca: params.foiTroca ?? false,
+    agendamentoId: params.agendamentoId,
     data: format(new Date(), "yyyy-MM-dd"),
-    concluido_em: new Date().toISOString(),
+    concluidoEm: new Date().toISOString(),
   });
-  if (error) throw error;
-
-  await supabase.from("treino_agendamentos")
-    .update({ status: "realizado", updated_at: new Date().toISOString() })
-    .eq("id", params.agendamentoId);
 }
 
 function PortalM102View({

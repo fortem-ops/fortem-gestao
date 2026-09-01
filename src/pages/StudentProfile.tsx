@@ -17,6 +17,7 @@ import {
 import { StudentSummary } from "@/components/student/StudentSummary";
 import { StudentFinanceiro } from "@/components/student/StudentFinanceiro";
 import { StudentWorkouts } from "@/components/student/StudentWorkouts";
+import { StudentFrequencia } from "@/components/student/StudentFrequencia";
 import { StudentAssessments } from "@/components/student/StudentAssessments";
 import { StudentHistory } from "@/components/student/StudentHistory";
 import { StudentUploads } from "@/components/student/StudentUploads";
@@ -231,6 +232,7 @@ export default function StudentProfile() {
           <TabsTrigger value="financeiro">Carteira</TabsTrigger>
           <TabsTrigger value="contrato">Pagamentos</TabsTrigger>
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
+          <TabsTrigger value="frequencia">Frequência</TabsTrigger>
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
           <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
           <TabsTrigger value="observacoes">Observações</TabsTrigger>
@@ -244,6 +246,7 @@ export default function StudentProfile() {
         <TabsContent value="financeiro"><StudentFinanceiro student={student} /></TabsContent>
         <TabsContent value="contrato"><ContratoFinanceiro alunoId={student.id} /></TabsContent>
         <TabsContent value="treinos"><StudentWorkouts student={student} /></TabsContent>
+        <TabsContent value="frequencia"><StudentFrequencia student={student} /></TabsContent>
         <TabsContent value="avaliacoes"><StudentAssessments student={student} /></TabsContent>
         <TabsContent value="tarefas"><StudentTasks student={student} /></TabsContent>
         <TabsContent value="observacoes"><StudentNotes student={student} /></TabsContent>
