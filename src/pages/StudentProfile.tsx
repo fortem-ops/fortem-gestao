@@ -241,7 +241,9 @@ export default function StudentProfile() {
 
       <Tabs
         value={tabValue}
-        onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })}
+        onValueChange={(v) =>
+          setSearchParams(v === "registros" ? { tab: v, sub: subValue } : { tab: v }, { replace: true })
+        }
         className="w-full"
       >
         <TabsList className="bg-secondary/50 border border-border w-full justify-start overflow-x-auto">
@@ -255,10 +257,7 @@ export default function StudentProfile() {
           </>}
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
           <TabsTrigger value="frequencia">Frequência</TabsTrigger>
-          <TabsTrigger value="avaliacoes">Avaliações/Relatórios</TabsTrigger>
-          <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
-          <TabsTrigger value="observacoes">Observações</TabsTrigger>
-          <TabsTrigger value="uploads">Uploads</TabsTrigger>
+          <TabsTrigger value="registros">Registros</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumo"><StudentSummary student={student} /></TabsContent>
@@ -271,10 +270,14 @@ export default function StudentProfile() {
         </>}
         <TabsContent value="treinos"><StudentWorkouts student={student} /></TabsContent>
         <TabsContent value="frequencia"><StudentFrequencia student={student} /></TabsContent>
-        <TabsContent value="avaliacoes"><StudentAssessments student={student} /></TabsContent>
-        <TabsContent value="tarefas"><StudentTasks student={student} /></TabsContent>
-        <TabsContent value="observacoes"><StudentNotes student={student} /></TabsContent>
-        <TabsContent value="uploads"><StudentUploads student={student} /></TabsContent>
+        <TabsContent value="registros">
+          <StudentRegistros
+            student={student}
+            value={subValue}
+            onValueChange={(s) => setSearchParams({ tab: "registros", sub: s }, { replace: true })}
+          />
+        </TabsContent>
+
       </Tabs>
     </div>
   );
