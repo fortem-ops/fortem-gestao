@@ -134,35 +134,40 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
   };
 
   // ===== Fase Inicial → vincula treino =====
-  const [pendingFase, setPendingFase] = useState<string | null>(null);
+  const [pendingFase, setPendingFase] = useState<{ fase: string; qid: string; prev: string } | null>(null);
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [prescribing, setPrescribing] = useState(false);
 
-  const handleFaseInicialChange = async (fase: string) => {
-    const prev = (dados.answers[FASE_INICIAL_QUESTION_ID] as string) || "";
-    setAnswer(FASE_INICIAL_QUESTION_ID, fase);
+  const handleFaseInicialChange = async (qid: string, fase: string) => {
+    const prev =
+      ((dados.answers[qid] ?? dados.answers[FASE_INICIAL_QUESTION_ID]) as string) || "";
+    setAnswer(qid, fase);
     if (!fase || fase === prev || !user) return;
     try {
       const exists = await hasTreinoAtual(student.id);
       if (exists) {
-        setPendingFase(fase);
+        setPendingFase({ fase, qid, prev });
         setConfirmReplace(true);
       } else {
-        await runPrescribe(fase);
+        await runPrescribe({ fase, qid, prev });
       }
     } catch (e) {
+      setAnswer(qid, prev);
       toast.error(e instanceof Error ? e.message : "Erro ao verificar treinos");
     }
   };
 
-  const runPrescribe = async (fase: string) => {
+  const runPrescribe = async (target: { fase: string; qid: string; prev: string }) => {
     if (!user) return;
     try {
       setPrescribing(true);
-      await prescribeFaseInicial(fase, student.id, user.id);
-      toast.success(`Treino "${fase}" vinculado ao aluno.`);
+      await prescribeFaseInicial(target.fase, student.id, user.id);
+      setAnswer(target.qid, target.fase);
+      toast.success(`Treino "${target.fase}" vinculado ao aluno.`);
       queryClient.invalidateQueries({ queryKey: ["treinos-aluno", student.id] });
+      queryClient.invalidateQueries({ queryKey: ["treinos", student.id] });
     } catch (e) {
+      setAnswer(target.qid, target.prev);
       toast.error(e instanceof Error ? e.message : "Erro ao prescrever treino");
     } finally {
       setPrescribing(false);
@@ -211,9 +216,13 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
             <QuestionField
               key={q.id}
               question={q}
-              value={dados.answers[q.id]}
+              value={
+                q.type === "fase_inicial"
+                  ? (dados.answers[q.id] ?? dados.answers[FASE_INICIAL_QUESTION_ID])
+                  : dados.answers[q.id]
+              }
               onChange={(v) => setAnswer(q.id, v)}
-              onFaseInicialChange={q.type === "fase_inicial" ? handleFaseInicialChange : undefined}
+              onFaseInicialChange={q.type === "fase_inicial" ? (fase) => handleFaseInicialChange(q.id, fase) : undefined}
               faseLoading={prescribing}
             />
           ))}
@@ -230,16 +239,16 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
         )}
       </div>
 
-      <AlertDialog open={confirmReplace} onOpenChange={(o) => { if (!o) { setConfirmReplace(false); setPendingFase(null); } }}>
+      <AlertDialog open={confirmReplace} onOpenChange={(o) => { if (!o) { if (pendingFase) setAnswer(pendingFase.qid, pendingFase.prev); setConfirmReplace(false); setPendingFase(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Substituir treino atual?</AlertDialogTitle>
             <AlertDialogDescription>
-              Já existe um treino "atual" prescrito para este aluno. Ao confirmar, ele será arquivado e o treino <strong>{pendingFase}</strong> entrará como atual (uma nova versão).
+              Já existe um treino "atual" prescrito para este aluno. Ao confirmar, ele será arquivado e o treino <strong>{pendingFase?.fase}</strong> entrará como atual (uma nova versão).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { if (pendingFase) setAnswer(pendingFase.qid, pendingFase.prev); }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => pendingFase && runPrescribe(pendingFase)} disabled={prescribing}>
               {prescribing ? "Aplicando..." : "Substituir e vincular"}
             </AlertDialogAction>
