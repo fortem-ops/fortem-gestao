@@ -40,7 +40,7 @@ export default function Admin() {
           Administração
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {isAdmin ? "Somente Coordenação e Administradores" : "Tipos de Avaliação e Templates de Treino"}
+          {isAdmin ? "Somente Coordenação e Administradores" : "Relatórios e Templates de Treino"}
         </p>
       </div>
 
