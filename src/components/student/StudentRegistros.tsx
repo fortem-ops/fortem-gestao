@@ -14,10 +14,12 @@ function useCount(table: "historico_profissional" | "tarefas" | "uploads", aluno
   return useQuery({
     queryKey: ["registros-count", table, alunoId],
     queryFn: async () => {
-      const { count, error } = await supabase
+      let q = supabase
         .from(table)
         .select("id", { count: "exact", head: true })
         .eq("aluno_id", alunoId);
+      if (table === "tarefas") q = q.eq("origem", "tecnico");
+      const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
     },
