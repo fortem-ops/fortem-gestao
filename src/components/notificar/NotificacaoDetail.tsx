@@ -159,7 +159,7 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
           <span className="text-sm font-medium text-primary">Solte para anexar</span>
         </div>
       )}
-      <div className="p-4 border-b space-y-2">
+      <div className="p-4 border-b space-y-2 shrink-0">
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-semibold">{n.titulo}</h2>
           <div className="flex items-center gap-2">
@@ -173,7 +173,9 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
           <span>· {format(new Date(n.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
           {n.prazo && <span>· Prazo: {format(new Date(n.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>}
         </div>
-        <p className="text-sm whitespace-pre-wrap pt-1">{n.descricao}</p>
+        <div className="max-h-[35vh] overflow-y-auto pr-1">
+          <p className="text-sm whitespace-pre-wrap pt-1">{n.descricao}</p>
+        </div>
         {aluno && (
           <div className="text-sm bg-muted/50 rounded p-2">
             👤 Aluno vinculado: <span className="font-medium">{aluno.nome}</span>
@@ -206,7 +208,7 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 min-h-0 p-4">
         <div className="space-y-3">
           {data.coments.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">Sem comentários ainda.</p>
@@ -224,7 +226,7 @@ export function NotificacaoDetail({ id }: { id: string | null }) {
         </div>
       </ScrollArea>
 
-      <div className="p-3 border-t space-y-2">
+      <div className="p-3 border-t space-y-2 shrink-0">
         {file && (
           <div className="flex items-center gap-2 text-xs bg-muted px-2 py-1 rounded">
             {filePreviewUrl ? (
