@@ -11,6 +11,7 @@ import StepSummary from "@/components/planos/StepSummary";
 import {
   FREQUENCIAS,
   PLANOS,
+  nomePlano,
   precoDe,
   type FrequenciaPlano,
   type PlanoId,
