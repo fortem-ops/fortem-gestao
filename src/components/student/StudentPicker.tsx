@@ -10,6 +10,19 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 
+const STATUS_SUFIXO: Record<string, string> = {
+  licenca: "licença",
+  avulso: "cliente avulso",
+  inativo: "inativo",
+  cancelado: "cancelado",
+  lead: "lead",
+  prospect: "prospect",
+};
+
+function statusSufixo(status: string) {
+  return STATUS_SUFIXO[status] ?? status;
+}
+
 interface StudentPickerProps {
   value: string;
   onChange: (id: string) => void;
@@ -17,9 +30,11 @@ interface StudentPickerProps {
   placeholder?: string;
   /** Inclui um grupo "Equipe" com as fichas pessoais dos profissionais. */
   includeEquipe?: boolean;
+  /** Lista TODOS os cadastros (ativos, licença, inativos, leads e clientes avulsos). */
+  includeTodos?: boolean;
 }
 
-export function StudentPicker({ value, onChange, label = "Aluno", placeholder = "Buscar aluno pelo nome...", includeEquipe = false }: StudentPickerProps) {
+export function StudentPicker({ value, onChange, label = "Aluno", placeholder = "Buscar aluno pelo nome...", includeEquipe = false, includeTodos = false }: StudentPickerProps) {
   const [open, setOpen] = useState(false);
   const [resolvingEquipe, setResolvingEquipe] = useState(false);
   const [equipeSelecionada, setEquipeSelecionada] = useState<{ id: string; nome: string } | null>(null);
@@ -52,7 +67,7 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
   const FUNIL_STAGES = ["Novo lead", "Prospect", "Treino experimental agendado"];
 
   const { data: alunos = [], isLoading } = useQuery({
-    queryKey: ["alunos-picker", "ativos-licenca", Object.keys(stagesMap).length],
+    queryKey: ["alunos-picker", includeTodos ? "todos" : "ativos-licenca", Object.keys(stagesMap).length],
     queryFn: async () => {
       const PAGE = 1000;
       let from = 0;
@@ -61,13 +76,12 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
       // + filtro server-side por status para evitar trazer leads/prospects/inativos.
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        const { data, error } = await supabase
+        let q = supabase
           .from("alunos")
           .select("id, nome, status, current_pipeline_stage_id")
-          .in("status", ["ativo", "licenca"])
-          .eq("is_equipe", false)
-          .order("nome")
-          .range(from, from + PAGE - 1);
+          .eq("is_equipe", false);
+        if (!includeTodos) q = q.in("status", ["ativo", "licenca"]);
+        const { data, error } = await q.order("nome").range(from, from + PAGE - 1);
 
         if (error) throw error;
         const rows = data || [];
@@ -75,6 +89,7 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
         if (rows.length < PAGE) break;
         from += PAGE;
       }
+      if (includeTodos) return all;
       return all.filter((a: any) => {
         const stageName = a.current_pipeline_stage_id ? stagesMap[a.current_pipeline_stage_id] : null;
         if (stageName && FUNIL_STAGES.includes(stageName)) return false;
@@ -122,8 +137,8 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
               {selectedLabel ? (
                 <span className="truncate">
                   {selectedLabel}
-                  {selected?.status === "licenca" && (
-                    <span className="text-xs text-muted-foreground ml-1">(licença)</span>
+                  {selected?.status && selected.status !== "ativo" && (
+                    <span className="text-xs text-muted-foreground ml-1">({statusSufixo(selected.status)})</span>
                   )}
                   {!selected && equipeSelecionada?.id === value && (
                     <span className="text-xs text-muted-foreground ml-1">(equipe)</span>
@@ -166,8 +181,8 @@ export function StudentPicker({ value, onChange, label = "Aluno", placeholder = 
                       )}
                     />
                     <span className="flex-1">{a.nome}</span>
-                    {a.status === "licenca" && (
-                      <span className="text-xs text-muted-foreground ml-2">(licença)</span>
+                    {a.status && a.status !== "ativo" && (
+                      <span className="text-xs text-muted-foreground ml-2">({statusSufixo(a.status)})</span>
                     )}
                   </CommandItem>
                 ))}

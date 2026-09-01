@@ -67,12 +67,12 @@ export default function Avaliacoes() {
       <div>
         <h1 className="text-2xl font-heading font-bold text-foreground">Relatórios</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Selecione um aluno para realizar uma nova avaliação ou consultar o histórico.
+          Selecione qualquer cadastro — incluindo clientes avulsos — para gerar um novo relatório ou consultar o histórico.
         </p>
       </div>
 
       <div className="glass-card rounded-lg p-6">
-        <StudentPicker value={alunoId} onChange={setAlunoId} />
+        <StudentPicker value={alunoId} onChange={setAlunoId} includeTodos label="Cadastro" placeholder="Buscar por nome (alunos e clientes avulsos)..." />
       </div>
 
       {alunoId && (
