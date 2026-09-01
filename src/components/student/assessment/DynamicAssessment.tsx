@@ -244,11 +244,11 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
           <AlertDialogHeader>
             <AlertDialogTitle>Substituir treino atual?</AlertDialogTitle>
             <AlertDialogDescription>
-              Já existe um treino "atual" prescrito para este aluno. Ao confirmar, ele será arquivado e o treino <strong>{pendingFase}</strong> entrará como atual (uma nova versão).
+              Já existe um treino "atual" prescrito para este aluno. Ao confirmar, ele será arquivado e o treino <strong>{pendingFase?.fase}</strong> entrará como atual (uma nova versão).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { if (pendingFase) setAnswer(pendingFase.qid, pendingFase.prev); }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => pendingFase && runPrescribe(pendingFase)} disabled={prescribing}>
               {prescribing ? "Aplicando..." : "Substituir e vincular"}
             </AlertDialogAction>
