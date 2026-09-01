@@ -94,25 +94,26 @@ export function AdminTiposAvaliacao() {
                 <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); setTipoDialog({ open: true, tipo: t }); }}>
                   <Pencil className="w-3.5 h-3.5" />
                 </Button>
-                {!t.is_sistema && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir tipo "{t.nome}"?</AlertDialogTitle>
-                        <AlertDialogDescription>Todos os protocolos vinculados serão excluídos. Avaliações antigas mantêm o histórico mas perdem o vínculo.</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteTipo(t)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir tipo "{t.nome}"?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Todos os protocolos vinculados serão excluídos. Avaliações antigas mantêm o histórico mas perdem o vínculo.
+                        {t.is_sistema && " Atenção: este é um tipo de sistema — telas que dependem dele podem deixar de funcionar."}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteTipo(t)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             );
           })}
