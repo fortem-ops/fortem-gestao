@@ -27,7 +27,7 @@ const planosJsonLd = {
   offers: FREQUENCIAS.flatMap((f) =>
     PLANOS.map((p) => ({
       "@type": "Offer",
-      name: `${p.nome} — ${f.label}`,
+      name: `${nomePlano(f.id, p.id)} — ${f.label}`,
       price: precoDe(f.id, p.id).toFixed(2),
       priceCurrency: "BRL",
       category: "Mensalidade",
@@ -43,7 +43,6 @@ const Planos = () => {
   const [step, setStep] = useState(0);
   const [frequencia, setFrequencia] = useState<FrequenciaPlano | null>(null);
   const [plano, setPlano] = useState<PlanoId | null>(null);
-  const [recorrencia, setRecorrencia] = useState(false);
 
   const scrollToFunil = () =>
     document.getElementById("funil")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -56,7 +55,6 @@ const Planos = () => {
 
   const selecionarPlano = (p: PlanoId) => {
     setPlano(p);
-    setRecorrencia(false);
     setStep(2);
     scrollToFunil();
   };
@@ -65,7 +63,7 @@ const Planos = () => {
     <div className="planos-landing min-h-screen font-display">
       <Seo
         title="Planos de Treinamento — Fortem"
-        description="Monte seu plano de treinamento na Fortem em Porto Alegre: escolha a frequência semanal, compare START, START+, POWER, PRO e MAX e fale com a equipe."
+        description="Monte seu plano de treinamento na Fortem em Porto Alegre: escolha a frequência semanal (2x ou 3x), compare horário livre e horário ocioso e fale com a equipe."
         path="/planos"
         jsonLd={planosJsonLd}
       />
@@ -89,14 +87,10 @@ const Planos = () => {
         )}
 
         {step === 2 && frequencia && plano && (
-          <StepSummary
-            frequencia={frequencia}
-            plano={plano}
-            recorrencia={recorrencia}
-            onRecorrenciaChange={setRecorrencia}
-          />
+          <StepSummary frequencia={frequencia} plano={plano} />
         )}
       </main>
+
 
       <SocialProof />
 
