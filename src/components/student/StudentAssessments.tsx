@@ -80,6 +80,12 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
     },
   });
 
+  const lista = (avaliacoes ?? []).filter((a) =>
+    isAval ? TIPOS_ESTRUTURAIS.includes(a.tipo) : !TIPOS_ESTRUTURAIS.includes(a.tipo),
+  );
+
+
+
   const openViewer = (a: Tables<"avaliacoes">) => {
     setSelected(a);
     setViewerOpen(true);
