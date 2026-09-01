@@ -115,10 +115,14 @@ export function StudentPipelinePanel({ student, onChanged }: Props) {
         </CardContent>
       </Card>
 
+      <PipelineLeadSummary student={student} />
+
+      <PipelineTasksPanel student={student} />
+
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Histórico de movimentações</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Histórico comercial</CardTitle></CardHeader>
         <CardContent>
-          <PipelineHistoryTimeline alunoId={student.id} />
+          <PipelineActivityTimeline alunoId={student.id} />
         </CardContent>
       </Card>
 
