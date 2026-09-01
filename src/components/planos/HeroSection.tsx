@@ -1,28 +1,41 @@
+import { motion } from "framer-motion";
+import { ArrowRight, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArrowDown } from "lucide-react";
 
 interface Props {
   onCtaClick: () => void;
 }
 
-/** Topo da landing /planos: headline e CTA que rola até o funil. */
 const HeroSection = ({ onCtaClick }: Props) => (
-  <header className="relative py-20 sm:py-28 px-4 text-center border-b border-border">
-    <p className="text-xs sm:text-sm tracking-[0.3em] text-primary font-semibold uppercase">
-      Fortem Treinamento Físico
-    </p>
-    <h1 className="mt-4 text-3xl sm:text-5xl font-bold tracking-tight max-w-3xl mx-auto">
-      Monte o teu plano de treinamento
-    </h1>
-    <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-      Escolhe a frequência semanal, compara os planos e finaliza a matrícula direto com a nossa equipe.
-      Leva menos de um minuto.
-    </p>
-    <Button size="lg" className="mt-8" onClick={onCtaClick}>
-      Montar meu plano
-      <ArrowDown className="ml-2 h-4 w-4" />
-    </Button>
-  </header>
+  <section className="min-h-[70vh] flex items-center justify-center relative overflow-hidden bg-dark">
+    <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent" />
+    <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+    <div className="container relative z-10 text-center px-6">
+      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="max-w-3xl mx-auto">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 mb-8">
+          <div className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
+          <span className="text-sm font-medium text-dark-foreground/80">Monte seu plano em menos de 1 minuto</span>
+        </motion.div>
+        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-black text-dark-foreground leading-[1.1] tracking-tight mb-6">
+          Há 10 anos, sendo a curadoria completa em{" "}
+          <span className="text-gradient">Saúde e Performance</span>
+        </h1>
+        <p className="text-lg sm:text-xl text-dark-foreground/60 max-w-xl mx-auto mb-10 leading-relaxed font-light">
+          Uma equipe multidisciplinar em treinamento, nutrição e reabilitação para te levar aos teus objetivos.
+        </p>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <Button onClick={onCtaClick} size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display font-black text-lg px-10 py-7 rounded-xl shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 hover:scale-105 group tracking-wide">
+            MONTAR MEU PLANO
+            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </motion.div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-8 flex items-center justify-center gap-2 text-dark-foreground/40">
+          <Users className="w-4 h-4" />
+          <span className="text-sm">+180 alunos treinando na Fortem</span>
+        </motion.div>
+      </motion.div>
+    </div>
+  </section>
 );
 
 export default HeroSection;

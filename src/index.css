@@ -388,3 +388,50 @@
 .corrida-landing .shadow-card { box-shadow: 0 4px 24px -4px hsl(0 0% 0% / 0.08); }
 .corrida-landing .shadow-card-hover { box-shadow: 0 8px 40px -8px hsl(0 0% 0% / 0.15); }
 .corrida-landing .glow-red { box-shadow: 0 0 40px hsl(0 80% 50% / 0.3); }
+
+
+/* ============ Landing pública /planos ============
+   Tokens e utilitários escopados ao wrapper .planos-landing.
+   Não afetam nenhuma outra tela do sistema. */
+.planos-landing {
+  --dark: 0 0% 8%;
+  --dark-foreground: 0 0% 100%;
+
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  scroll-behavior: smooth;
+}
+
+.planos-landing .text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(0 60% 65%));
+}
+
+.planos-landing .hover-lift {
+  transition: all 0.3s ease;
+}
+
+.planos-landing .hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px hsl(0 0% 0% / 0.1);
+}
+
+.planos-landing .bg-dark { background-color: hsl(var(--dark)); }
+.planos-landing .text-dark-foreground { color: hsl(var(--dark-foreground)); }
+.planos-landing .text-dark-foreground\/80 { color: hsl(var(--dark-foreground) / 0.8); }
+.planos-landing .text-dark-foreground\/60 { color: hsl(var(--dark-foreground) / 0.6); }
+.planos-landing .text-dark-foreground\/50 { color: hsl(var(--dark-foreground) / 0.5); }
+.planos-landing .text-dark-foreground\/40 { color: hsl(var(--dark-foreground) / 0.4); }
+.planos-landing .bg-dark-foreground\/5 { background-color: hsl(var(--dark-foreground) / 0.05); }
+.planos-landing .border-dark-foreground\/10 { border-color: hsl(var(--dark-foreground) / 0.1); }
+
+@keyframes planos-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.planos-landing .animate-pulse-soft {
+  animation: planos-pulse-soft 2s ease-in-out infinite;
+}
