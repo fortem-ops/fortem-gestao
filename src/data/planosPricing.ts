@@ -30,7 +30,7 @@ export const BENEFICIOS: string[] = [
 
 export interface PlanoDef {
   id: PlanoId;
-  /** Sufixo do nome — o nome final é "PLANO 2X" / "PLANO 2X · HORÁRIO OCIOSO". */
+  /** Sufixo do nome — o nome final é "PLANO 2X" / "PLANO 2X · HORÁRIO REDUZIDO". */
   sufixo: string | null;
   tag: string | null;
   descricao: string;
@@ -52,7 +52,7 @@ export const PLANOS: PlanoDef[] = [
   },
   {
     id: "ocioso",
-    sufixo: "HORÁRIO OCIOSO",
+    sufixo: "HORÁRIO REDUZIDO",
     tag: "Melhor valor",
     descricao: "Mesmos benefícios, treinando em horário reduzido.",
     horario: "Das 9:00 às 16:00",
