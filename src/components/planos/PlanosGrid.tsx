@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Check, Clock } from "lucide-react";
 import {
   BENEFICIOS,
-  FREQUENCIAS,
-  PLANOS,
   formatBRL,
+  getFrequencia,
+  getPlano,
   nomePlano,
   precoDe,
   type FrequenciaPlano,
