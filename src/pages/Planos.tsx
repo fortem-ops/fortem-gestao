@@ -48,7 +48,7 @@ const Planos = () => {
         jsonLd={planosJsonLd}
       />
 
-      <HeroSection onCtaClick={scrollToFunil} />
+      <HeroSection />
 
       <main id="funil" className="max-w-6xl mx-auto px-4 py-12 space-y-12 scroll-mt-4">
         <PlanosGrid value={selecao} onSelect={selecionar} />
