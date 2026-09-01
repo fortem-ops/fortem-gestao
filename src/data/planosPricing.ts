@@ -3,11 +3,8 @@
  * Tudo hardcoded — nenhuma tabela ou edge function envolvida.
  */
 
-export type FrequenciaPlano = "1x" | "2x" | "3x" | "livre";
-export type PlanoId = "start" | "start_plus" | "power" | "pro" | "max";
-
-/** Adicional mensal para trocar fidelidade 12 meses por recorrência mensal. */
-export const RECORRENCIA_EXTRA = 30;
+export type FrequenciaPlano = "2x" | "3x";
+export type PlanoId = "padrao" | "ocioso";
 
 /** WhatsApp comercial da Fortem (somente dígitos, com DDI). */
 export const WHATSAPP_NUMERO = "5135199451";
@@ -24,118 +21,57 @@ export const FREQUENCIAS: FrequenciaDef[] = [
   { id: "3x", label: "3x por semana", descricao: "O mais escolhido pelos alunos.", destaque: true },
 ];
 
+/** Benefícios comuns aos dois formatos de horário. */
+export const BENEFICIOS: string[] = [
+  "Plano de treinamento personalizado",
+  "Avaliação funcional e de força",
+  "Acompanhamento multidisciplinar",
+  "Horários fixos na tua agenda",
+  "Bloqueio de treinos em viagens",
+  "Descontos em reavaliações e reposições",
+];
 
 export interface PlanoDef {
   id: PlanoId;
-  nome: string;
+  /** Sufixo do nome — o nome final é "PLANO 2X" / "PLANO 2X · HORÁRIO OCIOSO". */
+  sufixo: string | null;
   tag: string | null;
   descricao: string;
+  /** Faixa de horário restrita, quando houver. */
+  horario: string | null;
   beneficios: string[];
-  /** START já é recorrência mensal nativa — sem toggle e sem adicional. */
-  recorrenciaNativa?: boolean;
   highlighted?: boolean;
 }
 
 export const PLANOS: PlanoDef[] = [
   {
-    id: "start",
-    nome: "START",
-    tag: null,
-    descricao: "Plano ideal para experimentar.",
-    recorrenciaNativa: true,
-    beneficios: [
-      "Recorrência Mensal",
-      "Plano de treinamento personalizado",
-      "20% OFF avaliação funcional",
-      "Sem fidelidade",
-    ],
-  },
-  {
-    id: "start_plus",
-    nome: "START+",
-    tag: "Básico",
-    descricao: "Compromisso com a tua saúde.",
-    beneficios: [
-      "Plano de treinamento personalizado",
-      "1 avaliação funcional e de força",
-      "Bloqueio de até 10 dias",
-      "20% OFF reavaliação",
-    ],
-  },
-  {
-    id: "power",
-    nome: "POWER",
-    tag: '💪 Não é "só" treinar...',
-    descricao: "O começo do teu acompanhamento multidisciplinar",
-    beneficios: [
-      "Plano de treinamento personalizado",
-      "1 avaliação funcional e de força",
-      "2 consultas com nutri ou fisio",
-      "Horários fixos",
-      "Bloqueio até 15 dias",
-      "30% OFF reavaliação",
-      "25% OFF reposição de treinos",
-    ],
-  },
-  {
-    id: "pro",
-    nome: "PRO",
-    tag: "⭐ Recomendamos",
-    descricao: "Mais benefícios no teu plano multidisciplinar",
+    id: "padrao",
+    sufixo: null,
+    tag: "⭐ Horário livre",
+    descricao: "Treina em qualquer horário de funcionamento.",
+    horario: null,
     highlighted: true,
-    beneficios: [
-      "Plano de treinamento personalizado",
-      "2 avaliações funcionais e de força",
-      "4 consultas nutri ou fisio",
-      "Horários fixos",
-      "Bloqueio até 20 dias",
-      "10% OFF novas consultas",
-      "40% OFF reavaliação",
-      "50% OFF reposição",
-      "Treinos de sábado FREE",
-      "Open bar nos happy hours",
-    ],
+    beneficios: BENEFICIOS,
   },
   {
-    id: "max",
-    nome: "MAX",
-    tag: "👑 Plano Premium",
-    descricao: "A experiência Fortem completa.",
-    beneficios: [
-      "Plano de treinamento personalizado",
-      "3 avaliações funcionais e de força",
-      "5 consultas com nutri e fisio",
-      "Horários fixos",
-      "Bloqueio até 30 dias",
-      "25% OFF consultas extras",
-      "50% OFF reavaliação",
-      "Reposição total de treinos",
-      "Treinos de sábado FREE",
-      "Open bar happy hours",
-    ],
+    id: "ocioso",
+    sufixo: "HORÁRIO OCIOSO",
+    tag: "Melhor valor",
+    descricao: "Mesmos benefícios, treinando em horário reduzido.",
+    horario: "Das 9:00 às 16:00",
+    beneficios: BENEFICIOS,
   },
 ];
 
 /** Preço mensal (R$) por frequência × plano. */
 export const PRECOS: Record<FrequenciaPlano, Record<PlanoId, number>> = {
-  "1x": { start: 399, start_plus: 369, power: 419, pro: 469, max: 569 },
-  "2x": { start: 499, start_plus: 459, power: 509, pro: 559, max: 659 },
-  "3x": { start: 599, start_plus: 559, power: 609, pro: 659, max: 759 },
-  livre: { start: 699, start_plus: 659, power: 709, pro: 759, max: 859 },
+  "2x": { padrao: 479, ocioso: 419 },
+  "3x": { padrao: 599, ocioso: 499 },
 };
 
 /** Upsell de frequência: sugere adicionar mais um treino semanal. */
 export const PROXIMA_FREQUENCIA: Partial<Record<FrequenciaPlano, FrequenciaPlano>> = {
   "2x": "3x",
-};
-
-
-/** Upgrade inteligente de plano (sem upgrade a partir do MAX). */
-export const PROXIMO_PLANO: Partial<Record<PlanoId, PlanoId>> = {
-  start: "power",
-  start_plus: "power",
-  power: "pro",
-  pro: "max",
 };
 
 export function getPlano(id: PlanoId): PlanoDef {
@@ -146,6 +82,13 @@ export function getFrequencia(id: FrequenciaPlano): FrequenciaDef {
   return FREQUENCIAS.find((f) => f.id === id)!;
 }
 
+/** Nome completo do plano conforme a frequência escolhida. */
+export function nomePlano(freq: FrequenciaPlano, plano: PlanoId): string {
+  const def = getPlano(plano);
+  const base = `PLANO ${freq.toUpperCase()}`;
+  return def.sufixo ? `${base} · ${def.sufixo}` : base;
+}
+
 export function precoDe(freq: FrequenciaPlano, plano: PlanoId): number {
   return PRECOS[freq][plano];
 }
@@ -153,12 +96,6 @@ export function precoDe(freq: FrequenciaPlano, plano: PlanoId): number {
 /** Menor preço da linha da frequência — usado no "a partir de". */
 export function precoMinimoDaFrequencia(freq: FrequenciaPlano): number {
   return Math.min(...Object.values(PRECOS[freq]));
-}
-
-/** Preço final considerando o adicional de recorrência mensal. */
-export function precoFinal(freq: FrequenciaPlano, plano: PlanoId, recorrencia: boolean): number {
-  const base = precoDe(freq, plano);
-  return recorrencia && !getPlano(plano).recorrenciaNativa ? base + RECORRENCIA_EXTRA : base;
 }
 
 export function formatBRL(valor: number): string {
