@@ -54,6 +54,7 @@ export default function StudentProfile() {
   ];
   const LEGACY_TAB_MAP: Record<string, RegistroSubTab> = {
     avaliacoes: "avaliacoes",
+    relatorios: "relatorios",
     observacoes: "observacoes",
     tarefas: "tarefas",
     uploads: "uploads",
@@ -67,7 +68,7 @@ export default function StudentProfile() {
       : "resumo";
   const subParam = searchParams.get("sub") as RegistroSubTab | null;
   const subValue: RegistroSubTab =
-    legacySub ?? (subParam && REGISTROS_SUBTABS.includes(subParam) ? subParam : "avaliacoes");
+    legacySub ?? (subParam && REGISTROS_SUBTABS.includes(subParam) ? subParam : "tarefas");
 
 
   const { data: isAdmin } = useQuery({
