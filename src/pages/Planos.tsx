@@ -1,21 +1,10 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import HeroSection from "@/components/planos/HeroSection";
-import ProgressBar from "@/components/planos/ProgressBar";
 import SocialProof from "@/components/planos/SocialProof";
-import StepFrequency from "@/components/planos/StepFrequency";
-import StepPlans from "@/components/planos/StepPlans";
+import PlanosGrid, { type SelecaoPlano } from "@/components/planos/PlanosGrid";
 import StepSummary from "@/components/planos/StepSummary";
-import {
-  FREQUENCIAS,
-  PLANOS,
-  nomePlano,
-  precoDe,
-  type FrequenciaPlano,
-  type PlanoId,
-} from "@/data/planosPricing";
+import { FREQUENCIAS, PLANOS, nomePlano, precoDe } from "@/data/planosPricing";
 
 const planosJsonLd = {
   "@context": "https://schema.org",
@@ -38,60 +27,41 @@ const planosJsonLd = {
 
 /**
  * Landing pública dos planos — rota /planos.
- * Funil de 3 etapas (Frequência → Plano → Resumo), fora do shell autenticado.
+ * Todos os planos e valores em uma grade única, com resumo abaixo.
  */
 const Planos = () => {
-  const [step, setStep] = useState(0);
-  const [frequencia, setFrequencia] = useState<FrequenciaPlano | null>(null);
-  const [plano, setPlano] = useState<PlanoId | null>(null);
+  const [selecao, setSelecao] = useState<SelecaoPlano | null>(null);
 
   const scrollToFunil = () =>
     document.getElementById("funil")?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  const selecionarFrequencia = (f: FrequenciaPlano) => {
-    setFrequencia(f);
-    setStep(1);
-    scrollToFunil();
-  };
-
-  const selecionarPlano = (p: PlanoId) => {
-    setPlano(p);
-    setStep(2);
-    scrollToFunil();
+  const selecionar = (s: SelecaoPlano) => {
+    setSelecao(s);
+    requestAnimationFrame(() =>
+      document.getElementById("resumo")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
   };
 
   return (
     <div className="planos-landing min-h-screen font-display">
       <Seo
         title="Planos de Treinamento — Fortem"
-        description="Monte seu plano de treinamento na Fortem em Porto Alegre: escolha a frequência semanal (2x ou 3x), compare horário livre e horário ocioso e fale com a equipe."
+        description="Planos de treinamento da Fortem em Porto Alegre: 2x ou 3x por semana, horário livre ou horário ocioso (9h às 16h). Compare valores e fale com a equipe."
         path="/planos"
         jsonLd={planosJsonLd}
       />
 
       <HeroSection onCtaClick={scrollToFunil} />
 
-      <main id="funil" className="max-w-5xl mx-auto px-4 py-12 space-y-8 scroll-mt-4">
-        <ProgressBar current={step} onStepClick={setStep} />
+      <main id="funil" className="max-w-6xl mx-auto px-4 py-12 space-y-12 scroll-mt-4">
+        <PlanosGrid value={selecao} onSelect={selecionar} />
 
-        {step > 0 && (
-          <Button variant="ghost" size="sm" onClick={() => setStep(step - 1)}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
-        )}
-
-        {step === 0 && <StepFrequency value={frequencia} onSelect={selecionarFrequencia} />}
-
-        {step === 1 && frequencia && (
-          <StepPlans frequencia={frequencia} value={plano} onSelect={selecionarPlano} />
-        )}
-
-        {step === 2 && frequencia && plano && (
-          <StepSummary frequencia={frequencia} plano={plano} />
+        {selecao && (
+          <div id="resumo" className="scroll-mt-4">
+            <StepSummary frequencia={selecao.frequencia} plano={selecao.plano} />
+          </div>
         )}
       </main>
-
 
       <SocialProof />
 
