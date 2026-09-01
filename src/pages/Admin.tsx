@@ -13,7 +13,7 @@ const allTabs = [
   { value: "usuarios", label: "Usuários & Permissões", icon: Users, adminOnly: true },
   { value: "planos", label: "Planos", icon: CreditCard, adminOnly: true },
   { value: "servicos", label: "Serviços", icon: Briefcase, adminOnly: true },
-  { value: "avaliacoes", label: "Tipos de Avaliação", icon: ClipboardList, adminOnly: false },
+  { value: "avaliacoes", label: "Relatórios", icon: ClipboardList, adminOnly: false },
   { value: "templates", label: "Templates de Treino", icon: Dumbbell, adminOnly: false },
 ];
 
@@ -40,7 +40,7 @@ export default function Admin() {
           Administração
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {isAdmin ? "Somente Coordenação e Administradores" : "Tipos de Avaliação e Templates de Treino"}
+          {isAdmin ? "Somente Coordenação e Administradores" : "Relatórios e Templates de Treino"}
         </p>
       </div>
 
