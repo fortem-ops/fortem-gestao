@@ -17,6 +17,7 @@ import {
 import { StudentSummary } from "@/components/student/StudentSummary";
 import { StudentFinanceiro } from "@/components/student/StudentFinanceiro";
 import { StudentWorkouts } from "@/components/student/StudentWorkouts";
+import { StudentFrequencia } from "@/components/student/StudentFrequencia";
 import { StudentAssessments } from "@/components/student/StudentAssessments";
 import { StudentHistory } from "@/components/student/StudentHistory";
 import { StudentUploads } from "@/components/student/StudentUploads";
