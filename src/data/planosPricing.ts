@@ -25,10 +25,7 @@ export const FREQUENCIAS: FrequenciaDef[] = [
 export const BENEFICIOS: string[] = [
   "Plano de treinamento personalizado",
   "Avaliação funcional e de força",
-  "Acompanhamento multidisciplinar",
   "Horários fixos na tua agenda",
-  "Bloqueio de treinos em viagens",
-  "Descontos em reavaliações e reposições",
 ];
 
 export interface PlanoDef {
