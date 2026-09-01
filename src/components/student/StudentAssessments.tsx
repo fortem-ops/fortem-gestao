@@ -22,7 +22,13 @@ import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
 import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import { cn } from "@/lib/utils";
 
-export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
+// Motores estruturais: ficam na sub-aba "Avaliações". Todo o resto é Relatório.
+export const TIPOS_ESTRUTURAIS = ["funcional", "funcional_v2", "composicao_corporal"];
+
+export type ModoRegistros = "avaliacoes" | "relatorios";
+
+export function StudentAssessments({ student, modo = "avaliacoes" }: { student: Tables<"alunos">; modo?: ModoRegistros }) {
+  const isAval = modo === "avaliacoes";
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
