@@ -420,6 +420,12 @@
 
 .planos-landing .bg-dark { background-color: hsl(var(--dark)); }
 .planos-landing .text-dark-foreground { color: hsl(var(--dark-foreground)); }
+.planos-landing .text-dark-foreground\/80 { color: hsl(var(--dark-foreground) / 0.8); }
+.planos-landing .text-dark-foreground\/60 { color: hsl(var(--dark-foreground) / 0.6); }
+.planos-landing .text-dark-foreground\/50 { color: hsl(var(--dark-foreground) / 0.5); }
+.planos-landing .text-dark-foreground\/40 { color: hsl(var(--dark-foreground) / 0.4); }
+.planos-landing .bg-dark-foreground\/5 { background-color: hsl(var(--dark-foreground) / 0.05); }
+.planos-landing .border-dark-foreground\/10 { border-color: hsl(var(--dark-foreground) / 0.1); }
 
 @keyframes planos-pulse-soft {
   0%, 100% { opacity: 1; }
