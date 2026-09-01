@@ -1,16 +1,22 @@
-# Trocar número do WhatsApp do funil /planos
+# Ajustes no funil /planos
 
 ## Objetivo
-Alterar o destino do CTA do WhatsApp na landing page pública `/planos` para o número **5135199451**.
+Sincronizar a landing page pública `/planos` com a versão de referência do "Fortem Plan Builder": trocar o WhatsApp e simplificar o texto de recorrência.
 
-## Alteração
+## Alterações
+
+### 1. Trocar número do WhatsApp
 - **Arquivo:** `src/data/planosPricing.ts`
 - **Mudança:** atualizar a constante `WHATSAPP_NUMERO` de `"5551991519640"` para `"5135199451"`.
+- **Impacto:** `WhatsAppCta.tsx` e `StepSummary.tsx` passam a usar o novo número no link `wa.me`.
 
-## Impacto
-O novo número será usado automaticamente por:
-- `src/components/planos/WhatsAppCta.tsx` (montagem do link `wa.me` e mensagem)
-- `src/components/planos/StepSummary.tsx` (texto de redirecionamento)
+### 2. Simplificar label de recorrência
+- **Arquivo:** `src/components/planos/StepSummary.tsx`
+- **Mudança:** alterar o texto do `Label` de
+  `"Quero recorrência mensal (sem fidelidade de 12 meses)"`
+  para
+  `"Quero recorrência mensal"`.
 
 ## Validação
-Após a alteração, o link gerado no botão "COMEÇAR A TREINAR AGORA" deve apontar para `https://wa.me/5135199451?text=...`.
+- Link do CTA deve apontar para `https://wa.me/5135199451?text=...`.
+- Label deve exibir apenas "Quero recorrência mensal".
