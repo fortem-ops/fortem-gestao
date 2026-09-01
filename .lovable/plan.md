@@ -25,9 +25,16 @@ Se o aluno não tem agendamentos, a aba mostra estado vazio explicando que a fre
 - Se existe sessão sem troca, proposto = realizado.
 - Se a data está agendada e ainda não houve registro, o proposto é calculado pela rotação (T1→T2→T3→T4) a partir das sessões já concluídas em ordem de data, igual à lógica que o portal usa.
 
-## Somente leitura
+## Edição pela equipe (opcional)
 
-A aba é de consulta. Ajustes de datas continuam sendo feitos pelo aluno no portal e pela equipe na Agenda de Treinos.
+Como muitos alunos não registram nada no portal, professor, coordenador e admin podem preencher a frequência manualmente:
+
+- Em cada data agendada, um botão "Registrar treino" abre um seletor com as variações do programa vigente (T1, T2, T3, T4...).
+- Se já existe registro, o botão vira "Alterar" e permite trocar a variação ou remover o registro.
+- Ao salvar uma variação diferente da proposta, o sistema marca como troca (guardando a variação originalmente prevista) e a linha exibe o selo "Trocado".
+- Salvar marca o agendamento como Realizado; remover devolve o agendamento para Confirmado — mesma mecânica que o portal já usa.
+- Registros feitos pela equipe aparecem com a etiqueta "Registrado pela equipe" para diferenciar do que o aluno preencheu.
+- Preenchimento é opcional: datas sem registro continuam listadas normalmente, apenas com o treino proposto.
 
 ## Detalhes técnicos
 
@@ -35,5 +42,8 @@ A aba é de consulta. Ajustes de datas continuam sendo feitos pelo aluno no port
 - Registro da aba em `src/pages/StudentProfile.tsx` (`TabsTrigger`/`TabsContent` valor `frequencia`, após `treinos`).
 - Dados: `treino_agendamentos` (data, horários, status) com `left join` lógico em `treino_sessoes` por `agendamento_id`, e `treinos` para descrição/fase. Consultas via TanStack Query com `queryKey` `["student-frequencia", aluno_id, filtros]`.
 - Sessões sem `agendamento_id` (registradas fora da agenda) entram na lista como linhas "sem agendamento" na data da sessão, para não sumirem do histórico.
-- RLS já permite leitura pela equipe nas três tabelas (`is_staff()`); nenhuma migração de banco é necessária.
-- Sem alteração em portal, agenda ou lógica de conclusão de treino.
+- Gravação reaproveita a mesma lógica do portal: insert/update em `treino_sessoes` (`variacao`, `variacao_original`, `foi_troca`, `data`, `concluido_em`, `agendamento_id`) e update de `status` em `treino_agendamentos`. Essa lógica será extraída para um helper compartilhado para evitar divergência entre portal e perfil.
+- Origem do registro derivada de `created_by`/contexto de auth; a etiqueta "Registrado pela equipe" usa esse dado — se não houver coluna disponível em `treino_sessoes`, o campo `observacoes` guarda a marcação.
+- Escrita liberada por RLS a staff (`is_staff()` em `treino_sessoes` e `treino_agendamentos`); botões de edição visíveis apenas para professor, coordenador e admin. Nenhuma migração estrutural é necessária.
+- Sem alteração no fluxo do portal do aluno nem na conclusão de treino existente.
+
