@@ -32,9 +32,6 @@ const planosJsonLd = {
 const Planos = () => {
   const [selecao, setSelecao] = useState<SelecaoPlano | null>(null);
 
-  const scrollToFunil = () =>
-    document.getElementById("funil")?.scrollIntoView({ behavior: "smooth", block: "start" });
-
   const selecionar = (s: SelecaoPlano) => {
     setSelecao(s);
     requestAnimationFrame(() =>
