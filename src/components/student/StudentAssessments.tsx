@@ -174,13 +174,13 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
       </div>
 
 
-      {(!avaliacoes || avaliacoes.length === 0) ? (
+      {lista.length === 0 ? (
         <div className="glass-card rounded-lg p-8 text-center text-sm text-muted-foreground">
-          Nenhuma avaliação realizada para este aluno.
+          {isAval ? "Nenhuma avaliação realizada para este aluno." : "Nenhum relatório gerado para este aluno."}
         </div>
       ) : (
         <div className="space-y-2">
-          {avaliacoes.map((a) => (
+          {lista.map((a) => (
             <div
               key={a.id}
               role="button"
