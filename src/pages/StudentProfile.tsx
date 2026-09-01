@@ -232,11 +232,13 @@ export default function StudentProfile() {
       >
         <TabsList className="bg-secondary/50 border border-border w-full justify-start overflow-x-auto">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
-          <TabsTrigger value="clube">Clube FORTEM</TabsTrigger>
-          <TabsTrigger value="plano">Plano/Serviços</TabsTrigger>
-          <TabsTrigger value="financeiro">Carteira</TabsTrigger>
-          <TabsTrigger value="contrato">Pagamentos</TabsTrigger>
+          {podeVerComercial && <>
+            <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+            <TabsTrigger value="clube">Clube FORTEM</TabsTrigger>
+            <TabsTrigger value="plano">Plano/Serviços</TabsTrigger>
+            <TabsTrigger value="financeiro">Carteira</TabsTrigger>
+            <TabsTrigger value="contrato">Pagamentos</TabsTrigger>
+          </>}
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
           <TabsTrigger value="frequencia">Frequência</TabsTrigger>
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
@@ -246,11 +248,13 @@ export default function StudentProfile() {
         </TabsList>
 
         <TabsContent value="resumo"><StudentSummary student={student} /></TabsContent>
-        <TabsContent value="pipeline"><StudentPipelinePanel student={student} onChanged={() => refetch()} /></TabsContent>
-        <TabsContent value="clube"><StudentClubePanel student={student} /></TabsContent>
-        <TabsContent value="plano"><StudentPlan student={student} /></TabsContent>
-        <TabsContent value="financeiro"><StudentFinanceiro student={student} /></TabsContent>
-        <TabsContent value="contrato"><ContratoFinanceiro alunoId={student.id} /></TabsContent>
+        {podeVerComercial && <>
+          <TabsContent value="pipeline"><StudentPipelinePanel student={student} onChanged={() => refetch()} /></TabsContent>
+          <TabsContent value="clube"><StudentClubePanel student={student} /></TabsContent>
+          <TabsContent value="plano"><StudentPlan student={student} /></TabsContent>
+          <TabsContent value="financeiro"><StudentFinanceiro student={student} /></TabsContent>
+          <TabsContent value="contrato"><ContratoFinanceiro alunoId={student.id} /></TabsContent>
+        </>}
         <TabsContent value="treinos"><StudentWorkouts student={student} /></TabsContent>
         <TabsContent value="frequencia"><StudentFrequencia student={student} /></TabsContent>
         <TabsContent value="avaliacoes"><StudentAssessments student={student} /></TabsContent>
