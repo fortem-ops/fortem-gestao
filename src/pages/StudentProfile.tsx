@@ -52,10 +52,25 @@ export default function StudentProfile() {
   const validTabs = [
     "resumo",
     ...(podeVerComercial ? ["pipeline","clube","plano","financeiro","contrato"] : []),
-    "treinos","frequencia","avaliacoes","tarefas","observacoes","uploads",
+    "treinos","frequencia","registros",
   ];
+  const LEGACY_TAB_MAP: Record<string, RegistroSubTab> = {
+    avaliacoes: "avaliacoes",
+    observacoes: "observacoes",
+    tarefas: "tarefas",
+    uploads: "uploads",
+  };
   const tabParam = searchParams.get("tab");
-  const tabValue = tabParam && validTabs.includes(tabParam) ? tabParam : "resumo";
+  const legacySub = tabParam ? LEGACY_TAB_MAP[tabParam] : undefined;
+  const tabValue = legacySub
+    ? "registros"
+    : tabParam && validTabs.includes(tabParam)
+      ? tabParam
+      : "resumo";
+  const subParam = searchParams.get("sub") as RegistroSubTab | null;
+  const subValue: RegistroSubTab =
+    legacySub ?? (subParam && REGISTROS_SUBTABS.includes(subParam) ? subParam : "avaliacoes");
+
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
