@@ -14,6 +14,7 @@ const allTabs = [
   { value: "planos", label: "Planos", icon: CreditCard, adminOnly: true },
   { value: "servicos", label: "Serviços", icon: Briefcase, adminOnly: true },
   { value: "avaliacoes", label: "Relatórios", icon: ClipboardList, adminOnly: false },
+  { value: "tipos-avaliacoes", label: "Avaliações", icon: Activity, adminOnly: false },
   { value: "templates", label: "Templates de Treino", icon: Dumbbell, adminOnly: false },
 ];
 
