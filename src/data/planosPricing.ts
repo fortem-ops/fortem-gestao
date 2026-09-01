@@ -62,8 +62,8 @@ export const PLANOS: PlanoDef[] = [
 
 /** Preço mensal (R$) por frequência × plano. */
 export const PRECOS: Record<FrequenciaPlano, Record<PlanoId, number>> = {
-  "2x": { padrao: 479, ocioso: 419 },
-  "3x": { padrao: 599, ocioso: 499 },
+  "2x": { padrao: 499, ocioso: 399 },
+  "3x": { padrao: 699, ocioso: 599 },
 };
 
 /** Upsell de frequência: sugere adicionar mais um treino semanal. */
