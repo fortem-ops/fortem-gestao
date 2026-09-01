@@ -147,7 +147,7 @@ export function AdminTiposAvaliacao({ escopo = "relatorios" }: { escopo?: Escopo
                 Protocolos de {selectedTipo.nome}
               </h3>
               <Button size="sm" onClick={() => setProtoDialog({ open: true, protocolo: null })}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> Novo protocolo
+                <Plus className="w-3.5 h-3.5 mr-1" /> Nova Categoria
               </Button>
             </div>
 
