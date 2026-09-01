@@ -242,7 +242,7 @@ export default function StudentProfile() {
           </>}
           <TabsTrigger value="treinos">Treinos</TabsTrigger>
           <TabsTrigger value="frequencia">Frequência</TabsTrigger>
-          <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
+          <TabsTrigger value="avaliacoes">Avaliações/Relatórios</TabsTrigger>
           <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
           <TabsTrigger value="observacoes">Observações</TabsTrigger>
           <TabsTrigger value="uploads">Uploads</TabsTrigger>
