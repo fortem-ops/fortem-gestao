@@ -6368,6 +6368,7 @@ export type Database = {
           data_limite: string | null
           descricao: string | null
           id: string
+          origem: string
           prioridade: string
           responsavel_id: string
           status: string
@@ -6384,6 +6385,7 @@ export type Database = {
           data_limite?: string | null
           descricao?: string | null
           id?: string
+          origem?: string
           prioridade?: string
           responsavel_id: string
           status?: string
@@ -6400,6 +6402,7 @@ export type Database = {
           data_limite?: string | null
           descricao?: string | null
           id?: string
+          origem?: string
           prioridade?: string
           responsavel_id?: string
           status?: string

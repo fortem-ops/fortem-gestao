@@ -75,6 +75,7 @@ function NewStudentTaskDialog({
         aluno_id: alunoId,
         responsavel_id: responsavelId || user!.id,
         criado_por_id: user!.id,
+        origem: "tecnico",
       });
       if (error) throw error;
     },
@@ -212,6 +213,7 @@ export function StudentTasks({ student }: { student: Tables<"alunos"> }) {
         .from("tarefas")
         .select("*")
         .eq("aluno_id", student.id)
+        .eq("origem", "tecnico")
         .order("data_limite", { ascending: true, nullsFirst: false });
       if (error) throw error;
       if (!data?.length) return [] as TaskRow[];

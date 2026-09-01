@@ -12,7 +12,9 @@ import type { Tables } from "@/integrations/supabase/types";
 import { stageColor, waMeLink, QUICK_MESSAGES } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 import { PipelineMetadataDialog } from "./PipelineMetadataDialog";
-import { PipelineHistoryTimeline } from "./PipelineHistoryTimeline";
+import { PipelineActivityTimeline } from "./PipelineActivityTimeline";
+import { PipelineLeadSummary } from "./PipelineLeadSummary";
+import { PipelineTasksPanel } from "./PipelineTasksPanel";
 
 interface Props {
   student: Tables<"alunos">;
@@ -113,10 +115,14 @@ export function StudentPipelinePanel({ student, onChanged }: Props) {
         </CardContent>
       </Card>
 
+      <PipelineLeadSummary student={student} />
+
+      <PipelineTasksPanel student={student} />
+
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Histórico de movimentações</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Histórico comercial</CardTitle></CardHeader>
         <CardContent>
-          <PipelineHistoryTimeline alunoId={student.id} />
+          <PipelineActivityTimeline alunoId={student.id} />
         </CardContent>
       </Card>
 

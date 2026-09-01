@@ -46,6 +46,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
         .from("tarefas")
         .select("id,titulo,data_limite,prioridade,descricao,tipo_atividade")
         .eq("aluno_id", alunoId)
+        .eq("origem", "pipeline")
         .eq("status", "pendente")
         .order("data_limite", { ascending: true, nullsFirst: false })
         .limit(1)
@@ -75,6 +76,8 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
     qc.invalidateQueries({ queryKey: ["pipeline-next-tasks"] });
     qc.invalidateQueries({ queryKey: ["pipeline-pending-task", alunoId] });
     qc.invalidateQueries({ queryKey: ["tarefas"] });
+    qc.invalidateQueries({ queryKey: ["pipeline-tarefas-aluno", alunoId] });
+    qc.invalidateQueries({ queryKey: ["pipeline-atividades-timeline", alunoId] });
   }
 
   async function save(asNew: boolean) {
@@ -103,6 +106,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
           data_limite,
           prioridade,
           tipo_atividade: tipoAtividade,
+          origem: "pipeline",
           status: "pendente",
         });
         if (error) throw error;
