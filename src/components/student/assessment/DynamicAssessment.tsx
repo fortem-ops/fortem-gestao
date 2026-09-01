@@ -216,9 +216,13 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
             <QuestionField
               key={q.id}
               question={q}
-              value={dados.answers[q.id]}
+              value={
+                q.type === "fase_inicial"
+                  ? (dados.answers[q.id] ?? dados.answers[FASE_INICIAL_QUESTION_ID])
+                  : dados.answers[q.id]
+              }
               onChange={(v) => setAnswer(q.id, v)}
-              onFaseInicialChange={q.type === "fase_inicial" ? handleFaseInicialChange : undefined}
+              onFaseInicialChange={q.type === "fase_inicial" ? (fase) => handleFaseInicialChange(q.id, fase) : undefined}
               faseLoading={prescribing}
             />
           ))}
