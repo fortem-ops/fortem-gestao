@@ -63,7 +63,8 @@ export default function Admin() {
             
           </>
         )}
-        <TabsContent value="avaliacoes" className="mt-4"><AdminTiposAvaliacao /></TabsContent>
+        <TabsContent value="avaliacoes" className="mt-4"><AdminTiposAvaliacao escopo="relatorios" /></TabsContent>
+        <TabsContent value="tipos-avaliacoes" className="mt-4"><AdminTiposAvaliacao escopo="avaliacoes" /></TabsContent>
         <TabsContent value="templates" className="mt-4"><AdminComingSoon title="Templates de Treino" /></TabsContent>
       </Tabs>
     </div>
