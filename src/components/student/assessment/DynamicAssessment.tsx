@@ -239,7 +239,7 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
         )}
       </div>
 
-      <AlertDialog open={confirmReplace} onOpenChange={(o) => { if (!o) { setConfirmReplace(false); setPendingFase(null); } }}>
+      <AlertDialog open={confirmReplace} onOpenChange={(o) => { if (!o) { if (pendingFase) setAnswer(pendingFase.qid, pendingFase.prev); setConfirmReplace(false); setPendingFase(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Substituir treino atual?</AlertDialogTitle>
