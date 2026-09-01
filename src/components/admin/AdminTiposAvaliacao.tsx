@@ -15,16 +15,31 @@ import {
 import { TipoAvaliacaoDialog } from "./TipoAvaliacaoDialog";
 import { ProtocoloAvaliacaoDialog } from "./ProtocoloAvaliacaoDialog";
 
-export function AdminTiposAvaliacao() {
+// Motores cuja aplicação vive no módulo "Avaliações" (antigo Premium).
+const ENGINES_AVALIACOES = ["funcional_v2", "composicao_pollock"];
+
+export type EscopoTipos = "relatorios" | "avaliacoes";
+
+export function AdminTiposAvaliacao({ escopo = "relatorios" }: { escopo?: EscopoTipos }) {
   const qc = useQueryClient();
   const [selectedTipoId, setSelectedTipoId] = useState<string | null>(null);
   const [tipoDialog, setTipoDialog] = useState<{ open: boolean; tipo: AvaliacaoTipo | null }>({ open: false, tipo: null });
   const [protoDialog, setProtoDialog] = useState<{ open: boolean; protocolo: AvaliacaoProtocolo | null }>({ open: false, protocolo: null });
 
-  const { data: tipos = [], isLoading: loadingTipos } = useQuery({
+  const { data: todosTipos = [], isLoading: loadingTipos } = useQuery({
     queryKey: ["avaliacao-tipos"],
     queryFn: fetchTipos,
   });
+
+  const tipos = useMemo(
+    () =>
+      todosTipos.filter((t) =>
+        escopo === "avaliacoes"
+          ? ENGINES_AVALIACOES.includes(t.engine)
+          : !ENGINES_AVALIACOES.includes(t.engine),
+      ),
+    [todosTipos, escopo],
+  );
 
   const selectedTipo = useMemo(
     () => tipos.find((t) => t.id === selectedTipoId) ?? tipos[0] ?? null,
