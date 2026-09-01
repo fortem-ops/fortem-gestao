@@ -108,7 +108,7 @@ export default function Notificar() {
                 })}
               </ScrollArea>
             </div>
-            <div className="border rounded-lg bg-card overflow-hidden">
+            <div className="border rounded-lg bg-card overflow-hidden min-h-[70vh] md:min-h-0">
               <NotificacaoDetail id={selected} />
             </div>
           </div>
