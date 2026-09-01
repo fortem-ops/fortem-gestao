@@ -18,7 +18,7 @@ function useCount(table: "historico_profissional" | "tarefas" | "uploads", aluno
         .from(table)
         .select("id", { count: "exact", head: true })
         .eq("aluno_id", alunoId);
-      if (table === "tarefas") q = q.eq("origem", "tecnico");
+      if (table === "tarefas") q = (q as any).eq("origem", "tecnico");
       const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
