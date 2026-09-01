@@ -145,10 +145,10 @@ export function StudentAssessments({ student }: { student: Tables<"alunos"> }) {
             size="sm"
             variant="outline"
           >
-            Avaliações Premium
+            Avaliações
           </Button>
           <Button onClick={() => navigate(`/avaliacoes?aluno=${student.id}&new=1`)} size="sm">
-            <Plus className="w-4 h-4 mr-1" /> Realizar Avaliação
+            <Plus className="w-4 h-4 mr-1" /> Relatório
           </Button>
         </div>
       </div>
