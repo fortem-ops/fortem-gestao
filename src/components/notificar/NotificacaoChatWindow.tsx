@@ -164,7 +164,12 @@ export function NotificacaoChatWindow({ id, offsetIndex }: { id: string; offsetI
         <div ref={scrollRef} className="p-3 space-y-2">
           {isLoading && <p className="text-xs text-muted-foreground text-center">Carregando...</p>}
           {n && (
-            <div className="text-xs bg-muted/40 rounded p-2 whitespace-pre-wrap">{n.descricao}</div>
+            <div className="relative">
+              <ScrollArea className="max-h-32 rounded border border-border/50 bg-muted/40">
+                <div className="text-xs p-2 whitespace-pre-wrap">{n.descricao}</div>
+              </ScrollArea>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-muted/40 to-transparent rounded-b" aria-hidden="true" />
+            </div>
           )}
           {(data?.coments ?? []).map((c: any) => (
             <ChatBubble key={c.id} c={c} mine={c.usuario_id === user?.id} authorName={profileMap[c.usuario_id]} />
