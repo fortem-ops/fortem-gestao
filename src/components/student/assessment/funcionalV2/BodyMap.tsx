@@ -271,7 +271,6 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
             })}
           </div>
         </div>
-      </div>
 
       {/* Controls row 2: layer */}
       <div className="flex items-center gap-2 text-[11px] text-white/55">
