@@ -47,6 +47,14 @@ export const REGION_GEOMETRY: Record<RegionId, RegionGeometry> = {
   "ankle-r":        { view: "front", cx: 465, cy: 985, r: 38, label: "Tornozelo direito" },
 };
 
+type ShapeInstance = {
+  key: string;
+  shape: BodyMapShape;
+  fill: string;
+  label?: string;
+  articulation?: boolean;
+};
+
 interface Props {
   analysis: BodyMapAnalysis;
   mode: Mode;
@@ -234,8 +242,8 @@ export function BodyMapSVG({
 }: Props) {
   const geometry = mergeGeometry(overrides);
 
-  const shapeInstances = (() => {
-    if (!shapesMap) return [] as Array<{ key: string; shape: BodyMapShape; fill: string; label?: string; articulation?: boolean }>;
+  const shapeInstances: ShapeInstance[] = (() => {
+    if (!shapesMap) return [];
     if (layer === "mobility" && metrics) {
       return metrics
         .filter((m) => m.left !== null || m.right !== null)
@@ -286,11 +294,8 @@ export function BodyMapSVG({
           return out;
         });
     }
-    return [] as Array<{ key: string; shape: BodyMapShape; fill: string; label?: string; articulation?: boolean }>;
+    return [];
   })();
-
-  const frontSvgRef = useRef<SVGSVGElement>(null);
-  const backSvgRef = useRef<SVGSVGElement>(null);
 
   const views = viewFilter === "both" ? (["front", "back"] as const) : ([viewFilter] as const);
   const gridCols = views.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-1";

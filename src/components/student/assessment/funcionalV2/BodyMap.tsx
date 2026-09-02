@@ -340,7 +340,6 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
           </p>
           <RegionListPanel items={regionList} />
         </div>
-      </div>
 
       {/* Footer note */}
       <p className="text-[11px] text-white/40 leading-relaxed">
