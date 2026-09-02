@@ -3,7 +3,7 @@ import { useTheme } from "next-themes";
 import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
-import { assimetriasPorCategoria } from "@/components/avaliacoes-premium/DashboardSummary";
+
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
 import { ResultadosDateSelect, type ResultadosDateOption } from "@/components/avaliacoes-premium/ResultadosDateSelect";
 import { ResultadosNav, type ResultadoView } from "@/components/avaliacoes-premium/ResultadosNav";
