@@ -192,7 +192,7 @@ function PercentileCurveCard({
         <div className="flex gap-2">
           {markers.map((m) => (
             <span key={m.id} className="text-[10px] font-medium" style={{ color: m.color }}>
-              {m.id} {m.value}{unit} · {m.percentile}
+              {m.id} {m.value}{unit}
             </span>
           ))}
         </div>
