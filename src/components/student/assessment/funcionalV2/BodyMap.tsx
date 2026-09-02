@@ -181,8 +181,6 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
         : buildMetricAttentionList(analysis, 6)) as RegionListItem[],
     [analysis, layer, forcaExercises],
   );
-  // Numeração dos pontos do mapa fica desativada: a lista é por métrica/exercício.
-  const numbering = useMemo(() => ({} as Partial<Record<RegionId, number>>), []);
 
   return (
     <div className="bodymap-surface rounded-xl p-5 md:p-6 space-y-5">
