@@ -182,12 +182,7 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
   return (
     <div className="bodymap-surface rounded-xl p-5 md:p-6 space-y-5">
       {/* Header — Índice Funcional FORTEM */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 font-semibold">
-             AVALIAÇÃO FUNCIONAL - FORTEM
-          </p>
-        </div>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-end gap-4">
         <div className="flex items-center gap-4 flex-wrap">
           {rings ? (
             <>
