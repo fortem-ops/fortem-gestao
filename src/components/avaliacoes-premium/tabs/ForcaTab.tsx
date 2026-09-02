@@ -93,13 +93,20 @@ export function ForcaTab({ alunoId, latest, history, aluno, readOnly = false }: 
 
   return (
     <div className="space-y-4">
-      <PremiumKinologyImport alunoId={alunoId} />
-
-      <AvaliacaoDeleteList alunoId={alunoId} mode="forca" />
+      {readOnly ? (
+        <ReadOnlyHint />
+      ) : (
+        <>
+          <PremiumKinologyImport alunoId={alunoId} />
+          <AvaliacaoDeleteList alunoId={alunoId} mode="forca" />
+        </>
+      )}
 
       {exercicios.length === 0 ? (
         <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
-          Nenhuma dinamometria importada ainda. Use o botão acima para importar o laudo Kinology.
+          {readOnly
+            ? "Nenhuma dinamometria importada ainda."
+            : "Nenhuma dinamometria importada ainda. Use o botão acima para importar o laudo Kinology."}
         </div>
       ) : (
       <>
