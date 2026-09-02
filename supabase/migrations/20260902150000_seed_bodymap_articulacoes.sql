@@ -15,3 +15,37 @@ VALUES
   ('tornozelo-direito', 'Tornozelo direito', 'front', 'articulacao', '[[465, 951], [494, 968], [494, 1002], [465, 1019], [436, 1002], [436, 968]]'::jsonb),
   ('toracica', 'Coluna torácica', 'back', 'articulacao', '[[512, 220], [581, 260], [581, 340], [512, 380], [443, 340], [443, 260]]'::jsonb)
 ON CONFLICT (shape_key) DO NOTHING;
+
+-- Vínculo entre exercícios de mobilidade e articulações do mapa corporal.
+CREATE TABLE IF NOT EXISTS public.exercicio_articulacoes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  exercicio_id uuid NOT NULL REFERENCES public.exercicios_personalizados(id) ON DELETE CASCADE,
+  articulacao_key text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid,
+  UNIQUE (exercicio_id, articulacao_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_exercicio_articulacoes_exercicio
+  ON public.exercicio_articulacoes(exercicio_id);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.exercicio_articulacoes TO authenticated;
+GRANT ALL ON public.exercicio_articulacoes TO service_role;
+
+ALTER TABLE public.exercicio_articulacoes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated can view exercicio_articulacoes"
+  ON public.exercicio_articulacoes FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Coord/admin can insert exercicio_articulacoes"
+  ON public.exercicio_articulacoes FOR INSERT TO authenticated
+  WITH CHECK (public.is_coordinator_or_admin(auth.uid()));
+
+CREATE POLICY "Coord/admin can update exercicio_articulacoes"
+  ON public.exercicio_articulacoes FOR UPDATE TO authenticated
+  USING (public.is_coordinator_or_admin(auth.uid()))
+  WITH CHECK (public.is_coordinator_or_admin(auth.uid()));
+
+CREATE POLICY "Coord/admin can delete exercicio_articulacoes"
+  ON public.exercicio_articulacoes FOR DELETE TO authenticated
+  USING (public.is_coordinator_or_admin(auth.uid()));
