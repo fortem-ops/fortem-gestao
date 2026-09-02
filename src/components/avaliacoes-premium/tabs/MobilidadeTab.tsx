@@ -136,7 +136,7 @@ function PercentileCurveCard({
   );
 }
 
-export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen }: Props) {
+export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, readOnly = false }: Props) {
   const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
     ? "F"
     : aluno?.sexo?.toLowerCase().startsWith("m")
