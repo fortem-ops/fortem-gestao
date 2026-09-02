@@ -152,14 +152,6 @@ export default function AvaliacoesPremium() {
           <TabsContent value="resultados" className="mt-0">
             {scores && (
               <div className="min-w-0 space-y-5">
-                {resumoGeral && (
-                  <div className="bio-card px-4 py-3 flex items-center gap-3">
-                    <span className="bio-label">Resumo geral</span>
-                    <span className="text-sm font-semibold text-[hsl(var(--bio-ink))]">
-                      {resumoGeral.alta + resumoGeral.moderada} alerta(s) ativo(s) — {resumoGeral.alta} elevada(s), {resumoGeral.moderada} moderada(s)
-                    </span>
-                  </div>
-                )}
 
                 <div className="bio-card px-4 py-3 flex flex-wrap items-center justify-between gap-4">
                   <ResultadosDateSelect options={dateOptions} value={selectedDate} onChange={setSelectedDate} />
