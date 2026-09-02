@@ -250,7 +250,11 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
   const curvasData = useMemo(() => {
     if (!selecionada || !sexoRpc || !referenceData) return [];
     return selecionada.metricas
-      .filter((m) => layerFilter !== "mobility" && layerFilter !== "flexibility" || METRIC_META[m.metric]?.layer === layerFilter)
+      .filter(
+        (m) =>
+          (layerFilter !== "mobility" && layerFilter !== "flexibility") ||
+          METRIC_META[m.metric]?.layer === layerFilter,
+      )
       .map((m) => {
         const arr = referenceData[m.metric]?.[sexoRpc];
         if (!arr || arr.length < 15) return null;
