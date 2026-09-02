@@ -12,11 +12,13 @@ import { format, parseISO } from "date-fns";
 import type { PliometriaSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 import { AvaliacaoDeleteList } from "../AvaliacaoDeleteList";
+import { ReadOnlyHint } from "../ReadOnlyHint";
 
 interface Props {
   alunoId: string;
   latest: PliometriaSnapshot | null;
   history: PliometriaSnapshot[];
+  readOnly?: boolean;
 }
 
 const FIELDS = [
