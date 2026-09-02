@@ -23,6 +23,8 @@ import type { Layer } from "@/components/student/assessment/funcionalV2/bodyMapL
 
 export default function AvaliacoesPremium() {
   const { alunoId: urlId } = useParams<{ alunoId?: string }>();
+  const { resolvedTheme } = useTheme();
+  const bioTheme = resolvedTheme === "dark" ? "dark" : "light";
   const navigate = useNavigate();
   const [alunoId, setAlunoId] = useState<string>(urlId ?? "");
   const [selectedDate, setSelectedDate] = useState<string>("");
