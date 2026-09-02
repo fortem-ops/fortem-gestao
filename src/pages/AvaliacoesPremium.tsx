@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { assimetriasPorCategoria } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
+import { ResultadosDateSelect, type ResultadosDateOption } from "@/components/avaliacoes-premium/ResultadosDateSelect";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,11 +17,14 @@ import { MobilidadeTab } from "@/components/avaliacoes-premium/tabs/MobilidadeTa
 import { ComparativoTab } from "@/components/avaliacoes-premium/tabs/ComparativoTab";
 import { LancamentoView } from "@/components/avaliacoes-premium/lancamento/LancamentoView";
 import { Loader2, Activity } from "lucide-react";
+import type { Layer } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 
 export default function AvaliacoesPremium() {
   const { alunoId: urlId } = useParams<{ alunoId?: string }>();
   const navigate = useNavigate();
   const [alunoId, setAlunoId] = useState<string>(urlId ?? "");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [layer, setLayer] = useState<Layer>("mobility");
 
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(alunoId || null);
   const { data: mobilidadeRef } = useMobilidadeReferenceData();
@@ -31,25 +35,63 @@ export default function AvaliacoesPremium() {
     ? "M"
     : undefined;
 
+  const dateOptions = useMemo<ResultadosDateOption[]>(() => {
+    if (!data) return [];
+    const byDate = new Map<string, Set<string>>();
+    const add = (date: string, category: string) => {
+      const categories = byDate.get(date) ?? new Set<string>();
+      categories.add(category);
+      byDate.set(date, categories);
+    };
+    data.funcional.history.forEach((snapshot) => {
+      if (snapshot.metricas.length > 0) add(snapshot.data, "Mob/Flex");
+      if (snapshot.forca.length > 0) add(snapshot.data, "Força");
+    });
+    data.composicao.history.forEach((snapshot) => add(snapshot.data, "Composição"));
+    data.pliometria.history.forEach((snapshot) => add(snapshot.data, "Pliometria"));
+    return Array.from(byDate.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([date, categories]) => ({ date, categories: Array.from(categories) }));
+  }, [data]);
+
+  useEffect(() => {
+    setSelectedDate(dateOptions[0]?.date ?? "");
+  }, [alunoId, dateOptions]);
+
+  const funcionalDaData = useMemo(() => {
+    if (!selectedDate || !data) return null;
+    const snapshots = data.funcional.history.filter((snapshot) => snapshot.data === selectedDate);
+    if (snapshots.length === 0) return null;
+    return {
+      ...snapshots[0],
+      metricas: snapshots.find((snapshot) => snapshot.metricas.length > 0)?.metricas ?? [],
+      forca: snapshots.find((snapshot) => snapshot.forca.length > 0)?.forca ?? [],
+    };
+  }, [data, selectedDate]);
+  const composicaoDaData = data?.composicao.history.find((snapshot) => snapshot.data === selectedDate) ?? null;
+  const pliometriaDaData = data?.pliometria.history.find((snapshot) => snapshot.data === selectedDate) ?? null;
+  const mobilidadeLayerFilter: "mobility" | "flexibility" | "strength" | "asymmetry" =
+    layer === "pain" ? "asymmetry" : layer;
+
   const scores = useMemo(
     () =>
       data
-        ? computePremiumScores(data.funcional.latest, data.composicao.latest, sexoAluno, mobilidadeRef, assimetriaRef)
+        ? computePremiumScores(funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef)
         : null,
-    [data, sexoAluno, mobilidadeRef, assimetriaRef],
+    [data, funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef],
   );
   const recomendacoes = useMemo(
-    () => (scores && data ? gerarRecomendacoes(scores, data.funcional.latest, data.composicao.latest) : []),
-    [scores, data],
+    () => (scores && data ? gerarRecomendacoes(scores, funcionalDaData, composicaoDaData) : []),
+    [scores, data, funcionalDaData, composicaoDaData],
   );
   const forcaResumo = useMemo(
     () =>
-      (data?.funcional.latest?.forca ?? []).map((e) => ({
+      (funcionalDaData?.forca ?? []).map((e) => ({
         nome: e.nome,
         direito_kg: e.direito_kg,
         esquerdo_kg: e.esquerdo_kg,
       })),
-    [data],
+    [funcionalDaData],
   );
   const resumoGeral = useMemo(
     () => (scores ? assimetriasPorCategoria(scores, forcaResumo).geral : null),
@@ -113,9 +155,19 @@ export default function AvaliacoesPremium() {
                     </div>
                   )}
 
-                  <PremiumBodyMap funcional={data.funcional.latest} scores={scores} />
+                   <div className="bio-card px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+                     <ResultadosDateSelect options={dateOptions} value={selectedDate} onChange={setSelectedDate} />
+                     <span className="text-xs text-[hsl(var(--bio-ink-muted))]">Selecione uma data para comparar o mesmo momento em todo o resultado.</span>
+                   </div>
 
-                  <Tabs defaultValue="mobilidade" className="bio-card p-4">
+                   <PremiumBodyMap
+                     funcional={funcionalDaData}
+                     scores={scores}
+                     layer={layer}
+                     onLayerChange={setLayer}
+                   />
+
+                   <Tabs defaultValue="mobilidade" className="bio-card p-4">
                     <TabsList className="bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))]">
                       <TabsTrigger value="mobilidade">Mobilidade/Flexibilidade</TabsTrigger>
                       <TabsTrigger value="forca">Força</TabsTrigger>
@@ -128,21 +180,23 @@ export default function AvaliacoesPremium() {
                     <TabsContent value="mobilidade" className="mt-4">
                       <MobilidadeTab
                         alunoId={alunoId}
-                        latest={data.funcional.latest}
-                        history={data.funcional.history}
-                        aluno={data.aluno}
-                        referenceData={mobilidadeRef}
-                        readOnly
-                      />
-                    </TabsContent>
-                    <TabsContent value="forca" className="mt-4">
-                      <ForcaTab alunoId={alunoId} latest={data.funcional.latest} history={data.funcional.history} aluno={data.aluno} readOnly />
-                    </TabsContent>
-                    <TabsContent value="composicao" className="mt-4">
-                      <ComposicaoTab alunoId={alunoId} latest={data.composicao.latest} history={data.composicao.history} readOnly />
-                    </TabsContent>
-                    <TabsContent value="pliometria" className="mt-4">
-                      <PliometriaTab alunoId={alunoId} latest={data.pliometria.latest} history={data.pliometria.history} readOnly />
+                         latest={funcionalDaData}
+                         history={data.funcional.history}
+                         aluno={data.aluno}
+                         referenceData={mobilidadeRef}
+                         selectedDate={selectedDate}
+                         layerFilter={mobilidadeLayerFilter}
+                         readOnly
+                       />
+                     </TabsContent>
+                     <TabsContent value="forca" className="mt-4">
+                       <ForcaTab alunoId={alunoId} latest={funcionalDaData} history={data.funcional.history} aluno={data.aluno} readOnly />
+                     </TabsContent>
+                     <TabsContent value="composicao" className="mt-4">
+                       <ComposicaoTab alunoId={alunoId} latest={composicaoDaData} history={data.composicao.history} readOnly />
+                     </TabsContent>
+                     <TabsContent value="pliometria" className="mt-4">
+                       <PliometriaTab alunoId={alunoId} latest={pliometriaDaData} history={data.pliometria.history} readOnly />
                     </TabsContent>
                     <TabsContent value="evolucao" className="mt-4">
                       <EvolucaoTab data={data} />

@@ -7,13 +7,15 @@ import { assimetriasPorCategoria } from "./DashboardSummary";
 interface Props {
   funcional: FuncionalSnapshot | null;
   scores: PremiumScores | null;
+  layer?: "mobility" | "flexibility" | "pain" | "strength" | "asymmetry";
+  onLayerChange?: (layer: "mobility" | "flexibility" | "pain" | "strength" | "asymmetry") => void;
 }
 
 /**
  * Wrapper premium do BodyMap existente. Adiciona moldura "vidro fosco" + halo radial
  * sem alterar a geometria nem os bindings já validados.
  */
-export function PremiumBodyMap({ funcional, scores }: Props) {
+export function PremiumBodyMap({ funcional, scores, layer, onLayerChange }: Props) {
   if (!funcional || (funcional.metricas.length === 0 && funcional.forca.length === 0)) {
     return (
       <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))]">
@@ -66,6 +68,8 @@ export function PremiumBodyMap({ funcional, scores }: Props) {
       <div className="relative">
         <BodyMap
           metrics={funcional.metricas}
+          layer={layer}
+          onLayerChange={onLayerChange}
           forcaExercises={forcaInputs}
           rings={
             scores

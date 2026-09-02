@@ -237,7 +237,7 @@ export function ComposicaoTab({ alunoId, latest, history, readOnly = false }: Pr
       {/* ============ HISTÓRICO ============ */}
       {!latest ? (
         <div className="bio-card p-6 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
-          Nenhuma composição corporal (Pollock) registrada ainda.
+          {readOnly ? "Sem dado de Composição nesta data." : "Nenhuma composição corporal (Pollock) registrada ainda."}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

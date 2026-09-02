@@ -106,7 +106,7 @@ export function ForcaTab({ alunoId, latest, history, aluno, readOnly = false }: 
       {exercicios.length === 0 ? (
         <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
           {readOnly
-            ? "Nenhuma dinamometria importada ainda."
+            ? "Sem dado de Força nesta data."
             : "Nenhuma dinamometria importada ainda. Use o botão acima para importar o laudo Kinology."}
         </div>
       ) : (

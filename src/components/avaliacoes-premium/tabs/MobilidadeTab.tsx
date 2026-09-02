@@ -20,6 +20,7 @@ import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
   ALL_FUNCTIONAL_METRICS,
+  METRIC_META,
   percentilMobilidade,
   getMetricDisplayLabel,
   type MetricInput,
@@ -41,6 +42,8 @@ interface Props {
   referenceData?: MobilidadeReferenceData;
   initialFormOpen?: boolean;
   readOnly?: boolean;
+  selectedDate?: string;
+  layerFilter?: "mobility" | "flexibility" | "strength" | "asymmetry";
 }
 
 interface MobilidadeRow {
@@ -199,7 +202,7 @@ function PercentileCurveCard({
   );
 }
 
-export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, readOnly = false }: Props) {
+export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, readOnly = false, selectedDate, layerFilter }: Props) {
   const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
     ? "F"
     : aluno?.sexo?.toLowerCase().startsWith("m")
@@ -238,13 +241,20 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
   }, [historico, selectedId]);
 
   const selecionada = useMemo(
-    () => historico.find((h) => h.id === selectedId) ?? null,
-    [historico, selectedId],
+    () => readOnly && selectedDate
+      ? historico.find((h) => h.data === selectedDate) ?? null
+      : historico.find((h) => h.id === selectedId) ?? null,
+    [historico, selectedId, selectedDate, readOnly],
   );
 
   const curvasData = useMemo(() => {
     if (!selecionada || !sexoRpc || !referenceData) return [];
     return selecionada.metricas
+      .filter(
+        (m) =>
+          (layerFilter !== "mobility" && layerFilter !== "flexibility") ||
+          METRIC_META[m.metric]?.layer === layerFilter,
+      )
       .map((m) => {
         const arr = referenceData[m.metric]?.[sexoRpc];
         if (!arr || arr.length < 15) return null;
@@ -581,18 +591,20 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
             <h3 className="bio-heading text-base">Histórico · Mobilidade / Flexibilidade</h3>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={selectedId} onValueChange={setSelectedId}>
-                <SelectTrigger className="h-9 w-[190px] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
-                  <SelectValue placeholder="Selecione a data" />
-                </SelectTrigger>
-                <SelectContent>
-                  {historico.map((h) => (
-                    <SelectItem key={h.id} value={h.id}>
-                      {format(parseISO(h.data), "dd/MM/yyyy")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {!readOnly && (
+                <Select value={selectedId} onValueChange={setSelectedId}>
+                  <SelectTrigger className="h-9 w-[190px] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
+                    <SelectValue placeholder="Selecione a data" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {historico.map((h) => (
+                      <SelectItem key={h.id} value={h.id}>
+                        {format(parseISO(h.data), "dd/MM/yyyy")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {!readOnly && (
                 <>
                   <Button size="sm" variant="outline" onClick={() => abrirEdicao(selecionada)}>

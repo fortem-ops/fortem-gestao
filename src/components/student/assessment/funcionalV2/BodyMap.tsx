@@ -38,6 +38,12 @@ interface Props {
     geral: ContagemAssimetrias;
     composicao: number | null;
   } | null;
+  /**
+   * Camada controlada (opcional). Quando não fornecida, o componente mantém
+   * o próprio estado interno — comportamento original preservado.
+   */
+  layer?: Layer;
+  onLayerChange?: (layer: Layer) => void;
 }
 
 
@@ -149,9 +155,11 @@ function CountRing({ value, label, size = 88, tone }: { value: number; label: st
   );
 }
 
-export function BodyMap({ metrics, forcaExercises, canonical, rings }: Props) {
+export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: layerProp, onLayerChange }: Props) {
   const [mode, setMode] = useState<Mode>("asymmetry");
-  const [layer, setLayer] = useState<Layer>("mobility");
+  const [layerLocal, setLayerLocal] = useState<Layer>("mobility");
+  const layer = layerProp ?? layerLocal;
+  const setLayer = (l: Layer) => (onLayerChange ? onLayerChange(l) : setLayerLocal(l));
   const [viewFilter, setViewFilter] = useState<"both" | "front" | "back">("both");
   const [calibrating, setCalibrating] = useState(false);
   const [draft, setDraft] = useState<OverrideMap>({});
