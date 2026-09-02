@@ -4,24 +4,22 @@ import type { FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 import type { PremiumScores } from "./scoringPremium";
 import { assimetriasPorCategoria } from "./DashboardSummary";
 import type { Layer } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import type { ReactNode } from "react";
 
 interface Props {
   funcional: FuncionalSnapshot | null;
   scores: PremiumScores | null;
   layer?: Layer;
   onLayerChange?: (layer: Layer) => void;
-  navSlot?: ReactNode;
 }
 
 /**
- * Wrapper premium do BodyMap existente. Adiciona moldura "vidro fosco" + halo radial
- * sem alterar a geometria nem os bindings já validados.
+ * Wrapper premium do BodyMap existente. Adiciona halo radial e alerta de
+ * incompletude, mas não traz borda de card — o card é responsabilidade do pai.
  */
-export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, navSlot }: Props) {
+export function PremiumBodyMap({ funcional, scores, layer, onLayerChange }: Props) {
   if (!funcional || (funcional.metricas.length === 0 && funcional.forca.length === 0)) {
     return (
-      <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))]">
+      <div className="p-8 text-center text-[hsl(var(--bio-ink-muted))]">
         <p className="bio-label mb-2">Mapa Corporal</p>
         <p className="text-sm">
           Nenhuma avaliação funcional registrada. Realize uma Avaliação Funcional v2
@@ -48,9 +46,8 @@ export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, navSlo
     ? "Avaliação incompleta — mobilidade/flexibilidade pendente"
     : null;
 
-
   return (
-    <div className="bio-card overflow-hidden relative">
+    <div className="relative">
       {/* Glow ambiente (suave, compatível com o tema claro) */}
       <div
         aria-hidden
@@ -73,7 +70,6 @@ export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, navSlo
           metrics={funcional.metricas}
           layer={layer}
           onLayerChange={onLayerChange}
-          navSlot={navSlot}
           forcaExercises={forcaInputs}
           rings={
             scores
