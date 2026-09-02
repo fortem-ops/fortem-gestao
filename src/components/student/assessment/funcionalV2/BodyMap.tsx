@@ -229,11 +229,11 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
                 <p className="text-[9px] uppercase tracking-[0.2em] text-white/45 font-semibold text-center mb-1">
                   Risco de Lesões
                 </p>
-                <p className="text-[8px] text-white/40 text-center mb-1.5">saúde muscular · todas as camadas</p>
+                <p className="text-[8px] text-white/40 text-center mb-1.5">assimetria de força · dinamometria</p>
                 <div className="flex items-center gap-2">
-                  <CountRing value={rings.geral.alta} label=">20%" size={66} tone={26} />
-                  <CountRing value={rings.geral.moderada} label="10-20%" size={66} tone={15} />
-                  <CountRing value={rings.geral.baixa} label="<10%" size={66} tone={4} />
+                  <CountRing value={rings.forca.alta} label=">20%" size={66} tone={26} />
+                  <CountRing value={rings.forca.moderada} label="10-20%" size={66} tone={15} />
+                  <CountRing value={rings.forca.baixa} label="<10%" size={66} tone={4} />
                 </div>
               </div>
               
