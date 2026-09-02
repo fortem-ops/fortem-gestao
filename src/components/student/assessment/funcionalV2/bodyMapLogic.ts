@@ -534,7 +534,9 @@ export function buildMetricAttentionList(analysis: BodyMapAnalysis, max = 6): Ar
   return items.map((x, i) => ({
     id: x.metric,
     number: i + 1,
-    label: getMetricDisplayLabel(x.metric),
+    label: getMetricDisplayLabel(x.metric)
+      .replace(/^Mobilidade\s+/i, "")
+      .replace(/^Flexibilidade\s+/i, ""),
     metricLabel: "",
     percentage: Math.round(x.diff * 10) / 10,
   }));
