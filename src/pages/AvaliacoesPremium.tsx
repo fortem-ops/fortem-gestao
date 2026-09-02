@@ -163,59 +163,63 @@ export default function AvaliacoesPremium() {
                   <span className="text-xs text-[hsl(var(--bio-ink-muted))]">Selecione uma data para comparar o mesmo momento em todo o resultado.</span>
                 </div>
 
-                <PremiumBodyMap
-                  funcional={funcionalDaData}
-                  scores={scores}
-                  layer={layer}
-                  onLayerChange={setLayer}
-                  navSlot={<ResultadosNav view={view} onChange={setView} />}
-                />
-
-                <div className="min-w-0">
-                  {view === "assimetria" && (
-                    <div className="bio-card p-4">
-                      {layer === "strength" ? (
-                        <ForcaTab
-                          alunoId={alunoId}
-                          latest={funcionalDaData}
-                          history={data.funcional.history}
-                          aluno={data.aluno}
-                          readOnly
+                <div className="bio-card overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[hsl(var(--bio-line))] flex flex-wrap items-center justify-between gap-3">
+                    <span className="bio-label">Resultados</span>
+                    <ResultadosNav view={view} onChange={setView} />
+                  </div>
+                  <div className="p-4 space-y-5">
+                    {view === "assimetria" && (
+                      <>
+                        <PremiumBodyMap
+                          funcional={funcionalDaData}
+                          scores={scores}
+                          layer={layer}
+                          onLayerChange={setLayer}
                         />
-                      ) : (
-                        <MobilidadeTab
-                          alunoId={alunoId}
-                          latest={funcionalDaData}
-                          history={data.funcional.history}
-                          aluno={data.aluno}
-                          referenceData={mobilidadeRef}
-                          selectedDate={selectedDate}
-                          layerFilter={mobilidadeLayerFilter}
-                          readOnly
-                        />
-                      )}
-                    </div>
-                  )}
+                        {layer === "strength" ? (
+                          <ForcaTab
+                            alunoId={alunoId}
+                            latest={funcionalDaData}
+                            history={data.funcional.history}
+                            aluno={data.aluno}
+                            readOnly
+                          />
+                        ) : (
+                          <MobilidadeTab
+                            alunoId={alunoId}
+                            latest={funcionalDaData}
+                            history={data.funcional.history}
+                            aluno={data.aluno}
+                            referenceData={mobilidadeRef}
+                            selectedDate={selectedDate}
+                            layerFilter={mobilidadeLayerFilter}
+                            readOnly
+                          />
+                        )}
+                      </>
+                    )}
 
-                  {view === "composicao" && (
-                    <ComposicaoTab
-                      alunoId={alunoId}
-                      latest={composicaoDaData}
-                      history={data.composicao.history}
-                      readOnly
-                    />
-                  )}
-                  {view === "pliometria" && (
-                    <PliometriaTab
-                      alunoId={alunoId}
-                      latest={pliometriaDaData}
-                      history={data.pliometria.history}
-                      readOnly
-                    />
-                  )}
-                  {view === "evolucao" && <EvolucaoTab data={data} />}
-                  {view === "comparativo" && <ComparativoTab data={data} alunoId={alunoId} />}
-                  {view === "recomendacoes" && <RecomendacoesTab recomendacoes={recomendacoes} />}
+                    {view === "composicao" && (
+                      <ComposicaoTab
+                        alunoId={alunoId}
+                        latest={composicaoDaData}
+                        history={data.composicao.history}
+                        readOnly
+                      />
+                    )}
+                    {view === "pliometria" && (
+                      <PliometriaTab
+                        alunoId={alunoId}
+                        latest={pliometriaDaData}
+                        history={data.pliometria.history}
+                        readOnly
+                      />
+                    )}
+                    {view === "evolucao" && <EvolucaoTab data={data} />}
+                    {view === "comparativo" && <ComparativoTab data={data} alunoId={alunoId} />}
+                    {view === "recomendacoes" && <RecomendacoesTab recomendacoes={recomendacoes} />}
+                  </div>
                 </div>
               </div>
             )}
