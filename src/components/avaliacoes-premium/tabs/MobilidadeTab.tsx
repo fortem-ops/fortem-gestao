@@ -84,7 +84,7 @@ function AssimetriaDonut({ left, right, unit }: { left: number | null; right: nu
 
   const r = 34;
   const c = 2 * Math.PI * r;
-  const leftLen = (left / total) * c;
+  const rightLen = (right / total) * c;
 
   return (
     <div className="mt-2 flex items-center justify-center gap-3">
@@ -103,7 +103,7 @@ function AssimetriaDonut({ left, right, unit }: { left: number | null; right: nu
               cy="43"
               r={r}
               fill="none"
-              stroke={LADO_DIR_COLOR}
+              stroke={LADO_ESQ_COLOR}
               strokeWidth="12"
             />
             <circle
@@ -111,9 +111,9 @@ function AssimetriaDonut({ left, right, unit }: { left: number | null; right: nu
               cy="43"
               r={r}
               fill="none"
-              stroke={LADO_ESQ_COLOR}
+              stroke={LADO_DIR_COLOR}
               strokeWidth="12"
-              strokeDasharray={`${leftLen} ${c - leftLen}`}
+              strokeDasharray={`${rightLen} ${c - rightLen}`}
             />
           </g>
         </svg>
