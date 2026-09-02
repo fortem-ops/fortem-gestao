@@ -2,6 +2,7 @@ import { FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcional
 import type { FuncionalSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 import { PremiumKinologyImport } from "../PremiumKinologyImport";
 import { AvaliacaoDeleteList } from "../AvaliacaoDeleteList";
+import { ReadOnlyHint } from "../ReadOnlyHint";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { useMemo } from "react";
 import { format, parseISO, differenceInYears } from "date-fns";
