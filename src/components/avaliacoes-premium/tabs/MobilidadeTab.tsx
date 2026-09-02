@@ -587,18 +587,20 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
             <h3 className="bio-heading text-base">Histórico · Mobilidade / Flexibilidade</h3>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={selectedId} onValueChange={setSelectedId}>
-                <SelectTrigger className="h-9 w-[190px] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
-                  <SelectValue placeholder="Selecione a data" />
-                </SelectTrigger>
-                <SelectContent>
-                  {historico.map((h) => (
-                    <SelectItem key={h.id} value={h.id}>
-                      {format(parseISO(h.data), "dd/MM/yyyy")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {!readOnly && (
+                <Select value={selectedId} onValueChange={setSelectedId}>
+                  <SelectTrigger className="h-9 w-[190px] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
+                    <SelectValue placeholder="Selecione a data" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {historico.map((h) => (
+                      <SelectItem key={h.id} value={h.id}>
+                        {format(parseISO(h.data), "dd/MM/yyyy")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {!readOnly && (
                 <>
                   <Button size="sm" variant="outline" onClick={() => abrirEdicao(selecionada)}>
