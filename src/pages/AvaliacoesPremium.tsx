@@ -88,15 +88,6 @@ export default function AvaliacoesPremium() {
     () => (scores && data ? gerarRecomendacoes(scores, funcionalDaData, composicaoDaData) : []),
     [scores, data, funcionalDaData, composicaoDaData],
   );
-  const forcaResumo = useMemo(
-    () =>
-      (funcionalDaData?.forca ?? []).map((e) => ({
-        nome: e.nome,
-        direito_kg: e.direito_kg,
-        esquerdo_kg: e.esquerdo_kg,
-      })),
-    [funcionalDaData],
-  );
 
 
 
