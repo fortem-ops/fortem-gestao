@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { GitCompareArrows, ShieldAlert, Layers } from "lucide-react";
+import { ShieldAlert, Layers } from "lucide-react";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ContagemAssimetrias, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
+import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ContagemAssimetrias, type ForcaInput, type Layer, type MetricInput, type RegionId } from "./bodyMapLogic";
 import { useBodyMapShapes } from "./useBodyMapShapes";
 
 import { RegionListPanel, type RegionListItem } from "./RegionListPanel";
@@ -45,9 +45,6 @@ interface Props {
 }
 
 
-const MODES: Array<{ id: Mode; label: string; icon: typeof GitCompareArrows; desc: string }> = [
-  { id: "asymmetry", label: "Assimetria", icon: GitCompareArrows, desc: "Diferenças bilaterais" },
-];
 
 const LAYERS: Array<{ id: Layer; label: string }> = [
   { id: "mobility",    label: "Mobilidade" },
@@ -154,7 +151,7 @@ function CountRing({ value, label, size = 88, tone }: { value: number; label: st
 }
 
 export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: layerProp, onLayerChange }: Props) {
-  const [mode, setMode] = useState<Mode>("asymmetry");
+  
   const [layerLocal, setLayerLocal] = useState<Layer>("mobility");
   const layer = layerProp ?? layerLocal;
   const setLayer = (l: Layer) => (onLayerChange ? onLayerChange(l) : setLayerLocal(l));
@@ -250,29 +247,8 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
 
       </div>
 
-      {/* Controls row 1: modes + view filter */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-white/5">
-        <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">
-          {MODES.map((m) => {
-            const Icon = m.icon;
-            const active = mode === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => setMode(m.id)}
-                title={m.desc}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  active ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
+      {/* Controls row 1: view filter */}
+      <div className="flex items-center gap-3 flex-wrap pb-3 border-b border-white/5">
           {/* Escala contínua de assimetria */}
           <AsymmetryGradientLegend />
 
@@ -295,7 +271,6 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
             })}
           </div>
         </div>
-      </div>
 
       {/* Controls row 2: layer */}
       <div className="flex items-center gap-2 text-[11px] text-white/55">
