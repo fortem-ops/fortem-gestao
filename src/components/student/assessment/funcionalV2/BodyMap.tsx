@@ -151,7 +151,7 @@ function CountRing({ value, label, size = 88, tone }: { value: number; label: st
 }
 
 export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: layerProp, onLayerChange }: Props) {
-  const [mode, setMode] = useState<Mode>("asymmetry");
+  
   const [layerLocal, setLayerLocal] = useState<Layer>("mobility");
   const layer = layerProp ?? layerLocal;
   const setLayer = (l: Layer) => (onLayerChange ? onLayerChange(l) : setLayerLocal(l));
