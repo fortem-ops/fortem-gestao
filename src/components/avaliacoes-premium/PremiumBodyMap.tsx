@@ -73,6 +73,7 @@ export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, navSlo
           metrics={funcional.metricas}
           layer={layer}
           onLayerChange={onLayerChange}
+          navSlot={navSlot}
           forcaExercises={forcaInputs}
           rings={
             scores
