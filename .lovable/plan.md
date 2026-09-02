@@ -1,54 +1,66 @@
-# Resultados: seletor de data global + filtro de camada compartilhado
+# Resultados: barra de seções + área única controlada pela camada
 
-## A) Como o Mapa Corporal decide o que exibir hoje
+Escopo: apenas o modo "Resultados" da tela Avaliações Premium. O modo "Lançamento" (LancamentoView e os mesmos Tabs sem `readOnly`) não muda.
 
-- `AvaliacoesPremium.tsx` passa `funcional={data.funcional.latest}` para `PremiumBodyMap`, que repassa `metrics`/`forcaExercises` ao `BodyMap`. Os `scores` (`computePremiumScores`) também usam `data.funcional.latest` e `data.composicao.latest`. **Não existe noção de "avaliação selecionada": o mapa está fixo no mais recente.**
-- O seletor de camada é estado **interno** do `BodyMap` (`const [layer, setLayer] = useState<Layer>("mobility")`, linha 154), com os botões Mobilidade/Flexibilidade/Força/Tudo (`asymmetry`) renderizados na "Controls row 2". Ele alimenta `analyze(metrics, layer, forcaExercises)`. Hoje nada fora do `BodyMap` enxerga esse estado.
+## O que muda para o usuário
 
-## B) Estado de data na Mobilidade
+- No topo do card do Mapa Corporal, ao lado do botão "Assimetria", aparece uma barra com: Composição · Pliometria · Evolução · Comparativo · Recomendações.
+- Clicar em um desses itens troca todo o conteúdo abaixo do mapa por aquela seção. O botão "Assimetria" volta ao estado padrão.
+- No estado padrão (Assimetria), o conteúdo abaixo do mapa é uma área única, ditada pela camada já existente do mapa:
+  - Mobilidade → distribuição/gráficos de mobilidade
+  - Flexibilidade → mesma visão, métricas de flexibilidade
+  - Força → dinamometrias/exercícios
+  - Tudo → por ora mostra a visão de Mobilidade
+- Somem as sub-abas "Mobilidade/Flexibilidade", "Força", "Composição", "Pliometria", "Evolução", "Comparativo", "Recomendações".
 
-- `MobilidadeTab` faz sua **própria query** (`["mobilidade-historico", alunoId]`, avaliações `funcional_v2` com métricas) e mantém `selectedId` + `useEffect` que cai no mais recente. `selecionada` deriva daí e alimenta tabela, `curvasData` (Distribuição) e editar/excluir.
-- Elevar: `MobilidadeTab` passa a aceitar `selectedDate?: string` (ISO). Em `readOnly`, ela resolve `selecionada` pela data recebida em vez do `selectedId` local e **não renderiza** o dropdown. Em Lançamento (`readOnly=false`) nada muda: o estado local e o dropdown continuam.
+## A) Estado em AvaliacoesPremium.tsx
 
-## C) Comportamento do seletor global
+Estado atual relevante: `alunoId`, `selectedDate`, `layer` (já elevado e passado ao BodyMap), snapshots por data e `scores`.
 
-- **União de datas**: montar em `AvaliacoesPremium` a lista ordenada (desc) de todas as datas distintas presentes em qualquer categoria — `funcional.history` (mobilidade e força), `composicao.history`, `pliometria.history`. Já temos tudo isso no hook consolidado; a Mobilidade hoje usa query própria, mas as mesmas linhas estão em `funcional.history`.
-- **Sem fallback por proximidade**: cada aba busca *match exato* de data na sua categoria. Se não houver, mostra estado vazio explícito ("Sem dado de Composição nesta data"). Fallback "mais próximo anterior" confundiria a leitura comparativa; se você preferir esse comportamento, é uma troca de uma função só.
-- Cada opção do seletor pode exibir pequenos marcadores das categorias que têm dado naquela data (ex.: `05/08/2026 · Mob · Força`), para o usuário saber o que esperar.
-- Padrão inicial: a data mais recente da união.
+Adicionar:
 
-## D) Estrutura de componentes proposta
-
-```text
-AvaliacoesPremium.tsx  (modo Resultados)
-├── estado: selectedDate (ISO)         ← novo
-├── estado: layer ("mobility"|...)     ← sobe do BodyMap
-├── <ResultadosDateSelect datas={uniao} value onChange />   ← novo, no topo, junto ao Mapa
-├── <PremiumBodyMap funcional={funcionalDaData} scores={scoresDaData}
-│                   layer={layer} onLayerChange={setLayer} />
-└── Tabs
-    ├── MobilidadeTab  readOnly selectedDate layer
-    ├── ForcaTab       readOnly latest={forcaDaData}
-    ├── ComposicaoTab  readOnly latest={composicaoDaData}
-    └── PliometriaTab  readOnly latest={pliometriaDaData}
+```ts
+type ResultadoView = "assimetria" | "composicao" | "pliometria" | "evolucao" | "comparativo" | "recomendacoes";
+const [view, setView] = useState<ResultadoView>("assimetria");
 ```
 
-- **Derivações por data** (memos em `AvaliacoesPremium`): `funcionalDaData = funcional.history.find(h => h.data === selectedDate)`, idem para composição e pliometria. `scores` passa a ser calculado sobre esses snapshots em vez dos `latest`.
-- **`BodyMap`**: tornar `layer` **controlado opcional** (`layer?: Layer; onLayerChange?: (l: Layer) => void`), mantendo o `useState` interno como fallback quando as props não vierem. Isso preserva os outros usos do `BodyMap` (Avaliação Funcional v2, viewer) sem alteração.
-- **`MobilidadeTab`**: nova prop `layerFilter?: "mobility" | "flexibility" | "strength" | "asymmetry"`. Em `curvasData`, filtrar por `METRIC_META[m.metric].layer` quando o filtro for `mobility` ou `flexibility`; `strength`/`asymmetry` não filtram. A classificação já existe em `bodyMapLogic.ts` (`METRIC_META`) — não é preciso criar listas novas.
-- **Lançamento**: continua chamando os mesmos componentes **sem** as novas props; todos os defaults preservam o comportamento atual.
+O `<Tabs defaultValue="mobilidade">` com 7 `TabsContent` é removido e substituído por um bloco condicional:
 
-## E) Riscos e ordem de execução
+- `view === "assimetria"` → deriva de `layer`:
+  - `strength` → `<ForcaTab ... readOnly />`
+  - `mobility` | `flexibility` | `asymmetry` → `<MobilidadeTab ... readOnly layerFilter={layer === "flexibility" ? "flexibility" : "mobility"} />`
+- `composicao` / `pliometria` / `evolucao` / `comparativo` / `recomendacoes` → o componente existente correspondente, com exatamente as mesmas props de hoje.
+
+Nada de duplicação: todos os componentes seguem recebendo `selectedDate`/snapshots como já recebem. O seletor global de data e o "Resumo geral" continuam onde estão.
+
+## B) Onde entra a barra visualmente
+
+O botão "Assimetria" pertence a `MODES` dentro de `BodyMap.tsx`, na "Controls row 1" (`flex flex-col md:flex-row md:items-center md:justify-between`, com o grupo de modos à esquerda e legenda + Ambos/Anterior/Posterior à direita). `BodyMap` também é usado por `FuncionalV2Assessment` e `FuncionalV2Viewer`, então não pode ganhar lógica de navegação de página.
+
+Solução: prop opcional `navSlot?: ReactNode` em `BodyMap`, renderizada logo após o grupo de `MODES`, dentro do mesmo container à esquerda (que passa a ser `flex flex-wrap items-center gap-2`). Quando `navSlot` é `undefined` (os outros dois usos), nada muda.
+
+`PremiumBodyMap` repassa `navSlot`; `AvaliacoesPremium` monta um novo componente `ResultadosNav.tsx` (mesmo visual dos botões pill do mapa: `bg-white/5`, ativo `bg-white/10 text-white`) e o passa como `navSlot`.
+
+Responsivo: o container vira `flex-wrap`, então em telas estreitas a barra quebra para a linha seguinte sem estourar; os itens usam `text-xs px-2.5 py-1.5` como os já existentes.
+
+## C) Reaproveitamento de MobilidadeTab e ForcaTab
+
+- `MobilidadeTab` já aceita `readOnly`, `selectedDate` e `layerFilter` ("mobility" | "flexibility" | "strength" | "asymmetry"), filtrando os cards de "Distribuição vs. base Fortem" por `METRIC_META`. Em `readOnly` a tabela de histórico já fica oculta e os controles de escrita já somem. Não precisa de mudança de lógica; só passar o `layerFilter` derivado do estado `layer`. Ajuste necessário: incluir `layerFilter` na lista de dependências do `useMemo` de `curvasData` para não ficar card obsoleto ao trocar de camada.
+- `ForcaTab` não tem (nem precisa de) o conceito de `layerFilter` — a camada "Força" simplesmente escolhe qual componente renderizar. Em `readOnly` ele já esconde import Kinology e lista de exclusão, mostrando apenas tabela de assimetrias + gráfico + estado vazio. Não há cabeçalho de aba redundante próprio para remover.
+- `ReadOnlyHint` hoje é renderizado por cada tab. Com a área única ele passa a aparecer em qualquer seção; manter como está (uma linha discreta) para não alterar a lógica dos componentes.
+
+## D) Riscos e ordem de execução
 
 Riscos:
-1. `scores` deixarem de refletir a avaliação mais recente pode mudar o "Resumo geral" e os anéis do mapa — é o comportamento desejado, mas vale destacar na UI qual data está ativa.
-2. Datas duplicadas no mesmo dia (duas avaliações funcionais na mesma data): usar a primeira da ordenação (mais recente por `created_at`), como já ocorre hoje.
-3. Composição e Pliometria raramente coincidem com a data da funcional — a maioria das datas mostrará estado vazio em algumas abas. É esperado; o rótulo por categoria no seletor reduz o estranhamento.
-4. Tornar `layer` controlado no `BodyMap` toca um componente usado fora do Premium; mitigado pelo fallback não-controlado.
+- `BodyMap` é compartilhado — mitigado pela prop opcional sem comportamento padrão.
+- Perda das seções antigas se algum `TabsContent` for esquecido — a checagem é 1:1 entre as 7 abas e os novos destinos.
+- `Tabs`/`TabsList` externos ("Lançamento" / "Resultados") permanecem; só o `Tabs` interno some. Cuidado para não remover o errado.
+- Se `scores` for nulo em uma data sem funcional, o bloco de Resultados hoje não renderiza; comportamento mantido nesta leva (não é o foco).
 
 Ordem:
-1. `BodyMap` com `layer` controlado opcional (sem mudança de comportamento).
-2. Estado `selectedDate` + seletor global + derivação dos snapshots por data em `AvaliacoesPremium` (Resultados apenas).
-3. `MobilidadeTab` aceitando `selectedDate` (esconde dropdown em readOnly) e `layerFilter` na Distribuição.
-4. Estados vazios por categoria em Força/Composição/Pliometria.
-5. Verificação: Lançamento inalterado; trocar data atualiza mapa + 4 abas; camada filtra silhueta e cards de distribuição.
+1. `BodyMap.tsx`: prop `navSlot` + container flex-wrap.
+2. `PremiumBodyMap.tsx`: repasse de `navSlot`.
+3. Novo `ResultadosNav.tsx` (itens + item "Assimetrias" de retorno).
+4. `AvaliacoesPremium.tsx`: estado `view`, remoção do `Tabs` interno, render condicional por `view`/`layer`.
+5. `MobilidadeTab.tsx`: corrigir dependências do `useMemo`.
+6. Verificar: troca de seções, troca de camada, troca de data, e Lançamento intacto.
