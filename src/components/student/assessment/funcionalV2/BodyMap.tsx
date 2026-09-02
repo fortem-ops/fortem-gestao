@@ -187,27 +187,6 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
           <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 font-semibold">
              AVALIAÇÃO FUNCIONAL - FORTEM
           </p>
-          <p className="text-2xl font-heading font-bold text-white mt-1">
-             Mapa Corporal
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-              style={{
-                background: `hsl(${riskDisplay.color} / 0.15)`,
-                color: `hsl(${riskDisplay.color})`,
-                border: `1px solid hsl(${riskDisplay.color} / 0.35)`,
-              }}
-            >
-              <ShieldAlert className="w-3 h-3" />
-              {riskDisplay.label}
-            </span>
-            {asymmetryCountDisplay > 0 && (
-              <span className="text-[11px] text-white/50">
-                {asymmetryCountDisplay} assimetria(s) detectada(s)
-              </span>
-            )}
-          </div>
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           {rings ? (
@@ -244,7 +223,6 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
             </>
           )}
         </div>
-
       </div>
 
       {/* Controls row 1: view filter */}
