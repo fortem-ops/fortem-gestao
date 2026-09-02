@@ -153,14 +153,20 @@ export function StudentExerciseBank() {
         if (upErr) throw upErr;
         video_path = path;
       }
-      const { error } = await supabase.from("exercicios_personalizados").insert({
+      const { data: created, error } = await supabase.from("exercicios_personalizados").insert({
         nome: payload.nome,
         grupos: payload.grupos as any,
         criado_por: user.id,
         video_url: payload.video_url,
         video_path,
-      });
+      }).select("id").single();
       if (error) throw error;
+      if (payload.articulacoes.length > 0) {
+        const { error: linkError } = await supabase.from("exercicio_articulacoes" as any).insert(
+          payload.articulacoes.map((articulacao_key) => ({ exercicio_id: created.id, articulacao_key, created_by: user.id })),
+        );
+        if (linkError) throw linkError;
+      }
     },
     onSuccess: () => {
       toast.success("Exercício criado");
@@ -379,6 +385,13 @@ export function StudentExerciseBank() {
         categoria: resolverCategoria(grupo, subcategoria),
         subcategoria,
       }));
+    const isMobilidadeArticular = grupos.some((g) =>
+      g.categoria.trim().toLowerCase() === "mobilidade articular",
+    );
+    if (isMobilidadeArticular && articulacoes.length === 0) {
+      toast.error("Vincule pelo menos uma articulação ao exercício de mobilidade.");
+      return;
+    }
     const result = exerciseSchema.safeParse({ nome, grupos, video_url: videoUrl });
     if (!result.success) {
       toast.error(result.error.errors[0].message);
@@ -392,16 +405,18 @@ export function StudentExerciseBank() {
       const current = exercicios.find((e) => e.id === editingId);
       updateMutation.mutate({
         id: editingId,
-        nome: result.data.nome!,
+        nome: result.data.nome,
         grupos: result.data.grupos as GroupSelection[],
+        articulacoes,
         video_url: videoUrl.trim() ? videoUrl.trim() : null,
         video_file: videoFile,
         current_video_path: current?.video_path ?? null,
       });
     } else {
       createMutation.mutate({
-        nome: result.data.nome!,
+        nome: result.data.nome,
         grupos: result.data.grupos as GroupSelection[],
+        articulacoes,
         video_url: videoUrl.trim() ? videoUrl.trim() : null,
         video_file: videoFile,
       });
@@ -932,9 +947,37 @@ export function StudentExerciseBank() {
                               </button>
                             );
                           })}
-                        </div>
-                      )}
-                    </div>
+              </div>
+            )}
+
+            {Object.entries(selecoes).some(([grupo, sub]) =>
+              !!sub && resolverCategoria(grupo, sub).trim().toLowerCase() === "mobilidade articular",
+            ) && (
+              <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-3">
+                <div>
+                  <Label>Articulações relacionadas</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Selecione as articulações que este exercício de mobilidade trabalha.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {MOBILIDADE_ARTICULATION_OPTIONS.map((option) => (
+                    <label key={option.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={articulacoes.includes(option.key)}
+                        onCheckedChange={(checked) => setArticulacoes((prev) =>
+                          checked
+                            ? [...new Set([...prev, option.key])]
+                            : prev.filter((key) => key !== option.key),
+                        )}
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
                   );
                 })}
               </div>
