@@ -219,6 +219,17 @@
     50% { opacity: 1; transform: scale(1.08); }
   }
   .bodymap-pulse { animation: bodymap-pulse 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  @keyframes bodymap-breathe {
+    0%, 100% { opacity: var(--breathe-min, 0.55); }
+    50% { opacity: var(--breathe-max, 0.9); }
+  }
+  .bodymap-breathe { animation: bodymap-breathe 3.2s ease-in-out infinite; }
+  .bodymap-breathe-soft { --breathe-min: 0.72; --breathe-max: 0.86; }
+  .bodymap-breathe-strong { --breathe-min: 0.45; --breathe-max: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .bodymap-breathe { animation: none; opacity: var(--breathe-max, 0.9); }
+  }
+
   @keyframes bodymap-dash {
     to { stroke-dashoffset: -16; }
   }
