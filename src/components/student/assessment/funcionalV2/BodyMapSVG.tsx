@@ -1,12 +1,12 @@
 import { useRef } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { BodyMapAnalysis, Mode, RegionId, Severity } from "./bodyMapLogic";
+import type { BodyMapAnalysis, Mode, RegionId } from "./bodyMapLogic";
 import { corGradienteAssimetria } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
 import type { OverrideMap } from "./useBodyMapGeometry";
 import { pointsToSmoothPath } from "./pointsToPath";
-import { FORCA_SHAPE_MUSCLE, FLEXIBILIDADE_SHAPE_MUSCLE } from "./shapeMuscleMapping";
+import { FORCA_SHAPE_MUSCLE, FLEXIBILIDADE_SHAPE_MUSCLE, MOBILIDADE_SHAPE_ARTICULATION } from "./shapeMuscleMapping";
 import { classifyForca, type ForcaInput, type Layer, type MetricInput } from "./bodyMapLogic";
 import type { BodyMapShape } from "./useBodyMapShapes";
 
