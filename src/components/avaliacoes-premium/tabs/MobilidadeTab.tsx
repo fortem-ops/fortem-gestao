@@ -651,6 +651,8 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                   sigma={c.sigma}
                   unit={c.unit}
                   markers={c.markers}
+                  donut={readOnly ? { left: c.left, right: c.right } : undefined}
+
                 />
               ))}
             </div>
