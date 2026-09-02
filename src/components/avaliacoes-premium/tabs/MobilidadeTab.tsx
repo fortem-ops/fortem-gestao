@@ -71,19 +71,83 @@ interface CurveMarker {
   color: string;
 }
 
+const LADO_ESQ_COLOR = "#E8843C";
+const LADO_DIR_COLOR = "#378ADD";
+
+/** Rosca Esquerda vs Direita com % de assimetria abaixo. */
+function AssimetriaDonut({ left, right, unit }: { left: number | null; right: number | null; unit: string }) {
+  if (left === null || right === null || left + right <= 0) return null;
+  const total = left + right;
+  const maior = Math.max(left, right);
+  const menor = Math.min(left, right);
+  const assimetria = maior > 0 ? ((maior - menor) / maior) * 100 : 0;
+
+  const r = 34;
+  const c = 2 * Math.PI * r;
+  const leftLen = (left / total) * c;
+
+  return (
+    <div className="mt-2 flex items-center justify-center gap-3">
+      <div className="text-right">
+        <p className="text-[10px] text-[hsl(var(--bio-ink-muted))]">Esquerda</p>
+        <p className="text-xs font-semibold" style={{ color: LADO_ESQ_COLOR }}>
+          {left}
+          {unit}
+        </p>
+      </div>
+      <div className="flex flex-col items-center">
+        <svg width="86" height="86" viewBox="0 0 86 86">
+          <g transform="rotate(-90 43 43)">
+            <circle
+              cx="43"
+              cy="43"
+              r={r}
+              fill="none"
+              stroke={LADO_DIR_COLOR}
+              strokeWidth="12"
+            />
+            <circle
+              cx="43"
+              cy="43"
+              r={r}
+              fill="none"
+              stroke={LADO_ESQ_COLOR}
+              strokeWidth="12"
+              strokeDasharray={`${leftLen} ${c - leftLen}`}
+            />
+          </g>
+        </svg>
+        <p className="text-[11px] font-semibold text-[hsl(var(--bio-ink))] -mt-1">
+          {assimetria.toFixed(1)}% <span className="font-normal text-[hsl(var(--bio-ink-muted))]">Assimetria</span>
+        </p>
+      </div>
+      <div className="text-left">
+        <p className="text-[10px] text-[hsl(var(--bio-ink-muted))]">Direita</p>
+        <p className="text-xs font-semibold" style={{ color: LADO_DIR_COLOR }}>
+          {right}
+          {unit}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function PercentileCurveCard({
   metric,
   mean,
   sigma,
   unit,
   markers,
+  donut,
 }: {
   metric: string;
   mean: number;
   sigma: number;
   unit: string;
   markers: CurveMarker[];
+  donut?: { left: number | null; right: number | null };
 }) {
+
   const vMin = Math.max(0, mean - 3 * sigma);
   const vMax = mean + 3 * sigma;
   const xPad = 10;
