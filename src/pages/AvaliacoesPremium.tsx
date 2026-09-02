@@ -70,6 +70,8 @@ export default function AvaliacoesPremium() {
   }, [data, selectedDate]);
   const composicaoDaData = data?.composicao.history.find((snapshot) => snapshot.data === selectedDate) ?? null;
   const pliometriaDaData = data?.pliometria.history.find((snapshot) => snapshot.data === selectedDate) ?? null;
+  const mobilidadeLayerFilter: "mobility" | "flexibility" | "strength" | "asymmetry" =
+    layer === "pain" ? "asymmetry" : layer;
 
   const scores = useMemo(
     () =>
