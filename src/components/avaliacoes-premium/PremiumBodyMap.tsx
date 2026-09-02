@@ -3,19 +3,22 @@ import { AlertTriangle } from "lucide-react";
 import type { FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 import type { PremiumScores } from "./scoringPremium";
 import { assimetriasPorCategoria } from "./DashboardSummary";
+import type { Layer } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { ReactNode } from "react";
 
 interface Props {
   funcional: FuncionalSnapshot | null;
   scores: PremiumScores | null;
-  layer?: "mobility" | "flexibility" | "pain" | "strength" | "asymmetry";
-  onLayerChange?: (layer: "mobility" | "flexibility" | "pain" | "strength" | "asymmetry") => void;
+  layer?: Layer;
+  onLayerChange?: (layer: Layer) => void;
+  navSlot?: ReactNode;
 }
 
 /**
  * Wrapper premium do BodyMap existente. Adiciona moldura "vidro fosco" + halo radial
  * sem alterar a geometria nem os bindings já validados.
  */
-export function PremiumBodyMap({ funcional, scores, layer, onLayerChange }: Props) {
+export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, navSlot }: Props) {
   if (!funcional || (funcional.metricas.length === 0 && funcional.forca.length === 0)) {
     return (
       <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))]">
@@ -70,6 +73,7 @@ export function PremiumBodyMap({ funcional, scores, layer, onLayerChange }: Prop
           metrics={funcional.metricas}
           layer={layer}
           onLayerChange={onLayerChange}
+          navSlot={navSlot}
           forcaExercises={forcaInputs}
           rings={
             scores

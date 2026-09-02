@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BodyMapSVG } from "./BodyMapSVG";
@@ -44,6 +44,8 @@ interface Props {
    */
   layer?: Layer;
   onLayerChange?: (layer: Layer) => void;
+  /** Slot opcional de navegação, renderizado ao lado dos modos. */
+  navSlot?: ReactNode;
 }
 
 
@@ -155,7 +157,7 @@ function CountRing({ value, label, size = 88, tone }: { value: number; label: st
   );
 }
 
-export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: layerProp, onLayerChange }: Props) {
+export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: layerProp, onLayerChange, navSlot }: Props) {
   const [mode, setMode] = useState<Mode>("asymmetry");
   const [layerLocal, setLayerLocal] = useState<Layer>("mobility");
   const layer = layerProp ?? layerLocal;
@@ -291,6 +293,7 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
 
       {/* Controls row 1: modes + view filter */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-white/5">
+        <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">
           {MODES.map((m) => {
             const Icon = m.icon;
@@ -309,6 +312,8 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
               </button>
             );
           })}
+        </div>
+        {navSlot}
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
