@@ -530,13 +530,16 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                   ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" variant="outline" onClick={() => abrirEdicao(selecionada)}>
-                <Pencil className="w-4 h-4 mr-2" /> Editar
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
-                <Trash2 className="w-4 h-4 mr-2" /> Excluir
-              </Button>
-            </div>
+              {!readOnly && (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => abrirEdicao(selecionada)}>
+                    <Pencil className="w-4 h-4 mr-2" /> Editar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                  </Button>
+                </>
+              )}
           </div>
           <table className="w-full">
             <thead>
