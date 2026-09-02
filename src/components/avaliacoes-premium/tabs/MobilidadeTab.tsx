@@ -272,7 +272,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
         return { metric: m.metric, mean, sigma, unit: "°", markers, left: m.left, right: m.right };
       })
       .filter((d): d is NonNullable<typeof d> => d !== null);
-  }, [selecionada, sexoRpc, referenceData]);
+  }, [selecionada, sexoRpc, referenceData, layerFilter]);
 
   const [formOpen, setFormOpen] = useState(initialFormOpen ?? false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
