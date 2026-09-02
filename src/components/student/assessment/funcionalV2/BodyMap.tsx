@@ -4,7 +4,7 @@ import { BodyMapSVG } from "./BodyMapSVG";
 import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ContagemAssimetrias, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
 import { useBodyMapShapes } from "./useBodyMapShapes";
-import { Button } from "@/components/ui/button";
+
 import { RegionListPanel, type RegionListItem } from "./RegionListPanel";
 
 interface Props {

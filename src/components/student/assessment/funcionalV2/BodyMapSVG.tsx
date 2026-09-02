@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BodyMapAnalysis, Mode, RegionId } from "./bodyMapLogic";
 import { corGradienteAssimetria } from "./bodyMapLogic";
@@ -52,13 +51,11 @@ interface Props {
   analysis: BodyMapAnalysis;
   mode: Mode;
   overrides?: OverrideMap;
-  calibrating?: boolean;
-  onDragRegion?: (id: RegionId, cx: number, cy: number) => void;
   /** Maps regionId → display number for the side panel sync */
   numbering?: Partial<Record<RegionId, number>>;
   /** Filter which view(s) to render */
   viewFilter?: "front" | "back" | "both";
-  /** Novos: necessários pras formas musculares de Força/Flexibilidade */
+  /** Formas musculares de Força/Flexibilidade e articulares de Mobilidade. */
   layer?: Layer;
   forcaExercises?: ForcaInput[];
   metrics?: MetricInput[];
@@ -214,70 +211,51 @@ function Chains({
   );
 }
 
-function CalibrationHandle({
-  id, geom, svgRef, onDrag,
-}: {
-  id: RegionId;
-  geom: RegionGeometry;
-  svgRef: React.RefObject<SVGSVGElement>;
-  onDrag: (id: RegionId, cx: number, cy: number) => void;
-}) {
-  const draggingRef = useRef(false);
-
-  function toViewBox(clientX: number, clientY: number) {
-    const svg = svgRef.current;
-    if (!svg) return null;
-    const rect = svg.getBoundingClientRect();
-    const x = ((clientX - rect.left) / rect.width) * VIEWBOX.w;
-    const y = ((clientY - rect.top) / rect.height) * VIEWBOX.h;
-    return {
-      x: Math.max(0, Math.min(VIEWBOX.w, x)),
-      y: Math.max(0, Math.min(VIEWBOX.h, y)),
-    };
-  }
-
-  return (
-    <g
-      style={{ cursor: "move" }}
-      onPointerDown={(e) => {
-        (e.currentTarget as Element).setPointerCapture(e.pointerId);
-        draggingRef.current = true;
-        e.stopPropagation();
-      }}
-      onPointerMove={(e) => {
-        if (!draggingRef.current) return;
-        const p = toViewBox(e.clientX, e.clientY);
-        if (p) onDrag(id, Math.round(p.x), Math.round(p.y));
-      }}
-      onPointerUp={(e) => {
-        draggingRef.current = false;
-        try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch {}
-      }}
-    >
-      <circle cx={geom.cx} cy={geom.cy} r={geom.r + 4} fill="hsl(0 0% 100% / 0.06)" stroke="hsl(0 0% 100% / 0.9)" strokeWidth={2} strokeDasharray="5 5" />
-      <circle cx={geom.cx} cy={geom.cy} r={6} fill="hsl(140 80% 55%)" stroke="white" strokeWidth={1.5} />
-      <text x={geom.cx} y={geom.cy - geom.r - 10} textAnchor="middle"
-        fontSize={14} fill="white" style={{ pointerEvents: "none", fontFamily: "monospace" }}>
-        {id}
-      </text>
-    </g>
-  );
-}
-
 function MuscleShapeFill({ shape, fill }: { shape: BodyMapShape; fill: string }) {
   if (shape.points.length < 3) return null;
   const d = pointsToSmoothPath(shape.points);
   return <path d={d} fill={fill} fillOpacity={0.75} stroke="none" />;
 }
 
+function ArticulationShapeFill({ shape, fill, label }: { shape: BodyMapShape; fill: string; label: string }) {
+  if (shape.points.length < 3) return null;
+  const d = pointsToSmoothPath(shape.points);
+  return (
+    <g>
+      <path d={d} fill={fill} fillOpacity={0.82} stroke={fill} strokeOpacity={0.95} strokeWidth={3} />
+      <title>{label}</title>
+    </g>
+  );
+}
+
 export function BodyMapSVG({
-  analysis, mode, overrides, calibrating, onDragRegion, numbering, viewFilter = "both",
+  analysis, mode, overrides, numbering, viewFilter = "both",
   layer, forcaExercises, metrics, shapesMap,
 }: Props) {
   const geometry = mergeGeometry(overrides);
 
-  const muscleShapeInstances = (() => {
-    if (!shapesMap) return [] as Array<{ key: string; shape: BodyMapShape; fill: string }>;
+  const shapeInstances = (() => {
+    if (!shapesMap) return [] as Array<{ key: string; shape: BodyMapShape; fill: string; label?: string; articulation?: boolean }>;
+    if (layer === "mobility" && metrics) {
+      return metrics
+        .filter((m) => m.left !== null || m.right !== null)
+        .flatMap((m) => {
+          const mapping = MOBILIDADE_SHAPE_ARTICULATION[m.metric];
+          if (!mapping) return [];
+          const values = [
+            mapping.left && m.left !== null ? { shapeKey: mapping.left, value: m.left, side: "Esquerdo" } : null,
+            mapping.right && m.right !== null ? { shapeKey: mapping.right, value: m.right, side: "Direito" } : null,
+            mapping.center && (m.left !== null || m.right !== null) ? { shapeKey: mapping.center, value: m.left ?? m.right, side: "Central" } : null,
+          ].filter((x): x is { shapeKey: string; value: number; side: string } => x !== null);
+          const max = Math.max(...values.map((x) => x.value), 0);
+          return values.flatMap((x) => {
+            const shape = shapesMap[x.shapeKey];
+            if (!shape) return [];
+            const asymmetry = max > 0 && values.length > 1 ? (Math.abs(max - x.value) / max) * 100 : 0;
+            return [{ key: `mob:${m.metric}:${x.side}`, shape, fill: corGradienteAssimetria(asymmetry), label: `${m.metric} — ${x.side}: ${x.value}°`, articulation: true }];
+          });
+        });
+    }
     if (layer === "strength" && forcaExercises) {
       return forcaExercises
         .filter((ex) => ex.direito_kg != null && ex.esquerdo_kg != null)
@@ -308,7 +286,7 @@ export function BodyMapSVG({
           return out;
         });
     }
-    return [] as Array<{ key: string; shape: BodyMapShape; fill: string }>;
+    return [] as Array<{ key: string; shape: BodyMapShape; fill: string; label?: string; articulation?: boolean }>;
   })();
 
   const frontSvgRef = useRef<SVGSVGElement>(null);
@@ -323,23 +301,20 @@ export function BodyMapSVG({
         {views.map((view) => {
           const regions = (Object.entries(geometry) as Array<[RegionId, RegionGeometry]>)
             .filter(([, g]) => g.view === view);
-          const svgRef = view === "front" ? frontSvgRef : backSvgRef;
           return (
             <div key={view} className="flex flex-col items-center">
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">
                 {view === "front" ? "Vista anterior" : "Vista posterior"}
               </p>
               <svg
-                ref={svgRef}
                 viewBox={`0 0 ${VIEWBOX.w} ${VIEWBOX.h}`}
                 className="w-full max-w-[420px] h-auto rounded-xl overflow-hidden"
                 role="img"
                 aria-label={`Corpo humano — ${view === "front" ? "vista anterior" : "vista posterior"}`}
-                style={{ touchAction: calibrating ? "none" : undefined }}
               >
                 {view === "front" ? <AnatomyFront /> : <AnatomyBack />}
 
-                {mode === "asymmetry" && !calibrating && (
+                {mode === "asymmetry" && (
                   <g pointerEvents="none">
                     {analysis.asymmetries.map((a, i) => {
                       const id = a.region;
@@ -360,19 +335,20 @@ export function BodyMapSVG({
                   </g>
                 )}
 
-                {!calibrating && <Chains analysis={analysis} view={view} geometry={geometry} />}
+                <Chains analysis={analysis} view={view} geometry={geometry} />
 
-                {muscleShapeInstances
+                {shapeInstances
                   .filter((s) => s.shape.view === view)
-                  .map((s) => (
-                    <MuscleShapeFill key={s.key} shape={s.shape} fill={s.fill} />
-                  ))}
+                  .map((s) => s.articulation
+                    ? <ArticulationShapeFill key={s.key} shape={s.shape} fill={s.fill} label={s.label ?? "Articulação"} />
+                    : <MuscleShapeFill key={s.key} shape={s.shape} fill={s.fill} />
+                  )}
 
-                {!calibrating && regions.map(([id, geom]) => (
+                {regions.map(([id, geom]) => (
                   <RegionGlow key={`glow-${id}`} id={id} geom={geom} state={analysis.regions[id]} mode={mode} />
                 ))}
 
-                {!calibrating && numbering && regions.map(([id, geom]) => {
+                {numbering && regions.map(([id, geom]) => {
                   const n = numbering[id];
                   if (!n) return null;
                   return (
@@ -380,12 +356,8 @@ export function BodyMapSVG({
                   );
                 })}
 
-                {!calibrating && regions.map(([id, geom]) => (
+                {regions.map(([id, geom]) => (
                   <RegionHit key={`hit-${id}`} id={id} geom={geom} state={analysis.regions[id]} />
-                ))}
-
-                {calibrating && onDragRegion && regions.map(([id, geom]) => (
-                  <CalibrationHandle key={`cal-${id}`} id={id} geom={geom} svgRef={svgRef} onDrag={onDragRegion} />
                 ))}
               </svg>
             </div>
