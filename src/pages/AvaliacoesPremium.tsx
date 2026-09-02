@@ -97,10 +97,8 @@ export default function AvaliacoesPremium() {
       })),
     [funcionalDaData],
   );
-  const resumoGeral = useMemo(
-    () => (scores ? assimetriasPorCategoria(scores, forcaResumo).geral : null),
-    [scores, forcaResumo],
-  );
+
+
 
   function handlePick(id: string) {
     setAlunoId(id);
