@@ -306,7 +306,7 @@
     --bio-ink: 0 0% 96%;
     --bio-ink-muted: 220 10% 68%;
     --bio-ink-faint: 220 8% 55%;
-    --bio-line: 0 0% 100% / 0.08;
+    --bio-line: 220 14% 24%;
   }
   .bio-shell {
     background:
