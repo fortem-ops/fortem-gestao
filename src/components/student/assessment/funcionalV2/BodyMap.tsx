@@ -225,31 +225,6 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
         </div>
       </div>
 
-      {/* Controls row 1: view filter */}
-      <div className="flex items-center gap-3 flex-wrap pb-3 border-b border-white/5">
-          {/* Escala contínua de assimetria */}
-          <AsymmetryGradientLegend />
-
-
-          {/* View toggle */}
-          <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">
-            {VIEW_OPTIONS.map((v) => {
-              const active = viewFilter === v.id;
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => setViewFilter(v.id)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    active ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
-                  }`}
-                >
-                  {v.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
       {/* Controls row 2: layer */}
       <div className="flex items-center gap-2 text-[11px] text-white/55">
         <Layers className="w-3.5 h-3.5" />
@@ -271,13 +246,61 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
 
       {/* Main: SVG + side panel */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
-        <BodyMapSVG
-          viewFilter={viewFilter}
-          layer={layer}
-          forcaExercises={forcaExercises}
-          metrics={metrics}
-          shapesMap={shapesMap}
-        />
+        <div className="space-y-4">
+          {/* Título e status do mapa */}
+          <div>
+            <p className="text-2xl font-heading font-bold text-white">
+              Mapa Corporal
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                style={{
+                  background: `hsl(${riskDisplay.color} / 0.15)`,
+                  color: `hsl(${riskDisplay.color})`,
+                  border: `1px solid hsl(${riskDisplay.color} / 0.35)`,
+                }}
+              >
+                <ShieldAlert className="w-3 h-3" />
+                {riskDisplay.label}
+              </span>
+              {asymmetryCountDisplay > 0 && (
+                <span className="text-[11px] text-white/50">
+                  {asymmetryCountDisplay} assimetria(s) detectada(s)
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Escala + visões alinhadas */}
+          <div className="flex items-center justify-between gap-3 flex-wrap pb-3 border-b border-white/5">
+            <AsymmetryGradientLegend />
+            <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">
+              {VIEW_OPTIONS.map((v) => {
+                const active = viewFilter === v.id;
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => setViewFilter(v.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      active ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
+                    }`}
+                  >
+                    {v.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <BodyMapSVG
+            viewFilter={viewFilter}
+            layer={layer}
+            forcaExercises={forcaExercises}
+            metrics={metrics}
+            shapesMap={shapesMap}
+          />
+        </div>
 
         <div className="space-y-2">
           <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 px-1">
