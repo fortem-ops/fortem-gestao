@@ -3,7 +3,7 @@ import { useTheme } from "next-themes";
 import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
-import { assimetriasPorCategoria } from "@/components/avaliacoes-premium/DashboardSummary";
+
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
 import { ResultadosDateSelect, type ResultadosDateOption } from "@/components/avaliacoes-premium/ResultadosDateSelect";
 import { ResultadosNav, type ResultadoView } from "@/components/avaliacoes-premium/ResultadosNav";
@@ -88,19 +88,8 @@ export default function AvaliacoesPremium() {
     () => (scores && data ? gerarRecomendacoes(scores, funcionalDaData, composicaoDaData) : []),
     [scores, data, funcionalDaData, composicaoDaData],
   );
-  const forcaResumo = useMemo(
-    () =>
-      (funcionalDaData?.forca ?? []).map((e) => ({
-        nome: e.nome,
-        direito_kg: e.direito_kg,
-        esquerdo_kg: e.esquerdo_kg,
-      })),
-    [funcionalDaData],
-  );
-  const resumoGeral = useMemo(
-    () => (scores ? assimetriasPorCategoria(scores, forcaResumo).geral : null),
-    [scores, forcaResumo],
-  );
+
+
 
   function handlePick(id: string) {
     setAlunoId(id);
@@ -152,14 +141,6 @@ export default function AvaliacoesPremium() {
           <TabsContent value="resultados" className="mt-0">
             {scores && (
               <div className="min-w-0 space-y-5">
-                {resumoGeral && (
-                  <div className="bio-card px-4 py-3 flex items-center gap-3">
-                    <span className="bio-label">Resumo geral</span>
-                    <span className="text-sm font-semibold text-[hsl(var(--bio-ink))]">
-                      {resumoGeral.alta + resumoGeral.moderada} alerta(s) ativo(s) — {resumoGeral.alta} elevada(s), {resumoGeral.moderada} moderada(s)
-                    </span>
-                  </div>
-                )}
 
                 <div className="bio-card px-4 py-3 flex flex-wrap items-center justify-between gap-4">
                   <ResultadosDateSelect options={dateOptions} value={selectedDate} onChange={setSelectedDate} />
