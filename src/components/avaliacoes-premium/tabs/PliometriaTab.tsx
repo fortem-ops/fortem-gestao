@@ -12,11 +12,13 @@ import { format, parseISO } from "date-fns";
 import type { PliometriaSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 import { AvaliacaoDeleteList } from "../AvaliacaoDeleteList";
+import { ReadOnlyHint } from "../ReadOnlyHint";
 
 interface Props {
   alunoId: string;
   latest: PliometriaSnapshot | null;
   history: PliometriaSnapshot[];
+  readOnly?: boolean;
 }
 
 const FIELDS = [
@@ -31,7 +33,7 @@ const FIELDS = [
 
 type Field = (typeof FIELDS)[number]["key"];
 
-export function PliometriaTab({ alunoId, latest, history }: Props) {
+export function PliometriaTab({ alunoId, latest, history, readOnly = false }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [values, setValues] = useState<Record<Field, string>>({
@@ -106,7 +108,9 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
 
   return (
     <div className="space-y-4">
+      {readOnly && <ReadOnlyHint />}
       {/* Formulário */}
+      {!readOnly && (
       <div className="bio-card p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="bio-heading text-base">Registrar nova avaliação de pliometria</h3>
@@ -142,6 +146,8 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
           </Button>
         </div>
       </div>
+      )}
+
 
       {/* Resumo último resultado */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
@@ -163,7 +169,7 @@ export function PliometriaTab({ alunoId, latest, history }: Props) {
         })}
       </div>
 
-      <AvaliacaoDeleteList alunoId={alunoId} mode="pliometria" />
+      {!readOnly && <AvaliacaoDeleteList alunoId={alunoId} mode="pliometria" />}
 
       {/* Histórico */}
       {history.length > 0 && (

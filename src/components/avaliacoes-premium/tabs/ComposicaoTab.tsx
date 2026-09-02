@@ -13,14 +13,16 @@ import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 import { DOBRAS_POLLOCK_7, computePollock } from "@/lib/pollockCalculo";
 import { fetchDefaultProtocoloByTipoSlug } from "@/lib/avaliacaoProtocolos";
 import { AvaliacaoDeleteList } from "../AvaliacaoDeleteList";
+import { ReadOnlyHint } from "../ReadOnlyHint";
 
 interface Props {
   alunoId: string;
   latest: ComposicaoSnapshot | null;
   history: ComposicaoSnapshot[];
+  readOnly?: boolean;
 }
 
-export function ComposicaoTab({ alunoId, latest, history }: Props) {
+export function ComposicaoTab({ alunoId, latest, history, readOnly = false }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [sexo, setSexo] = useState<"M" | "F">("M");
@@ -107,7 +109,9 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
 
   return (
     <div className="space-y-5">
+      {readOnly && <ReadOnlyHint />}
       {/* ============ FORMULÁRIO ============ */}
+      {!readOnly && (
       <div className="bio-card p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="bio-heading text-base">Nova avaliação — Pollock 7 Dobras</h3>
@@ -226,8 +230,9 @@ export function ComposicaoTab({ alunoId, latest, history }: Props) {
           </Button>
         </div>
       </div>
+      )}
 
-      <AvaliacaoDeleteList alunoId={alunoId} mode="composicao" />
+      {!readOnly && <AvaliacaoDeleteList alunoId={alunoId} mode="composicao" />}
 
       {/* ============ HISTÓRICO ============ */}
       {!latest ? (

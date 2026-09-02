@@ -31,6 +31,7 @@ import type { AssessmentClassification } from "@/lib/mock-data";
 import { getFuncionalV2DefaultProtocoloId } from "@/lib/kinologyImport";
 import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 import type { FuncionalSnapshot } from "../useAlunoAvaliacoesConsolidadas";
+import { ReadOnlyHint } from "../ReadOnlyHint";
 
 interface Props {
   alunoId: string;
@@ -39,6 +40,7 @@ interface Props {
   aluno?: { sexo: string | null } | null;
   referenceData?: MobilidadeReferenceData;
   initialFormOpen?: boolean;
+  readOnly?: boolean;
 }
 
 interface MobilidadeRow {
@@ -135,7 +137,7 @@ function PercentileCurveCard({
   );
 }
 
-export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen }: Props) {
+export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, readOnly = false }: Props) {
   const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
     ? "F"
     : aluno?.sexo?.toLowerCase().startsWith("m")
@@ -529,12 +531,16 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen }
                   ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" variant="outline" onClick={() => abrirEdicao(selecionada)}>
-                <Pencil className="w-4 h-4 mr-2" /> Editar
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
-                <Trash2 className="w-4 h-4 mr-2" /> Excluir
-              </Button>
+              {!readOnly && (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => abrirEdicao(selecionada)}>
+                    <Pencil className="w-4 h-4 mr-2" /> Editar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                  </Button>
+                </>
+              )}
             </div>
           </div>
           <table className="w-full">
@@ -614,7 +620,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen }
 
   return (
     <div className="space-y-5">
-      {MobilidadeForm()}
+      {readOnly ? <ReadOnlyHint /> : MobilidadeForm()}
       {MobilidadeHistorico()}
     </div>
   );
