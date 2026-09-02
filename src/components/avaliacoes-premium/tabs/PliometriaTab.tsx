@@ -146,6 +146,8 @@ export function PliometriaTab({ alunoId, latest, history, readOnly = false }: Pr
           </Button>
         </div>
       </div>
+      )}
+
 
       {/* Resumo último resultado */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
