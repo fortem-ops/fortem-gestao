@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight, ChevronLeft, Dumbbell, Plus, Loader2, Trash2, Search, Video, Upload, X, Pencil, GripVertical, Settings } from "lucide-react";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { ManageCategoriesDialog } from "./ManageCategoriesDialog";
+import { MOBILIDADE_ARTICULATION_OPTIONS } from "./assessment/funcionalV2/shapeMuscleMapping";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
