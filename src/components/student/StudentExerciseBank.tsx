@@ -79,23 +79,27 @@ export function StudentExerciseBank() {
   // Form state
   const [nome, setNome] = useState("");
   const [selecoes, setSelecoes] = useState<Record<string, string>>({});
+  const [articulacoes, setArticulacoes] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
 
   const resetForm = () => {
     setNome("");
     setSelecoes({});
+    setArticulacoes([]);
     setVideoUrl("");
     setVideoFile(null);
     setEditingId(null);
   };
 
-  const openEditDialog = (ex: ExercicioRow) => {
+  const openEditDialog = async (ex: ExercicioRow) => {
     setEditingId(ex.id);
     setNome(ex.nome);
     const sel: Record<string, string> = {};
     ex.grupos.forEach((g) => { sel[g.grupo] = g.subcategoria; });
     setSelecoes(sel);
+    const { data } = await supabase.from("exercicio_articulacoes" as any).select("articulacao_key").eq("exercicio_id", ex.id);
+    setArticulacoes((data ?? []).map((r: any) => r.articulacao_key));
     setVideoUrl(ex.video_url ?? "");
     setVideoFile(null);
     setDialogOpen(true);
@@ -134,6 +138,7 @@ export function StudentExerciseBank() {
     mutationFn: async (payload: {
       nome: string;
       grupos: GroupSelection[];
+      articulacoes: string[];
       video_url: string | null;
       video_file: File | null;
     }) => {
@@ -171,6 +176,7 @@ export function StudentExerciseBank() {
       id: string;
       nome: string;
       grupos: GroupSelection[];
+      articulacoes: string[];
       video_url: string | null;
       video_file: File | null;
       current_video_path: string | null;
@@ -199,6 +205,13 @@ export function StudentExerciseBank() {
         })
         .eq("id", payload.id);
       if (error) throw error;
+      await supabase.from("exercicio_articulacoes" as any).delete().eq("exercicio_id", payload.id);
+      if (payload.articulacoes.length > 0) {
+        const { error: linkError } = await supabase.from("exercicio_articulacoes" as any).insert(
+          payload.articulacoes.map((articulacao_key) => ({ exercicio_id: payload.id, articulacao_key, created_by: user.id })),
+        );
+        if (linkError) throw linkError;
+      }
     },
     onSuccess: () => {
       toast.success("Exercício atualizado");
