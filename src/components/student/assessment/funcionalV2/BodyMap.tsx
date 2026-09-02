@@ -188,10 +188,10 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 font-semibold">
-            Índice Funcional FORTEM
+             AVALIAÇÃO FUNCIONAL - FORTEM
           </p>
           <p className="text-2xl font-heading font-bold text-white mt-1">
-            Mapa Corporal Biomecânico
+             Mapa Corporal
           </p>
           <div className="flex items-center gap-2 mt-2">
             <span
