@@ -9,8 +9,9 @@ import type { ReactNode } from "react";
 interface Props {
   funcional: FuncionalSnapshot | null;
   scores: PremiumScores | null;
-  layer?: "mobility" | "flexibility" | "pain" | "strength" | "asymmetry";
-  onLayerChange?: (layer: "mobility" | "flexibility" | "pain" | "strength" | "asymmetry") => void;
+  layer?: Layer;
+  onLayerChange?: (layer: Layer) => void;
+  navSlot?: ReactNode;
 }
 
 /**
