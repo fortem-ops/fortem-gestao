@@ -44,6 +44,8 @@ interface Props {
    */
   layer?: Layer;
   onLayerChange?: (layer: Layer) => void;
+  /** Slot opcional de navegação, renderizado ao lado dos modos. */
+  navSlot?: ReactNode;
 }
 
 
