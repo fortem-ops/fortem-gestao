@@ -39,6 +39,7 @@ interface Props {
   aluno?: { sexo: string | null } | null;
   referenceData?: MobilidadeReferenceData;
   initialFormOpen?: boolean;
+  readOnly?: boolean;
 }
 
 interface MobilidadeRow {
