@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight, ChevronLeft, Dumbbell, Plus, Loader2, Trash2, Search, Video, Upload, X, Pencil, GripVertical, Settings } from "lucide-react";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { ManageCategoriesDialog } from "./ManageCategoriesDialog";
+import { MOBILIDADE_ARTICULATION_OPTIONS } from "./assessment/funcionalV2/shapeMuscleMapping";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -78,23 +79,27 @@ export function StudentExerciseBank() {
   // Form state
   const [nome, setNome] = useState("");
   const [selecoes, setSelecoes] = useState<Record<string, string>>({});
+  const [articulacoes, setArticulacoes] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
 
   const resetForm = () => {
     setNome("");
     setSelecoes({});
+    setArticulacoes([]);
     setVideoUrl("");
     setVideoFile(null);
     setEditingId(null);
   };
 
-  const openEditDialog = (ex: ExercicioRow) => {
+  const openEditDialog = async (ex: ExercicioRow) => {
     setEditingId(ex.id);
     setNome(ex.nome);
     const sel: Record<string, string> = {};
     ex.grupos.forEach((g) => { sel[g.grupo] = g.subcategoria; });
     setSelecoes(sel);
+    const { data } = await supabase.from("exercicio_articulacoes" as any).select("articulacao_key").eq("exercicio_id", ex.id);
+    setArticulacoes((data ?? []).map((r: any) => r.articulacao_key));
     setVideoUrl(ex.video_url ?? "");
     setVideoFile(null);
     setDialogOpen(true);
@@ -133,6 +138,7 @@ export function StudentExerciseBank() {
     mutationFn: async (payload: {
       nome: string;
       grupos: GroupSelection[];
+      articulacoes: string[];
       video_url: string | null;
       video_file: File | null;
     }) => {
@@ -147,14 +153,20 @@ export function StudentExerciseBank() {
         if (upErr) throw upErr;
         video_path = path;
       }
-      const { error } = await supabase.from("exercicios_personalizados").insert({
+      const { data: created, error } = await supabase.from("exercicios_personalizados").insert({
         nome: payload.nome,
         grupos: payload.grupos as any,
         criado_por: user.id,
         video_url: payload.video_url,
         video_path,
-      });
+      }).select("id").single();
       if (error) throw error;
+      if (payload.articulacoes.length > 0) {
+        const { error: linkError } = await supabase.from("exercicio_articulacoes" as any).insert(
+          payload.articulacoes.map((articulacao_key) => ({ exercicio_id: created.id, articulacao_key, created_by: user.id })),
+        );
+        if (linkError) throw linkError;
+      }
     },
     onSuccess: () => {
       toast.success("Exercício criado");
@@ -170,6 +182,7 @@ export function StudentExerciseBank() {
       id: string;
       nome: string;
       grupos: GroupSelection[];
+      articulacoes: string[];
       video_url: string | null;
       video_file: File | null;
       current_video_path: string | null;
@@ -198,6 +211,13 @@ export function StudentExerciseBank() {
         })
         .eq("id", payload.id);
       if (error) throw error;
+      await supabase.from("exercicio_articulacoes" as any).delete().eq("exercicio_id", payload.id);
+      if (payload.articulacoes.length > 0) {
+        const { error: linkError } = await supabase.from("exercicio_articulacoes" as any).insert(
+          payload.articulacoes.map((articulacao_key) => ({ exercicio_id: payload.id, articulacao_key, created_by: user.id })),
+        );
+        if (linkError) throw linkError;
+      }
     },
     onSuccess: () => {
       toast.success("Exercício atualizado");
@@ -365,6 +385,13 @@ export function StudentExerciseBank() {
         categoria: resolverCategoria(grupo, subcategoria),
         subcategoria,
       }));
+    const isMobilidadeArticular = grupos.some((g) =>
+      g.categoria.trim().toLowerCase() === "mobilidade articular",
+    );
+    if (isMobilidadeArticular && articulacoes.length === 0) {
+      toast.error("Vincule pelo menos uma articulação ao exercício de mobilidade.");
+      return;
+    }
     const result = exerciseSchema.safeParse({ nome, grupos, video_url: videoUrl });
     if (!result.success) {
       toast.error(result.error.errors[0].message);
@@ -378,16 +405,18 @@ export function StudentExerciseBank() {
       const current = exercicios.find((e) => e.id === editingId);
       updateMutation.mutate({
         id: editingId,
-        nome: result.data.nome!,
+        nome: result.data.nome,
         grupos: result.data.grupos as GroupSelection[],
+        articulacoes,
         video_url: videoUrl.trim() ? videoUrl.trim() : null,
         video_file: videoFile,
         current_video_path: current?.video_path ?? null,
       });
     } else {
       createMutation.mutate({
-        nome: result.data.nome!,
+        nome: result.data.nome,
         grupos: result.data.grupos as GroupSelection[],
+        articulacoes,
         video_url: videoUrl.trim() ? videoUrl.trim() : null,
         video_file: videoFile,
       });
@@ -905,9 +934,7 @@ export function StudentExerciseBank() {
                               <button
                                 key={sub}
                                 type="button"
-                                onClick={() =>
-                                  setSelecoes((prev) => ({ ...prev, [grupoName]: sub }))
-                                }
+                                onClick={() => setSelecoes((prev) => ({ ...prev, [grupoName]: sub }))}
                                 className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                                   active
                                     ? "bg-primary text-primary-foreground border-primary"
@@ -923,6 +950,34 @@ export function StudentExerciseBank() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {Object.entries(selecoes).some(([grupo, sub]) =>
+              !!sub && resolverCategoria(grupo, sub).trim().toLowerCase() === "mobilidade articular",
+            ) && (
+              <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-3">
+                <div>
+                  <Label>Articulações relacionadas</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Selecione as articulações que este exercício de mobilidade trabalha.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {MOBILIDADE_ARTICULATION_OPTIONS.map((option) => (
+                    <label key={option.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={articulacoes.includes(option.key)}
+                        onCheckedChange={(checked) => setArticulacoes((prev) =>
+                          checked
+                            ? [...new Set([...prev, option.key])]
+                            : prev.filter((key) => key !== option.key),
+                        )}
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             )}
           </div>

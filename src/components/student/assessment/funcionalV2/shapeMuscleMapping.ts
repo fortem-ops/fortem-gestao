@@ -3,8 +3,7 @@ import type { ForcaExercicio } from "./bodyMapLogic";
 /**
  * Liga cada exercício de Força / métrica de Flexibilidade ao nome-base do músculo
  * (sem "-esquerdo"/"-direito" — isso é resolvido em tempo de render conforme o lado).
- * Esse vínculo fica no código (muda pouco); o CONTORNO de cada músculo é editado na
- * página de configuração e vive no banco (tabela bodymap_shapes).
+ * O contorno de cada músculo é editado em Config. Mapa Corporal e vive no banco.
  */
 export const FORCA_SHAPE_MUSCLE: Partial<Record<ForcaExercicio, string>> = {
   rotacao_interna: "deltoide",
@@ -35,3 +34,27 @@ export const FLEXIBILIDADE_SHAPE_MUSCLE: Record<string, string> = {
   "Flexibilidade Quadríceps": "quadriceps",
   "Flexibilidade Psoas": "psoas",
 };
+
+/** Vínculo obrigatório das métricas de mobilidade às articulações calibráveis. */
+export const MOBILIDADE_SHAPE_ARTICULATION: Record<string, { left?: string; right?: string; center?: string }> = {
+  "Mobilidade Ombro RI": { left: "ombro-ri-esquerdo", right: "ombro-ri-direito" },
+  "Mobilidade Ombro RE": { left: "ombro-re-esquerdo", right: "ombro-re-direito" },
+  "Mobilidade Quadril RI": { left: "quadril-ri-esquerdo", right: "quadril-ri-direito" },
+  "Mobilidade Quadril RE": { left: "quadril-re-esquerdo", right: "quadril-re-direito" },
+  "Mobilidade Tornozelo": { left: "tornozelo-esquerdo", right: "tornozelo-direito" },
+  "Mobilidade Torácica": { center: "toracica" },
+};
+
+export const MOBILIDADE_ARTICULATION_OPTIONS = [
+  { key: "ombro-ri-esquerdo", label: "Ombro esquerdo — RI" },
+  { key: "ombro-ri-direito", label: "Ombro direito — RI" },
+  { key: "ombro-re-esquerdo", label: "Ombro esquerdo — RE" },
+  { key: "ombro-re-direito", label: "Ombro direito — RE" },
+  { key: "quadril-ri-esquerdo", label: "Quadril esquerdo — RI" },
+  { key: "quadril-ri-direito", label: "Quadril direito — RI" },
+  { key: "quadril-re-esquerdo", label: "Quadril esquerdo — RE" },
+  { key: "quadril-re-direito", label: "Quadril direito — RE" },
+  { key: "tornozelo-esquerdo", label: "Tornozelo esquerdo" },
+  { key: "tornozelo-direito", label: "Tornozelo direito" },
+  { key: "toracica", label: "Coluna torácica" },
+] as const;
