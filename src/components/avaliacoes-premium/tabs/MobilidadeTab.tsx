@@ -38,6 +38,7 @@ interface Props {
   history?: FuncionalSnapshot[];
   aluno?: { sexo: string | null } | null;
   referenceData?: MobilidadeReferenceData;
+  initialFormOpen?: boolean;
 }
 
 interface MobilidadeRow {
@@ -134,7 +135,7 @@ function PercentileCurveCard({
   );
 }
 
-export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
+export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen }: Props) {
   const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
     ? "F"
     : aluno?.sexo?.toLowerCase().startsWith("m")
@@ -199,7 +200,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
       .filter((d): d is NonNullable<typeof d> => d !== null);
   }, [selecionada, sexoRpc, referenceData]);
 
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(initialFormOpen ?? false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, { left: string; right: string }>>({});
   const [data, setData] = useState<string>(todayISO());

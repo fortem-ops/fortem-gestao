@@ -50,6 +50,7 @@ export function LancamentoView({ alunoId, data, mobilidadeRef }: Props) {
           history={data.funcional.history}
           aluno={data.aluno}
           referenceData={mobilidadeRef}
+          initialFormOpen
         />
       </CategoriaCard>
 

@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { format, parseISO } from "date-fns";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
@@ -9,7 +10,7 @@ interface Props {
   icon: LucideIcon;
   /** Data ISO da última avaliação desta categoria (null = sem dado). */
   ultimaData: string | null;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function CategoriaCard({ value, titulo, descricao, icon: Icon, ultimaData, children }: Props) {
@@ -32,13 +33,12 @@ export function CategoriaCard({ value, titulo, descricao, icon: Icon, ultimaData
             </div>
           </div>
           <div className="text-right shrink-0">
-            <p className="bio-label">Última avaliação</p>
             <p
               className={`text-sm font-semibold ${
                 ultimaData ? "text-[hsl(var(--bio-ink))]" : "text-[hsl(var(--bio-ink-faint))]"
               }`}
             >
-              {ultimaData ? format(parseISO(ultimaData), "dd/MM/yyyy") : "Sem dado"}
+              {ultimaData ? `Última: ${format(parseISO(ultimaData), "dd/MM/yyyy")}` : "Sem dado"}
             </p>
           </div>
         </div>
