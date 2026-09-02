@@ -1,4 +1,3 @@
-import type { BodyMapAnalysis, Mode } from "./bodyMapLogic";
 import { corGradienteAssimetria } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
@@ -18,11 +17,6 @@ type ShapeInstance = {
 };
 
 interface Props {
-  analysis: BodyMapAnalysis;
-  mode: Mode;
-  overrides?: OverrideMap;
-  /** Maps regionId → display number for the side panel sync */
-  numbering?: Partial<Record<RegionId, number>>;
   /** Filter which view(s) to render */
   viewFilter?: "front" | "back" | "both";
   /** Formas musculares de Força/Flexibilidade e articulares de Mobilidade. */
@@ -31,11 +25,6 @@ interface Props {
   metrics?: MetricInput[];
   shapesMap?: Record<string, BodyMapShape>;
 }
-
-
-
-
-
 
 
 const NEUTRAL_FILLS = new Set(["#888780", "#7A8B99"]);
@@ -79,10 +68,9 @@ function ArticulationShapeFill({ shape, fill, label, instanceKey }: { shape: Bod
 
 
 export function BodyMapSVG({
-  analysis, mode, overrides, numbering, viewFilter = "both",
+  viewFilter = "both",
   layer, forcaExercises, metrics, shapesMap,
 }: Props) {
-  const geometry = mergeGeometry(overrides);
 
   const shapeInstances: ShapeInstance[] = (() => {
     if (!shapesMap) return [];
