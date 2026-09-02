@@ -71,8 +71,8 @@ interface CurveMarker {
   color: string;
 }
 
-const LADO_ESQ_COLOR = "#E8843C";
-const LADO_DIR_COLOR = "#378ADD";
+const LADO_ESQ_COLOR = "#378ADD";
+const LADO_DIR_COLOR = "#E8843C";
 
 /** Rosca Esquerda vs Direita com % de assimetria abaixo. */
 function AssimetriaDonut({ left, right, unit }: { left: number | null; right: number | null; unit: string }) {
@@ -192,7 +192,7 @@ function PercentileCurveCard({
         <div className="flex gap-2">
           {markers.map((m) => (
             <span key={m.id} className="text-[10px] font-medium" style={{ color: m.color }}>
-              {m.id} {m.value}{unit} · P{m.percentile}
+              {m.id} {m.value}{unit} · {m.percentile}
             </span>
           ))}
         </div>
