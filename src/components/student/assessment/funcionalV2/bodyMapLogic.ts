@@ -184,24 +184,25 @@ export function corGradienteAssimetria(pct: number | null | undefined): string {
   let hue: number, sat: number, light: number;
 
   if (p < 10) {
-    // verde: leve escurecimento conforme se aproxima de 10%
+    // verde sálvia: suave, levemente mais fechado perto de 10%
     const t = p / 10;
-    hue = 142 - 4 * t;
-    sat = 60 + 6 * t;
-    light = 44 - 6 * t;
+    hue = 150 - 6 * t;
+    sat = 38 + 6 * t;
+    light = 56 - 4 * t;
   } else if (p < 20) {
-    // amarelo: mais intenso perto de 19%
+    // âmbar suave
     const t = (p - 10) / 10;
-    hue = 48 - 8 * t;
-    sat = 88 + 6 * t;
-    light = 50 - 4 * t;
+    hue = 42 - 6 * t;
+    sat = 62 + 6 * t;
+    light = 62 - 4 * t;
   } else {
-    // vermelho: satura levemente até 30%
+    // coral dessaturado
     const t = Math.min(1, (p - 20) / 10);
-    hue = 4 - 4 * t;
-    sat = 78 + 8 * t;
-    light = 50 - 6 * t;
+    hue = 10 - 4 * t;
+    sat = 55 + 7 * t;
+    light = 60 - 4 * t;
   }
+
   return `hsl(${hue.toFixed(1)} ${sat.toFixed(0)}% ${light.toFixed(0)}%)`;
 }
 
