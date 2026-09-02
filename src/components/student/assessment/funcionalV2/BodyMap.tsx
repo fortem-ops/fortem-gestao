@@ -335,11 +335,10 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
         />
 
         <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 px-1">
-              Pontos de atenção
-            </p>
-            <RegionListPanel items={regionList} />
-          </div>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 px-1">
+            Pontos de atenção
+          </p>
+          <RegionListPanel items={regionList} />
         </div>
       </div>
 
