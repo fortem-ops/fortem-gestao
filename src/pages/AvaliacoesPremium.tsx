@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTheme } from "next-themes";
 import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
@@ -22,6 +23,8 @@ import type { Layer } from "@/components/student/assessment/funcionalV2/bodyMapL
 
 export default function AvaliacoesPremium() {
   const { alunoId: urlId } = useParams<{ alunoId?: string }>();
+  const { resolvedTheme } = useTheme();
+  const bioTheme = resolvedTheme === "dark" ? "dark" : "light";
   const navigate = useNavigate();
   const [alunoId, setAlunoId] = useState<string>(urlId ?? "");
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -107,7 +110,7 @@ export default function AvaliacoesPremium() {
   }
 
   return (
-    <div data-bio-theme="light" className="bio-shell -m-6 p-6 min-h-[calc(100vh-3.5rem)]">
+    <div data-bio-theme={bioTheme} className="bio-shell -m-6 p-6 min-h-[calc(100vh-3.5rem)]">
       <header className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30">
