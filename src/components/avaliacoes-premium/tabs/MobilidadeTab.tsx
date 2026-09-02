@@ -183,19 +183,15 @@ function PercentileCurveCard({
             <g key={m.id}>
               <line x1={x} x2={x} y1={topY} y2={baseY} stroke={m.color} strokeWidth="2" />
               <circle cx={x} cy={y} r="4" fill={m.color} />
+              <text x={x} y={topY - 2} textAnchor="middle" fill={m.color} fontSize="9" fontWeight="500">
+                {m.id} {m.value}{unit}
+              </text>
             </g>
           );
         })}
       </svg>
       <div className="text-center mt-1">
         <span className="text-[10px] text-[hsl(var(--bio-ink-muted))]">média {mean.toFixed(1)}{unit}</span>
-      </div>
-      <div className="flex items-center justify-end mt-1 gap-2">
-        {markers.map((m) => (
-          <span key={m.id} className="text-[10px] font-medium" style={{ color: m.color }}>
-            {m.id} {m.value}{unit}
-          </span>
-        ))}
       </div>
       {donut && <AssimetriaDonut left={donut.left} right={donut.right} unit={unit} />}
     </div>
