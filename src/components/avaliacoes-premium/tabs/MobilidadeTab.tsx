@@ -534,9 +534,6 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
               <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
                 <Trash2 className="w-4 h-4 mr-2" /> Excluir
               </Button>
-              <Button size="sm" onClick={abrirNova}>
-                <Plus className="w-4 h-4 mr-2" /> Nova avaliação
-              </Button>
             </div>
           </div>
           <table className="w-full">
