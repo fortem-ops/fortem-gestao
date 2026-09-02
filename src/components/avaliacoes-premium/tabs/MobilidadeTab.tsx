@@ -71,19 +71,83 @@ interface CurveMarker {
   color: string;
 }
 
+const LADO_ESQ_COLOR = "#E8843C";
+const LADO_DIR_COLOR = "#378ADD";
+
+/** Rosca Esquerda vs Direita com % de assimetria abaixo. */
+function AssimetriaDonut({ left, right, unit }: { left: number | null; right: number | null; unit: string }) {
+  if (left === null || right === null || left + right <= 0) return null;
+  const total = left + right;
+  const maior = Math.max(left, right);
+  const menor = Math.min(left, right);
+  const assimetria = maior > 0 ? ((maior - menor) / maior) * 100 : 0;
+
+  const r = 34;
+  const c = 2 * Math.PI * r;
+  const leftLen = (left / total) * c;
+
+  return (
+    <div className="mt-2 flex items-center justify-center gap-3">
+      <div className="text-right">
+        <p className="text-[10px] text-[hsl(var(--bio-ink-muted))]">Esquerda</p>
+        <p className="text-xs font-semibold" style={{ color: LADO_ESQ_COLOR }}>
+          {left}
+          {unit}
+        </p>
+      </div>
+      <div className="flex flex-col items-center">
+        <svg width="86" height="86" viewBox="0 0 86 86">
+          <g transform="rotate(-90 43 43)">
+            <circle
+              cx="43"
+              cy="43"
+              r={r}
+              fill="none"
+              stroke={LADO_DIR_COLOR}
+              strokeWidth="12"
+            />
+            <circle
+              cx="43"
+              cy="43"
+              r={r}
+              fill="none"
+              stroke={LADO_ESQ_COLOR}
+              strokeWidth="12"
+              strokeDasharray={`${leftLen} ${c - leftLen}`}
+            />
+          </g>
+        </svg>
+        <p className="text-[11px] font-semibold text-[hsl(var(--bio-ink))] -mt-1">
+          {assimetria.toFixed(1)}% <span className="font-normal text-[hsl(var(--bio-ink-muted))]">Assimetria</span>
+        </p>
+      </div>
+      <div className="text-left">
+        <p className="text-[10px] text-[hsl(var(--bio-ink-muted))]">Direita</p>
+        <p className="text-xs font-semibold" style={{ color: LADO_DIR_COLOR }}>
+          {right}
+          {unit}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function PercentileCurveCard({
   metric,
   mean,
   sigma,
   unit,
   markers,
+  donut,
 }: {
   metric: string;
   mean: number;
   sigma: number;
   unit: string;
   markers: CurveMarker[];
+  donut?: { left: number | null; right: number | null };
 }) {
+
   const vMin = Math.max(0, mean - 3 * sigma);
   const vMax = mean + 3 * sigma;
   const xPad = 10;
@@ -133,7 +197,9 @@ function PercentileCurveCard({
           ))}
         </div>
       </div>
+      {donut && <AssimetriaDonut left={donut.left} right={donut.right} unit={unit} />}
     </div>
+
   );
 }
 
@@ -197,7 +263,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
           if (pct !== null) markers.push({ id: "D", value: m.right, percentile: pct, color: "#D85A30" });
         }
         if (markers.length === 0) return null;
-        return { metric: m.metric, mean, sigma, unit: "°", markers };
+        return { metric: m.metric, mean, sigma, unit: "°", markers, left: m.left, right: m.right };
       })
       .filter((d): d is NonNullable<typeof d> => d !== null);
   }, [selecionada, sexoRpc, referenceData]);
@@ -543,28 +609,31 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
               )}
             </div>
           </div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[hsl(var(--bio-line))]">
-                <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">Métrica</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Esquerdo</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Direito</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selecionada.metricas.map((m) => (
-                <tr key={m.metric} className="border-b border-[hsl(var(--bio-line))]">
-                  <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(m.metric)}</td>
-                  <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
-                    {m.left !== null ? `${m.left}°` : "—"}
-                  </td>
-                  <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
-                    {m.right !== null ? `${m.right}°` : "—"}
-                  </td>
+          {!readOnly && (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[hsl(var(--bio-line))]">
+                  <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">Métrica</th>
+                  <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Esquerdo</th>
+                  <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Direito</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {selecionada.metricas.map((m) => (
+                  <tr key={m.metric} className="border-b border-[hsl(var(--bio-line))]">
+                    <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(m.metric)}</td>
+                    <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
+                      {m.left !== null ? `${m.left}°` : "—"}
+                    </td>
+                    <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
+                      {m.right !== null ? `${m.right}°` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
         </div>
 
         {curvasData.length > 0 && (
@@ -582,6 +651,8 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                   sigma={c.sigma}
                   unit={c.unit}
                   markers={c.markers}
+                  donut={readOnly ? { left: c.left, right: c.right } : undefined}
+
                 />
               ))}
             </div>
