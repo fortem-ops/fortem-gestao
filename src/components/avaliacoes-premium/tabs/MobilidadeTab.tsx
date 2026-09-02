@@ -241,8 +241,10 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
   }, [historico, selectedId]);
 
   const selecionada = useMemo(
-    () => historico.find((h) => h.id === selectedId) ?? null,
-    [historico, selectedId],
+    () => readOnly && selectedDate
+      ? historico.find((h) => h.data === selectedDate) ?? null
+      : historico.find((h) => h.id === selectedId) ?? null,
+    [historico, selectedId, selectedDate, readOnly],
   );
 
   const curvasData = useMemo(() => {
