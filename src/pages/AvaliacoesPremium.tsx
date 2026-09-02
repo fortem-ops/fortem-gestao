@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
-import { AlunoSidebarCard } from "@/components/avaliacoes-premium/AlunoSidebarCard";
 import { assimetriasPorCategoria } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
@@ -104,14 +103,7 @@ export default function AvaliacoesPremium() {
 
           <TabsContent value="resultados" className="mt-0">
             {scores && (
-              <div className="flex flex-col lg:flex-row gap-5">
-                <AlunoSidebarCard
-                  aluno={data.aluno}
-                  avaliadorNome={data.avaliador?.nome ?? null}
-                  ultimaAvaliacaoData={data.raw[0]?.data ?? null}
-                />
-
-                <div className="flex-1 min-w-0 space-y-5">
+              <div className="min-w-0 space-y-5">
                   {resumoGeral && (
                     <div className="bio-card px-4 py-3 flex items-center gap-3">
                       <span className="bio-label">Resumo geral</span>
@@ -140,16 +132,17 @@ export default function AvaliacoesPremium() {
                         history={data.funcional.history}
                         aluno={data.aluno}
                         referenceData={mobilidadeRef}
+                        readOnly
                       />
                     </TabsContent>
                     <TabsContent value="forca" className="mt-4">
-                      <ForcaTab alunoId={alunoId} latest={data.funcional.latest} history={data.funcional.history} aluno={data.aluno} />
+                      <ForcaTab alunoId={alunoId} latest={data.funcional.latest} history={data.funcional.history} aluno={data.aluno} readOnly />
                     </TabsContent>
                     <TabsContent value="composicao" className="mt-4">
-                      <ComposicaoTab alunoId={alunoId} latest={data.composicao.latest} history={data.composicao.history} />
+                      <ComposicaoTab alunoId={alunoId} latest={data.composicao.latest} history={data.composicao.history} readOnly />
                     </TabsContent>
                     <TabsContent value="pliometria" className="mt-4">
-                      <PliometriaTab alunoId={alunoId} latest={data.pliometria.latest} history={data.pliometria.history} />
+                      <PliometriaTab alunoId={alunoId} latest={data.pliometria.latest} history={data.pliometria.history} readOnly />
                     </TabsContent>
                     <TabsContent value="evolucao" className="mt-4">
                       <EvolucaoTab data={data} />
@@ -161,7 +154,6 @@ export default function AvaliacoesPremium() {
                       <RecomendacoesTab recomendacoes={recomendacoes} />
                     </TabsContent>
                   </Tabs>
-                </div>
               </div>
             )}
           </TabsContent>
