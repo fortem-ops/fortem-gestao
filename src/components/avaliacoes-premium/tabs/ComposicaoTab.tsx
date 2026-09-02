@@ -230,8 +230,9 @@ export function ComposicaoTab({ alunoId, latest, history, readOnly = false }: Pr
           </Button>
         </div>
       </div>
+      )}
 
-      <AvaliacaoDeleteList alunoId={alunoId} mode="composicao" />
+      {!readOnly && <AvaliacaoDeleteList alunoId={alunoId} mode="composicao" />}
 
       {/* ============ HISTÓRICO ============ */}
       {!latest ? (
