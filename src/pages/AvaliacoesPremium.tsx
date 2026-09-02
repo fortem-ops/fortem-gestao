@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
 import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { assimetriasPorCategoria } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
+import { ResultadosDateSelect, type ResultadosDateOption } from "@/components/avaliacoes-premium/ResultadosDateSelect";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,11 +17,14 @@ import { MobilidadeTab } from "@/components/avaliacoes-premium/tabs/MobilidadeTa
 import { ComparativoTab } from "@/components/avaliacoes-premium/tabs/ComparativoTab";
 import { LancamentoView } from "@/components/avaliacoes-premium/lancamento/LancamentoView";
 import { Loader2, Activity } from "lucide-react";
+import type { Layer } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 
 export default function AvaliacoesPremium() {
   const { alunoId: urlId } = useParams<{ alunoId?: string }>();
   const navigate = useNavigate();
   const [alunoId, setAlunoId] = useState<string>(urlId ?? "");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [layer, setLayer] = useState<Layer>("mobility");
 
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(alunoId || null);
   const { data: mobilidadeRef } = useMobilidadeReferenceData();
@@ -31,12 +35,48 @@ export default function AvaliacoesPremium() {
     ? "M"
     : undefined;
 
+  const dateOptions = useMemo<ResultadosDateOption[]>(() => {
+    if (!data) return [];
+    const byDate = new Map<string, Set<string>>();
+    const add = (date: string, category: string) => {
+      const categories = byDate.get(date) ?? new Set<string>();
+      categories.add(category);
+      byDate.set(date, categories);
+    };
+    data.funcional.history.forEach((snapshot) => {
+      if (snapshot.metricas.length > 0) add(snapshot.data, "Mob/Flex");
+      if (snapshot.forca.length > 0) add(snapshot.data, "Força");
+    });
+    data.composicao.history.forEach((snapshot) => add(snapshot.data, "Composição"));
+    data.pliometria.history.forEach((snapshot) => add(snapshot.data, "Pliometria"));
+    return Array.from(byDate.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([date, categories]) => ({ date, categories: Array.from(categories) }));
+  }, [data]);
+
+  useEffect(() => {
+    setSelectedDate(dateOptions[0]?.date ?? "");
+  }, [alunoId, dateOptions]);
+
+  const funcionalDaData = useMemo(() => {
+    if (!selectedDate || !data) return null;
+    const snapshots = data.funcional.history.filter((snapshot) => snapshot.data === selectedDate);
+    if (snapshots.length === 0) return null;
+    return {
+      ...snapshots[0],
+      metricas: snapshots.find((snapshot) => snapshot.metricas.length > 0)?.metricas ?? [],
+      forca: snapshots.find((snapshot) => snapshot.forca.length > 0)?.forca ?? [],
+    };
+  }, [data, selectedDate]);
+  const composicaoDaData = data?.composicao.history.find((snapshot) => snapshot.data === selectedDate) ?? null;
+  const pliometriaDaData = data?.pliometria.history.find((snapshot) => snapshot.data === selectedDate) ?? null;
+
   const scores = useMemo(
     () =>
       data
-        ? computePremiumScores(data.funcional.latest, data.composicao.latest, sexoAluno, mobilidadeRef, assimetriaRef)
+        ? computePremiumScores(funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef)
         : null,
-    [data, sexoAluno, mobilidadeRef, assimetriaRef],
+    [data, funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef],
   );
   const recomendacoes = useMemo(
     () => (scores && data ? gerarRecomendacoes(scores, data.funcional.latest, data.composicao.latest) : []),
