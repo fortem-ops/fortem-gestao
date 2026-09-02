@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sid
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
 import { GlobalCadastroSearch } from "@/components/GlobalCadastroSearch";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotifChatProvider } from "@/contexts/NotifChatContext";
 import { NotificacaoChatDock } from "@/components/notificar/NotificacaoChatDock";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";

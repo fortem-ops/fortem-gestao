@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ThemeProvider } from "next-themes";
 import { lazyWithReload } from "@/lib/lazyWithReload";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -131,6 +132,7 @@ const RouteFallback = () => (
 );
 
 const App = () => (
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Sonner />
