@@ -185,7 +185,7 @@ export default function AvaliacoesPremium() {
                          aluno={data.aluno}
                          referenceData={mobilidadeRef}
                          selectedDate={selectedDate}
-                         layerFilter={layer === "pain" ? "asymmetry" : layer}
+                         layerFilter={mobilidadeLayerFilter}
                          readOnly
                        />
                      </TabsContent>
