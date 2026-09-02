@@ -107,7 +107,7 @@ export default function AvaliacoesPremium() {
   }
 
   return (
-    <div data-bio-theme="light" className="bio-shell -m-6 p-6 min-h-[calc(100vh-3.5rem)]">
+    <div data-bio-theme={bioTheme} className="bio-shell -m-6 p-6 min-h-[calc(100vh-3.5rem)]">
       <header className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30">
