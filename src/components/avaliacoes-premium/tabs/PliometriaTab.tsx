@@ -33,7 +33,7 @@ const FIELDS = [
 
 type Field = (typeof FIELDS)[number]["key"];
 
-export function PliometriaTab({ alunoId, latest, history }: Props) {
+export function PliometriaTab({ alunoId, latest, history, readOnly = false }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [values, setValues] = useState<Record<Field, string>>({
