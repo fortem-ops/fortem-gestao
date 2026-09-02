@@ -236,7 +236,7 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
                   <CountRing value={rings.geral.baixa} label="<10%" size={66} tone={4} />
                 </div>
               </div>
-              <ScoreRing value={rings.composicao} label="Composição" />
+              
             </>
           ) : (
             <>
