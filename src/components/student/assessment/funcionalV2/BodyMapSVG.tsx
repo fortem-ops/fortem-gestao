@@ -1,51 +1,13 @@
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { BodyMapAnalysis, Mode, RegionId } from "./bodyMapLogic";
+import type { BodyMapAnalysis, Mode } from "./bodyMapLogic";
 import { corGradienteAssimetria } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
-import type { OverrideMap } from "./useBodyMapGeometry";
 import { pointsToSmoothPath } from "./pointsToPath";
 import { FORCA_SHAPE_MUSCLE, FLEXIBILIDADE_SHAPE_MUSCLE, MOBILIDADE_SHAPE_ARTICULATION } from "./shapeMuscleMapping";
 import { classifyForca, type ForcaInput, type Layer, type MetricInput } from "./bodyMapLogic";
 import type { BodyMapShape } from "./useBodyMapShapes";
 
-interface RegionGeometry {
-  cx: number;
-  cy: number;
-  r: number;
-  view: "front" | "back";
-  label: string;
-}
-
 const VIEWBOX = { w: 1024, h: 1024 };
-
-// Coordenadas calibradas para o asset anatômico 1024×1024 (mãos completas, corpo centralizado).
-// Convenção: "-l" = lado esquerdo do aluno
-// (à direita do espectador na vista anterior; à esquerda do espectador na vista posterior).
-export const REGION_GEOMETRY: Record<RegionId, RegionGeometry> = {
-  "shoulder-l":     { view: "front", cx: 625, cy: 255, r: 65, label: "Ombro esquerdo (deltoide)" },
-  "shoulder-r":     { view: "front", cx: 400, cy: 255, r: 65, label: "Ombro direito (deltoide)" },
-  "shoulder-re-l":  { view: "back",  cx: 625, cy: 265, r: 55, label: "Ombro esquerdo — RE (manguito posterior)" },
-  "shoulder-re-r":  { view: "back",  cx: 400, cy: 265, r: 55, label: "Ombro direito — RE (manguito posterior)" },
-  "elbow-l":        { view: "front", cx: 655, cy: 420, r: 42, label: "Cotovelo esquerdo" },
-  "elbow-r":        { view: "front", cx: 370, cy: 420, r: 42, label: "Cotovelo direito" },
-  "wrist-l":        { view: "front", cx: 680, cy: 560, r: 32, label: "Punho esquerdo" },
-  "wrist-r":        { view: "front", cx: 345, cy: 560, r: 32, label: "Punho direito" },
-  "thoracic":       { view: "back",  cx: 512, cy: 300, r: 90, label: "Coluna torácica" },
-  "lumbar":         { view: "back",  cx: 512, cy: 480, r: 70, label: "Lombar" },
-  "hip-l":          { view: "front", cx: 560, cy: 545, r: 55, label: "Quadril esquerdo" },
-  "hip-r":          { view: "front", cx: 465, cy: 545, r: 55, label: "Quadril direito" },
-  "hip-re-l":       { view: "back",  cx: 575, cy: 555, r: 55, label: "Quadril esquerdo — RE (glúteo/rotadores)" },
-  "hip-re-r":       { view: "back",  cx: 450, cy: 555, r: 55, label: "Quadril direito — RE (glúteo/rotadores)" },
-  "psoas-l":        { view: "front", cx: 560, cy: 600, r: 50, label: "Psoas esquerdo (flexor de quadril)" },
-  "psoas-r":        { view: "front", cx: 465, cy: 600, r: 50, label: "Psoas direito (flexor de quadril)" },
-  "quad-l":         { view: "front", cx: 570, cy: 720, r: 65, label: "Quadríceps esquerdo" },
-  "quad-r":         { view: "front", cx: 455, cy: 720, r: 65, label: "Quadríceps direito" },
-  "ham-l":          { view: "back",  cx: 450, cy: 720, r: 70, label: "Posterior coxa esquerda" },
-  "ham-r":          { view: "back",  cx: 570, cy: 720, r: 70, label: "Posterior coxa direita" },
-  "ankle-l":        { view: "front", cx: 560, cy: 985, r: 38, label: "Tornozelo esquerdo" },
-  "ankle-r":        { view: "front", cx: 465, cy: 985, r: 38, label: "Tornozelo direito" },
-};
 
 type ShapeInstance = {
   key: string;
@@ -70,154 +32,11 @@ interface Props {
   shapesMap?: Record<string, BodyMapShape>;
 }
 
-function mergeGeometry(overrides?: OverrideMap): Record<RegionId, RegionGeometry> {
-  if (!overrides) return REGION_GEOMETRY;
-  const out = { ...REGION_GEOMETRY };
-  (Object.keys(overrides) as RegionId[]).forEach((id) => {
-    const o = overrides[id];
-    if (o && out[id]) out[id] = { ...out[id], cx: o.cx, cy: o.cy };
-  });
-  return out;
-}
-
-function RegionGlow({
-  id, geom, state, mode,
-}: {
-  id: RegionId;
-  geom: RegionGeometry;
-  state: BodyMapAnalysis["regions"][RegionId];
-  mode: Mode;
-}) {
-  const hasAsym = state.asymmetry !== undefined && state.asymmetry !== null;
-  const color = hasAsym ? corGradienteAssimetria(state.asymmetry!) : null;
-  const showHalo = hasAsym && state.asymmetry! > 0;
-  const isPulsing = hasAsym && state.asymmetry! > 20;
-  const gradId = `glow-${id}`;
-  if (!showHalo || !color) return null;
-
-  // Halo minimalista: leve brilho difuso atrás do marcador numerado.
-  // Intensidade proporcional ao % de assimetria (gradiente contínuo).
-  const r = 26;
-  const intensity = Math.min(1, state.asymmetry! / 25);
-  return (
-    <g pointerEvents="none">
-      <defs>
-        <radialGradient id={gradId} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor={color} stopOpacity={0.2 + 0.35 * intensity} />
-          <stop offset="70%" stopColor={color} stopOpacity={0.06 + 0.12 * intensity} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </radialGradient>
-      </defs>
-      <circle
-        cx={geom.cx} cy={geom.cy} r={r * 1.8}
-        fill={`url(#${gradId})`}
-        className={isPulsing ? "bodymap-pulse" : ""}
-      />
-    </g>
-  );
-}
 
 
-function RegionNumber({
-  geom, state, number,
-}: {
-  geom: RegionGeometry;
-  state: BodyMapAnalysis["regions"][RegionId];
-  number: number;
-}) {
-  const color = corGradienteAssimetria(state.asymmetry ?? null);
-  return (
-    <g pointerEvents="none">
-      <circle
-        cx={geom.cx} cy={geom.cy} r={16}
-        fill={color}
-        stroke="hsl(220 13% 9%)"
-        strokeWidth={2}
-      />
-      <text
-        x={geom.cx} y={geom.cy}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={16}
-        fontWeight={700}
-        fill="hsl(220 13% 9%)"
-        style={{ fontFamily: "var(--font-heading), system-ui, sans-serif" }}
-      >
-        {number}
-      </text>
-    </g>
-  );
-}
 
-function RegionHit({
-  id, geom, state,
-}: {
-  id: RegionId;
-  geom: RegionGeometry;
-  state: BodyMapAnalysis["regions"][RegionId];
-}) {
-  const hasAsym = state.asymmetry !== undefined && state.asymmetry !== null;
-  const color = corGradienteAssimetria(state.asymmetry ?? null);
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <g style={{ cursor: hasAsym || state.score !== null ? "pointer" : "default" }}>
-          <circle cx={geom.cx} cy={geom.cy} r={geom.r + 6} fill="transparent" />
-        </g>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[260px]">
-        <div className="space-y-1">
-          <p className="font-semibold text-xs">{geom.label}</p>
-          {hasAsym && (
-            <p className="text-xs">
-              Assimetria:{" "}
-              <span className="font-semibold" style={{ color }}>
-                {Math.round(state.asymmetry! * 10) / 10}%
-              </span>
-            </p>
-          )}
 
-          {state.contributing.length > 0 && (
-            <ul className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border/40">
-              {state.contributing.slice(0, 4).map((c, i) => (
-                <li key={i}>
-                  {c.metric}{c.side !== "center" ? ` (${c.side === "left" ? "E" : "D"})` : ""}:{" "}
-                  {c.value !== null ? `${c.value}°` : "—"}
 
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-function Chains({
-  analysis, view, geometry,
-}: { analysis: BodyMapAnalysis; view: "front" | "back"; geometry: Record<RegionId, RegionGeometry> }) {
-  if (analysis.chains.length === 0) return null;
-  return (
-    <g pointerEvents="none">
-      {analysis.chains.map((c, i) => {
-        const a = geometry[c.from];
-        const b = geometry[c.to];
-        if (a.view !== view || b.view !== view) return null;
-        return (
-          <line key={i}
-            x1={a.cx} y1={a.cy} x2={b.cx} y2={b.cy}
-            stroke="hsl(var(--sev-attention))"
-            strokeWidth={2.4}
-            strokeDasharray="8 10"
-            strokeOpacity={0.7}
-            className="bodymap-chain"
-          />
-        );
-      })}
-    </g>
-  );
-}
 
 const NEUTRAL_FILLS = new Set(["#888780", "#7A8B99"]);
 
