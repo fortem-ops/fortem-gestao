@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { GitCompareArrows, ShieldAlert, Layers, Move, Save, X, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
+import { GitCompareArrows, ShieldAlert, Layers } from "lucide-react";
 import { BodyMapSVG } from "./BodyMapSVG";
 import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ContagemAssimetrias, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
 import { useBodyMapGeometry, type OverrideMap } from "./useBodyMapGeometry";
