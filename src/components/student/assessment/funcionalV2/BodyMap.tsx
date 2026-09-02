@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { GitCompareArrows, ShieldAlert, Layers } from "lucide-react";
+import { ShieldAlert, Layers } from "lucide-react";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ContagemAssimetrias, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
+import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ContagemAssimetrias, type ForcaInput, type Layer, type MetricInput, type RegionId } from "./bodyMapLogic";
 import { useBodyMapShapes } from "./useBodyMapShapes";
 
 import { RegionListPanel, type RegionListItem } from "./RegionListPanel";
