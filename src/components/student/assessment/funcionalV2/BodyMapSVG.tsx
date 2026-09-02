@@ -324,75 +324,30 @@ export function BodyMapSVG({
   const gridCols = views.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-1";
 
   return (
-    <TooltipProvider delayDuration={120}>
-      <div className={`grid grid-cols-1 ${gridCols} gap-3 w-full`}>
-        {views.map((view) => {
-          const regions = (Object.entries(geometry) as Array<[RegionId, RegionGeometry]>)
-            .filter(([, g]) => g.view === view);
-          return (
-            <div key={view} className="flex flex-col items-center">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">
-                {view === "front" ? "Vista anterior" : "Vista posterior"}
-              </p>
-              <svg
-                viewBox={`0 0 ${VIEWBOX.w} ${VIEWBOX.h}`}
-                className="w-full max-w-[420px] h-auto rounded-xl overflow-hidden"
-                role="img"
-                aria-label={`Corpo humano — ${view === "front" ? "vista anterior" : "vista posterior"}`}
-              >
-                {view === "front" ? <AnatomyFront /> : <AnatomyBack />}
+    <div className={`grid grid-cols-1 ${gridCols} gap-3 w-full`}>
+      {views.map((view) => (
+        <div key={view} className="flex flex-col items-center">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">
+            {view === "front" ? "Vista anterior" : "Vista posterior"}
+          </p>
+          <svg
+            viewBox={`0 0 ${VIEWBOX.w} ${VIEWBOX.h}`}
+            className="w-full max-w-[420px] h-auto rounded-xl overflow-hidden"
+            role="img"
+            aria-label={`Corpo humano — ${view === "front" ? "vista anterior" : "vista posterior"}`}
+          >
+            {view === "front" ? <AnatomyFront /> : <AnatomyBack />}
 
-                {mode === "asymmetry" && (
-                  <g pointerEvents="none">
-                    {analysis.asymmetries.map((a, i) => {
-                      const id = a.region;
-                      const opposite = id.endsWith("-l")
-                        ? (id.replace("-l", "-r") as RegionId)
-                        : (id.replace("-r", "-l") as RegionId);
-                      const g1 = geometry[id];
-                      const g2 = geometry[opposite];
-                      if (!g1 || !g2 || g1.view !== view) return null;
-                      return (
-                        <line key={i}
-                          x1={g1.cx} y1={g1.cy} x2={g2.cx} y2={g2.cy}
-                          stroke={a.severity === "severe" ? "hsl(var(--sev-weak))" : "hsl(var(--sev-attention))"}
-                          strokeWidth={2.5} strokeDasharray="6 8" strokeOpacity={0.75}
-                        />
-                      );
-                    })}
-                  </g>
-                )}
-
-                <Chains analysis={analysis} view={view} geometry={geometry} />
-
-                {shapeInstances
-                  .filter((s) => s.shape.view === view)
-                  .map((s) => s.articulation
-                    ? <ArticulationShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} label={s.label ?? "Articulação"} />
-                    : <MuscleShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} />
-                  )}
-
-
-                {regions.map(([id, geom]) => (
-                  <RegionGlow key={`glow-${id}`} id={id} geom={geom} state={analysis.regions[id]} mode={mode} />
-                ))}
-
-                {numbering && regions.map(([id, geom]) => {
-                  const n = numbering[id];
-                  if (!n) return null;
-                  return (
-                    <RegionNumber key={`num-${id}`} geom={geom} state={analysis.regions[id]} number={n} />
-                  );
-                })}
-
-                {regions.map(([id, geom]) => (
-                  <RegionHit key={`hit-${id}`} id={id} geom={geom} state={analysis.regions[id]} />
-                ))}
-              </svg>
-            </div>
-          );
-        })}
-      </div>
-    </TooltipProvider>
+            {shapeInstances
+              .filter((s) => s.shape.view === view)
+              .map((s) => s.articulation
+                ? <ArticulationShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} label={s.label ?? "Articulação"} />
+                : <MuscleShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} />
+              )}
+          </svg>
+        </div>
+      ))}
+    </div>
   );
 }
+
