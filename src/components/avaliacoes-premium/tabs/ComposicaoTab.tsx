@@ -13,14 +13,16 @@ import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 import { DOBRAS_POLLOCK_7, computePollock } from "@/lib/pollockCalculo";
 import { fetchDefaultProtocoloByTipoSlug } from "@/lib/avaliacaoProtocolos";
 import { AvaliacaoDeleteList } from "../AvaliacaoDeleteList";
+import { ReadOnlyHint } from "../ReadOnlyHint";
 
 interface Props {
   alunoId: string;
   latest: ComposicaoSnapshot | null;
   history: ComposicaoSnapshot[];
+  readOnly?: boolean;
 }
 
-export function ComposicaoTab({ alunoId, latest, history }: Props) {
+export function ComposicaoTab({ alunoId, latest, history, readOnly = false }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [sexo, setSexo] = useState<"M" | "F">("M");
