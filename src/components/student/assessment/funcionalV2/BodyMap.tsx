@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { GitCompareArrows, ShieldAlert, Layers } from "lucide-react";
 import { BodyMapSVG } from "./BodyMapSVG";
 import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type ContagemAssimetrias, type ForcaInput, type Layer, type Mode, type MetricInput, type RegionId } from "./bodyMapLogic";
-import { useBodyMapGeometry } from "./useBodyMapGeometry";
 import { useBodyMapShapes } from "./useBodyMapShapes";
 
 import { RegionListPanel, type RegionListItem } from "./RegionListPanel";
@@ -161,7 +160,6 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
   const setLayer = (l: Layer) => (onLayerChange ? onLayerChange(l) : setLayerLocal(l));
   const [viewFilter, setViewFilter] = useState<"both" | "front" | "back">("both");
 
-  const { overrides } = useBodyMapGeometry();
   const { shapesMap } = useBodyMapShapes();
 
   const analysis = useMemo(() => {
@@ -323,10 +321,6 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
       {/* Main: SVG + side panel */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
         <BodyMapSVG
-          analysis={analysis}
-          mode={mode}
-          overrides={overrides}
-          numbering={numbering}
           viewFilter={viewFilter}
           layer={layer}
           forcaExercises={forcaExercises}
