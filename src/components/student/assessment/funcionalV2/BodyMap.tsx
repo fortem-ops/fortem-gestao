@@ -45,9 +45,6 @@ interface Props {
 }
 
 
-const MODES: Array<{ id: Mode; label: string; icon: typeof GitCompareArrows; desc: string }> = [
-  { id: "asymmetry", label: "Assimetria", icon: GitCompareArrows, desc: "Diferenças bilaterais" },
-];
 
 const LAYERS: Array<{ id: Layer; label: string }> = [
   { id: "mobility",    label: "Mobilidade" },
