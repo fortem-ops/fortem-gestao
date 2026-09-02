@@ -5,6 +5,7 @@ import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilida
 import { assimetriasPorCategoria } from "@/components/avaliacoes-premium/DashboardSummary";
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
 import { ResultadosDateSelect, type ResultadosDateOption } from "@/components/avaliacoes-premium/ResultadosDateSelect";
+import { ResultadosNav, type ResultadoView } from "@/components/avaliacoes-premium/ResultadosNav";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +26,7 @@ export default function AvaliacoesPremium() {
   const [alunoId, setAlunoId] = useState<string>(urlId ?? "");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [layer, setLayer] = useState<Layer>("mobility");
+  const [view, setView] = useState<ResultadoView>("assimetria");
 
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(alunoId || null);
   const { data: mobilidadeRef } = useMobilidadeReferenceData();
@@ -70,8 +72,8 @@ export default function AvaliacoesPremium() {
   }, [data, selectedDate]);
   const composicaoDaData = data?.composicao.history.find((snapshot) => snapshot.data === selectedDate) ?? null;
   const pliometriaDaData = data?.pliometria.history.find((snapshot) => snapshot.data === selectedDate) ?? null;
-  const mobilidadeLayerFilter: "mobility" | "flexibility" | "strength" | "asymmetry" =
-    layer === "pain" ? "asymmetry" : layer;
+  const mobilidadeLayerFilter: "mobility" | "flexibility" | "asymmetry" =
+    layer === "flexibility" ? "flexibility" : layer === "asymmetry" || layer === "pain" ? "asymmetry" : "mobility";
 
   const scores = useMemo(
     () =>
@@ -100,6 +102,8 @@ export default function AvaliacoesPremium() {
 
   function handlePick(id: string) {
     setAlunoId(id);
+    setView("assimetria");
+    setLayer("mobility");
     navigate(`/avaliacoes-premium/${id}`, { replace: true });
   }
 
@@ -146,68 +150,74 @@ export default function AvaliacoesPremium() {
           <TabsContent value="resultados" className="mt-0">
             {scores && (
               <div className="min-w-0 space-y-5">
-                  {resumoGeral && (
-                    <div className="bio-card px-4 py-3 flex items-center gap-3">
-                      <span className="bio-label">Resumo geral</span>
-                      <span className="text-sm font-semibold text-[hsl(var(--bio-ink))]">
-                        {resumoGeral.alta + resumoGeral.moderada} alerta(s) ativo(s) — {resumoGeral.alta} elevada(s), {resumoGeral.moderada} moderada(s)
-                      </span>
+                {resumoGeral && (
+                  <div className="bio-card px-4 py-3 flex items-center gap-3">
+                    <span className="bio-label">Resumo geral</span>
+                    <span className="text-sm font-semibold text-[hsl(var(--bio-ink))]">
+                      {resumoGeral.alta + resumoGeral.moderada} alerta(s) ativo(s) — {resumoGeral.alta} elevada(s), {resumoGeral.moderada} moderada(s)
+                    </span>
+                  </div>
+                )}
+
+                <div className="bio-card px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+                  <ResultadosDateSelect options={dateOptions} value={selectedDate} onChange={setSelectedDate} />
+                  <span className="text-xs text-[hsl(var(--bio-ink-muted))]">Selecione uma data para comparar o mesmo momento em todo o resultado.</span>
+                </div>
+
+                <PremiumBodyMap
+                  funcional={funcionalDaData}
+                  scores={scores}
+                  layer={layer}
+                  onLayerChange={setLayer}
+                  navSlot={<ResultadosNav view={view} onChange={setView} />}
+                />
+
+                <div className="min-w-0">
+                  {view === "assimetria" && (
+                    <div className="bio-card p-4">
+                      {layer === "strength" ? (
+                        <ForcaTab
+                          alunoId={alunoId}
+                          latest={funcionalDaData}
+                          history={data.funcional.history}
+                          aluno={data.aluno}
+                          readOnly
+                        />
+                      ) : (
+                        <MobilidadeTab
+                          alunoId={alunoId}
+                          latest={funcionalDaData}
+                          history={data.funcional.history}
+                          aluno={data.aluno}
+                          referenceData={mobilidadeRef}
+                          selectedDate={selectedDate}
+                          layerFilter={mobilidadeLayerFilter}
+                          readOnly
+                        />
+                      )}
                     </div>
                   )}
 
-                   <div className="bio-card px-4 py-3 flex flex-wrap items-center justify-between gap-4">
-                     <ResultadosDateSelect options={dateOptions} value={selectedDate} onChange={setSelectedDate} />
-                     <span className="text-xs text-[hsl(var(--bio-ink-muted))]">Selecione uma data para comparar o mesmo momento em todo o resultado.</span>
-                   </div>
-
-                   <PremiumBodyMap
-                     funcional={funcionalDaData}
-                     scores={scores}
-                     layer={layer}
-                     onLayerChange={setLayer}
-                   />
-
-                   <Tabs defaultValue="mobilidade" className="bio-card p-4">
-                    <TabsList className="bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))]">
-                      <TabsTrigger value="mobilidade">Mobilidade/Flexibilidade</TabsTrigger>
-                      <TabsTrigger value="forca">Força</TabsTrigger>
-                      <TabsTrigger value="composicao">Composição</TabsTrigger>
-                      <TabsTrigger value="pliometria">Pliometria</TabsTrigger>
-                      <TabsTrigger value="evolucao">Evolução</TabsTrigger>
-                      <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
-                      <TabsTrigger value="recomendacoes">Recomendações</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="mobilidade" className="mt-4">
-                      <MobilidadeTab
-                        alunoId={alunoId}
-                         latest={funcionalDaData}
-                         history={data.funcional.history}
-                         aluno={data.aluno}
-                         referenceData={mobilidadeRef}
-                         selectedDate={selectedDate}
-                         layerFilter={mobilidadeLayerFilter}
-                         readOnly
-                       />
-                     </TabsContent>
-                     <TabsContent value="forca" className="mt-4">
-                       <ForcaTab alunoId={alunoId} latest={funcionalDaData} history={data.funcional.history} aluno={data.aluno} readOnly />
-                     </TabsContent>
-                     <TabsContent value="composicao" className="mt-4">
-                       <ComposicaoTab alunoId={alunoId} latest={composicaoDaData} history={data.composicao.history} readOnly />
-                     </TabsContent>
-                     <TabsContent value="pliometria" className="mt-4">
-                       <PliometriaTab alunoId={alunoId} latest={pliometriaDaData} history={data.pliometria.history} readOnly />
-                    </TabsContent>
-                    <TabsContent value="evolucao" className="mt-4">
-                      <EvolucaoTab data={data} />
-                    </TabsContent>
-                    <TabsContent value="comparativo" className="mt-4">
-                      <ComparativoTab data={data} alunoId={alunoId} />
-                    </TabsContent>
-                    <TabsContent value="recomendacoes" className="mt-4">
-                      <RecomendacoesTab recomendacoes={recomendacoes} />
-                    </TabsContent>
-                  </Tabs>
+                  {view === "composicao" && (
+                    <ComposicaoTab
+                      alunoId={alunoId}
+                      latest={composicaoDaData}
+                      history={data.composicao.history}
+                      readOnly
+                    />
+                  )}
+                  {view === "pliometria" && (
+                    <PliometriaTab
+                      alunoId={alunoId}
+                      latest={pliometriaDaData}
+                      history={data.pliometria.history}
+                      readOnly
+                    />
+                  )}
+                  {view === "evolucao" && <EvolucaoTab data={data} />}
+                  {view === "comparativo" && <ComparativoTab data={data} alunoId={alunoId} />}
+                  {view === "recomendacoes" && <RecomendacoesTab recomendacoes={recomendacoes} />}
+                </div>
               </div>
             )}
           </TabsContent>
