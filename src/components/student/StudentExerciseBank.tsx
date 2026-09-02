@@ -934,9 +934,7 @@ export function StudentExerciseBank() {
                               <button
                                 key={sub}
                                 type="button"
-                                onClick={() =>
-                                  setSelecoes((prev) => ({ ...prev, [grupoName]: sub }))
-                                }
+                                onClick={() => setSelecoes((prev) => ({ ...prev, [grupoName]: sub }))}
                                 className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                                   active
                                     ? "bg-primary text-primary-foreground border-primary"
@@ -947,6 +945,11 @@ export function StudentExerciseBank() {
                               </button>
                             );
                           })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -975,11 +978,6 @@ export function StudentExerciseBank() {
                     </label>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-                  );
-                })}
               </div>
             )}
           </div>
