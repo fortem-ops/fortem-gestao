@@ -586,12 +586,12 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
     }
     return (
       <div className="space-y-4">
-        <div className="bio-card overflow-hidden">
-          <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex flex-wrap items-center justify-between gap-3">
-            <h3 className="bio-heading text-base">Histórico · Mobilidade / Flexibilidade</h3>
+        {!readOnly && (
+          <div className="bio-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex flex-wrap items-center justify-between gap-3">
+              <h3 className="bio-heading text-base">Histórico · Mobilidade / Flexibilidade</h3>
 
-            <div className="flex flex-wrap items-center gap-2">
-              {!readOnly && (
+              <div className="flex flex-wrap items-center gap-2">
                 <Select value={selectedId} onValueChange={setSelectedId}>
                   <SelectTrigger className="h-9 w-[190px] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
                     <SelectValue placeholder="Selecione a data" />
@@ -604,20 +604,14 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                     ))}
                   </SelectContent>
                 </Select>
-              )}
-              {!readOnly && (
-                <>
-                  <Button size="sm" variant="outline" onClick={() => abrirEdicao(selecionada)}>
-                    <Pencil className="w-4 h-4 mr-2" /> Editar
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
-                    <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                  </Button>
-                </>
-              )}
+                <Button size="sm" variant="outline" onClick={() => abrirEdicao(selecionada)}>
+                  <Pencil className="w-4 h-4 mr-2" /> Editar
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
+                  <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                </Button>
+              </div>
             </div>
-          </div>
-          {!readOnly && (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[hsl(var(--bio-line))]">
@@ -640,9 +634,8 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                 ))}
               </tbody>
             </table>
-          )}
-
-        </div>
+          </div>
+        )}
 
         {curvasData.length > 0 && (
           <div className="bio-card p-5">
