@@ -38,6 +38,12 @@ interface Props {
     geral: ContagemAssimetrias;
     composicao: number | null;
   } | null;
+  /**
+   * Camada controlada (opcional). Quando não fornecida, o componente mantém
+   * o próprio estado interno — comportamento original preservado.
+   */
+  layer?: Layer;
+  onLayerChange?: (layer: Layer) => void;
 }
 
 
