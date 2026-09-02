@@ -150,24 +150,30 @@ export function PliometriaTab({ alunoId, latest, history, readOnly = false }: Pr
 
 
       {/* Resumo último resultado */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-        {FIELDS.map((f) => {
-          const Icon = f.icon;
-          const v = latest ? (latest[f.key] as number | null) : null;
-          return (
-            <div key={f.key} className="bio-card p-3">
-              <div className="flex items-center justify-between">
-                <Icon className="w-3.5 h-3.5 text-[hsl(var(--bio-ink-muted))]" />
-                <span className="bio-label">{f.unit}</span>
+      {!latest && readOnly ? (
+        <div className="bio-card p-6 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
+          Sem dado de Pliometria nesta data.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+          {FIELDS.map((f) => {
+            const Icon = f.icon;
+            const v = latest ? (latest[f.key] as number | null) : null;
+            return (
+              <div key={f.key} className="bio-card p-3">
+                <div className="flex items-center justify-between">
+                  <Icon className="w-3.5 h-3.5 text-[hsl(var(--bio-ink-muted))]" />
+                  <span className="bio-label">{f.unit}</span>
+                </div>
+                <p className="text-[10px] uppercase tracking-wider text-[hsl(var(--bio-ink-muted))] mt-2 truncate">{f.label}</p>
+                <p className="text-lg bio-heading text-[hsl(var(--bio-ink))]">
+                  {v !== null && v !== undefined ? v : "—"}
+                </p>
               </div>
-              <p className="text-[10px] uppercase tracking-wider text-[hsl(var(--bio-ink-muted))] mt-2 truncate">{f.label}</p>
-              <p className="text-lg bio-heading text-[hsl(var(--bio-ink))]">
-                {v !== null && v !== undefined ? v : "—"}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {!readOnly && <AvaliacaoDeleteList alunoId={alunoId} mode="pliometria" />}
 
