@@ -1,34 +1,23 @@
-# Resultados: modo somente leitura
+# Rosca de assimetria no card "Tornozelo" — diagnóstico
 
-Ajuste apenas do modo "Resultados" da tela Avaliações Premium. O modo "Lançamento" permanece intacto.
+## O que foi verificado (leitura de código + banco)
 
-## O que muda
+1. **Não há valor hardcoded.** Em `MobilidadeTab.tsx`, `AssimetriaDonut` só usa as props `left`, `right` e `unit`; a assimetria é calculada como `(maior - menor) / maior * 100`. Uma busca por `35.5`, `30.4` e `14.4` em todo o `src/` não encontra nenhuma dessas constantes. O card passa `donut={readOnly ? { left: c.left, right: c.right } : undefined}`, e `c.left`/`c.right` são exatamente os mesmos `m.left`/`m.right` que geram os marcadores do rodapé ("E 45° · P45 / D 35° · P15"). Ou seja: com o código atual, rosca e rodapé leem a mesma fonte e não podem divergir.
 
-1. O cartão lateral do aluno (avatar, idade, frequência, ID, telefone, última avaliação, avaliador) sai do modo Resultados. O conteúdo (resumo geral, mapa corporal e abas) passa a ocupar a largura toda.
-2. As abas Mobilidade, Força, Composição e Pliometria dentro de Resultados passam a exibir apenas leitura: tabelas, gráficos e histórico da avaliação mais recente, sem formulário de lançamento, sem importação Kinology e sem os botões Nova avaliação / Editar / Excluir.
-3. Cada uma dessas abas ganha uma nota discreta: "Somente leitura · lançamentos e correções ficam em Lançamento".
-4. Evolução, Comparativo e Recomendações ficam exatamente como estão.
+2. **`unit` está correto.** O mesmo `unit` (`"°"`) é usado no rodapé e dentro da rosca (`{left}{unit}`). Se na tela a rosca aparece sem o símbolo de grau, isso indica que o que está sendo exibido **não é** a versão atual do componente.
 
-## Abordagem recomendada (item 2)
+3. **Os dados do banco confirmam 45/35.** Consultando as métricas "Mobilidade Tornozelo" gravadas em `avaliacoes`, todos os valores são inteiros (ex.: 45/35 em 05/08/2026, 50/53, 49/50...). Não existe nenhum registro com 35.5 ou 30.4 — nem nessa métrica nem em formato decimal.
 
-Prop opcional `readOnly?: boolean` (padrão `false`) em cada um dos quatro Tab components. Só o modo Resultados passa `readOnly`; Lançamento continua chamando sem a prop, então o comportamento atual não muda em lugar nenhum.
+## Causa raiz provável
 
-Motivo de preferir isso a componentes separados: hoje form e histórico convivem no mesmo arquivo e compartilham cálculos (percentis, curvas, séries dos gráficos). Extrair "somente histórico" para arquivos novos duplicaria essa lógica ou exigiria refatorar quatro componentes; a prop esconde só a camada de escrita, que já está bem delimitada em cada arquivo.
+O bundle exibido no preview está **desatualizado** (build antiga em cache do navegador / service worker do PWA — o projeto registra `public/sw.js`). Os números 35.5 / 30.4 / 14.4% não existem nem no código nem no banco; batem apenas com a imagem de referência usada como modelo visual, o que é coerente com uma renderização que não corresponde ao código atual.
 
-Pontos exatos condicionados por `readOnly`:
+Não é um problema específico do card "Tornozelo": como a ligação de dados é a mesma para todas as métricas, ou todos os cards estão corretos, ou todos vêm da mesma renderização antiga.
 
-- `MobilidadeTab.tsx` — não renderizar o bloco de formulário/botão "Nova avaliação"; no cabeçalho do histórico manter o seletor de data e esconder os botões Editar e Excluir. Tabela de métricas e curvas de distribuição permanecem.
-- `ForcaTab.tsx` — esconder `PremiumKinologyImport` e `AvaliacaoDeleteList`; manter dinamometrias, tabelas e gráficos.
-- `ComposicaoTab.tsx` — esconder o bloco "Nova avaliação — Pollock 7 Dobras" e `AvaliacaoDeleteList`; manter resultados e histórico.
-- `PliometriaTab.tsx` — esconder o formulário e `AvaliacaoDeleteList`; manter cards do último resultado e histórico.
+## Próximos passos propostos
 
-A nota de somente leitura vira um pequeno componente compartilhado (`ReadOnlyHint`) renderizado no topo de cada aba quando `readOnly` estiver ativo, para não repetir markup.
+1. **Confirmar antes de mexer no código:** recarregar o preview com hard refresh (e limpar o service worker) e reabrir Avaliações Premium → Resultados → Mobilidade. Se os cards passarem a mostrar os valores reais com `°` (ex.: 45° / 35° / 22.2%), era cache e nada precisa ser alterado.
+2. **Se ainda reproduzir após o refresh:** capturar a tela com Playwright na rota real e inspecionar o DOM do card para identificar de onde vêm os números, antes de qualquer correção.
+3. **Ajuste defensivo (opcional, independente do resultado acima):** exibir os valores da rosca com o mesmo formato do rodapé (`{valor}{unit}`, já é o caso) e adicionar rótulo da métrica na rosca, para que qualquer divergência futura fique visualmente evidente.
 
-## Alterações em arquivos
-
-- `src/pages/AvaliacoesPremium.tsx`: remover `AlunoSidebarCard` do bloco Resultados (e o import, se não usado em outro ponto), simplificar o layout flex, e passar `readOnly` para as quatro abas de categoria.
-- `src/components/avaliacoes-premium/tabs/MobilidadeTab.tsx`, `ForcaTab.tsx`, `ComposicaoTab.tsx`, `PliometriaTab.tsx`: adicionar a prop e os condicionais acima.
-- Novo `src/components/avaliacoes-premium/ReadOnlyHint.tsx`.
-- `LancamentoView.tsx`: sem alteração.
-
-Nenhuma mudança de banco, de query ou de lógica de salvamento.
+Nenhuma alteração de código foi feita.
