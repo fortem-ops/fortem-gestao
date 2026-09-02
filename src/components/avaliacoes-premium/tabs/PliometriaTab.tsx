@@ -108,7 +108,9 @@ export function PliometriaTab({ alunoId, latest, history, readOnly = false }: Pr
 
   return (
     <div className="space-y-4">
+      {readOnly && <ReadOnlyHint />}
       {/* Formulário */}
+      {!readOnly && (
       <div className="bio-card p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="bio-heading text-base">Registrar nova avaliação de pliometria</h3>
