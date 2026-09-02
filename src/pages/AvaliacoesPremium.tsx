@@ -15,7 +15,7 @@ import { RecomendacoesTab } from "@/components/avaliacoes-premium/tabs/Recomenda
 import { PliometriaTab } from "@/components/avaliacoes-premium/tabs/PliometriaTab";
 import { MobilidadeTab } from "@/components/avaliacoes-premium/tabs/MobilidadeTab";
 import { ComparativoTab } from "@/components/avaliacoes-premium/tabs/ComparativoTab";
-
+import { LancamentoView } from "@/components/avaliacoes-premium/lancamento/LancamentoView";
 import { Loader2, Activity } from "lucide-react";
 
 export default function AvaliacoesPremium() {
@@ -57,7 +57,6 @@ export default function AvaliacoesPremium() {
     [scores, forcaResumo],
   );
 
-
   function handlePick(id: string) {
     setAlunoId(id);
     navigate(`/avaliacoes-premium/${id}`, { replace: true });
@@ -92,70 +91,81 @@ export default function AvaliacoesPremium() {
         </div>
       )}
 
-      {alunoId && !isLoading && data?.aluno && scores && (
-        <div className="flex flex-col lg:flex-row gap-5">
-          <AlunoSidebarCard
-            aluno={data.aluno}
-            avaliadorNome={data.avaliador?.nome ?? null}
-            ultimaAvaliacaoData={data.raw[0]?.data ?? null}
-          />
+      {alunoId && !isLoading && data?.aluno && (
+        <Tabs defaultValue="lancamento" className="space-y-5">
+          <TabsList className="bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))]">
+            <TabsTrigger value="lancamento">Lançamento</TabsTrigger>
+            <TabsTrigger value="resultados">Resultados</TabsTrigger>
+          </TabsList>
 
-          <div className="flex-1 min-w-0 space-y-5">
-            {resumoGeral && (
-              <div className="bio-card px-4 py-3 flex items-center gap-3">
-                <span className="bio-label">Resumo geral</span>
-                <span className="text-sm font-semibold text-[hsl(var(--bio-ink))]">
-                  {resumoGeral.alta + resumoGeral.moderada} alerta(s) ativo(s) — {resumoGeral.alta} elevada(s), {resumoGeral.moderada} moderada(s)
-                </span>
-              </div>
-            )}
-            
+          <TabsContent value="lancamento" className="mt-0">
+            <LancamentoView alunoId={alunoId} data={data} mobilidadeRef={mobilidadeRef} />
+          </TabsContent>
 
-            <PremiumBodyMap funcional={data.funcional.latest} scores={scores} />
-
-            <Tabs defaultValue="mobilidade" className="bio-card p-4">
-              <TabsList className="bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))]">
-                <TabsTrigger value="mobilidade">Mobilidade/Flexibilidade</TabsTrigger>
-                <TabsTrigger value="forca">Força</TabsTrigger>
-                <TabsTrigger value="composicao">Composição</TabsTrigger>
-                <TabsTrigger value="pliometria">Pliometria</TabsTrigger>
-                <TabsTrigger value="evolucao">Evolução</TabsTrigger>
-                <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
-                <TabsTrigger value="recomendacoes">Recomendações</TabsTrigger>
-              </TabsList>
-              <TabsContent value="mobilidade" className="mt-4">
-                <MobilidadeTab
-                  alunoId={alunoId}
-                  latest={data.funcional.latest}
-                  history={data.funcional.history}
+          <TabsContent value="resultados" className="mt-0">
+            {scores && (
+              <div className="flex flex-col lg:flex-row gap-5">
+                <AlunoSidebarCard
                   aluno={data.aluno}
-                  referenceData={mobilidadeRef}
+                  avaliadorNome={data.avaliador?.nome ?? null}
+                  ultimaAvaliacaoData={data.raw[0]?.data ?? null}
                 />
 
+                <div className="flex-1 min-w-0 space-y-5">
+                  {resumoGeral && (
+                    <div className="bio-card px-4 py-3 flex items-center gap-3">
+                      <span className="bio-label">Resumo geral</span>
+                      <span className="text-sm font-semibold text-[hsl(var(--bio-ink))]">
+                        {resumoGeral.alta + resumoGeral.moderada} alerta(s) ativo(s) — {resumoGeral.alta} elevada(s), {resumoGeral.moderada} moderada(s)
+                      </span>
+                    </div>
+                  )}
 
-              </TabsContent>
-              <TabsContent value="forca" className="mt-4">
-                <ForcaTab alunoId={alunoId} latest={data.funcional.latest} history={data.funcional.history} aluno={data.aluno} />
-              </TabsContent>
-              <TabsContent value="composicao" className="mt-4">
-                <ComposicaoTab alunoId={alunoId} latest={data.composicao.latest} history={data.composicao.history} />
-              </TabsContent>
-              <TabsContent value="pliometria" className="mt-4">
-                <PliometriaTab alunoId={alunoId} latest={data.pliometria.latest} history={data.pliometria.history} />
-              </TabsContent>
-              <TabsContent value="evolucao" className="mt-4">
-                <EvolucaoTab data={data} />
-              </TabsContent>
-              <TabsContent value="comparativo" className="mt-4">
-                <ComparativoTab data={data} alunoId={alunoId} />
-              </TabsContent>
-              <TabsContent value="recomendacoes" className="mt-4">
-                <RecomendacoesTab recomendacoes={recomendacoes} />
-              </TabsContent>
+                  <PremiumBodyMap funcional={data.funcional.latest} scores={scores} />
 
-            </Tabs>
-          </div>
-        </div>
+                  <Tabs defaultValue="mobilidade" className="bio-card p-4">
+                    <TabsList className="bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))]">
+                      <TabsTrigger value="mobilidade">Mobilidade/Flexibilidade</TabsTrigger>
+                      <TabsTrigger value="forca">Força</TabsTrigger>
+                      <TabsTrigger value="composicao">Composição</TabsTrigger>
+                      <TabsTrigger value="pliometria">Pliometria</TabsTrigger>
+                      <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+                      <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
+                      <TabsTrigger value="recomendacoes">Recomendações</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="mobilidade" className="mt-4">
+                      <MobilidadeTab
+                        alunoId={alunoId}
+                        latest={data.funcional.latest}
+                        history={data.funcional.history}
+                        aluno={data.aluno}
+                        referenceData={mobilidadeRef}
+                      />
+                    </TabsContent>
+                    <TabsContent value="forca" className="mt-4">
+                      <ForcaTab alunoId={alunoId} latest={data.funcional.latest} history={data.funcional.history} aluno={data.aluno} />
+                    </TabsContent>
+                    <TabsContent value="composicao" className="mt-4">
+                      <ComposicaoTab alunoId={alunoId} latest={data.composicao.latest} history={data.composicao.history} />
+                    </TabsContent>
+                    <TabsContent value="pliometria" className="mt-4">
+                      <PliometriaTab alunoId={alunoId} latest={data.pliometria.latest} history={data.pliometria.history} />
+                    </TabsContent>
+                    <TabsContent value="evolucao" className="mt-4">
+                      <EvolucaoTab data={data} />
+                    </TabsContent>
+                    <TabsContent value="comparativo" className="mt-4">
+                      <ComparativoTab data={data} alunoId={alunoId} />
+                    </TabsContent>
+                    <TabsContent value="recomendacoes" className="mt-4">
+                      <RecomendacoesTab recomendacoes={recomendacoes} />
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
