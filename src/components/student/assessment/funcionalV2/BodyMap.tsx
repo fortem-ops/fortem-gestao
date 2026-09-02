@@ -336,7 +336,7 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
 
       {/* Footer note */}
       <p className="text-[11px] text-white/40 leading-relaxed">
-        As porcentagens representam a diferença do lado avaliado em relação ao lado mais forte ou ao valor de referência.
+         As porcentagens representam a diferença do lado avaliado em relação ao lado oposto.
       </p>
 
       {/* Chain explanations */}
