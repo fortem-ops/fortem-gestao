@@ -109,7 +109,9 @@ export function ComposicaoTab({ alunoId, latest, history, readOnly = false }: Pr
 
   return (
     <div className="space-y-5">
+      {readOnly && <ReadOnlyHint />}
       {/* ============ FORMULÁRIO ============ */}
+      {!readOnly && (
       <div className="bio-card p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="bio-heading text-base">Nova avaliação — Pollock 7 Dobras</h3>
