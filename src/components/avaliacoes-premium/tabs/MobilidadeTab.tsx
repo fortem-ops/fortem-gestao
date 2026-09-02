@@ -197,7 +197,9 @@ function PercentileCurveCard({
           ))}
         </div>
       </div>
+      {donut && <AssimetriaDonut left={donut.left} right={donut.right} unit={unit} />}
     </div>
+
   );
 }
 
