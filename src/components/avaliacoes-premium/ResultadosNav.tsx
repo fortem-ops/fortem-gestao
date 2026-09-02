@@ -24,25 +24,13 @@ const OPTIONS: Array<{ id: Exclude<ResultadoView, "assimetria">; label: string }
 export function ResultadosNav({ view, onChange }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-1 rounded-lg border border-white/5 bg-white/5 p-1" aria-label="Seções dos resultados">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => onChange("assimetria")}
-        className={`h-8 rounded-md px-2.5 text-xs font-medium ${
-          view === "assimetria" ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5 hover:text-white/80"
-        }`}
-        aria-pressed={view === "assimetria"}
-      >
-        Assimetria
-      </Button>
       {OPTIONS.map((option) => (
         <Button
           key={option.id}
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => onChange(option.id)}
+          onClick={() => onChange(view === option.id ? "assimetria" : option.id)}
           className={`h-8 rounded-md px-2.5 text-xs font-medium ${
             view === option.id ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5 hover:text-white/80"
           }`}
@@ -54,3 +42,4 @@ export function ResultadosNav({ view, onChange }: Props) {
     </div>
   );
 }
+
