@@ -14,7 +14,7 @@ interface Props {
 }
 
 const OPTIONS: Array<{ id: ResultadoView; label: string }> = [
-  { id: "assimetria", label: "Assimetria" },
+  { id: "assimetria", label: "Assimetrias" },
   { id: "composicao", label: "Composição" },
   { id: "pliometria", label: "Pliometria" },
   { id: "evolucao", label: "Evolução" },
@@ -25,7 +25,7 @@ const OPTIONS: Array<{ id: ResultadoView; label: string }> = [
 export function ResultadosNav({ view, onChange }: Props) {
   return (
     <div
-      className="flex flex-wrap items-center gap-1 rounded-lg border border-white/5 bg-white/5 p-1"
+      className="flex flex-wrap items-center gap-1.5 rounded-lg border border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-line)/0.25)] p-1.5"
       aria-label="Seções dos resultados"
     >
       {OPTIONS.map((option) => (
@@ -35,10 +35,10 @@ export function ResultadosNav({ view, onChange }: Props) {
           variant="ghost"
           size="sm"
           onClick={() => onChange(option.id)}
-          className={`h-8 rounded-md px-2.5 text-xs font-medium ${
+          className={`h-9 rounded-md px-3 text-sm font-semibold ${
             view === option.id
-              ? "bg-white/10 text-white"
-              : "text-white/55 hover:bg-white/5 hover:text-white/80"
+              ? "bg-primary/20 text-[hsl(var(--bio-ink))] ring-1 ring-primary/40"
+              : "text-[hsl(var(--bio-ink-muted))] hover:bg-[hsl(var(--bio-line)/0.5)] hover:text-[hsl(var(--bio-ink))]"
           }`}
           aria-pressed={view === option.id}
         >
@@ -48,3 +48,4 @@ export function ResultadosNav({ view, onChange }: Props) {
     </div>
   );
 }
+
