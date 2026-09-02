@@ -313,6 +313,8 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
             );
           })}
         </div>
+        {navSlot}
+        </div>
 
         <div className="flex items-center gap-3 flex-wrap">
           {/* Escala contínua de assimetria */}
