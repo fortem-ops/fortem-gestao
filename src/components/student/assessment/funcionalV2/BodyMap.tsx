@@ -182,7 +182,30 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
   return (
     <div className="bodymap-surface rounded-xl p-5 md:p-6 space-y-5">
       {/* Header — Índice Funcional FORTEM */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-end gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <p className="text-2xl font-heading font-bold text-white">
+            Mapa Corporal
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+              style={{
+                background: `hsl(${riskDisplay.color} / 0.15)`,
+                color: `hsl(${riskDisplay.color})`,
+                border: `1px solid hsl(${riskDisplay.color} / 0.35)`,
+              }}
+            >
+              <ShieldAlert className="w-3 h-3" />
+              {riskDisplay.label}
+            </span>
+            {asymmetryCountDisplay > 0 && (
+              <span className="text-[11px] text-white/50">
+                {asymmetryCountDisplay} assimetria(s) detectada(s)
+              </span>
+            )}
+          </div>
+        </div>
         <div className="flex items-center gap-4 flex-wrap">
           {rings ? (
             <>
