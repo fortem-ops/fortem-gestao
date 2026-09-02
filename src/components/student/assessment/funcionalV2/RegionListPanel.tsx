@@ -72,12 +72,12 @@ export function RegionListPanel({ items }: { items: RegionListItem[] }) {
           <div className="flex items-center justify-center w-7 h-7 rounded-full text-[12px] font-bold shrink-0 bg-[hsl(var(--bio-surface))] text-[hsl(var(--bio-ink-muted))] border border-[hsl(var(--bio-line))]">
             {it.number}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-[hsl(var(--bio-ink))] leading-tight truncate">
+          <div className="flex-1">
+            <p className="text-[13px] font-semibold text-[hsl(var(--bio-ink))] leading-tight">
               {it.label}
             </p>
             {it.metricLabel && (
-              <p className="text-[11px] text-[hsl(var(--bio-ink-muted))] truncate">{it.metricLabel}</p>
+              <p className="text-[11px] text-[hsl(var(--bio-ink-muted))] leading-tight">{it.metricLabel}</p>
             )}
           </div>
           <div className="text-right shrink-0">
