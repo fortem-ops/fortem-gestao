@@ -3086,6 +3086,38 @@ export type Database = {
           },
         ]
       }
+      exercicio_articulacoes: {
+        Row: {
+          articulacao_key: string
+          created_at: string
+          created_by: string | null
+          exercicio_id: string
+          id: string
+        }
+        Insert: {
+          articulacao_key: string
+          created_at?: string
+          created_by?: string | null
+          exercicio_id: string
+          id?: string
+        }
+        Update: {
+          articulacao_key?: string
+          created_at?: string
+          created_by?: string | null
+          exercicio_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercicio_articulacoes_exercicio_id_fkey"
+            columns: ["exercicio_id"]
+            isOneToOne: false
+            referencedRelation: "exercicios_personalizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercicio_categorias: {
         Row: {
           categoria: string
