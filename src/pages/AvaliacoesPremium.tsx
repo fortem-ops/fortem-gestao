@@ -164,10 +164,11 @@ export default function AvaliacoesPremium() {
                 </div>
 
                 <div className="bio-card overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[hsl(var(--bio-line))] flex flex-wrap items-center justify-between gap-3">
-                    <span className="bio-label">Resultados</span>
+                  <div className="px-4 py-3 border-b border-[hsl(var(--bio-line))] space-y-2">
+                    <span className="bio-label block">Resultados</span>
                     <ResultadosNav view={view} onChange={setView} />
                   </div>
+
                   <div className="p-4 space-y-5">
                     {view === "assimetria" && (
                       <>
