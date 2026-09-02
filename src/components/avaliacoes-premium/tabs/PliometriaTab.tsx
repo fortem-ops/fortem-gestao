@@ -169,7 +169,7 @@ export function PliometriaTab({ alunoId, latest, history, readOnly = false }: Pr
         })}
       </div>
 
-      <AvaliacaoDeleteList alunoId={alunoId} mode="pliometria" />
+      {!readOnly && <AvaliacaoDeleteList alunoId={alunoId} mode="pliometria" />}
 
       {/* Histórico */}
       {history.length > 0 && (
