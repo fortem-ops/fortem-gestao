@@ -619,7 +619,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
 
   return (
     <div className="space-y-5">
-      {MobilidadeForm()}
+      {readOnly ? <ReadOnlyHint /> : MobilidadeForm()}
       {MobilidadeHistorico()}
     </div>
   );
