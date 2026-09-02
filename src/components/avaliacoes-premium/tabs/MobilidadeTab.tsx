@@ -540,6 +540,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                   </Button>
                 </>
               )}
+            </div>
           </div>
           <table className="w-full">
             <thead>
