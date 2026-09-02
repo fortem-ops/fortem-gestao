@@ -79,17 +79,17 @@ export default function AvaliacoesPremium() {
     [data, funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef],
   );
   const recomendacoes = useMemo(
-    () => (scores && data ? gerarRecomendacoes(scores, data.funcional.latest, data.composicao.latest) : []),
-    [scores, data],
+    () => (scores && data ? gerarRecomendacoes(scores, funcionalDaData, composicaoDaData) : []),
+    [scores, data, funcionalDaData, composicaoDaData],
   );
   const forcaResumo = useMemo(
     () =>
-      (data?.funcional.latest?.forca ?? []).map((e) => ({
+      (funcionalDaData?.forca ?? []).map((e) => ({
         nome: e.nome,
         direito_kg: e.direito_kg,
         esquerdo_kg: e.esquerdo_kg,
       })),
-    [data],
+    [funcionalDaData],
   );
   const resumoGeral = useMemo(
     () => (scores ? assimetriasPorCategoria(scores, forcaResumo).geral : null),
@@ -153,9 +153,19 @@ export default function AvaliacoesPremium() {
                     </div>
                   )}
 
-                  <PremiumBodyMap funcional={data.funcional.latest} scores={scores} />
+                   <div className="bio-card px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+                     <ResultadosDateSelect options={dateOptions} value={selectedDate} onChange={setSelectedDate} />
+                     <span className="text-xs text-[hsl(var(--bio-ink-muted))]">Selecione uma data para comparar o mesmo momento em todo o resultado.</span>
+                   </div>
 
-                  <Tabs defaultValue="mobilidade" className="bio-card p-4">
+                   <PremiumBodyMap
+                     funcional={funcionalDaData}
+                     scores={scores}
+                     layer={layer}
+                     onLayerChange={setLayer}
+                   />
+
+                   <Tabs defaultValue="mobilidade" className="bio-card p-4">
                     <TabsList className="bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))]">
                       <TabsTrigger value="mobilidade">Mobilidade/Flexibilidade</TabsTrigger>
                       <TabsTrigger value="forca">Força</TabsTrigger>
@@ -168,21 +178,23 @@ export default function AvaliacoesPremium() {
                     <TabsContent value="mobilidade" className="mt-4">
                       <MobilidadeTab
                         alunoId={alunoId}
-                        latest={data.funcional.latest}
-                        history={data.funcional.history}
-                        aluno={data.aluno}
-                        referenceData={mobilidadeRef}
-                        readOnly
-                      />
-                    </TabsContent>
-                    <TabsContent value="forca" className="mt-4">
-                      <ForcaTab alunoId={alunoId} latest={data.funcional.latest} history={data.funcional.history} aluno={data.aluno} readOnly />
-                    </TabsContent>
-                    <TabsContent value="composicao" className="mt-4">
-                      <ComposicaoTab alunoId={alunoId} latest={data.composicao.latest} history={data.composicao.history} readOnly />
-                    </TabsContent>
-                    <TabsContent value="pliometria" className="mt-4">
-                      <PliometriaTab alunoId={alunoId} latest={data.pliometria.latest} history={data.pliometria.history} readOnly />
+                         latest={funcionalDaData}
+                         history={data.funcional.history}
+                         aluno={data.aluno}
+                         referenceData={mobilidadeRef}
+                         selectedDate={selectedDate}
+                         layerFilter={layer}
+                         readOnly
+                       />
+                     </TabsContent>
+                     <TabsContent value="forca" className="mt-4">
+                       <ForcaTab alunoId={alunoId} latest={funcionalDaData} history={data.funcional.history} aluno={data.aluno} readOnly />
+                     </TabsContent>
+                     <TabsContent value="composicao" className="mt-4">
+                       <ComposicaoTab alunoId={alunoId} latest={composicaoDaData} history={data.composicao.history} readOnly />
+                     </TabsContent>
+                     <TabsContent value="pliometria" className="mt-4">
+                       <PliometriaTab alunoId={alunoId} latest={pliometriaDaData} history={data.pliometria.history} readOnly />
                     </TabsContent>
                     <TabsContent value="evolucao" className="mt-4">
                       <EvolucaoTab data={data} />
