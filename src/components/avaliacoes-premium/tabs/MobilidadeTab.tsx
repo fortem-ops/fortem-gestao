@@ -393,7 +393,106 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
     }
   }
 
-  if (!formOpen) {
+  /** Bloco de formulário (novo lançamento ou edição). */
+  function MobilidadeForm() {
+    if (!formOpen) {
+      return (
+        <div className="flex justify-end">
+          <Button onClick={abrirNova}>
+            <Plus className="w-4 h-4 mr-2" /> Nova avaliação de mobilidade
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        <div className="bio-card p-4 flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <AssessmentDateField
+              theme="light"
+              value={data}
+              onChange={setData}
+              helperText={
+                editandoId
+                  ? "Editando uma avaliação existente — alterar a data move o registro para a nova data."
+                  : "Usada para localizar/criar a avaliação. A mesclagem com a força só acontece se a data for exatamente a mesma."
+              }
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFormOpen(false);
+              setEditandoId(null);
+              setValues({});
+            }}
+          >
+            <X className="w-4 h-4 mr-2" /> Cancelar
+          </Button>
+        </div>
+        <div className="bio-card overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[hsl(var(--bio-line))]">
+                <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">
+                  Mobilidade / Flexibilidade
+                </th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Esquerdo</th>
+                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Direito</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ALL_FUNCTIONAL_METRICS.map((metric) => {
+                const v = values[metric] || { left: "", right: "" };
+                return (
+                  <tr key={metric} className="border-b border-[hsl(var(--bio-line))]">
+                    <td className="p-3">
+                      <p className="text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(metric)}</p>
+                    </td>
+                    <td className="p-3">
+                      <Input
+                        type="number"
+                        className="w-16 text-center h-8 text-sm mx-auto"
+                        value={v.left}
+                        onChange={(e) => handleChange(metric, "left", e.target.value)}
+                        placeholder="°"
+                      />
+                    </td>
+                    <td className="p-3">
+                      <Input
+                        type="number"
+                        className="w-16 text-center h-8 text-sm mx-auto"
+                        value={v.right}
+                        onChange={(e) => handleChange(metric, "right", e.target.value)}
+                        placeholder="°"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={saving || preenchidos.length === 0}>
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" /> {editandoId ? "Salvar alterações" : "Salvar mobilidade"}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  /** Bloco de histórico: avaliações anteriores com os valores lançados. */
+  function MobilidadeHistorico() {
     if (isLoading) {
       return (
         <div className="bio-card p-8 text-center">
@@ -403,13 +502,10 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
     }
     if (!selecionada) {
       return (
-        <div className="bio-card p-8 text-center space-y-3">
+        <div className="bio-card p-8 text-center">
           <p className="text-sm text-[hsl(var(--bio-ink-muted))]">
             Nenhuma avaliação de mobilidade/flexibilidade registrada para este aluno.
           </p>
-          <Button onClick={abrirNova}>
-            <Plus className="w-4 h-4 mr-2" /> Nova avaliação de mobilidade
-          </Button>
         </div>
       );
     }
@@ -417,7 +513,8 @@ export function MobilidadeTab({ alunoId, aluno, referenceData }: Props) {
       <div className="space-y-4">
         <div className="bio-card overflow-hidden">
           <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex flex-wrap items-center justify-between gap-3">
-            <h3 className="bio-heading text-base">Mobilidade / Flexibilidade</h3>
+            <h3 className="bio-heading text-base">Histórico · Mobilidade / Flexibilidade</h3>
+
             <div className="flex flex-wrap items-center gap-2">
               <Select value={selectedId} onValueChange={setSelectedId}>
                 <SelectTrigger className="h-9 w-[190px] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
