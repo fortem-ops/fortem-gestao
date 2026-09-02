@@ -263,7 +263,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
           if (pct !== null) markers.push({ id: "D", value: m.right, percentile: pct, color: "#D85A30" });
         }
         if (markers.length === 0) return null;
-        return { metric: m.metric, mean, sigma, unit: "°", markers };
+        return { metric: m.metric, mean, sigma, unit: "°", markers, left: m.left, right: m.right };
       })
       .filter((d): d is NonNullable<typeof d> => d !== null);
   }, [selecionada, sexoRpc, referenceData]);
