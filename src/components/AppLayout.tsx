@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sid
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
 import { GlobalCadastroSearch } from "@/components/GlobalCadastroSearch";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotifChatProvider } from "@/contexts/NotifChatContext";
 import { NotificacaoChatDock } from "@/components/notificar/NotificacaoChatDock";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -37,6 +38,7 @@ export function AppLayout() {
               <div className="flex-1 flex justify-center min-w-0">
                 <GlobalCadastroSearch />
               </div>
+              <ThemeToggle />
             </header>
             <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 min-w-0">
               <Outlet />
