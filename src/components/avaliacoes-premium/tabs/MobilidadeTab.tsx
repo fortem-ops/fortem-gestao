@@ -543,28 +543,31 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
               )}
             </div>
           </div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[hsl(var(--bio-line))]">
-                <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">Métrica</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Esquerdo</th>
-                <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Direito</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selecionada.metricas.map((m) => (
-                <tr key={m.metric} className="border-b border-[hsl(var(--bio-line))]">
-                  <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(m.metric)}</td>
-                  <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
-                    {m.left !== null ? `${m.left}°` : "—"}
-                  </td>
-                  <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
-                    {m.right !== null ? `${m.right}°` : "—"}
-                  </td>
+          {!readOnly && (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[hsl(var(--bio-line))]">
+                  <th className="text-left text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3">Métrica</th>
+                  <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Esquerdo</th>
+                  <th className="text-center text-xs font-medium text-[hsl(var(--bio-ink-muted))] p-3 w-24">Direito</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {selecionada.metricas.map((m) => (
+                  <tr key={m.metric} className="border-b border-[hsl(var(--bio-line))]">
+                    <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(m.metric)}</td>
+                    <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
+                      {m.left !== null ? `${m.left}°` : "—"}
+                    </td>
+                    <td className="p-3 text-center text-sm text-[hsl(var(--bio-ink))]">
+                      {m.right !== null ? `${m.right}°` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
         </div>
 
         {curvasData.length > 0 && (
