@@ -20,6 +20,7 @@ import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
   ALL_FUNCTIONAL_METRICS,
+  METRIC_META,
   percentilMobilidade,
   getMetricDisplayLabel,
   type MetricInput,
@@ -41,6 +42,8 @@ interface Props {
   referenceData?: MobilidadeReferenceData;
   initialFormOpen?: boolean;
   readOnly?: boolean;
+  selectedDate?: string;
+  layerFilter?: "mobility" | "flexibility" | "strength" | "asymmetry";
 }
 
 interface MobilidadeRow {
@@ -199,7 +202,7 @@ function PercentileCurveCard({
   );
 }
 
-export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, readOnly = false }: Props) {
+export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, readOnly = false, selectedDate, layerFilter }: Props) {
   const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
     ? "F"
     : aluno?.sexo?.toLowerCase().startsWith("m")
