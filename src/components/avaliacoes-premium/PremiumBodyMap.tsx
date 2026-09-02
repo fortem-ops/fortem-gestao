@@ -3,6 +3,8 @@ import { AlertTriangle } from "lucide-react";
 import type { FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 import type { PremiumScores } from "./scoringPremium";
 import { assimetriasPorCategoria } from "./DashboardSummary";
+import type { Layer } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { ReactNode } from "react";
 
 interface Props {
   funcional: FuncionalSnapshot | null;
