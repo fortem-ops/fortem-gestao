@@ -24,7 +24,7 @@ export const FORCA_SHAPE_MUSCLE: Partial<Record<ForcaExercicio, string>> = {
   extensao_joelho: "quadriceps",
   flexao_quadril: "psoas",
   extensao_quadril: "gluteo",
-  abducao_quadril: "gluteo",
+  abducao_quadril: "gluteo-medio",
   aducao_quadril: "adutor",
   // inversao: sem entrada de propósito — sem destaque visual.
 };
