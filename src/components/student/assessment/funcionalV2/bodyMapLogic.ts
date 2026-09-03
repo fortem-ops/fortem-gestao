@@ -581,8 +581,8 @@ export const FORCA_EXERCICIO_LABEL: Record<ForcaExercicio, string> = {
   flexao_joelho: "Flexão de joelho",
   extensao_joelho: "Extensão de joelho",
   flexao_quadril: "Flexão de quadril",
-  extensao_quadril: "Glúteo",
-  abducao_quadril: "Glúteo Médio",
+  extensao_quadril: "Extensão de quadril",
+  abducao_quadril: "Abdução de quadril",
   aducao_quadril: "Adução de quadril",
 };
 
