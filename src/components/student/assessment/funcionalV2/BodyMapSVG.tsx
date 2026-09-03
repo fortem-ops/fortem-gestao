@@ -35,13 +35,7 @@ function breatheClass(fill: string) {
     : "bodymap-breathe bodymap-breathe-strong";
 }
 
-function breatheDelay(key: string) {
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 32;
-  return `${((h / 32) * 1.6).toFixed(2)}s`;
-}
-
-function MuscleShapeFill({ shape, fill, instanceKey }: { shape: BodyMapShape; fill: string; instanceKey: string }) {
+function MuscleShapeFill({ shape, fill }: { shape: BodyMapShape; fill: string; instanceKey?: string }) {
   if (shape.points.length < 3) return null;
   const d = pointsToSmoothPath(shape.points);
   return (
@@ -50,16 +44,15 @@ function MuscleShapeFill({ shape, fill, instanceKey }: { shape: BodyMapShape; fi
       fill={fill}
       stroke="none"
       className={breatheClass(fill)}
-      style={{ animationDelay: breatheDelay(instanceKey) }}
     />
   );
 }
 
-function ArticulationShapeFill({ shape, fill, label, instanceKey }: { shape: BodyMapShape; fill: string; label: string; instanceKey: string }) {
+function ArticulationShapeFill({ shape, fill, label }: { shape: BodyMapShape; fill: string; label: string; instanceKey?: string }) {
   if (shape.points.length < 3) return null;
   const d = pointsToSmoothPath(shape.points);
   return (
-    <g className={breatheClass(fill)} style={{ animationDelay: breatheDelay(instanceKey) }}>
+    <g className={breatheClass(fill)}>
       <path d={d} fill={fill} stroke={fill} strokeOpacity={0.95} strokeWidth={3} />
       <title>{label}</title>
     </g>
