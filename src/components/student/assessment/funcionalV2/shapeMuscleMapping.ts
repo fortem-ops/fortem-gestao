@@ -42,7 +42,7 @@ export const MOBILIDADE_SHAPE_ARTICULATION: Record<string, { left?: string; righ
   "Mobilidade Quadril RI": { left: "quadril-ri-esquerdo", right: "quadril-ri-direito" },
   "Mobilidade Quadril RE": { left: "quadril-re-esquerdo", right: "quadril-re-direito" },
   "Mobilidade Tornozelo": { left: "tornozelo-esquerdo", right: "tornozelo-direito" },
-  "Mobilidade Torácica": { center: "toracica" },
+  "Mobilidade Torácica": { left: "toracica-esquerdo", right: "toracica-direito" },
 };
 
 export const MOBILIDADE_ARTICULATION_OPTIONS = [
@@ -56,5 +56,6 @@ export const MOBILIDADE_ARTICULATION_OPTIONS = [
   { key: "quadril-re-direito", label: "Quadril direito — RE" },
   { key: "tornozelo-esquerdo", label: "Tornozelo esquerdo" },
   { key: "tornozelo-direito", label: "Tornozelo direito" },
-  { key: "toracica", label: "Coluna torácica" },
+  { key: "toracica-esquerdo", label: "Torácica esquerda" },
+  { key: "toracica-direito", label: "Torácica direita" },
 ] as const;
