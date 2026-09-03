@@ -86,7 +86,8 @@ export function BodyMapSVG({
           return values.flatMap((x) => {
             const shape = shapesMap[x.shapeKey];
             if (!shape) return [];
-            return [{ key: `mob:${m.metric}:${x.side}`, shape, fill: pairFill, label: `${m.metric} — ${x.side}: ${x.value}°`, articulation: true }];
+            const sideLabel = x.side === "Esquerdo" ? "Lado esquerdo" : x.side === "Direito" ? "Lado direito" : "Central";
+            return [{ key: `mob:${m.metric}:${x.side}`, shape, fill: pairFill, label: `${m.metric} — ${sideLabel}: ${x.value}°`, articulation: true }];
           });
         });
     }
