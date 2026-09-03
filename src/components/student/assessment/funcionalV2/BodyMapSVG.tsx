@@ -12,7 +12,7 @@ type ShapeInstance = {
   key: string;
   shape: BodyMapShape;
   fill: string;
-  label?: string;
+  label: string;
   articulation?: boolean;
 };
 
