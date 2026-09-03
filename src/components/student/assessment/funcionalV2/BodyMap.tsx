@@ -70,10 +70,10 @@ function AsymmetryGradientLegend() {
     .map((p) => `${corGradienteAssimetria(p)} ${(p / 30) * 100}%`)
     .join(", ");
   return (
-    <div className="hidden md:flex items-center gap-2">
+    <div className="hidden md:flex items-center gap-2.5">
       <span className="text-[10px] text-white/50">menor assimetria</span>
       <span
-        className="h-2 w-28 rounded-full"
+        className="h-2.5 w-32 rounded-full ring-1 ring-inset ring-white/10 shadow-[0_0_12px_rgba(255,255,255,0.06)]"
         style={{ background: `linear-gradient(90deg, ${stops})` }}
         aria-hidden
       />

@@ -42,12 +42,12 @@
     --license: 270 70% 55%;
     --license-foreground: 0 0% 100%;
 
-    /* Body Map (Avaliação Funcional v2) — severity scale */
-    --sev-excellent: 142 71% 50%;
-    --sev-good: 152 65% 45%;
+    /* Body Map (Avaliação Funcional v2) — severity scale (clean/modern/futurista) */
+    --sev-excellent: 158 55% 58%;
+    --sev-good: 158 48% 52%;
     --sev-medium: 213 94% 58%;
-    --sev-attention: 38 92% 52%;
-    --sev-weak: 0 80% 55%;
+    --sev-attention: 44 72% 56%;
+    --sev-weak: 10 62% 58%;
     --bodymap-bg: 220 28% 7%;
     --bodymap-silhouette: 220 15% 70%;
     /* Premium biomechanical anatomy tones */
@@ -109,6 +109,12 @@
 
     --success: 142 65% 48%;
     --success-foreground: 0 0% 100%;
+
+    /* Body Map — versão dark levemente mais luminosa */
+    --sev-excellent: 158 58% 62%;
+    --sev-good: 158 52% 56%;
+    --sev-attention: 44 76% 60%;
+    --sev-weak: 10 66% 62%;
 
     --license: 270 70% 65%;
     --license-foreground: 0 0% 100%;
