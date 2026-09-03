@@ -56,5 +56,6 @@ export const MOBILIDADE_ARTICULATION_OPTIONS = [
   { key: "quadril-re-direito", label: "Quadril direito — RE" },
   { key: "tornozelo-esquerdo", label: "Tornozelo esquerdo" },
   { key: "tornozelo-direito", label: "Tornozelo direito" },
-  { key: "toracica", label: "Coluna torácica" },
+  { key: "toracica-esquerdo", label: "Torácica esquerda" },
+  { key: "toracica-direito", label: "Torácica direita" },
 ] as const;
