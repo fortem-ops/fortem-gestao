@@ -277,6 +277,8 @@ export function EvolucaoTab({ data }: Props) {
         onToggleGrupo={toggleGrupo}
       />
 
+      <LadoLegend />
+
       {(charts.length === 0 || selectedDates.length === 0) && (
         <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
           Selecione ao menos uma data e um dado para visualizar a evolução.
