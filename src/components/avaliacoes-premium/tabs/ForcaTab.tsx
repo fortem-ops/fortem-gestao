@@ -113,8 +113,11 @@ export function ForcaTab({ alunoId, latest, history, aluno, readOnly = false }: 
       ) : (
       <>
       <div className="bio-card overflow-hidden">
-        <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex items-center justify-between">
-          <h3 className="bio-heading text-base">Principais Assimetrias de Força</h3>
+        <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h3 className="bio-heading text-base">Principais Assimetrias de Força</h3>
+            <LadoLegend compact />
+          </div>
           <span className="bio-label">Dinamometria · {format(parseISO(latest!.data), "dd/MM/yyyy")}</span>
         </div>
         <table className="w-full text-sm">
