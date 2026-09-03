@@ -9,6 +9,7 @@ import {
   type ForcaExercicio,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { EvolucaoSeletor, type SeletorGrupo } from "./EvolucaoSeletor";
+import { LadoLegend } from "../LadoLegend";
 
 interface Props {
   data: ConsolidadoAluno;
