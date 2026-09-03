@@ -102,11 +102,12 @@ export function BodyMapSVG({
           const { assimetria } = classifyForca(ex.direito_kg!, ex.esquerdo_kg!);
           const weakerIsRight = ex.direito_kg! < ex.esquerdo_kg!;
           const riskColor = corGradienteAssimetria(assimetria);
-          const out: Array<{ key: string; shape: BodyMapShape; fill: string }> = [];
+          const labelBase = FORCA_EXERCICIO_LABEL[ex.nome as ForcaExercicio] ?? ex.nome;
+          const out: Array<{ key: string; shape: BodyMapShape; fill: string; label: string }> = [];
           const shapeR = shapesMap[`${muscle}-direito`];
           const shapeL = shapesMap[`${muscle}-esquerdo`];
-          if (shapeR) out.push({ key: `forca:${ex.nome}:direito`, shape: shapeR, fill: weakerIsRight ? riskColor : "#888780" });
-          if (shapeL) out.push({ key: `forca:${ex.nome}:esquerdo`, shape: shapeL, fill: !weakerIsRight ? riskColor : "#888780" });
+          if (shapeR) out.push({ key: `forca:${ex.nome}:direito`, shape: shapeR, fill: weakerIsRight ? riskColor : "#888780", label: `${labelBase} — Lado direito: ${ex.direito_kg!.toFixed(1)} kg` });
+          if (shapeL) out.push({ key: `forca:${ex.nome}:esquerdo`, shape: shapeL, fill: !weakerIsRight ? riskColor : "#888780", label: `${labelBase} — Lado esquerdo: ${ex.esquerdo_kg!.toFixed(1)} kg` });
           return out;
         });
     }
