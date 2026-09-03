@@ -318,24 +318,6 @@ export function EvolucaoTab({ data }: Props) {
           </div>
         ))}
 
-      <div className="bio-card overflow-hidden">
-        <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))]">
-          <h3 className="bio-heading text-base">Timeline de Avaliações</h3>
-        </div>
-        <ul className="divide-y divide-[hsl(var(--bio-line))]">
-          {data.raw.map((r) => (
-            <li key={r.id} className="px-5 py-3 flex items-center justify-between text-sm">
-              <div>
-                <p className="text-[hsl(var(--bio-ink))] capitalize">{r.tipo.replace(/_/g, " ")}</p>
-                {r.observacoes && <p className="text-[11px] text-[hsl(var(--bio-ink-faint))] line-clamp-1">{r.observacoes}</p>}
-              </div>
-              <span className="text-xs text-[hsl(var(--bio-ink-muted))]">
-                {format(parseISO(r.data), "dd/MM/yyyy")}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
 }
