@@ -9,7 +9,6 @@ import {
   type ForcaExercicio,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { EvolucaoSeletor, type SeletorGrupo } from "./EvolucaoSeletor";
-import { LadoLegend } from "../LadoLegend";
 
 interface Props {
   data: ConsolidadoAluno;
@@ -276,8 +275,6 @@ export function EvolucaoTab({ data }: Props) {
         onToggleItem={toggleItem}
         onToggleGrupo={toggleGrupo}
       />
-
-      <LadoLegend />
 
       {(charts.length === 0 || selectedDates.length === 0) && (
         <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
