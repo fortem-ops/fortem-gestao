@@ -170,10 +170,10 @@ export const SEVERITY_COLOR_VAR: Record<Severity, string> = {
 };
 
 /**
- * Escala por faixas com transição suave DENTRO de cada faixa:
- *  - 0–10%  → verde  (hue ~140, praticamente constante)
- *  - 11–19% → amarelo (hue ~45)
- *  - >=20%  → vermelho (hue 0)
+ * Escala contínua de assimetria com tonalidades clean/modern/futuristas:
+ *  - 0–10%  → menta/sálvia frio, luminoso e pouco saturado
+ *  - 10–20% → âmbar/champagne suave
+ *  - >=20%  → coral-rosa futurista, sem vermelho puro agressivo
  * A troca de cor acontece perto dos limiares 10% e 20%.
  */
 export function corGradienteAssimetria(pct: number | null | undefined): string {
@@ -184,23 +184,23 @@ export function corGradienteAssimetria(pct: number | null | undefined): string {
   let hue: number, sat: number, light: number;
 
   if (p < 10) {
-    // verde sálvia: suave, levemente mais fechado perto de 10%
+    // menta → sálvia frio
     const t = p / 10;
-    hue = 150 - 6 * t;
-    sat = 38 + 6 * t;
-    light = 56 - 4 * t;
+    hue = 160 - 4 * t;
+    sat = 34 + 6 * t;
+    light = 64 - 6 * t;
   } else if (p < 20) {
-    // âmbar suave
+    // champagne → âmbar suave
     const t = (p - 10) / 10;
-    hue = 42 - 6 * t;
-    sat = 62 + 6 * t;
-    light = 62 - 4 * t;
+    hue = 48 - 6 * t;
+    sat = 54 + 6 * t;
+    light = 66 - 6 * t;
   } else {
-    // coral dessaturado
+    // coral-rosa futurista
     const t = Math.min(1, (p - 20) / 10);
-    hue = 10 - 4 * t;
-    sat = 55 + 7 * t;
-    light = 60 - 4 * t;
+    hue = 14 - 6 * t;
+    sat = 50 + 8 * t;
+    light = 66 - 8 * t;
   }
 
   return `hsl(${hue.toFixed(1)} ${sat.toFixed(0)}% ${light.toFixed(0)}%)`;
