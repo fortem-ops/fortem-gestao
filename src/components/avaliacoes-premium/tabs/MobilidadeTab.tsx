@@ -590,7 +590,10 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
         {!readOnly && (
           <div className="bio-card overflow-hidden">
             <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex flex-wrap items-center justify-between gap-3">
-              <h3 className="bio-heading text-base">Histórico · Mobilidade / Flexibilidade</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="bio-heading text-base">Histórico · Mobilidade / Flexibilidade</h3>
+                <LadoLegend compact />
+              </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <Select value={selectedId} onValueChange={setSelectedId}>
