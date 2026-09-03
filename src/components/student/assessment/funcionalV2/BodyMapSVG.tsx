@@ -1,9 +1,9 @@
-import { corGradienteAssimetria } from "./bodyMapLogic";
+import { corGradienteAssimetria, getMetricDisplayLabel } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
 import { pointsToSmoothPath } from "./pointsToPath";
 import { FORCA_SHAPE_MUSCLE, FLEXIBILIDADE_SHAPE_MUSCLE, MOBILIDADE_SHAPE_ARTICULATION } from "./shapeMuscleMapping";
-import { classifyForca, type ForcaInput, type Layer, type MetricInput } from "./bodyMapLogic";
+import { classifyForca, FORCA_EXERCICIO_LABEL, type ForcaInput, type ForcaExercicio, type Layer, type MetricInput } from "./bodyMapLogic";
 import type { BodyMapShape } from "./useBodyMapShapes";
 
 const VIEWBOX = { w: 1024, h: 1024 };
@@ -12,7 +12,7 @@ type ShapeInstance = {
   key: string;
   shape: BodyMapShape;
   fill: string;
-  label?: string;
+  label: string;
   articulation?: boolean;
 };
 
@@ -35,7 +35,7 @@ function breatheClass(fill: string) {
     : "bodymap-breathe bodymap-breathe-strong";
 }
 
-function MuscleShapeFill({ shape, fill }: { shape: BodyMapShape; fill: string; instanceKey?: string }) {
+function MuscleShapeFill({ shape, fill, label }: { shape: BodyMapShape; fill: string; label?: string; instanceKey?: string }) {
   if (shape.points.length < 3) return null;
   const d = pointsToSmoothPath(shape.points);
   return (
@@ -44,7 +44,9 @@ function MuscleShapeFill({ shape, fill }: { shape: BodyMapShape; fill: string; i
       fill={fill}
       stroke="none"
       className={breatheClass(fill)}
-    />
+    >
+      {label && <title>{label}</title>}
+    </path>
   );
 }
 
@@ -86,7 +88,8 @@ export function BodyMapSVG({
           return values.flatMap((x) => {
             const shape = shapesMap[x.shapeKey];
             if (!shape) return [];
-            return [{ key: `mob:${m.metric}:${x.side}`, shape, fill: pairFill, label: `${m.metric} — ${x.side}: ${x.value}°`, articulation: true }];
+            const sideLabel = x.side === "Esquerdo" ? "Lado esquerdo" : x.side === "Direito" ? "Lado direito" : "Central";
+            return [{ key: `mob:${m.metric}:${x.side}`, shape, fill: pairFill, label: `${m.metric} — ${sideLabel}: ${x.value}°`, articulation: true }];
           });
         });
     }
@@ -99,11 +102,12 @@ export function BodyMapSVG({
           const { assimetria } = classifyForca(ex.direito_kg!, ex.esquerdo_kg!);
           const weakerIsRight = ex.direito_kg! < ex.esquerdo_kg!;
           const riskColor = corGradienteAssimetria(assimetria);
-          const out: Array<{ key: string; shape: BodyMapShape; fill: string }> = [];
+          const labelBase = FORCA_EXERCICIO_LABEL[ex.nome as ForcaExercicio] ?? ex.nome;
+          const out: Array<{ key: string; shape: BodyMapShape; fill: string; label: string }> = [];
           const shapeR = shapesMap[`${muscle}-direito`];
           const shapeL = shapesMap[`${muscle}-esquerdo`];
-          if (shapeR) out.push({ key: `forca:${ex.nome}:direito`, shape: shapeR, fill: weakerIsRight ? riskColor : "#888780" });
-          if (shapeL) out.push({ key: `forca:${ex.nome}:esquerdo`, shape: shapeL, fill: !weakerIsRight ? riskColor : "#888780" });
+          if (shapeR) out.push({ key: `forca:${ex.nome}:direito`, shape: shapeR, fill: weakerIsRight ? riskColor : "#888780", label: `${labelBase} — Lado direito: ${ex.direito_kg!.toFixed(1)} kg` });
+          if (shapeL) out.push({ key: `forca:${ex.nome}:esquerdo`, shape: shapeL, fill: !weakerIsRight ? riskColor : "#888780", label: `${labelBase} — Lado esquerdo: ${ex.esquerdo_kg!.toFixed(1)} kg` });
           return out;
         });
     }
@@ -117,11 +121,12 @@ export function BodyMapSVG({
           // Abaixo do limiar de atenção, mantém o neutro; com assimetria, AMBOS os lados
           // recebem a mesma cor do gradiente.
           const fill = pairAsymmetry >= 10 ? corGradienteAssimetria(pairAsymmetry) : "#7A8B99";
-          const out: Array<{ key: string; shape: BodyMapShape; fill: string }> = [];
+          const labelBase = getMetricDisplayLabel ? getMetricDisplayLabel(m.metric) : m.metric;
+          const out: Array<{ key: string; shape: BodyMapShape; fill: string; label: string }> = [];
           const shapeR = shapesMap[`${muscle}-direito`];
           const shapeL = shapesMap[`${muscle}-esquerdo`];
-          if (shapeR) out.push({ key: `flex:${m.metric}:direito`, shape: shapeR, fill });
-          if (shapeL) out.push({ key: `flex:${m.metric}:esquerdo`, shape: shapeL, fill });
+          if (shapeR) out.push({ key: `flex:${m.metric}:direito`, shape: shapeR, fill, label: `${labelBase} — Lado direito: ${m.right!}°` });
+          if (shapeL) out.push({ key: `flex:${m.metric}:esquerdo`, shape: shapeL, fill, label: `${labelBase} — Lado esquerdo: ${m.left!}°` });
           return out;
         });
     }
@@ -149,8 +154,8 @@ export function BodyMapSVG({
             {shapeInstances
               .filter((s) => s.shape.view === view)
               .map((s) => s.articulation
-                ? <ArticulationShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} label={s.label ?? "Articulação"} />
-                : <MuscleShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} />
+                ? <ArticulationShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} label={s.label} />
+                : <MuscleShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} label={s.label} />
               )}
           </svg>
         </div>

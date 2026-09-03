@@ -33,6 +33,7 @@ import { getFuncionalV2DefaultProtocoloId } from "@/lib/kinologyImport";
 import { AssessmentDateField, todayISO } from "../AssessmentDateField";
 import type { FuncionalSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 import { ReadOnlyHint } from "../ReadOnlyHint";
+import { LadoLegend } from "../LadoLegend";
 
 interface Props {
   alunoId: string;
@@ -589,7 +590,10 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
         {!readOnly && (
           <div className="bio-card overflow-hidden">
             <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))] flex flex-wrap items-center justify-between gap-3">
-              <h3 className="bio-heading text-base">Histórico · Mobilidade / Flexibilidade</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="bio-heading text-base">Histórico · Mobilidade / Flexibilidade</h3>
+                <LadoLegend compact />
+              </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <Select value={selectedId} onValueChange={setSelectedId}>
@@ -639,8 +643,11 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
 
         {curvasData.length > 0 && (
           <div className="bio-card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="bio-heading text-base">Distribuição vs. base Fortem</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-3">
+                <h3 className="bio-heading text-base">Distribuição vs. base Fortem</h3>
+                <LadoLegend compact />
+              </div>
               <span className="bio-label">{sexoRpc === "F" ? "Mulheres avaliadas" : "Homens avaliados"}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
