@@ -86,11 +86,14 @@ export function BodyMapSVG({
             mapping.center && (m.left !== null || m.right !== null) ? { shapeKey: mapping.center, value: m.left ?? m.right, side: "Central" } : null,
           ].filter((x): x is { shapeKey: string; value: number; side: string } => x !== null);
           const max = Math.max(...values.map((x) => x.value), 0);
+          const min = Math.min(...values.map((x) => x.value));
+          // Assimetria do PAR: ambos os lados recebem a mesma cor do gradiente.
+          const pairAsymmetry = max > 0 && values.length > 1 ? ((max - min) / max) * 100 : 0;
+          const pairFill = corGradienteAssimetria(pairAsymmetry);
           return values.flatMap((x) => {
             const shape = shapesMap[x.shapeKey];
             if (!shape) return [];
-            const asymmetry = max > 0 && values.length > 1 ? (Math.abs(max - x.value) / max) * 100 : 0;
-            return [{ key: `mob:${m.metric}:${x.side}`, shape, fill: corGradienteAssimetria(asymmetry), label: `${m.metric} — ${x.side}: ${x.value}°`, articulation: true }];
+            return [{ key: `mob:${m.metric}:${x.side}`, shape, fill: pairFill, label: `${m.metric} — ${x.side}: ${x.value}°`, articulation: true }];
           });
         });
     }
@@ -116,11 +119,16 @@ export function BodyMapSVG({
         .filter((m) => m.left !== null && m.right !== null && FLEXIBILIDADE_SHAPE_MUSCLE[m.metric])
         .flatMap((m) => {
           const muscle = FLEXIBILIDADE_SHAPE_MUSCLE[m.metric];
+          const max = Math.max(m.left!, m.right!);
+          const pairAsymmetry = max > 0 ? (Math.abs(m.left! - m.right!) / max) * 100 : 0;
+          // Abaixo do limiar de atenção, mantém o neutro; com assimetria, AMBOS os lados
+          // recebem a mesma cor do gradiente.
+          const fill = pairAsymmetry >= 10 ? corGradienteAssimetria(pairAsymmetry) : "#7A8B99";
           const out: Array<{ key: string; shape: BodyMapShape; fill: string }> = [];
           const shapeR = shapesMap[`${muscle}-direito`];
           const shapeL = shapesMap[`${muscle}-esquerdo`];
-          if (shapeR) out.push({ key: `flex:${m.metric}:direito`, shape: shapeR, fill: "#7A8B99" });
-          if (shapeL) out.push({ key: `flex:${m.metric}:esquerdo`, shape: shapeL, fill: "#7A8B99" });
+          if (shapeR) out.push({ key: `flex:${m.metric}:direito`, shape: shapeR, fill });
+          if (shapeL) out.push({ key: `flex:${m.metric}:esquerdo`, shape: shapeL, fill });
           return out;
         });
     }
