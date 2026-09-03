@@ -42,6 +42,11 @@ interface Props {
    */
   layer?: Layer;
   onLayerChange?: (layer: Layer) => void;
+  /**
+   * Layout visual. "default" mantém a disposição original (usada em lançamento/viewer
+   * antigo). "resultados" reorganiza o mapa no formato do dashboard de Resultados.
+   */
+  layout?: "default" | "resultados";
 }
 
 
@@ -150,7 +155,132 @@ function CountRing({ value, label, size = 88, tone }: { value: number; label: st
   );
 }
 
-export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: layerProp, onLayerChange }: Props) {
+function RingsPanel({ rings }: { rings: NonNullable<Props["rings"]> }) {
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+        <p className="text-[9px] uppercase tracking-[0.2em] text-white/45 font-semibold text-center mb-1">
+          Assimetrias
+        </p>
+        <div className="flex items-center gap-2">
+          <CountRing value={rings.mobilidade.alta + rings.mobilidade.moderada} label="Mobilidade" />
+          <CountRing value={rings.flexibilidade.alta + rings.flexibilidade.moderada} label="Flexibilidade" />
+          <CountRing value={rings.forca.alta + rings.forca.moderada} label="Força" />
+        </div>
+      </div>
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+        <p className="text-[9px] uppercase tracking-[0.2em] text-white/45 font-semibold text-center mb-1">
+          Risco de Lesões
+        </p>
+        <p className="text-[8px] text-white/40 text-center mb-1.5">assimetria de força · dinamometria</p>
+        <div className="flex items-center gap-2">
+          <CountRing value={rings.forca.alta} label=">20%" size={66} tone={26} />
+          <CountRing value={rings.forca.moderada} label="10-20%" size={66} tone={15} />
+          <CountRing value={rings.forca.baixa} label="<10%" size={66} tone={4} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScoreRingsPanel({ canonical, analysis }: { canonical?: Props["canonical"]; analysis: any }) {
+  return (
+    <div className="flex items-center gap-4 flex-wrap">
+      <ScoreRing value={canonical ? canonical.mobilidade : analysis.scoreMobilidade} label="Mobilidade" />
+      <ScoreRing value={canonical ? canonical.simetria : analysis.scoreSimetria} label="Simetria" />
+      <ScoreRing value={canonical ? canonical.estabilidade : analysis.scoreEstabilidade} label="Estabilidade" />
+      <ScoreRing value={canonical ? canonical.forca : analysis.scoreForca} label="Força" />
+    </div>
+  );
+}
+
+function MapHeader({ riskDisplay, asymmetryCountDisplay }: { riskDisplay: { label: string; color: string }; asymmetryCountDisplay: number }) {
+  return (
+    <div>
+      <p className="text-2xl font-heading font-bold text-white">Mapa Corporal</p>
+      <div className="flex items-center gap-2 mt-2">
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+          style={{
+            background: `hsl(${riskDisplay.color} / 0.15)`,
+            color: `hsl(${riskDisplay.color})`,
+            border: `1px solid hsl(${riskDisplay.color} / 0.35)`,
+          }}
+        >
+          <ShieldAlert className="w-3 h-3" />
+          {riskDisplay.label}
+        </span>
+        {asymmetryCountDisplay > 0 && (
+          <span className="text-[11px] text-white/50">
+            {asymmetryCountDisplay} assimetria(s) detectada(s)
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LayerSelector({ layer, onChange }: { layer: Layer; onChange: (l: Layer) => void }) {
+  return (
+    <div className="flex items-center gap-2 text-[11px] text-white/55">
+      <Layers className="w-3.5 h-3.5" />
+      <span className="uppercase tracking-wider">Camada</span>
+      <div className="inline-flex gap-1">
+        {LAYERS.map((l) => (
+          <button
+            key={l.id}
+            onClick={() => onChange(l.id)}
+            className={`px-2.5 py-1 rounded-md text-xs ${
+              layer === l.id ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
+            }`}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ViewFilter({ value, onChange }: { value: "both" | "front" | "back"; onChange: (v: "both" | "front" | "back") => void }) {
+  return (
+    <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">
+      {VIEW_OPTIONS.map((v) => {
+        const active = value === v.id;
+        return (
+          <button
+            key={v.id}
+            onClick={() => onChange(v.id)}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              active ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
+            }`}
+          >
+            {v.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AttentionPanel({ items }: { items: RegionListItem[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 px-1">Pontos de atenção</p>
+      <RegionListPanel items={items} />
+    </div>
+  );
+}
+
+export function BodyMap({
+  metrics,
+  forcaExercises,
+  canonical,
+  rings,
+  layer: layerProp,
+  onLayerChange,
+  layout = "default",
+}: Props) {
   
   const [layerLocal, setLayerLocal] = useState<Layer>("mobility");
   const layer = layerProp ?? layerLocal;
@@ -179,88 +309,77 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
     [analysis, layer, forcaExercises],
   );
 
+  const mapSvg = (
+    <BodyMapSVG
+      viewFilter={viewFilter}
+      layer={layer}
+      forcaExercises={forcaExercises}
+      metrics={metrics}
+      shapesMap={shapesMap}
+    />
+  );
+
+  const footer = (
+    <p className="text-[11px] text-white/40 leading-relaxed">
+      As porcentagens representam a diferença do lado avaliado em relação ao lado oposto.
+    </p>
+  );
+
+  const chains = chainsDisplay.length > 0 && (
+    <div className="rounded-lg bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))] p-3 space-y-1.5">
+      <p className="text-[10px] uppercase tracking-wider text-[hsl(var(--bio-ink-muted))] font-semibold">
+        Cadeias compensatórias
+      </p>
+      <ul className="text-[11px] text-[hsl(var(--bio-ink))] space-y-1">
+        {chainsDisplay.map((c, i) => (
+          <li key={i} className="leading-snug">• {c.reason}</li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  if (layout === "resultados") {
+    return (
+      <div className="bodymap-surface rounded-xl p-5 md:p-6 space-y-5">
+        {/* Linha superior: controles do mapa à esquerda, anéis à direita */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="space-y-4">
+            <MapHeader riskDisplay={riskDisplay} asymmetryCountDisplay={asymmetryCountDisplay} />
+            <LayerSelector layer={layer} onChange={setLayer} />
+            <AsymmetryGradientLegend />
+          </div>
+          <div className="flex items-start lg:justify-end">
+            {rings ? <RingsPanel rings={rings} /> : <ScoreRingsPanel canonical={canonical} analysis={analysis} />}
+          </div>
+        </div>
+
+        {/* Linha inferior: mapas à esquerda, visão + pontos à direita */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
+          <div>{mapSvg}</div>
+          <div className="space-y-4">
+            <ViewFilter value={viewFilter} onChange={setViewFilter} />
+            <AttentionPanel items={regionList} />
+          </div>
+        </div>
+
+        {footer}
+        {chains}
+      </div>
+    );
+  }
+
   return (
     <div className="bodymap-surface rounded-xl p-5 md:p-6 space-y-5">
       {/* Header — Índice Funcional FORTEM */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <p className="text-2xl font-heading font-bold text-white">
-            Mapa Corporal
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-              style={{
-                background: `hsl(${riskDisplay.color} / 0.15)`,
-                color: `hsl(${riskDisplay.color})`,
-                border: `1px solid hsl(${riskDisplay.color} / 0.35)`,
-              }}
-            >
-              <ShieldAlert className="w-3 h-3" />
-              {riskDisplay.label}
-            </span>
-            {asymmetryCountDisplay > 0 && (
-              <span className="text-[11px] text-white/50">
-                {asymmetryCountDisplay} assimetria(s) detectada(s)
-              </span>
-            )}
-          </div>
-        </div>
+        <MapHeader riskDisplay={riskDisplay} asymmetryCountDisplay={asymmetryCountDisplay} />
         <div className="flex items-center gap-4 flex-wrap">
-          {rings ? (
-            <>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                <p className="text-[9px] uppercase tracking-[0.2em] text-white/45 font-semibold text-center mb-1">
-                  Assimetrias
-                </p>
-                <div className="flex items-center gap-2">
-                  <CountRing value={rings.mobilidade.alta + rings.mobilidade.moderada} label="Mobilidade" />
-                  <CountRing value={rings.flexibilidade.alta + rings.flexibilidade.moderada} label="Flexibilidade" />
-                  <CountRing value={rings.forca.alta + rings.forca.moderada} label="Força" />
-                </div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                <p className="text-[9px] uppercase tracking-[0.2em] text-white/45 font-semibold text-center mb-1">
-                  Risco de Lesões
-                </p>
-                <p className="text-[8px] text-white/40 text-center mb-1.5">assimetria de força · dinamometria</p>
-                <div className="flex items-center gap-2">
-                  <CountRing value={rings.forca.alta} label=">20%" size={66} tone={26} />
-                  <CountRing value={rings.forca.moderada} label="10-20%" size={66} tone={15} />
-                  <CountRing value={rings.forca.baixa} label="<10%" size={66} tone={4} />
-                </div>
-              </div>
-              
-            </>
-          ) : (
-            <>
-              <ScoreRing value={canonical ? canonical.mobilidade : analysis.scoreMobilidade} label="Mobilidade" />
-              <ScoreRing value={canonical ? canonical.simetria : analysis.scoreSimetria} label="Simetria" />
-              <ScoreRing value={canonical ? canonical.estabilidade : analysis.scoreEstabilidade} label="Estabilidade" />
-              <ScoreRing value={canonical ? canonical.forca : analysis.scoreForca} label="Força" />
-            </>
-          )}
+          {rings ? <RingsPanel rings={rings} /> : <ScoreRingsPanel canonical={canonical} analysis={analysis} />}
         </div>
       </div>
 
       {/* Controls row 2: layer */}
-      <div className="flex items-center gap-2 text-[11px] text-white/55">
-        <Layers className="w-3.5 h-3.5" />
-        <span className="uppercase tracking-wider">Camada</span>
-        <div className="inline-flex gap-1">
-          {LAYERS.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => setLayer(l.id)}
-              className={`px-2.5 py-1 rounded-md text-xs ${
-                layer === l.id ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
-              }`}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <LayerSelector layer={layer} onChange={setLayer} />
 
       {/* Main: SVG + side panel */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
@@ -268,59 +387,17 @@ export function BodyMap({ metrics, forcaExercises, canonical, rings, layer: laye
           {/* Escala + visões alinhadas */}
           <div className="flex items-center justify-between gap-3 flex-wrap pb-3 border-b border-white/5">
             <AsymmetryGradientLegend />
-            <div className="inline-flex p-1 rounded-lg bg-white/5 border border-white/5">
-              {VIEW_OPTIONS.map((v) => {
-                const active = viewFilter === v.id;
-                return (
-                  <button
-                    key={v.id}
-                    onClick={() => setViewFilter(v.id)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                      active ? "bg-white/10 text-white" : "text-white/55 hover:text-white/80"
-                    }`}
-                  >
-                    {v.label}
-                  </button>
-                );
-              })}
-            </div>
+            <ViewFilter value={viewFilter} onChange={setViewFilter} />
           </div>
 
-          <BodyMapSVG
-            viewFilter={viewFilter}
-            layer={layer}
-            forcaExercises={forcaExercises}
-            metrics={metrics}
-            shapesMap={shapesMap}
-          />
+          {mapSvg}
         </div>
 
-        <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 px-1">
-            Pontos de atenção
-          </p>
-          <RegionListPanel items={regionList} />
-        </div>
+        <AttentionPanel items={regionList} />
       </div>
 
-      {/* Footer note */}
-      <p className="text-[11px] text-white/40 leading-relaxed">
-         As porcentagens representam a diferença do lado avaliado em relação ao lado oposto.
-      </p>
-
-      {/* Chain explanations */}
-      {chainsDisplay.length > 0 && (
-        <div className="rounded-lg bg-[hsl(var(--bio-surface-2))] border border-[hsl(var(--bio-line))] p-3 space-y-1.5">
-          <p className="text-[10px] uppercase tracking-wider text-[hsl(var(--bio-ink-muted))] font-semibold">
-            Cadeias compensatórias
-          </p>
-          <ul className="text-[11px] text-[hsl(var(--bio-ink))] space-y-1">
-            {chainsDisplay.map((c, i) => (
-              <li key={i} className="leading-snug">• {c.reason}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {footer}
+      {chains}
     </div>
   );
 }
