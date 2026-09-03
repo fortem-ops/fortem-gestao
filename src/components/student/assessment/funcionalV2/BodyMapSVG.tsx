@@ -154,8 +154,8 @@ export function BodyMapSVG({
             {shapeInstances
               .filter((s) => s.shape.view === view)
               .map((s) => s.articulation
-                ? <ArticulationShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} label={s.label ?? "Articulação"} />
-                : <MuscleShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} />
+                ? <ArticulationShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} label={s.label} />
+                : <MuscleShapeFill key={s.key} instanceKey={s.key} shape={s.shape} fill={s.fill} label={s.label} />
               )}
           </svg>
         </div>
