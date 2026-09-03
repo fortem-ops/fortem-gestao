@@ -35,7 +35,7 @@ function breatheClass(fill: string) {
     : "bodymap-breathe bodymap-breathe-strong";
 }
 
-function MuscleShapeFill({ shape, fill }: { shape: BodyMapShape; fill: string; instanceKey?: string }) {
+function MuscleShapeFill({ shape, fill, label }: { shape: BodyMapShape; fill: string; label?: string; instanceKey?: string }) {
   if (shape.points.length < 3) return null;
   const d = pointsToSmoothPath(shape.points);
   return (
@@ -44,7 +44,9 @@ function MuscleShapeFill({ shape, fill }: { shape: BodyMapShape; fill: string; i
       fill={fill}
       stroke="none"
       className={breatheClass(fill)}
-    />
+    >
+      {label && <title>{label}</title>}
+    </path>
   );
 }
 
