@@ -71,6 +71,7 @@ export function PremiumBodyMap({ funcional, scores, layer, onLayerChange }: Prop
           layer={layer}
           onLayerChange={onLayerChange}
           forcaExercises={forcaInputs}
+          layout="resultados"
           rings={
             scores
               ? {
