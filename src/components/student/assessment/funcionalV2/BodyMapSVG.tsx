@@ -121,11 +121,12 @@ export function BodyMapSVG({
           // Abaixo do limiar de atenção, mantém o neutro; com assimetria, AMBOS os lados
           // recebem a mesma cor do gradiente.
           const fill = pairAsymmetry >= 10 ? corGradienteAssimetria(pairAsymmetry) : "#7A8B99";
-          const out: Array<{ key: string; shape: BodyMapShape; fill: string }> = [];
+          const labelBase = getMetricDisplayLabel ? getMetricDisplayLabel(m.metric) : m.metric;
+          const out: Array<{ key: string; shape: BodyMapShape; fill: string; label: string }> = [];
           const shapeR = shapesMap[`${muscle}-direito`];
           const shapeL = shapesMap[`${muscle}-esquerdo`];
-          if (shapeR) out.push({ key: `flex:${m.metric}:direito`, shape: shapeR, fill });
-          if (shapeL) out.push({ key: `flex:${m.metric}:esquerdo`, shape: shapeL, fill });
+          if (shapeR) out.push({ key: `flex:${m.metric}:direito`, shape: shapeR, fill, label: `${labelBase} — Lado direito: ${m.right!}°` });
+          if (shapeL) out.push({ key: `flex:${m.metric}:esquerdo`, shape: shapeL, fill, label: `${labelBase} — Lado esquerdo: ${m.left!}°` });
           return out;
         });
     }
