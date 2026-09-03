@@ -3,7 +3,7 @@ import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
 import { pointsToSmoothPath } from "./pointsToPath";
 import { FORCA_SHAPE_MUSCLE, FLEXIBILIDADE_SHAPE_MUSCLE, MOBILIDADE_SHAPE_ARTICULATION } from "./shapeMuscleMapping";
-import { classifyForca, type ForcaInput, type Layer, type MetricInput } from "./bodyMapLogic";
+import { classifyForca, FORCA_EXERCICIO_LABEL, type ForcaInput, type ForcaExercicio, type Layer, type MetricInput } from "./bodyMapLogic";
 import type { BodyMapShape } from "./useBodyMapShapes";
 
 const VIEWBOX = { w: 1024, h: 1024 };
