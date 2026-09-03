@@ -3790,6 +3790,7 @@ export type Database = {
       mobilidade_amostras_fortem: {
         Row: {
           created_at: string
+          faixa_etaria: string | null
           fonte: string
           id: string
           metrica: string
@@ -3798,6 +3799,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          faixa_etaria?: string | null
           fonte?: string
           id?: string
           metrica: string
@@ -3806,6 +3808,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          faixa_etaria?: string | null
           fonte?: string
           id?: string
           metrica?: string
@@ -3818,6 +3821,7 @@ export type Database = {
         Row: {
           assimetria_pct: number
           created_at: string
+          faixa_etaria: string | null
           fonte: string
           id: string
           metrica: string
@@ -3826,6 +3830,7 @@ export type Database = {
         Insert: {
           assimetria_pct: number
           created_at?: string
+          faixa_etaria?: string | null
           fonte?: string
           id?: string
           metrica: string
@@ -3834,6 +3839,7 @@ export type Database = {
         Update: {
           assimetria_pct?: number
           created_at?: string
+          faixa_etaria?: string | null
           fonte?: string
           id?: string
           metrica?: string
