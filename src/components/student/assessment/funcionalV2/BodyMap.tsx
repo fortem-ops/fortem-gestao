@@ -183,7 +183,7 @@ function RingsPanel({ rings }: { rings: NonNullable<Props["rings"]> }) {
   );
 }
 
-function ScoreRingsPanel({ canonical, analysis }: { canonical?: Props["canonical"]; analysis: any }) {
+function ScoreRingsPanel({ canonical, analysis }: { canonical?: Props["canonical"]; analysis: BodyMapAnalysis }) {
   return (
     <div className="flex items-center gap-4 flex-wrap">
       <ScoreRing value={canonical ? canonical.mobilidade : analysis.scoreMobilidade} label="Mobilidade" />
