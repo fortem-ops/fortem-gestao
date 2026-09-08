@@ -73,6 +73,32 @@ export function gerarRecomendacoes(
     });
   });
 
+  // 3) Déficits bilaterais (classificação absoluta) — cobrem o caso em que os dois lados
+  //    estão igualmente ruins e, portanto, não geram assimetria.
+  const ruim = (c: string | null | undefined) => c === "Fraco" || c === "Regular";
+  (funcional?.metricas ?? []).forEach((m) => {
+    if (/Mobilidade/i.test(m.metric) && (ruim(m.leftClass) || ruim(m.rightClass))) {
+      const label = m.metric.replace(/^Mobilidade\s+/i, "");
+      list.push({
+        id: `mob-bilateral-${m.metric}`,
+        titulo: `Mobilidade reduzida: ${label}`,
+        descricao: "Amplitude abaixo do esperado. Aplicar protocolo de mobilidade específico 3x/semana e reavaliar em 6 semanas.",
+        prioridade: ruim(m.leftClass) && ruim(m.rightClass) ? "alta" : "media",
+        area: "mobilidade",
+      });
+    }
+    if (/Flexibilidade/i.test(m.metric) && (m.leftClass === "Fraco" || m.rightClass === "Fraco")) {
+      const label = m.metric.replace(/^Flexibilidade\s+/i, "");
+      list.push({
+        id: `flex-bilateral-${m.metric}`,
+        titulo: `Flexibilidade crítica: ${label}`,
+        descricao: "Adicionar alongamentos diários (45–60s) e técnica PNF 2x/semana.",
+        prioridade: "media",
+        area: "flexibilidade",
+      });
+    }
+  });
+
   // 4) Composição corporal
   if (composicao) {
     if (scores.composicao !== null && scores.composicao < 55) {

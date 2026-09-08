@@ -7,19 +7,37 @@ const corsHeaders = {
 };
 
 async function sendPush(supabaseUrl: string, serviceKey: string, payload: object) {
-  await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${serviceKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      console.error(`[check-push] send-push-notification -> ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    }
+  } catch (e) {
+    console.error("[check-push] falha ao chamar send-push-notification:", (e as Error).message);
+  }
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  try {
+    return await processar();
+  } catch (e) {
+    console.error("[check-push] erro inesperado:", (e as Error).message);
+    return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
+
+async function processar(): Promise<Response> {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -176,4 +194,4 @@ serve(async (req) => {
   return new Response(JSON.stringify({ ok: true, processado_em: hojeStr }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-});
+}
