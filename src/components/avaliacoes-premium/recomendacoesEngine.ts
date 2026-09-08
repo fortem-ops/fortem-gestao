@@ -1,6 +1,12 @@
 import type { PremiumScores } from "./scoringPremium";
 import type { ComposicaoSnapshot, FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 import { FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import {
+  gerarSugestoesAquecimento,
+  type ExercicioSugerido,
+  type ExercicioVinculado,
+  type FaixaAssimetria,
+} from "./aquecimentoSugestoes";
 
 export interface Recomendacao {
   id: string;
@@ -8,12 +14,17 @@ export interface Recomendacao {
   descricao: string;
   prioridade: "alta" | "media" | "baixa";
   area: "mobilidade" | "flexibilidade" | "forca" | "composicao" | "fisioterapia" | "reavaliacao";
+  /** Exercícios de aquecimento sugeridos (mobilidade/flexibilidade). */
+  exercicios?: ExercicioSugerido[];
+  /** Presente quando a recomendação nasce de uma assimetria com faixa. */
+  assimetria?: { pct: number; faixa: FaixaAssimetria; lado: "esquerdo" | "direito"; chaveLabel: string };
 }
 
 export function gerarRecomendacoes(
   scores: PremiumScores,
   funcional: FuncionalSnapshot | null,
   composicao: ComposicaoSnapshot | null,
+  exerciciosVinculados?: ExercicioVinculado[] | null,
 ): Recomendacao[] {
   const list: Recomendacao[] = [];
 
@@ -42,33 +53,24 @@ export function gerarRecomendacoes(
     }
   });
 
-  // 2) Mobilidade reduzida
-  (funcional?.metricas ?? []).forEach((m) => {
-    if (!/Mobilidade/i.test(m.metric)) return;
-    const ruim = (c: string | null | undefined) => c === "Fraco" || c === "Regular";
-    if (ruim(m.leftClass) || ruim(m.rightClass)) {
-      list.push({
-        id: `mob-${m.metric}`,
-        titulo: `${m.metric} reduzida`,
-        descricao: `Aplicar protocolo de mobilidade específico 3x/semana e reavaliar em 6 semanas.`,
-        prioridade: ruim(m.leftClass) && ruim(m.rightClass) ? "alta" : "media",
-        area: "mobilidade",
-      });
-    }
-  });
-
-  // 3) Flexibilidade
-  (funcional?.metricas ?? []).forEach((m) => {
-    if (!/Flexibilidade/i.test(m.metric)) return;
-    if (m.leftClass === "Fraco" || m.rightClass === "Fraco") {
-      list.push({
-        id: `flex-${m.metric}`,
-        titulo: `${m.metric} crítica`,
-        descricao: `Adicionar alongamentos diários (45–60s) e técnica PNF 2x/semana.`,
-        prioridade: "media",
-        area: "flexibilidade",
-      });
-    }
+  // 2) Mobilidade / Flexibilidade — assimetrias amarela (>=10%) e vermelha (>20%)
+  //    com sugestão de exercícios de Aquecimento vinculados à articulação/músculo deficitário.
+  gerarSugestoesAquecimento(funcional?.metricas, exerciciosVinculados).forEach((s) => {
+    const areaLabel = s.area === "mobilidade" ? "Mobilidade" : "Flexibilidade";
+    const vermelha = s.faixa === "vermelha";
+    list.push({
+      id: `${s.area === "mobilidade" ? "mob" : "flex"}-${s.metric}`,
+      titulo: `${areaLabel}: ${s.label}`,
+      descricao: `Assimetria de ${s.assimetriaPct.toFixed(0)}% — lado ${s.ladoDeficitario} deficitário (${s.chaveLabel}). ${
+        vermelha
+          ? "Priorizar aquecimento específico em toda sessão e reavaliar em 6 semanas."
+          : "Incluir aquecimento específico 3x/semana e reavaliar em 8 semanas."
+      }`,
+      prioridade: vermelha ? "alta" : "media",
+      area: s.area,
+      exercicios: s.exercicios,
+      assimetria: { pct: s.assimetriaPct, faixa: s.faixa, lado: s.ladoDeficitario, chaveLabel: s.chaveLabel },
+    });
   });
 
   // 4) Composição corporal

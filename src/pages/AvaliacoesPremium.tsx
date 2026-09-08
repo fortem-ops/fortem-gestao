@@ -9,6 +9,7 @@ import { ResultadosDateSelect, type ResultadosDateOption } from "@/components/av
 import { ResultadosNav, type ResultadoView } from "@/components/avaliacoes-premium/ResultadosNav";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
+import { useExerciciosPorArticulacao } from "@/hooks/useExerciciosPorArticulacao";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ForcaTab } from "@/components/avaliacoes-premium/tabs/ForcaTab";
 import { ComposicaoTab } from "@/components/avaliacoes-premium/tabs/ComposicaoTab";
@@ -34,6 +35,7 @@ export default function AvaliacoesPremium() {
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(alunoId || null);
   const { data: mobilidadeRef } = useMobilidadeReferenceData();
   const { data: assimetriaRef } = useMobilidadeAssimetriaReferenceData();
+  const { data: exerciciosVinculados } = useExerciciosPorArticulacao();
   const sexoAluno: "M" | "F" | undefined = data?.aluno?.sexo?.toLowerCase().startsWith("f")
     ? "F"
     : data?.aluno?.sexo?.toLowerCase().startsWith("m")
@@ -85,8 +87,8 @@ export default function AvaliacoesPremium() {
     [data, funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef],
   );
   const recomendacoes = useMemo(
-    () => (scores && data ? gerarRecomendacoes(scores, funcionalDaData, composicaoDaData) : []),
-    [scores, data, funcionalDaData, composicaoDaData],
+    () => (scores && data ? gerarRecomendacoes(scores, funcionalDaData, composicaoDaData, exerciciosVinculados) : []),
+    [scores, data, funcionalDaData, composicaoDaData, exerciciosVinculados],
   );
 
 
