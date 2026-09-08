@@ -23,6 +23,8 @@ import { Prescricao531Editor } from "@/components/student/workout/Prescricao531E
 import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM102Editor";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
+import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
+import { prescribeFaseInicial } from "@/lib/workoutImport";
 
 interface GroupSelection { grupo: string; categoria?: string; subcategoria: string }
 interface BankExercise {
