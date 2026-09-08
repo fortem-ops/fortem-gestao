@@ -335,17 +335,26 @@ export function ImportFromBankDialog({ alunoId, alunoNome, onSaved }: Props) {
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {items.map((tmpl) => {
                           const count = escolhasPorFase.get(tmpl.fase) || 0;
+                          const porAluno = METODOS_POR_ALUNO.some((m) => m.fase === tmpl.fase);
                           return (
                             <button
                               key={tmpl.fase}
-                              onClick={() => setSelected({ kind: "template", template: tmpl })}
+                              onClick={() =>
+                                porAluno
+                                  ? setMetodoDireto(tmpl.fase)
+                                  : setSelected({ kind: "template", template: tmpl })
+                              }
                               className="glass-card rounded-lg p-4 text-left hover:border-primary/50 transition-all group"
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                  <Dumbbell className="w-5 h-5 text-primary" />
+                                  {porAluno ? (
+                                    <Sparkles className="w-5 h-5 text-primary" />
+                                  ) : (
+                                    <Dumbbell className="w-5 h-5 text-primary" />
+                                  )}
                                 </div>
-                                {count > 0 && (
+                                {count > 0 && !porAluno && (
                                   <Badge variant="outline" className="text-[10px] border-success/40 text-success">
                                     {count} vínculos
                                   </Badge>
@@ -354,7 +363,9 @@ export function ImportFromBankDialog({ alunoId, alunoNome, onSaved }: Props) {
                               <div className="mt-3">
                                 <p className="font-heading font-bold text-foreground text-sm">{tmpl.fase}</p>
                                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  {tmpl.frequencia}/semana · {tmpl.treinos.length} treinos
+                                  {porAluno
+                                    ? `${tmpl.frequencia} · prescrição individual`
+                                    : `${tmpl.frequencia}/semana · ${tmpl.treinos.length} treinos`}
                                 </p>
                               </div>
                             </button>
