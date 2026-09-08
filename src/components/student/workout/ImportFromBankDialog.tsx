@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Library, Dumbbell, Loader2, Sparkles } from "lucide-react";
 import { WORKOUT_TEMPLATES, type WorkoutTemplate, type WorkoutExercise } from "./workoutTemplates";
 import { WorkoutDetail } from "./WorkoutDetail";
+import { AlunoDeficitsAlert } from "./AlunoDeficitsAlert";
 import { flattenPersonalizado, type PersonalizadoConteudo } from "./personalizadoTypes";
 
 interface Escolha {
