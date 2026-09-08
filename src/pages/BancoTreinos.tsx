@@ -703,6 +703,10 @@ function TemplateDetail({
   onClearChoice: (ex: WorkoutExercise, treino: string) => void;
   onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
+  alunoId?: string;
+  alunoNome?: string;
+  onPrescrever?: () => void;
+  prescrevendo?: boolean;
 }) {
   const { blocosAquecimento } = useExerciseCategories();
   // Blocos = categorias do grupo "Aquecimento" + eventuais códigos legados
