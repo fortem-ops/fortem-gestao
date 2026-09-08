@@ -1530,6 +1530,24 @@ export default function BancoTreinos() {
         title="Escolha o aluno para prescrever Plan Strong 50"
         onSelect={(a) => setEditorPS({ alunoId: a.id, alunoNome: a.nome })}
       />
+      <Select531AlunoDialog
+        open={!!pendingTemplate}
+        onOpenChange={(o) => { if (!o) setPendingTemplate(null); }}
+        title={pendingTemplate ? `Escolha o aluno — ${pendingTemplate.fase}` : "Escolha o aluno"}
+        allowSkip={canEdit}
+        onSkip={() => {
+          const t = pendingTemplate;
+          setPendingTemplate(null);
+          setAlunoCtx(null);
+          if (t) abrirTemplate(t);
+        }}
+        onSelect={(a) => {
+          const t = pendingTemplate;
+          setPendingTemplate(null);
+          setAlunoCtx({ id: a.id, nome: a.nome });
+          if (t) abrirTemplate(t);
+        }}
+      />
     </div>
   );
 }
