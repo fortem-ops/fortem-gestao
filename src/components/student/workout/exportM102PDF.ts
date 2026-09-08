@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { aquecimentoLabel, ordenarBlocosAquecimento } from "@/lib/aquecimentoBlocos";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   type M102Conteudo,
@@ -38,12 +39,6 @@ interface ExportArgs {
   print?: boolean;
 }
 
-const AQ_LABELS: Record<AquecimentoBloco, string> = {
-  LIB: "LIBERAÇÃO",
-  MOB: "MOBILIDADE",
-  ATI: "ATIVAÇÃO",
-  PREV: "PREVENTIVOS",
-};
 
 const M102_DIAS_HEADER: readonly M102Slot[] = ["T1", "T2", "T3", "T4"];
 
@@ -71,9 +66,8 @@ export async function exportM102PDF({
   print,
 }: ExportArgs): Promise<void> {
   const aq = data.aquecimento;
-  const aqBlocos: AquecimentoBloco[] = ["LIB", "MOB", "ATI", "PREV"];
-  const gruposAtivos = aq
-    ? aqBlocos.filter((k) => (aq[k]?.length ?? 0) > 0)
+  const gruposAtivos: AquecimentoBloco[] = aq
+    ? ordenarBlocosAquecimento(Object.keys(aq)).filter((k) => (aq[k]?.length ?? 0) > 0)
     : [];
 
   // ============================================================
@@ -152,7 +146,7 @@ export async function exportM102PDF({
         doc.text(g, mainX + badgeW / 2, y + AQ_SUBBAR_H / 2 + 0.9, { align: "center" });
         doc.setFontSize(AQ_LABEL_FONT);
         doc.setTextColor(...INK);
-        doc.text(AQ_LABELS[g], mainX + badgeW + 2, y + AQ_SUBBAR_H / 2 + 0.9);
+        doc.text(aquecimentoLabel(g), mainX + badgeW + 2, y + AQ_SUBBAR_H / 2 + 0.9);
         y += AQ_SUBBAR_H + 0.3;
 
         const body = items.map((ex: PersonalizadoAquecimentoEx, idx) => {

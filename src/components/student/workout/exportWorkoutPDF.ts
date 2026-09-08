@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import type { Tables } from "@/integrations/supabase/types";
 import type { WorkoutExercise } from "./workoutTemplates";
 import fortemLogo from "@/assets/fortem-logo-pdf.png";
+import { aquecimentoLabel, ordenarBlocosAquecimento } from "@/lib/aquecimentoBlocos";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
@@ -44,7 +45,10 @@ const WARMUP_COLORS: Record<string, { fill: [number, number, number]; text: [num
   MOB: { fill: INK, text: WHITE },          // Mobilidade — BLACK
   ATI: { fill: INK, text: WHITE },          // Ativação — BLACK
   PREV: { fill: INK, text: WHITE },         // Preventivos — BLACK
+  POT: { fill: INK, text: WHITE },          // Potência — BLACK
 };
+
+const WARMUP_DEFAULT = { fill: INK, text: WHITE } as const;
 
 const DAYS = ["T1", "T2", "T3", "T4"] as const;
 const CHECK = "•DOT•"; // sentinel — replaced by a red dot in didDrawCell
@@ -174,9 +178,10 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
   const bodyBottom = pageH - margin - footerReserve;
   const availH = bodyBottom - bodyTop;
 
-  const aqBlocosCount = (["LIB", "MOB", "ATI", "PREV"] as const).filter(
-    (k) => data.aquecimento.some((ex) => ex.categoria === k),
-  ).length;
+  const aqSiglas = ordenarBlocosAquecimento(
+    data.aquecimento.map((ex) => ex.categoria ?? "").filter(Boolean),
+  );
+  const aqBlocosCount = aqSiglas.length;
   const aqRowsTotal = data.aquecimento.length;
 
   let forcaRowsTotal = 0;
@@ -276,19 +281,18 @@ export async function exportWorkoutPDF({ student, descricao, templateFase, data,
   if (data.aquecimento.length > 0) {
     sectionLabel("Aquecimento");
 
-    const blocos: { key: "LIB" | "MOB" | "ATI" | "PREV"; label: string; items: WorkoutExercise[] }[] = [
-      { key: "LIB", label: "LIBERAÇÃO", items: [] },
-      { key: "MOB", label: "MOBILIDADE", items: [] },
-      { key: "ATI", label: "ATIVAÇÃO", items: [] },
-      { key: "PREV", label: "PREVENTIVOS", items: [] },
-    ];
+    const blocos: { key: string; label: string; items: WorkoutExercise[] }[] = aqSiglas.map((key) => ({
+      key,
+      label: aquecimentoLabel(key),
+      items: [],
+    }));
     data.aquecimento.forEach(ex => {
       const b = blocos.find(b => b.key === ex.categoria);
       if (b) b.items.push(ex);
     });
 
     blocos.filter(b => b.items.length > 0).forEach(bloco => {
-      const colors = WARMUP_COLORS[bloco.key];
+      const colors = WARMUP_COLORS[bloco.key] ?? WARMUP_DEFAULT;
       const badgeW = 15;
       doc.setFillColor(...colors.fill);
       doc.rect(mainX, y, badgeW, BADGE_H, "F");

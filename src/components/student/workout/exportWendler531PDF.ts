@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { aquecimentoLabel, ordenarBlocosAquecimento } from "@/lib/aquecimentoBlocos";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   type Wendler531Conteudo,
@@ -39,12 +40,6 @@ const AQUEC_TINT: [number, number, number] = [220, 240, 220];
 const TRAB_TINT: [number, number, number] = [253, 214, 214];
 const AMRAP_TINT: [number, number, number] = [248, 160, 160];
 
-const AQ_LABELS: Record<AquecimentoBloco, string> = {
-  LIB: "LIBERAÇÃO",
-  MOB: "MOBILIDADE",
-  ATI: "ATIVAÇÃO",
-  PREV: "PREVENTIVOS",
-};
 
 const drawHeader = (
   doc: jsPDF,
@@ -126,9 +121,8 @@ export async function exportWendler531PDF({
   const freq = data.frequencia;
   const diasHeader = Array.from({ length: freq }, (_, i) => `T${i + 1}`);
   const aq = data.aquecimento;
-  const aqBlocos: AquecimentoBloco[] = ["LIB", "MOB", "ATI", "PREV"];
-  const gruposAtivos = aq
-    ? aqBlocos.filter((k) => (aq[k]?.length ?? 0) > 0)
+  const gruposAtivos: AquecimentoBloco[] = aq
+    ? ordenarBlocosAquecimento(Object.keys(aq)).filter((k) => (aq[k]?.length ?? 0) > 0)
     : [];
   const allLifts = data.dias.flatMap((d) => d.levantamentos);
 
@@ -240,7 +234,7 @@ export async function exportWendler531PDF({
         doc.text(g, mainX + badgeW / 2, y + AQ_SUBBAR_H / 2 + 0.9, { align: "center" });
         doc.setFontSize(AQ_LABEL_FONT);
         doc.setTextColor(...INK);
-        doc.text(AQ_LABELS[g], mainX + badgeW + 2, y + AQ_SUBBAR_H / 2 + 0.9);
+        doc.text(aquecimentoLabel(g), mainX + badgeW + 2, y + AQ_SUBBAR_H / 2 + 0.9);
         y += AQ_SUBBAR_H + 0.3;
 
 

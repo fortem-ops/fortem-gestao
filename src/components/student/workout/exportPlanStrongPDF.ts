@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { aquecimentoLabel, ordenarBlocosAquecimento } from "@/lib/aquecimentoBlocos";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   type PlanStrong50Conteudo,
@@ -37,12 +38,6 @@ interface ExportArgs {
   print?: boolean;
 }
 
-const AQ_LABELS: Record<AquecimentoBloco, string> = {
-  LIB: "LIBERAÇÃO",
-  MOB: "MOBILIDADE",
-  ATI: "ATIVAÇÃO",
-  PREV: "PREVENTIVOS",
-};
 
 const lastY = (doc: jsPDF) =>
   (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
@@ -98,8 +93,9 @@ export async function exportPlanStrongPDF({
 
   // ── AQUECIMENTO ───────────────────────────────────────────
   const aq = data.aquecimento;
-  const aqBlocos: AquecimentoBloco[] = ["LIB", "MOB", "ATI", "PREV"];
-  const gruposAtivos = aq ? aqBlocos.filter((k) => (aq[k]?.length ?? 0) > 0) : [];
+  const gruposAtivos: AquecimentoBloco[] = aq
+    ? ordenarBlocosAquecimento(Object.keys(aq)).filter((k) => (aq[k]?.length ?? 0) > 0)
+    : [];
 
   if (gruposAtivos.length > 0) {
     y = sectionBar(doc, "Aquecimento", undefined, mainX, y, mainW, 6.4);
@@ -154,7 +150,7 @@ export async function exportPlanStrongPDF({
       doc.text(g, mainX + badgeW / 2, y + SUBBAR_H / 2 + 0.9, { align: "center" });
       doc.setFontSize(7.8);
       doc.setTextColor(...INK);
-      doc.text(AQ_LABELS[g], mainX + badgeW + 2, y + SUBBAR_H / 2 + 0.9);
+      doc.text(aquecimentoLabel(g), mainX + badgeW + 2, y + SUBBAR_H / 2 + 0.9);
       y += SUBBAR_H + 0.3;
 
       const body = items.map((ex: PersonalizadoAquecimentoEx, idx) => {
