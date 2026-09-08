@@ -435,10 +435,10 @@ export function PrescricaoM102Editor({
           </Button>
         </div>
       </div>
-
-
+      <AlunoDeficitsAlert alunoId={alunoId} />
 
       {/* Configuração */}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Configuração</CardTitle>

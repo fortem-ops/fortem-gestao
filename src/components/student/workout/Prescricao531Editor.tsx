@@ -576,7 +576,10 @@ export function Prescricao531Editor({
         </div>
       </div>
 
+      <AlunoDeficitsAlert alunoId={alunoId} />
+
       {/* Configuração global */}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Configuração</CardTitle>

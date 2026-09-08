@@ -852,7 +852,10 @@ export function PrescricaoPlanStrongEditor({
         </div>
       </div>
 
+      <AlunoDeficitsAlert alunoId={alunoId} />
+
       {/* Configuração geral */}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Configuração geral</CardTitle>
