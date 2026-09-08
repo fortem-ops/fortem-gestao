@@ -126,7 +126,6 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
           (typeof e === "string" ? e : "") ||
           "Erro ao salvar";
         toast.error(msg);
-      }
       } finally {
         setSaving(false);
       }
