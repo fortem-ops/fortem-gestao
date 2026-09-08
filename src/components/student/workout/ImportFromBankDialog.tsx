@@ -322,7 +322,10 @@ export function ImportFromBankDialog({ alunoId, alunoNome, onSaved }: Props) {
             ) : (
               <div className="space-y-6 mt-2">
                 {PHASE_GROUPS.map((group) => {
-                  const items = WORKOUT_TEMPLATES.filter(group.filter);
+                  const items =
+                    group.label === "Métodos"
+                      ? [...WORKOUT_TEMPLATES.filter(group.filter), ...METODOS_POR_ALUNO]
+                      : WORKOUT_TEMPLATES.filter(group.filter);
                   if (items.length === 0) return null;
                   return (
                     <div key={group.label}>
