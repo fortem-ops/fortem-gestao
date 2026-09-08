@@ -1294,13 +1294,17 @@ export default function BancoTreinos() {
         <TemplateDetail
           template={selected}
           bank={bank}
-          onBack={() => setSelected(null)}
+          onBack={() => { setSelected(null); setAlunoCtx(null); }}
           onOpenVideo={handleOpenVideo}
           escolhasMap={escolhasMap}
           onSaveChoice={(ex, treino, b) => handleSaveChoice(selected, ex, treino, b)}
           onClearChoice={(ex, treino) => handleClearChoice(selected, ex, treino)}
           onSaveOverride={(ex, treino, patch) => handleSaveOverride(selected, ex, treino, patch)}
-          canEdit={canEdit}
+          canEdit={canEdit && !alunoCtx}
+          alunoId={alunoCtx?.id}
+          alunoNome={alunoCtx?.nome}
+          onPrescrever={alunoCtx ? () => handlePrescrever(selected, alunoCtx) : undefined}
+          prescrevendo={prescrevendo}
         />
         {renderVideoModal()}
       </div>
