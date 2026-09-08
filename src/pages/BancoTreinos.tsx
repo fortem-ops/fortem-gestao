@@ -689,6 +689,10 @@ function TemplateDetail({
   onClearChoice,
   onSaveOverride,
   canEdit,
+  alunoId,
+  alunoNome,
+  onPrescrever,
+  prescrevendo,
 }: {
   template: WorkoutTemplate;
   bank: BankExercise[];
