@@ -1172,6 +1172,50 @@ export default function BancoTreinos() {
     </Dialog>
   );
 
+  function abrirTemplate(template: WorkoutTemplate) {
+    if (template.fase === "Personalizado") {
+      setPersonalizadoOpen({ mode: "new", variante: "personalizado" });
+      return;
+    }
+    if (template.fase.startsWith("Corrida")) {
+      const existing = modelosPersonalizados.find((m) => m.nome === template.fase);
+      if (existing) {
+        setPersonalizadoOpen({
+          mode: "edit",
+          id: existing.id,
+          nome: existing.nome,
+          conteudo: (existing.conteudo as unknown) as PersonalizadoConteudo,
+        });
+      } else if (!canEdit) {
+        toast.info("Aguardando configuração", {
+          description: "Esta base de Corrida ainda não foi configurada por um coordenador.",
+        });
+      } else {
+        setPersonalizadoOpen({
+          mode: "new",
+          variante: "corrida",
+          templateFase: template.fase,
+          seed: seedFromWorkoutTemplate(template),
+        });
+      }
+      return;
+    }
+    setSelected(template);
+  }
+
+  async function handlePrescrever(template: WorkoutTemplate, aluno: { id: string; nome: string }) {
+    if (!user?.id) return;
+    setPrescrevendo(true);
+    try {
+      await prescribeFaseInicial(template.fase, aluno.id, user.id);
+      toast.success("Treino prescrito", { description: `${template.fase} → ${aluno.nome}` });
+    } catch (err) {
+      toast.error("Não foi possível prescrever", { description: (err as Error).message });
+    } finally {
+      setPrescrevendo(false);
+    }
+  }
+
   if (editor531) {
     return (
       <Prescricao531Editor
