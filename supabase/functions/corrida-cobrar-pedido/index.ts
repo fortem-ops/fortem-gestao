@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     // ---------- c. venda pertence ao aluno ----------
     const { data: venda } = await supabase
       .from("vendas")
-      .select("id, aluno_id, valor_final, parcelas, status_pagamento")
+      .select("id, aluno_id, valor_final, parcelas, status_pagamento, observacoes")
       .eq("id", vendaId)
       .maybeSingle();
 
@@ -244,6 +244,41 @@ Deno.serve(async (req) => {
       .eq("id", vendaId);
 
     if (approved) {
+      // ---------- vaga da promoção NB 42k (só consome com pagamento aprovado) ----------
+      try {
+        let temCortesia = false;
+        try {
+          const obs = JSON.parse(String((venda as any).observacoes ?? "{}"));
+          temCortesia = Boolean(obs?.cortesia_nb);
+          if (!temCortesia) {
+            const linhas = obs?.pedidoResumo?.linhas ?? [];
+            temCortesia = Array.isArray(linhas) &&
+              linhas.some((l: any) => /NB 42k/i.test(String(l?.label ?? "")) && /50% OFF|Cortesia/i.test(String(l?.label ?? "")));
+          }
+        } catch { /* observacoes não-JSON */ }
+
+        if (temCortesia) {
+          const { data: vaga, error: vagaErr } = await supabase.rpc("fn_corrida_consumir_vaga_nb");
+          const row = Array.isArray(vaga) ? vaga[0] : vaga;
+          if (vagaErr || !row?.consumida) {
+            await supabase.from("system_logs").insert({
+              modulo: "corrida-cobrar-pedido",
+              acao: "vaga_nb_esgotada_apos_pagamento",
+              mensagem: `Pagamento aprovado com a promoção NB 42k, mas não havia vaga disponível para consumir (venda ${vendaId}).`,
+              payload: {
+                venda_id: vendaId,
+                aluno_id: alunoId,
+                vagas_utilizadas: row?.vagas_utilizadas ?? null,
+                vagas_totais: row?.vagas_totais ?? null,
+                erro: vagaErr?.message ?? null,
+              },
+            });
+          }
+        }
+      } catch (e) {
+        console.error("[corrida-cobrar-pedido] consumo de vaga NB falhou:", String(e));
+      }
+
       if (contratoId) {
         await supabase.from("contratos").update({ status: "ativo" }).eq("id", contratoId);
       }

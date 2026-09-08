@@ -2791,6 +2791,8 @@ export type Database = {
           tier: string | null
           tipo: string
           updated_at: string
+          vagas_totais: number | null
+          vagas_utilizadas: number
           valido_ate: string
           valor: number
         }
@@ -2809,6 +2811,8 @@ export type Database = {
           tier?: string | null
           tipo: string
           updated_at?: string
+          vagas_totais?: number | null
+          vagas_utilizadas?: number
           valido_ate?: string
           valor?: number
         }
@@ -2827,6 +2831,8 @@ export type Database = {
           tier?: string | null
           tipo?: string
           updated_at?: string
+          vagas_totais?: number | null
+          vagas_utilizadas?: number
           valido_ate?: string
           valor?: number
         }
@@ -8019,6 +8025,14 @@ export type Database = {
           _sexo?: string
         }
         Returns: undefined
+      }
+      fn_corrida_consumir_vaga_nb: {
+        Args: never
+        Returns: {
+          consumida: boolean
+          vagas_totais: number
+          vagas_utilizadas: number
+        }[]
       }
       fn_creditos_atividade_de_servico: {
         Args: { _tipo_servico: string }

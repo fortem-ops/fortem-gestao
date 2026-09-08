@@ -32,6 +32,8 @@ const PLANO_BASE_LABEL: Record<string, string> = {
 };
 
 const VALOR_PROVA = 289;
+// Inscrição NB 42k 2027 na condição promocional (50% OFF)
+const VALOR_CORTESIA_NB = 144.5;
 
 // Hash SHA-256 do CPF autorizado a testar cobrança real com valor simbólico.
 const CPF_TESTE_HASH = "9d4b1135d02aa574942b053143c2c76ceb5d4d472be2c04138b314d179482ee3";
@@ -530,7 +532,7 @@ Deno.serve(async (req) => {
 
         const linhas: string[] = [];
         if (cortesiaNb?.ativo) {
-          linhas.push(`New Balance 42K Porto Alegre 2027 — ${cortesiaNb?.distancia ?? ""} — ${brl(VALOR_PROVA)}`.replace(/ — {2}/g, " — "));
+          linhas.push(`New Balance 42K Porto Alegre 2027 — ${cortesiaNb?.distancia ?? ""} — ${brl(VALOR_CORTESIA_NB)} (50% OFF de ${brl(VALOR_PROVA)})`.replace(/ — {2}/g, " — "));
         }
         if (mipoa?.ativo) {
           linhas.push(`Maratona Internacional de Porto Alegre (MIPOA) — ${mipoa?.distancia ?? ""} — ${brl(VALOR_PROVA)}`.replace(/ — {2}/g, " — "));
@@ -585,7 +587,7 @@ Deno.serve(async (req) => {
         status_pagamento: "pendente",
         plano_id: planoId,
         idempotency_key: idempotencyKey,
-        observacoes: JSON.stringify({ rota, tier: body?.tier ?? null, pedidoResumo }).slice(0, 4000),
+        observacoes: JSON.stringify({ rota, tier: body?.tier ?? null, cortesia_nb: Boolean(cortesiaNb?.ativo), pedidoResumo }).slice(0, 4000),
       })
       .select("id")
       .single();
