@@ -23,6 +23,8 @@ import { Prescricao531Editor } from "@/components/student/workout/Prescricao531E
 import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM102Editor";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
+import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
+import { prescribeFaseInicial } from "@/lib/workoutImport";
 
 interface GroupSelection { grupo: string; categoria?: string; subcategoria: string }
 interface BankExercise {
@@ -689,6 +691,10 @@ function TemplateDetail({
   onClearChoice,
   onSaveOverride,
   canEdit,
+  alunoId,
+  alunoNome,
+  onPrescrever,
+  prescrevendo,
 }: {
   template: WorkoutTemplate;
   bank: BankExercise[];
@@ -699,6 +705,10 @@ function TemplateDetail({
   onClearChoice: (ex: WorkoutExercise, treino: string) => void;
   onSaveOverride: (ex: WorkoutExercise, treino: string, patch: OverridePatch) => void;
   canEdit: boolean;
+  alunoId?: string;
+  alunoNome?: string;
+  onPrescrever?: () => void;
+  prescrevendo?: boolean;
 }) {
   const { blocosAquecimento } = useExerciseCategories();
   // Blocos = categorias do grupo "Aquecimento" + eventuais códigos legados
@@ -729,12 +739,23 @@ function TemplateDetail({
         </Button>
         <div className="flex-1">
           <h2 className="text-2xl font-bold">{template.fase}</h2>
-          <p className="text-sm text-muted-foreground">Frequência: {template.frequencia}</p>
+          <p className="text-sm text-muted-foreground">
+            Frequência: {template.frequencia}
+            {alunoNome ? ` · Aluno: ${alunoNome}` : ""}
+          </p>
         </div>
+        {onPrescrever && (
+          <Button size="sm" onClick={onPrescrever} disabled={prescrevendo}>
+            {prescrevendo ? "Prescrevendo..." : "Prescrever para o aluno"}
+          </Button>
+        )}
         {!canEdit && (
           <Badge variant="outline" className="text-xs">Somente leitura</Badge>
         )}
       </div>
+
+      {alunoId && <AlunoDeficitsAlert alunoId={alunoId} />}
+
 
       {template.aquecimento.length > 0 && (
         <Card>
@@ -862,6 +883,11 @@ export default function BancoTreinos() {
 
 
   const [selected, setSelected] = useState<WorkoutTemplate | null>(null);
+  /** Aluno vinculado à planilha aberta (assimetrias + prescrição). */
+  const [alunoCtx, setAlunoCtx] = useState<{ id: string; nome: string } | null>(null);
+  /** Template aguardando escolha de aluno. */
+  const [pendingTemplate, setPendingTemplate] = useState<WorkoutTemplate | null>(null);
+  const [prescrevendo, setPrescrevendo] = useState(false);
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
   const [personalizadoOpen, setPersonalizadoOpen] = useState<
     | null
@@ -1146,6 +1172,50 @@ export default function BancoTreinos() {
     </Dialog>
   );
 
+  function abrirTemplate(template: WorkoutTemplate) {
+    if (template.fase === "Personalizado") {
+      setPersonalizadoOpen({ mode: "new", variante: "personalizado" });
+      return;
+    }
+    if (template.fase.startsWith("Corrida")) {
+      const existing = modelosPersonalizados.find((m) => m.nome === template.fase);
+      if (existing) {
+        setPersonalizadoOpen({
+          mode: "edit",
+          id: existing.id,
+          nome: existing.nome,
+          conteudo: (existing.conteudo as unknown) as PersonalizadoConteudo,
+        });
+      } else if (!canEdit) {
+        toast.info("Aguardando configuração", {
+          description: "Esta base de Corrida ainda não foi configurada por um coordenador.",
+        });
+      } else {
+        setPersonalizadoOpen({
+          mode: "new",
+          variante: "corrida",
+          templateFase: template.fase,
+          seed: seedFromWorkoutTemplate(template),
+        });
+      }
+      return;
+    }
+    setSelected(template);
+  }
+
+  async function handlePrescrever(template: WorkoutTemplate, aluno: { id: string; nome: string }) {
+    if (!user?.id) return;
+    setPrescrevendo(true);
+    try {
+      await prescribeFaseInicial(template.fase, aluno.id, user.id);
+      toast.success("Treino prescrito", { description: `${template.fase} → ${aluno.nome}` });
+    } catch (err) {
+      toast.error("Não foi possível prescrever", { description: (err as Error).message });
+    } finally {
+      setPrescrevendo(false);
+    }
+  }
+
   if (editor531) {
     return (
       <Prescricao531Editor
@@ -1200,11 +1270,17 @@ export default function BancoTreinos() {
             : "Modelo Personalizado";
     return (
       <div className="container mx-auto p-6 max-w-6xl">
+        {alunoCtx && (
+          <div className="mb-3">
+            <p className="text-sm text-muted-foreground mb-2">Aluno: {alunoCtx.nome}</p>
+            <AlunoDeficitsAlert alunoId={alunoCtx.id} />
+          </div>
+        )}
         <PersonalizadoEditor
           initial={initialData}
           initialName={initialName}
           modeloId={personalizadoOpen.mode === "edit" ? personalizadoOpen.id : undefined}
-          onBack={() => setPersonalizadoOpen(null)}
+          onBack={() => { setPersonalizadoOpen(null); setAlunoCtx(null); }}
           onSaved={() => { refetchModelos(); }}
           readOnly={isCorridaCard && !canEdit}
         />
@@ -1218,13 +1294,17 @@ export default function BancoTreinos() {
         <TemplateDetail
           template={selected}
           bank={bank}
-          onBack={() => setSelected(null)}
+          onBack={() => { setSelected(null); setAlunoCtx(null); }}
           onOpenVideo={handleOpenVideo}
           escolhasMap={escolhasMap}
           onSaveChoice={(ex, treino, b) => handleSaveChoice(selected, ex, treino, b)}
           onClearChoice={(ex, treino) => handleClearChoice(selected, ex, treino)}
           onSaveOverride={(ex, treino, patch) => handleSaveOverride(selected, ex, treino, patch)}
-          canEdit={canEdit}
+          canEdit={canEdit && !alunoCtx}
+          alunoId={alunoCtx?.id}
+          alunoNome={alunoCtx?.nome}
+          onPrescrever={alunoCtx ? () => handlePrescrever(selected, alunoCtx) : undefined}
+          prescrevendo={prescrevendo}
         />
         {renderVideoModal()}
       </div>
@@ -1309,34 +1389,9 @@ export default function BancoTreinos() {
                         setSelectPSOpen(true);
                         return;
                       }
-                      if (template.fase === "Personalizado") {
-                        setPersonalizadoOpen({ mode: "new", variante: "personalizado" });
-                      } else if (template.fase.startsWith("Corrida")) {
-                        const existing = modelosPersonalizados.find((m) => m.nome === template.fase);
-                        if (existing) {
-                          setPersonalizadoOpen({
-                            mode: "edit",
-                            id: existing.id,
-                            nome: existing.nome,
-                            conteudo: (existing.conteudo as unknown) as PersonalizadoConteudo,
-                          });
-                        } else if (!canEdit) {
-                          toast.info("Aguardando configuração", {
-                            description: "Esta base de Corrida ainda não foi configurada por um coordenador.",
-                          });
-                          return;
-                        } else {
-                          setPersonalizadoOpen({
-                            mode: "new",
-                            variante: "corrida",
-                            templateFase: template.fase,
-                            seed: seedFromWorkoutTemplate(template),
-                          });
-                        }
-                      } else {
-                        setSelected(template);
-                      }
-                    }}
+                       setAlunoCtx(null);
+                       setPendingTemplate(template);
+                     }}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -1474,6 +1529,24 @@ export default function BancoTreinos() {
         onOpenChange={setSelectPSOpen}
         title="Escolha o aluno para prescrever Plan Strong 50"
         onSelect={(a) => setEditorPS({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={!!pendingTemplate}
+        onOpenChange={(o) => { if (!o) setPendingTemplate(null); }}
+        title={pendingTemplate ? `Escolha o aluno — ${pendingTemplate.fase}` : "Escolha o aluno"}
+        allowSkip={canEdit}
+        onSkip={() => {
+          const t = pendingTemplate;
+          setPendingTemplate(null);
+          setAlunoCtx(null);
+          if (t) abrirTemplate(t);
+        }}
+        onSelect={(a) => {
+          const t = pendingTemplate;
+          setPendingTemplate(null);
+          setAlunoCtx({ id: a.id, nome: a.nome });
+          if (t) abrirTemplate(t);
+        }}
       />
     </div>
   );
