@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,16 @@ import { WORKOUT_TEMPLATES, type WorkoutTemplate, type WorkoutExercise } from ".
 import { WorkoutDetail } from "./WorkoutDetail";
 import { AlunoDeficitsAlert } from "./AlunoDeficitsAlert";
 import { flattenPersonalizado, type PersonalizadoConteudo } from "./personalizadoTypes";
+
+const Prescricao531Editor = lazy(() =>
+  import("./Prescricao531Editor").then((m) => ({ default: m.Prescricao531Editor })),
+);
+const PrescricaoM102Editor = lazy(() =>
+  import("./PrescricaoM102Editor").then((m) => ({ default: m.PrescricaoM102Editor })),
+);
+const PrescricaoPlanStrongEditor = lazy(() =>
+  import("./PrescricaoPlanStrongEditor").then((m) => ({ default: m.PrescricaoPlanStrongEditor })),
+);
 
 interface Escolha {
   template_fase: string;
