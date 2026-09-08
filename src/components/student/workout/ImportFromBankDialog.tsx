@@ -50,13 +50,25 @@ function pickSubcategoria(
 
 interface Props {
   alunoId: string;
+  alunoNome?: string;
   onSaved?: () => void;
 }
 
 const PHASE_GROUPS = [
   { label: "Fases", filter: (t: WorkoutTemplate) => /^Fase \d/.test(t.fase) },
-  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "Planilha 5RM", "5-3-1", "M102"].includes(t.fase) },
+  {
+    label: "Métodos",
+    filter: (t: WorkoutTemplate) =>
+      ["Personalizado", "Personalizado 2", "Planilha 5RM"].includes(t.fase),
+  },
   { label: "Corrida", filter: (t: WorkoutTemplate) => t.fase.startsWith("Corrida") },
+];
+
+/** Métodos prescritos por aluno — não vivem em WORKOUT_TEMPLATES. */
+const METODOS_POR_ALUNO: WorkoutTemplate[] = [
+  { fase: "5-3-1", frequencia: "2-5x", aquecimento: [], treinos: [] },
+  { fase: "M102", frequencia: "4x", aquecimento: [], treinos: [] },
+  { fase: "Plan Strong 50", frequencia: "1-4 lev.", aquecimento: [], treinos: [] },
 ];
 
 type PreparedData = { aquecimento: WorkoutExercise[]; treinos: { nome: string; exercicios: WorkoutExercise[] }[] };
