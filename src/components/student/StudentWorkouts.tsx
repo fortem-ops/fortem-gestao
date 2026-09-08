@@ -84,7 +84,7 @@ export function StudentWorkouts({ student }: { student: Tables<"alunos"> }) {
         <h3 className="font-heading font-semibold text-foreground">Histórico de Treinos</h3>
         <div className="flex items-center gap-2 flex-wrap">
           <Suspense fallback={null}>
-            <ImportFromBankDialog alunoId={student.id} onSaved={() => refetch()} />
+            <ImportFromBankDialog alunoId={student.id} alunoNome={student.nome} onSaved={() => refetch()} />
           </Suspense>
           <Suspense fallback={null}>
             <ImportFromStudentDialog alunoId={student.id} onSaved={() => refetch()} />

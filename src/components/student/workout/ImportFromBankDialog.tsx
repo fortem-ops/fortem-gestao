@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,16 @@ import { WORKOUT_TEMPLATES, type WorkoutTemplate, type WorkoutExercise } from ".
 import { WorkoutDetail } from "./WorkoutDetail";
 import { AlunoDeficitsAlert } from "./AlunoDeficitsAlert";
 import { flattenPersonalizado, type PersonalizadoConteudo } from "./personalizadoTypes";
+
+const Prescricao531Editor = lazy(() =>
+  import("./Prescricao531Editor").then((m) => ({ default: m.Prescricao531Editor })),
+);
+const PrescricaoM102Editor = lazy(() =>
+  import("./PrescricaoM102Editor").then((m) => ({ default: m.PrescricaoM102Editor })),
+);
+const PrescricaoPlanStrongEditor = lazy(() =>
+  import("./PrescricaoPlanStrongEditor").then((m) => ({ default: m.PrescricaoPlanStrongEditor })),
+);
 
 interface Escolha {
   template_fase: string;
@@ -50,13 +60,25 @@ function pickSubcategoria(
 
 interface Props {
   alunoId: string;
+  alunoNome?: string;
   onSaved?: () => void;
 }
 
 const PHASE_GROUPS = [
   { label: "Fases", filter: (t: WorkoutTemplate) => /^Fase \d/.test(t.fase) },
-  { label: "Métodos", filter: (t: WorkoutTemplate) => ["Personalizado", "Planilha 5RM", "5-3-1", "M102"].includes(t.fase) },
+  {
+    label: "Métodos",
+    filter: (t: WorkoutTemplate) =>
+      ["Personalizado", "Personalizado 2", "Planilha 5RM"].includes(t.fase),
+  },
   { label: "Corrida", filter: (t: WorkoutTemplate) => t.fase.startsWith("Corrida") },
+];
+
+/** Métodos prescritos por aluno — não vivem em WORKOUT_TEMPLATES. */
+const METODOS_POR_ALUNO: WorkoutTemplate[] = [
+  { fase: "5-3-1", frequencia: "2-5x", aquecimento: [], treinos: [] },
+  { fase: "M102", frequencia: "4x", aquecimento: [], treinos: [] },
+  { fase: "Plan Strong 50", frequencia: "1-4 lev.", aquecimento: [], treinos: [] },
 ];
 
 type PreparedData = { aquecimento: WorkoutExercise[]; treinos: { nome: string; exercicios: WorkoutExercise[] }[] };
@@ -121,10 +143,21 @@ function applyEscolhas(
   };
 }
 
-export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
+export function ImportFromBankDialog({ alunoId, alunoNome, onSaved }: Props) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Selected | null>(null);
+  const [metodoDireto, setMetodoDireto] = useState<string | null>(null);
+
+  const { data: nomeAluno } = useQuery({
+    queryKey: ["aluno-nome-import", alunoId],
+    enabled: open && !alunoNome,
+    queryFn: async () => {
+      const { data } = await supabase.from("alunos").select("nome").eq("id", alunoId).maybeSingle();
+      return data?.nome ?? "Aluno";
+    },
+  });
+  const nomeFinal = alunoNome || nomeAluno || "Aluno";
 
   const { data: bank = [], isLoading: loadingBank } = useQuery({
     queryKey: ["banco-exercicios-min"],
@@ -215,6 +248,7 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
   const handleClose = () => {
     setOpen(false);
     setSelected(null);
+    setMetodoDireto(null);
   };
 
   const prepared = useMemo<PreparedData | null>(() => {
@@ -226,14 +260,53 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
   const selectedFase = selected?.kind === "template" ? selected.template.fase : selected?.kind === "personalizado" ? selected.nome : "";
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSelected(null); }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setSelected(null); setMetodoDireto(null); } }}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
           <Library className="w-4 h-4 mr-1" /> Importar do Banco de Treinos
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        {!selected ? (
+        {metodoDireto ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Prescrever — {metodoDireto}</DialogTitle>
+              <DialogDescription>Prescrição do método para {nomeFinal}.</DialogDescription>
+            </DialogHeader>
+            <Suspense
+              fallback={
+                <div className="py-12 flex items-center justify-center text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Carregando...
+                </div>
+              }
+            >
+              {metodoDireto === "5-3-1" && (
+                <Prescricao531Editor
+                  alunoId={alunoId}
+                  alunoNome={nomeFinal}
+                  onBack={() => setMetodoDireto(null)}
+                  onSaved={() => { onSaved?.(); handleClose(); }}
+                />
+              )}
+              {metodoDireto === "M102" && (
+                <PrescricaoM102Editor
+                  alunoId={alunoId}
+                  alunoNome={nomeFinal}
+                  onBack={() => setMetodoDireto(null)}
+                  onSaved={() => { onSaved?.(); handleClose(); }}
+                />
+              )}
+              {metodoDireto === "Plan Strong 50" && (
+                <PrescricaoPlanStrongEditor
+                  alunoId={alunoId}
+                  alunoNome={nomeFinal}
+                  onBack={() => setMetodoDireto(null)}
+                  onSaved={() => { onSaved?.(); handleClose(); }}
+                />
+              )}
+            </Suspense>
+          </>
+        ) : !selected ? (
           <>
             <DialogHeader>
               <DialogTitle>Importar do Banco de Treinos</DialogTitle>
@@ -249,7 +322,10 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
             ) : (
               <div className="space-y-6 mt-2">
                 {PHASE_GROUPS.map((group) => {
-                  const items = WORKOUT_TEMPLATES.filter(group.filter);
+                  const items =
+                    group.label === "Métodos"
+                      ? [...WORKOUT_TEMPLATES.filter(group.filter), ...METODOS_POR_ALUNO]
+                      : WORKOUT_TEMPLATES.filter(group.filter);
                   if (items.length === 0) return null;
                   return (
                     <div key={group.label}>
@@ -259,17 +335,26 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {items.map((tmpl) => {
                           const count = escolhasPorFase.get(tmpl.fase) || 0;
+                          const porAluno = METODOS_POR_ALUNO.some((m) => m.fase === tmpl.fase);
                           return (
                             <button
                               key={tmpl.fase}
-                              onClick={() => setSelected({ kind: "template", template: tmpl })}
+                              onClick={() =>
+                                porAluno
+                                  ? setMetodoDireto(tmpl.fase)
+                                  : setSelected({ kind: "template", template: tmpl })
+                              }
                               className="glass-card rounded-lg p-4 text-left hover:border-primary/50 transition-all group"
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                  <Dumbbell className="w-5 h-5 text-primary" />
+                                  {porAluno ? (
+                                    <Sparkles className="w-5 h-5 text-primary" />
+                                  ) : (
+                                    <Dumbbell className="w-5 h-5 text-primary" />
+                                  )}
                                 </div>
-                                {count > 0 && (
+                                {count > 0 && !porAluno && (
                                   <Badge variant="outline" className="text-[10px] border-success/40 text-success">
                                     {count} vínculos
                                   </Badge>
@@ -278,7 +363,9 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
                               <div className="mt-3">
                                 <p className="font-heading font-bold text-foreground text-sm">{tmpl.fase}</p>
                                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  {tmpl.frequencia}/semana · {tmpl.treinos.length} treinos
+                                  {porAluno
+                                    ? `${tmpl.frequencia} · prescrição individual`
+                                    : `${tmpl.frequencia}/semana · ${tmpl.treinos.length} treinos`}
                                 </p>
                               </div>
                             </button>
