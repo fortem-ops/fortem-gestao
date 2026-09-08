@@ -182,6 +182,7 @@ export function StudentExerciseBank() {
     onSuccess: () => {
       toast.success("Exercício criado");
       queryClient.invalidateQueries({ queryKey: ["exercicios-personalizados"] });
+      queryClient.invalidateQueries({ queryKey: ["exercicios-por-articulacao"] });
       setDialogOpen(false);
       resetForm();
     },
@@ -233,6 +234,7 @@ export function StudentExerciseBank() {
     onSuccess: () => {
       toast.success("Exercício atualizado");
       queryClient.invalidateQueries({ queryKey: ["exercicios-personalizados"] });
+      queryClient.invalidateQueries({ queryKey: ["exercicios-por-articulacao"] });
       setDialogOpen(false);
       resetForm();
     },

@@ -12,7 +12,8 @@ interface GrupoSel { grupo: string; categoria?: string; subcategoria: string }
 export function useExerciciosPorArticulacao() {
   return useQuery<ExercicioVinculado[]>({
     queryKey: ["exercicios-por-articulacao"],
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 30,
+    refetchOnMount: true,
     queryFn: async () => {
       const { data: links, error } = await supabase
         .from("exercicio_articulacoes")
