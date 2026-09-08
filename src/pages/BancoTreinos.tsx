@@ -737,12 +737,23 @@ function TemplateDetail({
         </Button>
         <div className="flex-1">
           <h2 className="text-2xl font-bold">{template.fase}</h2>
-          <p className="text-sm text-muted-foreground">Frequência: {template.frequencia}</p>
+          <p className="text-sm text-muted-foreground">
+            Frequência: {template.frequencia}
+            {alunoNome ? ` · Aluno: ${alunoNome}` : ""}
+          </p>
         </div>
+        {onPrescrever && (
+          <Button size="sm" onClick={onPrescrever} disabled={prescrevendo}>
+            {prescrevendo ? "Prescrevendo..." : "Prescrever para o aluno"}
+          </Button>
+        )}
         {!canEdit && (
           <Badge variant="outline" className="text-xs">Somente leitura</Badge>
         )}
       </div>
+
+      {alunoId && <AlunoDeficitsAlert alunoId={alunoId} />}
+
 
       {template.aquecimento.length > 0 && (
         <Card>
