@@ -8,7 +8,11 @@ const faqs = [
   },
   {
     q: "Como funciona o cancelamento?",
-    a: "Você pode cancelar quando quiser. Em planos anuais, o cancelamento antes do fim do período gera multa de 15% sobre o valor do período não utilizado — o restante é devolvido. Inscrições em prova (cortesia ou pagas) não são estornadas em nenhuma hipótese, já que representam uma compra de inscrição já processada junto à organização da prova.",
+    a: "Você pode cancelar quando quiser. Em planos anuais, o cancelamento antes do fim do período gera multa de 15% sobre o valor do período não utilizado — o restante é devolvido. Inscrições em prova (promocionais ou com valor integral) não são estornadas em nenhuma hipótese, já que representam uma compra de inscrição já processada junto à organização da prova.",
+  },
+  {
+    q: "Como funciona a inscrição da NB 42k 2027 com 50% de desconto?",
+    a: "Ao fechar seu plano, você garante a inscrição na NB 42k 2027 por R$ 144,50 — metade dos R$ 289,00. São apenas 10 vagas nessa condição, válidas até 30/11 ou enquanto durarem as vagas, o que acontecer primeiro.",
   },
   {
     q: "Sou iniciante, consigo acompanhar?",

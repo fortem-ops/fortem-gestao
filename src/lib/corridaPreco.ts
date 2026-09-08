@@ -27,6 +27,29 @@ export interface CampanhaItem {
   isento: boolean;
   condicao: string | null;
   imagem_url?: string | null;
+  valido_ate?: string | null;
+  vagas_totais?: number | null;
+  vagas_utilizadas?: number | null;
+}
+
+/** Valor cheio da inscrição NB 42k (referência para o "de/por"). */
+export const NB_INSCRICAO_VALOR_CHEIO = 289;
+
+/** A condição promocional da NB está disponível? (data válida + vagas). */
+export function cortesiaNbDisponivel(item?: CampanhaItem | null, hoje: Date = new Date()) {
+  if (!item) return false;
+  if (item.valido_ate) {
+    const hojeStr = hoje.toISOString().slice(0, 10);
+    if (item.valido_ate < hojeStr) return false;
+  }
+  const totais = item.vagas_totais ?? null;
+  if (totais !== null && (item.vagas_utilizadas ?? 0) >= totais) return false;
+  return true;
+}
+
+export function vagasRestantesNb(item?: CampanhaItem | null) {
+  if (!item || item.vagas_totais == null) return null;
+  return Math.max(0, Number(item.vagas_totais) - Number(item.vagas_utilizadas ?? 0));
 }
 
 /* Datas oficiais das provas */
@@ -140,10 +163,15 @@ export function calcularResumoCorrida(params: ResumoParams): ResumoCorrida | nul
     }
     const cortesiaAtiva = oferta.cortesia && (rota !== "prospect" || periodo === "anual");
     if (cortesiaAtiva) {
+      const c = oferta.cortesia!;
+      const valorCortesia = c.isento ? 0 : Number(c.valor);
+      const prefixo = valorCortesia === 0 ? "Cortesia" : "Inscrição NB 42k 2027 (50% OFF)";
       linhas.push({
-        label: `Cortesia: ${oferta.cortesia!.descricao} — ${distanciaCortesia} · ${dataProva("NB", distanciaCortesia)}`,
-        valor: 0,
+        label: `${prefixo}: ${c.descricao} — ${distanciaCortesia} · ${dataProva("NB", distanciaCortesia)}`,
+        valor: valorCortesia,
+        nota: valorCortesia > 0 ? `de ${brl(NB_INSCRICAO_VALOR_CHEIO)} por ${brl(valorCortesia)}` : undefined,
       });
+      hoje += valorCortesia;
     }
   }
 

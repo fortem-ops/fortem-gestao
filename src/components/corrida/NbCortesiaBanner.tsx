@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 
 const BENEFICIOS = [
-  "Inscrição da prova",
+  "Inscrição da prova com 50% de desconto",
   "Briefing pré-prova",
   "Retiramos seu kit da prova",
   "Acesso à estrutura da Fortem no dia da prova",
@@ -51,17 +51,17 @@ const NbCortesiaBanner = ({ logoTopOffset = 0 }: NbCortesiaBannerProps) => {
           </div>
 
           <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-accent-foreground leading-tight max-w-4xl mx-auto">
-            Matricule-se agora e ganhe sua inscrição na{" "}
-            <span className="text-primary">NB 42k 2027</span>.
+            Matricule-se agora e garanta sua inscrição na{" "}
+            <span className="text-primary">NB 42k 2027</span> por metade do preço.
           </h1>
 
           <p className="mt-6 text-lg md:text-2xl text-accent-foreground/80 font-light">
-            Garanta sua vaga até 20/08.
+            Vagas limitadas — válido até 30/11 ou enquanto durarem as vagas.
           </p>
 
           <div className="mt-4 flex items-center justify-center opacity-80">
             <span className="text-[10px] uppercase tracking-[0.3em] text-accent-foreground/60">
-              Inscrição inclusa
+              Inscrição com 50% OFF
             </span>
           </div>
 

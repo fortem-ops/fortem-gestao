@@ -17,9 +17,12 @@ import {
 import PagamentoStep, { type PedidoCriado } from "./PagamentoStep";
 import {
   calcularResumoCorrida,
+  cortesiaNbDisponivel,
+  vagasRestantesNb,
   dataProva,
   brl,
   nomePlanoExibicao,
+  NB_INSCRICAO_VALOR_CHEIO,
   PROVA_LABEL,
   type Rota,
   type Tier,
@@ -238,12 +241,21 @@ const CorridaConfigurator = () => {
 
   const { data: itens = [], isLoading: loadingItens } = useQuery({
     queryKey: ["corrida-campanha-itens"],
+    // disponibilidade de vagas precisa ser sempre fresca
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase.from("corrida_campanha_itens").select("*");
       if (error) throw error;
       return (data ?? []) as CampanhaItem[];
     },
   });
+
+  const cortesiaItem = itens.find((i) => i.tipo === "cortesia_nb") ?? null;
+  const cortesiaDisponivel = cortesiaNbDisponivel(cortesiaItem);
+  const vagasRestantes = vagasRestantesNb(cortesiaItem);
 
   const carregando = loadingPlanos || loadingItens;
 
@@ -261,11 +273,11 @@ const CorridaConfigurator = () => {
       });
       return lista;
     }
-    const cortesiaAtiva = rota !== "prospect" || periodo === "anual";
+    const cortesiaAtiva = cortesiaDisponivel && (rota !== "prospect" || periodo === "anual");
     if (cortesiaAtiva) lista.push({ prova: "NB", distancia: distanciaCortesia });
     if (mipoa) lista.push({ prova: "MIPOA", distancia: distanciaMipoa });
     return lista;
-  }, [rota, periodo, distanciaCortesia, mipoa, distanciaMipoa, provasSel]);
+  }, [rota, periodo, distanciaCortesia, mipoa, distanciaMipoa, provasSel, cortesiaDisponivel]);
 
   /* --------------------------- Etapas --------------------------- */
 
@@ -306,7 +318,7 @@ const CorridaConfigurator = () => {
   const oferta = useMemo(() => {
     if (!rota) return null;
 
-    const cortesia = itens.find((i) => i.tipo === "cortesia_nb");
+    const cortesia = cortesiaDisponivel ? (cortesiaItem ?? undefined) : undefined;
     const mipoaItem = itens.find((i) => i.tipo === "mipoa" && i.rota === "ambos");
 
     if (rota === "somente_provas") {
@@ -537,14 +549,34 @@ const CorridaConfigurator = () => {
 
         {rota === "prospect" && periodo === "mensal" ? (
           <p className="text-sm text-muted-foreground rounded-xl bg-muted p-4">
-            A cortesia de inscrição + kit da NB 42k 2027 é exclusiva do plano Anual.
+            A condição especial de inscrição + kit da NB 42k 2027 é exclusiva do plano Anual.
+          </p>
+        ) : !cortesiaDisponivel ? (
+          <p className="text-sm text-muted-foreground rounded-xl bg-muted p-4">
+            Promoção de inscrição encerrada. Você segue com o seu plano normalmente — a inscrição na
+            NB 42k 2027 nessa condição não está mais disponível.
           </p>
         ) : (
           oferta.cortesia && (
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-              <p className="flex items-center gap-2 font-semibold">
-                <Gift className="w-4 h-4 text-primary" /> Cortesia inclusa: {oferta.cortesia.descricao}
-              </p>
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <p className="flex items-center gap-2 font-semibold">
+                  <Gift className="w-4 h-4 text-primary" /> Inscrição NB 42k 2027 com 50% OFF
+                </p>
+                <span className="text-right whitespace-nowrap">
+                  <span className="block text-xs text-muted-foreground line-through">
+                    de {brl(NB_INSCRICAO_VALOR_CHEIO)}
+                  </span>
+                  <span className="block font-display font-bold">
+                    {brl(Number(oferta.cortesia.valor))}
+                  </span>
+                </span>
+              </div>
+              {vagasRestantes !== null && (
+                <p className="text-xs text-primary font-semibold mt-1">
+                  Restam {vagasRestantes} {vagasRestantes === 1 ? "vaga" : "vagas"} nessa condição.
+                </p>
+              )}
               <p className="text-sm text-muted-foreground mt-2 mb-2">Escolha sua distância:</p>
               <div className="flex flex-wrap items-center gap-2">
                 {DISTANCIAS.map((d) => (
@@ -763,7 +795,8 @@ const CorridaConfigurator = () => {
   };
 
   const payloadPedido = useMemo(() => {
-    const cortesiaAtiva = rota !== "somente_provas" && (rota !== "prospect" || periodo === "anual");
+    const cortesiaAtiva =
+      cortesiaDisponivel && rota !== "somente_provas" && (rota !== "prospect" || periodo === "anual");
     return {
       rota,
       alunoId,
@@ -784,7 +817,7 @@ const CorridaConfigurator = () => {
         recorrente_mensal: resumo?.recorrente ?? 0,
       },
     } as Record<string, unknown>;
-  }, [rota, alunoId, tier, periodo, kitNivel, avaliacao, distanciaCortesia, mipoa, distanciaMipoa, provasPedido, resumo]);
+  }, [rota, alunoId, tier, periodo, kitNivel, avaliacao, distanciaCortesia, mipoa, distanciaMipoa, provasPedido, resumo, cortesiaDisponivel]);
 
   const renderPagamento = () => {
     const temInscricao = provasPedido.length > 0;
