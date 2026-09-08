@@ -883,6 +883,11 @@ export default function BancoTreinos() {
 
 
   const [selected, setSelected] = useState<WorkoutTemplate | null>(null);
+  /** Aluno vinculado à planilha aberta (assimetrias + prescrição). */
+  const [alunoCtx, setAlunoCtx] = useState<{ id: string; nome: string } | null>(null);
+  /** Template aguardando escolha de aluno. */
+  const [pendingTemplate, setPendingTemplate] = useState<WorkoutTemplate | null>(null);
+  const [prescrevendo, setPrescrevendo] = useState(false);
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
   const [personalizadoOpen, setPersonalizadoOpen] = useState<
     | null
