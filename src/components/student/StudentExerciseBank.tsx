@@ -390,14 +390,14 @@ export function StudentExerciseBank() {
 
   const handleSave = () => {
     const grupos: GroupSelection[] = Object.entries(selecoes)
-      .filter(([, sub]) => !!sub)
-      .map(([grupo, subcategoria]) => ({
+      .filter(([, sel]) => !!sel?.subcategoria)
+      .map(([grupo, sel]) => ({
         grupo,
-        categoria: resolverCategoria(grupo, subcategoria),
-        subcategoria,
+        categoria: sel.categoria || resolverCategoria(grupo, sel.subcategoria),
+        subcategoria: sel.subcategoria,
       }));
-    const isMobilidadeArticular = grupos.some((g) =>
-      g.categoria.trim().toLowerCase() === "mobilidade articular",
+    const isMobilidadeArticular = grupos.some(
+      (g) => (g.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
     );
     if (isMobilidadeArticular && articulacoes.length === 0) {
       toast.error("Vincule pelo menos uma articulação ao exercício de mobilidade.");
@@ -437,7 +437,7 @@ export function StudentExerciseBank() {
   const toggleGrupo = (grupo: string, checked: boolean) => {
     setSelecoes((prev) => {
       const next = { ...prev };
-      if (checked) next[grupo] = "";
+      if (checked) next[grupo] = { categoria: "", subcategoria: "" };
       else delete next[grupo];
       return next;
     });
