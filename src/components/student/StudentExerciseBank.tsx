@@ -38,6 +38,12 @@ interface GroupSelection {
   subcategoria: string;
 }
 
+/** Seleção do formulário: por grupo, guarda a categoria e a subcategoria escolhidas. */
+interface SelecaoGrupo {
+  categoria: string;
+  subcategoria: string;
+}
+
 interface ExercicioRow {
   id: string;
   nome: string;
@@ -78,7 +84,7 @@ export function StudentExerciseBank() {
 
   // Form state
   const [nome, setNome] = useState("");
-  const [selecoes, setSelecoes] = useState<Record<string, string>>({});
+  const [selecoes, setSelecoes] = useState<Record<string, SelecaoGrupo>>({});
   const [articulacoes, setArticulacoes] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -95,8 +101,13 @@ export function StudentExerciseBank() {
   const openEditDialog = async (ex: ExercicioRow) => {
     setEditingId(ex.id);
     setNome(ex.nome);
-    const sel: Record<string, string> = {};
-    ex.grupos.forEach((g) => { sel[g.grupo] = g.subcategoria; });
+    const sel: Record<string, SelecaoGrupo> = {};
+    ex.grupos.forEach((g) => {
+      sel[g.grupo] = {
+        categoria: g.categoria ?? resolverCategoria(g.grupo, g.subcategoria),
+        subcategoria: g.subcategoria,
+      };
+    });
     setSelecoes(sel);
     const { data } = await supabase.from("exercicio_articulacoes" as any).select("articulacao_key").eq("exercicio_id", ex.id);
     setArticulacoes((data ?? []).map((r: any) => r.articulacao_key));
