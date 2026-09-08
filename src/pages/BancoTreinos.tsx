@@ -1389,34 +1389,9 @@ export default function BancoTreinos() {
                         setSelectPSOpen(true);
                         return;
                       }
-                      if (template.fase === "Personalizado") {
-                        setPersonalizadoOpen({ mode: "new", variante: "personalizado" });
-                      } else if (template.fase.startsWith("Corrida")) {
-                        const existing = modelosPersonalizados.find((m) => m.nome === template.fase);
-                        if (existing) {
-                          setPersonalizadoOpen({
-                            mode: "edit",
-                            id: existing.id,
-                            nome: existing.nome,
-                            conteudo: (existing.conteudo as unknown) as PersonalizadoConteudo,
-                          });
-                        } else if (!canEdit) {
-                          toast.info("Aguardando configuração", {
-                            description: "Esta base de Corrida ainda não foi configurada por um coordenador.",
-                          });
-                          return;
-                        } else {
-                          setPersonalizadoOpen({
-                            mode: "new",
-                            variante: "corrida",
-                            templateFase: template.fase,
-                            seed: seedFromWorkoutTemplate(template),
-                          });
-                        }
-                      } else {
-                        setSelected(template);
-                      }
-                    }}
+                       setAlunoCtx(null);
+                       setPendingTemplate(template);
+                     }}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
