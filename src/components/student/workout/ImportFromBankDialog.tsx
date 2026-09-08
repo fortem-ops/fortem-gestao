@@ -143,10 +143,21 @@ function applyEscolhas(
   };
 }
 
-export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
+export function ImportFromBankDialog({ alunoId, alunoNome, onSaved }: Props) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Selected | null>(null);
+  const [metodoDireto, setMetodoDireto] = useState<string | null>(null);
+
+  const { data: nomeAluno } = useQuery({
+    queryKey: ["aluno-nome-import", alunoId],
+    enabled: open && !alunoNome,
+    queryFn: async () => {
+      const { data } = await supabase.from("alunos").select("nome").eq("id", alunoId).maybeSingle();
+      return data?.nome ?? "Aluno";
+    },
+  });
+  const nomeFinal = alunoNome || nomeAluno || "Aluno";
 
   const { data: bank = [], isLoading: loadingBank } = useQuery({
     queryKey: ["banco-exercicios-min"],
