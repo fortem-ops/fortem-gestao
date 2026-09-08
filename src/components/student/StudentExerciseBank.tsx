@@ -38,6 +38,12 @@ interface GroupSelection {
   subcategoria: string;
 }
 
+/** Seleção do formulário: por grupo, guarda a categoria e a subcategoria escolhidas. */
+interface SelecaoGrupo {
+  categoria: string;
+  subcategoria: string;
+}
+
 interface ExercicioRow {
   id: string;
   nome: string;
@@ -78,7 +84,7 @@ export function StudentExerciseBank() {
 
   // Form state
   const [nome, setNome] = useState("");
-  const [selecoes, setSelecoes] = useState<Record<string, string>>({});
+  const [selecoes, setSelecoes] = useState<Record<string, SelecaoGrupo>>({});
   const [articulacoes, setArticulacoes] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -95,8 +101,13 @@ export function StudentExerciseBank() {
   const openEditDialog = async (ex: ExercicioRow) => {
     setEditingId(ex.id);
     setNome(ex.nome);
-    const sel: Record<string, string> = {};
-    ex.grupos.forEach((g) => { sel[g.grupo] = g.subcategoria; });
+    const sel: Record<string, SelecaoGrupo> = {};
+    ex.grupos.forEach((g) => {
+      sel[g.grupo] = {
+        categoria: g.categoria ?? resolverCategoria(g.grupo, g.subcategoria),
+        subcategoria: g.subcategoria,
+      };
+    });
     setSelecoes(sel);
     const { data } = await supabase.from("exercicio_articulacoes" as any).select("articulacao_key").eq("exercicio_id", ex.id);
     setArticulacoes((data ?? []).map((r: any) => r.articulacao_key));
@@ -379,14 +390,14 @@ export function StudentExerciseBank() {
 
   const handleSave = () => {
     const grupos: GroupSelection[] = Object.entries(selecoes)
-      .filter(([, sub]) => !!sub)
-      .map(([grupo, subcategoria]) => ({
+      .filter(([, sel]) => !!sel?.subcategoria)
+      .map(([grupo, sel]) => ({
         grupo,
-        categoria: resolverCategoria(grupo, subcategoria),
-        subcategoria,
+        categoria: sel.categoria || resolverCategoria(grupo, sel.subcategoria),
+        subcategoria: sel.subcategoria,
       }));
-    const isMobilidadeArticular = grupos.some((g) =>
-      g.categoria.trim().toLowerCase() === "mobilidade articular",
+    const isMobilidadeArticular = grupos.some(
+      (g) => (g.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
     );
     if (isMobilidadeArticular && articulacoes.length === 0) {
       toast.error("Vincule pelo menos uma articulação ao exercício de mobilidade.");
@@ -426,7 +437,7 @@ export function StudentExerciseBank() {
   const toggleGrupo = (grupo: string, checked: boolean) => {
     setSelecoes((prev) => {
       const next = { ...prev };
-      if (checked) next[grupo] = "";
+      if (checked) next[grupo] = { categoria: "", subcategoria: "" };
       else delete next[grupo];
       return next;
     });
@@ -917,35 +928,63 @@ export function StudentExerciseBank() {
 
             {Object.keys(selecoes).length > 0 && (
               <div className="space-y-3">
-                <Label>Subcategoria por grupo</Label>
+                <Label>Categoria e subcategoria por grupo</Label>
                 {Object.keys(selecoes).map((grupoName) => {
-                  const cat = CATEGORIES.find((c) => c.name === grupoName);
-                  if (!cat) return null;
+                  const grupoNode = tree.find((g) => g.nome === grupoName);
+                  if (!grupoNode) return null;
+                  const sel = selecoes[grupoName];
                   return (
-                    <div key={grupoName} className="glass-card rounded-md p-3 space-y-2">
+                    <div key={grupoName} className="glass-card rounded-md p-3 space-y-3">
                       <p className="text-xs font-semibold text-foreground">{grupoName}</p>
-                      {cat.subcategories.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">Sem subcategorias</p>
+                      {grupoNode.categorias.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Sem categorias</p>
                       ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {cat.subcategories.map((sub) => {
-                            const active = selecoes[grupoName] === sub;
-                            return (
-                              <button
-                                key={sub}
-                                type="button"
-                                onClick={() => setSelecoes((prev) => ({ ...prev, [grupoName]: sub }))}
-                                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                                  active
-                                    ? "bg-primary text-primary-foreground border-primary"
-                                    : "border-border hover:border-primary/40"
-                                }`}
-                              >
-                                {sub}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        grupoNode.categorias.map((categoria) => {
+                          const folha = categoriaEhFolha(categoria);
+                          const opcoes = folha
+                            ? [{ label: categoria.nome, value: categoria.subcategorias[0] }]
+                            : categoria.subcategorias.map((s) => ({ label: s, value: s }));
+                          return (
+                            <div key={categoria.nome} className="space-y-1.5">
+                              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                {categoria.nome}
+                                {!folha && categoria.subcategorias.length > 0 && (
+                                  <span className="ml-1 normal-case tracking-normal opacity-70">
+                                    ({categoria.subcategorias.length})
+                                  </span>
+                                )}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {opcoes.map((op) => {
+                                  const active =
+                                    sel?.categoria === categoria.nome && sel?.subcategoria === op.value;
+                                  return (
+                                    <button
+                                      key={`${categoria.nome}:${op.value}`}
+                                      type="button"
+                                      onClick={() =>
+                                        setSelecoes((prev) => ({
+                                          ...prev,
+                                          [grupoName]: {
+                                            categoria: categoria.nome,
+                                            subcategoria: op.value,
+                                          },
+                                        }))
+                                      }
+                                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                                        active
+                                          ? "bg-primary text-primary-foreground border-primary"
+                                          : "border-border hover:border-primary/40"
+                                      }`}
+                                    >
+                                      {op.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   );
@@ -953,8 +992,8 @@ export function StudentExerciseBank() {
               </div>
             )}
 
-            {Object.entries(selecoes).some(([grupo, sub]) =>
-              !!sub && resolverCategoria(grupo, sub).trim().toLowerCase() === "mobilidade articular",
+            {Object.values(selecoes).some(
+              (sel) => (sel?.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
             ) && (
               <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-3">
                 <div>
