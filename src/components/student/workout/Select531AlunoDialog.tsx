@@ -104,6 +104,18 @@ export function Select531AlunoDialog({
             </ul>
           )}
         </div>
+        {allowSkip && (
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              onOpenChange(false);
+              onSkip?.();
+            }}
+          >
+            {skipLabel}
+          </Button>
+        )}
       </DialogContent>
     </Dialog>
   );
