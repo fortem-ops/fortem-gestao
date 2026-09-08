@@ -22,9 +22,21 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onSelect: (aluno: AlunoRow) => void;
   title?: string;
+  /** Permite abrir o modelo geral sem vincular um aluno (coordenador/admin). */
+  allowSkip?: boolean;
+  onSkip?: () => void;
+  skipLabel?: string;
 }
 
-export function Select531AlunoDialog({ open, onOpenChange, onSelect, title = "Escolha o aluno" }: Props) {
+export function Select531AlunoDialog({
+  open,
+  onOpenChange,
+  onSelect,
+  title = "Escolha o aluno",
+  allowSkip = false,
+  onSkip,
+  skipLabel = "Ver modelo sem aluno",
+}: Props) {
   const [q, setQ] = useState("");
   const debounced = useDebounce(q, 250);
 
