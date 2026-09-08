@@ -59,3 +59,36 @@ export const MOBILIDADE_ARTICULATION_OPTIONS = [
   { key: "toracica-esquerdo", label: "Torácica esquerda" },
   { key: "toracica-direito", label: "Torácica direita" },
 ] as const;
+
+/** Chaves E/D das métricas de flexibilidade, usadas no vínculo de exercícios e nas recomendações. */
+export const FLEXIBILIDADE_SHAPE_KEYS: Record<string, { left: string; right: string }> = {
+  "Flexibilidade Posterior MMII": { left: "posterior-coxa-esquerdo", right: "posterior-coxa-direito" },
+  "Flexibilidade Quadríceps": { left: "quadriceps-esquerdo", right: "quadriceps-direito" },
+  "Flexibilidade Psoas": { left: "psoas-esquerdo", right: "psoas-direito" },
+};
+
+export const FLEXIBILIDADE_MUSCULO_OPTIONS = [
+  { key: "posterior-coxa-esquerdo", label: "Posterior de coxa esquerdo" },
+  { key: "posterior-coxa-direito", label: "Posterior de coxa direito" },
+  { key: "quadriceps-esquerdo", label: "Quadríceps esquerdo" },
+  { key: "quadriceps-direito", label: "Quadríceps direito" },
+  { key: "psoas-esquerdo", label: "Psoas esquerdo" },
+  { key: "psoas-direito", label: "Psoas direito" },
+] as const;
+
+/** Todas as opções de vínculo (articulações + músculos de flexibilidade). */
+export const ARTICULACAO_MUSCULO_OPTIONS = [
+  ...MOBILIDADE_ARTICULATION_OPTIONS,
+  ...FLEXIBILIDADE_MUSCULO_OPTIONS,
+] as const;
+
+export const ARTICULACAO_LABEL: Record<string, string> = Object.fromEntries(
+  ARTICULACAO_MUSCULO_OPTIONS.map((o) => [o.key, o.label]),
+);
+
+/** Categorias de Aquecimento que podem receber vínculo com articulações/músculos. */
+export const CATEGORIAS_COM_VINCULO = ["mobilidade articular", "liberação miofascial", "liberacao miofascial"];
+
+export function categoriaAceitaVinculo(categoria: string | null | undefined): boolean {
+  return CATEGORIAS_COM_VINCULO.includes((categoria ?? "").trim().toLowerCase());
+}
