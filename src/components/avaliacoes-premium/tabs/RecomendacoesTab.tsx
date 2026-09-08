@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, ShieldAlert, Clock, Activity, Zap } from "lucide-react";
 import type { Recomendacao } from "../recomendacoesEngine";
+import { ExerciciosSugeridosList } from "../ExerciciosSugeridosList";
 
 interface Props {
   recomendacoes: Recomendacao[];
@@ -62,6 +63,9 @@ export function RecomendacoesTab({ recomendacoes }: Props) {
                           </span>
                         </div>
                         <p className="text-xs text-[hsl(var(--bio-ink-muted))] mt-1.5 leading-relaxed">{r.descricao}</p>
+                        {r.exercicios && (
+                          <ExerciciosSugeridosList exercicios={r.exercicios} chaveLabel={r.assimetria?.chaveLabel} />
+                        )}
                       </div>
                     </div>
                   </div>

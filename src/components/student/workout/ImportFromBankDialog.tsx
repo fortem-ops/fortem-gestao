@@ -341,6 +341,7 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
                   Revise os exercícios (já preenchidos com as escolhas do Banco) e ajuste o que for necessário antes de salvar.
                 </DialogDescription>
               </DialogHeader>
+              <AlunoDeficitsAlert alunoId={alunoId} />
               <WorkoutDetail
                 alunoId={alunoId}
                 templateData={prepared}
