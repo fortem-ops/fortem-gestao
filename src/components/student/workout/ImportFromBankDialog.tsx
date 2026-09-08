@@ -248,6 +248,7 @@ export function ImportFromBankDialog({ alunoId, alunoNome, onSaved }: Props) {
   const handleClose = () => {
     setOpen(false);
     setSelected(null);
+    setMetodoDireto(null);
   };
 
   const prepared = useMemo<PreparedData | null>(() => {
@@ -259,14 +260,53 @@ export function ImportFromBankDialog({ alunoId, alunoNome, onSaved }: Props) {
   const selectedFase = selected?.kind === "template" ? selected.template.fase : selected?.kind === "personalizado" ? selected.nome : "";
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSelected(null); }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setSelected(null); setMetodoDireto(null); } }}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
           <Library className="w-4 h-4 mr-1" /> Importar do Banco de Treinos
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        {!selected ? (
+        {metodoDireto ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Prescrever — {metodoDireto}</DialogTitle>
+              <DialogDescription>Prescrição do método para {nomeFinal}.</DialogDescription>
+            </DialogHeader>
+            <Suspense
+              fallback={
+                <div className="py-12 flex items-center justify-center text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Carregando...
+                </div>
+              }
+            >
+              {metodoDireto === "5-3-1" && (
+                <Prescricao531Editor
+                  alunoId={alunoId}
+                  alunoNome={nomeFinal}
+                  onBack={() => setMetodoDireto(null)}
+                  onSaved={() => { onSaved?.(); handleClose(); }}
+                />
+              )}
+              {metodoDireto === "M102" && (
+                <PrescricaoM102Editor
+                  alunoId={alunoId}
+                  alunoNome={nomeFinal}
+                  onBack={() => setMetodoDireto(null)}
+                  onSaved={() => { onSaved?.(); handleClose(); }}
+                />
+              )}
+              {metodoDireto === "Plan Strong 50" && (
+                <PrescricaoPlanStrongEditor
+                  alunoId={alunoId}
+                  alunoNome={nomeFinal}
+                  onBack={() => setMetodoDireto(null)}
+                  onSaved={() => { onSaved?.(); handleClose(); }}
+                />
+              )}
+            </Suspense>
+          </>
+        ) : !selected ? (
           <>
             <DialogHeader>
               <DialogTitle>Importar do Banco de Treinos</DialogTitle>
