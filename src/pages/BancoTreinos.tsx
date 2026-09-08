@@ -1270,11 +1270,17 @@ export default function BancoTreinos() {
             : "Modelo Personalizado";
     return (
       <div className="container mx-auto p-6 max-w-6xl">
+        {alunoCtx && (
+          <div className="mb-3">
+            <p className="text-sm text-muted-foreground mb-2">Aluno: {alunoCtx.nome}</p>
+            <AlunoDeficitsAlert alunoId={alunoCtx.id} />
+          </div>
+        )}
         <PersonalizadoEditor
           initial={initialData}
           initialName={initialName}
           modeloId={personalizadoOpen.mode === "edit" ? personalizadoOpen.id : undefined}
-          onBack={() => setPersonalizadoOpen(null)}
+          onBack={() => { setPersonalizadoOpen(null); setAlunoCtx(null); }}
           onSaved={() => { refetchModelos(); }}
           readOnly={isCorridaCard && !canEdit}
         />
