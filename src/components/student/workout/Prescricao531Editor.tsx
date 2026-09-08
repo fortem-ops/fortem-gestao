@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlunoDeficitsAlert } from "./AlunoDeficitsAlert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -576,7 +577,10 @@ export function Prescricao531Editor({
         </div>
       </div>
 
+      <AlunoDeficitsAlert alunoId={alunoId} />
+
       {/* Configuração global */}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Configuração</CardTitle>
