@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight, ChevronLeft, Dumbbell, Plus, Loader2, Trash2, Search, Video, Upload, X, Pencil, GripVertical, Settings } from "lucide-react";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { ManageCategoriesDialog } from "./ManageCategoriesDialog";
-import { MOBILIDADE_ARTICULATION_OPTIONS } from "./assessment/funcionalV2/shapeMuscleMapping";
+import { ARTICULACAO_MUSCULO_OPTIONS, categoriaAceitaVinculo } from "./assessment/funcionalV2/shapeMuscleMapping";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -992,18 +992,21 @@ export function StudentExerciseBank() {
               </div>
             )}
 
-            {Object.values(selecoes).some(
-              (sel) => (sel?.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
-            ) && (
+            {Object.values(selecoes).some((sel) => categoriaAceitaVinculo(sel?.categoria)) && (
               <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-3">
                 <div>
-                  <Label>Articulações relacionadas</Label>
+                  <Label>Articulações / músculos relacionados</Label>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Selecione as articulações que este exercício de mobilidade trabalha.
+                    Selecione o que este exercício trabalha. Usado para recomendar aquecimento a partir das assimetrias da avaliação funcional.
+                    {Object.values(selecoes).some(
+                      (sel) => (sel?.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
+                    )
+                      ? " Obrigatório em Mobilidade Articular."
+                      : " Opcional em Liberação Miofascial."}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {MOBILIDADE_ARTICULATION_OPTIONS.map((option) => (
+                  {ARTICULACAO_MUSCULO_OPTIONS.map((option) => (
                     <label key={option.key} className="flex items-center gap-2 text-sm cursor-pointer">
                       <Checkbox
                         checked={articulacoes.includes(option.key)}

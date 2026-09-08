@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Library, Dumbbell, Loader2, Sparkles } from "lucide-react";
 import { WORKOUT_TEMPLATES, type WorkoutTemplate, type WorkoutExercise } from "./workoutTemplates";
 import { WorkoutDetail } from "./WorkoutDetail";
+import { AlunoDeficitsAlert } from "./AlunoDeficitsAlert";
 import { flattenPersonalizado, type PersonalizadoConteudo } from "./personalizadoTypes";
 
 interface Escolha {
@@ -341,6 +342,7 @@ export function ImportFromBankDialog({ alunoId, onSaved }: Props) {
                   Revise os exercícios (já preenchidos com as escolhas do Banco) e ajuste o que for necessário antes de salvar.
                 </DialogDescription>
               </DialogHeader>
+              <AlunoDeficitsAlert alunoId={alunoId} />
               <WorkoutDetail
                 alunoId={alunoId}
                 templateData={prepared}
