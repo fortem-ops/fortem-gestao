@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import type { Tables } from "@/integrations/supabase/types";
 import type { WorkoutExercise } from "./workoutTemplates";
 import fortemLogo from "@/assets/fortem-logo-pdf.png";
+import { aquecimentoLabel, ordenarBlocosAquecimento } from "@/lib/aquecimentoBlocos";
 
 interface WorkoutData {
   aquecimento: WorkoutExercise[];
