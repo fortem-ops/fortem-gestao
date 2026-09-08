@@ -121,7 +121,12 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
         queryClient.invalidateQueries({ queryKey: ["avaliacoes-global", student.id] });
         queryClient.invalidateQueries({ queryKey: ["lembrete-avaliacoes-pendentes"] });
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+        const msg =
+          (e as { message?: string })?.message ||
+          (typeof e === "string" ? e : "") ||
+          "Erro ao salvar";
+        toast.error(msg);
+      }
       } finally {
         setSaving(false);
       }
