@@ -1024,14 +1024,18 @@ export function StudentExerciseBank() {
               </div>
             )}
 
-            {Object.values(selecoes).some((sel) => categoriaAceitaVinculo(sel?.categoria)) && (
+            {Object.values(selecoes).some((lista) =>
+              (lista ?? []).some((sel) => categoriaAceitaVinculo(sel?.categoria)),
+            ) && (
               <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-3">
                 <div>
                   <Label>Articulações / músculos relacionados</Label>
                   <p className="text-xs text-muted-foreground mt-1">
                     Selecione o que este exercício trabalha. Usado para recomendar aquecimento a partir das assimetrias da avaliação funcional.
-                    {Object.values(selecoes).some(
-                      (sel) => (sel?.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
+                    {Object.values(selecoes).some((lista) =>
+                      (lista ?? []).some(
+                        (sel) => (sel?.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
+                      ),
                     )
                       ? " Obrigatório em Mobilidade Articular."
                       : " Opcional em Liberação Miofascial."}
