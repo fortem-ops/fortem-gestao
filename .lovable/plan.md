@@ -25,7 +25,7 @@ Verificação: ela é **o único caso** hoje com plano vencido enquanto o contra
 Nada de preços, contratos de Corrida (Somente Provas, MIPOA, Kit, Avaliação) ou regras
 de cobrança é alterado.
 
-## Prevenção (opcional, recomendo fazer junto)
+## Prevenção (será feita junto)
 
 Hoje esse desencontro só é percebido por reclamação. A prevenção teria três partes:
 
@@ -37,8 +37,7 @@ Hoje esse desencontro só é percebido por reclamação. A prevenção teria tr�
 3. Um cartão em Relatórios mostrando a lista atual dessas divergências, com botão para
    alinhar a data do plano à do contrato em um clique.
 
-Se preferir começar pequeno, dá para fazer só os itens 1 e 3 agora e deixar o alerta
-automático para depois.
+Os três itens serão implementados agora.
 
 ## Detalhes técnicos
 
@@ -50,5 +49,13 @@ automático para depois.
 - `selecionarPlanoExibicao` em `src/lib/planoPrincipal.ts` já está correto — ele prioriza
   o principal vigente; o problema era o dado, não a lógica. Nenhuma alteração de código
   de exibição é necessária.
-- Prevenção: consulta/relatório comparando `planos.data_fim` com `contratos.data_fim`
-  para contratos `ativo` da atividade `treinamento_funcional`.
+- Prevenção:
+  1. View/RPC `fn_planos_divergencia_contrato()` (SECURITY DEFINER, `search_path=public`,
+     EXECUTE só para `authenticated`) comparando `planos.data_fim` com `contratos.data_fim`
+     de contratos `ativo`, para planos `ativo` da atividade `treinamento_funcional`.
+  2. Job diário (pg_cron 06:00 UTC) que chama a RPC e, havendo divergências, cria uma
+     notificação via `fn_notificar_criar_notificacao` para coordenação/admin.
+     Cadência baixa e única, sem sweeper adicional; atraso máximo de 24h.
+  3. Cartão "Divergência plano × contrato" em `src/pages/relatorios/Planos.tsx`, no padrão
+     do cartão "Renovação fora do ciclo", com ação de alinhar `planos.data_fim` ao contrato
+     (RPC `fn_alinhar_plano_ao_contrato(plano_id)` restrita a coordenador/admin).
