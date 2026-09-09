@@ -970,20 +970,38 @@ export function StudentExerciseBank() {
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {opcoes.map((op) => {
-                                  const active =
-                                    sel?.categoria === categoria.nome && sel?.subcategoria === op.value;
+                                  const active = sel.some(
+                                    (s) => s.categoria === categoria.nome && s.subcategoria === op.value,
+                                  );
                                   return (
                                     <button
                                       key={`${categoria.nome}:${op.value}`}
                                       type="button"
+                                      aria-pressed={active}
                                       onClick={() =>
-                                        setSelecoes((prev) => ({
-                                          ...prev,
-                                          [grupoName]: {
-                                            categoria: categoria.nome,
-                                            subcategoria: op.value,
-                                          },
-                                        }))
+                                        setSelecoes((prev) => {
+                                          const lista = prev[grupoName] ?? [];
+                                          const existe = lista.some(
+                                            (s) =>
+                                              s.categoria === categoria.nome &&
+                                              s.subcategoria === op.value,
+                                          );
+                                          return {
+                                            ...prev,
+                                            [grupoName]: existe
+                                              ? lista.filter(
+                                                  (s) =>
+                                                    !(
+                                                      s.categoria === categoria.nome &&
+                                                      s.subcategoria === op.value
+                                                    ),
+                                                )
+                                              : [
+                                                  ...lista,
+                                                  { categoria: categoria.nome, subcategoria: op.value },
+                                                ],
+                                          };
+                                        })
                                       }
                                       className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                                         active
