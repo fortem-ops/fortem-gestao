@@ -59,7 +59,7 @@ const exerciseSchema = z.object({
     grupo: z.string().min(1),
     categoria: z.string().optional(),
     subcategoria: z.string().min(1),
-  })).min(1, "Selecione pelo menos um grupo e subcategoria"),
+  })).min(1, "Selecione pelo menos uma subcategoria"),
   video_url: z.string().trim().url("URL inválida").max(500).optional().or(z.literal("")),
 });
 
@@ -84,7 +84,7 @@ export function StudentExerciseBank() {
 
   // Form state
   const [nome, setNome] = useState("");
-  const [selecoes, setSelecoes] = useState<Record<string, SelecaoGrupo>>({});
+  const [selecoes, setSelecoes] = useState<Record<string, SelecaoGrupo[]>>({});
   const [articulacoes, setArticulacoes] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -101,12 +101,17 @@ export function StudentExerciseBank() {
   const openEditDialog = async (ex: ExercicioRow) => {
     setEditingId(ex.id);
     setNome(ex.nome);
-    const sel: Record<string, SelecaoGrupo> = {};
+    const sel: Record<string, SelecaoGrupo[]> = {};
     ex.grupos.forEach((g) => {
-      sel[g.grupo] = {
+      const item = {
         categoria: g.categoria ?? resolverCategoria(g.grupo, g.subcategoria),
         subcategoria: g.subcategoria,
       };
+      const atual = sel[g.grupo] ?? [];
+      if (!atual.some((s) => s.categoria === item.categoria && s.subcategoria === item.subcategoria)) {
+        atual.push(item);
+      }
+      sel[g.grupo] = atual;
     });
     setSelecoes(sel);
     const { data } = await supabase.from("exercicio_articulacoes" as any).select("articulacao_key").eq("exercicio_id", ex.id);
