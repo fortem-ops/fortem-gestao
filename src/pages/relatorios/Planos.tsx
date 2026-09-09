@@ -47,6 +47,30 @@ export default function RelatoriosPlanos() {
     },
   });
 
+  // Planos ativos cuja data final não bate com a do contrato ativo — a tela do aluno
+  // passa a exibir outro plano (ex.: Corrida) quando o principal parece vencido.
+  const { data: divergencias = [], refetch: refetchDiv } = useQuery({
+    queryKey: ["rel-planos-divergencia"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_planos_divergencia_contrato");
+      if (error) throw error;
+      return (data ?? []) as DivergenciaRow[];
+    },
+  });
+
+  const [alinhando, setAlinhando] = useState<string | null>(null);
+  const alinhar = async (planoId: string) => {
+    setAlinhando(planoId);
+    const { error } = await (supabase as any).rpc("fn_alinhar_plano_ao_contrato", { p_plano_id: planoId });
+    setAlinhando(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Data do plano alinhada ao contrato.");
+    refetchDiv();
+  };
+
   const tipos = useMemo(() => {
     const s = new Set<string>();
     rows.forEach((r) => r.tipo && s.add(r.tipo));
