@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Check, X, Loader2, GripVertical, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Pencil, Trash2, Check, X, Loader2, GripVertical } from "lucide-react";
 
 import { toast } from "sonner";
 
@@ -7,7 +7,6 @@ import { useExerciseCategories, siglaSugerida } from "@/hooks/useExerciseCategor
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 
 import {
   Dialog,
@@ -86,13 +85,11 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     deleteGrupo,
     deleteCategoria,
     deleteSub,
-    migrar,
     moverGrupoComoCategoria,
     moverCategoriaParaGrupo,
     moverSubParaCategoria,
     promoverSubParaCategoria,
     promoverCategoriaParaGrupo,
-    contarPorSubcategoria,
     reorderGrupos,
     reorderCategorias,
     reorderSubs,
@@ -100,7 +97,7 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     definirSigla,
   } = useExerciseCategories();
 
-  const [tab, setTab] = useState<"grupos" | "categorias" | "subs" | "migrar">("grupos");
+  const [tab, setTab] = useState<"grupos" | "categorias" | "subs">("grupos");
   const [newGrupo, setNewGrupo] = useState("");
   const [newCategoria, setNewCategoria] = useState("");
   const [newSub, setNewSub] = useState("");
@@ -119,17 +116,6 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const [hoverAlvo, setHoverAlvo] = useState<string | null>(null);
   const [confirmMove, setConfirmMove] = useState<MoveConfirm | null>(null);
   const [movendo, setMovendo] = useState(false);
-
-  // Migração
-  const [origGrupo, setOrigGrupo] = useState("");
-  const [origCat, setOrigCat] = useState<string>("__todas__");
-  const [origSub, setOrigSub] = useState<string>("__todas__");
-  const [destGrupo, setDestGrupo] = useState("");
-  const [destCat, setDestCat] = useState("");
-  const [destSub, setDestSub] = useState("");
-  const [excluirOrigem, setExcluirOrigem] = useState(false);
-  const [preview, setPreview] = useState<number | null>(null);
-  const [previewSubs, setPreviewSubs] = useState<{ sub: string; total: number }[]>([]);
 
   const grupos = tree.map((g) => g.nome);
   const categoriasDoGrupo = (grupo: string) =>
@@ -158,17 +144,6 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
   const cats = categoriasDoGrupo(selectedGrupo);
   const subs = subsDe(selectedGrupo, selectedCategoria);
 
-  const origCats = useMemo(() => categoriasDoGrupo(origGrupo), [tree, origGrupo]);
-  const origSubs = useMemo(
-    () => (origCat === "__todas__" ? [] : subsDe(origGrupo, origCat)),
-    [tree, origGrupo, origCat],
-  );
-  const destCats = useMemo(() => categoriasDoGrupo(destGrupo), [tree, destGrupo]);
-  const destSubs = useMemo(
-    () => (destCat ? subsDe(destGrupo, destCat) : []),
-    [tree, destGrupo, destCat],
-  );
-
   // Mantém as seleções coerentes com a árvore
   useEffect(() => {
     if (selectedGrupo && !cats.includes(selectedCategoria)) {
@@ -176,28 +151,6 @@ export function ManageCategoriesDialog({ open, onOpenChange }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGrupo, tree]);
-
-  // Prévia da migração
-  useEffect(() => {
-    let cancelado = false;
-    if (!origGrupo) {
-      setPreview(null);
-      setPreviewSubs([]);
-      return;
-    }
-    const cat = origCat === "__todas__" ? null : origCat;
-    const sub = origSub === "__todas__" ? null : origSub;
-    contarExercicios(origGrupo, cat, sub)
-      .then((n) => !cancelado && setPreview(n))
-      .catch(() => !cancelado && setPreview(null));
-    contarPorSubcategoria(origGrupo, cat)
-      .then((r) => !cancelado && setPreviewSubs(r))
-      .catch(() => !cancelado && setPreviewSubs([]));
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origGrupo, origCat, origSub]);
 
   const reordenar = <T,>(list: T[], from: T, to: T): T[] => {
     const arr = [...list];
