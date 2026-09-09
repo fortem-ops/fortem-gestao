@@ -27,9 +27,18 @@ de cobrança é alterado.
 
 ## Prevenção (opcional, recomendo fazer junto)
 
-Criar uma verificação periódica simples que aponte planos ativos cuja data final ficou
-menor que a do contrato ativo correspondente, para o time corrigir antes de o aluno
-aparecer com plano errado. Hoje isso só é percebido por reclamação.
+Hoje esse desencontro só é percebido por reclamação. A prevenção teria três partes:
+
+1. Uma verificação no banco que compara, todos os dias, a data final de cada plano ativo
+   com a data final do contrato ativo daquele aluno e lista os que estão diferentes.
+2. Uma rotina automática diária que roda essa verificação e, quando encontrar diferenças,
+   gera um alerta interno para a coordenação (mesmo canal dos alertas já existentes),
+   dizendo o nome do aluno e as duas datas.
+3. Um cartão em Relatórios mostrando a lista atual dessas divergências, com botão para
+   alinhar a data do plano à do contrato em um clique.
+
+Se preferir começar pequeno, dá para fazer só os itens 1 e 3 agora e deixar o alerta
+automático para depois.
 
 ## Detalhes técnicos
 
