@@ -25,7 +25,7 @@ Verificação: ela é **o único caso** hoje com plano vencido enquanto o contra
 Nada de preços, contratos de Corrida (Somente Provas, MIPOA, Kit, Avaliação) ou regras
 de cobrança é alterado.
 
-## Prevenção (opcional, recomendo fazer junto)
+## Prevenção (será feita junto)
 
 Hoje esse desencontro só é percebido por reclamação. A prevenção teria três partes:
 
