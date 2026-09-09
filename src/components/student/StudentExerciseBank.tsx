@@ -59,7 +59,7 @@ const exerciseSchema = z.object({
     grupo: z.string().min(1),
     categoria: z.string().optional(),
     subcategoria: z.string().min(1),
-  })).min(1, "Selecione pelo menos um grupo e subcategoria"),
+  })).min(1, "Selecione pelo menos uma subcategoria"),
   video_url: z.string().trim().url("URL inválida").max(500).optional().or(z.literal("")),
 });
 
@@ -84,7 +84,7 @@ export function StudentExerciseBank() {
 
   // Form state
   const [nome, setNome] = useState("");
-  const [selecoes, setSelecoes] = useState<Record<string, SelecaoGrupo>>({});
+  const [selecoes, setSelecoes] = useState<Record<string, SelecaoGrupo[]>>({});
   const [articulacoes, setArticulacoes] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -101,12 +101,17 @@ export function StudentExerciseBank() {
   const openEditDialog = async (ex: ExercicioRow) => {
     setEditingId(ex.id);
     setNome(ex.nome);
-    const sel: Record<string, SelecaoGrupo> = {};
+    const sel: Record<string, SelecaoGrupo[]> = {};
     ex.grupos.forEach((g) => {
-      sel[g.grupo] = {
+      const item = {
         categoria: g.categoria ?? resolverCategoria(g.grupo, g.subcategoria),
         subcategoria: g.subcategoria,
       };
+      const atual = sel[g.grupo] ?? [];
+      if (!atual.some((s) => s.categoria === item.categoria && s.subcategoria === item.subcategoria)) {
+        atual.push(item);
+      }
+      sel[g.grupo] = atual;
     });
     setSelecoes(sel);
     const { data } = await supabase.from("exercicio_articulacoes" as any).select("articulacao_key").eq("exercicio_id", ex.id);
@@ -391,13 +396,15 @@ export function StudentExerciseBank() {
   }, [exercicios, selGrupo, selCat, selectedSub]);
 
   const handleSave = () => {
-    const grupos: GroupSelection[] = Object.entries(selecoes)
-      .filter(([, sel]) => !!sel?.subcategoria)
-      .map(([grupo, sel]) => ({
-        grupo,
-        categoria: sel.categoria || resolverCategoria(grupo, sel.subcategoria),
-        subcategoria: sel.subcategoria,
-      }));
+    const grupos: GroupSelection[] = Object.entries(selecoes).flatMap(([grupo, lista]) =>
+      (lista ?? [])
+        .filter((sel) => !!sel?.subcategoria)
+        .map((sel) => ({
+          grupo,
+          categoria: sel.categoria || resolverCategoria(grupo, sel.subcategoria),
+          subcategoria: sel.subcategoria,
+        })),
+    );
     const isMobilidadeArticular = grupos.some(
       (g) => (g.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
     );
@@ -439,7 +446,7 @@ export function StudentExerciseBank() {
   const toggleGrupo = (grupo: string, checked: boolean) => {
     setSelecoes((prev) => {
       const next = { ...prev };
-      if (checked) next[grupo] = { categoria: "", subcategoria: "" };
+      if (checked) next[grupo] = [];
       else delete next[grupo];
       return next;
     });
@@ -934,10 +941,15 @@ export function StudentExerciseBank() {
                 {Object.keys(selecoes).map((grupoName) => {
                   const grupoNode = tree.find((g) => g.nome === grupoName);
                   if (!grupoNode) return null;
-                  const sel = selecoes[grupoName];
+                  const sel = selecoes[grupoName] ?? [];
                   return (
                     <div key={grupoName} className="glass-card rounded-md p-3 space-y-3">
-                      <p className="text-xs font-semibold text-foreground">{grupoName}</p>
+                      <p className="text-xs font-semibold text-foreground">
+                        {grupoName}
+                        <span className="ml-1 font-normal text-muted-foreground">
+                          ({sel.length} selecionada{sel.length === 1 ? "" : "s"})
+                        </span>
+                      </p>
                       {grupoNode.categorias.length === 0 ? (
                         <p className="text-xs text-muted-foreground">Sem categorias</p>
                       ) : (
@@ -958,20 +970,38 @@ export function StudentExerciseBank() {
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {opcoes.map((op) => {
-                                  const active =
-                                    sel?.categoria === categoria.nome && sel?.subcategoria === op.value;
+                                  const active = sel.some(
+                                    (s) => s.categoria === categoria.nome && s.subcategoria === op.value,
+                                  );
                                   return (
                                     <button
                                       key={`${categoria.nome}:${op.value}`}
                                       type="button"
+                                      aria-pressed={active}
                                       onClick={() =>
-                                        setSelecoes((prev) => ({
-                                          ...prev,
-                                          [grupoName]: {
-                                            categoria: categoria.nome,
-                                            subcategoria: op.value,
-                                          },
-                                        }))
+                                        setSelecoes((prev) => {
+                                          const lista = prev[grupoName] ?? [];
+                                          const existe = lista.some(
+                                            (s) =>
+                                              s.categoria === categoria.nome &&
+                                              s.subcategoria === op.value,
+                                          );
+                                          return {
+                                            ...prev,
+                                            [grupoName]: existe
+                                              ? lista.filter(
+                                                  (s) =>
+                                                    !(
+                                                      s.categoria === categoria.nome &&
+                                                      s.subcategoria === op.value
+                                                    ),
+                                                )
+                                              : [
+                                                  ...lista,
+                                                  { categoria: categoria.nome, subcategoria: op.value },
+                                                ],
+                                          };
+                                        })
                                       }
                                       className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                                         active
@@ -994,14 +1024,18 @@ export function StudentExerciseBank() {
               </div>
             )}
 
-            {Object.values(selecoes).some((sel) => categoriaAceitaVinculo(sel?.categoria)) && (
+            {Object.values(selecoes).some((lista) =>
+              (lista ?? []).some((sel) => categoriaAceitaVinculo(sel?.categoria)),
+            ) && (
               <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-3">
                 <div>
                   <Label>Articulações / músculos relacionados</Label>
                   <p className="text-xs text-muted-foreground mt-1">
                     Selecione o que este exercício trabalha. Usado para recomendar aquecimento a partir das assimetrias da avaliação funcional.
-                    {Object.values(selecoes).some(
-                      (sel) => (sel?.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
+                    {Object.values(selecoes).some((lista) =>
+                      (lista ?? []).some(
+                        (sel) => (sel?.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
+                      ),
                     )
                       ? " Obrigatório em Mobilidade Articular."
                       : " Opcional em Liberação Miofascial."}
