@@ -396,13 +396,15 @@ export function StudentExerciseBank() {
   }, [exercicios, selGrupo, selCat, selectedSub]);
 
   const handleSave = () => {
-    const grupos: GroupSelection[] = Object.entries(selecoes)
-      .filter(([, sel]) => !!sel?.subcategoria)
-      .map(([grupo, sel]) => ({
-        grupo,
-        categoria: sel.categoria || resolverCategoria(grupo, sel.subcategoria),
-        subcategoria: sel.subcategoria,
-      }));
+    const grupos: GroupSelection[] = Object.entries(selecoes).flatMap(([grupo, lista]) =>
+      (lista ?? [])
+        .filter((sel) => !!sel?.subcategoria)
+        .map((sel) => ({
+          grupo,
+          categoria: sel.categoria || resolverCategoria(grupo, sel.subcategoria),
+          subcategoria: sel.subcategoria,
+        })),
+    );
     const isMobilidadeArticular = grupos.some(
       (g) => (g.categoria ?? "").trim().toLowerCase() === "mobilidade articular",
     );
@@ -444,7 +446,7 @@ export function StudentExerciseBank() {
   const toggleGrupo = (grupo: string, checked: boolean) => {
     setSelecoes((prev) => {
       const next = { ...prev };
-      if (checked) next[grupo] = { categoria: "", subcategoria: "" };
+      if (checked) next[grupo] = [];
       else delete next[grupo];
       return next;
     });
