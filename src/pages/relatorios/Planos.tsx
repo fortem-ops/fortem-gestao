@@ -30,6 +30,18 @@ type PlanoRow = {
   dias_no_plano: number | null;
 };
 
+type DivergenciaRow = {
+  plano_id: string;
+  aluno_id: string;
+  aluno_nome: string;
+  tipo: string;
+  plano_data_fim: string | null;
+  contrato_id: string;
+  contrato_data_fim: string | null;
+};
+
+const dataBR = (d: string | null) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—");
+
 export default function RelatoriosPlanos() {
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState<string>("todos");
