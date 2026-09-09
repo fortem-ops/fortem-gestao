@@ -222,6 +222,38 @@ export default function RelatoriosPlanos() {
         </Card>
       )}
 
+      {divergencias.length > 0 && (
+        <Card className="glass-card border-destructive/40">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              Divergência plano × contrato ({divergencias.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            <p className="text-sm text-muted-foreground">
+              A data final do plano está diferente da do contrato ativo. Enquanto isso, o cadastro do aluno
+              pode exibir outro plano (ex.: Corrida) como principal.
+            </p>
+            {divergencias.map((d) => (
+              <div key={d.plano_id} className="flex items-center justify-between gap-3 text-sm border-t border-border pt-1.5">
+                <span className="font-medium">{d.aluno_nome} · <span className="capitalize">{d.tipo}</span></span>
+                <span className="text-muted-foreground text-xs">
+                  plano {dataBR(d.plano_data_fim)} · contrato {dataBR(d.contrato_data_fim)}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={alinhando === d.plano_id}
+                  onClick={() => alinhar(d.plano_id)}
+                >
+                  {alinhando === d.plano_id ? "Alinhando…" : "Alinhar ao contrato"}
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="glass-card">
         <CardHeader><CardTitle className="text-base">Distribuição por tipo (ativos)</CardTitle></CardHeader>
