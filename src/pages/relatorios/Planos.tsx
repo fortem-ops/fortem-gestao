@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,6 +30,18 @@ type PlanoRow = {
   dias_no_plano: number | null;
 };
 
+type DivergenciaRow = {
+  plano_id: string;
+  aluno_id: string;
+  aluno_nome: string;
+  tipo: string;
+  plano_data_fim: string | null;
+  contrato_id: string;
+  contrato_data_fim: string | null;
+};
+
+const dataBR = (d: string | null) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—");
+
 export default function RelatoriosPlanos() {
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState<string>("todos");
@@ -44,6 +58,30 @@ export default function RelatoriosPlanos() {
       return (data ?? []) as PlanoRow[];
     },
   });
+
+  // Planos ativos cuja data final não bate com a do contrato ativo — a tela do aluno
+  // passa a exibir outro plano (ex.: Corrida) quando o principal parece vencido.
+  const { data: divergencias = [], refetch: refetchDiv } = useQuery({
+    queryKey: ["rel-planos-divergencia"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_planos_divergencia_contrato");
+      if (error) throw error;
+      return (data ?? []) as DivergenciaRow[];
+    },
+  });
+
+  const [alinhando, setAlinhando] = useState<string | null>(null);
+  const alinhar = async (planoId: string) => {
+    setAlinhando(planoId);
+    const { error } = await (supabase as any).rpc("fn_alinhar_plano_ao_contrato", { p_plano_id: planoId });
+    setAlinhando(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Data do plano alinhada ao contrato.");
+    refetchDiv();
+  };
 
   const tipos = useMemo(() => {
     const s = new Set<string>();
@@ -184,6 +222,38 @@ export default function RelatoriosPlanos() {
         </Card>
       )}
 
+      {divergencias.length > 0 && (
+        <Card className="glass-card border-destructive/40">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              Divergência plano × contrato ({divergencias.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            <p className="text-sm text-muted-foreground">
+              A data final do plano está diferente da do contrato ativo. Enquanto isso, o cadastro do aluno
+              pode exibir outro plano (ex.: Corrida) como principal.
+            </p>
+            {divergencias.map((d) => (
+              <div key={d.plano_id} className="flex items-center justify-between gap-3 text-sm border-t border-border pt-1.5">
+                <span className="font-medium">{d.aluno_nome} · <span className="capitalize">{d.tipo}</span></span>
+                <span className="text-muted-foreground text-xs">
+                  plano {dataBR(d.plano_data_fim)} · contrato {dataBR(d.contrato_data_fim)}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={alinhando === d.plano_id}
+                  onClick={() => alinhar(d.plano_id)}
+                >
+                  {alinhando === d.plano_id ? "Alinhando…" : "Alinhar ao contrato"}
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="glass-card">
         <CardHeader><CardTitle className="text-base">Distribuição por tipo (ativos)</CardTitle></CardHeader>
