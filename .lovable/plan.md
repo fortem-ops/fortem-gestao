@@ -37,8 +37,7 @@ Hoje esse desencontro só é percebido por reclamação. A prevenção teria tr�
 3. Um cartão em Relatórios mostrando a lista atual dessas divergências, com botão para
    alinhar a data do plano à do contrato em um clique.
 
-Se preferir começar pequeno, dá para fazer só os itens 1 e 3 agora e deixar o alerta
-automático para depois.
+Os três itens serão implementados agora.
 
 ## Detalhes técnicos
 
