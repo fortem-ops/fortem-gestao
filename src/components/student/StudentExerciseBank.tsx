@@ -941,10 +941,15 @@ export function StudentExerciseBank() {
                 {Object.keys(selecoes).map((grupoName) => {
                   const grupoNode = tree.find((g) => g.nome === grupoName);
                   if (!grupoNode) return null;
-                  const sel = selecoes[grupoName];
+                  const sel = selecoes[grupoName] ?? [];
                   return (
                     <div key={grupoName} className="glass-card rounded-md p-3 space-y-3">
-                      <p className="text-xs font-semibold text-foreground">{grupoName}</p>
+                      <p className="text-xs font-semibold text-foreground">
+                        {grupoName}
+                        <span className="ml-1 font-normal text-muted-foreground">
+                          ({sel.length} selecionada{sel.length === 1 ? "" : "s"})
+                        </span>
+                      </p>
                       {grupoNode.categorias.length === 0 ? (
                         <p className="text-xs text-muted-foreground">Sem categorias</p>
                       ) : (
