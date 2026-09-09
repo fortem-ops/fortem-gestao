@@ -7946,6 +7946,10 @@ export type Database = {
         Args: { p_data: string; p_slot_id: string }
         Returns: Json
       }
+      fn_alinhar_plano_ao_contrato: {
+        Args: { p_plano_id: string }
+        Returns: string
+      }
       fn_aluno_last_access: { Args: { _aluno_id: string }; Returns: Json }
       fn_calcular_rescisao: {
         Args: { p_contrato_id: string; p_data_cancelamento?: string }
@@ -8314,6 +8318,19 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      fn_planos_divergencia_alertar: { Args: never; Returns: number }
+      fn_planos_divergencia_contrato: {
+        Args: never
+        Returns: {
+          aluno_id: string
+          aluno_nome: string
+          contrato_data_fim: string
+          contrato_id: string
+          plano_data_fim: string
+          plano_id: string
+          tipo: string
+        }[]
       }
       fn_ponto_ajustar_jornada: {
         Args: {
