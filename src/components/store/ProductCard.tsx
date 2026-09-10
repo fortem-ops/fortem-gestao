@@ -30,17 +30,17 @@ const ProductCard = ({ produto }: { produto: ProdutoComVariantes }) => {
       className="group focus-visible:outline-none"
       aria-label={produto.nome}
     >
-      <Card className="h-full overflow-hidden rounded-2xl border-border transition-shadow group-hover:shadow-lg">
-        <div className="relative aspect-square overflow-hidden bg-muted">
+      <Card className="h-full overflow-hidden rounded-2xl border-neutral-200 bg-white transition-shadow group-hover:shadow-lg">
+        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
           {produto.imagem_url ? (
             <img
               src={produto.imagem_url}
               alt={produto.nome}
               loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <div className="flex h-full w-full items-center justify-center text-neutral-500">
               <ImageOff className="h-8 w-8" />
             </div>
           )}
@@ -52,7 +52,7 @@ const ProductCard = ({ produto }: { produto: ProdutoComVariantes }) => {
           {esgotado && (
             <Badge
               variant="secondary"
-              className="absolute left-3 top-3 bg-foreground text-background"
+              className="absolute left-3 top-3 bg-neutral-900 text-white"
             >
               Esgotado
             </Badge>
@@ -61,7 +61,7 @@ const ProductCard = ({ produto }: { produto: ProdutoComVariantes }) => {
 
         <div className="space-y-1 p-3 sm:p-4">
           {produto.categoria && (
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
               {produto.categoria}
             </p>
           )}
@@ -76,7 +76,7 @@ const ProductCard = ({ produto }: { produto: ProdutoComVariantes }) => {
               {coresDistintas.map(([nome, hex]) => (
                 <span
                   key={nome}
-                  className="h-3 w-3 rounded-full border border-border/50"
+                  className="h-3 w-3 rounded-full border border-neutral-200/50"
                   style={{ backgroundColor: hex || "#9CA3AF" }}
                   title={nome}
                   aria-label={`Cor ${nome}`}

@@ -103,13 +103,13 @@ const StoreProductDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white text-neutral-900">
         <StoreHeader backTo="/store" />
         <main className="mx-auto max-w-5xl space-y-4 px-4 py-6">
-          <Skeleton className="aspect-square w-full rounded-2xl" />
-          <Skeleton className="h-6 w-2/3" />
-          <Skeleton className="h-5 w-1/3" />
-          <Skeleton className="h-20 w-full" />
+          <Skeleton className="aspect-[4/3] w-full rounded-2xl bg-neutral-100" />
+          <Skeleton className="h-6 w-2/3 bg-neutral-100" />
+          <Skeleton className="h-5 w-1/3 bg-neutral-100" />
+          <Skeleton className="h-20 w-full bg-neutral-100" />
         </main>
       </div>
     );
@@ -117,10 +117,10 @@ const StoreProductDetail = () => {
 
   if (isError || !produto) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white text-neutral-900">
         <StoreHeader backTo="/store" />
         <main className="mx-auto max-w-5xl px-4 py-16 text-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-neutral-500">
             Produto não encontrado ou indisponível.
           </p>
           <Button asChild className="mt-4">
@@ -134,21 +134,21 @@ const StoreProductDetail = () => {
   const imagens = imagemPrincipal ? [imagemPrincipal] : [];
 
   return (
-    <div className="min-h-screen bg-background pb-28 sm:pb-8">
+    <div className="min-h-screen bg-white pb-28 text-neutral-900 sm:pb-8">
       <StoreHeader backTo="/store" />
 
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
-            <div className="relative aspect-square overflow-hidden rounded-2xl bg-muted">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-neutral-100">
               {imagens.length ? (
                 <img
                   src={imagens[0]}
                   alt={produto.nome}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                <div className="flex h-full w-full items-center justify-center text-neutral-500">
                   <ImageOff className="h-10 w-10" />
                 </div>
               )}
@@ -158,7 +158,7 @@ const StoreProductDetail = () => {
                 </Badge>
               )}
               {esgotado && (
-                <Badge className="absolute left-3 top-3 bg-foreground text-background">
+                <Badge className="absolute left-3 top-3 bg-neutral-900 text-white">
                   Esgotado
                 </Badge>
               )}
@@ -179,7 +179,7 @@ const StoreProductDetail = () => {
 
           <div>
             {produto.categoria && (
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
                 {produto.categoria}
               </p>
             )}
@@ -191,12 +191,12 @@ const StoreProductDetail = () => {
             </p>
 
             {produto.descricao && (
-              <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-neutral-500">
                 {produto.descricao}
               </p>
             )}
 
-            <Separator className="my-5" />
+            <Separator className="my-5 bg-neutral-200" />
 
             {tamanhos.length > 0 && (
               <div className="mb-4">
@@ -214,7 +214,7 @@ const StoreProductDetail = () => {
                           setTamanho(t);
                           setQuantidade(1);
                         }}
-                        className="min-w-12 rounded-full"
+                        className="min-w-12 rounded-full bg-white"
                       >
                         {t}
                       </Button>
@@ -243,7 +243,7 @@ const StoreProductDetail = () => {
                           setCor(c);
                           setQuantidade(1);
                         }}
-                        className="gap-1.5 rounded-full"
+                        className="gap-1.5 rounded-full bg-white"
                       >
                         <span
                           className="h-3 w-3 rounded-full border border-current/30"
@@ -260,7 +260,7 @@ const StoreProductDetail = () => {
 
             <div className="mb-2">
               <p className="mb-2 text-sm font-semibold">Quantidade</p>
-              <div className="flex w-fit items-center gap-1 rounded-full border border-border p-1">
+              <div className="flex w-fit items-center gap-1 rounded-full border border-neutral-200 p-1">
                 <Button
                   size="icon"
                   variant="ghost"
@@ -288,7 +288,7 @@ const StoreProductDetail = () => {
                 </Button>
               </div>
               {varianteSelecionada && estoqueMax > 0 && estoqueMax <= 5 && (
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 text-xs text-neutral-500">
                   Últimas {estoqueMax} unidades desta opção.
                 </p>
               )}
@@ -311,7 +311,7 @@ const StoreProductDetail = () => {
                   : "Adicionar ao carrinho"}
               </Button>
               {encomenda && (
-                <p className="mt-2 text-center text-xs text-muted-foreground">
+                <p className="mt-2 text-center text-xs text-neutral-500">
                   Produto sob encomenda — o pagamento é feito agora e o item
                   chega em breve.
                 </p>
@@ -321,7 +321,7 @@ const StoreProductDetail = () => {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 p-3 backdrop-blur sm:hidden">
         <Button
           size="lg"
           className="w-full"
@@ -338,7 +338,7 @@ const StoreProductDetail = () => {
             : `Adicionar • ${formatBRL(preco * quantidade)}`}
         </Button>
         {encomenda && (
-          <p className="mt-2 text-center text-xs text-muted-foreground">
+          <p className="mt-2 text-center text-xs text-neutral-500">
             Produto sob encomenda — o pagamento é feito agora e o item chega em
             breve.
           </p>

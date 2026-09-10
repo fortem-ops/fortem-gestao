@@ -275,14 +275,14 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
 
   if (step === "sucesso") {
     return (
-      <Card className="mt-5 rounded-2xl p-6 text-center">
+      <Card className="mt-5 rounded-2xl border-neutral-200 bg-white p-6 text-center text-neutral-900">
         <CheckCircle2 className="mx-auto h-12 w-12 text-primary" />
         <h2 className="mt-3 font-display text-xl font-black uppercase tracking-tight">
           Pagamento aprovado
         </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-neutral-500">
           Pedido{" "}
-          <span className="font-bold text-foreground">
+          <span className="font-bold text-neutral-900">
             {pedidoNumero ?? "confirmado"}
           </span>
           . Você vai receber os detalhes por e-mail.
@@ -295,17 +295,17 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   }
 
   return (
-    <Card className="mt-5 rounded-2xl p-4">
+    <Card className="mt-5 rounded-2xl border-neutral-200 bg-white p-4 text-neutral-900">
       <div className="flex items-center justify-between">
         <p className="font-display text-sm font-bold uppercase tracking-wide">
           {step === "dados" ? "Seus dados" : "Pagamento com cartão"}
         </p>
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1 text-xs text-neutral-500">
           <Lock className="h-3.5 w-3.5" /> Ambiente seguro
         </span>
       </div>
 
-      <Separator className="my-4" />
+      <Separator className="my-4 bg-neutral-200" />
 
       {step === "dados" ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -315,6 +315,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="nome"
               value={dados.nome}
               autoComplete="given-name"
+              className="border-neutral-200"
               onChange={(e) => setDados({ ...dados, nome: e.target.value })}
             />
           </div>
@@ -324,6 +325,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="sobrenome"
               value={dados.sobrenome}
               autoComplete="family-name"
+              className="border-neutral-200"
               onChange={(e) => setDados({ ...dados, sobrenome: e.target.value })}
             />
           </div>
@@ -335,6 +337,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               inputMode="email"
               value={dados.email}
               autoComplete="email"
+              className="border-neutral-200"
               onChange={(e) => setDados({ ...dados, email: e.target.value })}
             />
           </div>
@@ -344,6 +347,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="cpf"
               inputMode="numeric"
               value={dados.cpf}
+              className="border-neutral-200"
               onChange={(e) => setDados({ ...dados, cpf: maskCpf(e.target.value) })}
               placeholder="000.000.000-00"
             />
@@ -354,6 +358,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="telefone"
               inputMode="tel"
               value={dados.telefone}
+              className="border-neutral-200"
               onChange={(e) =>
                 setDados({ ...dados, telefone: maskTelefone(e.target.value) })
               }
@@ -370,6 +375,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               inputMode="numeric"
               autoComplete="cc-number"
               value={cartao.numero}
+              className="border-neutral-200"
               onChange={(e) =>
                 setCartao({ ...cartao, numero: maskCartao(e.target.value) })
               }
@@ -382,6 +388,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="nomeImpresso"
               autoComplete="cc-name"
               value={cartao.nomeImpresso}
+              className="border-neutral-200"
               onChange={(e) =>
                 setCartao({ ...cartao, nomeImpresso: e.target.value })
               }
@@ -394,6 +401,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               inputMode="numeric"
               autoComplete="cc-exp"
               value={cartao.validade}
+              className="border-neutral-200"
               onChange={(e) =>
                 setCartao({ ...cartao, validade: maskValidade(e.target.value) })
               }
@@ -407,6 +415,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               inputMode="numeric"
               autoComplete="cc-csc"
               value={cartao.cvv}
+              className="border-neutral-200"
               onChange={(e) =>
                 setCartao({ ...cartao, cvv: onlyDigits(e.target.value).slice(0, 4) })
               }
@@ -423,7 +432,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       )}
 
       <div className="mt-4 flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Total</span>
+        <span className="text-sm text-neutral-500">Total</span>
         <span className="font-display text-xl font-black">{formatBRL(subtotal)}</span>
       </div>
 
@@ -451,7 +460,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       {!loading && (
         <Button
           variant="ghost"
-          className="mt-2 w-full text-muted-foreground"
+          className="mt-2 w-full text-neutral-500"
           onClick={() => (step === "dados" ? onBackToCart() : setStep("dados"))}
         >
           Voltar

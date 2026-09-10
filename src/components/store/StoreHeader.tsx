@@ -13,7 +13,7 @@ const StoreHeader = ({ backTo, title = "Loja Fortem" }: StoreHeaderProps) => {
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4">
         <div className="flex min-w-0 items-center gap-2">
           <Button
@@ -33,7 +33,7 @@ const StoreHeader = ({ backTo, title = "Loja Fortem" }: StoreHeaderProps) => {
         </div>
 
         <Link to="/store/carrinho" aria-label="Carrinho" className="relative">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" className="bg-white">
             <ShoppingBag className="h-5 w-5" />
           </Button>
           {totalItems > 0 && (
