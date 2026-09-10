@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import QRCode from "qrcode";
 import { CheckCircle2, Copy, CreditCard, Loader2, Lock, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -85,7 +86,7 @@ type Step = "dados" | "cartao" | "pix" | "sucesso";
 type Metodo = "cartao" | "pix";
 
 interface PixData {
-  qr_code_base64: string | null;
+  qrImageUrl: string;
   pix_copia_cola: string;
   expira_em: number;
 }
@@ -216,8 +217,12 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       if (data?.ok === false || !data?.pix_copia_cola) {
         throw new Error(friendlyMessage(data?.error));
       }
+      const qrImageUrl = await QRCode.toDataURL(data.pix_copia_cola, {
+        width: 520,
+        margin: 1,
+      });
       setPix({
-        qr_code_base64: data.qr_code_base64 ?? null,
+        qrImageUrl,
         pix_copia_cola: data.pix_copia_cola,
         expira_em: Number(data.expira_em ?? 1800),
       });
@@ -398,11 +403,6 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     const expirado = segundosRestantes <= 0;
     const mm = String(Math.floor(segundosRestantes / 60)).padStart(2, "0");
     const ss = String(segundosRestantes % 60).padStart(2, "0");
-    const qrSrc = pix.qr_code_base64
-      ? pix.qr_code_base64.startsWith("data:")
-        ? pix.qr_code_base64
-        : `data:image/png;base64,${pix.qr_code_base64}`
-      : null;
 
     return (
       <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
@@ -433,13 +433,11 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
           </div>
         ) : (
           <>
-            {qrSrc && (
-              <img
-                src={qrSrc}
-                alt="QR Code para pagamento PIX"
-                className="mx-auto w-full max-w-[260px] rounded-xl bg-white p-3"
-              />
-            )}
+            <img
+              src={pix.qrImageUrl}
+              alt="QR Code para pagamento PIX"
+              className="mx-auto w-full max-w-[260px] rounded-xl bg-white p-3"
+            />
 
             <p className={`mt-4 text-center text-sm ${palette.muted}`}>
               Escaneie o QR code ou copie o código no app do seu banco. Assim que o
