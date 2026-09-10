@@ -118,14 +118,16 @@ Deno.serve(async (req) => {
 
     // ---------- 2. cadastro-base do comprador (necessário para tokenizar o cartão) ----------
     const cpfHash = await sha256Hex(cpfDigits);
-    let compradorId: string | null = null;
+    let compradorId: string | null = alunoId;
 
-    const { data: alunoExistente } = await admin
-      .from("alunos")
-      .select("id")
-      .eq("cpf_hash", cpfHash)
-      .limit(1)
-      .maybeSingle();
+    const { data: alunoExistente } = compradorId
+      ? { data: { id: compradorId } }
+      : await admin
+          .from("alunos")
+          .select("id")
+          .eq("cpf_hash", cpfHash)
+          .limit(1)
+          .maybeSingle();
 
     if (alunoExistente?.id) {
       compradorId = alunoExistente.id;
