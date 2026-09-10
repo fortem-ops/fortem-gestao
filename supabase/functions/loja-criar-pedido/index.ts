@@ -66,11 +66,19 @@ Deno.serve(async (req) => {
             nome = String(aluno.nome ?? nome).trim();
             email = String(aluno.email ?? email).trim();
             telefone = String(aluno.telefone ?? telefone).replace(/\D/g, "");
-            const { data: cpfRevelado } = await admin.rpc("fn_reveal_cpf_service", {
+            const { data: cpfRevelado, error: cpfErr } = await admin.rpc("fn_reveal_cpf_service", {
               p_aluno_id: aluno.id,
             });
+            if (cpfErr) {
+              console.error("[loja-criar-pedido] falha revelar CPF do aluno:", cpfErr.message);
+            }
             const cpfAluno = String(cpfRevelado ?? "").replace(/\D/g, "");
-            if (cpfAluno.length === 11) cpfDigits = cpfAluno;
+            if (cpfAluno.length === 11) {
+              cpfDigits = cpfAluno;
+            } else {
+              console.error("[loja-criar-pedido] CPF do aluno indisponível", { aluno_id: aluno.id });
+              return json(200, { ok: false, error: "cpf_aluno_indisponivel" });
+            }
           }
         }
       }
@@ -79,8 +87,16 @@ Deno.serve(async (req) => {
 
     if (!itens.length) return json(200, { ok: false, error: "itens_obrigatorios" });
     if (!nome || cpfDigits.length !== 11 || !telefone || !email.includes("@")) {
+      console.error("[loja-criar-pedido] dados pessoais inválidos", {
+        nome_ok: !!nome,
+        cpf_ok: cpfDigits.length === 11,
+        telefone_ok: !!telefone,
+        email_ok: email.includes("@"),
+        aluno_id: alunoId,
+      });
       return json(200, { ok: false, error: "dados_pessoais_invalidos" });
     }
+
 
     const itensNormalizados = itens.map((i: any) => ({
       variante_id: String(i?.variante_id ?? "").trim(),
