@@ -205,12 +205,20 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
             itens: items
               .filter((i) => i.varianteId)
               .map((i) => ({ variante_id: i.varianteId, quantidade: i.quantidade })),
-            dadosPessoais: {
-              nome: `${dados.nome.trim()} ${dados.sobrenome.trim()}`.trim(),
-              cpf: onlyDigits(dados.cpf),
-              telefone: onlyDigits(dados.telefone),
-              email: dados.email.trim(),
-            },
+            aluno_id: aluno?.id ?? null,
+            dadosPessoais: aluno
+              ? {
+                  nome: aluno.nome ?? "",
+                  cpf: "",
+                  telefone: onlyDigits(aluno.telefone ?? ""),
+                  email: (aluno.email ?? "").trim(),
+                }
+              : {
+                  nome: `${dados.nome.trim()} ${dados.sobrenome.trim()}`.trim(),
+                  cpf: onlyDigits(dados.cpf),
+                  telefone: onlyDigits(dados.telefone),
+                  email: dados.email.trim(),
+                },
             parcelas: PARCELAS,
             idempotency_key: getIdempotencyKey(),
           },
