@@ -10,14 +10,18 @@ import { toast } from "sonner";
 import { useCartLoja } from "@/hooks/useCartLoja";
 import { formatBRL } from "@/integrations/store/types";
 import CheckoutFlow from "@/components/store/CheckoutFlow";
+import { useStoreTheme } from "@/hooks/useStoreTheme";
 
 const StoreCart = () => {
   const { items, subtotal, updateQuantity, removeItem } = useCartLoja();
   const [cupom, setCupom] = useState("");
   const [checkout, setCheckout] = useState(false);
+  const { theme, palette } = useStoreTheme();
+  const barBg = theme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
+  const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
 
   return (
-    <div className="min-h-screen bg-white pb-28 text-neutral-900 sm:pb-10">
+    <div className={`min-h-screen pb-28 sm:pb-10 ${palette.bg} ${palette.text}`}>
       <StoreHeader backTo="/store" title="Carrinho" />
 
       <main className="mx-auto max-w-3xl px-4 py-6">
@@ -27,9 +31,7 @@ const StoreCart = () => {
 
         {items.length === 0 ? (
           <div className="mt-10 text-center">
-            <p className="text-sm text-neutral-500">
-              Seu carrinho está vazio.
-            </p>
+            <p className={`text-sm ${palette.muted}`}>Seu carrinho está vazio.</p>
             <Button asChild className="mt-4">
               <Link to="/store">Ver produtos</Link>
             </Button>
@@ -40,9 +42,11 @@ const StoreCart = () => {
               {items.map((item) => (
                 <Card
                   key={`${item.produtoId}-${item.varianteId ?? "base"}`}
-                  className="flex gap-3 rounded-2xl border-neutral-200 bg-white p-3"
+                  className={`flex gap-3 rounded-2xl p-3 ${palette.card}`}
                 >
-                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
+                  <div
+                    className={`h-20 w-20 shrink-0 overflow-hidden rounded-xl ${palette.surface}`}
+                  >
                     {item.imagemUrl ? (
                       <img
                         src={item.imagemUrl}
@@ -50,7 +54,9 @@ const StoreCart = () => {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-neutral-500">
+                      <div
+                        className={`flex h-full w-full items-center justify-center ${palette.muted}`}
+                      >
                         <ImageOff className="h-5 w-5" />
                       </div>
                     )}
@@ -60,7 +66,7 @@ const StoreCart = () => {
                     <div className="flex items-start justify-between gap-2">
                       <Link
                         to={`/store/${item.produtoId}`}
-                        className="line-clamp-2 font-display text-sm font-bold leading-tight"
+                        className={`line-clamp-2 font-display text-sm font-bold leading-tight ${palette.text}`}
                       >
                         {item.nome}
                       </Link>
@@ -68,7 +74,7 @@ const StoreCart = () => {
                         size="icon"
                         variant="ghost"
                         aria-label="Remover item"
-                        className="h-8 w-8 shrink-0 text-neutral-500"
+                        className={`h-8 w-8 shrink-0 ${palette.muted}`}
                         onClick={() => removeItem(item.produtoId, item.varianteId)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -76,17 +82,19 @@ const StoreCart = () => {
                     </div>
 
                     {(item.tamanho || item.cor) && (
-                      <p className="mt-0.5 text-xs text-neutral-500">
+                      <p className={`mt-0.5 text-xs ${palette.muted}`}>
                         {[item.tamanho, item.cor].filter(Boolean).join(" • ")}
                       </p>
                     )}
 
                     <div className="mt-2 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1 rounded-full border border-neutral-200 p-1">
+                      <div
+                        className={`flex items-center gap-1 rounded-full border p-1 ${palette.border}`}
+                      >
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 rounded-full"
+                          className={`h-7 w-7 rounded-full ${palette.text}`}
                           aria-label="Diminuir quantidade"
                           onClick={() =>
                             updateQuantity(
@@ -99,13 +107,13 @@ const StoreCart = () => {
                         >
                           <Minus className="h-3.5 w-3.5" />
                         </Button>
-                        <span className="w-7 text-center text-sm font-bold">
+                        <span className={`w-7 text-center text-sm font-bold ${palette.text}`}>
                           {item.quantidade}
                         </span>
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 rounded-full"
+                          className={`h-7 w-7 rounded-full ${palette.text}`}
                           aria-label="Aumentar quantidade"
                           onClick={() =>
                             updateQuantity(
@@ -135,7 +143,7 @@ const StoreCart = () => {
                 onBackToCart={() => setCheckout(false)}
               />
             ) : (
-              <Card className="mt-5 rounded-2xl border-neutral-200 bg-white p-4">
+              <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
                 <p className="text-sm font-semibold">Cupom de desconto</p>
                 <div className="mt-2 flex gap-2">
                   <Input
@@ -143,11 +151,11 @@ const StoreCart = () => {
                     onChange={(e) => setCupom(e.target.value.toUpperCase())}
                     placeholder="Digite seu cupom"
                     aria-label="Cupom de desconto"
-                    className="border-neutral-200"
+                    className={palette.input}
                   />
                   <Button
                     variant="outline"
-                    className="bg-white"
+                    className={palette.card}
                     onClick={() =>
                       toast.info("Validação de cupom disponível em breve.")
                     }
@@ -155,14 +163,14 @@ const StoreCart = () => {
                     Aplicar
                   </Button>
                 </div>
-                <p className="mt-2 text-xs text-neutral-500">
+                <p className={`mt-2 text-xs ${palette.muted}`}>
                   A validação de cupons entra no ar em breve.
                 </p>
 
-                <Separator className="my-4 bg-neutral-200" />
+                <Separator className={`my-4 ${separatorBg}`} />
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-500">Subtotal</span>
+                  <span className={`text-sm ${palette.muted}`}>Subtotal</span>
                   <span className="font-display text-xl font-black">
                     {formatBRL(subtotal)}
                   </span>
@@ -184,9 +192,11 @@ const StoreCart = () => {
       </main>
 
       {items.length > 0 && !checkout && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 p-3 backdrop-blur sm:hidden">
+        <div
+          className={`fixed inset-x-0 bottom-0 z-40 border-t p-3 backdrop-blur sm:hidden ${palette.border} ${barBg} ${palette.text}`}
+        >
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs text-neutral-500">Subtotal</span>
+            <span className={`text-xs ${palette.muted}`}>Subtotal</span>
             <span className="font-display text-lg font-black">
               {formatBRL(subtotal)}
             </span>
