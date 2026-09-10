@@ -28,6 +28,8 @@ interface Props {
   successMessage?: string;
   /** Nota gravada no movimento de pipeline gerado pela conversão. */
   movementNote?: string;
+  /** Etapa final desejada (ex.: "Treino experimental agendado"); move após a conversão. */
+  finalStageName?: string;
   onConverted?: () => void;
 }
 
@@ -40,6 +42,7 @@ export function ConvertToProspectDialog({
   confirmLabel = "Converter em Prospect",
   successMessage = "Convertido em Prospect",
   movementNote,
+  finalStageName,
   onConverted,
 }: Props) {
   const qc = useQueryClient();
