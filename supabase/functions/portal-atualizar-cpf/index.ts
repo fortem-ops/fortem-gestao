@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     if (!aluno?.id) return json(200, { ok: false, error: "nao_autorizado" });
 
     // CPF já usado por outro cadastro?
-    const { data: hashRow } = await admin.rpc("fn_clube_hash_cpf", { p_cpf: cpfDigits });
+    const { data: hashRow } = await admin.rpc("fn_clube_hash_cpf", { _cpf: cpfDigits });
     if (hashRow) {
       const { data: existente } = await admin
         .from("alunos")
