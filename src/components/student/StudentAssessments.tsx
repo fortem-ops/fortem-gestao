@@ -44,10 +44,10 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
   });
 
   const { data: canDelete } = useQuery({
-    queryKey: ["is-coord-or-admin", user?.id],
+    queryKey: ["is-staff", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
+      const { data } = await supabase.rpc("is_staff", { _user_id: user!.id });
       return !!data;
     },
   });

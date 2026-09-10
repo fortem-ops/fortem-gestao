@@ -58,6 +58,15 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     },
   });
 
+  const { data: canDelete } = useQuery({
+    queryKey: ["is-staff", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_staff", { _user_id: user!.id });
+      return !!data;
+    },
+  });
+
   const { data: funcional, isLoading } = useQuery({
     queryKey: ["avaliacao-funcional", avaliacao?.id],
     enabled: !!avaliacao && isFuncional,
@@ -73,11 +82,15 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
   const dados = (avaliacao?.dados as Record<string, unknown>) || {};
   const metricasFromJson = (dados.metricas as FuncMetric[] | undefined) || [];
-  const expDados: ExperimentalRecordDados | null = isExperimental ? migrateLegacyDados(dados) : null;
+  // Qualquer relatório dinâmico (experimental, força, reabilitação, novos tipos)
+  const isDynamic =
+    !isFuncional && !isComposicao && avaliacao?.tipo !== "funcional_v2" &&
+    (isExperimental || !!avaliacao?.protocolo_id);
+  const expDados: ExperimentalRecordDados | null = isDynamic ? migrateLegacyDados(dados) : null;
 
   const { data: protocoloInfo } = useTplQuery({
     queryKey: ["avaliacao-protocolo-schema", avaliacao?.protocolo_id],
-    enabled: isExperimental && !!avaliacao?.protocolo_id,
+    enabled: isDynamic && !!avaliacao?.protocolo_id,
     queryFn: async () => {
       const { data } = await supabase
         .from("avaliacao_protocolos" as never)
@@ -94,7 +107,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     enabled: isExperimental && !avaliacao?.protocolo_id,
   });
 
-  const expSchema = protocoloInfo?.schema ?? legacySchema;
+  const expSchema = protocoloInfo?.schema ?? (isExperimental ? legacySchema : undefined);
+  const schemaPending = isDynamic && !expSchema && (!!avaliacao?.protocolo_id || isExperimental);
 
 
   if (!avaliacao) return null;
@@ -163,12 +177,12 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
         <DialogHeader>
           <DialogTitle className="capitalize flex items-center gap-2 flex-wrap">
             {avaliacao.tipo.replace(/_/g, ' ')} — {format(new Date(avaliacao.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-            {isExperimental && expDados && (
+            {isDynamic && expDados && (
               <Badge variant="outline" className={expDados.status === "finalizado" ? "border-success/40 text-success" : "border-warning/40 text-warning"}>
                 {expDados.status === "finalizado" ? "Finalizada" : "Rascunho"}
               </Badge>
             )}
-            {isExperimental && protocoloInfo?.nome && (
+            {isDynamic && protocoloInfo?.nome && (
               <Badge variant="outline" className="text-muted-foreground">Protocolo: {protocoloInfo.nome}</Badge>
             )}
           </DialogTitle>
@@ -177,12 +191,10 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
         {avaliacao.tipo === "funcional_v2" ? (
           <FuncionalV2Viewer avaliacao={avaliacao} />
-        ) : isExperimental ? (
-          editing ? (
-            <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
-          ) : (
-            <ExperimentalView dados={expDados!} schema={expSchema} />
-          )
+        ) : isExperimental && editing ? (
+          <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
+        ) : isDynamic && (expSchema || schemaPending) ? (
+          <ExperimentalView dados={expDados!} schema={expSchema} withFaseInicial={isExperimental} />
         ) : isLoading && isFuncional ? (
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : (
@@ -252,7 +264,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
               </div>
             )}
 
-            {!isFuncional && !isComposicao && !isExperimental && (
+            {!isFuncional && !isComposicao && !isDynamic && (
               <div className="glass-card rounded-lg p-4">
                 <pre className="text-xs text-muted-foreground whitespace-pre-wrap">{JSON.stringify(dados, null, 2)}</pre>
               </div>
@@ -268,7 +280,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
               <Pencil className="w-4 h-4 mr-2" /> Editar
             </Button>
           )}
-          {canEdit && (
+          {canDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
@@ -311,11 +323,11 @@ function Item({ label, value, highlight }: { label: string; value: string; highl
   );
 }
 
-function ExperimentalView({ dados, schema }: { dados: ExperimentalRecordDados; schema?: { sections: { id: string; title: string; questions: { id: string; label: string; type: string; detalheLabel?: string; labelSim?: string; labelNao?: string; options?: { value: string; label: string }[] }[] }[] } }) {
+function ExperimentalView({ dados, schema, withFaseInicial = true }: { dados: ExperimentalRecordDados; withFaseInicial?: boolean; schema?: { sections: { id: string; title: string; questions: { id: string; label: string; type: string; detalheLabel?: string; labelSim?: string; labelNao?: string; options?: { value: string; label: string }[] }[] }[] } }) {
   if (!schema) {
     return <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
   }
-  const fullSchema = ensureFaseInicialQuestion(schema as never) as typeof schema;
+  const fullSchema = withFaseInicial ? (ensureFaseInicialQuestion(schema as never) as typeof schema) : schema;
   const knownIds = new Set<string>();
   fullSchema.sections.forEach((s) => s.questions.forEach((q) => knownIds.add(q.id)));
   const extras = Object.entries(dados.answers || {}).filter(
