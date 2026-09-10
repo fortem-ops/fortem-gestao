@@ -53,6 +53,9 @@ export default function Loja() {
         <TabsContent value="produtos" className="mt-4">
           <ProdutosTab />
         </TabsContent>
+        <TabsContent value="pedidos" className="mt-4">
+          <PedidosTab />
+        </TabsContent>
         <TabsContent value="encomendas" className="mt-4">
           <EncomendasTab />
         </TabsContent>
