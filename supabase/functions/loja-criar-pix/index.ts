@@ -16,15 +16,6 @@ function json(status: number, body: unknown) {
   });
 }
 
-async function buscarQrCode(locId: string | number) {
-  const { status, data, raw } = await interCobFetch(`/pix/v2/loc/${locId}/qrcode`, { method: "GET" });
-  if (status >= 300) {
-    console.error("[loja-criar-pix] falha qrcode", status, raw?.substring?.(0, 500));
-    return null;
-  }
-  return data as { imagemQrcode?: string; qrcode?: string };
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
@@ -68,19 +59,15 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existente?.txid) {
-      const locId = (existente.raw_response as any)?.loc?.id;
-      if (locId) {
-        const qr = await buscarQrCode(locId);
-        if (qr?.qrcode) {
-          return json(200, {
-            ok: true,
-            txid: existente.txid,
-            pix_copia_cola: qr.qrcode,
-            qr_code_base64: qr.imagemQrcode ?? null,
-            expira_em: 1800,
-            reused: true,
-          });
-        }
+      const copiaCola = (existente.raw_response as any)?.pixCopiaECola;
+      if (copiaCola) {
+        return json(200, {
+          ok: true,
+          txid: existente.txid,
+          pix_copia_cola: copiaCola,
+          expira_em: 1800,
+          reused: true,
+        });
       }
     }
 
@@ -106,9 +93,9 @@ Deno.serve(async (req) => {
       return json(200, { ok: false, error: "falha_criar_cobranca_pix" });
     }
 
-    const locId = (data as any)?.loc?.id;
-    const qr = locId ? await buscarQrCode(locId) : null;
-    if (!qr?.qrcode) {
+    const copiaCola = (data as any)?.pixCopiaECola;
+    if (!copiaCola) {
+      console.error("[loja-criar-pix] resposta sem pixCopiaECola", raw?.substring?.(0, 800));
       return json(200, { ok: false, error: "falha_criar_cobranca_pix" });
     }
 
@@ -138,8 +125,7 @@ Deno.serve(async (req) => {
     return json(200, {
       ok: true,
       txid,
-      pix_copia_cola: qr.qrcode,
-      qr_code_base64: qr.imagemQrcode ?? null,
+      pix_copia_cola: copiaCola,
       expira_em: 1800,
     });
   } catch (err) {
