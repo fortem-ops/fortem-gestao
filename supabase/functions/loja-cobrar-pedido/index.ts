@@ -58,9 +58,8 @@ Deno.serve(async (req) => {
     if (new Date(link.expira_em).getTime() < Date.now()) {
       return json(410, { success: false, error: "token_expirado" });
     }
-    if (!link.usado) {
-      return json(409, { success: false, error: "cartao_ainda_nao_cadastrado" });
-    }
+    // `usado` é marcado pelo webhook após a bandeira aprovar; não é pré-requisito
+    // aqui — a validação real é a tokenização ativa verificada logo abaixo.
     const compradorId = link.aluno_id;
 
     // ---------- b. cartão tokenizado mais recente ----------
