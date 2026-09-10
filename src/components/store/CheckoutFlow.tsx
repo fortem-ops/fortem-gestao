@@ -153,13 +153,16 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
 
   const dadosValidos = useMemo(
     () =>
-      dados.nome.trim().length >= 2 &&
-      dados.sobrenome.trim().length >= 2 &&
-      /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dados.email.trim()) &&
-      isValidCpf(dados.cpf) &&
-      onlyDigits(dados.telefone).length >= 10,
-    [dados]
+      // Aluno logado: cadastro já validado no sistema (CPF vem do backend).
+      !!aluno ||
+      (dados.nome.trim().length >= 2 &&
+        dados.sobrenome.trim().length >= 2 &&
+        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dados.email.trim()) &&
+        isValidCpf(dados.cpf) &&
+        onlyDigits(dados.telefone).length >= 10),
+    [dados, aluno]
   );
+
 
   const cartaoValido = useMemo(() => {
     const num = onlyDigits(cartao.numero);
