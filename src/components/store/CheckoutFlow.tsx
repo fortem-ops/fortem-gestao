@@ -184,26 +184,111 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
             "Um dos produtos esgotou enquanto você navegava. Revise seu carrinho."
           );
           onBackToCart();
-          return;
+          return null;
         }
         throw new Error(friendlyMessage(data?.error));
       }
 
-      if (!data?.pedido_id || !data?.cartao_token) {
+      if (!data?.pedido_id) {
         throw new Error("Não foi possível criar o pedido. Tente novamente.");
       }
 
       setPedidoId(data.pedido_id);
       setPedidoNumero(data.pedido_id);
-      cartaoTokenRef.current = data.cartao_token;
-      setStep("cartao");
+      cartaoTokenRef.current = data.cartao_token ?? null;
+      return data.pedido_id as string;
+    }
+  }, [items, dados, onBackToCart, pedidoId]);
+
+  const gerarPix = useCallback(
+    async (id: string) => {
+      setStatusText("Gerando o código PIX...");
+      const { data, error } = await supabase.functions.invoke("loja-criar-pix", {
+        body: { pedido_id: id },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.ja_pago === true) {
+        sessionStorage.removeItem(IDEMPOTENCY_KEY);
+        clear();
+        setStep("sucesso");
+        return;
+      }
+      if (data?.ok === false || !data?.pix_copia_cola) {
+        throw new Error(friendlyMessage(data?.error));
+      }
+      setPix({
+        qr_code_base64: data.qr_code_base64 ?? null,
+        pix_copia_cola: data.pix_copia_cola,
+        expira_em: Number(data.expira_em ?? 1800),
+      });
+      setSegundosRestantes(Number(data.expira_em ?? 1800));
+      setStep("pix");
+    },
+    [clear]
+  );
+
+  const avancar = useCallback(async () => {
+    setErro(null);
+    setLoading(true);
+    try {
+      const id = await garantirPedido();
+      if (!id) return;
+      if (metodo === "pix") {
+        await gerarPix(id);
+      } else {
+        setStep("cartao");
+      }
     } catch (e) {
       setErro(friendlyMessage(e instanceof Error ? e.message : null));
     } finally {
       setLoading(false);
       setStatusText("");
     }
-  }, [items, dados, onBackToCart]);
+  }, [garantirPedido, gerarPix, metodo]);
+
+  const regerarPix = useCallback(async () => {
+    if (!pedidoId) return;
+    setErro(null);
+    setLoading(true);
+    try {
+      await gerarPix(pedidoId);
+    } catch (e) {
+      setErro(friendlyMessage(e instanceof Error ? e.message : null));
+    } finally {
+      setLoading(false);
+      setStatusText("");
+    }
+  }, [gerarPix, pedidoId]);
+
+  // Contador regressivo do QR
+  useEffect(() => {
+    if (step !== "pix" || segundosRestantes <= 0) return;
+    const t = setInterval(() => setSegundosRestantes((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [step, segundosRestantes]);
+
+  // Polling do status do pedido
+  useEffect(() => {
+    if (step !== "pix" || !pedidoId) return;
+    let ativo = true;
+    const t = setInterval(async () => {
+      const { data } = await supabase.functions.invoke("loja-status-pedido", {
+        body: { pedido_id: pedidoId },
+      });
+      if (!ativo) return;
+      if (data?.status === "pago") {
+        clearInterval(t);
+        sessionStorage.removeItem(IDEMPOTENCY_KEY);
+        clear();
+        setStep("sucesso");
+      }
+    }, 3000);
+    return () => {
+      ativo = false;
+      clearInterval(t);
+    };
+  }, [step, pedidoId, clear]);
+
 
   const aguardarTokenizacao = useCallback(async (tokenizationId: string) => {
     for (let i = 0; i < 20; i++) {
