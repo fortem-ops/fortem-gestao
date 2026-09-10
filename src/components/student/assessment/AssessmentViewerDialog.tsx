@@ -107,7 +107,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     enabled: isExperimental && !avaliacao?.protocolo_id,
   });
 
-  const expSchema = protocoloInfo?.schema ?? legacySchema;
+  const expSchema = protocoloInfo?.schema ?? (isExperimental ? legacySchema : undefined);
+  const schemaPending = isDynamic && !expSchema && (!!avaliacao?.protocolo_id || isExperimental);
 
 
   if (!avaliacao) return null;
