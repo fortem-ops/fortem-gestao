@@ -266,19 +266,6 @@ export default function PortalPagamentos() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
-      ) : contratos.length === 0 ? (
-        <div className="bg-card border border-border rounded-2xl p-5 text-center">
-          <p className="text-sm text-muted-foreground">Nenhum contrato ativo.</p>
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {contratos.map((c: any) => <ContratoBloco key={c.id} contrato={c} />)}
-        </div>
-      )}
-
-
       {/* ── CARTEIRA ── */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
@@ -291,6 +278,7 @@ export default function PortalPagamentos() {
           </button>
         </div>
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
+
           {cartoes.length === 0 ? (
             <button
               onClick={() => setCadastroAberto(true)}
@@ -356,6 +344,20 @@ export default function PortalPagamentos() {
           Não armazenamos o número do cartão — apenas um token seguro via Rede.
         </p>
       </section>
+
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+      ) : contratos.length === 0 ? (
+        <div className="bg-card border border-border rounded-2xl p-5 text-center">
+          <p className="text-sm text-muted-foreground">Nenhum contrato ativo.</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {contratos.map((c: any) => <ContratoBloco key={c.id} contrato={c} />)}
+        </div>
+      )}
+
+
 
       <p className="text-[10px] text-muted-foreground text-center px-4">
         Notas fiscais são enviadas automaticamente para o seu e-mail cadastrado.

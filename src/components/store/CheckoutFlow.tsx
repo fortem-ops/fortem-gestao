@@ -59,8 +59,15 @@ const isValidCpf = (raw: string) => {
 const friendlyMessage = (raw?: string | null) => {
   const msg = (raw ?? "").toLowerCase();
   if (!msg) return "Não foi possível concluir o pagamento. Tente outro cartão.";
+  // Erros de cadastro (não são erro de cartão) — precisam vir antes das regras
+  // genéricas, já que "invalidos" contém "invalid".
+  if (msg.includes("cpf_aluno_indisponivel") || msg.includes("dados_pessoais_invalidos"))
+    return "Não conseguimos confirmar seu CPF cadastrado. Atualize seu cadastro ou fale com a equipe.";
+  if (msg.includes("aluno_nao_autorizado"))
+    return "Não conseguimos confirmar seu cadastro. Entre novamente no Portal e tente de novo.";
   if (msg.includes("chave_pix_nao_configurada") || msg.includes("falha_criar_cobranca_pix"))
     return "Não foi possível gerar o PIX agora. Tente novamente em instantes ou use cartão.";
+
   if (msg.includes("insufficient") || msg.includes("saldo") || msg.includes("limite"))
     return "Cartão sem limite disponível. Tente outro cartão.";
   if (msg.includes("expired") || msg.includes("vencid") || msg.includes("validade"))
