@@ -86,6 +86,11 @@ const comercialAdminItems = [
   { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
 ];
 
+/* ─── Loja ─── */
+const lojaItems = [
+  { title: "Loja", url: "/loja", icon: ShoppingBag },
+];
+
 /* ─── Financeiro ─── */
 const financeiroItems = [
   { title: "Contratos", url: "/financeiro/contratos", icon: FileSignature },
