@@ -6074,9 +6074,11 @@ export type Database = {
         Row: {
           ativo: boolean
           cor: string | null
+          cor_hex: string | null
           created_at: string
           estoque_atual: number
           id: string
+          imagem_url: string | null
           preco: number | null
           produto_id: string
           sku: string | null
@@ -6086,9 +6088,11 @@ export type Database = {
         Insert: {
           ativo?: boolean
           cor?: string | null
+          cor_hex?: string | null
           created_at?: string
           estoque_atual?: number
           id?: string
+          imagem_url?: string | null
           preco?: number | null
           produto_id: string
           sku?: string | null
@@ -6098,9 +6102,11 @@ export type Database = {
         Update: {
           ativo?: boolean
           cor?: string | null
+          cor_hex?: string | null
           created_at?: string
           estoque_atual?: number
           id?: string
+          imagem_url?: string | null
           preco?: number | null
           produto_id?: string
           sku?: string | null
