@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useProdutoLoja } from "@/hooks/useProdutosLoja";
 import { useCartLoja } from "@/hooks/useCartLoja";
+import { useStoreTheme } from "@/hooks/useStoreTheme";
 import {
   formatBRL,
   precoDaVariante,
@@ -20,6 +21,9 @@ const StoreProductDetail = () => {
   const { produtoId } = useParams<{ produtoId: string }>();
   const { data: produto, isLoading, isError } = useProdutoLoja(produtoId);
   const { addItem } = useCartLoja();
+  const { theme, palette } = useStoreTheme();
+  const barBg = theme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
+  const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
 
   const [tamanho, setTamanho] = useState<string | null>(null);
   const [cor, setCor] = useState<string | null>(null);
@@ -103,13 +107,13 @@ const StoreProductDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white text-neutral-900">
+      <div className={`min-h-screen ${palette.bg} ${palette.text}`}>
         <StoreHeader backTo="/store" />
         <main className="mx-auto max-w-5xl space-y-4 px-4 py-6">
-          <Skeleton className="aspect-[4/3] w-full rounded-2xl bg-neutral-100" />
-          <Skeleton className="h-6 w-2/3 bg-neutral-100" />
-          <Skeleton className="h-5 w-1/3 bg-neutral-100" />
-          <Skeleton className="h-20 w-full bg-neutral-100" />
+          <Skeleton className={`aspect-[4/3] w-full rounded-2xl ${palette.surface}`} />
+          <Skeleton className={`h-6 w-2/3 ${palette.surface}`} />
+          <Skeleton className={`h-5 w-1/3 ${palette.surface}`} />
+          <Skeleton className={`h-20 w-full ${palette.surface}`} />
         </main>
       </div>
     );
@@ -117,10 +121,10 @@ const StoreProductDetail = () => {
 
   if (isError || !produto) {
     return (
-      <div className="min-h-screen bg-white text-neutral-900">
+      <div className={`min-h-screen ${palette.bg} ${palette.text}`}>
         <StoreHeader backTo="/store" />
         <main className="mx-auto max-w-5xl px-4 py-16 text-center">
-          <p className="text-sm text-neutral-500">
+          <p className={`text-sm ${palette.muted}`}>
             Produto não encontrado ou indisponível.
           </p>
           <Button asChild className="mt-4">
@@ -134,13 +138,13 @@ const StoreProductDetail = () => {
   const imagens = imagemPrincipal ? [imagemPrincipal] : [];
 
   return (
-    <div className="min-h-screen bg-white pb-28 text-neutral-900 sm:pb-8">
+    <div className={`min-h-screen pb-28 sm:pb-8 ${palette.bg} ${palette.text}`}>
       <StoreHeader backTo="/store" />
 
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
-            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-neutral-100">
+            <div className={`relative aspect-[4/3] overflow-hidden rounded-2xl ${palette.surface}`}>
               {imagens.length ? (
                 <img
                   src={imagens[0]}
@@ -148,7 +152,7 @@ const StoreProductDetail = () => {
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-neutral-500">
+                <div className={`flex h-full w-full items-center justify-center ${palette.muted}`}>
                   <ImageOff className="h-10 w-10" />
                 </div>
               )}
@@ -179,7 +183,7 @@ const StoreProductDetail = () => {
 
           <div>
             {produto.categoria && (
-              <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+              <p className={`text-[11px] font-medium uppercase tracking-wide ${palette.muted}`}>
                 {produto.categoria}
               </p>
             )}
@@ -191,12 +195,12 @@ const StoreProductDetail = () => {
             </p>
 
             {produto.descricao && (
-              <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-neutral-500">
+              <p className={`mt-4 whitespace-pre-line text-sm leading-relaxed ${palette.muted}`}>
                 {produto.descricao}
               </p>
             )}
 
-            <Separator className="my-5 bg-neutral-200" />
+            <Separator className={`my-5 ${separatorBg}`} />
 
             {tamanhos.length > 0 && (
               <div className="mb-4">
@@ -214,7 +218,7 @@ const StoreProductDetail = () => {
                           setTamanho(t);
                           setQuantidade(1);
                         }}
-                        className="min-w-12 rounded-full bg-white"
+                        className={`min-w-12 rounded-full ${tamanho === t ? "" : palette.card}`}
                       >
                         {t}
                       </Button>
@@ -243,7 +247,7 @@ const StoreProductDetail = () => {
                           setCor(c);
                           setQuantidade(1);
                         }}
-                        className="gap-1.5 rounded-full bg-white"
+                        className={`gap-1.5 rounded-full ${cor === c ? "" : palette.card}`}
                       >
                         <span
                           className="h-3 w-3 rounded-full border border-current/30"
@@ -260,7 +264,7 @@ const StoreProductDetail = () => {
 
             <div className="mb-2">
               <p className="mb-2 text-sm font-semibold">Quantidade</p>
-              <div className="flex w-fit items-center gap-1 rounded-full border border-neutral-200 p-1">
+              <div className={`flex w-fit items-center gap-1 rounded-full border ${palette.border} p-1`}>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -288,7 +292,7 @@ const StoreProductDetail = () => {
                 </Button>
               </div>
               {varianteSelecionada && estoqueMax > 0 && estoqueMax <= 5 && (
-                <p className="mt-2 text-xs text-neutral-500">
+                <p className={`mt-2 text-xs ${palette.muted}`}>
                   Últimas {estoqueMax} unidades desta opção.
                 </p>
               )}
@@ -311,7 +315,7 @@ const StoreProductDetail = () => {
                   : "Adicionar ao carrinho"}
               </Button>
               {encomenda && (
-                <p className="mt-2 text-center text-xs text-neutral-500">
+                <p className={`mt-2 text-center text-xs ${palette.muted}`}>
                   Produto sob encomenda — o pagamento é feito agora e o item
                   chega em breve.
                 </p>
@@ -321,7 +325,7 @@ const StoreProductDetail = () => {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 p-3 backdrop-blur sm:hidden">
+      <div className={`fixed inset-x-0 bottom-0 z-40 border-t ${palette.border} ${barBg} p-3 backdrop-blur sm:hidden`}>
         <Button
           size="lg"
           className="w-full"
@@ -338,7 +342,7 @@ const StoreProductDetail = () => {
             : `Adicionar • ${formatBRL(preco * quantidade)}`}
         </Button>
         {encomenda && (
-          <p className="mt-2 text-center text-xs text-neutral-500">
+          <p className={`mt-2 text-center text-xs ${palette.muted}`}>
             Produto sob encomenda — o pagamento é feito agora e o item chega em
             breve.
           </p>

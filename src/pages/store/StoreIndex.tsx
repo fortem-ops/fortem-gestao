@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProdutosLoja } from "@/hooks/useProdutosLoja";
+import { useStoreTheme } from "@/hooks/useStoreTheme";
 
 const StoreIndex = () => {
   const { data: produtos, isLoading, isError } = useProdutosLoja();
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<string | null>(null);
+  const { palette } = useStoreTheme();
 
   const categorias = useMemo(() => {
     const set = new Set<string>();
@@ -28,24 +30,26 @@ const StoreIndex = () => {
   }, [produtos, busca, categoria]);
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
+    <div className={`min-h-screen ${palette.bg} ${palette.text}`}>
       <StoreHeader backTo="/" />
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         <h1 className="font-display text-2xl font-black uppercase tracking-tight sm:text-3xl">
           Loja Fortem
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className={`mt-1 text-sm ${palette.muted}`}>
           Produtos oficiais para treinar com a nossa marca.
         </p>
 
         <div className="relative mt-5">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+          <Search
+            className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${palette.muted}`}
+          />
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar produto"
-            className="border-neutral-200 pl-9"
+            className={`pl-9 ${palette.input}`}
             aria-label="Buscar produto"
           />
         </div>
@@ -55,7 +59,9 @@ const StoreIndex = () => {
             <Button
               size="sm"
               variant={categoria === null ? "default" : "outline"}
-              className="shrink-0 rounded-full bg-white"
+              className={`shrink-0 rounded-full ${
+                categoria === null ? "" : palette.card
+              }`}
               onClick={() => setCategoria(null)}
             >
               Todos
@@ -65,7 +71,9 @@ const StoreIndex = () => {
                 key={c}
                 size="sm"
                 variant={categoria === c ? "default" : "outline"}
-                className="shrink-0 rounded-full bg-white"
+                className={`shrink-0 rounded-full ${
+                  categoria === c ? "" : palette.card
+                }`}
                 onClick={() => setCategoria(c)}
               >
                 {c}
@@ -78,22 +86,22 @@ const StoreIndex = () => {
           <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="space-y-2">
-                <Skeleton className="aspect-[4/3] w-full rounded-2xl bg-neutral-100" />
-                <Skeleton className="h-4 w-3/4 bg-neutral-100" />
-                <Skeleton className="h-4 w-1/3 bg-neutral-100" />
+                <Skeleton className={`aspect-[4/3] w-full rounded-2xl ${palette.surface}`} />
+                <Skeleton className={`h-4 w-3/4 ${palette.surface}`} />
+                <Skeleton className={`h-4 w-1/3 ${palette.surface}`} />
               </div>
             ))}
           </div>
         )}
 
         {isError && (
-          <p className="mt-10 text-center text-sm text-neutral-500">
+          <p className={`mt-10 text-center text-sm ${palette.muted}`}>
             Não foi possível carregar os produtos agora. Tente novamente em instantes.
           </p>
         )}
 
         {!isLoading && !isError && filtrados.length === 0 && (
-          <p className="mt-10 text-center text-sm text-neutral-500">
+          <p className={`mt-10 text-center text-sm ${palette.muted}`}>
             Nenhum produto disponível no momento.
           </p>
         )}

@@ -8,6 +8,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useStoreTheme, type StorePalette } from "@/hooks/useStoreTheme";
 
 const tamanhos = ["P", "M", "G", "GG", "XG", "XGG", "XXG"];
 
@@ -30,22 +31,25 @@ const modeloBabylook = {
 interface TabelaProps {
   titulo: string;
   modelo: { nome: string; linhas: { label: string; valores: number[] }[] };
+  palette: StorePalette;
 }
 
-const TabelaMedidas = ({ titulo, modelo }: TabelaProps) => (
+const TabelaMedidas = ({ titulo, modelo, palette }: TabelaProps) => (
   <div>
     <h4 className="mb-2 text-sm font-bold uppercase tracking-wide">{titulo}</h4>
-    <div className="overflow-x-auto rounded-lg border border-neutral-200">
+    <div className={`overflow-x-auto rounded-lg border ${palette.border}`}>
       <table className="w-full min-w-[320px] text-center text-sm">
         <thead>
-          <tr className="bg-neutral-100/60">
-            <th className="px-2 py-2 text-left text-xs font-semibold text-neutral-500">
+          <tr className={palette.surface}>
+            <th
+              className={`px-2 py-2 text-left text-xs font-semibold ${palette.muted}`}
+            >
               Medida / Tamanho
             </th>
             {tamanhos.map((t) => (
               <th
                 key={t}
-                className="px-2 py-2 text-xs font-semibold text-neutral-500"
+                className={`px-2 py-2 text-xs font-semibold ${palette.muted}`}
               >
                 {t}
               </th>
@@ -54,7 +58,7 @@ const TabelaMedidas = ({ titulo, modelo }: TabelaProps) => (
         </thead>
         <tbody>
           {modelo.linhas.map((linha) => (
-            <tr key={linha.label} className="border-t border-neutral-200">
+            <tr key={linha.label} className={`border-t ${palette.border}`}>
               <td className="px-2 py-2 text-left text-xs font-medium">
                 {linha.label}
               </td>
@@ -76,6 +80,8 @@ interface SizeGuideDialogProps {
 }
 
 export const SizeGuideDialog = ({ className }: SizeGuideDialogProps) => {
+  const { palette } = useStoreTheme();
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -90,12 +96,14 @@ export const SizeGuideDialog = ({ className }: SizeGuideDialogProps) => {
           Ver tabela de medidas
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent
+        className={`max-h-[90vh] max-w-2xl overflow-y-auto ${palette.bg} ${palette.text} ${palette.border}`}
+      >
         <DialogHeader>
           <DialogTitle className="text-left font-display text-xl font-black uppercase">
             Tabela de medidas
           </DialogTitle>
-          <DialogDescription className="text-left text-neutral-500">
+          <DialogDescription className={`text-left ${palette.muted}`}>
             Comprimento (A) medido do ombro até a barra. Largura (B) medida de
             axila a axila. Valores em centímetros.
           </DialogDescription>
@@ -105,14 +113,16 @@ export const SizeGuideDialog = ({ className }: SizeGuideDialogProps) => {
           <TabelaMedidas
             titulo={modeloUnissex.nome}
             modelo={modeloUnissex}
+            palette={palette}
           />
           <TabelaMedidas
             titulo={modeloBabylook.nome}
             modelo={modeloBabylook}
+            palette={palette}
           />
         </div>
 
-        <p className="mt-2 text-[11px] leading-relaxed text-neutral-500">
+        <p className={`mt-2 text-[11px] leading-relaxed ${palette.muted}`}>
           Medidas reais sem encolhimento, podendo apresentar variação de 5% para
           mais ou para menos no comprimento, segundo normas da ABNT.
         </p>
