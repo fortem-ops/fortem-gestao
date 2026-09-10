@@ -636,6 +636,7 @@ const App = () => (
               }
             />
           </Routes>
+          </CartProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
