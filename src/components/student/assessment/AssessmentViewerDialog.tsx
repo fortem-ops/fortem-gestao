@@ -177,12 +177,12 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
         <DialogHeader>
           <DialogTitle className="capitalize flex items-center gap-2 flex-wrap">
             {avaliacao.tipo.replace(/_/g, ' ')} — {format(new Date(avaliacao.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-            {isExperimental && expDados && (
+            {isDynamic && expDados && (
               <Badge variant="outline" className={expDados.status === "finalizado" ? "border-success/40 text-success" : "border-warning/40 text-warning"}>
                 {expDados.status === "finalizado" ? "Finalizada" : "Rascunho"}
               </Badge>
             )}
-            {isExperimental && protocoloInfo?.nome && (
+            {isDynamic && protocoloInfo?.nome && (
               <Badge variant="outline" className="text-muted-foreground">Protocolo: {protocoloInfo.nome}</Badge>
             )}
           </DialogTitle>
