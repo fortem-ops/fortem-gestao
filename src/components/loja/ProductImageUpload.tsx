@@ -64,8 +64,11 @@ export const ProductImageUpload = forwardRef<HTMLDivElement, ProductImageUploadP
       });
       if (error) throw error;
 
-      const { data } = supabase.storage.from("loja-produtos").getPublicUrl(path);
-      onChange(data.publicUrl);
+      const { data, error: signError } = await supabase.storage
+        .from("loja-produtos")
+        .createSignedUrl(path, 315360000);
+      if (signError || !data?.signedUrl) throw signError ?? new Error("Falha ao gerar link da imagem");
+      onChange(data.signedUrl);
       toast.success("Imagem enviada");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Não foi possível enviar a imagem.";
