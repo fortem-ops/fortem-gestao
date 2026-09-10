@@ -22,7 +22,7 @@ const StoreProductDetail = () => {
   const { data: produto, isLoading, isError } = useProdutoLoja(produtoId);
   const { addItem } = useCartLoja();
   const { theme, palette } = useStoreTheme();
-  const barBg = theme === "dark" ? "bg-neutral-950/95" : "${barBg}";
+  const barBg = theme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
   const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
 
   const [tamanho, setTamanho] = useState<string | null>(null);
