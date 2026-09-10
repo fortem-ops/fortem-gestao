@@ -196,7 +196,7 @@ serve(async (req) => {
       .from("rede_tokenizacoes")
       .update(update)
       .eq("tokenization_id", tokenizationId)
-      .select("id, aluno_id, origem, cartao_salvo_id, cardholder_name")
+      .select("id, aluno_id, origem, cartao_salvo_id, cardholder_name, link_cartao_id")
       .maybeSingle();
 
     if (updErr) {
@@ -277,6 +277,19 @@ serve(async (req) => {
           .update({ cartao_salvo_id: cartao.id, updated_at: new Date().toISOString() })
           .eq("id", registro.id);
         console.log("[rede-tokenizacao-webhook] cartão salvo:", cartao.id);
+
+        // Só agora o link de cartão pode ser invalidado: o cartão foi
+        // efetivamente aceito pela bandeira e salvo.
+        if (registro.link_cartao_id) {
+          const { error: linkErr } = await supabase
+            .from("links_cartao")
+            .update({ usado: true, usado_em: new Date().toISOString() })
+            .eq("id", registro.link_cartao_id)
+            .eq("usado", false);
+          if (linkErr) {
+            console.error("[rede-tokenizacao-webhook] erro ao marcar link como usado:", linkErr.message);
+          }
+        }
 
         // Fase 2: vincula o cartão recém-criado a TODOS os contratos ativos de
         // recorrência do aluno que ainda estiverem sem cartão vinculado.

@@ -40,8 +40,12 @@ Deno.serve(async (req) => {
     if (error) throw error;
     if (!tok) return json(404, { error: "nao_encontrado" });
 
+    // "active" só é reportado quando o cartão já foi efetivamente salvo,
+    // evitando corrida com o webhook que grava o cartão e libera o link.
+    const status = tok.status === "active" && !tok.cartao_salvo_id ? "pending" : tok.status;
+
     // resposta mínima: nada do titular do cartão é exposto
-    return json(200, { status: tok.status, cartao_salvo_id: tok.cartao_salvo_id ?? null });
+    return json(200, { status, cartao_salvo_id: tok.cartao_salvo_id ?? null });
   } catch (err) {
     console.error("loja-status-tokenizacao error:", err);
     return json(500, { error: "erro_interno" });

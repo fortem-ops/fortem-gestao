@@ -6453,6 +6453,7 @@ export type Database = {
           created_at: string
           id: string
           last4: string | null
+          link_cartao_id: string | null
           origem: string
           raw_response: Json | null
           status: string
@@ -6471,6 +6472,7 @@ export type Database = {
           created_at?: string
           id?: string
           last4?: string | null
+          link_cartao_id?: string | null
           origem?: string
           raw_response?: Json | null
           status?: string
@@ -6489,6 +6491,7 @@ export type Database = {
           created_at?: string
           id?: string
           last4?: string | null
+          link_cartao_id?: string | null
           origem?: string
           raw_response?: Json | null
           status?: string
@@ -6517,6 +6520,13 @@ export type Database = {
             columns: ["cartao_salvo_id"]
             isOneToOne: false
             referencedRelation: "cartoes_salvos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rede_tokenizacoes_link_cartao_id_fkey"
+            columns: ["link_cartao_id"]
+            isOneToOne: false
+            referencedRelation: "links_cartao"
             referencedColumns: ["id"]
           },
         ]

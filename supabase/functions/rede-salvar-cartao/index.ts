@@ -231,6 +231,7 @@ serve(async (req) => {
       cardholder_name: tokenPayload.cardholderName,
       status: "pending",
       raw_response: tokResp,
+      link_cartao_id: linkRecord?.id ?? null,
     });
     if (tokInsErr) {
       console.error("[rede-salvar-cartao] erro ao inserir rede_tokenizacoes:", tokInsErr.message);
@@ -254,12 +255,9 @@ serve(async (req) => {
       console.error("[rede-salvar-cartao] falha ao registrar auditoria de solicitação:", String(e));
     }
 
-    // Marcar link como usado
-    if (linkRecord) {
-      await supabase.from("links_cartao")
-        .update({ usado: true, usado_em: new Date().toISOString() })
-        .eq("id", linkRecord.id);
-    }
+    // O link só é invalidado quando a bandeira confirmar a tokenização
+    // (rede-tokenizacao-webhook). Uma recusa não pode "queimar" o link:
+    // o cliente precisa poder tentar outro cartão no mesmo pedido.
 
     return new Response(JSON.stringify({
       success: true,
