@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import {
   estoqueTotal,
@@ -13,8 +13,9 @@ import {
 } from "@/integrations/store/types";
 
 const ProductCard = ({ produto }: { produto: ProdutoComVariantes }) => {
-  const { palette } = useStoreTheme();
-  const { basePath } = useStoreScope();
+  const { theme } = useStoreTheme();
+  const { basePath, forcedTheme } = useStoreScope();
+  const palette = storePalette(forcedTheme ?? theme);
   const estoqueZerado = estoqueTotal(produto.variantes) === 0;
   const encomenda = estoqueZerado && produto.permite_encomenda === true;
   const esgotado = estoqueZerado && !encomenda;

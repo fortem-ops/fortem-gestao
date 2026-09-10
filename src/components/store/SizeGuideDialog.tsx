@@ -8,7 +8,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useStoreTheme, type StorePalette } from "@/hooks/useStoreTheme";
+import { useStoreTheme, storePalette, type StorePalette } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
 
 const tamanhos = ["P", "M", "G", "GG", "XG", "XGG", "XXG"];
 
@@ -80,7 +81,9 @@ interface SizeGuideDialogProps {
 }
 
 export const SizeGuideDialog = ({ className }: SizeGuideDialogProps) => {
-  const { palette } = useStoreTheme();
+  const { theme } = useStoreTheme();
+  const { forcedTheme } = useStoreScope();
+  const palette = storePalette(forcedTheme ?? theme);
 
   return (
     <Dialog>

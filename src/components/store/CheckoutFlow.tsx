@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/integrations/store/types";
 import { useCartLoja, type CartItem } from "@/hooks/useCartLoja";
 import { toast } from "sonner";
-import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import { useStudentPortalOptional } from "@/contexts/StudentPortalContext";
 
@@ -114,11 +114,13 @@ interface Props {
 
 const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   const { clear } = useCartLoja();
-  const { theme, palette } = useStoreTheme();
-  const { basePath } = useStoreScope();
+  const { theme } = useStoreTheme();
+  const { basePath, forcedTheme } = useStoreScope();
+  const activeTheme = forcedTheme ?? theme;
+  const palette = storePalette(activeTheme);
   // Dentro do Portal do Aluno existe aluno logado: o cadastro já é conhecido.
   const aluno = useStudentPortalOptional()?.student ?? null;
-  const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
+  const separatorBg = activeTheme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
   const [step, setStep] = useState<Step>(() =>
     lerPedidoPago() ? "sucesso" : "dados"
   );

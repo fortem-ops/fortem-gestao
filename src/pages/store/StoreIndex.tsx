@@ -8,16 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProdutosLoja } from "@/hooks/useProdutosLoja";
-import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 
 const StoreIndex = () => {
   const { data: produtos, isLoading, isError } = useProdutosLoja();
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<string | null>(null);
-  const { palette } = useStoreTheme();
-  const { hideHeader, basePath } = useStoreScope();
+  const { theme } = useStoreTheme();
+  const { hideHeader, basePath, forcedTheme } = useStoreScope();
   const { totalItems } = useCartLoja();
+  const palette = storePalette(forcedTheme ?? theme);
 
   const categorias = useMemo(() => {
     const set = new Set<string>();
