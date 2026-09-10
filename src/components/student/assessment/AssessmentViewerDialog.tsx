@@ -191,12 +191,10 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
         {avaliacao.tipo === "funcional_v2" ? (
           <FuncionalV2Viewer avaliacao={avaliacao} />
-        ) : isExperimental ? (
-          editing ? (
-            <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
-          ) : (
-            <ExperimentalView dados={expDados!} schema={expSchema} />
-          )
+        ) : isExperimental && editing ? (
+          <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
+        ) : isDynamic && (expSchema || schemaPending) ? (
+          <ExperimentalView dados={expDados!} schema={expSchema} withFaseInicial={isExperimental} />
         ) : isLoading && isFuncional ? (
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : (
