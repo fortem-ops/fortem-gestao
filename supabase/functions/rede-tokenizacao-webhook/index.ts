@@ -196,7 +196,7 @@ serve(async (req) => {
       .from("rede_tokenizacoes")
       .update(update)
       .eq("tokenization_id", tokenizationId)
-      .select("id, aluno_id, origem, cartao_salvo_id, cardholder_name")
+      .select("id, aluno_id, origem, cartao_salvo_id, cardholder_name, link_cartao_id")
       .maybeSingle();
 
     if (updErr) {
