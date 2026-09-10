@@ -4534,6 +4534,7 @@ export type Database = {
           cpf: string
           created_at: string
           desconto: number
+          eh_encomenda: boolean
           email: string
           forma_pagamento: string | null
           id: string
@@ -4554,6 +4555,7 @@ export type Database = {
           cpf: string
           created_at?: string
           desconto?: number
+          eh_encomenda?: boolean
           email: string
           forma_pagamento?: string | null
           id?: string
@@ -4574,6 +4576,7 @@ export type Database = {
           cpf?: string
           created_at?: string
           desconto?: number
+          eh_encomenda?: boolean
           email?: string
           forma_pagamento?: string | null
           id?: string
@@ -6037,6 +6040,7 @@ export type Database = {
           id: string
           imagem_url: string | null
           nome: string
+          permite_encomenda: boolean
           preco_base: number
           updated_at: string
         }
@@ -6048,6 +6052,7 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           nome: string
+          permite_encomenda?: boolean
           preco_base: number
           updated_at?: string
         }
@@ -6059,6 +6064,7 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           nome?: string
+          permite_encomenda?: boolean
           preco_base?: number
           updated_at?: string
         }
