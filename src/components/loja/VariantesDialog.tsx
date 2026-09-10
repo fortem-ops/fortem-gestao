@@ -245,6 +245,40 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                 />
               </div>
             </div>
+            {form.cor.trim() && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Imagem desta cor (URL)</Label>
+                  <Input
+                    value={form.imagem_url}
+                    placeholder="https://..."
+                    onChange={(e) => setForm({ ...form, imagem_url: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">Se vazio, usa a imagem padrão do produto.</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Cor (para exibição)</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      className="h-9 w-12 rounded border border-border bg-background p-1"
+                      value={form.cor_hex || COR_PADRAO}
+                      onChange={(e) => setForm({ ...form, cor_hex: e.target.value })}
+                    />
+                    <Input
+                      value={form.cor_hex}
+                      onChange={(e) => setForm({ ...form, cor_hex: e.target.value })}
+                      placeholder={COR_PADRAO}
+                      className="font-mono"
+                    />
+                    <span
+                      className="inline-block w-6 h-6 shrink-0 rounded-full border border-border"
+                      style={{ backgroundColor: form.cor_hex || COR_PADRAO }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
