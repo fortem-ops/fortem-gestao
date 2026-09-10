@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -102,7 +102,7 @@ export function EncomendasTab() {
             const subQtd = linhas.reduce((s, l) => s + l.quantidade, 0);
             const subVal = linhas.reduce((s, l) => s + l.valorTotal, 0);
             return (
-              <>
+              <Fragment key={produto}>
                 {linhas.map((l) => (
                   <TableRow key={l.varianteId}>
                     <TableCell className="font-medium">{l.produto}</TableCell>
