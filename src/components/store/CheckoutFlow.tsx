@@ -826,44 +826,37 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
         <span className="font-display text-xl font-black">{formatBRL(subtotal)}</span>
       </div>
 
-      <Button
-        size="lg"
-        className="mt-4 w-full"
-        disabled={
-          loading ||
-          (step === "dados"
-            ? !dadosValidos || !metodo || (metodo === "cartao" && !!aluno && carregandoCartoes)
-            : step === "cartao"
-              ? !cartaoValido
-              : step === "cartao-opcoes")
-        }
-        onClick={() => {
-          if (step === "dados") void avancar();
-          else if (step === "cartao-salvo") void pagarComCartaoSalvo();
-          else if (step === "cartao") void pagar();
-        }}
-      >
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {statusText || "Processando..."}
-          </>
-        ) : step === "dados" ? (
-          metodo === "pix" ? "Gerar código PIX" : "Continuar para o pagamento"
-        ) : step === "cartao-salvo" ? (
-          <>
-            <CreditCard className="mr-2 h-4 w-4" />
-            Pagar {formatBRL(subtotal)}
-          </>
-        ) : step === "cartao-opcoes" ? (
-          "Escolha como cadastrar o cartão"
-        ) : (
-          <>
-            <CreditCard className="mr-2 h-4 w-4" />
-            Pagar {formatBRL(subtotal)}
-          </>
-        )}
-      </Button>
+      {step !== "cartao-opcoes" && (
+        <Button
+          size="lg"
+          className="mt-4 w-full"
+          disabled={
+            loading ||
+            (step === "dados"
+              ? !dadosValidos || !metodo || (metodo === "cartao" && !!aluno && carregandoCartoes)
+              : step === "cartao" && !cartaoValido)
+          }
+          onClick={() => {
+            if (step === "dados") void avancar();
+            else if (step === "cartao-salvo") void pagarComCartaoSalvo();
+            else if (step === "cartao") void pagar();
+          }}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {statusText || "Processando..."}
+            </>
+          ) : step === "dados" ? (
+            metodo === "pix" ? "Gerar código PIX" : "Continuar para o pagamento"
+          ) : (
+            <>
+              <CreditCard className="mr-2 h-4 w-4" />
+              Pagar {formatBRL(subtotal)}
+            </>
+          )}
+        </Button>
+      )}
 
       {!loading && (
         <Button
