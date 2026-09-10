@@ -55,6 +55,8 @@ const isValidCpf = (raw: string) => {
 const friendlyMessage = (raw?: string | null) => {
   const msg = (raw ?? "").toLowerCase();
   if (!msg) return "Não foi possível concluir o pagamento. Tente outro cartão.";
+  if (msg.includes("chave_pix_nao_configurada") || msg.includes("falha_criar_cobranca_pix"))
+    return "Não foi possível gerar o PIX agora. Tente novamente em instantes ou use cartão.";
   if (msg.includes("insufficient") || msg.includes("saldo") || msg.includes("limite"))
     return "Cartão sem limite disponível. Tente outro cartão.";
   if (msg.includes("expired") || msg.includes("vencid") || msg.includes("validade"))
