@@ -4,6 +4,7 @@ import { ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
 import {
   estoqueTotal,
   formatBRL,
@@ -13,6 +14,7 @@ import {
 
 const ProductCard = ({ produto }: { produto: ProdutoComVariantes }) => {
   const { palette } = useStoreTheme();
+  const { basePath } = useStoreScope();
   const estoqueZerado = estoqueTotal(produto.variantes) === 0;
   const encomenda = estoqueZerado && produto.permite_encomenda === true;
   const esgotado = estoqueZerado && !encomenda;
@@ -28,7 +30,7 @@ const ProductCard = ({ produto }: { produto: ProdutoComVariantes }) => {
 
   return (
     <Link
-      to={`/store/${produto.id}`}
+      to={`${basePath}/${produto.id}`}
       className="group focus-visible:outline-none"
       aria-label={produto.nome}
     >

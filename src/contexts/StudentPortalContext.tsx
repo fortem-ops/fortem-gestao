@@ -63,3 +63,9 @@ export function useStudentPortal() {
   if (!ctx) throw new Error("useStudentPortal must be used within StudentPortalProvider");
   return ctx;
 }
+
+/** Versão segura fora do Portal (retorna undefined na loja pública). */
+export function useStudentPortalOptional() {
+  return useContext(StudentPortalContext);
+}
+
