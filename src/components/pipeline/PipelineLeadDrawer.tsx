@@ -217,6 +217,10 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
 
   async function moveNext() {
     if (!alunoId || !nextStage) return;
+    if (requiresProspectConversion(student?.current_stage_name, nextStage.name)) {
+      setConvertStage(nextStage.name);
+      return;
+    }
     setMoving(true);
     const { error } = await supabase.rpc("fn_move_pipeline", {
       _aluno_id: alunoId,
@@ -418,6 +422,22 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
           </Button>
         </div>
       </SheetContent>
+
+      {convertStage && alunoId && (
+        <ConvertToProspectDialog
+          alunoId={alunoId}
+          open={!!convertStage}
+          onOpenChange={(o) => { if (!o) setConvertStage(null); }}
+          title={`Converter ${student.nome} em Prospect`}
+          finalStageName={convertStage}
+          onConverted={() => {
+            setConvertStage(null);
+            qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+            qc.invalidateQueries({ queryKey: ["pipeline-last-moves"] });
+            onOpenChange(false);
+          }}
+        />
+      )}
     </Sheet>
   );
 }
