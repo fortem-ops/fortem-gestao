@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { forwardRef, useRef, useState } from "react";
 import { ImageIcon, Loader2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ interface ProductImageUploadProps {
   onUploadingChange?: (uploading: boolean) => void;
 }
 
-export function ProductImageUpload({
+export const ProductImageUpload = forwardRef<HTMLDivElement, ProductImageUploadProps>(function ProductImageUpload({
   label,
   value,
   pathPrefix,
@@ -34,7 +34,7 @@ export function ProductImageUpload({
   fallbackText,
   onChange,
   onUploadingChange,
-}: ProductImageUploadProps) {
+}, forwardedRef) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -77,7 +77,7 @@ export function ProductImageUpload({
   };
 
   return (
-    <div className="space-y-2">
+    <div ref={forwardedRef} className="space-y-2">
       <Label>{label}</Label>
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       <div className="flex items-center gap-3">
@@ -102,4 +102,4 @@ export function ProductImageUpload({
       </div>
     </div>
   );
-}
+});
