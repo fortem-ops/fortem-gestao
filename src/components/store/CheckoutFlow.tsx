@@ -153,6 +153,21 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     );
   }, [cartao]);
 
+  // Ao voltar para o carrinho, invalida qualquer tentativa de checkout
+  // anterior (pedido + idempotency key), garantindo que a próxima tentativa
+  // crie um pedido novo com o valor atual do carrinho.
+  const voltarParaCarrinho = useCallback(() => {
+    sessionStorage.removeItem(IDEMPOTENCY_KEY);
+    setPedidoId(null);
+    setPedidoNumero(null);
+    setPix(null);
+    setMetodo(null);
+    setErro(null);
+    cartaoTokenRef.current = null;
+    tokenizationIdRef.current = null;
+    onBackToCart();
+  }, [onBackToCart]);
+
   const garantirPedido = useCallback(async (): Promise<string | null> => {
     if (pedidoId) return pedidoId;
     setStatusText("Criando seu pedido...");
@@ -693,7 +708,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
         <Button
           variant="ghost"
           className={`mt-2 w-full ${palette.muted}`}
-          onClick={() => (step === "dados" ? onBackToCart() : setStep("dados"))}
+          onClick={() => (step === "dados" ? voltarParaCarrinho() : setStep("dados"))}
         >
           Voltar
         </Button>
