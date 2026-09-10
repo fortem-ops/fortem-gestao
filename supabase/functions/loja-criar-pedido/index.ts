@@ -94,6 +94,7 @@ Deno.serve(async (req) => {
     const { data: resultado, error: rpcErr } = await admin.rpc("fn_loja_criar_pedido", {
       p_payload: {
         idempotency_key: idempotencyKey,
+        aluno_id: alunoId,
         dadosPessoais: { nome, cpf: cpfDigits, telefone, email },
         itens: itensNormalizados,
       },
