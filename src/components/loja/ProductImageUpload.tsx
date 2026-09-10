@@ -20,6 +20,7 @@ interface ProductImageUploadProps {
   label: string;
   value: string;
   pathPrefix: string;
+  fileNamePrefix?: string;
   fallbackText?: string;
   onChange: (url: string) => void;
   onUploadingChange?: (uploading: boolean) => void;
@@ -29,6 +30,7 @@ export function ProductImageUpload({
   label,
   value,
   pathPrefix,
+  fileNamePrefix,
   fallbackText,
   onChange,
   onUploadingChange,
@@ -54,7 +56,8 @@ export function ProductImageUpload({
     onUploadingChange?.(true);
     try {
       const fileName = safeFileName(file.name) || "imagem";
-      const path = `${pathPrefix}/${Date.now()}-${fileName}`;
+      const prefix = fileNamePrefix ? `${safeFileName(fileNamePrefix)}-` : "";
+      const path = `${pathPrefix}/${prefix}${Date.now()}-${fileName}`;
       const { error } = await supabase.storage.from("loja-produtos").upload(path, file, {
         contentType: file.type,
         upsert: false,

@@ -252,12 +252,8 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                 <ProductImageUpload
                   label="Imagem desta cor"
                   value={form.imagem_url}
-                  pathPrefix={`produtos/${produto.id}/variantes/${form.cor
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-")
-                    .replace(/^-+|-+$/g, "") || "cor"}`}
+                  pathPrefix={`produtos/${produto.id}/variantes`}
+                  fileNamePrefix={form.cor || "cor"}
                   fallbackText="Se não enviar, usa a imagem padrão do produto."
                   onChange={(imagem_url) => setForm((current) => ({ ...current, imagem_url }))}
                   onUploadingChange={setUploadingImage}
