@@ -532,6 +532,8 @@ export default function Prospects() {
                           ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/20"
                           : stageName === "Treino experimental agendado"
                           ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/20"
+                          : stageName === "Follow Up"
+                          ? "bg-sky-500/20 text-sky-300 border-sky-500/40 hover:bg-sky-500/20"
                           : "";
                         return <Badge variant="outline" className={`text-xs w-fit ${cls}`}>{stageName}</Badge>;
                       })()}

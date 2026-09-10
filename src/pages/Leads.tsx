@@ -16,7 +16,7 @@ import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { ManageOrigensDialog } from "@/components/leads/ManageOrigensDialog";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
-import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
+import { waMeLink, formatDaysAgo, LEAD_STAGE_NAMES } from "@/lib/pipeline";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
@@ -107,7 +107,7 @@ export default function Leads() {
       (meta || []).forEach((m: any) => { if (m.origem_lead) metaMap[m.aluno_id] = m.origem_lead; });
       return alunos.map((a) => ({ ...a, origem: metaMap[a.id] || "—" }));
     },
-    enabled: !!leadStage,
+    enabled: leadStageIds.length > 0,
   });
 
   const { data: profilesMap = {} } = useQuery({
