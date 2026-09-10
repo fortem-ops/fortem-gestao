@@ -39,3 +39,10 @@ verify_jwt = false
 
 [functions.loja-cobrar-pedido]
 verify_jwt = false
+
+[functions.loja-criar-pix]
+verify_jwt = false
+
+[functions.loja-status-pedido]
+verify_jwt = false
+
