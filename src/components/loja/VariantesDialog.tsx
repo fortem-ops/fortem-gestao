@@ -90,6 +90,8 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
         preco: form.preco === "" ? null : Number(form.preco),
         estoque_atual: Number(form.estoque_atual) || 0,
         ativo: form.ativo,
+        imagem_url: form.cor.trim() ? form.imagem_url.trim() || null : null,
+        cor_hex: form.cor.trim() ? form.cor_hex || COR_PADRAO : null,
       });
       if (error) throw error;
     },
