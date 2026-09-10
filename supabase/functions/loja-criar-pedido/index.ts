@@ -45,9 +45,9 @@ Deno.serve(async (req) => {
     const telefone = String(dp?.telefone ?? "").trim();
     const email = String(dp?.email ?? "").trim();
 
-    if (!itens.length) return json(400, { ok: false, error: "itens_obrigatorios" });
+    if (!itens.length) return json(200, { ok: false, error: "itens_obrigatorios" });
     if (!nome || cpfDigits.length !== 11 || !telefone || !email.includes("@")) {
-      return json(400, { ok: false, error: "dados_pessoais_invalidos" });
+      return json(200, { ok: false, error: "dados_pessoais_invalidos" });
     }
 
     const itensNormalizados = itens.map((i: any) => ({
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       quantidade: Number(i?.quantidade ?? 0),
     }));
     if (itensNormalizados.some((i) => !i.variante_id || !Number.isInteger(i.quantidade) || i.quantidade <= 0)) {
-      return json(400, { ok: false, error: "item_invalido" });
+      return json(200, { ok: false, error: "item_invalido" });
     }
 
     // ---------- 1. pedido + itens + reserva de estoque (atômico no banco) ----------
@@ -70,16 +70,15 @@ Deno.serve(async (req) => {
     if (rpcErr) {
       console.error("[loja-criar-pedido] rpc erro:", rpcErr.message);
       if (/estoque_insuficiente/i.test(rpcErr.message)) {
-        return json(409, { ok: false, error: "estoque_insuficiente" });
+        return json(200, { ok: false, error: "estoque_insuficiente" });
       }
-      return json(500, { ok: false, error: "falha_criar_pedido" });
+      return json(200, { ok: false, error: "falha_criar_pedido" });
     }
 
     const r = (Array.isArray(resultado) ? resultado[0] : resultado) as any;
     if (!r?.ok) {
       const erro = String(r?.error ?? "falha_criar_pedido");
-      const status = erro === "estoque_insuficiente" ? 409 : 400;
-      return json(status, { ok: false, error: erro, variante_id: r?.variante_id ?? null });
+      return json(200, { ok: false, error: erro, variante_id: r?.variante_id ?? null });
     }
 
     const pedidoId = r.pedido_id as string;
