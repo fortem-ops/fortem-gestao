@@ -35,7 +35,18 @@ type Movimento = {
   created_at: string;
 };
 
-const emptyVar = { tamanho: "", cor: "", sku: "", preco: "", estoque_atual: 0, ativo: true };
+const COR_PADRAO = "#dc2626";
+
+const emptyVar = {
+  tamanho: "",
+  cor: "",
+  sku: "",
+  preco: "",
+  estoque_atual: 0,
+  ativo: true,
+  imagem_url: "",
+  cor_hex: COR_PADRAO,
+};
 
 const TIPO_LABEL: Record<string, string> = {
   entrada: "Entrada",
