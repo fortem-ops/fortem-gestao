@@ -17,6 +17,7 @@ import {
   ChevronRight,
   MessageCircle,
   AlertCircle,
+  ShoppingBag,
 } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 import type { ReactNode } from "react";
@@ -287,6 +288,7 @@ export default function PortalHome() {
     { label: "Carteirinha", icon: CreditCard, to: "/portal/carteirinha" },
     { label: "Avaliação", icon: Activity, to: "/portal/avaliacoes" },
     { label: "Meu Perfil", icon: User, to: "/portal/perfil" },
+    { label: "Loja", icon: ShoppingBag, to: "/portal/loja" },
   ];
 
   if (!student) return null;
