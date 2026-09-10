@@ -58,6 +58,15 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     },
   });
 
+  const { data: canDelete } = useQuery({
+    queryKey: ["is-staff", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_staff", { _user_id: user!.id });
+      return !!data;
+    },
+  });
+
   const { data: funcional, isLoading } = useQuery({
     queryKey: ["avaliacao-funcional", avaliacao?.id],
     enabled: !!avaliacao && isFuncional,
