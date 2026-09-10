@@ -55,12 +55,45 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Preenche automaticamente perguntas "Nome"/"Idade" com os dados do cadastro.
+  // Só aplica quando a resposta está vazia — nunca sobrescreve o que foi digitado.
+  const prefillAnswers = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const s of schema.sections ?? []) {
+      for (const q of s.questions ?? []) {
+        const label = (q.label || "").trim().toLowerCase();
+        if (label === "nome" && student.nome) {
+          map[q.id] = student.nome;
+        } else if (label === "idade" && student.data_nascimento) {
+          try {
+            map[q.id] = String(differenceInYears(new Date(), parseISO(student.data_nascimento)));
+          } catch { /* data inválida → deixa vazio */ }
+        }
+      }
+    }
+    return map;
+  }, [schema, student.nome, student.data_nascimento]);
+
+  const withPrefill = (d: ExperimentalRecordDados): ExperimentalRecordDados => {
+    let changed = false;
+    const answers = { ...d.answers };
+    for (const [qid, v] of Object.entries(prefillAnswers)) {
+      if (!v) continue;
+      const cur = answers[qid];
+      if (cur === undefined || cur === null || cur === "") {
+        answers[qid] = v;
+        changed = true;
+      }
+    }
+    return changed ? { ...d, answers } : d;
+  };
+
   const [id, setId] = useState<string | null>(avaliacaoId ?? null);
-  const [dados, setDados] = useState<ExperimentalRecordDados>(EMPTY_DADOS);
+  const [dados, setDados] = useState<ExperimentalRecordDados>(() => withPrefill(EMPTY_DADOS));
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-  const lastSerialized = useRef<string>("");
+  const lastSerialized = useRef<string>(JSON.stringify(withPrefill(EMPTY_DADOS)));
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -71,13 +104,14 @@ export function DynamicAssessment({ student, tipoSlug, protocoloId, schema: rawS
     (async () => {
       const { data } = await supabase.from("avaliacoes").select("*").eq("id", avaliacaoId).maybeSingle();
       if (data?.dados) {
-        const merged = migrateLegacyDados(data.dados as Record<string, unknown>);
+        const merged = withPrefill(migrateLegacyDados(data.dados as Record<string, unknown>));
         setDados(merged);
         lastSerialized.current = JSON.stringify(merged);
         setId(data.id);
         initialized.current = true;
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avaliacaoId]);
 
   const debounced = useDebounce(dados, 800);
