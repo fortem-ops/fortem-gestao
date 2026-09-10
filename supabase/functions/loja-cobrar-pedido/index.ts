@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const cartaoToken = typeof body?.cartao_token === "string" ? body.cartao_token.trim() : "";
     const pedidoId = typeof body?.pedido_id === "string" ? body.pedido_id.trim() : "";
+    const cartaoSalvoId = typeof body?.cartao_salvo_id === "string" ? body.cartao_salvo_id.trim() : "";
     const parcelasBody = Number(body?.parcelas ?? 1);
 
     if (!cartaoToken || !pedidoId) {
@@ -63,12 +64,20 @@ Deno.serve(async (req) => {
     const compradorId = link.aluno_id;
 
     // ---------- b. cartão tokenizado mais recente ----------
-    const { data: tokenizacao } = await supabase
+    let tokenizacaoQuery = supabase
       .from("rede_tokenizacoes")
       .select("tokenization_id, cartao_salvo_id")
       .eq("aluno_id", compradorId)
       .eq("status", "active")
-      .not("cartao_salvo_id", "is", null)
+      .not("cartao_salvo_id", "is", null);
+
+    // No Portal, cobra exatamente o cartão mascarado confirmado pelo aluno.
+    // Sem o campo opcional, preserva o comportamento dos checkouts existentes.
+    if (cartaoSalvoId) {
+      tokenizacaoQuery = tokenizacaoQuery.eq("cartao_salvo_id", cartaoSalvoId);
+    }
+
+    const { data: tokenizacao } = await tokenizacaoQuery
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
