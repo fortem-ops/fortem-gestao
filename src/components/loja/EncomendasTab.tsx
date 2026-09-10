@@ -120,7 +120,7 @@ export function EncomendasTab() {
                     <TableCell className="text-right text-xs font-semibold">{formatBRL(subVal)}</TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </TableBody>
