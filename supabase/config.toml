@@ -30,3 +30,12 @@ verify_jwt = false
 
 [functions.corrida-enviar-confirmacao-email]
 verify_jwt = false
+
+[functions.loja-criar-pedido]
+verify_jwt = false
+
+[functions.loja-status-tokenizacao]
+verify_jwt = false
+
+[functions.loja-cobrar-pedido]
+verify_jwt = false

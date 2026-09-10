@@ -4537,6 +4537,7 @@ export type Database = {
           email: string
           forma_pagamento: string | null
           id: string
+          idempotency_key: string | null
           nome: string
           nota_fiscal_status: string
           promocao_id: string | null
@@ -4556,6 +4557,7 @@ export type Database = {
           email: string
           forma_pagamento?: string | null
           id?: string
+          idempotency_key?: string | null
           nome: string
           nota_fiscal_status?: string
           promocao_id?: string | null
@@ -4575,6 +4577,7 @@ export type Database = {
           email?: string
           forma_pagamento?: string | null
           id?: string
+          idempotency_key?: string | null
           nome?: string
           nota_fiscal_status?: string
           promocao_id?: string | null
@@ -6325,6 +6328,27 @@ export type Database = {
         Relationships: []
       }
       rate_limit_corrida_publico: {
+        Row: {
+          contagem: number
+          endpoint: string
+          ip_address: string
+          janela_min: number
+        }
+        Insert: {
+          contagem?: number
+          endpoint: string
+          ip_address: string
+          janela_min: number
+        }
+        Update: {
+          contagem?: number
+          endpoint?: string
+          ip_address?: string
+          janela_min?: number
+        }
+        Relationships: []
+      }
+      rate_limit_loja_publico: {
         Row: {
           contagem: number
           endpoint: string
@@ -8500,6 +8524,11 @@ export type Database = {
           local_id: string
           nome: string
         }[]
+      }
+      fn_loja_criar_pedido: { Args: { p_payload: Json }; Returns: Json }
+      fn_loja_reverter_reserva: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
       }
       fn_lookup_aluno_por_cpf_hash: {
         Args: { p_cpf_hash: string }
