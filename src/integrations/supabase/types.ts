@@ -4485,6 +4485,130 @@ export type Database = {
         }
         Relationships: []
       }
+      pedido_itens: {
+        Row: {
+          created_at: string
+          id: string
+          pedido_id: string
+          preco_unitario_snapshot: number
+          quantidade: number
+          variante_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pedido_id: string
+          preco_unitario_snapshot: number
+          quantidade: number
+          variante_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pedido_id?: string
+          preco_unitario_snapshot?: number
+          quantidade?: number
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          aluno_id: string | null
+          cobranca_id: string | null
+          cpf: string
+          created_at: string
+          desconto: number
+          email: string
+          forma_pagamento: string | null
+          id: string
+          nome: string
+          nota_fiscal_status: string
+          promocao_id: string | null
+          retirado_em: string | null
+          status: string
+          telefone: string
+          updated_at: string
+          valor_final: number
+          valor_total: number
+        }
+        Insert: {
+          aluno_id?: string | null
+          cobranca_id?: string | null
+          cpf: string
+          created_at?: string
+          desconto?: number
+          email: string
+          forma_pagamento?: string | null
+          id?: string
+          nome: string
+          nota_fiscal_status?: string
+          promocao_id?: string | null
+          retirado_em?: string | null
+          status?: string
+          telefone: string
+          updated_at?: string
+          valor_final: number
+          valor_total: number
+        }
+        Update: {
+          aluno_id?: string | null
+          cobranca_id?: string | null
+          cpf?: string
+          created_at?: string
+          desconto?: number
+          email?: string
+          forma_pagamento?: string | null
+          id?: string
+          nome?: string
+          nota_fiscal_status?: string
+          promocao_id?: string | null
+          retirado_em?: string | null
+          status?: string
+          telefone?: string
+          updated_at?: string
+          valor_final?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_tecnico_alertas"
+            referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pedidos_promocao_id_fkey"
+            columns: ["promocao_id"]
+            isOneToOne: false
+            referencedRelation: "promocoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipedrive_stage_mapping: {
         Row: {
           created_at: string
