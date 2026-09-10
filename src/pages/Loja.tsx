@@ -1,9 +1,10 @@
 import { Navigate } from "react-router-dom";
-import { ShoppingBag, Package, Tag } from "lucide-react";
+import { ShoppingBag, Package, Tag, PackageOpen } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { ProdutosTab } from "@/components/loja/ProdutosTab";
 import { PromocoesTab } from "@/components/loja/PromocoesTab";
+import { EncomendasTab } from "@/components/loja/EncomendasTab";
 
 export default function Loja() {
   const { data: roles, isLoading } = useUserRoles();
@@ -24,7 +25,7 @@ export default function Loja() {
           Loja
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Produtos, variantes, estoque e promoções — somente Coordenação e Administração
+          Produtos, variantes, estoque, promoções e encomendas — somente Coordenação e Administração
         </p>
       </div>
 
@@ -34,6 +35,10 @@ export default function Loja() {
             <Package className="w-3.5 h-3.5" />
             Produtos & Estoque
           </TabsTrigger>
+          <TabsTrigger value="encomendas" className="flex items-center gap-1.5 text-xs">
+            <PackageOpen className="w-3.5 h-3.5" />
+            Encomendas
+          </TabsTrigger>
           <TabsTrigger value="promocoes" className="flex items-center gap-1.5 text-xs">
             <Tag className="w-3.5 h-3.5" />
             Promoções
@@ -42,6 +47,9 @@ export default function Loja() {
 
         <TabsContent value="produtos" className="mt-4">
           <ProdutosTab />
+        </TabsContent>
+        <TabsContent value="encomendas" className="mt-4">
+          <EncomendasTab />
         </TabsContent>
         <TabsContent value="promocoes" className="mt-4">
           <PromocoesTab />
