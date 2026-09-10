@@ -12,6 +12,7 @@ import { PortalLayout } from "@/components/portal/PortalLayout";
 import { StudentPortalProvider } from "@/contexts/StudentPortalContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CartProvider } from "@/hooks/useCartLoja";
 import Login from "./pages/Login";
 const Dashboard = lazyWithReload(() => import("./pages/Dashboard"));
 const RecoverPassword = lazyWithReload(() => import("./pages/RecoverPassword"));
@@ -79,6 +80,9 @@ const Planos = lazyWithReload(() => import("./pages/Planos"));
 const Privacidade = lazyWithReload(() => import("./pages/Privacidade"));
 const TermoAptidaoUsoImagem = lazyWithReload(() => import("./pages/TermoAptidaoUsoImagem"));
 const OAuthConsent = lazyWithReload(() => import("./pages/OAuthConsent"));
+const StoreIndex = lazyWithReload(() => import("./pages/store/StoreIndex"));
+const StoreProductDetail = lazyWithReload(() => import("./pages/store/StoreProductDetail"));
+const StoreCart = lazyWithReload(() => import("./pages/store/StoreCart"));
 
 // Portal do Aluno
 const PortalLogin = lazyWithReload(() => import("./pages/portal/PortalLogin"));
@@ -139,6 +143,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <CartProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><RecoverPassword /></Suspense>} />
@@ -147,7 +152,10 @@ const App = () => (
             <Route path="/planos" element={<Suspense fallback={<RouteFallback />}><Planos /></Suspense>} />
             <Route path="/privacidade" element={<Suspense fallback={<RouteFallback />}><Privacidade /></Suspense>} />
             <Route path="/termos/aptidao-fisica-uso-imagem" element={<Suspense fallback={<RouteFallback />}><TermoAptidaoUsoImagem /></Suspense>} />
-            
+            <Route path="/store" element={<Suspense fallback={<RouteFallback />}><StoreIndex /></Suspense>} />
+            <Route path="/store/carrinho" element={<Suspense fallback={<RouteFallback />}><StoreCart /></Suspense>} />
+            <Route path="/store/:produtoId" element={<Suspense fallback={<RouteFallback />}><StoreProductDetail /></Suspense>} />
+
             <Route path="/.lovable/oauth/consent" element={<Suspense fallback={<RouteFallback />}><OAuthConsent /></Suspense>} />
 
             {/* Portal do Aluno — auth e rotas próprias */}
@@ -628,6 +636,7 @@ const App = () => (
               }
             />
           </Routes>
+          </CartProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
