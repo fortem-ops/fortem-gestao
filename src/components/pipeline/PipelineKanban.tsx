@@ -97,6 +97,7 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
   const [drawerStudent, setDrawerStudent] = useState<PipelineCardData | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pendingLost, setPendingLost] = useState<{ aluno: PipelineCardData; destinoStage: string } | null>(null);
+  const [pendingConvert, setPendingConvert] = useState<{ aluno: PipelineCardData; destinoStage: string } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -350,6 +351,21 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
         student={drawerStudent}
         stages={allStages}
       />
+
+      {pendingConvert && (
+        <ConvertToProspectDialog
+          alunoId={pendingConvert.aluno.id}
+          open={!!pendingConvert}
+          onOpenChange={(o) => { if (!o) setPendingConvert(null); }}
+          title={`Converter ${pendingConvert.aluno.nome} em Prospect`}
+          finalStageName={pendingConvert.destinoStage}
+          onConverted={() => {
+            setPendingConvert(null);
+            queryClient.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+            queryClient.invalidateQueries({ queryKey: ["pipeline-last-moves"] });
+          }}
+        />
+      )}
 
       {pendingLost && (
         <MarkLostDialog
