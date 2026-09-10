@@ -569,6 +569,33 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               placeholder="(51) 90000-0000"
             />
           </div>
+
+          {dadosValidos && (
+            <div className="grid gap-2 sm:col-span-2">
+              <Label>Forma de pagamento</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {([
+                  { id: "cartao" as const, label: "Cartão de crédito", Icon: CreditCard },
+                  { id: "pix" as const, label: "PIX", Icon: QrCode },
+                ]).map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={metodo === id}
+                    onClick={() => setMetodo(id)}
+                    className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      metodo === id
+                        ? "border-primary ring-2 ring-primary/40"
+                        : palette.border
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
