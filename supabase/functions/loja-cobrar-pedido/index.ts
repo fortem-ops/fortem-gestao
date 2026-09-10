@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     const { data: existing } = await supabase
       .from("pagamentos_rede")
       .select("id, tid, status")
-      .eq("cobranca_id", pedidoId)
+      .eq("pedido_id", pedidoId)
       .in("status", ["approved", "pending"])
       .maybeSingle();
     if (existing) {
@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
     const { data: pagamento, error: pagErr } = await supabase
       .from("pagamentos_rede")
       .insert({
-        cobranca_id: pedidoId,
+        pedido_id: pedidoId,
         amount: amountCents,
         installments,
         kind: "token",
