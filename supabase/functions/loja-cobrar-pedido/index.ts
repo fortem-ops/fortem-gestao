@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
     const approved = returnCode === "00";
 
     // ---------- f. persistência ----------
-    const { data: pagamento } = await supabase
+    const { data: pagamento, error: pagErr } = await supabase
       .from("pagamentos_rede")
       .insert({
         cobranca_id: pedidoId,
@@ -229,6 +229,20 @@ Deno.serve(async (req) => {
       })
       .select("id")
       .maybeSingle();
+
+    if (pagErr) {
+      // A cobrança já foi processada pela Rede; não interrompe o fluxo,
+      // mas registra para não perder o rastro do pagamento.
+      console.error("[loja-cobrar-pedido] falha ao registrar pagamentos_rede:", pagErr.message);
+      try {
+        await supabase.from("system_logs").insert({
+          modulo: "loja-cobrar-pedido",
+          acao: "pagamentos_rede_insert_falhou",
+          mensagem: `Pagamento do pedido ${pedidoId} (returnCode ${returnCode}, tid ${redeResponse?.tid ?? "—"}) não foi registrado em pagamentos_rede.`,
+          payload: { pedido_id: pedidoId, return_code: returnCode, tid: redeResponse?.tid ?? null, erro: pagErr.message },
+        });
+      } catch { /* ignore */ }
+    }
 
     if (approved) {
       // estoque permanece baixado (reserva vira venda)
