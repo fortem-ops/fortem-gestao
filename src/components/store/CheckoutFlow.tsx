@@ -82,6 +82,19 @@ const getIdempotencyKey = () => {
   return key;
 };
 
+// Pedido pago é persistido: se a página recarregar logo após a aprovação
+// (aba descartada no celular, refresh), a tela de sucesso é restaurada em vez
+// de cair no "carrinho vazio".
+export const PEDIDO_PAGO_KEY = "fortem-loja-pedido-pago";
+
+const lerPedidoPago = (): string | null => {
+  try {
+    return sessionStorage.getItem(PEDIDO_PAGO_KEY);
+  } catch {
+    return null;
+  }
+};
+
 type Step = "dados" | "cartao" | "pix" | "sucesso";
 type Metodo = "cartao" | "pix";
 
