@@ -45,6 +45,10 @@ export function StudentPipelinePanel({ student, onChanged }: Props) {
   const colors = currentStage ? stageColor(currentStage.color) : stageColor("zinc");
 
   async function moveTo(stageName: string) {
+    if (requiresProspectConversion(currentStage?.name, stageName)) {
+      setConvertStage(stageName);
+      return;
+    }
     const { error } = await supabase.rpc("fn_move_pipeline", {
       _aluno_id: student.id,
       _to_stage_name: stageName,
@@ -129,6 +133,22 @@ export function StudentPipelinePanel({ student, onChanged }: Props) {
       </Card>
 
       <PipelineMetadataDialog alunoId={student.id} open={metaOpen} onOpenChange={setMetaOpen} />
+
+      {convertStage && (
+        <ConvertToProspectDialog
+          alunoId={student.id}
+          open={!!convertStage}
+          onOpenChange={(o) => { if (!o) setConvertStage(null); }}
+          title={`Converter ${student.nome} em Prospect`}
+          finalStageName={convertStage}
+          onConverted={() => {
+            setConvertStage(null);
+            queryClient.invalidateQueries({ queryKey: ["pipeline-history", student.id] });
+            queryClient.invalidateQueries({ queryKey: ["aluno", student.id] });
+            onChanged?.();
+          }}
+        />
+      )}
     </div>
   );
 }
