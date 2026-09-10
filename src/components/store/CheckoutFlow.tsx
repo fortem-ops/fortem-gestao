@@ -315,7 +315,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="nome"
               value={dados.nome}
               autoComplete="given-name"
-              className="border-neutral-200"
+              className={palette.input}
               onChange={(e) => setDados({ ...dados, nome: e.target.value })}
             />
           </div>
@@ -325,7 +325,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="sobrenome"
               value={dados.sobrenome}
               autoComplete="family-name"
-              className="border-neutral-200"
+              className={palette.input}
               onChange={(e) => setDados({ ...dados, sobrenome: e.target.value })}
             />
           </div>
@@ -337,7 +337,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               inputMode="email"
               value={dados.email}
               autoComplete="email"
-              className="border-neutral-200"
+              className={palette.input}
               onChange={(e) => setDados({ ...dados, email: e.target.value })}
             />
           </div>
@@ -347,7 +347,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="cpf"
               inputMode="numeric"
               value={dados.cpf}
-              className="border-neutral-200"
+              className={palette.input}
               onChange={(e) => setDados({ ...dados, cpf: maskCpf(e.target.value) })}
               placeholder="000.000.000-00"
             />
@@ -358,7 +358,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="telefone"
               inputMode="tel"
               value={dados.telefone}
-              className="border-neutral-200"
+              className={palette.input}
               onChange={(e) =>
                 setDados({ ...dados, telefone: maskTelefone(e.target.value) })
               }
@@ -375,7 +375,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               inputMode="numeric"
               autoComplete="cc-number"
               value={cartao.numero}
-              className="border-neutral-200"
+              className={palette.input}
               onChange={(e) =>
                 setCartao({ ...cartao, numero: maskCartao(e.target.value) })
               }
@@ -388,7 +388,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               id="nomeImpresso"
               autoComplete="cc-name"
               value={cartao.nomeImpresso}
-              className="border-neutral-200"
+              className={palette.input}
               onChange={(e) =>
                 setCartao({ ...cartao, nomeImpresso: e.target.value })
               }
@@ -401,7 +401,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               inputMode="numeric"
               autoComplete="cc-exp"
               value={cartao.validade}
-              className="border-neutral-200"
+              className={palette.input}
               onChange={(e) =>
                 setCartao({ ...cartao, validade: maskValidade(e.target.value) })
               }
@@ -415,7 +415,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               inputMode="numeric"
               autoComplete="cc-csc"
               value={cartao.cvv}
-              className="border-neutral-200"
+              className={palette.input}
               onChange={(e) =>
                 setCartao({ ...cartao, cvv: onlyDigits(e.target.value).slice(0, 4) })
               }
