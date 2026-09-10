@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +54,8 @@ export const validateCPF = (cpf: string): boolean => {
 
 const StudentDataForm = ({ data, onChange, errors }: StudentDataFormProps) => {
   const lastFetchedCpf = useRef<string>("");
+  const [buscando, setBuscando] = useState(false);
+  const [encontrado, setEncontrado] = useState(false);
 
   const handleChange = (field: keyof StudentData, value: string) => {
     let formatted = value;
@@ -69,21 +71,29 @@ const StudentDataForm = ({ data, onChange, errors }: StudentDataFormProps) => {
     lastFetchedCpf.current = digits;
 
     (async () => {
-      const { data: result, error } = await supabase.functions.invoke("lookup-by-cpf", {
+      setBuscando(true);
+      const { data: result, error } = await supabase.functions.invoke("lookup-cadastro-publico", {
         body: { cpf: data.cpf },
       });
+      setBuscando(false);
       if (error || !result?.found || !result.data) return;
       const existing = result.data;
+      // preenche apenas o que ainda está vazio, sem sobrescrever o que a pessoa digitou
+      const keep = (atual: string, novo: string | null | undefined) =>
+        atual.trim() ? atual : (novo ?? "");
       onChange({
         ...data,
-        nome: existing.nome ?? data.nome,
-        dataNascimento: existing.data_nascimento ?? data.dataNascimento,
-        telefone: existing.telefone ?? data.telefone,
-        email: existing.email ?? data.email,
-        emergencyContactName: existing.emergency_contact_name ?? data.emergencyContactName,
-        emergencyContactPhone: existing.emergency_contact_phone ?? data.emergencyContactPhone,
+        nome: keep(data.nome, existing.nome),
+        dataNascimento: keep(data.dataNascimento, existing.data_nascimento),
+        telefone: data.telefone.trim() ? data.telefone : formatPhone(existing.telefone ?? ""),
+        email: keep(data.email, existing.email),
+        emergencyContactName: keep(data.emergencyContactName, existing.emergency_contact_name),
+        emergencyContactPhone: data.emergencyContactPhone.trim()
+          ? data.emergencyContactPhone
+          : formatPhone(existing.emergency_contact_phone ?? ""),
       });
-      toast.success("Dados encontrados e preenchidos automaticamente");
+      setEncontrado(true);
+      toast.success("Encontramos seu cadastro — confira e ajuste se precisar");
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.cpf]);
@@ -93,6 +103,18 @@ const StudentDataForm = ({ data, onChange, errors }: StudentDataFormProps) => {
   return (
     <div className="space-y-4">
       <div>
+        <Label htmlFor="cpf">CPF</Label>
+        <Input id="cpf" value={data.cpf} onChange={(e) => handleChange("cpf", e.target.value)} placeholder="000.000.000-00" inputMode="numeric" autoFocus className={`${inputCls} font-mono tabular-nums`} />
+        <p className="text-xs text-muted-foreground mt-1">
+          {buscando
+            ? "Buscando seus dados…"
+            : encontrado
+              ? "Encontramos seu cadastro — confira e ajuste se precisar."
+              : "Digite seu CPF para buscarmos seus dados."}
+        </p>
+        {errors.cpf && <p className="text-destructive text-xs mt-1">{errors.cpf}</p>}
+      </div>
+      <div>
         <Label htmlFor="nome">Nome completo</Label>
         <Input id="nome" value={data.nome} onChange={(e) => handleChange("nome", e.target.value)} placeholder="Seu nome completo" className={inputCls} />
         {errors.nome && <p className="text-destructive text-xs mt-1">{errors.nome}</p>}
@@ -101,11 +123,6 @@ const StudentDataForm = ({ data, onChange, errors }: StudentDataFormProps) => {
         <Label htmlFor="dataNascimento">Data de nascimento</Label>
         <Input id="dataNascimento" type="date" value={data.dataNascimento} onChange={(e) => handleChange("dataNascimento", e.target.value)} className={inputCls} />
         {errors.dataNascimento && <p className="text-destructive text-xs mt-1">{errors.dataNascimento}</p>}
-      </div>
-      <div>
-        <Label htmlFor="cpf">CPF</Label>
-        <Input id="cpf" value={data.cpf} onChange={(e) => handleChange("cpf", e.target.value)} placeholder="000.000.000-00" className={`${inputCls} font-mono tabular-nums`} />
-        {errors.cpf && <p className="text-destructive text-xs mt-1">{errors.cpf}</p>}
       </div>
       <div>
         <Label htmlFor="telefone">Telefone</Label>
