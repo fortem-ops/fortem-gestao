@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useProdutoLoja } from "@/hooks/useProdutosLoja";
 import { useCartLoja } from "@/hooks/useCartLoja";
 import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
 import {
   formatBRL,
   precoDaVariante,
@@ -22,6 +23,7 @@ const StoreProductDetail = () => {
   const { data: produto, isLoading, isError } = useProdutoLoja(produtoId);
   const { addItem } = useCartLoja();
   const { theme, palette } = useStoreTheme();
+  const { basePath, hideHeader } = useStoreScope();
   const barBg = theme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
   const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
 
@@ -108,7 +110,7 @@ const StoreProductDetail = () => {
   if (isLoading) {
     return (
       <div className={`min-h-screen ${palette.bg} ${palette.text}`}>
-        <StoreHeader backTo="/store" />
+        {!hideHeader && <StoreHeader backTo={basePath} />}
         <main className="mx-auto max-w-5xl space-y-4 px-4 py-6">
           <Skeleton className={`aspect-[4/3] w-full rounded-2xl ${palette.surface}`} />
           <Skeleton className={`h-6 w-2/3 ${palette.surface}`} />
@@ -122,13 +124,13 @@ const StoreProductDetail = () => {
   if (isError || !produto) {
     return (
       <div className={`min-h-screen ${palette.bg} ${palette.text}`}>
-        <StoreHeader backTo="/store" />
+        {!hideHeader && <StoreHeader backTo={basePath} />}
         <main className="mx-auto max-w-5xl px-4 py-16 text-center">
           <p className={`text-sm ${palette.muted}`}>
             Produto não encontrado ou indisponível.
           </p>
           <Button asChild className="mt-4">
-            <Link to="/store">Voltar para a loja</Link>
+            <Link to={basePath}>Voltar para a loja</Link>
           </Button>
         </main>
       </div>
@@ -139,7 +141,7 @@ const StoreProductDetail = () => {
 
   return (
     <div className={`min-h-screen pb-28 sm:pb-8 ${palette.bg} ${palette.text}`}>
-      <StoreHeader backTo="/store" />
+      {!hideHeader && <StoreHeader backTo={basePath} />}
 
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="grid gap-6 sm:grid-cols-2">
@@ -325,7 +327,7 @@ const StoreProductDetail = () => {
         </div>
       </main>
 
-      <div className={`fixed inset-x-0 bottom-0 z-40 border-t ${palette.border} ${barBg} p-3 backdrop-blur sm:hidden`}>
+      <div className={`fixed inset-x-0 ${hideHeader ? "bottom-20" : "bottom-0"} z-40 border-t ${palette.border} ${barBg} p-3 backdrop-blur sm:hidden`}>
         <Button
           size="lg"
           className="w-full"

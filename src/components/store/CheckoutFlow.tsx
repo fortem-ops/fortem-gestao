@@ -12,6 +12,8 @@ import { formatBRL } from "@/integrations/store/types";
 import { useCartLoja, type CartItem } from "@/hooks/useCartLoja";
 import { toast } from "sonner";
 import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
+import { useStudentPortalOptional } from "@/contexts/StudentPortalContext";
 
 const IDEMPOTENCY_KEY = "fortem-loja-idempotency";
 const PARCELAS = 1;
@@ -113,6 +115,9 @@ interface Props {
 const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   const { clear } = useCartLoja();
   const { theme, palette } = useStoreTheme();
+  const { basePath } = useStoreScope();
+  // Dentro do Portal do Aluno existe aluno logado: o cadastro já é conhecido.
+  const aluno = useStudentPortalOptional()?.student ?? null;
   const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
   const [step, setStep] = useState<Step>(() =>
     lerPedidoPago() ? "sucesso" : "dados"
@@ -148,13 +153,16 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
 
   const dadosValidos = useMemo(
     () =>
-      dados.nome.trim().length >= 2 &&
-      dados.sobrenome.trim().length >= 2 &&
-      /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dados.email.trim()) &&
-      isValidCpf(dados.cpf) &&
-      onlyDigits(dados.telefone).length >= 10,
-    [dados]
+      // Aluno logado: cadastro já validado no sistema (CPF vem do backend).
+      !!aluno ||
+      (dados.nome.trim().length >= 2 &&
+        dados.sobrenome.trim().length >= 2 &&
+        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dados.email.trim()) &&
+        isValidCpf(dados.cpf) &&
+        onlyDigits(dados.telefone).length >= 10),
+    [dados, aluno]
   );
+
 
   const cartaoValido = useMemo(() => {
     const num = onlyDigits(cartao.numero);
@@ -197,12 +205,20 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
             itens: items
               .filter((i) => i.varianteId)
               .map((i) => ({ variante_id: i.varianteId, quantidade: i.quantidade })),
-            dadosPessoais: {
-              nome: `${dados.nome.trim()} ${dados.sobrenome.trim()}`.trim(),
-              cpf: onlyDigits(dados.cpf),
-              telefone: onlyDigits(dados.telefone),
-              email: dados.email.trim(),
-            },
+            aluno_id: aluno?.id ?? null,
+            dadosPessoais: aluno
+              ? {
+                  nome: aluno.nome ?? "",
+                  cpf: "",
+                  telefone: onlyDigits(aluno.telefone ?? ""),
+                  email: (aluno.email ?? "").trim(),
+                }
+              : {
+                  nome: `${dados.nome.trim()} ${dados.sobrenome.trim()}`.trim(),
+                  cpf: onlyDigits(dados.cpf),
+                  telefone: onlyDigits(dados.telefone),
+                  email: dados.email.trim(),
+                },
             parcelas: PARCELAS,
             idempotency_key: getIdempotencyKey(),
           },
@@ -231,7 +247,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       cartaoTokenRef.current = data.cartao_token ?? null;
       return data.pedido_id as string;
     }
-  }, [items, dados, voltarParaCarrinho, pedidoId]);
+  }, [items, dados, aluno, voltarParaCarrinho, pedidoId]);
 
   const gerarPix = useCallback(
     async (id: string) => {
@@ -432,7 +448,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
         </p>
         <Button asChild className="mt-5 w-full sm:w-auto">
           <Link
-            to="/store"
+            to={basePath}
             onClick={() => sessionStorage.removeItem(PEDIDO_PAGO_KEY)}
           >
             Voltar para a loja
@@ -543,7 +559,11 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
       <div className="flex items-center justify-between">
         <p className="font-display text-sm font-bold uppercase tracking-wide">
-          {step === "dados" ? "Seus dados" : "Pagamento com cartão"}
+          {step === "dados"
+            ? aluno
+              ? "Forma de pagamento"
+              : "Seus dados"
+            : "Pagamento com cartão"}
         </p>
         <span className={`flex items-center gap-1 text-xs ${palette.muted}`}>
           <Lock className="h-3.5 w-3.5" /> Ambiente seguro
@@ -554,6 +574,15 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
 
       {step === "dados" ? (
         <div className="grid gap-3 sm:grid-cols-2">
+          {aluno && (
+            <p className={`text-sm sm:col-span-2 ${palette.muted}`}>
+              Compra em nome de{" "}
+              <span className={`font-semibold ${palette.text}`}>{aluno.nome}</span>. A
+              confirmação vai para {aluno.email ?? "seu e-mail cadastrado"}.
+            </p>
+          )}
+          {!aluno && (
+          <>
           <div className="grid gap-1.5">
             <Label htmlFor="nome">Nome</Label>
             <Input
@@ -610,6 +639,9 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               placeholder="(51) 90000-0000"
             />
           </div>
+          </>
+          )}
+
 
           {dadosValidos && (
             <div className="grid gap-2 sm:col-span-2">

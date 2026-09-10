@@ -11,6 +11,7 @@ import { useCartLoja } from "@/hooks/useCartLoja";
 import { formatBRL } from "@/integrations/store/types";
 import CheckoutFlow, { PEDIDO_PAGO_KEY } from "@/components/store/CheckoutFlow";
 import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
 
 const StoreCart = () => {
   const { items, subtotal, updateQuantity, removeItem } = useCartLoja();
@@ -25,6 +26,7 @@ const StoreCart = () => {
     }
   });
   const { theme, palette } = useStoreTheme();
+  const { basePath, hideHeader } = useStoreScope();
   const barBg = theme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
   const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
 
@@ -36,7 +38,7 @@ const StoreCart = () => {
 
   return (
     <div className={`min-h-screen pb-28 sm:pb-10 ${palette.bg} ${palette.text}`}>
-      <StoreHeader backTo="/store" title="Carrinho" />
+      {!hideHeader && <StoreHeader backTo={basePath} title="Carrinho" />}
 
       <main className="mx-auto max-w-3xl px-4 py-6">
         <h1 className="font-display text-2xl font-black uppercase tracking-tight">
@@ -53,7 +55,7 @@ const StoreCart = () => {
           <div className="mt-10 text-center">
             <p className={`text-sm ${palette.muted}`}>Seu carrinho está vazio.</p>
             <Button asChild className="mt-4">
-              <Link to="/store">Ver produtos</Link>
+              <Link to={basePath}>Ver produtos</Link>
             </Button>
           </div>
         ) : (
@@ -85,7 +87,7 @@ const StoreCart = () => {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <Link
-                        to={`/store/${item.produtoId}`}
+                        to={`${basePath}/${item.produtoId}`}
                         className={`line-clamp-2 font-display text-sm font-bold leading-tight ${palette.text}`}
                       >
                         {item.nome}
@@ -205,7 +207,7 @@ const StoreCart = () => {
 
       {items.length > 0 && !checkout && (
         <div
-          className={`fixed inset-x-0 bottom-0 z-40 border-t p-3 backdrop-blur sm:hidden ${palette.border} ${barBg} ${palette.text}`}
+          className={`fixed inset-x-0 ${hideHeader ? "bottom-20" : "bottom-0"} z-40 border-t p-3 backdrop-blur sm:hidden ${palette.border} ${barBg} ${palette.text}`}
         >
           <div className="mb-2 flex items-center justify-between">
             <span className={`text-xs ${palette.muted}`}>Subtotal</span>

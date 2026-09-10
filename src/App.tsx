@@ -103,6 +103,9 @@ const PortalNotificacoes = lazyWithReload(() => import("./pages/portal/PortalNot
 const PortalCarteirinha = lazyWithReload(() => import("./pages/portal/PortalCarteirinha"));
 const PortalAssistente = lazyWithReload(() => import("./pages/portal/PortalAssistente"));
 const PortalContratos = lazyWithReload(() => import("./pages/portal/PortalContratos"));
+const PortalLoja = lazyWithReload(() => import("./pages/portal/PortalLoja"));
+const PortalLojaProduto = lazyWithReload(() => import("./pages/portal/PortalLojaProduto"));
+const PortalLojaCarrinho = lazyWithReload(() => import("./pages/portal/PortalLojaCarrinho"));
 
 // Portal do Parceiro
 const PartnerLogin = lazyWithReload(() => import("./pages/parceiro/PartnerLogin"));
@@ -189,6 +192,9 @@ const App = () => (
               <Route path="/portal/assistente" element={<Suspense fallback={<RouteFallback />}><PortalAssistente /></Suspense>} />
               <Route path="/portal/contratos" element={<Suspense fallback={<RouteFallback />}><PortalContratos /></Suspense>} />
               <Route path="/portal/pagamentos" element={<Suspense fallback={<RouteFallback />}><PortalPagamentos /></Suspense>} />
+              <Route path="/portal/loja" element={<Suspense fallback={<RouteFallback />}><PortalLoja /></Suspense>} />
+              <Route path="/portal/loja/carrinho" element={<Suspense fallback={<RouteFallback />}><PortalLojaCarrinho /></Suspense>} />
+              <Route path="/portal/loja/:produtoId" element={<Suspense fallback={<RouteFallback />}><PortalLojaProduto /></Suspense>} />
             </Route>
 
             {/* Public, read-only workout view — opened by the QR code printed on the PDF. */}

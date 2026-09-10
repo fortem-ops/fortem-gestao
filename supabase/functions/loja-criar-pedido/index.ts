@@ -39,11 +39,43 @@ Deno.serve(async (req) => {
     const dp = body?.dadosPessoais ?? {};
     const parcelas = Math.max(1, Number(body?.parcelas ?? 1));
     const idempotencyKey = String(body?.idempotency_key ?? "").trim() || null;
+    const alunoIdBody = String(body?.aluno_id ?? "").trim() || null;
 
-    const nome = String(dp?.nome ?? "").trim();
-    const cpfDigits = String(dp?.cpf ?? "").replace(/\D/g, "");
-    const telefone = String(dp?.telefone ?? "").trim();
-    const email = String(dp?.email ?? "").trim();
+    let nome = String(dp?.nome ?? "").trim();
+    let cpfDigits = String(dp?.cpf ?? "").replace(/\D/g, "");
+    let telefone = String(dp?.telefone ?? "").trim();
+    let email = String(dp?.email ?? "").trim();
+
+    // Aluno logado (Portal): confirma o vínculo pelo JWT e usa o cadastro real,
+    // inclusive o CPF (que fica criptografado e nunca trafega pelo cliente).
+    let alunoId: string | null = null;
+    if (alunoIdBody) {
+      const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+      if (jwt) {
+        const { data: userRes } = await admin.auth.getUser(jwt);
+        const userId = userRes?.user?.id ?? null;
+        if (userId) {
+          const { data: aluno } = await admin
+            .from("alunos")
+            .select("id, nome, email, telefone")
+            .eq("id", alunoIdBody)
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (aluno?.id) {
+            alunoId = aluno.id;
+            nome = String(aluno.nome ?? nome).trim();
+            email = String(aluno.email ?? email).trim();
+            telefone = String(aluno.telefone ?? telefone).replace(/\D/g, "");
+            const { data: cpfRevelado } = await admin.rpc("fn_reveal_cpf_service", {
+              p_aluno_id: aluno.id,
+            });
+            const cpfAluno = String(cpfRevelado ?? "").replace(/\D/g, "");
+            if (cpfAluno.length === 11) cpfDigits = cpfAluno;
+          }
+        }
+      }
+      if (!alunoId) return json(200, { ok: false, error: "aluno_nao_autorizado" });
+    }
 
     if (!itens.length) return json(200, { ok: false, error: "itens_obrigatorios" });
     if (!nome || cpfDigits.length !== 11 || !telefone || !email.includes("@")) {
@@ -62,6 +94,7 @@ Deno.serve(async (req) => {
     const { data: resultado, error: rpcErr } = await admin.rpc("fn_loja_criar_pedido", {
       p_payload: {
         idempotency_key: idempotencyKey,
+        aluno_id: alunoId,
         dadosPessoais: { nome, cpf: cpfDigits, telefone, email },
         itens: itensNormalizados,
       },
@@ -85,14 +118,16 @@ Deno.serve(async (req) => {
 
     // ---------- 2. cadastro-base do comprador (necessário para tokenizar o cartão) ----------
     const cpfHash = await sha256Hex(cpfDigits);
-    let compradorId: string | null = null;
+    let compradorId: string | null = alunoId;
 
-    const { data: alunoExistente } = await admin
-      .from("alunos")
-      .select("id")
-      .eq("cpf_hash", cpfHash)
-      .limit(1)
-      .maybeSingle();
+    const { data: alunoExistente } = compradorId
+      ? { data: { id: compradorId } }
+      : await admin
+          .from("alunos")
+          .select("id")
+          .eq("cpf_hash", cpfHash)
+          .limit(1)
+          .maybeSingle();
 
     if (alunoExistente?.id) {
       compradorId = alunoExistente.id;
