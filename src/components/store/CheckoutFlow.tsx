@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, CreditCard, Loader2, Lock } from "lucide-react";
+import { CheckCircle2, Copy, CreditCard, Loader2, Lock, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,8 @@ const isValidCpf = (raw: string) => {
 const friendlyMessage = (raw?: string | null) => {
   const msg = (raw ?? "").toLowerCase();
   if (!msg) return "Não foi possível concluir o pagamento. Tente outro cartão.";
+  if (msg.includes("chave_pix_nao_configurada") || msg.includes("falha_criar_cobranca_pix"))
+    return "Não foi possível gerar o PIX agora. Tente novamente em instantes ou use cartão.";
   if (msg.includes("insufficient") || msg.includes("saldo") || msg.includes("limite"))
     return "Cartão sem limite disponível. Tente outro cartão.";
   if (msg.includes("expired") || msg.includes("vencid") || msg.includes("validade"))
@@ -79,7 +81,14 @@ const getIdempotencyKey = () => {
   return key;
 };
 
-type Step = "dados" | "cartao" | "sucesso";
+type Step = "dados" | "cartao" | "pix" | "sucesso";
+type Metodo = "cartao" | "pix";
+
+interface PixData {
+  qr_code_base64: string | null;
+  pix_copia_cola: string;
+  expira_em: number;
+}
 
 interface Props {
   items: CartItem[];
@@ -100,6 +109,9 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   const [pedidoNumero, setPedidoNumero] = useState<string | null>(null);
   const cartaoTokenRef = useRef<string | null>(null);
   const tokenizationIdRef = useRef<string | null>(null);
+  const [metodo, setMetodo] = useState<Metodo | null>(null);
+  const [pix, setPix] = useState<PixData | null>(null);
+  const [segundosRestantes, setSegundosRestantes] = useState(0);
 
   const [dados, setDados] = useState({
     nome: "",
@@ -140,14 +152,14 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     );
   }, [cartao]);
 
-  const criarPedido = useCallback(async () => {
-    setErro(null);
-    setLoading(true);
+  const garantirPedido = useCallback(async (): Promise<string | null> => {
+    if (pedidoId) return pedidoId;
     setStatusText("Criando seu pedido...");
-    try {
+    {
       const { data, error } = await supabase.functions.invoke(
         "loja-criar-pedido",
         {
+
           body: {
             itens: items
               .filter((i) => i.varianteId)
@@ -172,26 +184,111 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
             "Um dos produtos esgotou enquanto você navegava. Revise seu carrinho."
           );
           onBackToCart();
-          return;
+          return null;
         }
         throw new Error(friendlyMessage(data?.error));
       }
 
-      if (!data?.pedido_id || !data?.cartao_token) {
+      if (!data?.pedido_id) {
         throw new Error("Não foi possível criar o pedido. Tente novamente.");
       }
 
       setPedidoId(data.pedido_id);
       setPedidoNumero(data.pedido_id);
-      cartaoTokenRef.current = data.cartao_token;
-      setStep("cartao");
+      cartaoTokenRef.current = data.cartao_token ?? null;
+      return data.pedido_id as string;
+    }
+  }, [items, dados, onBackToCart, pedidoId]);
+
+  const gerarPix = useCallback(
+    async (id: string) => {
+      setStatusText("Gerando o código PIX...");
+      const { data, error } = await supabase.functions.invoke("loja-criar-pix", {
+        body: { pedido_id: id },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.ja_pago === true) {
+        sessionStorage.removeItem(IDEMPOTENCY_KEY);
+        clear();
+        setStep("sucesso");
+        return;
+      }
+      if (data?.ok === false || !data?.pix_copia_cola) {
+        throw new Error(friendlyMessage(data?.error));
+      }
+      setPix({
+        qr_code_base64: data.qr_code_base64 ?? null,
+        pix_copia_cola: data.pix_copia_cola,
+        expira_em: Number(data.expira_em ?? 1800),
+      });
+      setSegundosRestantes(Number(data.expira_em ?? 1800));
+      setStep("pix");
+    },
+    [clear]
+  );
+
+  const avancar = useCallback(async () => {
+    setErro(null);
+    setLoading(true);
+    try {
+      const id = await garantirPedido();
+      if (!id) return;
+      if (metodo === "pix") {
+        await gerarPix(id);
+      } else {
+        setStep("cartao");
+      }
     } catch (e) {
       setErro(friendlyMessage(e instanceof Error ? e.message : null));
     } finally {
       setLoading(false);
       setStatusText("");
     }
-  }, [items, dados, onBackToCart]);
+  }, [garantirPedido, gerarPix, metodo]);
+
+  const regerarPix = useCallback(async () => {
+    if (!pedidoId) return;
+    setErro(null);
+    setLoading(true);
+    try {
+      await gerarPix(pedidoId);
+    } catch (e) {
+      setErro(friendlyMessage(e instanceof Error ? e.message : null));
+    } finally {
+      setLoading(false);
+      setStatusText("");
+    }
+  }, [gerarPix, pedidoId]);
+
+  // Contador regressivo do QR
+  useEffect(() => {
+    if (step !== "pix" || segundosRestantes <= 0) return;
+    const t = setInterval(() => setSegundosRestantes((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [step, segundosRestantes]);
+
+  // Polling do status do pedido
+  useEffect(() => {
+    if (step !== "pix" || !pedidoId) return;
+    let ativo = true;
+    const t = setInterval(async () => {
+      const { data } = await supabase.functions.invoke("loja-status-pedido", {
+        body: { pedido_id: pedidoId },
+      });
+      if (!ativo) return;
+      if (data?.status === "pago") {
+        clearInterval(t);
+        sessionStorage.removeItem(IDEMPOTENCY_KEY);
+        clear();
+        setStep("sucesso");
+      }
+    }, 3000);
+    return () => {
+      ativo = false;
+      clearInterval(t);
+    };
+  }, [step, pedidoId, clear]);
+
 
   const aguardarTokenizacao = useCallback(async (tokenizationId: string) => {
     for (let i = 0; i < 20; i++) {
@@ -297,6 +394,110 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     );
   }
 
+  if (step === "pix" && pix) {
+    const expirado = segundosRestantes <= 0;
+    const mm = String(Math.floor(segundosRestantes / 60)).padStart(2, "0");
+    const ss = String(segundosRestantes % 60).padStart(2, "0");
+    const qrSrc = pix.qr_code_base64
+      ? pix.qr_code_base64.startsWith("data:")
+        ? pix.qr_code_base64
+        : `data:image/png;base64,${pix.qr_code_base64}`
+      : null;
+
+    return (
+      <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
+        <div className="flex items-center justify-between">
+          <p className="font-display text-sm font-bold uppercase tracking-wide">
+            Pagamento com PIX
+          </p>
+          <span className={`flex items-center gap-1 text-xs ${palette.muted}`}>
+            <Lock className="h-3.5 w-3.5" /> Ambiente seguro
+          </span>
+        </div>
+
+        <Separator className={`my-4 ${separatorBg}`} />
+
+        {expirado ? (
+          <div className="text-center">
+            <p className="text-sm font-semibold">O código PIX expirou. Gere um novo.</p>
+            <Button className="mt-4 w-full" disabled={loading} onClick={regerarPix}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {statusText || "Gerando..."}
+                </>
+              ) : (
+                "Gerar novo código PIX"
+              )}
+            </Button>
+          </div>
+        ) : (
+          <>
+            {qrSrc && (
+              <img
+                src={qrSrc}
+                alt="QR Code para pagamento PIX"
+                className="mx-auto w-full max-w-[260px] rounded-xl bg-white p-3"
+              />
+            )}
+
+            <p className={`mt-4 text-center text-sm ${palette.muted}`}>
+              Escaneie o QR code ou copie o código no app do seu banco. Assim que o
+              pagamento for confirmado, a página atualiza automaticamente.
+            </p>
+
+            <div className="mt-4 grid gap-2">
+              <Label htmlFor="pix-codigo">PIX Copia e Cola</Label>
+              <Input
+                id="pix-codigo"
+                readOnly
+                value={pix.pix_copia_cola}
+                className={`${palette.input} text-xs`}
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(pix.pix_copia_cola);
+                  toast.success("Código copiado");
+                }}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Copiar código
+              </Button>
+            </div>
+
+            <p className={`mt-3 text-center text-xs ${palette.muted}`}>
+              O código expira em {mm}:{ss}
+            </p>
+
+            <div className="mt-4 flex items-center justify-between">
+              <span className={`text-sm ${palette.muted}`}>Total</span>
+              <span className="font-display text-xl font-black">
+                {formatBRL(subtotal)}
+              </span>
+            </div>
+          </>
+        )}
+
+        {erro && (
+          <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {erro}
+          </p>
+        )}
+
+        <Button
+          variant="ghost"
+          className={`mt-2 w-full ${palette.muted}`}
+          onClick={() => setStep("dados")}
+        >
+          Voltar
+        </Button>
+      </Card>
+    );
+  }
+
   return (
     <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
       <div className="flex items-center justify-between">
@@ -368,6 +569,33 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               placeholder="(51) 90000-0000"
             />
           </div>
+
+          {dadosValidos && (
+            <div className="grid gap-2 sm:col-span-2">
+              <Label>Forma de pagamento</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {([
+                  { id: "cartao" as const, label: "Cartão de crédito", Icon: CreditCard },
+                  { id: "pix" as const, label: "PIX", Icon: QrCode },
+                ]).map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={metodo === id}
+                    onClick={() => setMetodo(id)}
+                    className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      metodo === id
+                        ? "border-primary ring-2 ring-primary/40"
+                        : palette.border
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -442,8 +670,11 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       <Button
         size="lg"
         className="mt-4 w-full"
-        disabled={loading || (step === "dados" ? !dadosValidos : !cartaoValido)}
-        onClick={() => (step === "dados" ? criarPedido() : pagar())}
+        disabled={
+          loading ||
+          (step === "dados" ? !dadosValidos || !metodo : !cartaoValido)
+        }
+        onClick={() => (step === "dados" ? avancar() : pagar())}
       >
         {loading ? (
           <>
@@ -451,7 +682,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
             {statusText || "Processando..."}
           </>
         ) : step === "dados" ? (
-          "Continuar para o pagamento"
+          metodo === "pix" ? "Gerar código PIX" : "Continuar para o pagamento"
         ) : (
           <>
             <CreditCard className="mr-2 h-4 w-4" />
