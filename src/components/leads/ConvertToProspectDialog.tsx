@@ -28,6 +28,8 @@ interface Props {
   successMessage?: string;
   /** Nota gravada no movimento de pipeline gerado pela conversão. */
   movementNote?: string;
+  /** Etapa final desejada (ex.: "Treino experimental agendado"); move após a conversão. */
+  finalStageName?: string;
   onConverted?: () => void;
 }
 
@@ -40,6 +42,7 @@ export function ConvertToProspectDialog({
   confirmLabel = "Converter em Prospect",
   successMessage = "Convertido em Prospect",
   movementNote,
+  finalStageName,
   onConverted,
 }: Props) {
   const qc = useQueryClient();
@@ -161,6 +164,17 @@ export function ConvertToProspectDialog({
         if (lastMov?.id) {
           await supabase.from("pipeline_movements").update({ notes: movementNote }).eq("id", lastMov.id);
         }
+      }
+
+      // Etapa final diferente de "Prospect" (ex.: treino experimental agendado / follow up).
+      if (finalStageName && finalStageName !== "Prospect") {
+        const { error: moveErr } = await supabase.rpc("fn_move_pipeline" as any, {
+          _aluno_id: alunoId,
+          _to_stage_name: finalStageName,
+          _source: "manual",
+          _notes: movementNote || null,
+        });
+        if (moveErr) throw moveErr;
       }
 
       toast.success(successMessage);

@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PipelineCard, type PipelineCardData } from "./PipelineCard";
 import { PipelineLeadDrawer } from "./PipelineLeadDrawer";
 import { MarkLostDialog } from "./MarkLostDialog";
-import { stageColor, isLostStage, formatCurrencyBRL, usePipelineFunnels, filterPipelineAlunos } from "@/lib/pipeline";
+import { stageColor, isLostStage, formatCurrencyBRL, usePipelineFunnels, filterPipelineAlunos, requiresProspectConversion } from "@/lib/pipeline";
+import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import type { PipelineFiltersValue } from "./PipelineFilters";
 import { cn } from "@/lib/utils";
 
@@ -96,6 +97,7 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
   const [drawerStudent, setDrawerStudent] = useState<PipelineCardData | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pendingLost, setPendingLost] = useState<{ aluno: PipelineCardData; destinoStage: string } | null>(null);
+  const [pendingConvert, setPendingConvert] = useState<{ aluno: PipelineCardData; destinoStage: string } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -283,6 +285,11 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
       return;
     }
 
+    if (student && requiresProspectConversion(student.current_stage_name, targetStage.name)) {
+      setPendingConvert({ aluno: student, destinoStage: targetStage.name });
+      return;
+    }
+
     queryClient.setQueryData(["pipeline-alunos"], (old: any) =>
       (old || []).map((a: any) => (a.id === alunoId ? { ...a, current_pipeline_stage_id: toStageId } : a))
     );
@@ -344,6 +351,21 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
         student={drawerStudent}
         stages={allStages}
       />
+
+      {pendingConvert && (
+        <ConvertToProspectDialog
+          alunoId={pendingConvert.aluno.id}
+          open={!!pendingConvert}
+          onOpenChange={(o) => { if (!o) setPendingConvert(null); }}
+          title={`Converter ${pendingConvert.aluno.nome} em Prospect`}
+          finalStageName={pendingConvert.destinoStage}
+          onConverted={() => {
+            setPendingConvert(null);
+            queryClient.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+            queryClient.invalidateQueries({ queryKey: ["pipeline-last-moves"] });
+          }}
+        />
+      )}
 
       {pendingLost && (
         <MarkLostDialog

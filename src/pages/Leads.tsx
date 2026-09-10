@@ -16,7 +16,7 @@ import { EditLeadDialog } from "@/components/leads/EditLeadDialog";
 import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { ManageOrigensDialog } from "@/components/leads/ManageOrigensDialog";
 import { useLeadOrigens } from "@/hooks/useLeadOrigens";
-import { waMeLink, formatDaysAgo } from "@/lib/pipeline";
+import { waMeLink, formatDaysAgo, LEAD_STAGE_NAMES } from "@/lib/pipeline";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFiltersState } from "@/components/leads/LeadProspectFilters";
@@ -77,22 +77,25 @@ export default function Leads() {
     }
   }, [searchParams, setSearchParams]);
 
-  const { data: leadStage } = useQuery({
-    queryKey: ["stage-novo-lead"],
+  const { data: leadStageIds = [] } = useQuery({
+    queryKey: ["stages-leads"],
     queryFn: async () => {
-      const { data } = await supabase.from("pipeline_stages").select("id").eq("name", "Novo lead").maybeSingle();
-      return data?.id as string | undefined;
+      const { data } = await supabase
+        .from("pipeline_stages")
+        .select("id,name")
+        .in("name", LEAD_STAGE_NAMES as unknown as string[]);
+      return (data || []).map((s) => s.id) as string[];
     },
   });
 
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ["leads-list", leadStage],
+    queryKey: ["leads-list", leadStageIds.join(",")],
     queryFn: async () => {
-      if (!leadStage) return [];
+      if (!leadStageIds.length) return [];
       const { data: alunos } = await supabase
         .from("alunos")
         .select("id,nome,telefone,responsavel_id,created_at,current_pipeline_stage_id")
-        .eq("current_pipeline_stage_id", leadStage)
+        .in("current_pipeline_stage_id", leadStageIds)
         .order("created_at", { ascending: false });
       if (!alunos?.length) return [];
       const ids = alunos.map((a) => a.id);
@@ -104,7 +107,7 @@ export default function Leads() {
       (meta || []).forEach((m: any) => { if (m.origem_lead) metaMap[m.aluno_id] = m.origem_lead; });
       return alunos.map((a) => ({ ...a, origem: metaMap[a.id] || "—" }));
     },
-    enabled: !!leadStage,
+    enabled: leadStageIds.length > 0,
   });
 
   const { data: profilesMap = {} } = useQuery({

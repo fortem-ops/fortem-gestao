@@ -20,8 +20,9 @@ import {
 } from "lucide-react";
 import {
   PLANO_BADGE_CLASSES, PLANOS_INTERESSE, formatCurrencyBRL,
-  computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL, isLostStage,
+  computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL, isLostStage, requiresProspectConversion,
 } from "@/lib/pipeline";
+import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { waMeLink } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 import type { PipelineCardData } from "./PipelineCard";
@@ -47,6 +48,7 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
   const [savingMeta, setSavingMeta] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
   const [moving, setMoving] = useState(false);
+  const [convertStage, setConvertStage] = useState<string | null>(null);
 
   const alunoId = student?.id || null;
 
@@ -215,6 +217,10 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
 
   async function moveNext() {
     if (!alunoId || !nextStage) return;
+    if (requiresProspectConversion(student?.current_stage_name, nextStage.name)) {
+      setConvertStage(nextStage.name);
+      return;
+    }
     setMoving(true);
     const { error } = await supabase.rpc("fn_move_pipeline", {
       _aluno_id: alunoId,
@@ -416,6 +422,22 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
           </Button>
         </div>
       </SheetContent>
+
+      {convertStage && alunoId && (
+        <ConvertToProspectDialog
+          alunoId={alunoId}
+          open={!!convertStage}
+          onOpenChange={(o) => { if (!o) setConvertStage(null); }}
+          title={`Converter ${student.nome} em Prospect`}
+          finalStageName={convertStage}
+          onConverted={() => {
+            setConvertStage(null);
+            qc.invalidateQueries({ queryKey: ["pipeline-alunos"] });
+            qc.invalidateQueries({ queryKey: ["pipeline-last-moves"] });
+            onOpenChange(false);
+          }}
+        />
+      )}
     </Sheet>
   );
 }
