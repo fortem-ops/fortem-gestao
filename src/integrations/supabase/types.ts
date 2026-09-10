@@ -4869,15 +4869,16 @@ export type Database = {
       }
       pix_cobrancas: {
         Row: {
-          aluno_id: string
+          aluno_id: string | null
           created_at: string
-          data_vencimento: string
+          data_vencimento: string | null
           descricao: string | null
           id: string
-          id_rec: string
+          id_rec: string | null
           liquidado_em: string | null
           motivo_rejeicao: string | null
           pagamento_id: string | null
+          pedido_id: string | null
           raw_response: Json | null
           status: string
           txid: string
@@ -4885,15 +4886,16 @@ export type Database = {
           valor: number
         }
         Insert: {
-          aluno_id: string
+          aluno_id?: string | null
           created_at?: string
-          data_vencimento: string
+          data_vencimento?: string | null
           descricao?: string | null
           id?: string
-          id_rec: string
+          id_rec?: string | null
           liquidado_em?: string | null
           motivo_rejeicao?: string | null
           pagamento_id?: string | null
+          pedido_id?: string | null
           raw_response?: Json | null
           status?: string
           txid: string
@@ -4901,15 +4903,16 @@ export type Database = {
           valor: number
         }
         Update: {
-          aluno_id?: string
+          aluno_id?: string | null
           created_at?: string
-          data_vencimento?: string
+          data_vencimento?: string | null
           descricao?: string | null
           id?: string
-          id_rec?: string
+          id_rec?: string | null
           liquidado_em?: string | null
           motivo_rejeicao?: string | null
           pagamento_id?: string | null
+          pedido_id?: string | null
           raw_response?: Json | null
           status?: string
           txid?: string
@@ -4943,6 +4946,13 @@ export type Database = {
             columns: ["pagamento_id"]
             isOneToOne: false
             referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_cobrancas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
         ]

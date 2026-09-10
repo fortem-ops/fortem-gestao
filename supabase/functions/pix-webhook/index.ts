@@ -51,12 +51,43 @@ Deno.serve(async (req) => {
     console.log("pix-webhook payload", JSON.stringify(payload));
     const sup = admin();
 
+    // --- Pix recebido (formato Bacen): a presença no array já significa pago ---
+    const pixRecebidos: any[] = Array.isArray(payload?.pix) ? payload.pix : [];
+    const pixTratados = new Set<string>();
+    for (const ev of pixRecebidos) {
+      const txid: string | undefined = ev?.txid;
+      if (!txid) continue;
+      const { data: cob } = await sup
+        .from("pix_cobrancas")
+        .select("id, pedido_id")
+        .eq("txid", txid)
+        .maybeSingle();
+      if (!cob) {
+        console.log("pix-webhook: txid não encontrado em pix_cobrancas", txid);
+        continue;
+      }
+      if (!cob.pedido_id) continue; // mensalidade: segue no fluxo genérico abaixo
+      await sup.from("pix_cobrancas")
+        .update({
+          status: "LIQUIDADA",
+          liquidado_em: new Date().toISOString(),
+          raw_response: ev,
+        })
+        .eq("id", cob.id);
+      await sup.from("pedidos")
+        .update({ status: "pago" })
+        .eq("id", cob.pedido_id);
+      pixTratados.add(txid);
+      console.log("pix-webhook: pedido da loja pago", cob.pedido_id, txid);
+    }
+
     // O Inter envia listas como { rec: [...] } / { cobr: [...] } ou eventos avulsos.
     const eventos: any[] = []
       .concat(payload?.rec ?? [])
       .concat(payload?.cobr ?? [])
-      .concat(payload?.pix ?? []);
+      .concat(pixRecebidos.filter((p: any) => !p?.txid || !pixTratados.has(p.txid)));
     if (eventos.length === 0 && payload?.tipo) eventos.push(payload);
+
 
     for (const ev of eventos) {
       const tipo: string = ev?.tipo ?? ev?.evento ?? "";
