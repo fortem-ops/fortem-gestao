@@ -70,16 +70,15 @@ Deno.serve(async (req) => {
     if (rpcErr) {
       console.error("[loja-criar-pedido] rpc erro:", rpcErr.message);
       if (/estoque_insuficiente/i.test(rpcErr.message)) {
-        return json(409, { ok: false, error: "estoque_insuficiente" });
+        return json(200, { ok: false, error: "estoque_insuficiente" });
       }
-      return json(500, { ok: false, error: "falha_criar_pedido" });
+      return json(200, { ok: false, error: "falha_criar_pedido" });
     }
 
     const r = (Array.isArray(resultado) ? resultado[0] : resultado) as any;
     if (!r?.ok) {
       const erro = String(r?.error ?? "falha_criar_pedido");
-      const status = erro === "estoque_insuficiente" ? 409 : 400;
-      return json(status, { ok: false, error: erro, variante_id: r?.variante_id ?? null });
+      return json(200, { ok: false, error: erro, variante_id: r?.variante_id ?? null });
     }
 
     const pedidoId = r.pedido_id as string;
