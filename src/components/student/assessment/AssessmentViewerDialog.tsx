@@ -323,11 +323,11 @@ function Item({ label, value, highlight }: { label: string; value: string; highl
   );
 }
 
-function ExperimentalView({ dados, schema }: { dados: ExperimentalRecordDados; schema?: { sections: { id: string; title: string; questions: { id: string; label: string; type: string; detalheLabel?: string; labelSim?: string; labelNao?: string; options?: { value: string; label: string }[] }[] }[] } }) {
+function ExperimentalView({ dados, schema, withFaseInicial = true }: { dados: ExperimentalRecordDados; withFaseInicial?: boolean; schema?: { sections: { id: string; title: string; questions: { id: string; label: string; type: string; detalheLabel?: string; labelSim?: string; labelNao?: string; options?: { value: string; label: string }[] }[] }[] } }) {
   if (!schema) {
     return <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>;
   }
-  const fullSchema = ensureFaseInicialQuestion(schema as never) as typeof schema;
+  const fullSchema = withFaseInicial ? (ensureFaseInicialQuestion(schema as never) as typeof schema) : schema;
   const knownIds = new Set<string>();
   fullSchema.sections.forEach((s) => s.questions.forEach((q) => knownIds.add(q.id)));
   const extras = Object.entries(dados.answers || {}).filter(
