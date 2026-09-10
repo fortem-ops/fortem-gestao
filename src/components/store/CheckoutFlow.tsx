@@ -574,6 +574,15 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
 
       {step === "dados" ? (
         <div className="grid gap-3 sm:grid-cols-2">
+          {aluno && (
+            <p className={`text-sm sm:col-span-2 ${palette.muted}`}>
+              Compra em nome de{" "}
+              <span className={`font-semibold ${palette.text}`}>{aluno.nome}</span>. A
+              confirmação vai para {aluno.email ?? "seu e-mail cadastrado"}.
+            </p>
+          )}
+          {!aluno && (
+          <>
           <div className="grid gap-1.5">
             <Label htmlFor="nome">Nome</Label>
             <Input
