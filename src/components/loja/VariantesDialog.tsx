@@ -23,6 +23,8 @@ type Variante = {
   preco: number | null;
   estoque_atual: number;
   ativo: boolean;
+  imagem_url: string | null;
+  cor_hex: string | null;
 };
 
 type Movimento = {
