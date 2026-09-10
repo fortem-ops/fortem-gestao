@@ -81,7 +81,9 @@ interface SizeGuideDialogProps {
 }
 
 export const SizeGuideDialog = ({ className }: SizeGuideDialogProps) => {
-  const { palette } = useStoreTheme();
+  const { theme } = useStoreTheme();
+  const { forcedTheme } = useStoreScope();
+  const palette = storePalette(forcedTheme ?? theme);
 
   return (
     <Dialog>
