@@ -670,8 +670,11 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       <Button
         size="lg"
         className="mt-4 w-full"
-        disabled={loading || (step === "dados" ? !dadosValidos : !cartaoValido)}
-        onClick={() => (step === "dados" ? criarPedido() : pagar())}
+        disabled={
+          loading ||
+          (step === "dados" ? !dadosValidos || !metodo : !cartaoValido)
+        }
+        onClick={() => (step === "dados" ? avancar() : pagar())}
       >
         {loading ? (
           <>
@@ -679,7 +682,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
             {statusText || "Processando..."}
           </>
         ) : step === "dados" ? (
-          "Continuar para o pagamento"
+          metodo === "pix" ? "Gerar código PIX" : "Continuar para o pagamento"
         ) : (
           <>
             <CreditCard className="mr-2 h-4 w-4" />
