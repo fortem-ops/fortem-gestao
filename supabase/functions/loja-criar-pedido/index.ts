@@ -45,9 +45,9 @@ Deno.serve(async (req) => {
     const telefone = String(dp?.telefone ?? "").trim();
     const email = String(dp?.email ?? "").trim();
 
-    if (!itens.length) return json(400, { ok: false, error: "itens_obrigatorios" });
+    if (!itens.length) return json(200, { ok: false, error: "itens_obrigatorios" });
     if (!nome || cpfDigits.length !== 11 || !telefone || !email.includes("@")) {
-      return json(400, { ok: false, error: "dados_pessoais_invalidos" });
+      return json(200, { ok: false, error: "dados_pessoais_invalidos" });
     }
 
     const itensNormalizados = itens.map((i: any) => ({
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       quantidade: Number(i?.quantidade ?? 0),
     }));
     if (itensNormalizados.some((i) => !i.variante_id || !Number.isInteger(i.quantidade) || i.quantidade <= 0)) {
-      return json(400, { ok: false, error: "item_invalido" });
+      return json(200, { ok: false, error: "item_invalido" });
     }
 
     // ---------- 1. pedido + itens + reserva de estoque (atômico no banco) ----------
