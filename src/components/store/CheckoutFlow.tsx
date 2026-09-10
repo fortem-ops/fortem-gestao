@@ -639,6 +639,9 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
               placeholder="(51) 90000-0000"
             />
           </div>
+          </>
+          )}
+
 
           {dadosValidos && (
             <div className="grid gap-2 sm:col-span-2">
