@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import QRCode from "qrcode";
 import { CheckCircle2, Copy, CreditCard, Loader2, Lock, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -85,7 +86,7 @@ type Step = "dados" | "cartao" | "pix" | "sucesso";
 type Metodo = "cartao" | "pix";
 
 interface PixData {
-  qr_code_base64: string | null;
+  qrImageUrl: string;
   pix_copia_cola: string;
   expira_em: number;
 }
@@ -216,8 +217,12 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       if (data?.ok === false || !data?.pix_copia_cola) {
         throw new Error(friendlyMessage(data?.error));
       }
+      const qrImageUrl = await QRCode.toDataURL(data.pix_copia_cola, {
+        width: 520,
+        margin: 1,
+      });
       setPix({
-        qr_code_base64: data.qr_code_base64 ?? null,
+        qrImageUrl,
         pix_copia_cola: data.pix_copia_cola,
         expira_em: Number(data.expira_em ?? 1800),
       });
