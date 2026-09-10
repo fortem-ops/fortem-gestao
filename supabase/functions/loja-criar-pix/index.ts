@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { interFetch, genTxid, onlyDigits } from "../_shared/inter.ts";
+import { genTxid, onlyDigits } from "../_shared/inter.ts";
+import { interCobFetch } from "../_shared/inter-cob.ts";
 import { checkRateLimit } from "../_shared/loja-rate-limit.ts";
 
 const corsHeaders = {
@@ -16,7 +17,7 @@ function json(status: number, body: unknown) {
 }
 
 async function buscarQrCode(locId: string | number) {
-  const { status, data, raw } = await interFetch(`/pix/v2/loc/${locId}/qrcode`, { method: "GET" });
+  const { status, data, raw } = await interCobFetch(`/pix/v2/loc/${locId}/qrcode`, { method: "GET" });
   if (status >= 300) {
     console.error("[loja-criar-pix] falha qrcode", status, raw?.substring?.(0, 500));
     return null;
@@ -96,7 +97,7 @@ Deno.serve(async (req) => {
       solicitacaoPagador: "Compra Loja Fortem",
     };
 
-    const { status, data, raw } = await interFetch(`/pix/v2/cob/${txid}`, {
+    const { status, data, raw } = await interCobFetch(`/pix/v2/cob/${txid}`, {
       method: "PUT",
       json: payload,
     });
