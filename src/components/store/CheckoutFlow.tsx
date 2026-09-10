@@ -403,11 +403,6 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     const expirado = segundosRestantes <= 0;
     const mm = String(Math.floor(segundosRestantes / 60)).padStart(2, "0");
     const ss = String(segundosRestantes % 60).padStart(2, "0");
-    const qrSrc = pix.qr_code_base64
-      ? pix.qr_code_base64.startsWith("data:")
-        ? pix.qr_code_base64
-        : `data:image/png;base64,${pix.qr_code_base64}`
-      : null;
 
     return (
       <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
