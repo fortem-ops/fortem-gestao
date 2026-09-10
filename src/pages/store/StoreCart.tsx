@@ -207,7 +207,7 @@ const StoreCart = () => {
 
       {items.length > 0 && !checkout && (
         <div
-          className={`fixed inset-x-0 bottom-0 z-40 border-t p-3 backdrop-blur sm:hidden ${palette.border} ${barBg} ${palette.text}`}
+          className={`fixed inset-x-0 ${hideHeader ? "bottom-20" : "bottom-0"} z-40 border-t p-3 backdrop-blur sm:hidden ${palette.border} ${barBg} ${palette.text}`}
         >
           <div className="mb-2 flex items-center justify-between">
             <span className={`text-xs ${palette.muted}`}>Subtotal</span>

@@ -327,7 +327,7 @@ const StoreProductDetail = () => {
         </div>
       </main>
 
-      <div className={`fixed inset-x-0 bottom-0 z-40 border-t ${palette.border} ${barBg} p-3 backdrop-blur sm:hidden`}>
+      <div className={`fixed inset-x-0 ${hideHeader ? "bottom-20" : "bottom-0"} z-40 border-t ${palette.border} ${barBg} p-3 backdrop-blur sm:hidden`}>
         <Button
           size="lg"
           className="w-full"
