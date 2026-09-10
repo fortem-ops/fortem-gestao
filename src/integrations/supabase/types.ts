@@ -3482,6 +3482,30 @@ export type Database = {
           },
         ]
       }
+      inter_cob_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          scope: string | null
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          scope?: string | null
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          scope?: string | null
+        }
+        Relationships: []
+      }
       inter_tokens: {
         Row: {
           access_token: string
