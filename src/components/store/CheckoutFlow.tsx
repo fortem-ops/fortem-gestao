@@ -115,6 +115,9 @@ interface Props {
 const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   const { clear } = useCartLoja();
   const { theme, palette } = useStoreTheme();
+  const { basePath } = useStoreScope();
+  // Dentro do Portal do Aluno existe aluno logado: o cadastro já é conhecido.
+  const aluno = useStudentPortalOptional()?.student ?? null;
   const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
   const [step, setStep] = useState<Step>(() =>
     lerPedidoPago() ? "sucesso" : "dados"
