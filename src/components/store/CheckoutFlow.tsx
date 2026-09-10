@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/integrations/store/types";
 import { useCartLoja, type CartItem } from "@/hooks/useCartLoja";
 import { toast } from "sonner";
+import { useStoreTheme } from "@/hooks/useStoreTheme";
 
 const IDEMPOTENCY_KEY = "fortem-loja-idempotency";
 const PARCELAS = 1;
@@ -88,6 +89,8 @@ interface Props {
 
 const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   const { clear } = useCartLoja();
+  const { theme, palette } = useStoreTheme();
+  const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
   const [step, setStep] = useState<Step>("dados");
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -275,14 +278,14 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
 
   if (step === "sucesso") {
     return (
-      <Card className="mt-5 rounded-2xl border-neutral-200 bg-white p-6 text-center text-neutral-900">
+      <Card className={`mt-5 rounded-2xl p-6 text-center ${palette.card}`}>
         <CheckCircle2 className="mx-auto h-12 w-12 text-primary" />
         <h2 className="mt-3 font-display text-xl font-black uppercase tracking-tight">
           Pagamento aprovado
         </h2>
-        <p className="mt-2 text-sm text-neutral-500">
+        <p className={`mt-2 text-sm ${palette.muted}`}>
           Pedido{" "}
-          <span className="font-bold text-neutral-900">
+          <span className={`font-bold ${palette.text}`}>
             {pedidoNumero ?? "confirmado"}
           </span>
           . Você vai receber os detalhes por e-mail.
@@ -295,17 +298,17 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   }
 
   return (
-    <Card className="mt-5 rounded-2xl border-neutral-200 bg-white p-4 text-neutral-900">
+    <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
       <div className="flex items-center justify-between">
         <p className="font-display text-sm font-bold uppercase tracking-wide">
           {step === "dados" ? "Seus dados" : "Pagamento com cartão"}
         </p>
-        <span className="flex items-center gap-1 text-xs text-neutral-500">
+        <span className={`flex items-center gap-1 text-xs ${palette.muted}`}>
           <Lock className="h-3.5 w-3.5" /> Ambiente seguro
         </span>
       </div>
 
-      <Separator className="my-4 bg-neutral-200" />
+      <Separator className={`my-4 ${separatorBg}`} />
 
       {step === "dados" ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -432,7 +435,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       )}
 
       <div className="mt-4 flex items-center justify-between">
-        <span className="text-sm text-neutral-500">Total</span>
+        <span className={`text-sm ${palette.muted}`}>Total</span>
         <span className="font-display text-xl font-black">{formatBRL(subtotal)}</span>
       </div>
 
@@ -460,7 +463,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       {!loading && (
         <Button
           variant="ghost"
-          className="mt-2 w-full text-neutral-500"
+          className={`mt-2 w-full ${palette.muted}`}
           onClick={() => (step === "dados" ? onBackToCart() : setStep("dados"))}
         >
           Voltar
