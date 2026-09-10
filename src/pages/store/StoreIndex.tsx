@@ -33,7 +33,8 @@ const StoreIndex = () => {
 
   return (
     <div className={`min-h-screen ${palette.bg} ${palette.text}`}>
-      <StoreHeader backTo="/" />
+      {!hideHeader && <StoreHeader backTo="/" />}
+
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         <h1 className="font-display text-2xl font-black uppercase tracking-tight sm:text-3xl">

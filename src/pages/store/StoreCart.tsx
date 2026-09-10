@@ -11,6 +11,7 @@ import { useCartLoja } from "@/hooks/useCartLoja";
 import { formatBRL } from "@/integrations/store/types";
 import CheckoutFlow, { PEDIDO_PAGO_KEY } from "@/components/store/CheckoutFlow";
 import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
 
 const StoreCart = () => {
   const { items, subtotal, updateQuantity, removeItem } = useCartLoja();

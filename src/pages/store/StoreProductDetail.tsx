@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useProdutoLoja } from "@/hooks/useProdutosLoja";
 import { useCartLoja } from "@/hooks/useCartLoja";
 import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
 import {
   formatBRL,
   precoDaVariante,
