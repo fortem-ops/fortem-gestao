@@ -37,12 +37,25 @@ const StoreIndex = () => {
 
 
       <main className="mx-auto max-w-6xl px-4 py-6">
-        <h1 className="font-display text-2xl font-black uppercase tracking-tight sm:text-3xl">
-          Loja Fortem
-        </h1>
-        <p className={`mt-1 text-sm ${palette.muted}`}>
-          Produtos oficiais para treinar com a nossa marca.
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-black uppercase tracking-tight sm:text-3xl">
+              Loja Fortem
+            </h1>
+            <p className={`mt-1 text-sm ${palette.muted}`}>
+              Produtos oficiais para treinar com a nossa marca.
+            </p>
+          </div>
+          {hideHeader && (
+            <Button asChild variant="outline" size="sm" className={`shrink-0 ${palette.card}`}>
+              <Link to={`${basePath}/carrinho`}>
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                Carrinho{totalItems > 0 ? ` (${totalItems})` : ""}
+              </Link>
+            </Button>
+          )}
+        </div>
+
 
         <div className="relative mt-5">
           <Search
