@@ -199,7 +199,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
           toast.error(
             "Um dos produtos esgotou enquanto você navegava. Revise seu carrinho."
           );
-          onBackToCart();
+          voltarParaCarrinho();
           return null;
         }
         throw new Error(friendlyMessage(data?.error));
@@ -214,7 +214,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       cartaoTokenRef.current = data.cartao_token ?? null;
       return data.pedido_id as string;
     }
-  }, [items, dados, onBackToCart, pedidoId]);
+  }, [items, dados, voltarParaCarrinho, pedidoId]);
 
   const gerarPix = useCallback(
     async (id: string) => {
