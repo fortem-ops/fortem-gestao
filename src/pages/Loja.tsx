@@ -1,10 +1,11 @@
 import { Navigate } from "react-router-dom";
-import { ShoppingBag, Package, Tag, PackageOpen } from "lucide-react";
+import { ShoppingBag, Package, Tag, PackageOpen, Receipt } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { ProdutosTab } from "@/components/loja/ProdutosTab";
 import { PromocoesTab } from "@/components/loja/PromocoesTab";
 import { EncomendasTab } from "@/components/loja/EncomendasTab";
+import { PedidosTab } from "@/components/loja/PedidosTab";
 
 export default function Loja() {
   const { data: roles, isLoading } = useUserRoles();
@@ -34,6 +35,10 @@ export default function Loja() {
           <TabsTrigger value="produtos" className="flex items-center gap-1.5 text-xs">
             <Package className="w-3.5 h-3.5" />
             Produtos & Estoque
+          </TabsTrigger>
+          <TabsTrigger value="pedidos" className="flex items-center gap-1.5 text-xs">
+            <Receipt className="w-3.5 h-3.5" />
+            Pedidos
           </TabsTrigger>
           <TabsTrigger value="encomendas" className="flex items-center gap-1.5 text-xs">
             <PackageOpen className="w-3.5 h-3.5" />

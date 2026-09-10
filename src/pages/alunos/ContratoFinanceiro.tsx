@@ -50,6 +50,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RescisaoDialog } from "@/components/contratos/RescisaoDialog";
 import { AlterarDadosVendaDialog } from "@/components/financeiro/AlterarDadosVendaDialog";
 import { HistoricoVendas } from "@/components/student/venda/HistoricoVendas";
+import { ComprasLoja } from "@/components/student/venda/ComprasLoja";
 import {
   LABEL_PLANO,
   LABEL_PAGAMENTO,
@@ -127,6 +128,9 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
         <Card className="p-5">
           <h3 className="font-medium mb-3">Histórico de Pagamentos</h3>
           <HistoricoVendas alunoId={alunoId} />
+          <div className="mt-6 text-left">
+            <ComprasLoja alunoId={alunoId} />
+          </div>
         </Card>
       </div>
     );
@@ -355,6 +359,9 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       <Card className="p-5">
         <h3 className="font-medium mb-3">Histórico de Pagamentos</h3>
         <HistoricoVendas alunoId={alunoId} />
+        <div className="mt-6">
+          <ComprasLoja alunoId={alunoId} />
+        </div>
       </Card>
 
       {/* Dialog de rescisão */}
