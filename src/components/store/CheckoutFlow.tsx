@@ -433,13 +433,11 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
           </div>
         ) : (
           <>
-            {qrSrc && (
-              <img
-                src={qrSrc}
-                alt="QR Code para pagamento PIX"
-                className="mx-auto w-full max-w-[260px] rounded-xl bg-white p-3"
-              />
-            )}
+            <img
+              src={pix.qrImageUrl}
+              alt="QR Code para pagamento PIX"
+              className="mx-auto w-full max-w-[260px] rounded-xl bg-white p-3"
+            />
 
             <p className={`mt-4 text-center text-sm ${palette.muted}`}>
               Escaneie o QR code ou copie o código no app do seu banco. Assim que o
