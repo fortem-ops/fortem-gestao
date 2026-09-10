@@ -79,6 +79,9 @@ const Planos = lazyWithReload(() => import("./pages/Planos"));
 const Privacidade = lazyWithReload(() => import("./pages/Privacidade"));
 const TermoAptidaoUsoImagem = lazyWithReload(() => import("./pages/TermoAptidaoUsoImagem"));
 const OAuthConsent = lazyWithReload(() => import("./pages/OAuthConsent"));
+const StoreIndex = lazyWithReload(() => import("./pages/store/StoreIndex"));
+const StoreProductDetail = lazyWithReload(() => import("./pages/store/StoreProductDetail"));
+const StoreCart = lazyWithReload(() => import("./pages/store/StoreCart"));
 
 // Portal do Aluno
 const PortalLogin = lazyWithReload(() => import("./pages/portal/PortalLogin"));
