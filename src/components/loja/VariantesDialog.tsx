@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, History, ArrowLeftRight } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import type { Produto } from "./ProdutosTab";
+import { ProductImageUpload } from "./ProductImageUpload";
 
 type Variante = {
   id: string;
@@ -61,6 +62,7 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
   const [form, setForm] = useState({ ...emptyVar });
   const [ajuste, setAjuste] = useState<Variante | null>(null);
   const [historico, setHistorico] = useState<Variante | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const { data: variantes = [] } = useQuery({
     queryKey: ["loja-variantes", produto.id],
@@ -247,15 +249,19 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
             </div>
             {form.cor.trim() && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Imagem desta cor (URL)</Label>
-                  <Input
-                    value={form.imagem_url}
-                    placeholder="https://..."
-                    onChange={(e) => setForm({ ...form, imagem_url: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">Se vazio, usa a imagem padrão do produto.</p>
-                </div>
+                <ProductImageUpload
+                  label="Imagem desta cor"
+                  value={form.imagem_url}
+                  pathPrefix={`produtos/${produto.id}/variantes/${form.cor
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-+|-+$/g, "") || "cor"}`}
+                  fallbackText="Se não enviar, usa a imagem padrão do produto."
+                  onChange={(imagem_url) => setForm((current) => ({ ...current, imagem_url }))}
+                  onUploadingChange={setUploadingImage}
+                />
                 <div className="space-y-1">
                   <Label className="text-xs">Cor (para exibição)</Label>
                   <div className="flex items-center gap-2">
@@ -284,7 +290,7 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                 <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
                 <Label className="text-sm">Ativa</Label>
               </div>
-              <Button size="sm" disabled={criar.isPending} onClick={() => criar.mutate()}>
+              <Button size="sm" disabled={criar.isPending || uploadingImage} onClick={() => criar.mutate()}>
                 <Plus className="w-4 h-4 mr-1" /> Adicionar
               </Button>
             </div>

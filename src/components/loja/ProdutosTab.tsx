@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Search, Plus, Pencil, Trash2, Boxes } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import { VariantesDialog } from "./VariantesDialog";
+import { ProductImageUpload } from "./ProductImageUpload";
 
 export type Produto = {
   id: string;
@@ -38,6 +39,8 @@ export function ProdutosTab() {
   const [editing, setEditing] = useState<Produto | null>(null);
   const [form, setForm] = useState({ ...empty });
   const [variantesDe, setVariantesDe] = useState<Produto | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const temporaryProductId = useRef(crypto.randomUUID());
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["loja-produtos"],
@@ -119,6 +122,8 @@ export function ProdutosTab() {
     setOpen(false);
     setEditing(null);
     setForm({ ...empty });
+    setUploadingImage(false);
+    temporaryProductId.current = crypto.randomUUID();
   }
 
   function openEdit(p: Produto) {
@@ -279,10 +284,13 @@ export function ProdutosTab() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Imagem (URL)</Label>
-              <Input value={form.imagem_url} onChange={(e) => setForm({ ...form, imagem_url: e.target.value })} />
-            </div>
+            <ProductImageUpload
+              label="Imagem do produto"
+              value={form.imagem_url}
+              pathPrefix={`produtos/${editing?.id || temporaryProductId.current}`}
+              onChange={(imagem_url) => setForm((current) => ({ ...current, imagem_url }))}
+              onUploadingChange={setUploadingImage}
+            />
             <div className="flex items-center gap-2">
               <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
               <Label>Ativo</Label>
@@ -304,7 +312,7 @@ export function ProdutosTab() {
             <Button variant="outline" onClick={close}>
               Cancelar
             </Button>
-            <Button disabled={upsert.isPending || !form.nome.trim()} onClick={() => upsert.mutate()}>
+            <Button disabled={upsert.isPending || uploadingImage || !form.nome.trim()} onClick={() => upsert.mutate()}>
               {editing ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
