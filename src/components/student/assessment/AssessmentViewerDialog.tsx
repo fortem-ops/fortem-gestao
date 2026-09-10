@@ -264,7 +264,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
               </div>
             )}
 
-            {!isFuncional && !isComposicao && !isExperimental && (
+            {!isFuncional && !isComposicao && !isDynamic && (
               <div className="glass-card rounded-lg p-4">
                 <pre className="text-xs text-muted-foreground whitespace-pre-wrap">{JSON.stringify(dados, null, 2)}</pre>
               </div>
