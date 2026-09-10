@@ -109,6 +109,9 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   const [pedidoNumero, setPedidoNumero] = useState<string | null>(null);
   const cartaoTokenRef = useRef<string | null>(null);
   const tokenizationIdRef = useRef<string | null>(null);
+  const [metodo, setMetodo] = useState<Metodo | null>(null);
+  const [pix, setPix] = useState<PixData | null>(null);
+  const [segundosRestantes, setSegundosRestantes] = useState(0);
 
   const [dados, setDados] = useState({
     nome: "",
