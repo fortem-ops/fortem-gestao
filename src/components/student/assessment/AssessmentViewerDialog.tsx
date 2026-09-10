@@ -82,11 +82,15 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
   const dados = (avaliacao?.dados as Record<string, unknown>) || {};
   const metricasFromJson = (dados.metricas as FuncMetric[] | undefined) || [];
-  const expDados: ExperimentalRecordDados | null = isExperimental ? migrateLegacyDados(dados) : null;
+  // Qualquer relatório dinâmico (experimental, força, reabilitação, novos tipos)
+  const isDynamic =
+    !isFuncional && !isComposicao && avaliacao?.tipo !== "funcional_v2" &&
+    (isExperimental || !!avaliacao?.protocolo_id);
+  const expDados: ExperimentalRecordDados | null = isDynamic ? migrateLegacyDados(dados) : null;
 
   const { data: protocoloInfo } = useTplQuery({
     queryKey: ["avaliacao-protocolo-schema", avaliacao?.protocolo_id],
-    enabled: isExperimental && !!avaliacao?.protocolo_id,
+    enabled: isDynamic && !!avaliacao?.protocolo_id,
     queryFn: async () => {
       const { data } = await supabase
         .from("avaliacao_protocolos" as never)
