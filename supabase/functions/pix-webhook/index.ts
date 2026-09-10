@@ -75,8 +75,20 @@ Deno.serve(async (req) => {
         })
         .eq("id", cob.id);
       await sup.from("pedidos")
-        .update({ status: "pago" })
+        .update({ status: "pago", forma_pagamento: "pix" })
         .eq("id", cob.pedido_id);
+      try {
+        await sup.rpc("fn_loja_vincular_aluno", { p_pedido_id: cob.pedido_id });
+      } catch (e) {
+        console.error("pix-webhook: falha ao vincular aluno", String(e));
+      }
+      try {
+        await sup.functions.invoke("loja-enviar-confirmacao-email", {
+          body: { pedido_id: cob.pedido_id },
+        });
+      } catch (e) {
+        console.error("pix-webhook: falha ao enviar e-mail do pedido", String(e));
+      }
       pixTratados.add(txid);
       console.log("pix-webhook: pedido da loja pago", cob.pedido_id, txid);
     }

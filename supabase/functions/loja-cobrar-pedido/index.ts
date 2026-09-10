@@ -254,6 +254,22 @@ Deno.serve(async (req) => {
           cobranca_id: pagamento?.id ?? null,
         })
         .eq("id", pedidoId);
+
+      // vincula ao perfil do aluno quando o CPF bate com um cadastro existente
+      try {
+        await supabase.rpc("fn_loja_vincular_aluno", { p_pedido_id: pedidoId });
+      } catch (e) {
+        console.error("[loja-cobrar-pedido] falha ao vincular aluno:", String(e));
+      }
+
+      // e-mail de confirmação (não bloqueia o retorno da cobrança)
+      try {
+        await supabase.functions.invoke("loja-enviar-confirmacao-email", {
+          body: { pedido_id: pedidoId },
+        });
+      } catch (e) {
+        console.error("[loja-cobrar-pedido] falha ao enviar e-mail:", String(e));
+      }
     } else {
       await supabase
         .from("pedidos")

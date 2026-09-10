@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.fn_loja_vincular_aluno(uuid) FROM authenticated, anon;
