@@ -20,8 +20,9 @@ import {
 } from "lucide-react";
 import {
   PLANO_BADGE_CLASSES, PLANOS_INTERESSE, formatCurrencyBRL,
-  computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL, isLostStage,
+  computeTemperature, TEMP_DOT_CLASS, TEMP_DOT_LABEL, isLostStage, requiresProspectConversion,
 } from "@/lib/pipeline";
+import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { waMeLink } from "@/lib/pipeline";
 import { cn } from "@/lib/utils";
 import type { PipelineCardData } from "./PipelineCard";
@@ -47,6 +48,7 @@ export function PipelineLeadDrawer({ open, onOpenChange, student, stages }: Prop
   const [savingMeta, setSavingMeta] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
   const [moving, setMoving] = useState(false);
+  const [convertStage, setConvertStage] = useState<string | null>(null);
 
   const alunoId = student?.id || null;
 
