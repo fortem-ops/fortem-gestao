@@ -26,7 +26,8 @@ import { LeadProspectFilters, defaultLeadProspectFilters, type LeadProspectFilte
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import ImportStudentsCSVDialog from "@/components/student/ImportStudentsCSVDialog";
 
-const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado"];
+import { PROSPECT_STAGE_NAMES as PROSPECT_STAGE_NAMES_CONST } from "@/lib/pipeline";
+const PROSPECT_STAGE_NAMES = PROSPECT_STAGE_NAMES_CONST as unknown as string[];
 
 
 export default function Prospects() {

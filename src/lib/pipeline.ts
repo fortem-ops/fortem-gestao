@@ -71,6 +71,22 @@ export function stageColor(color: string) {
   return STAGE_COLORS[color] || STAGE_COLORS.blue;
 }
 
+/** Etapas em que o cadastro ainda é um Lead (aparece em Cadastros > Leads). */
+export const LEAD_STAGE_NAMES = ["Novo lead", "Informações encaminhadas"] as const;
+/** Etapas em que o cadastro é Prospect (aparece em Cadastros > Prospects). */
+export const PROSPECT_STAGE_NAMES = ["Prospect", "Treino experimental agendado", "Follow Up"] as const;
+
+export function isLeadStage(name?: string | null): boolean {
+  return !!name && (LEAD_STAGE_NAMES as readonly string[]).includes(name);
+}
+export function isProspectStage(name?: string | null): boolean {
+  return !!name && (PROSPECT_STAGE_NAMES as readonly string[]).includes(name);
+}
+/** True quando o movimento sai de uma etapa de Lead e entra numa etapa de Prospect. */
+export function requiresProspectConversion(fromStage?: string | null, toStage?: string | null): boolean {
+  return isLeadStage(fromStage) && isProspectStage(toStage);
+}
+
 /** Etapas terminais de "perdido" — disparam modal de motivo ao mover para elas. */
 export const LOST_STAGE_NAMES = ["Aluno perdido", "Aluno inativo"] as const;
 export function isLostStage(name?: string | null): boolean {
