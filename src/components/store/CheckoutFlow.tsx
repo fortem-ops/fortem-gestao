@@ -114,13 +114,17 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   const { clear } = useCartLoja();
   const { theme, palette } = useStoreTheme();
   const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
-  const [step, setStep] = useState<Step>("dados");
+  const [step, setStep] = useState<Step>(() =>
+    lerPedidoPago() ? "sucesso" : "dados"
+  );
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
   const [pedidoId, setPedidoId] = useState<string | null>(null);
-  const [pedidoNumero, setPedidoNumero] = useState<string | null>(null);
+  const [pedidoNumero, setPedidoNumero] = useState<string | null>(
+    () => lerPedidoPago()
+  );
   const cartaoTokenRef = useRef<string | null>(null);
   const tokenizationIdRef = useRef<string | null>(null);
   const [metodo, setMetodo] = useState<Metodo | null>(null);
