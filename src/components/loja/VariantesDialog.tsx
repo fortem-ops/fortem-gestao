@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -132,6 +132,7 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Variantes — {produto.nome}</DialogTitle>
+            <DialogDescription>Gerencie variações, estoque e imagens deste produto.</DialogDescription>
           </DialogHeader>
 
           <div className="rounded-lg border border-border overflow-x-auto">
@@ -345,6 +346,7 @@ function AjusteEstoqueDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Ajuste de estoque</DialogTitle>
+          <DialogDescription>Registre a movimentação e informe o motivo do ajuste.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
@@ -412,6 +414,7 @@ function HistoricoDialog({ variante, onClose }: { variante: Variante; onClose: (
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Histórico de estoque</DialogTitle>
+          <DialogDescription>Movimentações registradas para esta variante.</DialogDescription>
         </DialogHeader>
         <div className="rounded-lg border border-border overflow-x-auto max-h-[60vh]">
           <Table>
