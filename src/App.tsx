@@ -24,6 +24,7 @@ const ClientesAvulsos = lazyWithReload(() => import("./pages/ClientesAvulsos"));
 const StudentProfile = lazyWithReload(() => import("./pages/StudentProfile"));
 const TaskCenter = lazyWithReload(() => import("./pages/TaskCenter"));
 const Admin = lazyWithReload(() => import("./pages/Admin"));
+const Loja = lazyWithReload(() => import("./pages/Loja"));
 const AdminNotificacoesEmail = lazyWithReload(() => import("./pages/AdminNotificacoesEmail"));
 
 const Agenda = lazyWithReload(() => import("./pages/Agenda"));
