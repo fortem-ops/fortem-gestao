@@ -280,7 +280,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
               <Pencil className="w-4 h-4 mr-2" /> Editar
             </Button>
           )}
-          {canEdit && (
+          {canDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
