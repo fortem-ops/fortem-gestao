@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ImageOff, Minus, Plus, Trash2 } from "lucide-react";
 import StoreHeader from "@/components/store/StoreHeader";
@@ -19,6 +19,12 @@ const StoreCart = () => {
   const { theme, palette } = useStoreTheme();
   const barBg = theme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
   const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
+
+  // Fora do checkout (carrinho editável), descarta qualquer idempotency key
+  // de uma tentativa anterior — evita reaproveitar pedido com valor antigo.
+  useEffect(() => {
+    if (!checkout) sessionStorage.removeItem("fortem-loja-idempotency");
+  }, [checkout]);
 
   return (
     <div className={`min-h-screen pb-28 sm:pb-10 ${palette.bg} ${palette.text}`}>

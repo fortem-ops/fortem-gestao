@@ -153,6 +153,21 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     );
   }, [cartao]);
 
+  // Ao voltar para o carrinho, invalida qualquer tentativa de checkout
+  // anterior (pedido + idempotency key), garantindo que a próxima tentativa
+  // crie um pedido novo com o valor atual do carrinho.
+  const voltarParaCarrinho = useCallback(() => {
+    sessionStorage.removeItem(IDEMPOTENCY_KEY);
+    setPedidoId(null);
+    setPedidoNumero(null);
+    setPix(null);
+    setMetodo(null);
+    setErro(null);
+    cartaoTokenRef.current = null;
+    tokenizationIdRef.current = null;
+    onBackToCart();
+  }, [onBackToCart]);
+
   const garantirPedido = useCallback(async (): Promise<string | null> => {
     if (pedidoId) return pedidoId;
     setStatusText("Criando seu pedido...");
@@ -184,7 +199,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
           toast.error(
             "Um dos produtos esgotou enquanto você navegava. Revise seu carrinho."
           );
-          onBackToCart();
+          voltarParaCarrinho();
           return null;
         }
         throw new Error(friendlyMessage(data?.error));
@@ -199,7 +214,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       cartaoTokenRef.current = data.cartao_token ?? null;
       return data.pedido_id as string;
     }
-  }, [items, dados, onBackToCart, pedidoId]);
+  }, [items, dados, voltarParaCarrinho, pedidoId]);
 
   const gerarPix = useCallback(
     async (id: string) => {
@@ -693,7 +708,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
         <Button
           variant="ghost"
           className={`mt-2 w-full ${palette.muted}`}
-          onClick={() => (step === "dados" ? onBackToCart() : setStep("dados"))}
+          onClick={() => (step === "dados" ? voltarParaCarrinho() : setStep("dados"))}
         >
           Voltar
         </Button>
