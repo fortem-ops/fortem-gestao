@@ -9,13 +9,21 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useCartLoja } from "@/hooks/useCartLoja";
 import { formatBRL } from "@/integrations/store/types";
-import CheckoutFlow from "@/components/store/CheckoutFlow";
+import CheckoutFlow, { PEDIDO_PAGO_KEY } from "@/components/store/CheckoutFlow";
 import { useStoreTheme } from "@/hooks/useStoreTheme";
 
 const StoreCart = () => {
   const { items, subtotal, updateQuantity, removeItem } = useCartLoja();
   const [cupom, setCupom] = useState("");
-  const [checkout, setCheckout] = useState(false);
+  // Se houve pagamento aprovado nesta sessão, retoma o checkout (tela de
+  // sucesso) mesmo depois de um recarregamento da página.
+  const [checkout, setCheckout] = useState(() => {
+    try {
+      return sessionStorage.getItem(PEDIDO_PAGO_KEY) !== null;
+    } catch {
+      return false;
+    }
+  });
   const { theme, palette } = useStoreTheme();
   const barBg = theme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
   const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";

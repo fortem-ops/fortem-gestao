@@ -82,6 +82,19 @@ const getIdempotencyKey = () => {
   return key;
 };
 
+// Pedido pago é persistido: se a página recarregar logo após a aprovação
+// (aba descartada no celular, refresh), a tela de sucesso é restaurada em vez
+// de cair no "carrinho vazio".
+export const PEDIDO_PAGO_KEY = "fortem-loja-pedido-pago";
+
+const lerPedidoPago = (): string | null => {
+  try {
+    return sessionStorage.getItem(PEDIDO_PAGO_KEY);
+  } catch {
+    return null;
+  }
+};
+
 type Step = "dados" | "cartao" | "pix" | "sucesso";
 type Metodo = "cartao" | "pix";
 
@@ -101,13 +114,17 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   const { clear } = useCartLoja();
   const { theme, palette } = useStoreTheme();
   const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
-  const [step, setStep] = useState<Step>("dados");
+  const [step, setStep] = useState<Step>(() =>
+    lerPedidoPago() ? "sucesso" : "dados"
+  );
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
   const [pedidoId, setPedidoId] = useState<string | null>(null);
-  const [pedidoNumero, setPedidoNumero] = useState<string | null>(null);
+  const [pedidoNumero, setPedidoNumero] = useState<string | null>(
+    () => lerPedidoPago()
+  );
   const cartaoTokenRef = useRef<string | null>(null);
   const tokenizationIdRef = useRef<string | null>(null);
   const [metodo, setMetodo] = useState<Metodo | null>(null);
@@ -225,6 +242,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       if (error) throw new Error(error.message);
       if (data?.ja_pago === true) {
         sessionStorage.removeItem(IDEMPOTENCY_KEY);
+        sessionStorage.setItem(PEDIDO_PAGO_KEY, id);
         clear();
         setStep("sucesso");
         return;
@@ -299,6 +317,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       if (data?.status === "pago") {
         clearInterval(t);
         sessionStorage.removeItem(IDEMPOTENCY_KEY);
+        sessionStorage.setItem(PEDIDO_PAGO_KEY, pedidoId);
         clear();
         setStep("sucesso");
       }
@@ -383,6 +402,10 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
         cobranca?.pedido_numero ?? cobranca?.numero ?? pedidoNumero ?? pedidoId
       );
       sessionStorage.removeItem(IDEMPOTENCY_KEY);
+      sessionStorage.setItem(
+        PEDIDO_PAGO_KEY,
+        String(cobranca?.pedido_numero ?? cobranca?.numero ?? pedidoNumero ?? pedidoId)
+      );
       clear();
       setStep("sucesso");
     } catch (e) {
@@ -408,7 +431,12 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
           . Você vai receber os detalhes por e-mail.
         </p>
         <Button asChild className="mt-5 w-full sm:w-auto">
-          <Link to="/store">Voltar para a loja</Link>
+          <Link
+            to="/store"
+            onClick={() => sessionStorage.removeItem(PEDIDO_PAGO_KEY)}
+          >
+            Voltar para a loja
+          </Link>
         </Button>
       </Card>
     );

@@ -4365,6 +4365,7 @@ export type Database = {
           installments: number
           kind: string
           nsu: string | null
+          pedido_id: string | null
           raw_response: Json | null
           return_code: string | null
           return_message: string | null
@@ -4382,6 +4383,7 @@ export type Database = {
           installments?: number
           kind?: string
           nsu?: string | null
+          pedido_id?: string | null
           raw_response?: Json | null
           return_code?: string | null
           return_message?: string | null
@@ -4399,6 +4401,7 @@ export type Database = {
           installments?: number
           kind?: string
           nsu?: string | null
+          pedido_id?: string | null
           raw_response?: Json | null
           return_code?: string | null
           return_message?: string | null
@@ -4412,6 +4415,13 @@ export type Database = {
             columns: ["cobranca_id"]
             isOneToOne: false
             referencedRelation: "cobrancas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_rede_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
           {
