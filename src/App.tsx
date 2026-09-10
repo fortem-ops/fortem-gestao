@@ -90,6 +90,7 @@ const PortalSignUp = lazyWithReload(() => import("./pages/portal/PortalSignUp"))
 const PortalRecoverPassword = lazyWithReload(() => import("./pages/portal/PortalRecoverPassword"));
 const PortalResetPassword = lazyWithReload(() => import("./pages/portal/PortalResetPassword"));
 const PortalProfile = lazyWithReload(() => import("./pages/portal/PortalProfile"));
+const PortalMeusDados = lazyWithReload(() => import("./pages/portal/PortalMeusDados"));
 const PortalPagamentos = lazyWithReload(() => import("./pages/portal/PortalPagamentos"));
 const CadastrarCartaoPublico = lazyWithReload(() => import("./pages/CadastrarCartao"));
 const AceitarContratoToken = lazyWithReload(() => import("./pages/AceitarContratoToken"));
@@ -191,6 +192,7 @@ const App = () => (
               <Route path="/portal/carteirinha" element={<Suspense fallback={<RouteFallback />}><PortalCarteirinha /></Suspense>} />
               <Route path="/portal/assistente" element={<Suspense fallback={<RouteFallback />}><PortalAssistente /></Suspense>} />
               <Route path="/portal/contratos" element={<Suspense fallback={<RouteFallback />}><PortalContratos /></Suspense>} />
+              <Route path="/portal/meus-dados" element={<Suspense fallback={<RouteFallback />}><PortalMeusDados /></Suspense>} />
               <Route path="/portal/pagamentos" element={<Suspense fallback={<RouteFallback />}><PortalPagamentos /></Suspense>} />
               <Route path="/portal/loja" element={<Suspense fallback={<RouteFallback />}><PortalLoja /></Suspense>} />
               <Route path="/portal/loja/carrinho" element={<Suspense fallback={<RouteFallback />}><PortalLojaCarrinho /></Suspense>} />
