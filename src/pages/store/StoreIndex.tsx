@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProdutosLoja } from "@/hooks/useProdutosLoja";
 import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
 
 const StoreIndex = () => {
   const { data: produtos, isLoading, isError } = useProdutosLoja();
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<string | null>(null);
   const { palette } = useStoreTheme();
+  const { hideHeader } = useStoreScope();
 
   const categorias = useMemo(() => {
     const set = new Set<string>();
