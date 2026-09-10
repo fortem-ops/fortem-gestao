@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import { useStudentPortalOptional } from "@/contexts/StudentPortalContext";
+import { usePortalCartoes } from "@/hooks/usePortalCartoes";
 
 const IDEMPOTENCY_KEY = "fortem-loja-idempotency";
 const PARCELAS = 1;
@@ -72,6 +73,8 @@ const friendlyMessage = (raw?: string | null) => {
     return "Pagamento não autorizado pelo banco. Tente outro cartão.";
   if (msg.includes("timeout") || msg.includes("tempo"))
     return "O banco demorou para responder. Tente novamente.";
+  if (msg.includes("cartao_ainda_nao_confirmado"))
+    return "Seu cartão ainda está sendo confirmado. Aguarde um instante ou use outro cartão.";
   return raw as string;
 };
 
@@ -97,7 +100,7 @@ const lerPedidoPago = (): string | null => {
   }
 };
 
-type Step = "dados" | "cartao" | "pix" | "sucesso";
+type Step = "dados" | "cartao-opcoes" | "cartao-salvo" | "cartao" | "pix" | "sucesso";
 type Metodo = "cartao" | "pix";
 
 interface PixData {
@@ -120,6 +123,10 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
   const palette = storePalette(activeTheme);
   // Dentro do Portal do Aluno existe aluno logado: o cadastro já é conhecido.
   const aluno = useStudentPortalOptional()?.student ?? null;
+  // Reutiliza exatamente a carteira já usada em /portal/pagamentos (consulta
+  // direta a cartoes_salvos, protegida pelas regras de acesso do próprio aluno).
+  const { cartoes: cartoesSalvos, isLoading: carregandoCartoes } = usePortalCartoes(aluno?.id);
+  const cartaoSalvo = cartoesSalvos[0] ?? null;
   const separatorBg = activeTheme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
   const [step, setStep] = useState<Step>(() =>
     lerPedidoPago() ? "sucesso" : "dados"
@@ -287,11 +294,15 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     setErro(null);
     setLoading(true);
     try {
-      const id = await garantirPedido();
-      if (!id) return;
       if (metodo === "pix") {
+        const id = await garantirPedido();
+        if (!id) return;
         await gerarPix(id);
+      } else if (aluno) {
+        setStep(cartaoSalvo ? "cartao-salvo" : "cartao-opcoes");
       } else {
+        const id = await garantirPedido();
+        if (!id) return;
         setStep("cartao");
       }
     } catch (e) {
@@ -300,7 +311,22 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       setLoading(false);
       setStatusText("");
     }
-  }, [garantirPedido, gerarPix, metodo]);
+  }, [garantirPedido, gerarPix, metodo, aluno, cartaoSalvo]);
+
+  const inserirCartaoAgora = useCallback(async () => {
+    setErro(null);
+    setLoading(true);
+    try {
+      const id = await garantirPedido();
+      if (!id) return;
+      setStep("cartao");
+    } catch (e) {
+      setErro(friendlyMessage(e instanceof Error ? e.message : null));
+    } finally {
+      setLoading(false);
+      setStatusText("");
+    }
+  }, [garantirPedido]);
 
   const regerarPix = useCallback(async () => {
     if (!pedidoId) return;
@@ -434,6 +460,39 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     }
   }, [pedidoId, pedidoNumero, cartao, aguardarTokenizacao, clear]);
 
+  const pagarComCartaoSalvo = useCallback(async () => {
+    setErro(null);
+    setLoading(true);
+    try {
+      const id = await garantirPedido();
+      if (!id) return;
+      const token = cartaoTokenRef.current;
+      if (!token) throw new Error("Link do pedido não encontrado. Volte ao carrinho.");
+
+      setStatusText("Processando o pagamento...");
+      const { data: cobranca, error: erroCobranca } = await supabase.functions.invoke(
+        "loja-cobrar-pedido",
+        { body: { cartao_token: token, pedido_id: id, parcelas: PARCELAS } }
+      );
+      if (erroCobranca) throw new Error(erroCobranca.message);
+      if (!cobranca?.success) {
+        throw new Error(friendlyMessage(cobranca?.return_message ?? cobranca?.error ?? cobranca?.message));
+      }
+
+      const numero = String(cobranca?.pedido_numero ?? cobranca?.numero ?? id);
+      setPedidoNumero(numero);
+      sessionStorage.removeItem(IDEMPOTENCY_KEY);
+      sessionStorage.setItem(PEDIDO_PAGO_KEY, numero);
+      clear();
+      setStep("sucesso");
+    } catch (e) {
+      setErro(friendlyMessage(e instanceof Error ? e.message : null));
+    } finally {
+      setLoading(false);
+      setStatusText("");
+    }
+  }, [garantirPedido, clear]);
+
   if (step === "sucesso") {
     return (
       <Card className={`mt-5 rounded-2xl p-6 text-center ${palette.card}`}>
@@ -565,7 +624,9 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
             ? aluno
               ? "Forma de pagamento"
               : "Seus dados"
-            : "Pagamento com cartão"}
+            : step === "cartao-salvo"
+              ? "Confirmar pagamento"
+              : "Pagamento com cartão"}
         </p>
         <span className={`flex items-center gap-1 text-xs ${palette.muted}`}>
           <Lock className="h-3.5 w-3.5" /> Ambiente seguro
@@ -672,6 +733,29 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
             </div>
           )}
         </div>
+      ) : step === "cartao-salvo" && cartaoSalvo ? (
+        <div className="py-2 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <CreditCard className="h-6 w-6 text-primary" />
+          </div>
+          <p className={`mt-3 text-sm ${palette.muted}`}>Cobrar no cartão</p>
+          <p className={`mt-1 text-lg font-bold ${palette.text}`}>
+            {cartaoSalvo.brand ? `${cartaoSalvo.brand} ` : ""}•••• {cartaoSalvo.last4 ?? "----"}
+          </p>
+        </div>
+      ) : step === "cartao-opcoes" ? (
+        <div className="grid gap-3">
+          <p className={`text-sm ${palette.muted}`}>
+            Você ainda não possui um cartão ativo. Cadastre um cartão para concluir a compra.
+          </p>
+          <Button variant="outline" className="w-full" disabled={loading} onClick={inserirCartaoAgora}>
+            <CreditCard className="mr-2 h-4 w-4" />
+            Inserir cartão agora
+          </Button>
+          <Button asChild variant="ghost" className="w-full">
+            <Link to="/portal/pagamentos">Ir para Meus Cartões</Link>
+          </Button>
+        </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5 sm:col-span-2">
@@ -747,9 +831,17 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
         className="mt-4 w-full"
         disabled={
           loading ||
-          (step === "dados" ? !dadosValidos || !metodo : !cartaoValido)
+          (step === "dados"
+            ? !dadosValidos || !metodo || (metodo === "cartao" && !!aluno && carregandoCartoes)
+            : step === "cartao"
+              ? !cartaoValido
+              : step === "cartao-opcoes")
         }
-        onClick={() => (step === "dados" ? avancar() : pagar())}
+        onClick={() => {
+          if (step === "dados") void avancar();
+          else if (step === "cartao-salvo") void pagarComCartaoSalvo();
+          else if (step === "cartao") void pagar();
+        }}
       >
         {loading ? (
           <>
@@ -758,6 +850,13 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
           </>
         ) : step === "dados" ? (
           metodo === "pix" ? "Gerar código PIX" : "Continuar para o pagamento"
+        ) : step === "cartao-salvo" ? (
+          <>
+            <CreditCard className="mr-2 h-4 w-4" />
+            Pagar {formatBRL(subtotal)}
+          </>
+        ) : step === "cartao-opcoes" ? (
+          "Escolha como cadastrar o cartão"
         ) : (
           <>
             <CreditCard className="mr-2 h-4 w-4" />
