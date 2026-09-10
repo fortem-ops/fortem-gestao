@@ -81,7 +81,14 @@ const getIdempotencyKey = () => {
   return key;
 };
 
-type Step = "dados" | "cartao" | "sucesso";
+type Step = "dados" | "cartao" | "pix" | "sucesso";
+type Metodo = "cartao" | "pix";
+
+interface PixData {
+  qr_code_base64: string | null;
+  pix_copia_cola: string;
+  expira_em: number;
+}
 
 interface Props {
   items: CartItem[];
