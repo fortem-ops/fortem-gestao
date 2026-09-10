@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, MessageCircle, Settings2, ShieldAlert } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
-import { stageColor, waMeLink, QUICK_MESSAGES } from "@/lib/pipeline";
+import { stageColor, waMeLink, QUICK_MESSAGES, requiresProspectConversion } from "@/lib/pipeline";
+import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import { cn } from "@/lib/utils";
 import { PipelineMetadataDialog } from "./PipelineMetadataDialog";
 import { PipelineActivityTimeline } from "./PipelineActivityTimeline";
@@ -25,6 +26,7 @@ export function StudentPipelinePanel({ student, onChanged }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [metaOpen, setMetaOpen] = useState(false);
+  const [convertStage, setConvertStage] = useState<string | null>(null);
 
   const { data: stages = [] } = useQuery({
     queryKey: ["pipeline-stages"],
