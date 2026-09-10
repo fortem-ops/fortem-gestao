@@ -345,6 +345,20 @@ export default function PortalPagamentos() {
         </p>
       </section>
 
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+      ) : contratos.length === 0 ? (
+        <div className="bg-card border border-border rounded-2xl p-5 text-center">
+          <p className="text-sm text-muted-foreground">Nenhum contrato ativo.</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {contratos.map((c: any) => <ContratoBloco key={c.id} contrato={c} />)}
+        </div>
+      )}
+
+
+
       <p className="text-[10px] text-muted-foreground text-center px-4">
         Notas fiscais são enviadas automaticamente para o seu e-mail cadastrado.
         Dúvidas? Fale com a equipe FORTEM.
