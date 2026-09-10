@@ -3092,6 +3092,47 @@ export type Database = {
           },
         ]
       }
+      estoque_movimentos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          motivo: string | null
+          pedido_id: string | null
+          quantidade: number
+          tipo: string
+          variante_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motivo?: string | null
+          pedido_id?: string | null
+          quantidade: number
+          tipo: string
+          variante_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motivo?: string | null
+          pedido_id?: string | null
+          quantidade?: number
+          tipo?: string
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_movimentos_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercicio_articulacoes: {
         Row: {
           articulacao_key: string
@@ -5860,6 +5901,89 @@ export type Database = {
           },
         ]
       }
+      produtos_catalogo: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          imagem_url: string | null
+          nome: string
+          preco_base: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          nome: string
+          preco_base: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          nome?: string
+          preco_base?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      produtos_variantes: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          estoque_atual: number
+          id: string
+          preco: number | null
+          produto_id: string
+          sku: string | null
+          tamanho: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          estoque_atual?: number
+          id?: string
+          preco?: number | null
+          produto_id: string
+          sku?: string | null
+          tamanho?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          estoque_atual?: number
+          id?: string
+          preco?: number | null
+          produto_id?: string
+          sku?: string | null
+          tamanho?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_variantes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_catalogo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -5902,6 +6026,48 @@ export type Database = {
           specialty?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      promocoes: {
+        Row: {
+          ativo: boolean
+          codigo: string | null
+          created_at: string
+          id: string
+          tipo: string
+          updated_at: string
+          uso_atual: number
+          uso_maximo: number | null
+          valido_ate: string | null
+          valido_de: string | null
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo?: string | null
+          created_at?: string
+          id?: string
+          tipo: string
+          updated_at?: string
+          uso_atual?: number
+          uso_maximo?: number | null
+          valido_ate?: string | null
+          valido_de?: string | null
+          valor: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string | null
+          created_at?: string
+          id?: string
+          tipo?: string
+          updated_at?: string
+          uso_atual?: number
+          uso_maximo?: number | null
+          valido_ate?: string | null
+          valido_de?: string | null
+          valor?: number
         }
         Relationships: []
       }
@@ -8110,6 +8276,16 @@ export type Database = {
       fn_detect_evasao: { Args: never; Returns: Json }
       fn_distancia_metros: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
+      fn_estoque_movimentar: {
+        Args: {
+          p_motivo: string
+          p_pedido_id?: string
+          p_quantidade: number
+          p_tipo: string
+          p_variante_id: string
+        }
         Returns: number
       }
       fn_excluir_horario_fixo: {
