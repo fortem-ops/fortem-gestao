@@ -394,6 +394,110 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     );
   }
 
+  if (step === "pix" && pix) {
+    const expirado = segundosRestantes <= 0;
+    const mm = String(Math.floor(segundosRestantes / 60)).padStart(2, "0");
+    const ss = String(segundosRestantes % 60).padStart(2, "0");
+    const qrSrc = pix.qr_code_base64
+      ? pix.qr_code_base64.startsWith("data:")
+        ? pix.qr_code_base64
+        : `data:image/png;base64,${pix.qr_code_base64}`
+      : null;
+
+    return (
+      <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
+        <div className="flex items-center justify-between">
+          <p className="font-display text-sm font-bold uppercase tracking-wide">
+            Pagamento com PIX
+          </p>
+          <span className={`flex items-center gap-1 text-xs ${palette.muted}`}>
+            <Lock className="h-3.5 w-3.5" /> Ambiente seguro
+          </span>
+        </div>
+
+        <Separator className={`my-4 ${separatorBg}`} />
+
+        {expirado ? (
+          <div className="text-center">
+            <p className="text-sm font-semibold">O código PIX expirou. Gere um novo.</p>
+            <Button className="mt-4 w-full" disabled={loading} onClick={regerarPix}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {statusText || "Gerando..."}
+                </>
+              ) : (
+                "Gerar novo código PIX"
+              )}
+            </Button>
+          </div>
+        ) : (
+          <>
+            {qrSrc && (
+              <img
+                src={qrSrc}
+                alt="QR Code para pagamento PIX"
+                className="mx-auto w-full max-w-[260px] rounded-xl bg-white p-3"
+              />
+            )}
+
+            <p className={`mt-4 text-center text-sm ${palette.muted}`}>
+              Escaneie o QR code ou copie o código no app do seu banco. Assim que o
+              pagamento for confirmado, a página atualiza automaticamente.
+            </p>
+
+            <div className="mt-4 grid gap-2">
+              <Label htmlFor="pix-codigo">PIX Copia e Cola</Label>
+              <Input
+                id="pix-codigo"
+                readOnly
+                value={pix.pix_copia_cola}
+                className={`${palette.input} text-xs`}
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(pix.pix_copia_cola);
+                  toast.success("Código copiado");
+                }}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Copiar código
+              </Button>
+            </div>
+
+            <p className={`mt-3 text-center text-xs ${palette.muted}`}>
+              O código expira em {mm}:{ss}
+            </p>
+
+            <div className="mt-4 flex items-center justify-between">
+              <span className={`text-sm ${palette.muted}`}>Total</span>
+              <span className="font-display text-xl font-black">
+                {formatBRL(subtotal)}
+              </span>
+            </div>
+          </>
+        )}
+
+        {erro && (
+          <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {erro}
+          </p>
+        )}
+
+        <Button
+          variant="ghost"
+          className={`mt-2 w-full ${palette.muted}`}
+          onClick={() => setStep("dados")}
+        >
+          Voltar
+        </Button>
+      </Card>
+    );
+  }
+
   return (
     <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
       <div className="flex items-center justify-between">
