@@ -247,7 +247,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       cartaoTokenRef.current = data.cartao_token ?? null;
       return data.pedido_id as string;
     }
-  }, [items, dados, voltarParaCarrinho, pedidoId]);
+  }, [items, dados, aluno, voltarParaCarrinho, pedidoId]);
 
   const gerarPix = useCallback(
     async (id: string) => {
@@ -448,7 +448,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
         </p>
         <Button asChild className="mt-5 w-full sm:w-auto">
           <Link
-            to="/store"
+            to={basePath}
             onClick={() => sessionStorage.removeItem(PEDIDO_PAGO_KEY)}
           >
             Voltar para a loja
@@ -559,7 +559,11 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
       <div className="flex items-center justify-between">
         <p className="font-display text-sm font-bold uppercase tracking-wide">
-          {step === "dados" ? "Seus dados" : "Pagamento com cartão"}
+          {step === "dados"
+            ? aluno
+              ? "Forma de pagamento"
+              : "Seus dados"
+            : "Pagamento com cartão"}
         </p>
         <span className={`flex items-center gap-1 text-xs ${palette.muted}`}>
           <Lock className="h-3.5 w-3.5" /> Ambiente seguro
