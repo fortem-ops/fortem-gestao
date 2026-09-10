@@ -8,7 +8,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useStoreTheme, type StorePalette } from "@/hooks/useStoreTheme";
+import { useStoreTheme, storePalette, type StorePalette } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
 
 const tamanhos = ["P", "M", "G", "GG", "XG", "XGG", "XXG"];
 

@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useProdutoLoja } from "@/hooks/useProdutosLoja";
 import { useCartLoja } from "@/hooks/useCartLoja";
-import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import {
   formatBRL,
@@ -21,11 +21,13 @@ import {
 const StoreProductDetail = () => {
   const { produtoId } = useParams<{ produtoId: string }>();
   const { data: produto, isLoading, isError } = useProdutoLoja(produtoId);
-  const { addItem } = useCartLoja();
-  const { theme, palette } = useStoreTheme();
-  const { basePath, hideHeader } = useStoreScope();
-  const barBg = theme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
-  const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
+  const { addItem, totalItems } = useCartLoja();
+  const { theme } = useStoreTheme();
+  const { basePath, hideHeader, forcedTheme } = useStoreScope();
+  const activeTheme = forcedTheme ?? theme;
+  const palette = storePalette(activeTheme);
+  const barBg = activeTheme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
+  const separatorBg = activeTheme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
 
   const [tamanho, setTamanho] = useState<string | null>(null);
   const [cor, setCor] = useState<string | null>(null);
@@ -144,6 +146,21 @@ const StoreProductDetail = () => {
       {!hideHeader && <StoreHeader backTo={basePath} />}
 
       <main className="mx-auto max-w-5xl px-4 py-6">
+        {hideHeader && (
+          <div className="mb-4 flex justify-end">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className={`shrink-0 ${palette.card}`}
+            >
+              <Link to={`${basePath}/carrinho`}>
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                Carrinho{totalItems > 0 ? ` (${totalItems})` : ""}
+              </Link>
+            </Button>
+          </div>
+        )}
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
             <div className={`relative aspect-[4/3] overflow-hidden rounded-2xl ${palette.surface}`}>

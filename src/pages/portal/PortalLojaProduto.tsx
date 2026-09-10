@@ -3,7 +3,7 @@ import StoreProductDetail from "@/pages/store/StoreProductDetail";
 
 export default function PortalLojaProduto() {
   return (
-    <StoreScopeProvider basePath="/portal/loja" hideHeader>
+    <StoreScopeProvider basePath="/portal/loja" hideHeader forcedTheme="dark">
       <StoreProductDetail />
     </StoreScopeProvider>
   );

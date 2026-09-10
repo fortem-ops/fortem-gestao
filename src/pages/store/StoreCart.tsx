@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useCartLoja } from "@/hooks/useCartLoja";
 import { formatBRL } from "@/integrations/store/types";
 import CheckoutFlow, { PEDIDO_PAGO_KEY } from "@/components/store/CheckoutFlow";
-import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 
 const StoreCart = () => {
@@ -25,10 +25,12 @@ const StoreCart = () => {
       return false;
     }
   });
-  const { theme, palette } = useStoreTheme();
-  const { basePath, hideHeader } = useStoreScope();
-  const barBg = theme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
-  const separatorBg = theme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
+  const { theme } = useStoreTheme();
+  const { basePath, hideHeader, forcedTheme } = useStoreScope();
+  const activeTheme = forcedTheme ?? theme;
+  const palette = storePalette(activeTheme);
+  const barBg = activeTheme === "dark" ? "bg-neutral-950/95" : "bg-white/95";
+  const separatorBg = activeTheme === "dark" ? "bg-neutral-800" : "bg-neutral-200";
 
   // Fora do checkout (carrinho editável), descarta qualquer idempotency key
   // de uma tentativa anterior — evita reaproveitar pedido com valor antigo.
