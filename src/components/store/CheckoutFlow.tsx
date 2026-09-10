@@ -152,14 +152,14 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     );
   }, [cartao]);
 
-  const criarPedido = useCallback(async () => {
-    setErro(null);
-    setLoading(true);
+  const garantirPedido = useCallback(async (): Promise<string | null> => {
+    if (pedidoId) return pedidoId;
     setStatusText("Criando seu pedido...");
-    try {
+    {
       const { data, error } = await supabase.functions.invoke(
         "loja-criar-pedido",
         {
+
           body: {
             itens: items
               .filter((i) => i.varianteId)
