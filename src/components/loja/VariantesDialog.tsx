@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, History, ArrowLeftRight } from "lucide-react";
+import { Plus, Trash2, History, ArrowLeftRight, Pencil } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import type { Produto } from "./ProdutosTab";
 import { ProductImageUpload } from "./ProductImageUpload";
@@ -60,6 +60,7 @@ const TIPO_LABEL: Record<string, string> = {
 export function VariantesDialog({ produto, open, onClose }: { produto: Produto; open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({ ...emptyVar });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [ajuste, setAjuste] = useState<Variante | null>(null);
   const [historico, setHistorico] = useState<Variante | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -82,25 +83,65 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
     qc.invalidateQueries({ queryKey: ["loja-variantes-resumo"] });
   }
 
+  const payloadFromForm = () => ({
+    produto_id: produto.id,
+    tamanho: form.tamanho.trim() || null,
+    cor: form.cor.trim() || null,
+    sku: form.sku.trim() || null,
+    preco: form.preco === "" ? null : Number(form.preco),
+    estoque_atual: Number(form.estoque_atual) || 0,
+    ativo: form.ativo,
+    imagem_url: form.cor.trim() ? form.imagem_url.trim() || null : null,
+    cor_hex: form.cor.trim() ? form.cor_hex || COR_PADRAO : null,
+  });
+
+  const propagarImagemECor = async (varianteId: string) => {
+    const cor = form.cor.trim();
+    if (!cor) return;
+    const imagem_url = form.imagem_url.trim() || null;
+    const cor_hex = form.cor_hex || COR_PADRAO;
+    const { error } = await (supabase as any)
+      .from("produtos_variantes")
+      .update({ imagem_url, cor_hex })
+      .eq("produto_id", produto.id)
+      .eq("cor", cor)
+      .neq("id", varianteId);
+    if (error) throw error;
+  };
+
   const criar = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase as any).from("produtos_variantes").insert({
-        produto_id: produto.id,
-        tamanho: form.tamanho.trim() || null,
-        cor: form.cor.trim() || null,
-        sku: form.sku.trim() || null,
-        preco: form.preco === "" ? null : Number(form.preco),
-        estoque_atual: Number(form.estoque_atual) || 0,
-        ativo: form.ativo,
-        imagem_url: form.cor.trim() ? form.imagem_url.trim() || null : null,
-        cor_hex: form.cor.trim() ? form.cor_hex || COR_PADRAO : null,
-      });
+      const { data, error } = await (supabase as any)
+        .from("produtos_variantes")
+        .insert(payloadFromForm())
+        .select("id");
       if (error) throw error;
+      const id = data?.[0]?.id;
+      if (id) await propagarImagemECor(id);
     },
     onSuccess: () => {
       invalidate();
       setForm({ ...emptyVar });
       toast.success("Variante adicionada");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const editar = useMutation({
+    mutationFn: async () => {
+      if (!editingId) throw new Error("Nenhuma variante selecionada para edição");
+      const { error } = await (supabase as any)
+        .from("produtos_variantes")
+        .update(payloadFromForm())
+        .eq("id", editingId);
+      if (error) throw error;
+      await propagarImagemECor(editingId);
+    },
+    onSuccess: () => {
+      invalidate();
+      setForm({ ...emptyVar });
+      setEditingId(null);
+      toast.success("Variante atualizada");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -125,6 +166,32 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const startEdit = (v: Variante) => {
+    setForm({
+      tamanho: v.tamanho || "",
+      cor: v.cor || "",
+      sku: v.sku || "",
+      preco: v.preco == null ? "" : String(v.preco),
+      estoque_atual: v.estoque_atual,
+      ativo: v.ativo,
+      imagem_url: v.imagem_url || "",
+      cor_hex: v.cor_hex || COR_PADRAO,
+    });
+    setEditingId(v.id);
+  };
+
+  const cancelEdit = () => {
+    setForm({ ...emptyVar });
+    setEditingId(null);
+  };
+
+  const salvar = () => {
+    if (editingId) editar.mutate();
+    else criar.mutate();
+  };
+
+  const isPending = criar.isPending || editar.isPending || uploadingImage;
 
   return (
     <>
@@ -181,6 +248,9 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" title="Editar" onClick={() => startEdit(v)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                         <Button size="icon" variant="ghost" title="Ajustar estoque" onClick={() => setAjuste(v)}>
                           <ArrowLeftRight className="w-4 h-4" />
                         </Button>
@@ -214,7 +284,9 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
           </div>
 
           <div className="rounded-lg border border-border p-3 space-y-3">
-            <p className="text-sm font-medium">Adicionar variante</p>
+            <p className="text-sm font-medium">
+              {editingId ? "Editar variante" : "Adicionar variante"}
+            </p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Tamanho</Label>
@@ -287,9 +359,16 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                 <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
                 <Label className="text-sm">Ativa</Label>
               </div>
-              <Button size="sm" disabled={criar.isPending || uploadingImage} onClick={() => criar.mutate()}>
-                <Plus className="w-4 h-4 mr-1" /> Adicionar
-              </Button>
+              <div className="flex items-center gap-2">
+                {editingId && (
+                  <Button size="sm" variant="outline" onClick={cancelEdit}>
+                    Cancelar
+                  </Button>
+                )}
+                <Button size="sm" disabled={isPending} onClick={salvar}>
+                  <Plus className="w-4 h-4 mr-1" /> {editingId ? "Salvar" : "Adicionar"}
+                </Button>
+              </div>
             </div>
           </div>
 
