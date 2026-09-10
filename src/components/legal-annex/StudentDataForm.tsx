@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +54,8 @@ export const validateCPF = (cpf: string): boolean => {
 
 const StudentDataForm = ({ data, onChange, errors }: StudentDataFormProps) => {
   const lastFetchedCpf = useRef<string>("");
+  const [buscando, setBuscando] = useState(false);
+  const [encontrado, setEncontrado] = useState(false);
 
   const handleChange = (field: keyof StudentData, value: string) => {
     let formatted = value;
@@ -69,21 +71,29 @@ const StudentDataForm = ({ data, onChange, errors }: StudentDataFormProps) => {
     lastFetchedCpf.current = digits;
 
     (async () => {
-      const { data: result, error } = await supabase.functions.invoke("lookup-by-cpf", {
+      setBuscando(true);
+      const { data: result, error } = await supabase.functions.invoke("lookup-cadastro-publico", {
         body: { cpf: data.cpf },
       });
+      setBuscando(false);
       if (error || !result?.found || !result.data) return;
       const existing = result.data;
+      // preenche apenas o que ainda está vazio, sem sobrescrever o que a pessoa digitou
+      const keep = (atual: string, novo: string | null | undefined) =>
+        atual.trim() ? atual : (novo ?? "");
       onChange({
         ...data,
-        nome: existing.nome ?? data.nome,
-        dataNascimento: existing.data_nascimento ?? data.dataNascimento,
-        telefone: existing.telefone ?? data.telefone,
-        email: existing.email ?? data.email,
-        emergencyContactName: existing.emergency_contact_name ?? data.emergencyContactName,
-        emergencyContactPhone: existing.emergency_contact_phone ?? data.emergencyContactPhone,
+        nome: keep(data.nome, existing.nome),
+        dataNascimento: keep(data.dataNascimento, existing.data_nascimento),
+        telefone: data.telefone.trim() ? data.telefone : formatPhone(existing.telefone ?? ""),
+        email: keep(data.email, existing.email),
+        emergencyContactName: keep(data.emergencyContactName, existing.emergency_contact_name),
+        emergencyContactPhone: data.emergencyContactPhone.trim()
+          ? data.emergencyContactPhone
+          : formatPhone(existing.emergency_contact_phone ?? ""),
       });
-      toast.success("Dados encontrados e preenchidos automaticamente");
+      setEncontrado(true);
+      toast.success("Encontramos seu cadastro — confira e ajuste se precisar");
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.cpf]);
