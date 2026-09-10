@@ -472,7 +472,14 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       setStatusText("Processando o pagamento...");
       const { data: cobranca, error: erroCobranca } = await supabase.functions.invoke(
         "loja-cobrar-pedido",
-        { body: { cartao_token: token, pedido_id: id, parcelas: PARCELAS } }
+        {
+          body: {
+            cartao_token: token,
+            pedido_id: id,
+            parcelas: PARCELAS,
+            cartao_salvo_id: cartaoSalvo?.id,
+          },
+        }
       );
       if (erroCobranca) throw new Error(erroCobranca.message);
       if (!cobranca?.success) {
@@ -491,7 +498,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       setLoading(false);
       setStatusText("");
     }
-  }, [garantirPedido, clear]);
+  }, [garantirPedido, cartaoSalvo, clear]);
 
   if (step === "sucesso") {
     return (
