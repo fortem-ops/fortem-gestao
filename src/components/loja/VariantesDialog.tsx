@@ -149,7 +149,19 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                 {variantes.map((v) => (
                   <TableRow key={v.id}>
                     <TableCell>{v.tamanho || "—"}</TableCell>
-                    <TableCell>{v.cor || "—"}</TableCell>
+                    <TableCell>
+                      {v.cor ? (
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="inline-block w-3.5 h-3.5 rounded-full border border-border"
+                            style={{ backgroundColor: v.cor_hex || "hsl(var(--muted))" }}
+                          />
+                          {v.cor}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     <TableCell className="font-mono text-xs">{v.sku || "—"}</TableCell>
                     <TableCell>
                       {v.preco == null ? (
