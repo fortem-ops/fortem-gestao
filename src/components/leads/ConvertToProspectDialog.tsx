@@ -166,6 +166,17 @@ export function ConvertToProspectDialog({
         }
       }
 
+      // Etapa final diferente de "Prospect" (ex.: treino experimental agendado / follow up).
+      if (finalStageName && finalStageName !== "Prospect") {
+        const { error: moveErr } = await supabase.rpc("fn_move_pipeline" as any, {
+          _aluno_id: alunoId,
+          _to_stage_name: finalStageName,
+          _source: "manual",
+          _notes: movementNote || null,
+        });
+        if (moveErr) throw moveErr;
+      }
+
       toast.success(successMessage);
       qc.invalidateQueries({ queryKey: ["leads-list"] });
 
