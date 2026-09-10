@@ -431,7 +431,12 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
           . Você vai receber os detalhes por e-mail.
         </p>
         <Button asChild className="mt-5 w-full sm:w-auto">
-          <Link to="/store">Voltar para a loja</Link>
+          <Link
+            to="/store"
+            onClick={() => sessionStorage.removeItem(PEDIDO_PAGO_KEY)}
+          >
+            Voltar para a loja
+          </Link>
         </Button>
       </Card>
     );
