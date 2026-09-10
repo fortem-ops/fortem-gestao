@@ -242,6 +242,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       if (error) throw new Error(error.message);
       if (data?.ja_pago === true) {
         sessionStorage.removeItem(IDEMPOTENCY_KEY);
+        sessionStorage.setItem(PEDIDO_PAGO_KEY, id);
         clear();
         setStep("sucesso");
         return;
@@ -316,6 +317,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       if (data?.status === "pago") {
         clearInterval(t);
         sessionStorage.removeItem(IDEMPOTENCY_KEY);
+        sessionStorage.setItem(PEDIDO_PAGO_KEY, pedidoId);
         clear();
         setStep("sucesso");
       }
@@ -400,6 +402,10 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
         cobranca?.pedido_numero ?? cobranca?.numero ?? pedidoNumero ?? pedidoId
       );
       sessionStorage.removeItem(IDEMPOTENCY_KEY);
+      sessionStorage.setItem(
+        PEDIDO_PAGO_KEY,
+        String(cobranca?.pedido_numero ?? cobranca?.numero ?? pedidoNumero ?? pedidoId)
+      );
       clear();
       setStep("sucesso");
     } catch (e) {
