@@ -103,6 +103,18 @@ const StudentDataForm = ({ data, onChange, errors }: StudentDataFormProps) => {
   return (
     <div className="space-y-4">
       <div>
+        <Label htmlFor="cpf">CPF</Label>
+        <Input id="cpf" value={data.cpf} onChange={(e) => handleChange("cpf", e.target.value)} placeholder="000.000.000-00" inputMode="numeric" autoFocus className={`${inputCls} font-mono tabular-nums`} />
+        <p className="text-xs text-muted-foreground mt-1">
+          {buscando
+            ? "Buscando seus dados…"
+            : encontrado
+              ? "Encontramos seu cadastro — confira e ajuste se precisar."
+              : "Digite seu CPF para buscarmos seus dados."}
+        </p>
+        {errors.cpf && <p className="text-destructive text-xs mt-1">{errors.cpf}</p>}
+      </div>
+      <div>
         <Label htmlFor="nome">Nome completo</Label>
         <Input id="nome" value={data.nome} onChange={(e) => handleChange("nome", e.target.value)} placeholder="Seu nome completo" className={inputCls} />
         {errors.nome && <p className="text-destructive text-xs mt-1">{errors.nome}</p>}
@@ -111,11 +123,6 @@ const StudentDataForm = ({ data, onChange, errors }: StudentDataFormProps) => {
         <Label htmlFor="dataNascimento">Data de nascimento</Label>
         <Input id="dataNascimento" type="date" value={data.dataNascimento} onChange={(e) => handleChange("dataNascimento", e.target.value)} className={inputCls} />
         {errors.dataNascimento && <p className="text-destructive text-xs mt-1">{errors.dataNascimento}</p>}
-      </div>
-      <div>
-        <Label htmlFor="cpf">CPF</Label>
-        <Input id="cpf" value={data.cpf} onChange={(e) => handleChange("cpf", e.target.value)} placeholder="000.000.000-00" className={`${inputCls} font-mono tabular-nums`} />
-        {errors.cpf && <p className="text-destructive text-xs mt-1">{errors.cpf}</p>}
       </div>
       <div>
         <Label htmlFor="telefone">Telefone</Label>
