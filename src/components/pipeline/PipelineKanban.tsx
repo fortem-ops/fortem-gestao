@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PipelineCard, type PipelineCardData } from "./PipelineCard";
 import { PipelineLeadDrawer } from "./PipelineLeadDrawer";
 import { MarkLostDialog } from "./MarkLostDialog";
-import { stageColor, isLostStage, formatCurrencyBRL, usePipelineFunnels, filterPipelineAlunos } from "@/lib/pipeline";
+import { stageColor, isLostStage, formatCurrencyBRL, usePipelineFunnels, filterPipelineAlunos, requiresProspectConversion } from "@/lib/pipeline";
+import { ConvertToProspectDialog } from "@/components/leads/ConvertToProspectDialog";
 import type { PipelineFiltersValue } from "./PipelineFilters";
 import { cn } from "@/lib/utils";
 
@@ -280,6 +281,11 @@ export function PipelineKanban({ funnelId, funnelSlug, filters }: PipelineKanban
 
     if (isLostStage(targetStage.name) && student) {
       setPendingLost({ aluno: student, destinoStage: targetStage.name });
+      return;
+    }
+
+    if (student && requiresProspectConversion(student.current_stage_name, targetStage.name)) {
+      setPendingConvert({ aluno: student, destinoStage: targetStage.name });
       return;
     }
 
