@@ -8596,6 +8596,7 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: undefined
       }
+      fn_loja_vincular_aluno: { Args: { p_pedido_id: string }; Returns: string }
       fn_lookup_aluno_por_cpf_hash: {
         Args: { p_cpf_hash: string }
         Returns: Json
