@@ -29,7 +29,13 @@ const StoreCart = () => {
           Seu carrinho
         </h1>
 
-        {items.length === 0 ? (
+        {checkout ? (
+          <CheckoutFlow
+            items={items}
+            subtotal={subtotal}
+            onBackToCart={() => setCheckout(false)}
+          />
+        ) : items.length === 0 ? (
           <div className="mt-10 text-center">
             <p className={`text-sm ${palette.muted}`}>Seu carrinho está vazio.</p>
             <Button asChild className="mt-4">
@@ -136,57 +142,49 @@ const StoreCart = () => {
               ))}
             </div>
 
-            {checkout ? (
-              <CheckoutFlow
-                items={items}
-                subtotal={subtotal}
-                onBackToCart={() => setCheckout(false)}
-              />
-            ) : (
-              <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
-                <p className="text-sm font-semibold">Cupom de desconto</p>
-                <div className="mt-2 flex gap-2">
-                  <Input
-                    value={cupom}
-                    onChange={(e) => setCupom(e.target.value.toUpperCase())}
-                    placeholder="Digite seu cupom"
-                    aria-label="Cupom de desconto"
-                    className={palette.input}
-                  />
-                  <Button
-                    variant="outline"
-                    className={palette.card}
-                    onClick={() =>
-                      toast.info("Validação de cupom disponível em breve.")
-                    }
-                  >
-                    Aplicar
-                  </Button>
-                </div>
-                <p className={`mt-2 text-xs ${palette.muted}`}>
-                  A validação de cupons entra no ar em breve.
-                </p>
+            <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
+              <p className="text-sm font-semibold">Cupom de desconto</p>
+              <div className="mt-2 flex gap-2">
+                <Input
+                  value={cupom}
+                  onChange={(e) => setCupom(e.target.value.toUpperCase())}
+                  placeholder="Digite seu cupom"
+                  aria-label="Cupom de desconto"
+                  className={palette.input}
+                />
+                <Button
+                  variant="outline"
+                  className={palette.card}
+                  onClick={() =>
+                    toast.info("Validação de cupom disponível em breve.")
+                  }
+                >
+                  Aplicar
+                </Button>
+              </div>
+              <p className={`mt-2 text-xs ${palette.muted}`}>
+                A validação de cupons entra no ar em breve.
+              </p>
 
-                <Separator className={`my-4 ${separatorBg}`} />
+              <Separator className={`my-4 ${separatorBg}`} />
 
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${palette.muted}`}>Subtotal</span>
-                  <span className="font-display text-xl font-black">
-                    {formatBRL(subtotal)}
-                  </span>
-                </div>
+              <div className="flex items-center justify-between">
+                <span className={`text-sm ${palette.muted}`}>Subtotal</span>
+                <span className="font-display text-xl font-black">
+                  {formatBRL(subtotal)}
+                </span>
+              </div>
 
-                <div className="mt-4 hidden sm:block">
-                  <Button
-                    size="lg"
-                    className="w-full"
-                    onClick={() => setCheckout(true)}
-                  >
-                    Finalizar compra
-                  </Button>
-                </div>
-              </Card>
-            )}
+              <div className="mt-4 hidden sm:block">
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => setCheckout(true)}
+                >
+                  Finalizar compra
+                </Button>
+              </div>
+            </Card>
           </>
         )}
       </main>
