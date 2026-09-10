@@ -16,7 +16,8 @@ const StoreIndex = () => {
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<string | null>(null);
   const { palette } = useStoreTheme();
-  const { hideHeader } = useStoreScope();
+  const { hideHeader, basePath } = useStoreScope();
+  const { totalItems } = useCartLoja();
 
   const categorias = useMemo(() => {
     const set = new Set<string>();
