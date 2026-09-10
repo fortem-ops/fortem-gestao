@@ -23,11 +23,12 @@ export type Produto = {
   imagem_url: string | null;
   preco_base: number;
   ativo: boolean;
+  permite_encomenda: boolean;
 };
 
 type Variante = { id: string; produto_id: string; estoque_atual: number; ativo: boolean };
 
-const empty = { nome: "", descricao: "", categoria: "", imagem_url: "", preco_base: 0, ativo: true };
+const empty = { nome: "", descricao: "", categoria: "", imagem_url: "", preco_base: 0, ativo: true, permite_encomenda: false };
 
 export function ProdutosTab() {
   const qc = useQueryClient();
@@ -83,6 +84,7 @@ export function ProdutosTab() {
         imagem_url: form.imagem_url.trim() || null,
         preco_base: form.preco_base,
         ativo: form.ativo,
+        permite_encomenda: form.permite_encomenda,
       };
       if (editing) {
         const { error } = await (supabase as any).from("produtos_catalogo").update(payload).eq("id", editing.id);
@@ -128,6 +130,7 @@ export function ProdutosTab() {
       imagem_url: p.imagem_url || "",
       preco_base: Number(p.preco_base),
       ativo: p.ativo,
+      permite_encomenda: p.permite_encomenda ?? false,
     });
     setOpen(true);
   }
@@ -283,6 +286,18 @@ export function ProdutosTab() {
             <div className="flex items-center gap-2">
               <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
               <Label>Ativo</Label>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={form.permite_encomenda}
+                  onCheckedChange={(v) => setForm({ ...form, permite_encomenda: v })}
+                />
+                <Label>Aceita encomenda quando esgotado</Label>
+              </div>
+              <p className="text-xs text-muted-foreground pl-11">
+                Quando ativado, o aluno pode comprar mesmo com estoque zerado; use para levantar demanda antes de pedir ao fornecedor.
+              </p>
             </div>
           </div>
           <DialogFooter>
