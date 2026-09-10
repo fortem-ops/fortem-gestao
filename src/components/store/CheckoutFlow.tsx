@@ -12,6 +12,8 @@ import { formatBRL } from "@/integrations/store/types";
 import { useCartLoja, type CartItem } from "@/hooks/useCartLoja";
 import { toast } from "sonner";
 import { useStoreTheme } from "@/hooks/useStoreTheme";
+import { useStoreScope } from "@/components/store/StoreScope";
+import { useStudentPortalOptional } from "@/contexts/StudentPortalContext";
 
 const IDEMPOTENCY_KEY = "fortem-loja-idempotency";
 const PARCELAS = 1;
