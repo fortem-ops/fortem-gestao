@@ -6117,6 +6117,50 @@ export type Database = {
         }
         Relationships: []
       }
+      produtos_imagens: {
+        Row: {
+          cor: string | null
+          created_at: string
+          id: string
+          imagem_url: string
+          legenda: string | null
+          ordem: number
+          principal: boolean
+          produto_id: string
+          updated_at: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          id?: string
+          imagem_url: string
+          legenda?: string | null
+          ordem?: number
+          principal?: boolean
+          produto_id: string
+          updated_at?: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          id?: string
+          imagem_url?: string
+          legenda?: string | null
+          ordem?: number
+          principal?: boolean
+          produto_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_imagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos_catalogo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos_variantes: {
         Row: {
           ativo: boolean
@@ -8598,6 +8642,10 @@ export type Database = {
       fn_loja_reverter_reserva: {
         Args: { p_pedido_id: string }
         Returns: undefined
+      }
+      fn_loja_validar_cupom: {
+        Args: { p_codigo: string; p_subtotal: number }
+        Returns: Json
       }
       fn_loja_vincular_aluno: { Args: { p_pedido_id: string }; Returns: string }
       fn_lookup_aluno_por_cpf_hash: {
