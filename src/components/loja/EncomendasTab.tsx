@@ -17,14 +17,22 @@ type ItemRow = {
   } | null;
 };
 
-type PedidoRow = { id: string; pedido_itens: ItemRow[] };
+type PedidoRow = {
+  id: string;
+  nome: string | null;
+  created_at: string;
+  pedido_itens: ItemRow[];
+};
 
 type Linha = {
-  varianteId: string;
+  key: string;
+  cliente: string;
   produto: string;
-  variante: string;
+  cor: string;
+  tamanho: string;
   quantidade: number;
   valorTotal: number;
+  data: string;
 };
 
 export function EncomendasTab() {
@@ -34,36 +42,34 @@ export function EncomendasTab() {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(
-          "id, pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
+          "id, nome, created_at, pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .eq("eh_encomenda", true)
-        .eq("status", "pago");
+        .eq("status", "pago")
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as PedidoRow[];
     },
   });
 
   const grupos = useMemo(() => {
-    const porVariante = new Map<string, Linha>();
+    const linhas: Linha[] = [];
     for (const p of pedidos) {
-      for (const it of p.pedido_itens || []) {
+      (p.pedido_itens || []).forEach((it, idx) => {
         const v = it.produtos_variantes;
-        if (!v) continue;
-        const produto = v.produtos_catalogo?.nome || "Produto removido";
-        const variante = [v.tamanho, v.cor].filter(Boolean).join(" / ") || v.sku || "Padrão";
-        const cur = porVariante.get(v.id) || {
-          varianteId: v.id,
-          produto,
-          variante,
-          quantidade: 0,
-          valorTotal: 0,
-        };
-        cur.quantidade += it.quantidade;
-        cur.valorTotal += Number(it.preco_unitario_snapshot) * it.quantidade;
-        porVariante.set(v.id, cur);
-      }
+        if (!v) return;
+        linhas.push({
+          key: `${p.id}-${v.id}-${idx}`,
+          cliente: p.nome || "Cliente não informado",
+          produto: v.produtos_catalogo?.nome || "Produto removido",
+          cor: v.cor || "—",
+          tamanho: v.tamanho || "—",
+          quantidade: it.quantidade,
+          valorTotal: Number(it.preco_unitario_snapshot) * it.quantidade,
+          data: p.created_at,
+        });
+      });
     }
-    const linhas = Array.from(porVariante.values()).sort((a, b) => b.quantidade - a.quantidade);
     const map = new Map<string, Linha[]>();
     for (const l of linhas) {
       const arr = map.get(l.produto) || [];
@@ -91,10 +97,13 @@ export function EncomendasTab() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Produto</TableHead>
-            <TableHead>Variante</TableHead>
-            <TableHead className="text-right">Qtd. encomendada</TableHead>
-            <TableHead className="text-right">Valor total pago</TableHead>
+            <TableHead>Cliente</TableHead>
+            <TableHead>Modelo</TableHead>
+            <TableHead>Cor</TableHead>
+            <TableHead>Tamanho</TableHead>
+            <TableHead>Data</TableHead>
+            <TableHead className="text-right">Qtd.</TableHead>
+            <TableHead className="text-right">Valor pago</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -104,22 +113,25 @@ export function EncomendasTab() {
             return (
               <Fragment key={produto}>
                 {linhas.map((l) => (
-                  <TableRow key={l.varianteId}>
-                    <TableCell className="font-medium">{l.produto}</TableCell>
-                    <TableCell>{l.variante}</TableCell>
+                  <TableRow key={l.key}>
+                    <TableCell className="font-medium">{l.cliente}</TableCell>
+                    <TableCell>{l.produto}</TableCell>
+                    <TableCell>{l.cor}</TableCell>
+                    <TableCell>{l.tamanho}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(l.data).toLocaleDateString("pt-BR")}
+                    </TableCell>
                     <TableCell className="text-right">{l.quantidade}</TableCell>
                     <TableCell className="text-right">{formatBRL(l.valorTotal)}</TableCell>
                   </TableRow>
                 ))}
-                {linhas.length > 1 && (
-                  <TableRow key={`${produto}-subtotal`} className="bg-secondary/40">
-                    <TableCell colSpan={2} className="text-xs font-semibold text-muted-foreground">
-                      Subtotal — {produto}
-                    </TableCell>
-                    <TableCell className="text-right text-xs font-semibold">{subQtd}</TableCell>
-                    <TableCell className="text-right text-xs font-semibold">{formatBRL(subVal)}</TableCell>
-                  </TableRow>
-                )}
+                <TableRow key={`${produto}-subtotal`} className="bg-secondary/40">
+                  <TableCell colSpan={5} className="text-xs font-semibold text-muted-foreground">
+                    Subtotal — {produto}
+                  </TableCell>
+                  <TableCell className="text-right text-xs font-semibold">{subQtd}</TableCell>
+                  <TableCell className="text-right text-xs font-semibold">{formatBRL(subVal)}</TableCell>
+                </TableRow>
               </Fragment>
             );
           })}
