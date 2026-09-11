@@ -9,3 +9,6 @@
 - [x] Integrar upload ao cadastro de produto.
 - [x] Integrar upload à imagem por cor da variante.
 - [x] Validar tipos, build e políticas do bucket.
+- [ ] Ativar validação e aplicação segura de cupons na Loja.
+- [ ] Adicionar galerias geral e por cor com imagem principal e ordenação.
+- [ ] Exibir as galerias na vitrine, detalhes e carrinho.
