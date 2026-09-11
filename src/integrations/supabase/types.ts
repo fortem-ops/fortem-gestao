@@ -6084,6 +6084,7 @@ export type Database = {
           id: string
           imagem_url: string | null
           nome: string
+          ordem: number
           permite_encomenda: boolean
           preco_base: number
           updated_at: string
@@ -6096,6 +6097,7 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           nome: string
+          ordem?: number
           permite_encomenda?: boolean
           preco_base: number
           updated_at?: string
@@ -6108,6 +6110,7 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           nome?: string
+          ordem?: number
           permite_encomenda?: boolean
           preco_base?: number
           updated_at?: string
