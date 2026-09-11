@@ -174,6 +174,18 @@ export function ProdutosTab() {
       (categoria === "todas" || p.categoria === categoria),
   );
 
+  const podeReordenar = !search.trim() && categoria === "todas";
+
+  function handleDrop(destino: number) {
+    const origem = dragIndex.current;
+    dragIndex.current = null;
+    if (origem === null || origem === destino) return;
+    const lista = [...produtos];
+    const [mov] = lista.splice(origem, 1);
+    lista.splice(destino, 0, mov);
+    reorder.mutate(lista);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
