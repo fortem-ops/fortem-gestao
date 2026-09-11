@@ -1,18 +1,16 @@
-# Pagamento com cartão salvo no Portal
+# Manter a ordem do Banco de Exercícios na hora de prescrever
 
-## Objetivo
-Permitir que o aluno logado pague compras da Loja com um cartão ativo já cadastrado, sem redigitar os dados, mantendo o checkout público inalterado.
+Hoje a lista de exercícios que aparece na prescrição vem em ordem alfabética, ignorando a ordem que foi configurada (arrastando) no Banco de Exercícios.
 
-## Implementação
-1. Reutilizar `usePortalCartoes`, a mesma consulta direta protegida usada em `/portal/pagamentos`, para identificar cartões ativos do aluno.
-2. No checkout do Portal, após escolher cartão:
-   - com cartão ativo, mostrar uma confirmação com os quatro últimos dígitos e o valor;
-   - sem cartão ativo, oferecer “Inserir cartão agora” ou acesso a `/portal/pagamentos`.
-3. No pagamento com cartão salvo, criar/recuperar o pedido e chamar diretamente `loja-cobrar-pedido`, usando o token de checkout já emitido para o pedido.
-4. Preservar integralmente o formulário atual para visitantes e para alunos que escolherem inserir outro cartão.
+## O que muda
+
+- Na seleção de exercícios durante a prescrição do treino, os exercícios passam a aparecer na mesma ordem definida no Banco de Exercícios.
+- Mesma correção na seleção de exercícios dentro do Banco de Treinos (edição das fases/modelos).
+- Quando dois exercícios tiverem a mesma posição, o desempate continua por nome.
+- A busca por texto continua funcionando igual; só a ordem da lista muda.
 
 ## Detalhes técnicos
-- A cobrança existente já resolve a tokenização ativa mais recente de `rede_tokenizacoes` pelo `aluno_id` do link e valida o cartão associado como ativo.
-- A consulta reutilizada lê apenas campos mascarados de `cartoes_salvos`; as regras de acesso restringem o aluno aos próprios cartões.
-- O cartão exibido seguirá a mesma ordenação de `/portal/pagamentos`; a cobrança continuará usando a seleção atual do servidor.
-- Validar com o typecheck e conferir o estado final da compilação.
+
+- `src/components/student/workout/ExerciseSelector.tsx` (query `exercicios-bank-selector`): incluir `ordem` no `select` e trocar `.order("nome")` por `.order("ordem", { ascending: true }).order("nome", { ascending: true })` — mesmo critério já usado em `StudentExerciseBank.tsx:139-140`.
+- `src/pages/BancoTreinos.tsx` (query `exercicios-bank-templates`, ~linha 986): mesma alteração.
+- Nenhuma mudança de banco de dados, RLS ou lógica de filtro por categoria/subcategoria.
