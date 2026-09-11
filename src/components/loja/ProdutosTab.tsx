@@ -239,8 +239,32 @@ export function ProdutosTab() {
           <TableBody>
             {filtered.map((p) => {
               const r = resumo.get(p.id) || { qtd: 0, estoque: 0 };
+              const idx = produtos.findIndex((x) => x.id === p.id);
               return (
-                <TableRow key={p.id}>
+                <TableRow
+                  key={p.id}
+                  draggable={podeReordenar}
+                  onDragStart={() => {
+                    if (podeReordenar) dragIndex.current = idx;
+                  }}
+                  onDragOver={(e) => {
+                    if (podeReordenar) e.preventDefault();
+                  }}
+                  onDrop={(e) => {
+                    if (!podeReordenar) return;
+                    e.preventDefault();
+                    handleDrop(idx);
+                  }}
+                >
+                  <TableCell className="w-[40px]">
+                    <GripVertical
+                      className={
+                        podeReordenar
+                          ? "w-4 h-4 text-muted-foreground cursor-grab active:cursor-grabbing"
+                          : "w-4 h-4 text-muted-foreground/30"
+                      }
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{p.nome}</TableCell>
                   <TableCell>{p.categoria || "—"}</TableCell>
                   <TableCell>{formatBRL(Number(p.preco_base))}</TableCell>
