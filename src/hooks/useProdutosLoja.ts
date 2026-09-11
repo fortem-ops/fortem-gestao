@@ -7,7 +7,7 @@ import type {
 } from "@/integrations/store/types";
 
 const PRODUTO_COLS =
-  "id,nome,descricao,categoria,preco_base,imagem_url,ativo,permite_encomenda,created_at";
+  "id,nome,descricao,categoria,preco_base,imagem_url,ativo,permite_encomenda,created_at,ordem";
 const VARIANTE_COLS =
   "id,produto_id,tamanho,cor,cor_hex,preco,estoque_atual,imagem_url,ativo,sku";
 
@@ -19,6 +19,7 @@ export const useProdutosLoja = () =>
         .from("produtos_catalogo")
         .select(PRODUTO_COLS)
         .eq("ativo", true)
+        .order("ordem", { ascending: true })
         .order("created_at", { ascending: false });
       if (error) throw error;
 
