@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
     const parcelas = Math.max(1, Number(body?.parcelas ?? 1));
     const idempotencyKey = String(body?.idempotency_key ?? "").trim() || null;
     const alunoIdBody = String(body?.aluno_id ?? "").trim() || null;
+    const cupomCodigo = String(body?.cupom_codigo ?? "").trim().toUpperCase() || null;
 
     let nome = String(dp?.nome ?? "").trim();
     let cpfDigits = String(dp?.cpf ?? "").replace(/\D/g, "");
@@ -113,6 +114,7 @@ Deno.serve(async (req) => {
         aluno_id: alunoId,
         dadosPessoais: { nome, cpf: cpfDigits, telefone, email },
         itens: itensNormalizados,
+        cupom_codigo: cupomCodigo,
       },
     });
 
@@ -131,6 +133,27 @@ Deno.serve(async (req) => {
     }
 
     const pedidoId = r.pedido_id as string;
+
+    if (r.status === "pago") {
+      try {
+        await admin.rpc("fn_loja_vincular_aluno", { p_pedido_id: pedidoId });
+        await admin.functions.invoke("loja-enviar-confirmacao-email", {
+          body: { pedido_id: pedidoId },
+        });
+      } catch (error) {
+        console.error("[loja-criar-pedido] pós-confirmação do cupom:", String(error));
+      }
+      return json(200, {
+        ok: true,
+        reused: Boolean(r.reused),
+        pedido_id: pedidoId,
+        valor_final: Number(r.valor_final ?? 0),
+        desconto: Number(r.desconto ?? 0),
+        status: "pago",
+        parcelas,
+        cartao_token: null,
+      });
+    }
 
     // ---------- 2. cadastro-base do comprador (necessário para tokenizar o cartão) ----------
     const cpfHash = await sha256Hex(cpfDigits);
@@ -188,6 +211,8 @@ Deno.serve(async (req) => {
       reused: Boolean(r.reused),
       pedido_id: pedidoId,
       valor_final: Number(r.valor_final ?? 0),
+      desconto: Number(r.desconto ?? 0),
+      status: String(r.status ?? "aguardando_pagamento"),
       parcelas,
       cartao_token: cartaoToken,
     });

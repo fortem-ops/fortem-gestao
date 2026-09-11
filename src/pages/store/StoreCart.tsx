@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ImageOff, Minus, Plus, Trash2 } from "lucide-react";
+import { Check, ImageOff, Loader2, Minus, Plus, Trash2, X } from "lucide-react";
 import StoreHeader from "@/components/store/StoreHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,10 +12,30 @@ import { formatBRL } from "@/integrations/store/types";
 import CheckoutFlow, { PEDIDO_PAGO_KEY } from "@/components/store/CheckoutFlow";
 import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
+import { supabase } from "@/integrations/supabase/client";
+
+type CupomAplicado = {
+  codigo: string;
+  desconto: number;
+  valor_final: number;
+};
+
+const mensagemCupom = (erro?: string) => {
+  const mensagens: Record<string, string> = {
+    cupom_invalido: "Cupom não encontrado.",
+    cupom_inativo: "Este cupom não está ativo.",
+    cupom_ainda_nao_valido: "Este cupom ainda não está válido.",
+    cupom_expirado: "Este cupom expirou.",
+    cupom_esgotado: "O limite de uso deste cupom foi atingido.",
+  };
+  return mensagens[erro ?? ""] ?? "Não foi possível validar o cupom agora.";
+};
 
 const StoreCart = () => {
   const { items, subtotal, updateQuantity, removeItem } = useCartLoja();
   const [cupom, setCupom] = useState("");
+  const [cupomAplicado, setCupomAplicado] = useState<CupomAplicado | null>(null);
+  const [validandoCupom, setValidandoCupom] = useState(false);
   // Se houve pagamento aprovado nesta sessão, retoma o checkout (tela de
   // sucesso) mesmo depois de um recarregamento da página.
   const [checkout, setCheckout] = useState(() => {
@@ -38,6 +58,32 @@ const StoreCart = () => {
     if (!checkout) sessionStorage.removeItem("fortem-loja-idempotency");
   }, [checkout]);
 
+  useEffect(() => {
+    setCupomAplicado(null);
+  }, [subtotal]);
+
+  const aplicarCupom = async () => {
+    const codigo = cupom.trim().toUpperCase();
+    if (!codigo) return;
+    setValidandoCupom(true);
+    const { data, error } = await supabase.functions.invoke("loja-validar-cupom", {
+      body: { codigo, subtotal },
+    });
+    setValidandoCupom(false);
+    if (error || data?.ok !== true) {
+      setCupomAplicado(null);
+      toast.error(mensagemCupom(data?.error));
+      return;
+    }
+    setCupomAplicado({
+      codigo: String(data.codigo ?? codigo),
+      desconto: Number(data.desconto ?? 0),
+      valor_final: Number(data.valor_final ?? subtotal),
+    });
+    setCupom(String(data.codigo ?? codigo));
+    toast.success("Cupom aplicado");
+  };
+
   return (
     <div className={`min-h-screen pb-28 sm:pb-10 ${palette.bg} ${palette.text}`}>
       {!hideHeader && <StoreHeader backTo={basePath} title="Carrinho" />}
@@ -51,6 +97,9 @@ const StoreCart = () => {
           <CheckoutFlow
             items={items}
             subtotal={subtotal}
+            cupomCodigo={cupomAplicado?.codigo ?? null}
+            desconto={cupomAplicado?.desconto ?? 0}
+            total={cupomAplicado?.valor_final ?? subtotal}
             onBackToCart={() => setCheckout(false)}
           />
         ) : items.length === 0 ? (
@@ -166,6 +215,7 @@ const StoreCart = () => {
                 <Input
                   value={cupom}
                   onChange={(e) => setCupom(e.target.value.toUpperCase())}
+                  disabled={!!cupomAplicado}
                   placeholder="Digite seu cupom"
                   aria-label="Cupom de desconto"
                   className={palette.input}
@@ -173,16 +223,28 @@ const StoreCart = () => {
                 <Button
                   variant="outline"
                   className={palette.card}
-                  onClick={() =>
-                    toast.info("Validação de cupom disponível em breve.")
-                  }
+                  disabled={validandoCupom || (!cupom.trim() && !cupomAplicado)}
+                  onClick={() => {
+                    if (cupomAplicado) {
+                      setCupomAplicado(null);
+                      setCupom("");
+                      return;
+                    }
+                    void aplicarCupom();
+                  }}
                 >
-                  Aplicar
+                  {validandoCupom ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : cupomAplicado ? (
+                    <><X className="mr-2 h-4 w-4" /> Remover</>
+                  ) : "Aplicar"}
                 </Button>
               </div>
-              <p className={`mt-2 text-xs ${palette.muted}`}>
-                A validação de cupons entra no ar em breve.
-              </p>
+              {cupomAplicado && (
+                <p className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
+                  <Check className="h-3.5 w-3.5" /> {cupomAplicado.codigo} aplicado
+                </p>
+              )}
 
               <Separator className={`my-4 ${separatorBg}`} />
 
@@ -192,6 +254,18 @@ const StoreCart = () => {
                   {formatBRL(subtotal)}
                 </span>
               </div>
+              {cupomAplicado && (
+                <>
+                  <div className="mt-2 flex items-center justify-between text-sm text-primary">
+                    <span>Desconto</span>
+                    <span>- {formatBRL(cupomAplicado.desconto)}</span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-sm font-semibold">Total</span>
+                    <span className="font-display text-xl font-black">{formatBRL(cupomAplicado.valor_final)}</span>
+                  </div>
+                </>
+              )}
 
               <div className="mt-4 hidden sm:block">
                 <Button
@@ -214,7 +288,7 @@ const StoreCart = () => {
           <div className="mb-2 flex items-center justify-between">
             <span className={`text-xs ${palette.muted}`}>Subtotal</span>
             <span className="font-display text-lg font-black">
-              {formatBRL(subtotal)}
+              {formatBRL(cupomAplicado?.valor_final ?? subtotal)}
             </span>
           </div>
           <Button size="lg" className="w-full" onClick={() => setCheckout(true)}>

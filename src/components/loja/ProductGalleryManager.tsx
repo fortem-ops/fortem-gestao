@@ -37,7 +37,7 @@ export function ProductGalleryManager({ produtoId, cor = null, onPrincipalChange
     queryFn: async () => {
       let query = (supabase as any)
         .from("produtos_imagens")
-        .select("id,produto_id,cor,imagem_url,legenda,ordem,principal")
+        .select("id,produto_id,cor,imagem_url,legenda,ordem,principal,created_at")
         .eq("produto_id", produtoId);
       query = cor ? query.eq("cor", cor) : query.is("cor", null);
       const { data, error } = await query.order("ordem").order("created_at");
@@ -96,7 +96,14 @@ export function ProductGalleryManager({ produtoId, cor = null, onPrincipalChange
       if (error) throw error;
       if (imagem.principal) {
         const seguinte = imagens.find((item) => item.id !== imagem.id);
-        if (seguinte) await setPrincipal.mutateAsync(seguinte);
+        if (seguinte) {
+          const { error: principalError } = await (supabase as any)
+            .from("produtos_imagens")
+            .update({ principal: true })
+            .eq("id", seguinte.id);
+          if (principalError) throw principalError;
+          onPrincipalChange?.(seguinte.imagem_url);
+        }
       }
     },
     onSuccess: () => {
