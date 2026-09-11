@@ -99,14 +99,36 @@ export function ProdutosTab() {
         const { error } = await (supabase as any).from("produtos_catalogo").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any).from("produtos_catalogo").insert(payload);
+        const maxOrdem = produtos.reduce((m, p) => Math.max(m, Number(p.ordem ?? 0)), 0);
+        const { error } = await (supabase as any)
+          .from("produtos_catalogo")
+          .insert({ ...payload, ordem: maxOrdem + 10 });
         if (error) throw error;
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["loja-produtos"] });
+      qc.invalidateQueries({ queryKey: ["loja", "produtos"] });
       toast.success(editing ? "Produto atualizado" : "Produto criado");
       close();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const reorder = useMutation({
+    mutationFn: async (lista: Produto[]) => {
+      for (let i = 0; i < lista.length; i++) {
+        const { error } = await (supabase as any)
+          .from("produtos_catalogo")
+          .update({ ordem: (i + 1) * 10 })
+          .eq("id", lista[i].id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["loja-produtos"] });
+      qc.invalidateQueries({ queryKey: ["loja", "produtos"] });
+      toast.success("Ordem atualizada");
     },
     onError: (e: any) => toast.error(e.message),
   });
