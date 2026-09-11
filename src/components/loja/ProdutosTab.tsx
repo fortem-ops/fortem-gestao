@@ -42,11 +42,16 @@ export function ProdutosTab() {
   const [variantesDe, setVariantesDe] = useState<Produto | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const temporaryProductId = useRef(crypto.randomUUID());
+  const dragIndex = useRef<number | null>(null);
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["loja-produtos"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("produtos_catalogo").select("*").order("nome");
+      const { data, error } = await (supabase as any)
+        .from("produtos_catalogo")
+        .select("*")
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
       if (error) throw error;
       return (data || []) as Produto[];
     },
