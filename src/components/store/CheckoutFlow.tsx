@@ -119,10 +119,13 @@ interface PixData {
 interface Props {
   items: CartItem[];
   subtotal: number;
+  cupomCodigo?: string | null;
+  desconto?: number;
+  total?: number;
   onBackToCart: () => void;
 }
 
-const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
+const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total = subtotal, onBackToCart }: Props) => {
   const { clear } = useCartLoja();
   const { theme } = useStoreTheme();
   const { basePath, forcedTheme } = useStoreScope();
@@ -236,6 +239,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
                   email: dados.email.trim(),
                 },
             parcelas: PARCELAS,
+            cupom_codigo: cupomCodigo,
             idempotency_key: getIdempotencyKey(),
           },
         }
@@ -260,10 +264,16 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
 
       setPedidoId(data.pedido_id);
       setPedidoNumero(data.pedido_id);
+      if (data.status === "pago") {
+        sessionStorage.removeItem(IDEMPOTENCY_KEY);
+        sessionStorage.setItem(PEDIDO_PAGO_KEY, data.pedido_id);
+        clear();
+        setStep("sucesso");
+      }
       cartaoTokenRef.current = data.cartao_token ?? null;
       return data.pedido_id as string;
     }
-  }, [items, dados, aluno, voltarParaCarrinho, pedidoId]);
+  }, [items, dados, aluno, voltarParaCarrinho, pedidoId, cupomCodigo, clear]);
 
   const gerarPix = useCallback(
     async (id: string) => {
@@ -304,12 +314,14 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
       if (metodo === "pix") {
         const id = await garantirPedido();
         if (!id) return;
+        if (lerPedidoPago() === id) return;
         await gerarPix(id);
       } else if (aluno) {
         setStep(cartaoSalvo ? "cartao-salvo" : "cartao-opcoes");
       } else {
         const id = await garantirPedido();
         if (!id) return;
+        if (lerPedidoPago() === id) return;
         setStep("cartao");
       }
     } catch (e) {
@@ -326,6 +338,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
     try {
       const id = await garantirPedido();
       if (!id) return;
+      if (lerPedidoPago() === id) return;
       setStep("cartao");
     } catch (e) {
       setErro(friendlyMessage(e instanceof Error ? e.message : null));
@@ -607,7 +620,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
             <div className="mt-4 flex items-center justify-between">
               <span className={`text-sm ${palette.muted}`}>Total</span>
               <span className="font-display text-xl font-black">
-                {formatBRL(subtotal)}
+                 {formatBRL(total)}
               </span>
             </div>
           </>
@@ -837,8 +850,11 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
 
       <div className="mt-4 flex items-center justify-between">
         <span className={`text-sm ${palette.muted}`}>Total</span>
-        <span className="font-display text-xl font-black">{formatBRL(subtotal)}</span>
+        <span className="font-display text-xl font-black">{formatBRL(total)}</span>
       </div>
+      {desconto > 0 && (
+        <p className="mt-1 text-right text-xs text-primary">Cupom: - {formatBRL(desconto)}</p>
+      )}
 
       {step !== "cartao-opcoes" && (
         <Button
@@ -866,7 +882,7 @@ const CheckoutFlow = ({ items, subtotal, onBackToCart }: Props) => {
           ) : (
             <>
               <CreditCard className="mr-2 h-4 w-4" />
-              Pagar {formatBRL(subtotal)}
+               Pagar {formatBRL(total)}
             </>
           )}
         </Button>

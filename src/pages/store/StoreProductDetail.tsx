@@ -14,6 +14,7 @@ import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import {
   formatBRL,
+  imagensDoProduto,
   precoDaVariante,
   type ProdutoVariante,
 } from "@/integrations/store/types";
@@ -32,6 +33,7 @@ const StoreProductDetail = () => {
   const [tamanho, setTamanho] = useState<string | null>(null);
   const [cor, setCor] = useState<string | null>(null);
   const [quantidade, setQuantidade] = useState(1);
+  const [imagemAtiva, setImagemAtiva] = useState<string | null>(null);
 
   const variantes = produto?.variantes ?? [];
   const tamanhos = useMemo(
@@ -43,13 +45,21 @@ const StoreProductDetail = () => {
     [variantes]
   );
 
-  const imagemPrincipal = useMemo(() => {
-    if (!cor) return produto?.imagem_url ?? null;
-    const varianteComImagem = variantes.find(
-      (v) => v.cor === cor && v.imagem_url
-    );
-    return varianteComImagem?.imagem_url ?? produto?.imagem_url ?? null;
-  }, [cor, variantes, produto?.imagem_url]);
+  const imagens = useMemo(() => {
+    if (!produto) return [];
+    const galeria = imagensDoProduto(produto, cor);
+    if (galeria.length) return galeria;
+    const varianteUrl = cor
+      ? variantes.find((v) => v.cor === cor && v.imagem_url)?.imagem_url
+      : null;
+    const fallback = varianteUrl ?? produto.imagem_url;
+    return fallback
+      ? [{ id: fallback, imagem_url: fallback, legenda: null, principal: true }]
+      : [];
+  }, [cor, variantes, produto]);
+  const imagemPrincipal = imagemAtiva && imagens.some((imagem) => imagem.imagem_url === imagemAtiva)
+    ? imagemAtiva
+    : imagens[0]?.imagem_url ?? null;
 
   const temEstoque = (v: ProdutoVariante) =>
     Number(v.estoque_atual ?? 0) > 0 || produto?.permite_encomenda === true;
@@ -139,8 +149,6 @@ const StoreProductDetail = () => {
     );
   }
 
-  const imagens = imagemPrincipal ? [imagemPrincipal] : [];
-
   return (
     <div className={`min-h-screen pb-28 sm:pb-8 ${palette.bg} ${palette.text}`}>
       {!hideHeader && <StoreHeader backTo={basePath} />}
@@ -164,9 +172,9 @@ const StoreProductDetail = () => {
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
             <div className={`relative aspect-[4/3] overflow-hidden rounded-2xl ${palette.surface}`}>
-              {imagens.length ? (
+              {imagemPrincipal ? (
                 <img
-                  src={imagens[0]}
+                  src={imagemPrincipal}
                   alt={produto.nome}
                   className="h-full w-full object-contain"
                 />
@@ -188,13 +196,21 @@ const StoreProductDetail = () => {
             </div>
             {imagens.length > 1 && (
               <div className="mt-3 flex gap-2 overflow-x-auto">
-                {imagens.map((src) => (
-                  <img
-                    key={src}
-                    src={src}
-                    alt={produto.nome}
-                    className="h-16 w-16 shrink-0 rounded-lg object-cover"
-                  />
+                {imagens.map((imagem) => (
+                  <Button
+                    key={imagem.id}
+                    type="button"
+                    variant="outline"
+                    className={`h-20 w-20 shrink-0 overflow-hidden p-1 ${imagem.imagem_url === imagemPrincipal ? "ring-2 ring-primary" : palette.card}`}
+                    onClick={() => setImagemAtiva(imagem.imagem_url)}
+                    aria-label={`Ver ${imagem.legenda || "imagem do produto"}`}
+                  >
+                    <img
+                      src={imagem.imagem_url}
+                      alt={imagem.legenda ? `${produto.nome} — ${imagem.legenda}` : produto.nome}
+                      className="h-full w-full object-contain"
+                    />
+                  </Button>
                 ))}
               </div>
             )}

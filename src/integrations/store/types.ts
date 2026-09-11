@@ -11,6 +11,16 @@ export interface ProdutoCatalogo {
   ordem?: number | null;
 }
 
+export interface ProdutoImagem {
+  id: string;
+  produto_id: string;
+  cor: string | null;
+  imagem_url: string;
+  legenda: string | null;
+  ordem: number;
+  principal: boolean;
+}
+
 export interface ProdutoVariante {
   id: string;
   produto_id: string;
@@ -26,7 +36,26 @@ export interface ProdutoVariante {
 
 export interface ProdutoComVariantes extends ProdutoCatalogo {
   variantes: ProdutoVariante[];
+  imagens: ProdutoImagem[];
 }
+
+export const imagensDoProduto = (
+  produto: ProdutoComVariantes,
+  cor?: string | null,
+): ProdutoImagem[] => {
+  const especificas = cor
+    ? produto.imagens.filter((imagem) => imagem.cor?.toLowerCase() === cor.toLowerCase())
+    : [];
+  const gerais = produto.imagens.filter((imagem) => !imagem.cor);
+  return (especificas.length ? especificas : gerais).sort(
+    (a, b) => Number(b.principal) - Number(a.principal) || a.ordem - b.ordem,
+  );
+};
+
+export const imagemPrincipalProduto = (
+  produto: ProdutoComVariantes,
+  cor?: string | null,
+): string | null => imagensDoProduto(produto, cor)[0]?.imagem_url ?? produto.imagem_url;
 
 export const precoDaVariante = (
   produto: Pick<ProdutoCatalogo, "preco_base">,

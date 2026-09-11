@@ -15,6 +15,7 @@ import { Search, Plus, Pencil, Trash2, Boxes, GripVertical } from "lucide-react"
 import { formatBRL } from "@/lib/vendas";
 import { VariantesDialog } from "./VariantesDialog";
 import { ProductImageUpload } from "./ProductImageUpload";
+import { ProductGalleryManager } from "./ProductGalleryManager";
 
 export type Produto = {
   id: string;
@@ -351,12 +352,18 @@ export function ProdutosTab() {
               </div>
             </div>
             <ProductImageUpload
-              label="Imagem do produto"
+              label="Imagem principal"
               value={form.imagem_url}
               pathPrefix={`produtos/${editing?.id || temporaryProductId.current}`}
               onChange={(imagem_url) => setForm((current) => ({ ...current, imagem_url }))}
               onUploadingChange={setUploadingImage}
             />
+            {editing && (
+              <ProductGalleryManager
+                produtoId={editing.id}
+                onPrincipalChange={(imagem_url) => setForm((current) => ({ ...current, imagem_url }))}
+              />
+            )}
             <div className="flex items-center gap-2">
               <Switch checked={form.ativo} onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
               <Label>Ativo</Label>

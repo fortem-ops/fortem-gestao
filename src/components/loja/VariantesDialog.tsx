@@ -14,6 +14,7 @@ import { Plus, Trash2, History, ArrowLeftRight, Pencil } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import type { Produto } from "./ProdutosTab";
 import { ProductImageUpload } from "./ProductImageUpload";
+import { ProductGalleryManager } from "./ProductGalleryManager";
 
 type Variante = {
   id: string;
@@ -321,7 +322,8 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
               </div>
             </div>
             {form.cor.trim() && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <ProductImageUpload
                   label="Imagem desta cor"
                   value={form.imagem_url}
@@ -352,6 +354,12 @@ export function VariantesDialog({ produto, open, onClose }: { produto: Produto; 
                     />
                   </div>
                 </div>
+                </div>
+                <ProductGalleryManager
+                  produtoId={produto.id}
+                  cor={form.cor.trim()}
+                  onPrincipalChange={(imagem_url) => setForm((current) => ({ ...current, imagem_url }))}
+                />
               </div>
             )}
             <div className="flex items-center justify-between">
