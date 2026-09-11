@@ -8,6 +8,7 @@ export interface ProdutoCatalogo {
   ativo: boolean | null;
   permite_encomenda: boolean | null;
   created_at: string | null;
+  ordem?: number | null;
 }
 
 export interface ProdutoVariante {

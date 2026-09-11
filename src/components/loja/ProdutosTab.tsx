@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2, Boxes } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Boxes, GripVertical } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import { VariantesDialog } from "./VariantesDialog";
 import { ProductImageUpload } from "./ProductImageUpload";
@@ -25,6 +25,7 @@ export type Produto = {
   preco_base: number;
   ativo: boolean;
   permite_encomenda: boolean;
+  ordem: number | null;
 };
 
 type Variante = { id: string; produto_id: string; estoque_atual: number; ativo: boolean };
@@ -41,11 +42,16 @@ export function ProdutosTab() {
   const [variantesDe, setVariantesDe] = useState<Produto | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const temporaryProductId = useRef(crypto.randomUUID());
+  const dragIndex = useRef<number | null>(null);
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["loja-produtos"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("produtos_catalogo").select("*").order("nome");
+      const { data, error } = await (supabase as any)
+        .from("produtos_catalogo")
+        .select("*")
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
       if (error) throw error;
       return (data || []) as Produto[];
     },
@@ -93,14 +99,36 @@ export function ProdutosTab() {
         const { error } = await (supabase as any).from("produtos_catalogo").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any).from("produtos_catalogo").insert(payload);
+        const maxOrdem = produtos.reduce((m, p) => Math.max(m, Number(p.ordem ?? 0)), 0);
+        const { error } = await (supabase as any)
+          .from("produtos_catalogo")
+          .insert({ ...payload, ordem: maxOrdem + 10 });
         if (error) throw error;
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["loja-produtos"] });
+      qc.invalidateQueries({ queryKey: ["loja", "produtos"] });
       toast.success(editing ? "Produto atualizado" : "Produto criado");
       close();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const reorder = useMutation({
+    mutationFn: async (lista: Produto[]) => {
+      for (let i = 0; i < lista.length; i++) {
+        const { error } = await (supabase as any)
+          .from("produtos_catalogo")
+          .update({ ordem: (i + 1) * 10 })
+          .eq("id", lista[i].id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["loja-produtos"] });
+      qc.invalidateQueries({ queryKey: ["loja", "produtos"] });
+      toast.success("Ordem atualizada");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -146,6 +174,18 @@ export function ProdutosTab() {
       (categoria === "todas" || p.categoria === categoria),
   );
 
+  const podeReordenar = !search.trim() && categoria === "todas";
+
+  function handleDrop(destino: number) {
+    const origem = dragIndex.current;
+    dragIndex.current = null;
+    if (origem === null || origem === destino) return;
+    const lista = [...produtos];
+    const [mov] = lista.splice(origem, 1);
+    lista.splice(destino, 0, mov);
+    reorder.mutate(lista);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -186,6 +226,7 @@ export function ProdutosTab() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]" />
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Preço base</TableHead>
@@ -198,8 +239,32 @@ export function ProdutosTab() {
           <TableBody>
             {filtered.map((p) => {
               const r = resumo.get(p.id) || { qtd: 0, estoque: 0 };
+              const idx = produtos.findIndex((x) => x.id === p.id);
               return (
-                <TableRow key={p.id}>
+                <TableRow
+                  key={p.id}
+                  draggable={podeReordenar}
+                  onDragStart={() => {
+                    if (podeReordenar) dragIndex.current = idx;
+                  }}
+                  onDragOver={(e) => {
+                    if (podeReordenar) e.preventDefault();
+                  }}
+                  onDrop={(e) => {
+                    if (!podeReordenar) return;
+                    e.preventDefault();
+                    handleDrop(idx);
+                  }}
+                >
+                  <TableCell className="w-[40px]">
+                    <GripVertical
+                      className={
+                        podeReordenar
+                          ? "w-4 h-4 text-muted-foreground cursor-grab active:cursor-grabbing"
+                          : "w-4 h-4 text-muted-foreground/30"
+                      }
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{p.nome}</TableCell>
                   <TableCell>{p.categoria || "—"}</TableCell>
                   <TableCell>{formatBRL(Number(p.preco_base))}</TableCell>
@@ -237,7 +302,7 @@ export function ProdutosTab() {
             })}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhum produto
                 </TableCell>
               </TableRow>
