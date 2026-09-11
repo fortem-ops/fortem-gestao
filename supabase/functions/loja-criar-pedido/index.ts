@@ -136,10 +136,12 @@ Deno.serve(async (req) => {
 
     if (r.status === "pago") {
       try {
-        await admin.rpc("fn_loja_vincular_aluno", { p_pedido_id: pedidoId });
-        await admin.functions.invoke("loja-enviar-confirmacao-email", {
-          body: { pedido_id: pedidoId },
-        });
+        if (!r.reused) {
+          await admin.rpc("fn_loja_vincular_aluno", { p_pedido_id: pedidoId });
+          await admin.functions.invoke("loja-enviar-confirmacao-email", {
+            body: { pedido_id: pedidoId },
+          });
+        }
       } catch (error) {
         console.error("[loja-criar-pedido] pós-confirmação do cupom:", String(error));
       }
