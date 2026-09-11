@@ -48,11 +48,30 @@ const StoreProductDetail = () => {
   const imagens = useMemo(() => {
     if (!produto) return [];
     const galeria = imagensDoProduto(produto, cor);
-    if (galeria.length) return galeria;
-    const varianteUrl = cor
-      ? variantes.find((v) => v.cor === cor && v.imagem_url)?.imagem_url
+    const normalizarCor = (valor?: string | null) => valor?.trim().toLocaleLowerCase("pt-BR") ?? "";
+    const corNormalizada = normalizarCor(cor);
+    const varianteDaCor = cor
+      ? variantes.find((v) => normalizarCor(v.cor) === corNormalizada && v.imagem_url)
       : null;
-    const fallback = varianteUrl ?? produto.imagem_url;
+    const temGaleriaDaCor = cor
+      ? produto.imagens.some((imagem) => normalizarCor(imagem.cor) === corNormalizada)
+      : false;
+
+    if (temGaleriaDaCor || !varianteDaCor?.imagem_url) {
+      if (galeria.length) return galeria;
+    } else {
+      return [
+        {
+          id: `variante-${varianteDaCor.id}`,
+          imagem_url: varianteDaCor.imagem_url,
+          legenda: `Cor ${cor}`,
+          principal: true,
+        },
+        ...galeria.filter((imagem) => imagem.imagem_url !== varianteDaCor.imagem_url),
+      ];
+    }
+
+    const fallback = produto.imagem_url;
     return fallback
       ? [{ id: fallback, imagem_url: fallback, legenda: null, principal: true }]
       : [];
