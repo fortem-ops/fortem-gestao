@@ -988,8 +988,9 @@ export default function BancoTreinos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exercicios_personalizados")
-        .select("id, nome, grupos, video_url, video_path")
-        .order("nome");
+        .select("id, nome, grupos, video_url, video_path, ordem")
+        .order("ordem", { ascending: true })
+        .order("nome", { ascending: true });
       if (error) throw error;
       return (data || []).map((r) => ({
         id: r.id,
