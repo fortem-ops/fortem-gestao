@@ -25,10 +25,11 @@ export default function AdminPonto() {
   const { user, loading } = useAuth();
   const [profId, setProfId] = useState<string>("todos");
 
-  const { data: isAdmin, isLoading: checking } = useQuery({
+  const { data: hasAccess, isLoading: checking } = useQuery({
     queryKey: ["admin-ponto-access", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.rpc("is_admin", { _user_id: user!.id });
+      if (!user) return false;
+      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user.id });
       return !!data;
     },
     enabled: !!user,
@@ -36,12 +37,12 @@ export default function AdminPonto() {
 
   const { data: profissionais = [] } = useQuery({
     queryKey: ["admin-ponto-profs"],
-    enabled: !!isAdmin,
+    enabled: !!hasAccess,
     queryFn: async () => {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id, role")
-        .in("role", ["professor", "admin"]);
+        .in("role", ["professor", "coordenador", "admin"]);
       const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
       if (!ids.length) return [];
       const { data } = await supabase
@@ -55,8 +56,8 @@ export default function AdminPonto() {
 
   if (loading || checking) return <Skeleton className="h-64" />;
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin) {
-    return <Card className="p-10 text-center text-muted-foreground">Acesso restrito a administradores.</Card>;
+  if (!hasAccess) {
+    return <Card className="p-10 text-center text-muted-foreground">Acesso restrito a coordenadores e administradores.</Card>;
   }
 
   return (
