@@ -9,6 +9,7 @@ import {
   estoqueTotal,
   formatBRL,
   menorPreco,
+  imagemPrincipalProduto,
   type ProdutoComVariantes,
 } from "@/integrations/store/types";
 
@@ -20,6 +21,7 @@ const ProductCard = ({ produto }: { produto: ProdutoComVariantes }) => {
   const encomenda = estoqueZerado && produto.permite_encomenda === true;
   const esgotado = estoqueZerado && !encomenda;
   const preco = menorPreco(produto);
+  const imagemPrincipal = imagemPrincipalProduto(produto);
 
   const coresDistintas = useMemo(() => {
     const map = new Map<string, string>();
@@ -39,9 +41,9 @@ const ProductCard = ({ produto }: { produto: ProdutoComVariantes }) => {
         className={`h-full overflow-hidden rounded-2xl transition-shadow group-hover:shadow-lg ${palette.card}`}
       >
         <div className={`relative aspect-[4/3] overflow-hidden ${palette.surface}`}>
-          {produto.imagem_url ? (
+          {imagemPrincipal ? (
             <img
-              src={produto.imagem_url}
+              src={imagemPrincipal}
               alt={produto.nome}
               loading="lazy"
               className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"

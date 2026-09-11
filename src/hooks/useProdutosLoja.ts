@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type {
   ProdutoCatalogo,
   ProdutoComVariantes,
+  ProdutoImagem,
   ProdutoVariante,
 } from "@/integrations/store/types";
 
@@ -10,6 +11,17 @@ const PRODUTO_COLS =
   "id,nome,descricao,categoria,preco_base,imagem_url,ativo,permite_encomenda,created_at,ordem";
 const VARIANTE_COLS =
   "id,produto_id,tamanho,cor,cor_hex,preco,estoque_atual,imagem_url,ativo,sku";
+const IMAGEM_COLS = "id,produto_id,cor,imagem_url,legenda,ordem,principal";
+
+const carregarImagens = async (produtoIds: string[]) => {
+  const { data, error } = await (supabase as any)
+    .from("produtos_imagens")
+    .select(IMAGEM_COLS)
+    .in("produto_id", produtoIds)
+    .order("ordem", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ProdutoImagem[];
+};
 
 export const useProdutosLoja = () =>
   useQuery<ProdutoComVariantes[]>({
@@ -26,14 +38,15 @@ export const useProdutosLoja = () =>
       const lista = (produtos ?? []) as ProdutoCatalogo[];
       if (!lista.length) return [];
 
-      const { data: variantes, error: errVar } = await (supabase as any)
-        .from("produtos_variantes")
-        .select(VARIANTE_COLS)
-        .eq("ativo", true)
-        .in(
-          "produto_id",
-          lista.map((p) => p.id)
-        );
+      const ids = lista.map((p) => p.id);
+      const [{ data: variantes, error: errVar }, imagens] = await Promise.all([
+        (supabase as any)
+          .from("produtos_variantes")
+          .select(VARIANTE_COLS)
+          .eq("ativo", true)
+          .in("produto_id", ids),
+        carregarImagens(ids),
+      ]);
       if (errVar) throw errVar;
 
       const porProduto = new Map<string, ProdutoVariante[]>();
@@ -46,6 +59,7 @@ export const useProdutosLoja = () =>
       return lista.map((p) => ({
         ...p,
         variantes: porProduto.get(p.id) ?? [],
+        imagens: imagens.filter((imagem) => imagem.produto_id === p.id),
       }));
     },
   });
@@ -64,16 +78,21 @@ export const useProdutoLoja = (produtoId?: string) =>
       if (error) throw error;
       if (!produto) return null;
 
-      const { data: variantes, error: errVar } = await (supabase as any)
-        .from("produtos_variantes")
-        .select(VARIANTE_COLS)
-        .eq("produto_id", produtoId!)
-        .eq("ativo", true);
+      if (!produtoId) return null;
+      const [{ data: variantes, error: errVar }, imagens] = await Promise.all([
+        (supabase as any)
+          .from("produtos_variantes")
+          .select(VARIANTE_COLS)
+          .eq("produto_id", produtoId)
+          .eq("ativo", true),
+        carregarImagens([produtoId]),
+      ]);
       if (errVar) throw errVar;
 
       return {
         ...(produto as ProdutoCatalogo),
         variantes: (variantes ?? []) as ProdutoVariante[],
+        imagens,
       };
     },
   });
