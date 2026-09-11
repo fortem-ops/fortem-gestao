@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Plus, Pencil, Trash2, Boxes } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Boxes, GripVertical } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import { VariantesDialog } from "./VariantesDialog";
 import { ProductImageUpload } from "./ProductImageUpload";
@@ -25,6 +25,7 @@ export type Produto = {
   preco_base: number;
   ativo: boolean;
   permite_encomenda: boolean;
+  ordem: number | null;
 };
 
 type Variante = { id: string; produto_id: string; estoque_atual: number; ativo: boolean };
