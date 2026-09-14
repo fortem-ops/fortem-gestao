@@ -378,8 +378,8 @@ export function EncomendasTab() {
               {excluindo ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
-      </AlertDialogContent>
+        </AlertDialogContent>
+
       </AlertDialog>
     </div>
   );
