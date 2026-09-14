@@ -60,6 +60,7 @@ type Linha = {
   cupom: string | null;
   brinde: string | null;
   data: string;
+  status: string;
 };
 
 const TODOS = "__todos__";
