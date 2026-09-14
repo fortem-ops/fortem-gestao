@@ -16,6 +16,10 @@
 3. Visibilidade: somente quando nenhum cupom estiver aplicado e a data estiver dentro da validade (até 27/09 23:59, horário de Brasília — mesma constante `CUPOM_20OFF_LIMITE` já usada na vitrine, extraída para um local compartilhado para não duplicar o valor).
 4. Quando o cupom 20OFF já estiver aplicado, o card some (o estado "aplicado" existente cobre a confirmação).
 
+## Mudança 3 — fotos dos brindes sem corte (garrafa)
+- Hoje as miniaturas dos brindes usam `object-cover` em caixa quadrada (banner em `BrindeBanner.tsx` e escolha no `CheckoutFlow.tsx`), o que corta a garrafa.
+- Trocar para `object-contain` com padding interno nas duas telas, mantendo o fundo e o arredondamento atuais, para mostrar o brinde inteiro.
+
 ## Não alterar
 - Filtros, rateio de valores, exclusão, agrupamento por modelo e demais telas da Loja permanecem como estão.
 
