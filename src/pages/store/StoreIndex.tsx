@@ -11,7 +11,7 @@ import { useProdutosLoja } from "@/hooks/useProdutosLoja";
 import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import BrindeBanner from "@/components/store/BrindeBanner";
-import { CUPOM_20OFF_LIMITE, cupom20Vigente } from "@/lib/lojaCupom";
+import { cupom20Vigente } from "@/lib/lojaCupom";
 
 const StoreIndex = () => {
   const { data: produtos, isLoading, isError } = useProdutosLoja();
@@ -22,7 +22,7 @@ const StoreIndex = () => {
   const { totalItems } = useCartLoja();
   const palette = storePalette(forcedTheme ?? theme);
   const navigate = useNavigate();
-  const cupom20Valido = Date.now() <= CUPOM_20OFF_LIMITE;
+  const cupom20Valido = cupom20Vigente();
 
   const aplicarCupom20 = () => {
     try {
