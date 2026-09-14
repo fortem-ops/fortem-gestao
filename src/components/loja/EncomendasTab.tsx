@@ -42,6 +42,7 @@ type PedidoRow = {
   desconto: number | null;
   valor_final: number | null;
   brinde_escolhido: string | null;
+  status: string;
   promocoes: { codigo: string | null } | null;
   pedido_itens: ItemRow[];
 };
