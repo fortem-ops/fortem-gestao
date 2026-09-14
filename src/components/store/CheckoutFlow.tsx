@@ -255,7 +255,8 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
                   telefone: onlyDigits(dados.telefone),
                   email: dados.email.trim(),
                 },
-            parcelas: PARCELAS,
+            parcelas,
+            brinde_escolhido: brindeDisponivel ? brindeEscolhido : null,
             cupom_codigo: cupomCodigo,
             idempotency_key: getIdempotencyKey(),
           },
@@ -290,7 +291,18 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       cartaoTokenRef.current = data.cartao_token ?? null;
       return data.pedido_id as string;
     }
-  }, [items, dados, aluno, voltarParaCarrinho, pedidoId, cupomCodigo, clear]);
+  }, [
+    items,
+    dados,
+    aluno,
+    voltarParaCarrinho,
+    pedidoId,
+    cupomCodigo,
+    clear,
+    parcelas,
+    brindeDisponivel,
+    brindeEscolhido,
+  ]);
 
   const gerarPix = useCallback(
     async (id: string) => {
@@ -470,7 +482,7 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       setStatusText("Processando o pagamento...");
       const { data: cobranca, error: erroCobranca } =
         await supabase.functions.invoke("loja-cobrar-pedido", {
-          body: { cartao_token: token, pedido_id: pedidoId, parcelas: PARCELAS },
+          body: { cartao_token: token, pedido_id: pedidoId, parcelas },
         });
       if (erroCobranca) throw new Error(erroCobranca.message);
       if (!cobranca?.success) {
@@ -513,7 +525,7 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
           body: {
             cartao_token: token,
             pedido_id: id,
-            parcelas: PARCELAS,
+            parcelas,
             cartao_salvo_id: cartaoSalvo?.id,
           },
         }
