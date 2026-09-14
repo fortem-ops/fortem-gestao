@@ -13,6 +13,12 @@ import CheckoutFlow, { PEDIDO_PAGO_KEY } from "@/components/store/CheckoutFlow";
 import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import { supabase } from "@/integrations/supabase/client";
+import BrindeBanner from "@/components/store/BrindeBanner";
+import {
+  parcelasMaximas,
+  proximaFaixaParcelamento,
+  valorParcela,
+} from "@/lib/lojaParcelamento";
 
 type CupomAplicado = {
   codigo: string;
