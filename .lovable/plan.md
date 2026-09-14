@@ -10,6 +10,12 @@
 3. Exibição: no menu da coluna Cliente (junto do badge do cupom), renderizar um badge "Brinde: {nome}" quando houver — mesmo padrão visual do badge de cupom (`variant="outline"`, texto pequeno), com ícone de presente (lucide `Gift`).
 4. Busca: incluir o nome do brinde no alvo da busca por texto, para localizar encomendas pelo brinde.
 
+## Mudança 2 — card do cupom 20OFF no carrinho (`StoreCart.tsx`)
+1. Dentro do card "Cupom de desconto", acima do campo de digitação, exibir um card/sugestão destacada: "20% OFF com o cupom 20OFF" com botão "Aplicar".
+2. O botão preenche "20OFF" e chama `aplicarCupom("20OFF")` diretamente (mesma lógica já usada pela faixa da vitrine).
+3. Visibilidade: somente quando nenhum cupom estiver aplicado e a data estiver dentro da validade (até 27/09 23:59, horário de Brasília — mesma constante `CUPOM_20OFF_LIMITE` já usada na vitrine, extraída para um local compartilhado para não duplicar o valor).
+4. Quando o cupom 20OFF já estiver aplicado, o card some (o estado "aplicado" existente cobre a confirmação).
+
 ## Não alterar
 - Filtros, rateio de valores, exclusão, agrupamento por modelo e demais telas da Loja permanecem como estão.
 
