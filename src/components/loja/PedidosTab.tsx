@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, PackageOpen, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Gift, PackageOpen, Trash2 } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
 
@@ -253,6 +253,16 @@ export function PedidosTab() {
                     </TableCell>
                     <TableCell className="text-sm">
                       {p.forma_pagamento ? labelFormaPagamento(p.forma_pagamento) : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {p.brinde_escolhido ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Gift className="w-3.5 h-3.5 text-primary" />
+                          {p.brinde_escolhido}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">{fmtData(p.created_at)}</TableCell>
                     <TableCell className="text-right">
