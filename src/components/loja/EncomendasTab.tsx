@@ -17,9 +17,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Gift, PackageOpen, Trash2, X } from "lucide-react";
+import { Gift, PackageOpen, RotateCcw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
+import { estornarPedido } from "@/lib/lojaEstorno";
 
 type ItemRow = {
   quantidade: number;
@@ -41,6 +42,7 @@ type PedidoRow = {
   desconto: number | null;
   valor_final: number | null;
   brinde_escolhido: string | null;
+  status: string;
   promocoes: { codigo: string | null } | null;
   pedido_itens: ItemRow[];
 };
@@ -58,6 +60,7 @@ type Linha = {
   cupom: string | null;
   brinde: string | null;
   data: string;
+  status: string;
 };
 
 const TODOS = "__todos__";
@@ -73,6 +76,8 @@ export function EncomendasTab() {
   const [recebimento, setRecebimento] = useState("todos");
   const [excluir, setExcluir] = useState<Linha | null>(null);
   const [excluindo, setExcluindo] = useState(false);
+  const [estornar, setEstornar] = useState<Linha | null>(null);
+  const [estornando, setEstornando] = useState(false);
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["loja-encomendas"],
@@ -80,10 +85,10 @@ export function EncomendasTab() {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(
-          "id, nome, created_at, valor_total, desconto, valor_final, brinde_escolhido, promocoes(codigo), pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
+          "id, nome, created_at, valor_total, desconto, valor_final, brinde_escolhido, status, promocoes(codigo), pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .eq("eh_encomenda", true)
-        .eq("status", "pago")
+        .in("status", ["pago", "estornado"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as PedidoRow[];
@@ -117,6 +122,7 @@ export function EncomendasTab() {
           cupom: p.promocoes?.codigo ?? null,
           brinde: p.brinde_escolhido ?? null,
           data: p.created_at,
+          status: p.status,
         });
       });
     }
@@ -193,6 +199,23 @@ export function EncomendasTab() {
       toast.error("Não foi possível excluir", { description: e.message });
     } finally {
       setExcluindo(false);
+    }
+  };
+
+  const confirmarEstorno = async () => {
+    if (!estornar) return;
+    setEstornando(true);
+    try {
+      await estornarPedido(estornar.pedidoId);
+      toast.success("Pedido estornado", { description: "O valor será devolvido ao cliente." });
+      qc.invalidateQueries({ queryKey: ["loja-encomendas"] });
+      qc.invalidateQueries({ queryKey: ["loja-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["compras-loja-aluno"] });
+      setEstornar(null);
+    } catch (e: any) {
+      toast.error("Não foi possível estornar", { description: e.message });
+    } finally {
+      setEstornando(false);
     }
   };
 
@@ -293,7 +316,7 @@ export function EncomendasTab() {
                 <TableHead className="text-right">Qtd.</TableHead>
                 <TableHead className="text-right">Valor dos itens</TableHead>
                 <TableHead className="text-right">Valor recebido</TableHead>
-                <TableHead className="w-10" />
+                <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -318,6 +341,11 @@ export function EncomendasTab() {
                               Brinde: {l.brinde}
                             </Badge>
                           )}
+                          {l.status === "estornado" && (
+                            <Badge variant="outline" className="ml-2 status-urgent text-[10px]">
+                              Estornado
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>{l.produto}</TableCell>
                         <TableCell>{l.cor}</TableCell>
@@ -328,7 +356,17 @@ export function EncomendasTab() {
                         <TableCell className="text-right">{l.quantidade}</TableCell>
                         <TableCell className="text-right text-muted-foreground">{formatBRL(l.valorItens)}</TableCell>
                         <TableCell className="text-right font-semibold">{formatBRL(l.valorRecebido)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right whitespace-nowrap">
+                          {l.status === "pago" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setEstornar(l)}
+                              title="Estornar pedido"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" onClick={() => setExcluir(l)} title="Excluir pedido">
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
@@ -389,6 +427,29 @@ export function EncomendasTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
 
+      </AlertDialog>
+
+      <AlertDialog open={!!estornar} onOpenChange={(o) => !o && setEstornar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Estornar pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja estornar este pedido? O valor será devolvido ao cliente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={estornando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarEstorno();
+              }}
+              disabled={estornando}
+            >
+              {estornando ? "Estornando..." : "Estornar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </div>
   );

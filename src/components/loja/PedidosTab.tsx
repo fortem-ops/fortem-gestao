@@ -52,6 +52,7 @@ const STATUS_LABEL: Record<string, string> = {
   pago: "Pago",
   cancelado: "Cancelado",
   expirado: "Expirado",
+  estornado: "Estornado",
 };
 
 const STATUS_CLASS: Record<string, string> = {
@@ -59,6 +60,7 @@ const STATUS_CLASS: Record<string, string> = {
   aguardando_pagamento: "status-warning",
   cancelado: "status-urgent",
   expirado: "status-urgent",
+  estornado: "status-warning",
 };
 
 const FILTROS = [
@@ -66,6 +68,7 @@ const FILTROS = [
   { value: "pago", label: "Pagos" },
   { value: "aguardando_pagamento", label: "Aguardando" },
   { value: "cancelado", label: "Cancelados" },
+  { value: "estornado", label: "Estornados" },
 ];
 
 function resumoItens(itens: Item[]) {
