@@ -13,6 +13,12 @@ import CheckoutFlow, { PEDIDO_PAGO_KEY } from "@/components/store/CheckoutFlow";
 import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import { supabase } from "@/integrations/supabase/client";
+import BrindeBanner from "@/components/store/BrindeBanner";
+import {
+  parcelasMaximas,
+  proximaFaixaParcelamento,
+  valorParcela,
+} from "@/lib/lojaParcelamento";
 
 type CupomAplicado = {
   codigo: string;
@@ -127,6 +133,8 @@ const StoreCart = () => {
           </div>
         ) : (
           <>
+            <BrindeBanner className="mt-5" subtotal={subtotal} />
+
             <div className="mt-5 space-y-3">
               {items.map((item) => (
                 <Card
@@ -282,6 +290,26 @@ const StoreCart = () => {
                   </div>
                 </>
               )}
+
+              {(() => {
+                const totalAtual = cupomAplicado?.valor_final ?? subtotal;
+                const max = parcelasMaximas(totalAtual);
+                const proxima = proximaFaixaParcelamento(totalAtual);
+                return (
+                  <>
+                    {max > 1 && (
+                      <p className={`mt-1 text-right text-xs ${palette.muted}`}>
+                        ou em até {max}x de {formatBRL(valorParcela(totalAtual, max))} sem juros
+                      </p>
+                    )}
+                    {proxima && (
+                      <p className="mt-2 rounded-xl bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
+                        Por mais {formatBRL(proxima.falta)} parcele em até {proxima.parcelas}x.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
 
               <div className="mt-4 hidden sm:block">
                 <Button

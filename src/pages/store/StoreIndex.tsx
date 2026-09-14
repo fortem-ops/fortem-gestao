@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProdutosLoja } from "@/hooks/useProdutosLoja";
 import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
+import BrindeBanner from "@/components/store/BrindeBanner";
 
 // Cupom 20OFF visível até 27/09 (23:59, horário de Brasília).
 const CUPOM_20OFF_LIMITE = Date.UTC(2026, 8, 28, 2, 59, 59);
@@ -97,6 +98,8 @@ const StoreIndex = () => {
             </span>
           </button>
         )}
+
+        <BrindeBanner className="mt-5" />
 
         <div className="relative mt-5">
           <Search

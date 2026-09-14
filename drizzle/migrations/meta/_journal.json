@@ -29,6 +29,13 @@
       "when": 1789389229744,
       "tag": "0003_relatorios_tecnicos_tarefas_automaticas",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789393622940,
+      "tag": "0004_loja_promocao_brinde",
+      "breakpoints": true
     }
   ]
 }

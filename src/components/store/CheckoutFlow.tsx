@@ -15,9 +15,10 @@ import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import { useStudentPortalOptional } from "@/contexts/StudentPortalContext";
 import { usePortalCartoes } from "@/hooks/usePortalCartoes";
+import { parcelasMaximas, valorParcela } from "@/lib/lojaParcelamento";
+import { brindeVigente, usePromocaoBrinde } from "@/hooks/usePromocaoBrinde";
 
 const IDEMPOTENCY_KEY = "fortem-loja-idempotency";
-const PARCELAS = 1;
 
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
@@ -155,6 +156,22 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
   const [pix, setPix] = useState<PixData | null>(null);
   const [segundosRestantes, setSegundosRestantes] = useState(0);
 
+  // Parcelamento sem juros conforme o valor do pedido.
+  const maxParcelas = useMemo(() => parcelasMaximas(total), [total]);
+  const [parcelas, setParcelas] = useState(1);
+  useEffect(() => {
+    setParcelas((p) => Math.min(Math.max(1, p), maxParcelas));
+  }, [maxParcelas]);
+
+  // Campanha de brinde por valor mínimo.
+  const { data: promoBrinde } = usePromocaoBrinde();
+  const brindeDisponivel =
+    brindeVigente(promoBrinde) && total >= Number(promoBrinde?.valor_minimo ?? 0);
+  const [brindeEscolhido, setBrindeEscolhido] = useState<string | null>(null);
+  const opcoesBrinde = promoBrinde
+    ? [promoBrinde.brinde_1_nome, promoBrinde.brinde_2_nome].filter(Boolean)
+    : [];
+
   const [dados, setDados] = useState({
     nome: "",
     sobrenome: "",
@@ -238,7 +255,8 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
                   telefone: onlyDigits(dados.telefone),
                   email: dados.email.trim(),
                 },
-            parcelas: PARCELAS,
+            parcelas,
+            brinde_escolhido: brindeDisponivel ? brindeEscolhido : null,
             cupom_codigo: cupomCodigo,
             idempotency_key: getIdempotencyKey(),
           },
@@ -273,7 +291,18 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       cartaoTokenRef.current = data.cartao_token ?? null;
       return data.pedido_id as string;
     }
-  }, [items, dados, aluno, voltarParaCarrinho, pedidoId, cupomCodigo, clear]);
+  }, [
+    items,
+    dados,
+    aluno,
+    voltarParaCarrinho,
+    pedidoId,
+    cupomCodigo,
+    clear,
+    parcelas,
+    brindeDisponivel,
+    brindeEscolhido,
+  ]);
 
   const gerarPix = useCallback(
     async (id: string) => {
@@ -453,7 +482,7 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       setStatusText("Processando o pagamento...");
       const { data: cobranca, error: erroCobranca } =
         await supabase.functions.invoke("loja-cobrar-pedido", {
-          body: { cartao_token: token, pedido_id: pedidoId, parcelas: PARCELAS },
+          body: { cartao_token: token, pedido_id: pedidoId, parcelas },
         });
       if (erroCobranca) throw new Error(erroCobranca.message);
       if (!cobranca?.success) {
@@ -478,7 +507,7 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       setLoading(false);
       setStatusText("");
     }
-  }, [pedidoId, pedidoNumero, cartao, aguardarTokenizacao, clear]);
+  }, [pedidoId, pedidoNumero, cartao, aguardarTokenizacao, clear, parcelas]);
 
   const pagarComCartaoSalvo = useCallback(async () => {
     setErro(null);
@@ -496,7 +525,7 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
           body: {
             cartao_token: token,
             pedido_id: id,
-            parcelas: PARCELAS,
+            parcelas,
             cartao_salvo_id: cartaoSalvo?.id,
           },
         }
@@ -518,7 +547,7 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       setLoading(false);
       setStatusText("");
     }
-  }, [garantirPedido, cartaoSalvo, clear]);
+  }, [garantirPedido, cartaoSalvo, clear, parcelas]);
 
   if (step === "sucesso") {
     return (
@@ -759,6 +788,55 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
               </div>
             </div>
           )}
+
+          {dadosValidos && metodo === "cartao" && maxParcelas > 1 && (
+            <div className="grid gap-2 sm:col-span-2">
+              <Label>Parcelamento</Label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-pressed={parcelas === n}
+                    onClick={() => setParcelas(n)}
+                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                      parcelas === n ? "border-primary ring-2 ring-primary/40" : palette.border
+                    }`}
+                  >
+                    {n}x de {formatBRL(valorParcela(total, n))} sem juros
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {brindeDisponivel && opcoesBrinde.length > 0 && (
+            <div className="grid gap-2 sm:col-span-2">
+              <Label>Escolha seu brinde</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {opcoesBrinde.map((nome) => (
+                  <button
+                    key={nome}
+                    type="button"
+                    aria-pressed={brindeEscolhido === nome}
+                    onClick={() => setBrindeEscolhido(nome)}
+                    className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                      brindeEscolhido === nome
+                        ? "border-primary ring-2 ring-primary/40"
+                        : palette.border
+                    }`}
+                  >
+                    {nome}
+                  </button>
+                ))}
+              </div>
+              {!brindeEscolhido && (
+                <p className={`text-xs ${palette.muted}`}>
+                  Escolha um brinde para continuar.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       ) : step === "cartao-salvo" && cartaoSalvo ? (
         <div className="py-2 text-center">
@@ -855,6 +933,33 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       {desconto > 0 && (
         <p className="mt-1 text-right text-xs text-primary">Cupom: - {formatBRL(desconto)}</p>
       )}
+      {maxParcelas > 1 && (
+        <p className={`mt-1 text-right text-xs ${palette.muted}`}>
+          {step === "dados" && metodo !== "cartao"
+            ? `ou em até ${maxParcelas}x de ${formatBRL(valorParcela(total, maxParcelas))} sem juros`
+            : `${parcelas}x de ${formatBRL(valorParcela(total, parcelas))} sem juros`}
+        </p>
+      )}
+      {(step === "cartao" || step === "cartao-salvo") && maxParcelas > 1 && (
+        <div className="mt-3 grid gap-2">
+          <Label>Parcelamento</Label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                aria-pressed={parcelas === n}
+                onClick={() => setParcelas(n)}
+                className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                  parcelas === n ? "border-primary ring-2 ring-primary/40" : palette.border
+                }`}
+              >
+                {n}x de {formatBRL(valorParcela(total, n))} sem juros
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {step !== "cartao-opcoes" && (
         <Button
@@ -863,7 +968,10 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
           disabled={
             loading ||
             (step === "dados"
-              ? !dadosValidos || !metodo || (metodo === "cartao" && !!aluno && carregandoCartoes)
+              ? !dadosValidos ||
+                !metodo ||
+                (brindeDisponivel && opcoesBrinde.length > 0 && !brindeEscolhido) ||
+                (metodo === "cartao" && !!aluno && carregandoCartoes)
               : step === "cartao" && !cartaoValido)
           }
           onClick={() => {

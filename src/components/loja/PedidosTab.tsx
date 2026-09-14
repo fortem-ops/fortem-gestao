@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, PackageOpen, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Gift, PackageOpen, Trash2 } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
 
@@ -42,6 +42,7 @@ type Pedido = {
   valor_final: number;
   forma_pagamento: string | null;
   eh_encomenda: boolean | null;
+  brinde_escolhido: string | null;
   created_at: string;
   pedido_itens: Item[];
 };
@@ -183,7 +184,7 @@ export function PedidosTab() {
       let q = (supabase as any)
         .from("pedidos")
         .select(
-          "id, nome, cpf, email, telefone, status, valor_final, forma_pagamento, eh_encomenda, created_at, pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(tamanho, cor, sku, produtos_catalogo(nome)))",
+          "id, nome, cpf, email, telefone, status, valor_final, forma_pagamento, eh_encomenda, brinde_escolhido, created_at, pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .order("created_at", { ascending: false })
         .limit(500);
@@ -227,6 +228,7 @@ export function PedidosTab() {
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Pagamento</TableHead>
+                <TableHead>Brinde</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead className="w-10" />
 
@@ -253,6 +255,16 @@ export function PedidosTab() {
                     <TableCell className="text-sm">
                       {p.forma_pagamento ? labelFormaPagamento(p.forma_pagamento) : "—"}
                     </TableCell>
+                    <TableCell className="text-sm">
+                      {p.brinde_escolhido ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Gift className="w-3.5 h-3.5 text-primary" />
+                          {p.brinde_escolhido}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">{fmtData(p.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -270,13 +282,19 @@ export function PedidosTab() {
                   </TableRow>
                   {aberto === p.id && (
                     <TableRow className="bg-secondary/30 hover:bg-secondary/30">
-                      <TableCell colSpan={8} className="p-4 space-y-4">
+                      <TableCell colSpan={9} className="p-4 space-y-4">
 
                         <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-3">
                           <span>CPF: {p.cpf || "—"}</span>
                           <span>E-mail: {p.email || "—"}</span>
                           <span>Telefone: {p.telefone || "—"}</span>
                         </div>
+                        {p.brinde_escolhido && (
+                          <p className="text-xs">
+                            <span className="font-semibold text-muted-foreground">Brinde escolhido: </span>
+                            {p.brinde_escolhido}
+                          </p>
+                        )}
                         {p.eh_encomenda && (
                           <Badge variant="outline" className="status-warning">Encomenda</Badge>
                         )}

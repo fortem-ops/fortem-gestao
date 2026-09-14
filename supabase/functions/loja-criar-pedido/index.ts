@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
     const idempotencyKey = String(body?.idempotency_key ?? "").trim() || null;
     const alunoIdBody = String(body?.aluno_id ?? "").trim() || null;
     const cupomCodigo = String(body?.cupom_codigo ?? "").trim().toUpperCase() || null;
+    const brindeEscolhido = String(body?.brinde_escolhido ?? "").trim().slice(0, 120) || null;
 
     let nome = String(dp?.nome ?? "").trim();
     let cpfDigits = String(dp?.cpf ?? "").replace(/\D/g, "");
@@ -133,6 +134,17 @@ Deno.serve(async (req) => {
     }
 
     const pedidoId = r.pedido_id as string;
+
+    // Brinde escolhido na campanha promocional (quando houver).
+    if (brindeEscolhido && !r.reused) {
+      const { error: brindeErr } = await admin
+        .from("pedidos")
+        .update({ brinde_escolhido: brindeEscolhido })
+        .eq("id", pedidoId);
+      if (brindeErr) {
+        console.error("[loja-criar-pedido] falha salvar brinde:", brindeErr.message);
+      }
+    }
 
     if (r.status === "pago") {
       try {
