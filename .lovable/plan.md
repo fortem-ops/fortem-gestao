@@ -1,52 +1,61 @@
 # Relatórios dos Professores (Análise > Relatórios > Técnicos)
 
-Nova tela para coordenadores e administradores acompanharem, aluno a aluno, os relatórios técnicos preenchidos pelos professores e quais estão vencidos.
+Tela para coordenação e administração acompanharem os relatórios técnicos que cada professor deve preencher, mais a geração automática das tarefas nos prazos definidos.
+
+## Duas categorias e seus prazos
+
+- **Treinos de Força** — um relatório por mês, previsto para o dia 1 de cada mês.
+- **Treinos de Corrida** — dois por mês, previstos para os dias 1 e 15.
+
+O relatório de cada ciclo conta como entregue quando o professor preenche o Relatório Técnico do aluno com data dentro do ciclo. Passou da data prevista sem preenchimento, fica **Em atraso**.
+
+Hoje existe um único tipo "Relatórios Técnicos" (usado como Força). Será criado o tipo **Relatório Técnico — Corrida**, com o mesmo formato do atual, para separar as duas categorias.
+
+## Alunos de Corrida vão para a Yasmim
+
+Todo aluno ativo com plano de Corrida (principal ou adicional) tem seus relatórios de Corrida atribuídos à **Yasmim Rodrigues Avila** — tanto a tarefa gerada quanto a linha do relatório. O responsável geral do aluno na carteira não é alterado, para não afetar comissionamento nem outras telas.
+
+## Tarefas automáticas para os professores
+
+Nos dias 1 e 15, o sistema cria automaticamente as tarefas pendentes:
+
+- Dia 1: "Relatório Técnico — Força" para cada aluno ativo (responsável: professor do aluno) e "Relatório Técnico — Corrida" para cada aluno de Corrida (responsável: Yasmim).
+- Dia 15: apenas as de Corrida.
+
+A tarefa tem data limite igual à data do ciclo, aparece na Central de Tarefas e no painel do professor, e leva direto para Relatórios > Relatório Técnico do aluno. Não há duplicidade: se a tarefa do ciclo já existe ou o relatório já foi preenchido, nada é criado. Ao preencher o relatório, a tarefa do ciclo é concluída sozinha.
 
 ## O que a tela mostra
 
-Uma linha por aluno ativo, com:
+Uma linha por aluno ativo e categoria, com:
 
-- Nome do aluno (link para a ficha do aluno)
-- Professor responsável pelo aluno
-- Último relatório técnico: data e tipo (Relatório Técnico, Reabilitação, Experimental, Pliometria etc.)
-- Quem preencheu o último relatório
+- Nome do aluno (link para a ficha)
+- Categoria (Força / Corrida)
+- Professor responsável pelo relatório
+- Ciclo atual e data prevista
+- Situação: Entregue, Pendente (dentro do prazo) ou Em atraso
+- Data do último relatório entregue e quem preencheu
 - Dias desde o último relatório
-- Situação: Em dia, Vence em breve (faltando 15 dias ou menos) ou Em atraso
-- Quantidade de relatórios do aluno no período
 
-Alunos ativos que nunca receberam relatório aparecem como "Sem relatório" e contam como em atraso.
-
-## Regra de atraso (por periodicidade)
-
-O intervalo esperado entre relatórios é escolhido na própria tela (30, 60 ou 90 dias — padrão 90). Passou do intervalo desde o último relatório, está em atraso.
-
-## Cartões de resumo no topo
-
-- Alunos ativos acompanhados
-- Em dia
-- Vencendo em breve
-- Em atraso
-- Relatórios preenchidos nos últimos 30 dias
+Cartões de resumo no topo: alunos acompanhados, entregues no ciclo, pendentes, em atraso e percentual de conclusão. Também uma visão agrupada por professor com entregues x em atraso.
 
 ## Filtros
 
-- Busca por nome do aluno
-- Professor responsável
-- Situação (em dia / vencendo / em atraso / sem relatório)
-- Tipo de relatório
-- Intervalo esperado (30/60/90 dias)
-- Ordenação por dias sem relatório ou por nome
-
-Também uma visão agrupada por professor, mostrando quantos alunos dele estão em dia e em atraso.
+Busca por nome, professor responsável, categoria, situação, ciclo (atual ou anteriores) e ordenação por atraso ou nome.
 
 ## Acesso
 
-Apenas coordenadores e administradores, usando a mesma verificação já utilizada em outras telas de coordenação. Professores que abrirem a rota veem a mensagem de acesso restrito.
+Somente coordenadores e administradores; professores veem a mensagem de acesso restrito.
 
 ## Detalhes técnicos
 
-- Nova página `src/pages/relatorios/Tecnicos.tsx`, substituindo o `EmBreve` na rota `/relatorios/tecnicos` em `src/App.tsx` (o item de menu já existe em `RelatoriosLayout`).
-- Fonte de dados: tabela `avaliacoes` filtrando os tipos **não** estruturais (tudo fora de `funcional`, `funcional_v2`, `composicao_corporal`, reutilizando `TIPOS_ESTRUTURAIS` de `StudentAssessments`), cruzada com `alunos` (`status = 'ativo'`, `responsavel_id`) e `profiles` para os nomes de professor/avaliador.
-- Consultas com TanStack Query, agregação e filtros feitos no cliente (volume atual: 240 alunos ativos).
-- Permissão via RPC `is_coordinator_or_admin`, no mesmo padrão de `AdminPonto.tsx`.
-- Sem alterações de banco, RLS ou Edge Functions; nenhuma outra aba de Relatórios é afetada.
+- Nova página `src/pages/relatorios/Tecnicos.tsx` substituindo o `EmBreve` na rota `/relatorios/tecnicos` em `src/App.tsx`.
+- Migration:
+  - Novo registro em `avaliacao_tipos` (`relatoriocorrida`, engine `dinamico`) e cópia do schema de `avaliacao_templates` do tipo `relatorioforca`.
+  - Função `fn_gerar_tarefas_relatorio_tecnico(_data date)` que, para alunos `status = 'ativo'`, insere tarefas em `tarefas` com `origem = 'tecnico'` e `tipo_auto` `relatorio_tecnico_forca` / `relatorio_tecnico_corrida`, `data_limite` = data do ciclo, `responsavel_id` = `alunos.responsavel_id` (Força) ou Yasmim (Corrida, resolvida por `profiles.full_name`), idempotente por aluno + tipo + ciclo.
+  - Corrida detectada por `planos.ativo` com `atividade = 'corrida'` (principal ou adicional).
+  - Trigger em `avaliacoes` que conclui a tarefa do ciclo ao finalizar o relatório correspondente.
+  - Dois agendamentos `pg_cron`: `0 9 1 * *` (Força + Corrida) e `0 9 15 * *` (Corrida). Rodam duas vezes por mês, no horário da manhã; sem custo relevante de execução contínua.
+- Frontend: TanStack Query sobre `alunos`, `planos`, `avaliacoes` (tipos `relatorioforca` e `relatoriocorrida`), `tarefas` e `profiles`; agregação de ciclos e filtros no cliente (240 alunos ativos).
+- `getTaskActionTarget` em `src/lib/taskAction.ts` ganha os novos `tipo_auto`, apontando para a aba de relatórios do aluno.
+- Permissão via RPC `is_coordinator_or_admin`, no padrão de `AdminPonto.tsx`.
+- Nenhuma outra aba de Relatórios, o preenchimento atual de relatórios ou a carteira de alunos são alterados.
