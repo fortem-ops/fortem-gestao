@@ -1,13 +1,25 @@
 import { useState, Fragment } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ChevronRight, PackageOpen } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { ChevronDown, ChevronRight, PackageOpen, Trash2 } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
+
 
 type Item = {
   quantidade: number;
@@ -138,8 +150,32 @@ function TentativasPagamento({ pedidoId }: { pedidoId: string }) {
 }
 
 export function PedidosTab() {
+  const qc = useQueryClient();
   const [filtro, setFiltro] = useState("todos");
   const [aberto, setAberto] = useState<string | null>(null);
+  const [excluir, setExcluir] = useState<Pedido | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const confirmarExclusao = async () => {
+    if (!excluir) return;
+    setExcluindo(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("fn_loja_excluir_pedido", {
+        p_pedido_id: excluir.id,
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || "Falha ao excluir o pedido");
+      toast.success("Pedido excluído");
+      qc.invalidateQueries({ queryKey: ["loja-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["loja-encomendas"] });
+      setExcluir(null);
+    } catch (e: any) {
+      toast.error("Não foi possível excluir", { description: e.message });
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["loja-pedidos", filtro],
@@ -192,6 +228,8 @@ export function PedidosTab() {
                 <TableHead>Status</TableHead>
                 <TableHead>Pagamento</TableHead>
                 <TableHead>Data</TableHead>
+                <TableHead className="w-10" />
+
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -216,10 +254,24 @@ export function PedidosTab() {
                       {p.forma_pagamento ? labelFormaPagamento(p.forma_pagamento) : "—"}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">{fmtData(p.created_at)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Excluir pedido"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExcluir(p);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                   {aberto === p.id && (
                     <TableRow className="bg-secondary/30 hover:bg-secondary/30">
-                      <TableCell colSpan={7} className="p-4 space-y-4">
+                      <TableCell colSpan={8} className="p-4 space-y-4">
+
                         <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-3">
                           <span>CPF: {p.cpf || "—"}</span>
                           <span>E-mail: {p.email || "—"}</span>
@@ -253,6 +305,36 @@ export function PedidosTab() {
           </Table>
         </div>
       )}
+
+      <AlertDialog open={!!excluir} onOpenChange={(o) => !o && setExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {excluir && (
+                <>
+                  Pedido de <strong>{excluir.nome || "cliente não informado"}</strong> —{" "}
+                  {resumoItens(excluir.pedido_itens || [])}, valor {formatBRL(Number(excluir.valor_final ?? 0))}. O
+                  estoque reservado volta e as tentativas de pagamento são apagadas. Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarExclusao();
+              }}
+              disabled={excluindo}
+            >
+              {excluindo ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

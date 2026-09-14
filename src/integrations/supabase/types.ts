@@ -8639,6 +8639,7 @@ export type Database = {
         }[]
       }
       fn_loja_criar_pedido: { Args: { p_payload: Json }; Returns: Json }
+      fn_loja_excluir_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       fn_loja_reverter_reserva: {
         Args: { p_pedido_id: string }
         Returns: undefined

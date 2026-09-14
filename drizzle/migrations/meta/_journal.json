@@ -15,6 +15,13 @@
       "when": 1789136960782,
       "tag": "0001_loja_cupons_galerias_produtos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789387997684,
+      "tag": "0002_loja_excluir_pedido_e_reposicao_creditos",
+      "breakpoints": true
     }
   ]
 }
