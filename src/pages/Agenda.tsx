@@ -201,7 +201,12 @@ export default function Agenda() {
       if (ev?.atividade === "Avaliação Funcional") {
         invalidateAvaliacaoFuncional(queryClient, ev?.aluno_id ?? undefined);
       }
-      toast.success("Horário removido");
+      toast.success(
+        ev?.aluno_id
+          ? "Horário removido — reposição disponível para o aluno remarcar"
+          : "Horário removido",
+      );
+
 
       // Email para todas as atividades com aluno vinculado
       if (ev?.id && ev.aluno_id) {
@@ -244,7 +249,7 @@ export default function Agenda() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["agenda_servicos_excecoes"] });
-      toast.success("Dia removido da recorrência");
+      toast.success("Dia removido da recorrência — reposição gerada para o aluno");
       setDeleteTarget(null);
     },
     onError: () => toast.error("Erro ao remover este dia"),
