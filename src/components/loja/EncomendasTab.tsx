@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PackageOpen, Trash2, X } from "lucide-react";
+import { Gift, PackageOpen, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 
@@ -40,6 +40,7 @@ type PedidoRow = {
   valor_total: number | null;
   desconto: number | null;
   valor_final: number | null;
+  brinde_escolhido: string | null;
   promocoes: { codigo: string | null } | null;
   pedido_itens: ItemRow[];
 };
@@ -55,6 +56,7 @@ type Linha = {
   valorItens: number;
   valorRecebido: number;
   cupom: string | null;
+  brinde: string | null;
   data: string;
 };
 
@@ -78,7 +80,7 @@ export function EncomendasTab() {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(
-          "id, nome, created_at, valor_total, desconto, valor_final, promocoes(codigo), pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
+          "id, nome, created_at, valor_total, desconto, valor_final, brinde_escolhido, promocoes(codigo), pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .eq("eh_encomenda", true)
         .eq("status", "pago")
@@ -113,6 +115,7 @@ export function EncomendasTab() {
           valorItens,
           valorRecebido: Math.round(valorFinal * proporcao * 100) / 100,
           cupom: p.promocoes?.codigo ?? null,
+          brinde: p.brinde_escolhido ?? null,
           data: p.created_at,
         });
       });
@@ -133,7 +136,7 @@ export function EncomendasTab() {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");
     return linhas.filter((l) => {
       if (termo) {
-        const alvo = `${l.cliente} ${l.produto} ${l.cor} ${l.tamanho}`.toLocaleLowerCase("pt-BR");
+        const alvo = `${l.cliente} ${l.produto} ${l.cor} ${l.tamanho} ${l.brinde ?? ""}`.toLocaleLowerCase("pt-BR");
         if (!alvo.includes(termo)) return false;
       }
       const dia = l.data.slice(0, 10);
@@ -307,6 +310,12 @@ export function EncomendasTab() {
                           {l.cupom && (
                             <Badge variant="outline" className="ml-2 text-[10px]">
                               cupom {l.cupom}
+                            </Badge>
+                          )}
+                          {l.brinde && (
+                            <Badge variant="outline" className="ml-2 gap-1 text-[10px]">
+                              <Gift className="w-3 h-3 text-primary" />
+                              Brinde: {l.brinde}
                             </Badge>
                           )}
                         </TableCell>
