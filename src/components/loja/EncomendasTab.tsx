@@ -85,10 +85,10 @@ export function EncomendasTab() {
       const { data, error } = await (supabase as any)
         .from("pedidos")
         .select(
-          "id, nome, created_at, valor_total, desconto, valor_final, brinde_escolhido, promocoes(codigo), pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
+          "id, nome, created_at, valor_total, desconto, valor_final, brinde_escolhido, status, promocoes(codigo), pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .eq("eh_encomenda", true)
-        .eq("status", "pago")
+        .in("status", ["pago", "estornado"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as PedidoRow[];
