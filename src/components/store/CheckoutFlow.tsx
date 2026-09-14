@@ -156,6 +156,22 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
   const [pix, setPix] = useState<PixData | null>(null);
   const [segundosRestantes, setSegundosRestantes] = useState(0);
 
+  // Parcelamento sem juros conforme o valor do pedido.
+  const maxParcelas = useMemo(() => parcelasMaximas(total), [total]);
+  const [parcelas, setParcelas] = useState(1);
+  useEffect(() => {
+    setParcelas((p) => Math.min(Math.max(1, p), maxParcelas));
+  }, [maxParcelas]);
+
+  // Campanha de brinde por valor mínimo.
+  const { data: promoBrinde } = usePromocaoBrinde();
+  const brindeDisponivel =
+    brindeVigente(promoBrinde) && total >= Number(promoBrinde?.valor_minimo ?? 0);
+  const [brindeEscolhido, setBrindeEscolhido] = useState<string | null>(null);
+  const opcoesBrinde = promoBrinde
+    ? [promoBrinde.brinde_1_nome, promoBrinde.brinde_2_nome].filter(Boolean)
+    : [];
+
   const [dados, setDados] = useState({
     nome: "",
     sobrenome: "",
