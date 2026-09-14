@@ -15,9 +15,10 @@ import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 import { useStudentPortalOptional } from "@/contexts/StudentPortalContext";
 import { usePortalCartoes } from "@/hooks/usePortalCartoes";
+import { parcelasMaximas, valorParcela } from "@/lib/lojaParcelamento";
+import { brindeVigente, usePromocaoBrinde } from "@/hooks/usePromocaoBrinde";
 
 const IDEMPOTENCY_KEY = "fortem-loja-idempotency";
-const PARCELAS = 1;
 
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
