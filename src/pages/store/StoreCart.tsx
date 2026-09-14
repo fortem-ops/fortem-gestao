@@ -141,7 +141,11 @@ const StoreCart = () => {
           </div>
         ) : (
           <>
-            <BrindeBanner className="mt-5" subtotal={subtotal} />
+            {/* Valor com desconto do cupom: o brinde considera o que o cliente vai pagar. */}
+            <BrindeBanner
+              className="mt-5"
+              subtotal={cupomAplicado?.valor_final ?? subtotal}
+            />
 
             <div className="mt-5 space-y-3">
               {items.map((item) => (
