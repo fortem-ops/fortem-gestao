@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, ImageOff, Loader2, Minus, Plus, Trash2, X } from "lucide-react";
+import { Check, ImageOff, Loader2, Minus, Plus, Tag, Trash2, X } from "lucide-react";
 import StoreHeader from "@/components/store/StoreHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import {
   proximaFaixaParcelamento,
   valorParcela,
 } from "@/lib/lojaParcelamento";
+import { cupom20Vigente } from "@/lib/lojaCupom";
 
 type CupomAplicado = {
   codigo: string;
@@ -247,6 +248,29 @@ const StoreCart = () => {
 
             <Card ref={cupomCardRef} className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
               <p className="text-sm font-semibold">Cupom de desconto</p>
+              {cupom20Vigente() && !cupomAplicado && (
+                <button
+                  type="button"
+                  onClick={() => void aplicarCupom("20OFF")}
+                  aria-label="Aplicar cupom 20OFF"
+                  className={`mt-2 flex w-full items-center justify-between gap-3 rounded-xl border ${palette.border} px-3 py-2 text-left transition hover:opacity-90`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Tag className="h-4 w-4 shrink-0 text-primary" />
+                    <span>
+                      <span className="block text-xs font-bold">
+                        20% OFF com o cupom 20OFF
+                      </span>
+                      <span className={`block text-[11px] ${palette.muted}`}>
+                        Válido até 27/09
+                      </span>
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
+                    Aplicar
+                  </span>
+                </button>
+              )}
               <div className="mt-2 flex gap-2">
                 <Input
                   value={cupom}
