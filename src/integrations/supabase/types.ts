@@ -3858,6 +3858,42 @@ export type Database = {
           },
         ]
       }
+      loja_promocao_brinde: {
+        Row: {
+          ativo: boolean
+          brinde_1_imagem_url: string | null
+          brinde_1_nome: string
+          brinde_2_imagem_url: string | null
+          brinde_2_nome: string
+          data_fim: string
+          id: string
+          updated_at: string
+          valor_minimo: number
+        }
+        Insert: {
+          ativo?: boolean
+          brinde_1_imagem_url?: string | null
+          brinde_1_nome?: string
+          brinde_2_imagem_url?: string | null
+          brinde_2_nome?: string
+          data_fim?: string
+          id?: string
+          updated_at?: string
+          valor_minimo?: number
+        }
+        Update: {
+          ativo?: boolean
+          brinde_1_imagem_url?: string | null
+          brinde_1_nome?: string
+          brinde_2_imagem_url?: string | null
+          brinde_2_nome?: string
+          data_fim?: string
+          id?: string
+          updated_at?: string
+          valor_minimo?: number
+        }
+        Relationships: []
+      }
       mobilidade_amostras_fortem: {
         Row: {
           created_at: string
@@ -4564,6 +4600,7 @@ export type Database = {
       pedidos: {
         Row: {
           aluno_id: string | null
+          brinde_escolhido: string | null
           cobranca_id: string | null
           cpf: string
           created_at: string
@@ -4585,6 +4622,7 @@ export type Database = {
         }
         Insert: {
           aluno_id?: string | null
+          brinde_escolhido?: string | null
           cobranca_id?: string | null
           cpf: string
           created_at?: string
@@ -4606,6 +4644,7 @@ export type Database = {
         }
         Update: {
           aluno_id?: string | null
+          brinde_escolhido?: string | null
           cobranca_id?: string | null
           cpf?: string
           created_at?: string
