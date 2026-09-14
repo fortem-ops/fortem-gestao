@@ -62,8 +62,8 @@ const StoreCart = () => {
     setCupomAplicado(null);
   }, [subtotal]);
 
-  const aplicarCupom = async () => {
-    const codigo = cupom.trim().toUpperCase();
+  const aplicarCupom = async (codigoParam?: string) => {
+    const codigo = (codigoParam ?? cupom).trim().toUpperCase();
     if (!codigo) return;
     setValidandoCupom(true);
     const { data, error } = await supabase.functions.invoke("loja-validar-cupom", {

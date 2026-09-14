@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Search, ShoppingBag } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, ShoppingBag, Tag } from "lucide-react";
 import { useCartLoja } from "@/hooks/useCartLoja";
 import StoreHeader from "@/components/store/StoreHeader";
 import ProductCard from "@/components/store/ProductCard";
