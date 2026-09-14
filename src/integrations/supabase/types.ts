@@ -8579,6 +8579,10 @@ export type Database = {
         }
         Returns: string
       }
+      fn_gerar_tarefas_relatorio_tecnico: {
+        Args: { _data?: string }
+        Returns: number
+      }
       fn_get_or_create_ficha_equipe: { Args: never; Returns: string }
       fn_get_or_create_ficha_equipe_de: {
         Args: { _user_id: string }
