@@ -968,7 +968,10 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
           disabled={
             loading ||
             (step === "dados"
-              ? !dadosValidos || !metodo || (metodo === "cartao" && !!aluno && carregandoCartoes)
+              ? !dadosValidos ||
+                !metodo ||
+                (brindeDisponivel && opcoesBrinde.length > 0 && !brindeEscolhido) ||
+                (metodo === "cartao" && !!aluno && carregandoCartoes)
               : step === "cartao" && !cartaoValido)
           }
           onClick={() => {
