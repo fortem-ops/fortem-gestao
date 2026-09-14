@@ -135,6 +135,17 @@ Deno.serve(async (req) => {
 
     const pedidoId = r.pedido_id as string;
 
+    // Brinde escolhido na campanha promocional (quando houver).
+    if (brindeEscolhido && !r.reused) {
+      const { error: brindeErr } = await admin
+        .from("pedidos")
+        .update({ brinde_escolhido: brindeEscolhido })
+        .eq("id", pedidoId);
+      if (brindeErr) {
+        console.error("[loja-criar-pedido] falha salvar brinde:", brindeErr.message);
+      }
+    }
+
     if (r.status === "pago") {
       try {
         if (!r.reused) {
