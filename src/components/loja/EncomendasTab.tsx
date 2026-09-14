@@ -202,6 +202,23 @@ export function EncomendasTab() {
     }
   };
 
+  const confirmarEstorno = async () => {
+    if (!estornar) return;
+    setEstornando(true);
+    try {
+      await estornarPedido(estornar.pedidoId);
+      toast.success("Pedido estornado", { description: "O valor será devolvido ao cliente." });
+      qc.invalidateQueries({ queryKey: ["loja-encomendas"] });
+      qc.invalidateQueries({ queryKey: ["loja-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["compras-loja-aluno"] });
+      setEstornar(null);
+    } catch (e: any) {
+      toast.error("Não foi possível estornar", { description: e.message });
+    } finally {
+      setEstornando(false);
+    }
+  };
+
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Carregando...</p>;
   }
