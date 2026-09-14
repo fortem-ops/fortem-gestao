@@ -316,7 +316,7 @@ export function EncomendasTab() {
                 <TableHead className="text-right">Qtd.</TableHead>
                 <TableHead className="text-right">Valor dos itens</TableHead>
                 <TableHead className="text-right">Valor recebido</TableHead>
-                <TableHead className="w-10" />
+                <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
