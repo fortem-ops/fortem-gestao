@@ -507,7 +507,7 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       setLoading(false);
       setStatusText("");
     }
-  }, [pedidoId, pedidoNumero, cartao, aguardarTokenizacao, clear]);
+  }, [pedidoId, pedidoNumero, cartao, aguardarTokenizacao, clear, parcelas]);
 
   const pagarComCartaoSalvo = useCallback(async () => {
     setErro(null);
@@ -547,7 +547,7 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       setLoading(false);
       setStatusText("");
     }
-  }, [garantirPedido, cartaoSalvo, clear]);
+  }, [garantirPedido, cartaoSalvo, clear, parcelas]);
 
   if (step === "sucesso") {
     return (
