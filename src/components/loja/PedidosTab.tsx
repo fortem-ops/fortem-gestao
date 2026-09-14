@@ -228,6 +228,8 @@ export function PedidosTab() {
                 <TableHead>Status</TableHead>
                 <TableHead>Pagamento</TableHead>
                 <TableHead>Data</TableHead>
+                <TableHead className="w-10" />
+
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -252,10 +254,24 @@ export function PedidosTab() {
                       {p.forma_pagamento ? labelFormaPagamento(p.forma_pagamento) : "—"}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">{fmtData(p.created_at)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Excluir pedido"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExcluir(p);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                   {aberto === p.id && (
                     <TableRow className="bg-secondary/30 hover:bg-secondary/30">
-                      <TableCell colSpan={7} className="p-4 space-y-4">
+                      <TableCell colSpan={8} className="p-4 space-y-4">
+
                         <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-3">
                           <span>CPF: {p.cpf || "—"}</span>
                           <span>E-mail: {p.email || "—"}</span>
