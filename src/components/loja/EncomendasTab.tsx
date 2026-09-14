@@ -122,6 +122,7 @@ export function EncomendasTab() {
           cupom: p.promocoes?.codigo ?? null,
           brinde: p.brinde_escolhido ?? null,
           data: p.created_at,
+          status: p.status,
         });
       });
     }
