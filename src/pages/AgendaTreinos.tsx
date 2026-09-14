@@ -441,11 +441,16 @@ function SlotDetailSheet({
       return res;
     },
     onSuccess: (res) => {
-      toastSuccess(res.credito_estornado ? "Agendamento excluído e crédito estornado" : "Agendamento excluído");
+      toastSuccess(
+        res.credito_estornado
+          ? "Aluno removido do horário — reposição disponível para remarcar"
+          : "Aluno removido do horário (sem crédito a repor)",
+      );
       onRefetch();
     },
     onError: (e: Error) => toastError(e.message),
   });
+
 
   if (!selected) return null;
 
@@ -518,9 +523,10 @@ function SlotDetailSheet({
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Excluir agendamento?</AlertDialogTitle>
+                          <AlertDialogTitle>Remover aluno deste horário?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta ação cancela o agendamento de <strong>{a.alunos?.nome}</strong> e estorna o crédito para o ciclo do aluno. Não pode ser desfeita.
+                            <strong>{a.alunos?.nome}</strong> sai deste horário e o crédito do serviço contratado volta
+                            como reposição, ficando disponível para remarcar. Não pode ser desfeita.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -529,12 +535,13 @@ function SlotDetailSheet({
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             onClick={() => excluirComEstorno.mutate({ id: a.id, estornar: true })}
                           >
-                            Excluir com estorno
+                            Remover e gerar reposição
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
+
                 </div>
               );
             })
