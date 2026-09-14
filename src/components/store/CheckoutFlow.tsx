@@ -933,6 +933,33 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       {desconto > 0 && (
         <p className="mt-1 text-right text-xs text-primary">Cupom: - {formatBRL(desconto)}</p>
       )}
+      {maxParcelas > 1 && (
+        <p className={`mt-1 text-right text-xs ${palette.muted}`}>
+          {step === "dados" && metodo !== "cartao"
+            ? `ou em até ${maxParcelas}x de ${formatBRL(valorParcela(total, maxParcelas))} sem juros`
+            : `${parcelas}x de ${formatBRL(valorParcela(total, parcelas))} sem juros`}
+        </p>
+      )}
+      {(step === "cartao" || step === "cartao-salvo") && maxParcelas > 1 && (
+        <div className="mt-3 grid gap-2">
+          <Label>Parcelamento</Label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                aria-pressed={parcelas === n}
+                onClick={() => setParcelas(n)}
+                className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                  parcelas === n ? "border-primary ring-2 ring-primary/40" : palette.border
+                }`}
+              >
+                {n}x de {formatBRL(valorParcela(total, n))} sem juros
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {step !== "cartao-opcoes" && (
         <Button
