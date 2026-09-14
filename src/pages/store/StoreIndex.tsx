@@ -74,6 +74,29 @@ const StoreIndex = () => {
           )}
         </div>
 
+        {cupom20Valido && (
+          <button
+            type="button"
+            onClick={aplicarCupom20}
+            className={`mt-5 flex w-full items-center justify-between gap-3 rounded-2xl border ${palette.border} ${palette.card} px-4 py-3 text-left transition hover:opacity-90`}
+            aria-label="Aplicar cupom 20OFF no carrinho"
+          >
+            <span className="flex items-center gap-3">
+              <Tag className="h-5 w-5 shrink-0 text-primary" />
+              <span>
+                <span className="block text-sm font-bold">
+                  20% OFF com o cupom 20OFF
+                </span>
+                <span className={`block text-xs ${palette.muted}`}>
+                  Válido até 27/09 — toque para aplicar no carrinho
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+              Aplicar
+            </span>
+          </button>
+        )}
 
         <div className="relative mt-5">
           <Search
