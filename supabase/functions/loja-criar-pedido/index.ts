@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
     const idempotencyKey = String(body?.idempotency_key ?? "").trim() || null;
     const alunoIdBody = String(body?.aluno_id ?? "").trim() || null;
     const cupomCodigo = String(body?.cupom_codigo ?? "").trim().toUpperCase() || null;
+    const brindeEscolhido = String(body?.brinde_escolhido ?? "").trim().slice(0, 120) || null;
 
     let nome = String(dp?.nome ?? "").trim();
     let cpfDigits = String(dp?.cpf ?? "").replace(/\D/g, "");
