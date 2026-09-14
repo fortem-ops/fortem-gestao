@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, ImageOff, Loader2, Minus, Plus, Trash2, X } from "lucide-react";
 import StoreHeader from "@/components/store/StoreHeader";
@@ -42,6 +42,7 @@ const StoreCart = () => {
   const [cupom, setCupom] = useState("");
   const [cupomAplicado, setCupomAplicado] = useState<CupomAplicado | null>(null);
   const [validandoCupom, setValidandoCupom] = useState(false);
+  const cupomCardRef = useRef<HTMLDivElement>(null);
   // Se houve pagamento aprovado nesta sessão, retoma o checkout (tela de
   // sucesso) mesmo depois de um recarregamento da página.
   const [checkout, setCheckout] = useState(() => {
@@ -90,7 +91,10 @@ const StoreCart = () => {
     toast.success("Cupom aplicado");
   };
 
-  // Cupom pendente vindo da faixa promocional da vitrine: aplica sozinho.
+  // Cupom pendente vindo da faixa promocional da vitrine: aplica sozinho e
+  // rola a página até a seção "Cupom de desconto" para o cliente ver o
+  // desconto aplicado (a gravação no sessionStorage é síncrona e anterior à
+  // navegação, então a leitura no mount não tem corrida).
   useEffect(() => {
     if (checkout || cupomAplicado || items.length === 0) return;
     let pendente: string | null = null;
@@ -103,6 +107,10 @@ const StoreCart = () => {
     if (!pendente) return;
     setCupom(pendente);
     void aplicarCupom(pendente);
+    const t = window.setTimeout(() => {
+      cupomCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkout, cupomAplicado, items.length]);
 
@@ -233,7 +241,7 @@ const StoreCart = () => {
               ))}
             </div>
 
-            <Card className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
+            <Card ref={cupomCardRef} className={`mt-5 rounded-2xl p-4 ${palette.card}`}>
               <p className="text-sm font-semibold">Cupom de desconto</p>
               <div className="mt-2 flex gap-2">
                 <Input

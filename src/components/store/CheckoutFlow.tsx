@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import QRCode from "qrcode";
-import { CheckCircle2, Copy, CreditCard, Loader2, Lock, QrCode } from "lucide-react";
+import { CheckCircle2, Copy, CreditCard, ImageOff, Loader2, Lock, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -169,7 +169,10 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
     brindeVigente(promoBrinde) && total >= Number(promoBrinde?.valor_minimo ?? 0);
   const [brindeEscolhido, setBrindeEscolhido] = useState<string | null>(null);
   const opcoesBrinde = promoBrinde
-    ? [promoBrinde.brinde_1_nome, promoBrinde.brinde_2_nome].filter(Boolean)
+    ? [
+        { nome: promoBrinde.brinde_1_nome, imagem: promoBrinde.brinde_1_imagem_url },
+        { nome: promoBrinde.brinde_2_nome, imagem: promoBrinde.brinde_2_imagem_url },
+      ].filter((b) => !!b.nome)
     : [];
 
   const [dados, setDados] = useState({
@@ -814,19 +817,28 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
             <div className="grid gap-2 sm:col-span-2">
               <Label>Escolha seu brinde</Label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {opcoesBrinde.map((nome) => (
+                {opcoesBrinde.map((b) => (
                   <button
-                    key={nome}
+                    key={b.nome}
                     type="button"
-                    aria-pressed={brindeEscolhido === nome}
-                    onClick={() => setBrindeEscolhido(nome)}
-                    className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
-                      brindeEscolhido === nome
+                    aria-pressed={brindeEscolhido === b.nome}
+                    onClick={() => setBrindeEscolhido(b.nome)}
+                    className={`flex items-center gap-3 rounded-xl border px-3 py-3 text-left text-sm font-semibold transition ${
+                      brindeEscolhido === b.nome
                         ? "border-primary ring-2 ring-primary/40"
                         : palette.border
                     }`}
                   >
-                    {nome}
+                    <div className={`h-14 w-14 shrink-0 overflow-hidden rounded-xl ${palette.surface}`}>
+                      {b.imagem ? (
+                        <img src={b.imagem} alt={b.nome ?? ""} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className={`flex h-full w-full items-center justify-center ${palette.muted}`}>
+                          <ImageOff className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+                    <span>{b.nome}</span>
                   </button>
                 ))}
               </div>
