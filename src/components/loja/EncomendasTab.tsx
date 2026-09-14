@@ -17,9 +17,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Gift, PackageOpen, Trash2, X } from "lucide-react";
+import { Gift, PackageOpen, RotateCcw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
+import { estornarPedido } from "@/lib/lojaEstorno";
 
 type ItemRow = {
   quantidade: number;
