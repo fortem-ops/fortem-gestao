@@ -428,6 +428,29 @@ export function EncomendasTab() {
         </AlertDialogContent>
 
       </AlertDialog>
+
+      <AlertDialog open={!!estornar} onOpenChange={(o) => !o && setEstornar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Estornar pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja estornar este pedido? O valor será devolvido ao cliente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={estornando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarEstorno();
+              }}
+              disabled={estornando}
+            >
+              {estornando ? "Estornando..." : "Estornar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
