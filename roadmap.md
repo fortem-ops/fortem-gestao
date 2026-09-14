@@ -12,3 +12,5 @@
 - [x] Ativar validação e aplicação segura de cupons na Loja.
 - [x] Adicionar galerias geral e por cor com imagem principal e ordenação.
 - [x] Exibir as galerias na vitrine, detalhes e carrinho.
+- [x] Mostrar em Encomendas o valor realmente recebido, com filtros e exclusão de pedidos.
+- [x] Gerar reposição automática ao remover aluno de um horário (serviços e treinos).
