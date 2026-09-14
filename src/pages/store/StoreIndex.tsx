@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Search, ShoppingBag } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, ShoppingBag, Tag } from "lucide-react";
 import { useCartLoja } from "@/hooks/useCartLoja";
 import StoreHeader from "@/components/store/StoreHeader";
 import ProductCard from "@/components/store/ProductCard";
@@ -11,6 +11,9 @@ import { useProdutosLoja } from "@/hooks/useProdutosLoja";
 import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 
+// Cupom 20OFF visível até 27/09 (23:59, horário de Brasília).
+const CUPOM_20OFF_LIMITE = Date.UTC(2026, 8, 28, 2, 59, 59);
+
 const StoreIndex = () => {
   const { data: produtos, isLoading, isError } = useProdutosLoja();
   const [busca, setBusca] = useState("");
@@ -19,6 +22,17 @@ const StoreIndex = () => {
   const { hideHeader, basePath, forcedTheme } = useStoreScope();
   const { totalItems } = useCartLoja();
   const palette = storePalette(forcedTheme ?? theme);
+  const navigate = useNavigate();
+  const cupom20Valido = Date.now() <= CUPOM_20OFF_LIMITE;
+
+  const aplicarCupom20 = () => {
+    try {
+      sessionStorage.setItem("fortem-loja-cupom-pendente", "20OFF");
+    } catch {
+      /* sem acesso ao storage */
+    }
+    navigate(`${basePath}/carrinho`);
+  };
 
   const categorias = useMemo(() => {
     const set = new Set<string>();
@@ -60,6 +74,29 @@ const StoreIndex = () => {
           )}
         </div>
 
+        {cupom20Valido && (
+          <button
+            type="button"
+            onClick={aplicarCupom20}
+            className={`mt-5 flex w-full items-center justify-between gap-3 rounded-2xl border ${palette.border} ${palette.card} px-4 py-3 text-left transition hover:opacity-90`}
+            aria-label="Aplicar cupom 20OFF no carrinho"
+          >
+            <span className="flex items-center gap-3">
+              <Tag className="h-5 w-5 shrink-0 text-primary" />
+              <span>
+                <span className="block text-sm font-bold">
+                  20% OFF com o cupom 20OFF
+                </span>
+                <span className={`block text-xs ${palette.muted}`}>
+                  Válido até 27/09 — toque para aplicar no carrinho
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+              Aplicar
+            </span>
+          </button>
+        )}
 
         <div className="relative mt-5">
           <Search

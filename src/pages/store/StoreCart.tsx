@@ -62,8 +62,8 @@ const StoreCart = () => {
     setCupomAplicado(null);
   }, [subtotal]);
 
-  const aplicarCupom = async () => {
-    const codigo = cupom.trim().toUpperCase();
+  const aplicarCupom = async (codigoParam?: string) => {
+    const codigo = (codigoParam ?? cupom).trim().toUpperCase();
     if (!codigo) return;
     setValidandoCupom(true);
     const { data, error } = await supabase.functions.invoke("loja-validar-cupom", {
@@ -83,6 +83,22 @@ const StoreCart = () => {
     setCupom(String(data.codigo ?? codigo));
     toast.success("Cupom aplicado");
   };
+
+  // Cupom pendente vindo da faixa promocional da vitrine: aplica sozinho.
+  useEffect(() => {
+    if (checkout || cupomAplicado || items.length === 0) return;
+    let pendente: string | null = null;
+    try {
+      pendente = sessionStorage.getItem("fortem-loja-cupom-pendente");
+      if (pendente) sessionStorage.removeItem("fortem-loja-cupom-pendente");
+    } catch {
+      /* sem acesso ao storage */
+    }
+    if (!pendente) return;
+    setCupom(pendente);
+    void aplicarCupom(pendente);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkout, cupomAplicado, items.length]);
 
   return (
     <div className={`min-h-screen pb-28 sm:pb-10 ${palette.bg} ${palette.text}`}>
