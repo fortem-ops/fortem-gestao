@@ -150,8 +150,32 @@ function TentativasPagamento({ pedidoId }: { pedidoId: string }) {
 }
 
 export function PedidosTab() {
+  const qc = useQueryClient();
   const [filtro, setFiltro] = useState("todos");
   const [aberto, setAberto] = useState<string | null>(null);
+  const [excluir, setExcluir] = useState<Pedido | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const confirmarExclusao = async () => {
+    if (!excluir) return;
+    setExcluindo(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("fn_loja_excluir_pedido", {
+        p_pedido_id: excluir.id,
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || "Falha ao excluir o pedido");
+      toast.success("Pedido excluído");
+      qc.invalidateQueries({ queryKey: ["loja-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["loja-encomendas"] });
+      setExcluir(null);
+    } catch (e: any) {
+      toast.error("Não foi possível excluir", { description: e.message });
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["loja-pedidos", filtro],
