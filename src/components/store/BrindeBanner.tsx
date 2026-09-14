@@ -45,9 +45,9 @@ const BrindeBanner = ({ subtotal, className = "" }: Props) => {
       <div className="mt-3 grid grid-cols-2 gap-3">
         {brindes.map((b) => (
           <div key={b.nome} className="flex items-center gap-2">
-            <div className={`h-14 w-14 shrink-0 overflow-hidden rounded-xl ${palette.surface}`}>
+            <div className={`h-14 w-14 shrink-0 overflow-hidden rounded-xl p-1 ${palette.surface}`}>
               {b.imagem ? (
-                <img src={b.imagem} alt={b.nome} className="h-full w-full object-cover" />
+                <img src={b.imagem} alt={b.nome} className="h-full w-full object-contain" />
               ) : (
                 <div className={`flex h-full w-full items-center justify-center ${palette.muted}`}>
                   <ImageOff className="h-4 w-4" />
