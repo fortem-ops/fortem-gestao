@@ -18,6 +18,9 @@ export function getTaskActionTarget(task: TaskActionable): string | null {
       return `/alunos/${aluno_id}?tab=treinos`;
     case "reavaliacao_funcional":
       return `/alunos/${aluno_id}?tab=avaliacoes`;
+    case "relatorio_tecnico_forca":
+    case "relatorio_tecnico_corrida":
+      return `/alunos/${aluno_id}?tab=registros&sub=relatorios`;
     case "pipeline_novo_lead":
     case "pipeline_avaliacao_agendada":
     case "pipeline_proposta":
