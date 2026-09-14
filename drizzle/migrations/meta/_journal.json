@@ -36,6 +36,13 @@
       "when": 1789393622940,
       "tag": "0004_loja_promocao_brinde",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789395785358,
+      "tag": "0005_security_fix_pedidos_webhook_anexos",
+      "breakpoints": true
     }
   ]
 }
