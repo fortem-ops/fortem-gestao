@@ -43,6 +43,13 @@
       "when": 1789395785358,
       "tag": "0005_security_fix_pedidos_webhook_anexos",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789398075951,
+      "tag": "0006_pedidos_estorno",
+      "breakpoints": true
     }
   ]
 }

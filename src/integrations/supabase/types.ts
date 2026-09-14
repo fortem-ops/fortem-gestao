@@ -4607,6 +4607,9 @@ export type Database = {
           desconto: number
           eh_encomenda: boolean
           email: string
+          estornado_em: string | null
+          estornado_por: string | null
+          estorno_detalhe: Json | null
           forma_pagamento: string | null
           id: string
           idempotency_key: string | null
@@ -4629,6 +4632,9 @@ export type Database = {
           desconto?: number
           eh_encomenda?: boolean
           email: string
+          estornado_em?: string | null
+          estornado_por?: string | null
+          estorno_detalhe?: Json | null
           forma_pagamento?: string | null
           id?: string
           idempotency_key?: string | null
@@ -4651,6 +4657,9 @@ export type Database = {
           desconto?: number
           eh_encomenda?: boolean
           email?: string
+          estornado_em?: string | null
+          estornado_por?: string | null
+          estorno_detalhe?: Json | null
           forma_pagamento?: string | null
           id?: string
           idempotency_key?: string | null
