@@ -305,6 +305,36 @@ export function PedidosTab() {
           </Table>
         </div>
       )}
+
+      <AlertDialog open={!!excluir} onOpenChange={(o) => !o && setExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {excluir && (
+                <>
+                  Pedido de <strong>{excluir.nome || "cliente não informado"}</strong> —{" "}
+                  {resumoItens(excluir.pedido_itens || [])}, valor {formatBRL(Number(excluir.valor_final ?? 0))}. O
+                  estoque reservado volta e as tentativas de pagamento são apagadas. Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmarExclusao();
+              }}
+              disabled={excluindo}
+            >
+              {excluindo ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
