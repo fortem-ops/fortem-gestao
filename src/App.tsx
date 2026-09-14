@@ -72,6 +72,7 @@ const RelatoriosPlanos = lazyWithReload(() => import("./pages/relatorios/Planos"
 const RelatoriosCancelamentos = lazyWithReload(() => import("./pages/relatorios/Cancelamentos"));
 const RelatoriosServicos = lazyWithReload(() => import("./pages/relatorios/Servicos"));
 const RelatoriosEmBreve = lazyWithReload(() => import("./pages/relatorios/EmBreve"));
+const RelatoriosTecnicos = lazyWithReload(() => import("./pages/relatorios/Tecnicos"));
 const RelatoriosCRM = lazyWithReload(() => import("./pages/relatorios/CRM"));
 const RelatoriosEquipe = lazyWithReload(() => import("./pages/relatorios/Equipe"));
 const WhatsApp = lazyWithReload(() => import("./pages/WhatsApp"));
