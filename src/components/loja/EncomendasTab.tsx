@@ -341,6 +341,11 @@ export function EncomendasTab() {
                               Brinde: {l.brinde}
                             </Badge>
                           )}
+                          {l.status === "estornado" && (
+                            <Badge variant="outline" className="ml-2 status-urgent text-[10px]">
+                              Estornado
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>{l.produto}</TableCell>
                         <TableCell>{l.cor}</TableCell>
