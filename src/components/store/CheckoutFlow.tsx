@@ -788,6 +788,55 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
               </div>
             </div>
           )}
+
+          {dadosValidos && metodo === "cartao" && maxParcelas > 1 && (
+            <div className="grid gap-2 sm:col-span-2">
+              <Label>Parcelamento</Label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-pressed={parcelas === n}
+                    onClick={() => setParcelas(n)}
+                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                      parcelas === n ? "border-primary ring-2 ring-primary/40" : palette.border
+                    }`}
+                  >
+                    {n}x de {formatBRL(valorParcela(total, n))} sem juros
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {brindeDisponivel && opcoesBrinde.length > 0 && (
+            <div className="grid gap-2 sm:col-span-2">
+              <Label>Escolha seu brinde</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {opcoesBrinde.map((nome) => (
+                  <button
+                    key={nome}
+                    type="button"
+                    aria-pressed={brindeEscolhido === nome}
+                    onClick={() => setBrindeEscolhido(nome)}
+                    className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                      brindeEscolhido === nome
+                        ? "border-primary ring-2 ring-primary/40"
+                        : palette.border
+                    }`}
+                  >
+                    {nome}
+                  </button>
+                ))}
+              </div>
+              {!brindeEscolhido && (
+                <p className={`text-xs ${palette.muted}`}>
+                  Escolha um brinde para continuar.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       ) : step === "cartao-salvo" && cartaoSalvo ? (
         <div className="py-2 text-center">
