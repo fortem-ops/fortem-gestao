@@ -76,6 +76,8 @@ export function EncomendasTab() {
   const [recebimento, setRecebimento] = useState("todos");
   const [excluir, setExcluir] = useState<Linha | null>(null);
   const [excluindo, setExcluindo] = useState(false);
+  const [estornar, setEstornar] = useState<Linha | null>(null);
+  const [estornando, setEstornando] = useState(false);
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["loja-encomendas"],
