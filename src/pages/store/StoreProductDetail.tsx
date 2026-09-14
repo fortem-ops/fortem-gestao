@@ -368,6 +368,28 @@ const StoreProductDetail = () => {
                   ? "Encomendar"
                   : "Adicionar ao carrinho"}
               </Button>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  className={`flex-1 ${palette.card}`}
+                >
+                  <Link to={`${basePath}/carrinho`}>
+                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    Ir para o carrinho
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className={`flex-1 ${palette.card}`}
+                >
+                  <Link to={basePath}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Escolher mais produtos
+                  </Link>
+                </Button>
+              </div>
               {encomenda && (
                 <p className={`mt-2 text-center text-xs ${palette.muted}`}>
                   Produto sob encomenda — o pagamento é feito agora e o item
