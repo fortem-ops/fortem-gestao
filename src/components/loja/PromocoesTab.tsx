@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
+import { PromocaoBrindeCard } from "@/components/loja/PromocaoBrindeCard";
 
 type Promocao = {
   id: string;
@@ -118,6 +119,8 @@ export function PromocoesTab() {
 
   return (
     <div className="space-y-4">
+      <PromocaoBrindeCard />
+
       <div className="flex justify-end">
         <Button
           onClick={() => {
