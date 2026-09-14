@@ -228,6 +228,7 @@ export function PedidosTab() {
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Pagamento</TableHead>
+                <TableHead>Brinde</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead className="w-10" />
 
@@ -281,13 +282,19 @@ export function PedidosTab() {
                   </TableRow>
                   {aberto === p.id && (
                     <TableRow className="bg-secondary/30 hover:bg-secondary/30">
-                      <TableCell colSpan={8} className="p-4 space-y-4">
+                      <TableCell colSpan={9} className="p-4 space-y-4">
 
                         <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-3">
                           <span>CPF: {p.cpf || "—"}</span>
                           <span>E-mail: {p.email || "—"}</span>
                           <span>Telefone: {p.telefone || "—"}</span>
                         </div>
+                        {p.brinde_escolhido && (
+                          <p className="text-xs">
+                            <span className="font-semibold text-muted-foreground">Brinde escolhido: </span>
+                            {p.brinde_escolhido}
+                          </p>
+                        )}
                         {p.eh_encomenda && (
                           <Badge variant="outline" className="status-warning">Encomenda</Badge>
                         )}
