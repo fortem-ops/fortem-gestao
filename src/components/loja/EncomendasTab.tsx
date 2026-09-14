@@ -356,7 +356,17 @@ export function EncomendasTab() {
                         <TableCell className="text-right">{l.quantidade}</TableCell>
                         <TableCell className="text-right text-muted-foreground">{formatBRL(l.valorItens)}</TableCell>
                         <TableCell className="text-right font-semibold">{formatBRL(l.valorRecebido)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right whitespace-nowrap">
+                          {l.status === "pago" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setEstornar(l)}
+                              title="Estornar pedido"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" onClick={() => setExcluir(l)} title="Excluir pedido">
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
