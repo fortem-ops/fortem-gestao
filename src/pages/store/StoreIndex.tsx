@@ -11,6 +11,9 @@ import { useProdutosLoja } from "@/hooks/useProdutosLoja";
 import { useStoreTheme, storePalette } from "@/hooks/useStoreTheme";
 import { useStoreScope } from "@/components/store/StoreScope";
 
+// Cupom 20OFF visível até 27/09 (23:59, horário de Brasília).
+const CUPOM_20OFF_LIMITE = Date.UTC(2026, 8, 28, 2, 59, 59);
+
 const StoreIndex = () => {
   const { data: produtos, isLoading, isError } = useProdutosLoja();
   const [busca, setBusca] = useState("");
@@ -19,6 +22,17 @@ const StoreIndex = () => {
   const { hideHeader, basePath, forcedTheme } = useStoreScope();
   const { totalItems } = useCartLoja();
   const palette = storePalette(forcedTheme ?? theme);
+  const navigate = useNavigate();
+  const cupom20Valido = Date.now() <= CUPOM_20OFF_LIMITE;
+
+  const aplicarCupom20 = () => {
+    try {
+      sessionStorage.setItem("fortem-loja-cupom-pendente", "20OFF");
+    } catch {
+      /* sem acesso ao storage */
+    }
+    navigate(`${basePath}/carrinho`);
+  };
 
   const categorias = useMemo(() => {
     const set = new Set<string>();

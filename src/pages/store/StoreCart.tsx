@@ -84,6 +84,22 @@ const StoreCart = () => {
     toast.success("Cupom aplicado");
   };
 
+  // Cupom pendente vindo da faixa promocional da vitrine: aplica sozinho.
+  useEffect(() => {
+    if (checkout || cupomAplicado || items.length === 0) return;
+    let pendente: string | null = null;
+    try {
+      pendente = sessionStorage.getItem("fortem-loja-cupom-pendente");
+      if (pendente) sessionStorage.removeItem("fortem-loja-cupom-pendente");
+    } catch {
+      /* sem acesso ao storage */
+    }
+    if (!pendente) return;
+    setCupom(pendente);
+    void aplicarCupom(pendente);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkout, cupomAplicado, items.length]);
+
   return (
     <div className={`min-h-screen pb-28 sm:pb-10 ${palette.bg} ${palette.text}`}>
       {!hideHeader && <StoreHeader backTo={basePath} title="Carrinho" />}
