@@ -899,7 +899,7 @@ const CorridaConfigurator = () => {
                 Pagamento via crédito à vista — sem parcelamento.
               </p>
             ) : (
-              (rota !== "prospect" || periodo === "anual") && (
+              periodoEfetivo(rota, periodo) !== "mensal" && (
                 <p className="text-xs text-muted-foreground pt-2">
                   Parcelável em até {maxParcelas}x — escolha o parcelamento na etapa de pagamento.
                 </p>
