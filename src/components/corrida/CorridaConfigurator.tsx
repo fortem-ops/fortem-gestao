@@ -277,7 +277,7 @@ const CorridaConfigurator = () => {
       });
       return lista;
     }
-    const cortesiaAtiva = cortesiaDisponivel && (rota !== "prospect" || periodo === "anual");
+    const cortesiaAtiva = cortesiaDisponivel && periodoEfetivo(rota, periodo) === "anual";
     if (cortesiaAtiva) lista.push({ prova: "NB", distancia: distanciaCortesia });
     if (mipoa) lista.push({ prova: "MIPOA", distancia: distanciaMipoa });
     return lista;
@@ -362,6 +362,7 @@ const CorridaConfigurator = () => {
 
     return {
       planoAnual: plano(nomePlano, 12),
+      planoSemestral: plano(nomePlano, 6),
       planoMensal: plano(nomePlano, 1),
       kits,
       aval,
@@ -372,7 +373,7 @@ const CorridaConfigurator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rota, tier, itens, planos]);
 
-  const maxParcelas = rota === "prospect" ? 12 : 10;
+  const maxParcelas = maxParcelasPeriodo(rota, periodo);
 
 
   /* --------------------------- Resumo --------------------------- */
