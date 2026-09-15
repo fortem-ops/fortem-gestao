@@ -167,6 +167,73 @@ Deno.serve(async (req) => {
     </body></html>`;
 
     await sendGmailEmail(pedido.email, `Pedido confirmado - Loja Fortem`, html);
+
+    // ---- Aviso interno (nunca derruba a confirmacao do cliente) ----
+    try {
+      const cpfDigits = String(pedido.cpf ?? "").replace(/\D/g, "");
+      const cpfMascarado = cpfDigits.length === 11
+        ? `***.***.${cpfDigits.slice(6, 9)}-${cpfDigits.slice(9)}`
+        : "—";
+      const desconto = Number(pedido.desconto ?? 0);
+      const criadoEm = new Date(pedido.created_at as string).toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+      });
+
+      const linhaInfo = (label: string, valor: string) =>
+        `<tr><td style="padding:4px 12px 4px 0;font-size:13px;color:#777">${esc(label)}</td>
+          <td style="padding:4px 0;font-size:13px;color:#111">${valor}</td></tr>`;
+
+      const htmlInterno = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif">
+        <div style="max-width:640px;margin:0 auto;background:#ffffff">
+          <div style="background:#111111;padding:16px 24px">
+            <span style="color:#ffffff;font-size:16px;font-weight:bold;letter-spacing:2px">FORTEM · NOVA COMPRA NA LOJA</span>
+          </div>
+          <div style="height:4px;background:#E11D2E"></div>
+          <div style="padding:24px">
+            <table style="width:100%;border-collapse:collapse">
+              ${linhaInfo("Pedido", esc(pedido.id))}
+              ${linhaInfo("Data", esc(criadoEm))}
+              ${linhaInfo("Cliente", esc(pedido.nome))}
+              ${linhaInfo("E-mail", esc(pedido.email))}
+              ${linhaInfo("Telefone", esc(pedido.telefone ?? "—"))}
+              ${linhaInfo("CPF", esc(cpfMascarado))}
+              ${linhaInfo("Aluno vinculado", pedido.aluno_id ? "Sim (Portal/CPF)" : "Nao")}
+              ${linhaInfo("Forma de pagamento", esc(forma))}
+              ${pedido.brinde_escolhido ? linhaInfo("Brinde escolhido", esc(pedido.brinde_escolhido)) : ""}
+              ${pedido.eh_encomenda ? linhaInfo("Encomenda", "Sim - contem itens sob encomenda") : ""}
+            </table>
+            <h3 style="font-size:15px;margin:24px 0 8px;color:#111">Itens</h3>
+            <table style="width:100%;border-collapse:collapse">
+              ${linhas || `<tr><td style="font-size:14px;color:#111">Itens do pedido</td></tr>`}
+              <tr>
+                <td style="padding:8px 0;font-size:13px;color:#777">Subtotal</td><td></td>
+                <td style="padding:8px 0;font-size:13px;text-align:right;color:#111">${brl(pedido.valor_total)}</td>
+              </tr>
+              ${desconto > 0
+                ? `<tr><td style="padding:4px 0;font-size:13px;color:#777">Desconto</td><td></td>
+                    <td style="padding:4px 0;font-size:13px;text-align:right;color:#111">- ${brl(desconto)}</td></tr>`
+                : ""}
+              <tr>
+                <td style="padding:10px 0;font-size:15px;font-weight:bold;color:#111">Valor recebido</td><td></td>
+                <td style="padding:10px 0;font-size:15px;font-weight:bold;text-align:right;color:#111">${brl(pedido.valor_final)}</td>
+              </tr>
+            </table>
+          </div>
+          <div style="background:#111111;padding:16px 24px;color:#999;font-size:12px">
+            Aviso automatico interno - Loja Fortem.
+          </div>
+        </div>
+      </body></html>`;
+
+      await sendGmailEmail(
+        "fortemtreinamento@gmail.com",
+        `Nova compra na Loja - ${String(pedido.nome ?? "")} - ${brl(pedido.valor_final)}`,
+        htmlInterno,
+      );
+    } catch (errInterno) {
+      console.error("[loja-enviar-confirmacao-email] falha no aviso interno:", String(errInterno));
+    }
+
     return json(200, { ok: true });
   } catch (err) {
     console.error("loja-enviar-confirmacao-email error:", err);
