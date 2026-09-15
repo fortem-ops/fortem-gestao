@@ -306,9 +306,14 @@ Deno.serve(async (req) => {
       parcelas = 1;
     } else {
       // ---------- 2. plano + contrato ----------
-      const periodo: "mensal" | "anual" =
-        rota === "prospect" ? (body?.periodo === "mensal" ? "mensal" : "anual") : "anual";
-      const periodoMeses = periodo === "mensal" ? 1 : 12;
+      const periodoBody = String(body?.periodo ?? "");
+      const periodo: "mensal" | "semestral" | "anual" =
+        periodoBody === "semestral"
+          ? "semestral"
+          : rota === "prospect" && periodoBody === "mensal"
+            ? "mensal"
+            : "anual";
+      const periodoMeses = periodo === "mensal" ? 1 : periodo === "semestral" ? 6 : 12;
 
       if (rota === "aluno") {
         const tier = String(body?.tier ?? "");
