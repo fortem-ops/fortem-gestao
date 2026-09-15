@@ -786,6 +786,12 @@ const CorridaConfigurator = () => {
           camiseta_mipoa: provasPedido.some((p) => p.prova === "MIPOA") ? form.camiseta_mipoa : null,
           aceite_inscricao: form.aceite_inscricao,
           aceite_termo_aptidao: exigeTermo ? form.aceite_termo_aptidao : null,
+          nb_nome_emergencia: form.nb_nome_emergencia,
+          nb_telefone_emergencia: form.nb_telefone_emergencia,
+          nb_aceite_regulamento: form.nb_aceite_regulamento,
+          nb_pace: form.nb_pace,
+          nb_apelido_peito: form.nb_apelido_peito,
+          nb_camiseta: form.nb_camiseta,
         },
       });
       if (error || !data?.ok) throw error ?? new Error("falha");
