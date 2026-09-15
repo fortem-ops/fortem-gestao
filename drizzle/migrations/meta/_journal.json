@@ -57,6 +57,13 @@
       "when": 1789471091366,
       "tag": "0007_pix_cobrancas_corrida_venda",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789471511737,
+      "tag": "0008_pix_cobrancas_origem_corrida",
+      "breakpoints": true
     }
   ]
 }
