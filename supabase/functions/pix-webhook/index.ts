@@ -214,6 +214,33 @@ Deno.serve(async (req) => {
             prioridade: "media",
           });
         }
+
+        // --- Corrida (Pix à vista): adição isolada, não afeta o caminho da Loja ---
+        if (cob?.corrida_venda_id) {
+          try {
+            const { data: vendaCorrida } = await sup
+              .from("vendas")
+              .select("id, aluno_id, plano_id")
+              .eq("id", cob.corrida_venda_id)
+              .maybeSingle();
+            await sup.from("vendas")
+              .update({ status_pagamento: "pago" })
+              .eq("id", cob.corrida_venda_id);
+            const { data: contratoCorrida } = vendaCorrida?.plano_id
+              ? await sup.from("contratos").select("id").eq("plano_id", vendaCorrida.plano_id)
+                .order("created_at", { ascending: false }).limit(1).maybeSingle()
+              : { data: null };
+            await processarPagamentoAprovadoCorrida(sup, {
+              vendaId: cob.corrida_venda_id,
+              contratoId: contratoCorrida?.id ?? null,
+              alunoId: vendaCorrida?.aluno_id ?? null,
+              modulo: "pix-webhook",
+            });
+          } catch (e) {
+            console.error("pix-webhook: falha ao processar pagamento aprovado da Corrida", String(e));
+          }
+        }
+
         continue;
       }
 
