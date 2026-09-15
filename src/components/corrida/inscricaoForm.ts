@@ -36,6 +36,13 @@ export interface InscricaoForm {
   camiseta_mipoa: string;
   aceite_inscricao: boolean;
   aceite_termo_aptidao: boolean;
+  // campos exclusivos NB 42k 2027
+  nb_nome_emergencia: string;
+  nb_telefone_emergencia: string;
+  nb_aceite_regulamento: boolean | null;
+  nb_pace: string;
+  nb_apelido_peito: string;
+  nb_camiseta: string;
 }
 
 export interface InscricaoPrefill {
@@ -68,6 +75,30 @@ export function formatCepLocal(v: string) {
   return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }
 
+/** Máscara de telefone brasileiro: (51) 99999-9999 */
+export function maskTelefone(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+/** CAIXA ALTA, sem acentos, sem espaços (nome para o número de peito). */
+export function normalizarApelidoPeito(v: string) {
+  return v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toUpperCase()
+    .slice(0, 20);
+}
+
+export const NB_CAMISETAS = ["Babylook (tamanho único)", "P", "M", "G", "GG"];
+
+/** URL do regulamento da NB 42k 2027 — substituir pelo link oficial quando disponível. */
+export const NB_REGULAMENTO_URL = "#";
+
 export const inscricaoFormInicial = (prefill: InscricaoPrefill = {}): InscricaoForm => ({
   nome: prefill.nome ?? "",
   sobrenome: prefill.sobrenome ?? "",
@@ -92,6 +123,12 @@ export const inscricaoFormInicial = (prefill: InscricaoPrefill = {}): InscricaoF
   camiseta_mipoa: "",
   aceite_inscricao: false,
   aceite_termo_aptidao: false,
+  nb_nome_emergencia: "",
+  nb_telefone_emergencia: "",
+  nb_aceite_regulamento: null,
+  nb_pace: "",
+  nb_apelido_peito: "",
+  nb_camiseta: "",
 });
 
 /** Valida apenas os dados cadastrais (etapa "Dados Cadastrais"). */
@@ -116,6 +153,17 @@ export function dadosCadastraisValidos(form: InscricaoForm): boolean {
   return true;
 }
 
+/** Valida o formulário exclusivo da NB 42k 2027. */
+export function inscricaoNbValida(form: InscricaoForm): boolean {
+  if (!form.nb_nome_emergencia.trim()) return false;
+  if (form.nb_telefone_emergencia.replace(/\D/g, "").length < 10) return false;
+  if (form.nb_aceite_regulamento !== true) return false;
+  if (!form.nb_pace.trim()) return false;
+  if (!normalizarApelidoPeito(form.nb_apelido_peito)) return false;
+  if (!NB_CAMISETAS.includes(form.nb_camiseta)) return false;
+  return true;
+}
+
 /** Valida apenas os campos específicos de prova (etapa final). */
 export function inscricaoProvaValida(
   form: InscricaoForm,
@@ -123,15 +171,19 @@ export function inscricaoProvaValida(
   exigeTermo: boolean,
 ): boolean {
   if (provas.length === 0) return false;
-  if (!form.ritmo_corrida.trim()) return false;
-  if (!form.local_nascimento) return false;
-  if (!form.marca_tenis.trim()) return false;
-  if (!form.como_soube.trim()) return false;
-  for (const p of provas) {
-    if (p.prova === "NB" && (form.participou_nb_2026 === null || !form.camiseta_nb)) return false;
-    if (p.prova === "MIPOA" && (form.participou_mipoa_2026 === null || !form.camiseta_mipoa))
-      return false;
+  const temNb = provas.some((p) => p.prova === "NB");
+  const temMipoa = provas.some((p) => p.prova === "MIPOA");
+
+  if (temNb && !inscricaoNbValida(form)) return false;
+
+  if (temMipoa) {
+    if (!form.ritmo_corrida.trim()) return false;
+    if (!form.local_nascimento) return false;
+    if (!form.marca_tenis.trim()) return false;
+    if (!form.como_soube.trim()) return false;
+    if (form.participou_mipoa_2026 === null || !form.camiseta_mipoa) return false;
   }
+
   if (!form.aceite_inscricao) return false;
   if (exigeTermo && !form.aceite_termo_aptidao) return false;
   return true;

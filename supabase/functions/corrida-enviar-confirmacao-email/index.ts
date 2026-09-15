@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
 
     const { data: inscricao } = await supabase
       .from("corrida_inscricoes_prova")
-      .select("id, email, nome, sobrenome, telefone, rota, provas, pedido_resumo, inscricao_prova_completa")
+      .select("id, email, nome, sobrenome, telefone, rota, provas, pedido_resumo, inscricao_prova_completa, nb_apelido_peito, nb_nome_emergencia, nb_telefone_emergencia, nb_pace, nb_camiseta")
       .eq("venda_id", vendaId)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -253,6 +253,10 @@ Deno.serve(async (req) => {
               <tr><td style="padding:4px 0;color:#777">Pagamento</td><td style="padding:4px 0">${brl(venda.valor_final)}${parcelas > 1 ? ` em ${parcelas}x` : " à vista"} · ${esc(venda.forma_pagamento ?? "—")}</td></tr>
               <tr><td style="padding:4px 0;color:#777">Provas</td><td style="padding:4px 0">${provasTxt}</td></tr>
               <tr><td style="padding:4px 0;color:#777">Inscrição na prova</td><td style="padding:4px 0">${temProva ? (faltaInscricao ? "PENDENTE" : "Completa") : "Não se aplica"}</td></tr>
+              ${inscricao?.nb_apelido_peito ? `<tr><td style="padding:4px 0;color:#777">NB · Nome no peito</td><td style="padding:4px 0">${esc(inscricao.nb_apelido_peito)}</td></tr>` : ""}
+              ${inscricao?.nb_camiseta ? `<tr><td style="padding:4px 0;color:#777">NB · Camiseta</td><td style="padding:4px 0">${esc(inscricao.nb_camiseta)}</td></tr>` : ""}
+              ${inscricao?.nb_pace ? `<tr><td style="padding:4px 0;color:#777">NB · Pace médio</td><td style="padding:4px 0">${esc(inscricao.nb_pace)}</td></tr>` : ""}
+              ${inscricao?.nb_nome_emergencia || inscricao?.nb_telefone_emergencia ? `<tr><td style="padding:4px 0;color:#777">NB · Emergência</td><td style="padding:4px 0">${esc(inscricao?.nb_nome_emergencia ?? "—")} · ${esc(inscricao?.nb_telefone_emergencia ?? "—")}</td></tr>` : ""}
             </table>
             <h3 style="font-size:14px;margin:20px 0 6px;color:#111">Itens do pedido</h3>
             <ul style="font-size:14px;color:#111;padding-left:18px;margin:0">${itensHtml}</ul>

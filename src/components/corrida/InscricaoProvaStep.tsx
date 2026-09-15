@@ -1,7 +1,11 @@
 import { Check } from "lucide-react";
 import {
+  NB_CAMISETAS,
+  NB_REGULAMENTO_URL,
   PROVA_NOME_2026,
   PROVA_NOME_ATUAL,
+  maskTelefone,
+  normalizarApelidoPeito,
   type InscricaoForm,
   type ProvaPedido,
 } from "./inscricaoForm";
@@ -65,10 +69,19 @@ const Pill = ({
   </button>
 );
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+const Field = ({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: React.ReactNode;
+  hint?: string;
+}) => (
   <label className="block">
     <span className="block text-sm font-semibold mb-1.5">{label}</span>
     {children}
+    {hint && <span className="block text-xs text-muted-foreground mt-1">{hint}</span>}
   </label>
 );
 
@@ -111,6 +124,116 @@ const CheckRow = ({
   </button>
 );
 
+/* ---------- Formulário exclusivo NB 42k 2027 ---------- */
+const FormularioNb = ({
+  form,
+  set,
+}: {
+  form: InscricaoForm;
+  set: <K extends keyof InscricaoForm>(k: K, v: InscricaoForm[K]) => void;
+}) => (
+  <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
+    <h3 className="font-display text-xl font-bold mb-1">Inscrição na {PROVA_NOME_ATUAL.NB}</h3>
+    <p className="text-sm text-muted-foreground mb-2">
+      Informações exigidas pela organização da prova.
+    </p>
+
+    <div className="divide-y divide-border">
+      <Secao titulo="Contato de emergência">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Nome do contato*">
+            <input
+              className={inputCls}
+              value={form.nb_nome_emergencia}
+              onChange={(e) => set("nb_nome_emergencia", e.target.value)}
+              placeholder="Ex: Maria Silva"
+            />
+          </Field>
+          <Field label="Telefone (DDD + Número)*">
+            <input
+              className={inputCls}
+              inputMode="numeric"
+              value={form.nb_telefone_emergencia}
+              onChange={(e) => set("nb_telefone_emergencia", maskTelefone(e.target.value))}
+              placeholder="(51) 99999-9999"
+            />
+          </Field>
+        </div>
+      </Secao>
+
+      <Secao titulo="Aptidão e regulamento">
+        <p className="text-sm">
+          Declaro estar apto fisicamente e ter lido o{" "}
+          <a
+            href={NB_REGULAMENTO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline underline-offset-4"
+          >
+            REGULAMENTO
+          </a>
+          , estando de acordo para participar do evento.*
+        </p>
+        <div className="flex gap-2">
+          <Pill
+            active={form.nb_aceite_regulamento === true}
+            onClick={() => set("nb_aceite_regulamento", true)}
+          >
+            Sim
+          </Pill>
+          <Pill
+            active={form.nb_aceite_regulamento === false}
+            onClick={() => set("nb_aceite_regulamento", false)}
+          >
+            Não
+          </Pill>
+        </div>
+        {form.nb_aceite_regulamento === false && (
+          <p className="text-sm rounded-xl border border-primary/40 bg-primary/5 p-3">
+            Não é possível concluir a inscrição sem concordar com a declaração de aptidão e o
+            regulamento do evento.
+          </p>
+        )}
+      </Secao>
+
+      <Secao titulo="Informações da prova">
+        <Field label="Pace médio (ritmo de corrida)*" hint="Ex: 5:30 min/km">
+          <input
+            className={inputCls}
+            value={form.nb_pace}
+            onChange={(e) => set("nb_pace", e.target.value)}
+            placeholder="5:30 min/km"
+          />
+        </Field>
+
+        <Field label="Nome ou apelido para o número de peito*" hint="Ex: MARIA, JOAOPEDRO">
+          <input
+            className={inputCls}
+            value={form.nb_apelido_peito}
+            onChange={(e) => set("nb_apelido_peito", normalizarApelidoPeito(e.target.value))}
+            placeholder="MARIA"
+          />
+        </Field>
+
+        <Field label="Camiseta*">
+          <select
+            className={inputCls}
+            value={form.nb_camiseta}
+            onChange={(e) => set("nb_camiseta", e.target.value)}
+          >
+            <option value="">Selecione</option>
+            {NB_CAMISETAS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </Secao>
+    </div>
+  </div>
+);
+
 const InscricaoProvaStep = ({
   form,
   setForm,
@@ -125,121 +248,130 @@ const InscricaoProvaStep = ({
   const set = <K extends keyof InscricaoForm>(k: K, v: InscricaoForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const temNb = provas.some((p) => p.prova === "NB");
+  const temMipoa = provas.some((p) => p.prova === "MIPOA");
   const nomesProvas = provas.map((p) => PROVA_NOME_ATUAL[p.prova]).join(" e ");
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
-      <h3 className="font-display text-xl font-bold mb-1">Inscrição na Prova</h3>
-      <p className="text-sm text-muted-foreground mb-2">
-        Últimos detalhes para fazer a sua inscrição{nomesProvas ? ` em ${nomesProvas}` : ""}.
-      </p>
+    <div className="space-y-4">
+      {temNb && <FormularioNb form={form} set={set} />}
 
-      <div className="divide-y divide-border">
-        <Secao titulo="Informações para inscrição">
-          <Field label="Ritmo de corrida*">
-            <select
-              className={inputCls}
-              value={form.ritmo_corrida}
-              onChange={(e) => set("ritmo_corrida", e.target.value)}
-            >
-              <option value="">Selecione</option>
-              {RITMOS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </Field>
+      {temMipoa && (
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
+          <h3 className="font-display text-xl font-bold mb-1">
+            Inscrição na {PROVA_NOME_ATUAL.MIPOA}
+          </h3>
+          <p className="text-sm text-muted-foreground mb-2">
+            Últimos detalhes para fazer a sua inscrição.
+          </p>
 
-          <div>
-            <span className="block text-sm font-semibold mb-1.5">Local de nascimento*</span>
-            <div className="flex gap-2">
-              {(["RS", "Outros"] as const).map((o) => (
-                <Pill key={o} active={form.local_nascimento === o} onClick={() => set("local_nascimento", o)}>
-                  {o}
-                </Pill>
-              ))}
-            </div>
-          </div>
+          <div className="divide-y divide-border">
+            <Secao titulo="Informações para inscrição">
+              <Field label="Ritmo de corrida*">
+                <select
+                  className={inputCls}
+                  value={form.ritmo_corrida}
+                  onChange={(e) => set("ritmo_corrida", e.target.value)}
+                >
+                  <option value="">Selecione</option>
+                  {RITMOS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </Field>
 
-          {provas.map((p) => {
-            const campo = p.prova === "NB" ? "participou_nb_2026" : "participou_mipoa_2026";
-            const valor = form[campo];
-            return (
-              <div key={p.prova}>
+              <div>
+                <span className="block text-sm font-semibold mb-1.5">Local de nascimento*</span>
+                <div className="flex gap-2">
+                  {(["RS", "Outros"] as const).map((o) => (
+                    <Pill
+                      key={o}
+                      active={form.local_nascimento === o}
+                      onClick={() => set("local_nascimento", o)}
+                    >
+                      {o}
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+
+              <div>
                 <span className="block text-sm font-semibold mb-1.5">
-                  Participou da {PROVA_NOME_2026[p.prova]}?*
+                  Participou da {PROVA_NOME_2026.MIPOA}?*
                 </span>
                 <div className="flex gap-2">
-                  <Pill active={valor === true} onClick={() => set(campo, true)}>
+                  <Pill
+                    active={form.participou_mipoa_2026 === true}
+                    onClick={() => set("participou_mipoa_2026", true)}
+                  >
                     Sim
                   </Pill>
-                  <Pill active={valor === false} onClick={() => set(campo, false)}>
+                  <Pill
+                    active={form.participou_mipoa_2026 === false}
+                    onClick={() => set("participou_mipoa_2026", false)}
+                  >
                     Não
                   </Pill>
                 </div>
               </div>
-            );
-          })}
-        </Secao>
+            </Secao>
 
-        <Secao titulo="Informações complementares">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Marca de tênis*">
-              <select
-                className={inputCls}
-                value={form.marca_tenis}
-                onChange={(e) => set("marca_tenis", e.target.value)}
-              >
-                <option value="">Selecione</option>
-                {MARCAS.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Como ficou sabendo*">
-              <select
-                className={inputCls}
-                value={form.como_soube}
-                onChange={(e) => set("como_soube", e.target.value)}
-              >
-                <option value="">Selecione</option>
-                {COMO_SOUBE.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        </Secao>
-
-        <Secao titulo="Camiseta oficial">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {provas.map((p) => {
-              const campo = p.prova === "NB" ? "camiseta_nb" : "camiseta_mipoa";
-              return (
-                <Field key={p.prova} label={`Camiseta ${PROVA_NOME_ATUAL[p.prova]}*`}>
+            <Secao titulo="Informações complementares">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Marca de tênis*">
                   <select
                     className={inputCls}
-                    value={form[campo]}
-                    onChange={(e) => set(campo, e.target.value)}
+                    value={form.marca_tenis}
+                    onChange={(e) => set("marca_tenis", e.target.value)}
                   >
                     <option value="">Selecione</option>
-                    {TAMANHOS.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
+                    {MARCAS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
                       </option>
                     ))}
                   </select>
                 </Field>
-              );
-            })}
-          </div>
-        </Secao>
+                <Field label="Como ficou sabendo*">
+                  <select
+                    className={inputCls}
+                    value={form.como_soube}
+                    onChange={(e) => set("como_soube", e.target.value)}
+                  >
+                    <option value="">Selecione</option>
+                    {COMO_SOUBE.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+            </Secao>
 
+            <Secao titulo="Camiseta oficial">
+              <Field label={`Camiseta ${PROVA_NOME_ATUAL.MIPOA}*`}>
+                <select
+                  className={inputCls}
+                  value={form.camiseta_mipoa}
+                  onChange={(e) => set("camiseta_mipoa", e.target.value)}
+                >
+                  <option value="">Selecione</option>
+                  {TAMANHOS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </Secao>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-card border border-border rounded-2xl p-5 shadow-card">
         <Secao titulo="Confirmação">
           <CheckRow
             checked={form.aceite_inscricao}
