@@ -48,7 +48,7 @@ interface Props {
   setPedido: (p: PedidoCriado | null) => void;
 }
 
-type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "sucesso" | "erro";
+type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "pix" | "sucesso" | "erro";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
