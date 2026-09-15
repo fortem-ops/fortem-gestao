@@ -2861,6 +2861,12 @@ export type Database = {
           local_nascimento: string | null
           logradouro: string
           marca_tenis: string | null
+          nb_aceite_regulamento: boolean | null
+          nb_apelido_peito: string | null
+          nb_camiseta: string | null
+          nb_nome_emergencia: string | null
+          nb_pace: string | null
+          nb_telefone_emergencia: string | null
           nome: string
           numero: string
           participou_mipoa_2026: boolean | null
@@ -2898,6 +2904,12 @@ export type Database = {
           local_nascimento?: string | null
           logradouro?: string
           marca_tenis?: string | null
+          nb_aceite_regulamento?: boolean | null
+          nb_apelido_peito?: string | null
+          nb_camiseta?: string | null
+          nb_nome_emergencia?: string | null
+          nb_pace?: string | null
+          nb_telefone_emergencia?: string | null
           nome: string
           numero?: string
           participou_mipoa_2026?: boolean | null
@@ -2935,6 +2947,12 @@ export type Database = {
           local_nascimento?: string | null
           logradouro?: string
           marca_tenis?: string | null
+          nb_aceite_regulamento?: boolean | null
+          nb_apelido_peito?: string | null
+          nb_camiseta?: string | null
+          nb_nome_emergencia?: string | null
+          nb_pace?: string | null
+          nb_telefone_emergencia?: string | null
           nome?: string
           numero?: string
           participou_mipoa_2026?: boolean | null
