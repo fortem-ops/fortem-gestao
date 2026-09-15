@@ -578,7 +578,46 @@ const PagamentoStep = ({
             <CreditCard className="w-5 h-5" /> Pagamento
           </h3>
           <p className="text-sm text-muted-foreground mb-4">Total de hoje: {brl(totalHoje)}</p>
+
+          {pixDisponivel && (
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {([
+                { id: "cartao" as const, label: "Cartão de crédito", icon: CreditCard },
+                { id: "pix" as const, label: "Pix à vista", icon: QrCode },
+              ]).map((op) => (
+                <button
+                  key={op.id}
+                  type="button"
+                  onClick={() => setMetodo(op.id)}
+                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+                    metodo === op.id
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  <op.icon className="w-4 h-4" /> {op.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {metodo === "pix" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Geramos um QR Code do Banco Inter para pagamento à vista. A confirmação é automática.
+              </p>
+              <button
+                onClick={iniciarPix}
+                disabled={loading}
+                className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />} Gerar Pix
+              </button>
+            </div>
+          ) : (
+          <>
           <div className="grid gap-3">
+
             <Field
               label="Nome impresso no cartão"
               value={cartao.holder}
