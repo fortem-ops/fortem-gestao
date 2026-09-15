@@ -126,7 +126,12 @@ export async function hasTreinoAtual(alunoId: string): Promise<boolean> {
 }
 
 /** Importa a fase indicada e a prescreve como treino atual do aluno. */
-export async function prescribeFaseInicial(faseNome: string, alunoId: string, autorId: string): Promise<void> {
+export async function prescribeFaseInicial(
+  faseNome: string,
+  alunoId: string,
+  autorId: string,
+  descricao?: string,
+): Promise<void> {
   const template = WORKOUT_TEMPLATES.find((t) => t.fase === faseNome);
   if (!template) throw new Error(`Fase "${faseNome}" não encontrada no Banco de Treinos.`);
 
@@ -154,7 +159,7 @@ export async function prescribeFaseInicial(faseNome: string, alunoId: string, au
   const { error } = await supabase.from("treinos").insert({
     aluno_id: alunoId,
     autor_id: autorId,
-    descricao: `${faseNome} — Indicação da aula experimental`,
+    descricao: descricao ?? `${faseNome} — Indicação da aula experimental`,
     conteudo: prepared as unknown as Json,
     status: "atual",
     versao: proximaVersao,

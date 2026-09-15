@@ -24,7 +24,17 @@ import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM10
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
-import { prescribeFaseInicial } from "@/lib/workoutImport";
+import { hasTreinoAtual, prescribeFaseInicial } from "@/lib/workoutImport";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface GroupSelection { grupo: string; categoria?: string; subcategoria: string }
 interface BankExercise {
@@ -1204,11 +1214,26 @@ export default function BancoTreinos() {
     setSelected(template);
   }
 
+  async function iniciarPrescricao(template: WorkoutTemplate, aluno: { id: string; nome: string }) {
+    if (!user?.id) return;
+    try {
+      const existe = await hasTreinoAtual(aluno.id);
+      if (existe) {
+        setConfirmPrescrever({ template, aluno });
+        return;
+      }
+    } catch {
+      setConfirmPrescrever({ template, aluno });
+      return;
+    }
+    await handlePrescrever(template, aluno);
+  }
+
   async function handlePrescrever(template: WorkoutTemplate, aluno: { id: string; nome: string }) {
     if (!user?.id) return;
     setPrescrevendo(true);
     try {
-      await prescribeFaseInicial(template.fase, aluno.id, user.id);
+      await prescribeFaseInicial(template.fase, aluno.id, user.id, `${template.fase} — Prescrito pelo Banco de Treinos`);
       toast.success("Treino prescrito", { description: `${template.fase} → ${aluno.nome}` });
     } catch (err) {
       toast.error("Não foi possível prescrever", { description: (err as Error).message });
