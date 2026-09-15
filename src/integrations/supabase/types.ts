@@ -4952,6 +4952,7 @@ export type Database = {
       pix_cobrancas: {
         Row: {
           aluno_id: string | null
+          corrida_venda_id: string | null
           created_at: string
           data_vencimento: string | null
           descricao: string | null
@@ -4969,6 +4970,7 @@ export type Database = {
         }
         Insert: {
           aluno_id?: string | null
+          corrida_venda_id?: string | null
           created_at?: string
           data_vencimento?: string | null
           descricao?: string | null
@@ -4986,6 +4988,7 @@ export type Database = {
         }
         Update: {
           aluno_id?: string | null
+          corrida_venda_id?: string | null
           created_at?: string
           data_vencimento?: string | null
           descricao?: string | null
@@ -5015,6 +5018,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tecnico_alertas"
             referencedColumns: ["aluno_id"]
+          },
+          {
+            foreignKeyName: "pix_cobrancas_corrida_venda_id_fkey"
+            columns: ["corrida_venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pix_cobrancas_corrida_venda_id_fkey"
+            columns: ["corrida_venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "pix_cobrancas_corrida_venda_id_fkey"
+            columns: ["corrida_venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pix_cobrancas_id_rec_fkey"
