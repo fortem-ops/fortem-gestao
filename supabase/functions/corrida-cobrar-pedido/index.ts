@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
+import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
+
 
 const REDE_URLS = {
   sandbox: "https://sandbox-erede.useredecloud.com.br/v2",
