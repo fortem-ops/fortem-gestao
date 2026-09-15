@@ -806,12 +806,12 @@ const CorridaConfigurator = () => {
 
   const payloadPedido = useMemo(() => {
     const cortesiaAtiva =
-      cortesiaDisponivel && rota !== "somente_provas" && (rota !== "prospect" || periodo === "anual");
+      cortesiaDisponivel && rota !== "somente_provas" && periodoEfetivo(rota, periodo) === "anual";
     return {
       rota,
       alunoId,
       tier,
-      periodo,
+      periodo: rota === "somente_provas" ? periodo : periodoEfetivo(rota, periodo),
       kitNivel,
       avaliacao,
       cortesiaNb: { ativo: cortesiaAtiva, distancia: distanciaCortesia },
