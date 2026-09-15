@@ -166,24 +166,32 @@ export function calcularResumoCorrida(params: ResumoParams): ResumoCorrida | nul
       hoje += Number(item.valor);
     });
   } else {
-    const anual = rota !== "prospect" || periodo === "anual";
-    const p = anual ? oferta.planoAnual : oferta.planoMensal;
+    const efetivo = periodoEfetivo(rota, periodo);
+    const p =
+      efetivo === "mensal"
+        ? oferta.planoMensal
+        : efetivo === "semestral"
+          ? oferta.planoSemestral
+          : oferta.planoAnual;
     if (p) {
       const nomeExib = nomePlanoExibicao(p.nome);
-      if (anual) {
-        linhas.push({
-          label: `${nomeExib} — ${brl(Number(p.valor) / 12)}/mês (Plano Anual)`,
-          valor: Number(p.valor),
-          nota: `${brl(Number(p.valor))} em até ${maxParcelas}x`,
-        });
-        hoje += Number(p.valor);
-      } else {
+      if (efetivo === "mensal") {
         linhas.push({ label: `${nomeExib} — Mensal`, valor: Number(p.valor), nota: "recorrência mensal no cartão" });
         hoje += Number(p.valor);
         recorrente = Number(p.valor);
+      } else {
+        const meses = efetivo === "semestral" ? 6 : 12;
+        const parcelasMax =
+          efetivo === "semestral" ? Math.min(MAX_PARCELAS_SEMESTRAL, maxParcelas) : maxParcelas;
+        linhas.push({
+          label: `${nomeExib} — ${brl(Number(p.valor) / meses)}/mês (Plano ${efetivo === "semestral" ? "Semestral" : "Anual"})`,
+          valor: Number(p.valor),
+          nota: `${brl(Number(p.valor))} em até ${parcelasMax}x`,
+        });
+        hoje += Number(p.valor);
       }
     }
-    const cortesiaAtiva = oferta.cortesia && (rota !== "prospect" || periodo === "anual");
+    const cortesiaAtiva = oferta.cortesia && efetivo === "anual";
     if (cortesiaAtiva) {
       const c = oferta.cortesia!;
       const valorCortesia = c.isento ? 0 : Number(c.valor);
