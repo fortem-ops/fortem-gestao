@@ -163,16 +163,8 @@ const FormularioNb = ({
 
       <Secao titulo="Aptidão e regulamento">
         <p className="text-sm">
-          Declaro estar apto fisicamente e ter lido o{" "}
-          <a
-            href={NB_REGULAMENTO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary underline underline-offset-4"
-          >
-            REGULAMENTO
-          </a>
-          , estando de acordo para participar do evento.*
+          Declaro estar apto fisicamente e ter lido o REGULAMENTO, estando de
+          acordo para participar do evento.*
         </p>
         <div className="flex gap-2">
           <Pill
