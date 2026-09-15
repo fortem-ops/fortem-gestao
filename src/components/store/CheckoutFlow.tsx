@@ -470,8 +470,9 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
         });
       if (erroSalvar) throw new Error(erroSalvar.message);
       if (salvo?.success === false) {
-        throw new Error(friendlyMessage(salvo?.return_message ?? salvo?.message));
+        throw new Error(friendlyMessage(salvo?.return_message ?? salvo?.error ?? salvo?.message));
       }
+
 
       const tokenizationId = salvo?.tokenization_id;
       if (!tokenizationId) {
