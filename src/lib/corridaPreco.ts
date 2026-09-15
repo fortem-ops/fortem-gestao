@@ -5,8 +5,29 @@
 
 export type Rota = "aluno" | "somente_corrida" | "prospect" | "somente_provas";
 export type Tier = "start" | "start_plus" | "power" | "pro" | "max";
+export type Periodo = "mensal" | "semestral" | "anual";
 export type Distancia = "5K" | "10K" | "21K" | "42K";
 export type ProvaKey = "NB" | "MIPOA";
+
+/** Máximo de parcelas no cartão para o período semestral. */
+export const MAX_PARCELAS_SEMESTRAL = 6;
+
+/**
+ * Período efetivo: apenas a rota Prospect tem mensalidade recorrente.
+ * Nas demais rotas, "mensal" cai para o plano anual (comportamento histórico).
+ */
+export function periodoEfetivo(rota: Rota | null, periodo: Periodo): Periodo {
+  if (rota === "prospect") return periodo;
+  return periodo === "mensal" ? "anual" : periodo;
+}
+
+/** Máximo de parcelas conforme rota e período. */
+export function maxParcelasPeriodo(rota: Rota | null, periodo: Periodo): number {
+  const p = periodoEfetivo(rota, periodo);
+  if (p === "semestral") return MAX_PARCELAS_SEMESTRAL;
+  return rota === "prospect" ? 12 : 10;
+}
+
 
 export interface PlanoCatalogo {
   nome: string;
