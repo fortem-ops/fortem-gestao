@@ -57,10 +57,10 @@ const StoreIndex = () => {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-black uppercase tracking-tight sm:text-3xl">
-              Loja Fortem
+              FORTEM
             </h1>
             <p className={`mt-1 text-sm ${palette.muted}`}>
-              Produtos oficiais para treinar com a nossa marca.
+              Não é sobre onde eu treino. É sobre quem eu sou.
             </p>
           </div>
           {hideHeader && (
