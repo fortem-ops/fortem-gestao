@@ -31,6 +31,13 @@ verify_jwt = false
 [functions.corrida-enviar-confirmacao-email]
 verify_jwt = false
 
+[functions.corrida-criar-pix]
+verify_jwt = false
+
+[functions.corrida-status-pix]
+verify_jwt = false
+
+
 [functions.loja-criar-pedido]
 verify_jwt = false
 
