@@ -24,7 +24,17 @@ import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM10
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
-import { prescribeFaseInicial } from "@/lib/workoutImport";
+import { hasTreinoAtual, prescribeFaseInicial } from "@/lib/workoutImport";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface GroupSelection { grupo: string; categoria?: string; subcategoria: string }
 interface BankExercise {
@@ -888,6 +898,9 @@ export default function BancoTreinos() {
   /** Template aguardando escolha de aluno. */
   const [pendingTemplate, setPendingTemplate] = useState<WorkoutTemplate | null>(null);
   const [prescrevendo, setPrescrevendo] = useState(false);
+  const [confirmPrescrever, setConfirmPrescrever] = useState<
+    { template: WorkoutTemplate; aluno: { id: string; nome: string } } | null
+  >(null);
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
   const [personalizadoOpen, setPersonalizadoOpen] = useState<
     | null
@@ -1204,11 +1217,26 @@ export default function BancoTreinos() {
     setSelected(template);
   }
 
+  async function iniciarPrescricao(template: WorkoutTemplate, aluno: { id: string; nome: string }) {
+    if (!user?.id) return;
+    try {
+      const existe = await hasTreinoAtual(aluno.id);
+      if (existe) {
+        setConfirmPrescrever({ template, aluno });
+        return;
+      }
+    } catch {
+      setConfirmPrescrever({ template, aluno });
+      return;
+    }
+    await handlePrescrever(template, aluno);
+  }
+
   async function handlePrescrever(template: WorkoutTemplate, aluno: { id: string; nome: string }) {
     if (!user?.id) return;
     setPrescrevendo(true);
     try {
-      await prescribeFaseInicial(template.fase, aluno.id, user.id);
+      await prescribeFaseInicial(template.fase, aluno.id, user.id, `${template.fase} — Prescrito pelo Banco de Treinos`);
       toast.success("Treino prescrito", { description: `${template.fase} → ${aluno.nome}` });
     } catch (err) {
       toast.error("Não foi possível prescrever", { description: (err as Error).message });
@@ -1304,9 +1332,32 @@ export default function BancoTreinos() {
           canEdit={canEdit && !alunoCtx}
           alunoId={alunoCtx?.id}
           alunoNome={alunoCtx?.nome}
-          onPrescrever={alunoCtx ? () => handlePrescrever(selected, alunoCtx) : undefined}
+          onPrescrever={alunoCtx ? () => iniciarPrescricao(selected, alunoCtx) : undefined}
           prescrevendo={prescrevendo}
         />
+        <AlertDialog open={!!confirmPrescrever} onOpenChange={(o) => !o && setConfirmPrescrever(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Substituir o treino atual?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirmPrescrever?.aluno.nome} já possui um treino em andamento. Ao prescrever
+                {confirmPrescrever ? ` "${confirmPrescrever.template.fase}"` : ""}, o treino atual será arquivado.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const alvo = confirmPrescrever;
+                  setConfirmPrescrever(null);
+                  if (alvo) void handlePrescrever(alvo.template, alvo.aluno);
+                }}
+              >
+                Substituir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         {renderVideoModal()}
       </div>
     );

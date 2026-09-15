@@ -96,20 +96,59 @@ export function ProdutosTab() {
         ativo: form.ativo,
         permite_encomenda: form.permite_encomenda,
       };
+      let produtoId = editing?.id ?? null;
       if (editing) {
         const { error } = await (supabase as any).from("produtos_catalogo").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
         const maxOrdem = produtos.reduce((m, p) => Math.max(m, Number(p.ordem ?? 0)), 0);
-        const { error } = await (supabase as any)
+        const { data, error } = await (supabase as any)
           .from("produtos_catalogo")
-          .insert({ ...payload, ordem: maxOrdem + 10 });
+          .insert({ ...payload, ordem: maxOrdem + 10 })
+          .select("id")
+          .single();
         if (error) throw error;
+        produtoId = data?.id ?? null;
+      }
+
+      // Mantém a galeria em sincronia: a vitrine lê a imagem principal de produtos_imagens.
+      if (produtoId) {
+        const { data: principais, error: gErr } = await (supabase as any)
+          .from("produtos_imagens")
+          .select("id")
+          .eq("produto_id", produtoId)
+          .is("cor", null)
+          .eq("principal", true);
+        if (gErr) throw gErr;
+        const existente = (principais || [])[0]?.id as string | undefined;
+        if (payload.imagem_url) {
+          if (existente) {
+            const { error } = await (supabase as any)
+              .from("produtos_imagens")
+              .update({ imagem_url: payload.imagem_url })
+              .eq("id", existente);
+            if (error) throw error;
+          } else {
+            const { error } = await (supabase as any).from("produtos_imagens").insert({
+              produto_id: produtoId,
+              cor: null,
+              imagem_url: payload.imagem_url,
+              legenda: "Principal",
+              ordem: 0,
+              principal: true,
+            });
+            if (error) throw error;
+          }
+        } else if (existente) {
+          const { error } = await (supabase as any).from("produtos_imagens").delete().eq("id", existente);
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["loja-produtos"] });
       qc.invalidateQueries({ queryKey: ["loja", "produtos"] });
+      qc.invalidateQueries({ queryKey: ["loja-galeria-admin"] });
       toast.success(editing ? "Produto atualizado" : "Produto criado");
       close();
     },
