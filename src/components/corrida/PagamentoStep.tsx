@@ -216,6 +216,105 @@ const PagamentoStep = ({
   const documentos = pedido?.contratos_documentos ?? [];
   const todosAceitos = documentos.length > 0 && documentos.every((d) => aceites[d.id]);
 
+  /* ---------------- Pix à vista (Semestral / Anual) ---------------- */
+
+  const acompanharPix = useCallback(async (txid: string, p: PedidoCriado) => {
+    if (pollPixRef.current) return;
+    pollPixRef.current = true;
+    const limite = Date.now() + 300_000; // 5 minutos
+    try {
+      while (Date.now() < limite) {
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          const { data } = await supabase.functions.invoke("corrida-status-pix", { body: { txid } });
+          const status = String(data?.status ?? "").toUpperCase();
+          if (status === "LIQUIDADA") {
+            setResultado({ ok: true, mensagem: "Pagamento confirmado!", protocolo: p.venda_id });
+            setFase("sucesso");
+            return;
+          }
+          if (status === "REJEITADA" || status === "CANCELADA" || status === "EXPIRADA") {
+            setResultado({ ok: false, mensagem: "O Pix não foi concluído. Você pode gerar um novo código." });
+            setFase("erro");
+            return;
+          }
+        } catch {
+          /* segue tentando até o limite */
+        }
+      }
+      setResultado({
+        ok: false,
+        mensagem: "Não identificamos o pagamento dentro do prazo. Gere um novo Pix e tente novamente.",
+      });
+      setFase("erro");
+    } finally {
+      pollPixRef.current = false;
+    }
+  }, []);
+
+  const gerarPix = useCallback(
+    async (p: PedidoCriado) => {
+      setErro(null);
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("corrida-criar-pix", {
+          body: {
+            ...payloadPedido,
+            inscricaoId: inscricaoId ?? null,
+            parcelas: 1,
+            idempotency_key: idempotencyKey,
+            dadosPessoais: {
+              nome: dados.nome.trim(),
+              sobrenome: dados.sobrenome.trim(),
+              email: dados.email.trim(),
+              cpf: dados.cpf.replace(/\D/g, ""),
+              telefone: dados.telefone.trim(),
+              data_nascimento: dados.data_nascimento,
+            },
+          },
+        });
+        if (error || !data?.ok || !data?.pix_copia_cola) {
+          throw new Error(data?.error ?? "falha_criar_cobranca_pix");
+        }
+        const QRCode = (await import("qrcode")).default;
+        const qr = await QRCode.toDataURL(String(data.pix_copia_cola), { width: 280, margin: 1 });
+        setPixDados({ txid: String(data.txid), copiaCola: String(data.pix_copia_cola), qr });
+        setPixCopiado(false);
+        setFase("pix");
+        void acompanharPix(String(data.txid), p);
+      } catch (e) {
+        setErro(
+          amigavel(
+            (e as Error)?.message,
+            "Não conseguimos gerar o Pix agora. Tente novamente em instantes.",
+          ),
+        );
+        setFase("cartao");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [payloadPedido, inscricaoId, idempotencyKey, dados, acompanharPix],
+  );
+
+  const iniciarPix = async () => {
+    if (loading) return;
+    setLoading(true);
+    setErro(null);
+    try {
+      const p = pedido ?? (await criarPedido(dados, 1));
+      if (!p) return;
+      const precisaAceite = !aceiteFeito && !!p.contrato_id && (p.contratos_documentos?.length ?? 0) > 0;
+      if (precisaAceite) {
+        setFase("contrato");
+        return;
+      }
+      await gerarPix(p);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   /* ---------------- c) aceitar contrato ---------------- */
 
   const aceitarContrato = async () => {
@@ -231,7 +330,9 @@ const PagamentoStep = ({
       });
       if (error || !data?.ok) throw new Error(data?.error ?? "falha");
       setAceiteFeito(true);
-      if (tokenizationId) {
+      if (metodo === "pix") {
+        void gerarPix(pedido);
+      } else if (tokenizationId) {
         setFase("confirmando");
         void aguardarConfirmacao(tokenizationId, pedido);
       } else {
@@ -243,6 +344,7 @@ const PagamentoStep = ({
       setLoading(false);
     }
   };
+
 
   /* ---------------- d/e/f) cartão → confirmação → cobrança ---------------- */
 
