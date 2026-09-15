@@ -24,7 +24,11 @@ import {
   nomePlanoExibicao,
   NB_INSCRICAO_VALOR_CHEIO,
   PROVA_LABEL,
+  maxParcelasPeriodo,
+  periodoEfetivo,
+  type Periodo,
   type Rota,
+
   type Tier,
   type Distancia,
   type ProvaKey,
@@ -156,7 +160,7 @@ const CorridaConfigurator = () => {
   const [stepIdx, setStepIdx] = useState(0);
 
   // seleções
-  const [periodo, setPeriodo] = useState<"mensal" | "anual">("anual"); // prospect
+  const [periodo, setPeriodo] = useState<Periodo>("anual");
 
   const [distanciaCortesia, setDistanciaCortesia] = useState<Distancia>("5K");
   const [kitNivel, setKitNivel] = useState<string | null>(null);
