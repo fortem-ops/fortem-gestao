@@ -43,9 +43,23 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const headers = { ...corsHeaders, "Content-Type": "application/json" };
 
+  // Recusas/erros de negócio sempre voltam com HTTP 200 e `success: false`.
+  // Se respondermos 4xx/5xx, o supabase.functions.invoke do frontend descarta o
+  // corpo e entrega só "Edge Function returned a non-2xx status code",
+  // impedindo a tradução do motivo real (ex.: ExpiredCard → "Cartão vencido").
+  function falha(erro: string, extra: Record<string, unknown> = {}) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: erro,
+      return_message: extra.return_message ?? erro,
+      ...extra,
+    }), { status: 200, headers });
+  }
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Método não suportado" }), { status: 405, headers });
   }
+
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
