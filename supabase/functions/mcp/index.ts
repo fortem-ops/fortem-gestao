@@ -29,11 +29,11 @@ var list_alunos_default = defineTool({
     if (!ctx.isAuthenticated())
       return { content: [{ type: "text", text: "N\xE3o autenticado" }], isError: true };
     const supabase = supabaseForUser(ctx);
-    let q = supabase.from("alunos").select("id, nome, email, telefone, cpf, status, frequencia_semanal, cidade, uf").order("nome", { ascending: true }).limit(limite ?? 25);
+    let q = supabase.from("alunos").select("id, nome, email, telefone, cpf_ultimos3, status, frequencia_semanal, cidade, uf").order("nome", { ascending: true }).limit(limite ?? 25);
     if (status) q = q.eq("status", status);
     if (busca?.trim()) {
       const term = `%${busca.trim()}%`;
-      q = q.or(`nome.ilike.${term},email.ilike.${term},cpf.ilike.${term}`);
+      q = q.or(`nome.ilike.${term},email.ilike.${term}`);
     }
     const { data, error } = await q;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
