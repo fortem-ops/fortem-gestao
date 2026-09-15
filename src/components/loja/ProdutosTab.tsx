@@ -148,7 +148,7 @@ export function ProdutosTab() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["loja-produtos"] });
       qc.invalidateQueries({ queryKey: ["loja", "produtos"] });
-      qc.invalidateQueries({ queryKey: ["produto-imagens"] });
+      qc.invalidateQueries({ queryKey: ["loja-galeria-admin"] });
       toast.success(editing ? "Produto atualizado" : "Produto criado");
       close();
     },
