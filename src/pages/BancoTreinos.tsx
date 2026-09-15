@@ -898,6 +898,9 @@ export default function BancoTreinos() {
   /** Template aguardando escolha de aluno. */
   const [pendingTemplate, setPendingTemplate] = useState<WorkoutTemplate | null>(null);
   const [prescrevendo, setPrescrevendo] = useState(false);
+  const [confirmPrescrever, setConfirmPrescrever] = useState<
+    { template: WorkoutTemplate; aluno: { id: string; nome: string } } | null
+  >(null);
   const [videoPreview, setVideoPreview] = useState<{ nome: string; src: string; kind: "youtube" | "file" } | null>(null);
   const [personalizadoOpen, setPersonalizadoOpen] = useState<
     | null
@@ -1329,9 +1332,32 @@ export default function BancoTreinos() {
           canEdit={canEdit && !alunoCtx}
           alunoId={alunoCtx?.id}
           alunoNome={alunoCtx?.nome}
-          onPrescrever={alunoCtx ? () => handlePrescrever(selected, alunoCtx) : undefined}
+          onPrescrever={alunoCtx ? () => iniciarPrescricao(selected, alunoCtx) : undefined}
           prescrevendo={prescrevendo}
         />
+        <AlertDialog open={!!confirmPrescrever} onOpenChange={(o) => !o && setConfirmPrescrever(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Substituir o treino atual?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirmPrescrever?.aluno.nome} já possui um treino em andamento. Ao prescrever
+                {confirmPrescrever ? ` "${confirmPrescrever.template.fase}"` : ""}, o treino atual será arquivado.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const alvo = confirmPrescrever;
+                  setConfirmPrescrever(null);
+                  if (alvo) void handlePrescrever(alvo.template, alvo.aluno);
+                }}
+              >
+                Substituir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         {renderVideoModal()}
       </div>
     );
