@@ -104,7 +104,9 @@ Deno.serve(async (req) => {
 
     const { data: pedido } = await supabase
       .from("pedidos")
-      .select("id, nome, email, valor_final, forma_pagamento, eh_encomenda, created_at")
+      .select(
+        "id, nome, email, telefone, cpf, aluno_id, valor_total, desconto, valor_final, forma_pagamento, eh_encomenda, brinde_escolhido, created_at",
+      )
       .eq("id", pedidoId)
       .maybeSingle();
     if (!pedido) return json(404, { ok: false, error: "pedido_nao_encontrado" });
