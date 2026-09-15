@@ -673,8 +673,54 @@ const PagamentoStep = ({
           >
             {loading && <Loader2 className="w-5 h-5 animate-spin" />} Continuar
           </button>
+          </>
+          )}
         </Card>
       )}
+
+      {/* b2) Pix gerado — QR + copia e cola + aguardando */}
+      {fase === "pix" && pixDados && (
+        <Card className="text-center">
+          <h3 className="font-display text-xl font-bold mb-1 flex items-center justify-center gap-2">
+            <QrCode className="w-5 h-5" /> Pague com Pix
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">Valor: {brl(totalHoje)}</p>
+          <img
+            src={pixDados.qr}
+            alt="QR Code do Pix para pagamento"
+            className="mx-auto rounded-xl bg-white p-2 w-[240px] h-[240px] object-contain"
+          />
+          <p className="text-xs text-muted-foreground mt-3 mb-2">
+            Escaneie pelo app do seu banco ou use o código abaixo.
+          </p>
+          <div className="rounded-xl border border-border bg-secondary/40 p-3 text-xs break-all text-left">
+            {pixDados.copiaCola}
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(pixDados.copiaCola);
+                setPixCopiado(true);
+                setTimeout(() => setPixCopiado(false), 2500);
+              } catch {
+                setErro("Não foi possível copiar. Selecione o código manualmente.");
+              }
+            }}
+            className="mt-3 w-full border border-border rounded-xl py-3 font-semibold flex items-center justify-center gap-2 hover:border-primary/60"
+          >
+            <Copy className="w-4 h-4" /> {pixCopiado ? "Código copiado!" : "Copiar código Pix"}
+          </button>
+          <p className="mt-4 text-sm flex items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Aguardando pagamento...
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            A confirmação é automática. Não feche esta página.
+          </p>
+        </Card>
+      )}
+
+
 
 
       {/* e/f) processando */}
