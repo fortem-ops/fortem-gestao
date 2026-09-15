@@ -557,7 +557,7 @@ const CorridaConfigurator = () => {
       <Card>
         <h3 className="font-display text-xl font-bold mb-4">Suas provas</h3>
 
-        {rota === "prospect" && periodo === "mensal" ? (
+        {periodoEfetivo(rota, periodo) !== "anual" ? (
           <p className="text-sm text-muted-foreground rounded-xl bg-muted p-4">
             A condição especial de inscrição + kit da NB 42k 2027 é exclusiva do plano Anual.
           </p>
