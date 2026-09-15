@@ -36,6 +36,13 @@ export interface InscricaoForm {
   camiseta_mipoa: string;
   aceite_inscricao: boolean;
   aceite_termo_aptidao: boolean;
+  // campos exclusivos NB 42k 2027
+  nb_nome_emergencia: string;
+  nb_telefone_emergencia: string;
+  nb_aceite_regulamento: boolean | null;
+  nb_pace: string;
+  nb_apelido_peito: string;
+  nb_camiseta: string;
 }
 
 export interface InscricaoPrefill {
