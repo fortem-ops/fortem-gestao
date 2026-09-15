@@ -1,4 +1,6 @@
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
+import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
+
 
 async function notifyAdmins(params: {
   titulo: string;
