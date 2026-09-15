@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
+import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
+
 
 const REDE_URLS = {
   sandbox: "https://sandbox-erede.useredecloud.com.br/v2",
@@ -243,44 +245,14 @@ Deno.serve(async (req) => {
       .eq("id", vendaId);
 
     if (approved) {
-      // ---------- vaga da promoção NB 42k (só consome com pagamento aprovado) ----------
-      try {
-        let temCortesia = false;
-        try {
-          const obs = JSON.parse(String((venda as any).observacoes ?? "{}"));
-          temCortesia = Boolean(obs?.cortesia_nb);
-          if (!temCortesia) {
-            const linhas = obs?.pedidoResumo?.linhas ?? [];
-            temCortesia = Array.isArray(linhas) &&
-              linhas.some((l: any) => /NB 42k/i.test(String(l?.label ?? "")) && /50% OFF|Cortesia/i.test(String(l?.label ?? "")));
-          }
-        } catch { /* observacoes não-JSON */ }
+      // vaga NB + ativação do contrato + e-mail de confirmação (lógica compartilhada com o Pix)
+      await processarPagamentoAprovadoCorrida(supabase, {
+        vendaId,
+        contratoId,
+        alunoId,
+        modulo: "corrida-cobrar-pedido",
+      });
 
-        if (temCortesia) {
-          const { data: vaga, error: vagaErr } = await supabase.rpc("fn_corrida_consumir_vaga_nb");
-          const row = Array.isArray(vaga) ? vaga[0] : vaga;
-          if (vagaErr || !row?.consumida) {
-            await supabase.from("system_logs").insert({
-              modulo: "corrida-cobrar-pedido",
-              acao: "vaga_nb_esgotada_apos_pagamento",
-              mensagem: `Pagamento aprovado com a promoção NB 42k, mas não havia vaga disponível para consumir (venda ${vendaId}).`,
-              payload: {
-                venda_id: vendaId,
-                aluno_id: alunoId,
-                vagas_utilizadas: row?.vagas_utilizadas ?? null,
-                vagas_totais: row?.vagas_totais ?? null,
-                erro: vagaErr?.message ?? null,
-              },
-            });
-          }
-        }
-      } catch (e) {
-        console.error("[corrida-cobrar-pedido] consumo de vaga NB falhou:", String(e));
-      }
-
-      if (contratoId) {
-        await supabase.from("contratos").update({ status: "ativo" }).eq("id", contratoId);
-      }
       const { data: vendaPlano } = await supabase
         .from("vendas")
         .select("plano_id")
@@ -289,21 +261,8 @@ Deno.serve(async (req) => {
       if (vendaPlano?.plano_id) {
         await supabase.from("planos").update({ cartao_token_id: cartaoId }).eq("id", vendaPlano.plano_id);
       }
-
-      // e-mail de confirmação — fire and forget, nunca afeta o resultado do pagamento
-      try {
-        supabase.functions
-          .invoke("corrida-enviar-confirmacao-email", {
-            body: { venda_id: vendaId, contrato_id: contratoId },
-          })
-          .then((r: any) => {
-            if (r?.error) console.error("[corrida-cobrar-pedido] email confirmacao erro:", String(r.error?.message ?? r.error));
-          })
-          .catch((e: any) => console.error("[corrida-cobrar-pedido] email confirmacao erro:", String(e)));
-      } catch (e) {
-        console.error("[corrida-cobrar-pedido] email confirmacao erro:", String(e));
-      }
     }
+
 
     if (returnCode === "54") {
       await supabase.from("cartoes_salvos").update({ ativo: false }).eq("id", cartaoId);

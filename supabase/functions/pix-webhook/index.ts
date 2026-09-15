@@ -1,4 +1,6 @@
 import { corsHeaders, jsonResponse, admin } from "../_shared/inter.ts";
+import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
+
 
 async function notifyAdmins(params: {
   titulo: string;
@@ -59,14 +61,49 @@ Deno.serve(async (req) => {
       if (!txid) continue;
       const { data: cob } = await sup
         .from("pix_cobrancas")
-        .select("id, pedido_id")
+        .select("id, pedido_id, corrida_venda_id")
         .eq("txid", txid)
         .maybeSingle();
       if (!cob) {
         console.log("pix-webhook: txid não encontrado em pix_cobrancas", txid);
         continue;
       }
+      // --- Corrida (Pix à vista): caminho isolado, não interfere na Loja ---
+      if (!cob.pedido_id && cob.corrida_venda_id) {
+        await sup.from("pix_cobrancas")
+          .update({
+            status: "LIQUIDADA",
+            liquidado_em: new Date().toISOString(),
+            raw_response: ev,
+          })
+          .eq("id", cob.id);
+        try {
+          const { data: vendaCorrida } = await sup
+            .from("vendas")
+            .select("id, aluno_id, plano_id")
+            .eq("id", cob.corrida_venda_id)
+            .maybeSingle();
+          await sup.from("vendas")
+            .update({ status_pagamento: "pago" })
+            .eq("id", cob.corrida_venda_id);
+          const { data: contratoCorrida } = vendaCorrida?.plano_id
+            ? await sup.from("contratos").select("id").eq("plano_id", vendaCorrida.plano_id)
+              .order("created_at", { ascending: false }).limit(1).maybeSingle()
+            : { data: null };
+          await processarPagamentoAprovadoCorrida(sup, {
+            vendaId: cob.corrida_venda_id,
+            contratoId: contratoCorrida?.id ?? null,
+            alunoId: vendaCorrida?.aluno_id ?? null,
+            modulo: "pix-webhook",
+          });
+        } catch (e) {
+          console.error("pix-webhook: falha ao processar pagamento aprovado da Corrida", String(e));
+        }
+        pixTratados.add(txid);
+        continue;
+      }
       if (!cob.pedido_id) continue; // mensalidade: segue no fluxo genérico abaixo
+
       await sup.from("pix_cobrancas")
         .update({
           status: "LIQUIDADA",
@@ -136,9 +173,10 @@ Deno.serve(async (req) => {
       if (!txid) continue;
       const { data: cob } = await sup
         .from("pix_cobrancas")
-        .select("id, aluno_id, valor, id_rec, pagamento_id")
+        .select("id, aluno_id, valor, id_rec, pagamento_id, corrida_venda_id")
         .eq("txid", txid)
         .maybeSingle();
+
 
       if (tipo === "COBR_LIQUIDADA" || ev?.status === "LIQUIDADA") {
         let pagamentoId = cob?.pagamento_id ?? null;
@@ -176,6 +214,33 @@ Deno.serve(async (req) => {
             prioridade: "media",
           });
         }
+
+        // --- Corrida (Pix à vista): adição isolada, não afeta o caminho da Loja ---
+        if (cob?.corrida_venda_id) {
+          try {
+            const { data: vendaCorrida } = await sup
+              .from("vendas")
+              .select("id, aluno_id, plano_id")
+              .eq("id", cob.corrida_venda_id)
+              .maybeSingle();
+            await sup.from("vendas")
+              .update({ status_pagamento: "pago" })
+              .eq("id", cob.corrida_venda_id);
+            const { data: contratoCorrida } = vendaCorrida?.plano_id
+              ? await sup.from("contratos").select("id").eq("plano_id", vendaCorrida.plano_id)
+                .order("created_at", { ascending: false }).limit(1).maybeSingle()
+              : { data: null };
+            await processarPagamentoAprovadoCorrida(sup, {
+              vendaId: cob.corrida_venda_id,
+              contratoId: contratoCorrida?.id ?? null,
+              alunoId: vendaCorrida?.aluno_id ?? null,
+              modulo: "pix-webhook",
+            });
+          } catch (e) {
+            console.error("pix-webhook: falha ao processar pagamento aprovado da Corrida", String(e));
+          }
+        }
+
         continue;
       }
 

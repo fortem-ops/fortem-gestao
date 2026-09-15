@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, CheckCircle2, CreditCard, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Copy, CreditCard, Loader2, QrCode, ShieldCheck } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -48,7 +48,7 @@ interface Props {
   setPedido: (p: PedidoCriado | null) => void;
 }
 
-type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "sucesso" | "erro";
+type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "pix" | "sucesso" | "erro";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -124,7 +124,11 @@ const PagamentoStep = ({
     periodoPedido === "semestral" ? 6 : rotaPedido === "prospect" ? 12 : 10;
   const parcelamentoDisponivel =
     rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
+  /** Pix à vista: apenas Semestral e Anual (Mensal é recorrência no cartão). */
+  const pixDisponivel =
+    rotaPedido !== "somente_provas" && (periodoPedido === "semestral" || periodoPedido === "anual");
   const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
+  const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
 
   const [fase, setFase] = useState<Fase>("cartao");
   const [erro, setErro] = useState<string | null>(null);
@@ -136,9 +140,14 @@ const PagamentoStep = ({
   const [cartao, setCartao] = useState({ holder: "", numero: "", validade: "", cvv: "" });
   const [resultado, setResultado] = useState<{ ok: boolean; mensagem: string; protocolo?: string } | null>(null);
 
+  const [pixDados, setPixDados] = useState<{ txid: string; copiaCola: string; qr: string } | null>(null);
+  const [pixCopiado, setPixCopiado] = useState(false);
+  const pollPixRef = useRef(false);
+
   const criandoRef = useRef(false);
   const [tokenizationId, setTokenizationId] = useState<string | null>(null);
   const [aceiteFeito, setAceiteFeito] = useState(false);
+
 
   // chave de idempotência: criada uma única vez por sessão de checkout
   const idempotencyKey = useMemo(() => {
@@ -207,6 +216,105 @@ const PagamentoStep = ({
   const documentos = pedido?.contratos_documentos ?? [];
   const todosAceitos = documentos.length > 0 && documentos.every((d) => aceites[d.id]);
 
+  /* ---------------- Pix à vista (Semestral / Anual) ---------------- */
+
+  const acompanharPix = useCallback(async (txid: string, p: PedidoCriado) => {
+    if (pollPixRef.current) return;
+    pollPixRef.current = true;
+    const limite = Date.now() + 300_000; // 5 minutos
+    try {
+      while (Date.now() < limite) {
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          const { data } = await supabase.functions.invoke("corrida-status-pix", { body: { txid } });
+          const status = String(data?.status ?? "").toUpperCase();
+          if (status === "LIQUIDADA") {
+            setResultado({ ok: true, mensagem: "Pagamento confirmado!", protocolo: p.venda_id });
+            setFase("sucesso");
+            return;
+          }
+          if (status === "REJEITADA" || status === "CANCELADA" || status === "EXPIRADA") {
+            setResultado({ ok: false, mensagem: "O Pix não foi concluído. Você pode gerar um novo código." });
+            setFase("erro");
+            return;
+          }
+        } catch {
+          /* segue tentando até o limite */
+        }
+      }
+      setResultado({
+        ok: false,
+        mensagem: "Não identificamos o pagamento dentro do prazo. Gere um novo Pix e tente novamente.",
+      });
+      setFase("erro");
+    } finally {
+      pollPixRef.current = false;
+    }
+  }, []);
+
+  const gerarPix = useCallback(
+    async (p: PedidoCriado) => {
+      setErro(null);
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("corrida-criar-pix", {
+          body: {
+            ...payloadPedido,
+            inscricaoId: inscricaoId ?? null,
+            parcelas: 1,
+            idempotency_key: idempotencyKey,
+            dadosPessoais: {
+              nome: dados.nome.trim(),
+              sobrenome: dados.sobrenome.trim(),
+              email: dados.email.trim(),
+              cpf: dados.cpf.replace(/\D/g, ""),
+              telefone: dados.telefone.trim(),
+              data_nascimento: dados.data_nascimento,
+            },
+          },
+        });
+        if (error || !data?.ok || !data?.pix_copia_cola) {
+          throw new Error(data?.error ?? "falha_criar_cobranca_pix");
+        }
+        const QRCode = (await import("qrcode")).default;
+        const qr = await QRCode.toDataURL(String(data.pix_copia_cola), { width: 280, margin: 1 });
+        setPixDados({ txid: String(data.txid), copiaCola: String(data.pix_copia_cola), qr });
+        setPixCopiado(false);
+        setFase("pix");
+        void acompanharPix(String(data.txid), p);
+      } catch (e) {
+        setErro(
+          amigavel(
+            (e as Error)?.message,
+            "Não conseguimos gerar o Pix agora. Tente novamente em instantes.",
+          ),
+        );
+        setFase("cartao");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [payloadPedido, inscricaoId, idempotencyKey, dados, acompanharPix],
+  );
+
+  const iniciarPix = async () => {
+    if (loading) return;
+    setLoading(true);
+    setErro(null);
+    try {
+      const p = pedido ?? (await criarPedido(dados, 1));
+      if (!p) return;
+      const precisaAceite = !aceiteFeito && !!p.contrato_id && (p.contratos_documentos?.length ?? 0) > 0;
+      if (precisaAceite) {
+        setFase("contrato");
+        return;
+      }
+      await gerarPix(p);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   /* ---------------- c) aceitar contrato ---------------- */
 
   const aceitarContrato = async () => {
@@ -222,7 +330,9 @@ const PagamentoStep = ({
       });
       if (error || !data?.ok) throw new Error(data?.error ?? "falha");
       setAceiteFeito(true);
-      if (tokenizationId) {
+      if (metodo === "pix") {
+        void gerarPix(pedido);
+      } else if (tokenizationId) {
         setFase("confirmando");
         void aguardarConfirmacao(tokenizationId, pedido);
       } else {
@@ -234,6 +344,7 @@ const PagamentoStep = ({
       setLoading(false);
     }
   };
+
 
   /* ---------------- d/e/f) cartão → confirmação → cobrança ---------------- */
 
@@ -467,7 +578,46 @@ const PagamentoStep = ({
             <CreditCard className="w-5 h-5" /> Pagamento
           </h3>
           <p className="text-sm text-muted-foreground mb-4">Total de hoje: {brl(totalHoje)}</p>
+
+          {pixDisponivel && (
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {([
+                { id: "cartao" as const, label: "Cartão de crédito", icon: CreditCard },
+                { id: "pix" as const, label: "Pix à vista", icon: QrCode },
+              ]).map((op) => (
+                <button
+                  key={op.id}
+                  type="button"
+                  onClick={() => setMetodo(op.id)}
+                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+                    metodo === op.id
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  <op.icon className="w-4 h-4" /> {op.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {metodo === "pix" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Geramos um QR Code do Banco Inter para pagamento à vista. A confirmação é automática.
+              </p>
+              <button
+                onClick={iniciarPix}
+                disabled={loading}
+                className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-display font-semibold text-lg glow-red flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />} Gerar Pix
+              </button>
+            </div>
+          ) : (
+          <>
           <div className="grid gap-3">
+
             <Field
               label="Nome impresso no cartão"
               value={cartao.holder}
@@ -523,8 +673,54 @@ const PagamentoStep = ({
           >
             {loading && <Loader2 className="w-5 h-5 animate-spin" />} Continuar
           </button>
+          </>
+          )}
         </Card>
       )}
+
+      {/* b2) Pix gerado — QR + copia e cola + aguardando */}
+      {fase === "pix" && pixDados && (
+        <Card className="text-center">
+          <h3 className="font-display text-xl font-bold mb-1 flex items-center justify-center gap-2">
+            <QrCode className="w-5 h-5" /> Pague com Pix
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">Valor: {brl(totalHoje)}</p>
+          <img
+            src={pixDados.qr}
+            alt="QR Code do Pix para pagamento"
+            className="mx-auto rounded-xl bg-white p-2 w-[240px] h-[240px] object-contain"
+          />
+          <p className="text-xs text-muted-foreground mt-3 mb-2">
+            Escaneie pelo app do seu banco ou use o código abaixo.
+          </p>
+          <div className="rounded-xl border border-border bg-secondary/40 p-3 text-xs break-all text-left">
+            {pixDados.copiaCola}
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(pixDados.copiaCola);
+                setPixCopiado(true);
+                setTimeout(() => setPixCopiado(false), 2500);
+              } catch {
+                setErro("Não foi possível copiar. Selecione o código manualmente.");
+              }
+            }}
+            className="mt-3 w-full border border-border rounded-xl py-3 font-semibold flex items-center justify-center gap-2 hover:border-primary/60"
+          >
+            <Copy className="w-4 h-4" /> {pixCopiado ? "Código copiado!" : "Copiar código Pix"}
+          </button>
+          <p className="mt-4 text-sm flex items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Aguardando pagamento...
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            A confirmação é automática. Não feche esta página.
+          </p>
+        </Card>
+      )}
+
+
 
 
       {/* e/f) processando */}
@@ -543,16 +739,32 @@ const PagamentoStep = ({
         <Card className="text-center py-8">
           <h3 className="font-display text-xl font-bold mb-2">Pagamento não concluído</h3>
           <p className="text-sm text-muted-foreground mb-5">{resultado?.mensagem}</p>
-          <button
-            onClick={() => {
-              setResultado(null);
-              setCartao({ holder: "", numero: "", validade: "", cvv: "" });
-              setFase("cartao");
-            }}
-            className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-display font-semibold"
-          >
-            Tentar com outro cartão
-          </button>
+          {metodo === "pix" ? (
+            <button
+              onClick={() => {
+                setResultado(null);
+                setPixDados(null);
+                if (pedido) void gerarPix(pedido);
+                else setFase("cartao");
+              }}
+              disabled={loading}
+              className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-display font-semibold disabled:opacity-60"
+            >
+              Gerar novo Pix
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setResultado(null);
+                setCartao({ holder: "", numero: "", validade: "", cvv: "" });
+                setFase("cartao");
+              }}
+              className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-display font-semibold"
+            >
+              Tentar com outro cartão
+            </button>
+          )}
+
         </Card>
       )}
 
