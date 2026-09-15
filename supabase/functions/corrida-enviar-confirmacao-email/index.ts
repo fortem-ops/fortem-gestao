@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
 
     const { data: inscricao } = await supabase
       .from("corrida_inscricoes_prova")
-      .select("id, email, nome, sobrenome, telefone, rota, provas, pedido_resumo, inscricao_prova_completa")
+      .select("id, email, nome, sobrenome, telefone, rota, provas, pedido_resumo, inscricao_prova_completa, nb_apelido_peito, nb_nome_emergencia, nb_telefone_emergencia, nb_pace, nb_camiseta")
       .eq("venda_id", vendaId)
       .order("created_at", { ascending: false })
       .limit(1)
