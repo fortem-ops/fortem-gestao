@@ -9,7 +9,7 @@ interface StoreHeaderProps {
   title?: string;
 }
 
-const StoreHeader = ({ backTo, title = "Loja Fortem" }: StoreHeaderProps) => {
+const StoreHeader = ({ backTo, title = "LOJA  DA FORTEM" }: StoreHeaderProps) => {
   const { totalItems } = useCartLoja();
   const navigate = useNavigate();
   const { theme, toggleTheme, palette } = useStoreTheme();
