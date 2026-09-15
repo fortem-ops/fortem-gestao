@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
     const dp = body?.dadosPessoais ?? {};
     let cpfDigits = onlyDigits(String(dp?.cpf ?? ""));
     if (cpfDigits.length !== 11 && alunoId) {
-      const { data: cpfRpc } = await admin.rpc("fn_reveal_cpf", { p_aluno_id: alunoId });
+      const { data: cpfRpc } = await admin.rpc("fn_reveal_cpf_service", { p_aluno_id: alunoId });
       if (typeof cpfRpc === "string") cpfDigits = onlyDigits(cpfRpc);
     }
     const nome = [dp?.nome, dp?.sobrenome].filter(Boolean).join(" ").trim() || "Cliente Fortem";
