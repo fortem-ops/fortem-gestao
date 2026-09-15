@@ -64,6 +64,13 @@
       "when": 1789471511737,
       "tag": "0008_pix_cobrancas_origem_corrida",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789473961845,
+      "tag": "0009_fix_grants_anon_role_fns_e_uso_cupom_no_pagamento",
+      "breakpoints": true
     }
   ]
 }
