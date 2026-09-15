@@ -173,9 +173,10 @@ Deno.serve(async (req) => {
       if (!txid) continue;
       const { data: cob } = await sup
         .from("pix_cobrancas")
-        .select("id, aluno_id, valor, id_rec, pagamento_id")
+        .select("id, aluno_id, valor, id_rec, pagamento_id, corrida_venda_id")
         .eq("txid", txid)
         .maybeSingle();
+
 
       if (tipo === "COBR_LIQUIDADA" || ev?.status === "LIQUIDADA") {
         let pagamentoId = cob?.pagamento_id ?? null;
