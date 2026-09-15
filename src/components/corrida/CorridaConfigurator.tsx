@@ -17,7 +17,7 @@ import {
 import PagamentoStep, { type PedidoCriado } from "./PagamentoStep";
 import {
   calcularResumoCorrida,
-  cortesiaNbDisponivel,
+  descontoNbDisponivel,
   vagasRestantesNb,
   dataProva,
   brl,
@@ -257,9 +257,9 @@ const CorridaConfigurator = () => {
     },
   });
 
-  const cortesiaItem = itens.find((i) => i.tipo === "cortesia_nb") ?? null;
-  const cortesiaDisponivel = cortesiaNbDisponivel(cortesiaItem);
-  const vagasRestantes = vagasRestantesNb(cortesiaItem);
+  const descontoNbItem = itens.find((i) => i.tipo === "cortesia_nb") ?? null;
+  const descontoNbDisponivel = descontoNbDisponivel(descontoNbItem);
+  const vagasRestantes = vagasRestantesNb(descontoNbItem);
 
   const carregando = loadingPlanos || loadingItens;
 
