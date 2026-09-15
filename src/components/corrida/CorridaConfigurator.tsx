@@ -498,46 +498,51 @@ const CorridaConfigurator = () => {
       );
     }
 
-    const anual = rota !== "prospect" || periodo === "anual";
-    const p = anual ? oferta.planoAnual : oferta.planoMensal;
+    const efetivo = periodoEfetivo(rota, periodo);
+    const meses = efetivo === "mensal" ? 1 : efetivo === "semestral" ? 6 : 12;
+    const p =
+      efetivo === "mensal"
+        ? oferta.planoMensal
+        : efetivo === "semestral"
+          ? oferta.planoSemestral
+          : oferta.planoAnual;
+    const periodoLabel = efetivo === "semestral" ? "semestral" : "anual";
 
     return (
       <Card>
         {nome && <p className="text-primary font-semibold mb-1">Olá, {nome}!</p>}
         <h3 className="font-display text-xl font-bold mb-4">{tituloRota()}</h3>
 
-        {rota === "prospect" && (
-          <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
+          {rota === "prospect" && (
             <Pill active={periodo === "mensal"} onClick={() => setPeriodo("mensal")}>
               Mensal
             </Pill>
-            <Pill
-              active={periodo === "anual"}
-              onClick={() => setPeriodo("anual")}
-            >
-              Anual
-            </Pill>
-          </div>
-        )}
+          )}
+          <Pill active={efetivo === "semestral"} onClick={() => setPeriodo("semestral")}>
+            Semestral
+          </Pill>
+          <Pill active={efetivo === "anual"} onClick={() => setPeriodo("anual")}>
+            Anual
+          </Pill>
+        </div>
 
         {!p ? (
           <p className="text-muted-foreground">Plano indisponível.</p>
         ) : (
           <div>
             <div className="flex items-end gap-3 flex-wrap">
-              <span className="font-display text-4xl font-bold">
-                {brl(anual ? Number(p.valor) / 12 : Number(p.valor))}
-              </span>
+              <span className="font-display text-4xl font-bold">{brl(Number(p.valor) / meses)}</span>
               <span className="text-muted-foreground">/mês</span>
-              {anual && oferta.planoMensal && (
+              {efetivo !== "mensal" && oferta.planoMensal && (
                 <span className="text-muted-foreground line-through">
                   {brl(Number(oferta.planoMensal.valor))}/mês
                 </span>
               )}
             </div>
-            {anual && (
+            {efetivo !== "mensal" && (
               <p className="text-sm text-muted-foreground mt-1">
-                {brl(Number(p.valor))} no plano anual · em até {maxParcelas}x
+                {brl(Number(p.valor))} no plano {periodoLabel} · em até {maxParcelas}x
               </p>
             )}
           </div>
