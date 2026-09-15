@@ -739,16 +739,32 @@ const PagamentoStep = ({
         <Card className="text-center py-8">
           <h3 className="font-display text-xl font-bold mb-2">Pagamento não concluído</h3>
           <p className="text-sm text-muted-foreground mb-5">{resultado?.mensagem}</p>
-          <button
-            onClick={() => {
-              setResultado(null);
-              setCartao({ holder: "", numero: "", validade: "", cvv: "" });
-              setFase("cartao");
-            }}
-            className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-display font-semibold"
-          >
-            Tentar com outro cartão
-          </button>
+          {metodo === "pix" ? (
+            <button
+              onClick={() => {
+                setResultado(null);
+                setPixDados(null);
+                if (pedido) void gerarPix(pedido);
+                else setFase("cartao");
+              }}
+              disabled={loading}
+              className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-display font-semibold disabled:opacity-60"
+            >
+              Gerar novo Pix
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setResultado(null);
+                setCartao({ holder: "", numero: "", validade: "", cvv: "" });
+                setFase("cartao");
+              }}
+              className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-display font-semibold"
+            >
+              Tentar com outro cartão
+            </button>
+          )}
+
         </Card>
       )}
 
