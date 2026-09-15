@@ -100,6 +100,7 @@ export const nomePlanoExibicao = (nome: string) => PLANO_NOME_EXIBICAO[nome] ?? 
 
 export interface OfertaCorrida {
   planoAnual?: PlanoCatalogo | null;
+  planoSemestral?: PlanoCatalogo | null;
   planoMensal?: PlanoCatalogo | null;
   kits: CampanhaItem[];
   aval?: CampanhaItem | null;
@@ -111,7 +112,7 @@ export interface OfertaCorrida {
 export interface ResumoParams {
   oferta: OfertaCorrida | null;
   rota: Rota | null;
-  periodo: "mensal" | "anual";
+  periodo: Periodo;
   distanciaCortesia: Distancia;
   kitNivel: string | null;
   mipoa: boolean;
