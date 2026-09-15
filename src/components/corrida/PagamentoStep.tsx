@@ -124,7 +124,11 @@ const PagamentoStep = ({
     periodoPedido === "semestral" ? 6 : rotaPedido === "prospect" ? 12 : 10;
   const parcelamentoDisponivel =
     rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
+  /** Pix à vista: apenas Semestral e Anual (Mensal é recorrência no cartão). */
+  const pixDisponivel =
+    rotaPedido !== "somente_provas" && (periodoPedido === "semestral" || periodoPedido === "anual");
   const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
+  const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
 
   const [fase, setFase] = useState<Fase>("cartao");
   const [erro, setErro] = useState<string | null>(null);
@@ -136,9 +140,14 @@ const PagamentoStep = ({
   const [cartao, setCartao] = useState({ holder: "", numero: "", validade: "", cvv: "" });
   const [resultado, setResultado] = useState<{ ok: boolean; mensagem: string; protocolo?: string } | null>(null);
 
+  const [pixDados, setPixDados] = useState<{ txid: string; copiaCola: string; qr: string } | null>(null);
+  const [pixCopiado, setPixCopiado] = useState(false);
+  const pollPixRef = useRef(false);
+
   const criandoRef = useRef(false);
   const [tokenizationId, setTokenizationId] = useState<string | null>(null);
   const [aceiteFeito, setAceiteFeito] = useState(false);
+
 
   // chave de idempotência: criada uma única vez por sessão de checkout
   const idempotencyKey = useMemo(() => {
