@@ -336,7 +336,7 @@ Deno.serve(async (req) => {
       catalogoId = catalogo.id;
 
       formaPagamento = periodo === "mensal" ? "cartao_recorrencia" : "cartao_parcelado";
-      const maxParcelas = rota === "prospect" ? 12 : 10;
+      const maxParcelas = periodo === "semestral" ? 6 : rota === "prospect" ? 12 : 10;
       if (rota === "prospect" && periodo === "mensal") {
         parcelas = 1;
       } else {
