@@ -290,8 +290,8 @@ const CorridaConfigurator = () => {
     if (!rota) return base;
     base.push({ id: "oferta", label: "Oferta" });
     if (rota !== "somente_provas") base.push({ id: "provas", label: "Provas" });
-    if (rota === "prospect" || rota === "somente_provas") base.push({ id: "matricula", label: "Matrícula" });
-    base.push({ id: "servicos", label: "Serviços" });
+    if (rota === "somente_provas") base.push({ id: "matricula", label: "Matrícula" });
+    if (rota === "somente_provas") base.push({ id: "servicos", label: "Serviços" });
     base.push({ id: "dados", label: "Dados" });
     base.push({ id: "resumo", label: "Resumo" });
     base.push({ id: "pagamento", label: "Pagamento" });
@@ -968,12 +968,7 @@ const CorridaConfigurator = () => {
             {stepAtual === "matricula" && (
               <>
                 {renderMatricula()}
-                <Nav
-                  podeContinuar={
-                    rota !== "prospect" || oferta?.kits.length === 0 || kitNivel !== null
-                  }
-                />
-
+                <Nav />
               </>
             )}
             {stepAtual === "servicos" && (
