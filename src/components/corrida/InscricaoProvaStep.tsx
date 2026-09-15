@@ -1,7 +1,6 @@
 import { Check } from "lucide-react";
 import {
   NB_CAMISETAS,
-  NB_REGULAMENTO_URL,
   PROVA_NOME_2026,
   PROVA_NOME_ATUAL,
   maskTelefone,
