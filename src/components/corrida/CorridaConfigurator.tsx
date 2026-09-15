@@ -258,7 +258,7 @@ const CorridaConfigurator = () => {
   });
 
   const descontoNbItem = itens.find((i) => i.tipo === "cortesia_nb") ?? null;
-  const descontoNbDisponivel = descontoNbDisponivel(descontoNbItem);
+  const descontoNbElegivel = descontoNbDisponivel(descontoNbItem);
   const vagasRestantes = vagasRestantesNb(descontoNbItem);
 
   const carregando = loadingPlanos || loadingItens;
@@ -277,11 +277,11 @@ const CorridaConfigurator = () => {
       });
       return lista;
     }
-    const cortesiaAtiva = cortesiaDisponivel && periodoEfetivo(rota, periodo) === "anual";
-    if (cortesiaAtiva) lista.push({ prova: "NB", distancia: distanciaCortesia });
+    const descontoNbAtivo = descontoNbElegivel && periodoEfetivo(rota, periodo) === "anual";
+    if (descontoNbAtivo) lista.push({ prova: "NB", distancia: distanciaCortesia });
     if (mipoa) lista.push({ prova: "MIPOA", distancia: distanciaMipoa });
     return lista;
-  }, [rota, periodo, distanciaCortesia, mipoa, distanciaMipoa, provasSel, cortesiaDisponivel]);
+  }, [rota, periodo, distanciaCortesia, mipoa, distanciaMipoa, provasSel, descontoNbElegivel]);
 
   /* --------------------------- Etapas --------------------------- */
 
@@ -322,7 +322,7 @@ const CorridaConfigurator = () => {
   const oferta = useMemo(() => {
     if (!rota) return null;
 
-    const cortesia = cortesiaDisponivel ? (cortesiaItem ?? undefined) : undefined;
+    const descontoNb = descontoNbElegivel ? (descontoNbItem ?? undefined) : undefined;
     const mipoaItem = itens.find((i) => i.tipo === "mipoa" && i.rota === "ambos");
 
     if (rota === "somente_provas") {
@@ -366,7 +366,7 @@ const CorridaConfigurator = () => {
       planoMensal: plano(nomePlano, 1),
       kits,
       aval,
-      cortesia,
+      cortesia: descontoNb,
       mipoaItem,
       provaValor: null,
     };
@@ -561,7 +561,7 @@ const CorridaConfigurator = () => {
           <p className="text-sm text-muted-foreground rounded-xl bg-muted p-4">
             A condição especial de inscrição + kit da NB 42k 2027 é exclusiva do plano Anual.
           </p>
-        ) : !cortesiaDisponivel ? (
+        ) : !descontoNbElegivel ? (
           <p className="text-sm text-muted-foreground rounded-xl bg-muted p-4">
             Promoção de inscrição encerrada. Você segue com o seu plano normalmente — a inscrição na
             NB 42k 2027 nessa condição não está mais disponível.
@@ -805,8 +805,8 @@ const CorridaConfigurator = () => {
   };
 
   const payloadPedido = useMemo(() => {
-    const cortesiaAtiva =
-      cortesiaDisponivel && rota !== "somente_provas" && periodoEfetivo(rota, periodo) === "anual";
+    const descontoNbAtivo =
+      descontoNbElegivel && rota !== "somente_provas" && periodoEfetivo(rota, periodo) === "anual";
     return {
       rota,
       alunoId,
@@ -814,7 +814,7 @@ const CorridaConfigurator = () => {
       periodo: rota === "somente_provas" ? periodo : periodoEfetivo(rota, periodo),
       kitNivel,
       avaliacao,
-      cortesiaNb: { ativo: cortesiaAtiva, distancia: distanciaCortesia },
+      cortesiaNb: { ativo: descontoNbAtivo, distancia: distanciaCortesia },
       mipoa: { ativo: rota !== "somente_provas" && mipoa, distancia: distanciaMipoa },
       provasSel: provasPedido.map((p) => ({
         prova: p.prova,
@@ -827,7 +827,7 @@ const CorridaConfigurator = () => {
         recorrente_mensal: resumo?.recorrente ?? 0,
       },
     } as Record<string, unknown>;
-  }, [rota, alunoId, tier, periodo, kitNivel, avaliacao, distanciaCortesia, mipoa, distanciaMipoa, provasPedido, resumo, cortesiaDisponivel]);
+  }, [rota, alunoId, tier, periodo, kitNivel, avaliacao, distanciaCortesia, mipoa, distanciaMipoa, provasPedido, resumo, descontoNbElegivel]);
 
   const renderPagamento = () => {
     const temInscricao = provasPedido.length > 0;
