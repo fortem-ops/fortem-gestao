@@ -82,12 +82,31 @@ Deno.serve(async (req) => {
     const participou_mipoa =
       typeof body?.participou_mipoa_2026 === "boolean" ? body.participou_mipoa_2026 : null;
 
-    if (!ritmo_corrida) errors.push("ritmo_corrida");
-    if (!["RS", "Outros"].includes(local_nascimento)) errors.push("local_nascimento");
-    if (!marca_tenis) errors.push("marca_tenis");
-    if (!como_soube) errors.push("como_soube");
-    if (temNb && (participou_nb === null || !camiseta_nb)) errors.push("nb");
-    if (temMipoa && (participou_mipoa === null || !camiseta_mipoa)) errors.push("mipoa");
+    // --- campos exclusivos NB 42k 2027 ---
+    const NB_CAMISETAS = ["Babylook (tamanho único)", "P", "M", "G", "GG"];
+    const nb_nome_emergencia = str(body?.nb_nome_emergencia);
+    const nb_telefone_emergencia = str(body?.nb_telefone_emergencia);
+    const nb_pace = str(body?.nb_pace);
+    const nb_camiseta = str(body?.nb_camiseta);
+    const nb_apelido_peito = normalizarApelido(str(body?.nb_apelido_peito));
+    const nb_aceite_regulamento = body?.nb_aceite_regulamento === true;
+
+    if (temNb) {
+      if (!nb_nome_emergencia) errors.push("nb_nome_emergencia");
+      if (nb_telefone_emergencia.replace(/\D/g, "").length < 10) errors.push("nb_telefone_emergencia");
+      if (!nb_aceite_regulamento) errors.push("nb_aceite_regulamento");
+      if (!nb_pace) errors.push("nb_pace");
+      if (!nb_apelido_peito) errors.push("nb_apelido_peito");
+      if (!NB_CAMISETAS.includes(nb_camiseta)) errors.push("nb_camiseta");
+    }
+
+    if (temMipoa) {
+      if (!ritmo_corrida) errors.push("ritmo_corrida");
+      if (!["RS", "Outros"].includes(local_nascimento)) errors.push("local_nascimento");
+      if (!marca_tenis) errors.push("marca_tenis");
+      if (!como_soube) errors.push("como_soube");
+      if (participou_mipoa === null || !camiseta_mipoa) errors.push("mipoa");
+    }
     if (body?.aceite_inscricao !== true) errors.push("aceite_inscricao");
     if (exigeTermo && body?.aceite_termo_aptidao !== true) errors.push("aceite_termo_aptidao");
 
@@ -96,14 +115,20 @@ Deno.serve(async (req) => {
     const { error: updErr } = await admin
       .from("corrida_inscricoes_prova")
       .update({
-        ritmo_corrida,
-        local_nascimento,
+        ritmo_corrida: temMipoa ? ritmo_corrida : null,
+        local_nascimento: temMipoa ? local_nascimento : null,
         participou_nb_2026: temNb ? participou_nb : null,
         participou_mipoa_2026: temMipoa ? participou_mipoa : null,
-        marca_tenis,
-        como_soube,
-        camiseta_nb: temNb ? camiseta_nb : null,
+        marca_tenis: temMipoa ? marca_tenis : null,
+        como_soube: temMipoa ? como_soube : null,
+        camiseta_nb: temNb ? (camiseta_nb || null) : null,
         camiseta_mipoa: temMipoa ? camiseta_mipoa : null,
+        nb_nome_emergencia: temNb ? nb_nome_emergencia : null,
+        nb_telefone_emergencia: temNb ? nb_telefone_emergencia : null,
+        nb_aceite_regulamento: temNb ? true : null,
+        nb_pace: temNb ? nb_pace : null,
+        nb_apelido_peito: temNb ? nb_apelido_peito : null,
+        nb_camiseta: temNb ? nb_camiseta : null,
         aceite_inscricao: true,
         aceite_termo_aptidao: exigeTermo ? true : null,
         inscricao_prova_completa: true,
