@@ -43,9 +43,23 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const headers = { ...corsHeaders, "Content-Type": "application/json" };
 
+  // Recusas/erros de negócio sempre voltam com HTTP 200 e `success: false`.
+  // Se respondermos 4xx/5xx, o supabase.functions.invoke do frontend descarta o
+  // corpo e entrega só "Edge Function returned a non-2xx status code",
+  // impedindo a tradução do motivo real (ex.: ExpiredCard → "Cartão vencido").
+  function falha(erro: string, extra: Record<string, unknown> = {}) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: erro,
+      return_message: extra.return_message ?? erro,
+      ...extra,
+    }), { status: 200, headers });
+  }
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Método não suportado" }), { status: 405, headers });
   }
+
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -56,7 +70,7 @@ serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ success: false, error: "Body JSON inválido" }), { status: 400, headers });
+    return falha("Body JSON inválido");
   }
 
   const {
@@ -85,28 +99,25 @@ serve(async (req) => {
     const { data: link } = await q.maybeSingle();
 
     if (!link) {
-      return new Response(JSON.stringify({ success: false, error: "Link inválido ou não encontrado" }), { status: 404, headers });
+      return falha("Link inválido ou não encontrado");
     }
     if (link.usado) {
-      return new Response(JSON.stringify({ success: false, error: "Este link já foi utilizado" }), { status: 410, headers });
+      return falha("Este link já foi utilizado");
     }
     if (new Date(link.expira_em).getTime() < Date.now()) {
-      return new Response(JSON.stringify({ success: false, error: "Link expirado. Solicite um novo link na recepção" }), { status: 410, headers });
+      return falha("Link expirado. Solicite um novo link na recepção");
     }
     linkRecord = link;
     alunoId = link.aluno_id;
   }
 
   if (!alunoId || !card_number || !card_holder || !expiration_month || !expiration_year || !security_code) {
-    return new Response(JSON.stringify({
-      success: false,
-      error: "Campos obrigatórios ausentes",
-    }), { status: 400, headers });
+    return falha("Campos obrigatórios ausentes");
   }
 
   const cardClean = String(card_number).replace(/\D/g, "");
   if (!luhn(cardClean)) {
-    return new Response(JSON.stringify({ success: false, error: "Número de cartão inválido" }), { status: 400, headers });
+    return falha("Número de cartão inválido");
   }
 
 
@@ -117,10 +128,7 @@ serve(async (req) => {
   const baseUrl = REDE_URLS[ambiente as "sandbox" | "producao"] ?? REDE_URLS.sandbox;
 
   if (!pv || !tokenSecret) {
-    return new Response(JSON.stringify({
-      success: false,
-      error: "Credenciais Rede não configuradas",
-    }), { status: 500, headers });
+    return falha("Credenciais Rede não configuradas");
   }
 
   // OAuth
@@ -129,7 +137,7 @@ serve(async (req) => {
     accessToken = await getRedeAccessToken(pv.trim(), tokenSecret.trim(), ambiente);
   } catch (e) {
     console.error("[rede-salvar-cartao] oauth erro:", String(e));
-    return new Response(JSON.stringify({ success: false, error: "Falha na autenticação Rede" }), { status: 502, headers });
+    return falha("Falha na autenticação Rede");
   }
 
   // ============================================================
@@ -188,7 +196,7 @@ serve(async (req) => {
           payload: { aluno_id: alunoId, origem, last4: cardClean.slice(-4), erro: String(e) },
         });
       } catch { /* ignore */ }
-      return new Response(JSON.stringify({ success: false, error: "Erro de comunicação com a Rede" }), { status: 502, headers });
+      return falha("Erro de comunicação com a Rede");
     }
 
     const tokenizationId = tokResp?.tokenizationId ?? tokResp?.data?.tokenizationId ?? null;
@@ -217,11 +225,8 @@ serve(async (req) => {
       } catch (e) {
         console.error("[rede-salvar-cartao] falha ao registrar auditoria em system_logs:", String(e));
       }
-      return new Response(JSON.stringify({
-        success: false,
-        error: tokResp?.returnMessage ?? tokResp?.message ?? "Não foi possível iniciar a validação do cartão",
-        return_code: returnCode,
-      }), { status: 400, headers });
+      const motivo = tokResp?.returnMessage ?? tokResp?.message ?? "Não foi possível iniciar a validação do cartão";
+      return falha(motivo, { return_code: returnCode, return_message: motivo, http_status_rede: tokHttpStatus });
     }
 
     const { error: tokInsErr } = await supabase.from("rede_tokenizacoes").insert({
@@ -307,15 +312,11 @@ serve(async (req) => {
     console.log("[rede-salvar-cartao] resposta Rede (completa):", JSON.stringify(redeResp));
   } catch (e) {
     console.error("[rede-salvar-cartao] fetch erro:", String(e));
-    return new Response(JSON.stringify({ success: false, error: "Erro de comunicação com a Rede" }), { status: 502, headers });
+    return falha("Erro de comunicação com a Rede");
   }
 
   if (redeResp?.returnCode !== "00") {
-    return new Response(JSON.stringify({
-      success: false,
-      error: redeResp?.returnMessage ?? "Cartão não aprovado",
-      return_code: redeResp?.returnCode,
-    }), { status: 400, headers });
+    return falha(redeResp?.returnMessage ?? "Cartão não aprovado", { return_code: redeResp?.returnCode });
   }
 
   const tid = redeResp?.tid;
@@ -388,10 +389,7 @@ serve(async (req) => {
     } catch (e) {
       console.error("[rede-salvar-cartao] falha ao registrar auditoria em system_logs:", String(e));
     }
-    return new Response(JSON.stringify({
-      success: false,
-      error: "Cartão aprovado, mas não foi possível gerar token seguro. Tente novamente.",
-    }), { status: 500, headers });
+    return falha("Cartão aprovado, mas não foi possível gerar token seguro. Tente novamente.");
   }
 
   const brand = redeResp?.brand ?? redeResp?.brandName ?? detectBrand(cardClean);
@@ -435,7 +433,7 @@ serve(async (req) => {
 
   if (resultadoCartao.erro || !resultadoCartao.cartaoId) {
     console.error("[rede-salvar-cartao] insert erro:", resultadoCartao.erro);
-    return new Response(JSON.stringify({ success: false, error: "Falha ao salvar cartão" }), { status: 500, headers });
+    return falha("Falha ao salvar cartão");
   }
 
   // Marcar link como usado
