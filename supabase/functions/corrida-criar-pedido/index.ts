@@ -306,9 +306,14 @@ Deno.serve(async (req) => {
       parcelas = 1;
     } else {
       // ---------- 2. plano + contrato ----------
-      const periodo: "mensal" | "anual" =
-        rota === "prospect" ? (body?.periodo === "mensal" ? "mensal" : "anual") : "anual";
-      const periodoMeses = periodo === "mensal" ? 1 : 12;
+      const periodoBody = String(body?.periodo ?? "");
+      const periodo: "mensal" | "semestral" | "anual" =
+        periodoBody === "semestral"
+          ? "semestral"
+          : rota === "prospect" && periodoBody === "mensal"
+            ? "mensal"
+            : "anual";
+      const periodoMeses = periodo === "mensal" ? 1 : periodo === "semestral" ? 6 : 12;
 
       if (rota === "aluno") {
         const tier = String(body?.tier ?? "");
@@ -331,7 +336,7 @@ Deno.serve(async (req) => {
       catalogoId = catalogo.id;
 
       formaPagamento = periodo === "mensal" ? "cartao_recorrencia" : "cartao_parcelado";
-      const maxParcelas = rota === "prospect" ? 12 : 10;
+      const maxParcelas = periodo === "semestral" ? 6 : rota === "prospect" ? 12 : 10;
       if (rota === "prospect" && periodo === "mensal") {
         parcelas = 1;
       } else {

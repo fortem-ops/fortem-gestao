@@ -5,8 +5,29 @@
 
 export type Rota = "aluno" | "somente_corrida" | "prospect" | "somente_provas";
 export type Tier = "start" | "start_plus" | "power" | "pro" | "max";
+export type Periodo = "mensal" | "semestral" | "anual";
 export type Distancia = "5K" | "10K" | "21K" | "42K";
 export type ProvaKey = "NB" | "MIPOA";
+
+/** Máximo de parcelas no cartão para o período semestral. */
+export const MAX_PARCELAS_SEMESTRAL = 6;
+
+/**
+ * Período efetivo: apenas a rota Prospect tem mensalidade recorrente.
+ * Nas demais rotas, "mensal" cai para o plano anual (comportamento histórico).
+ */
+export function periodoEfetivo(rota: Rota | null, periodo: Periodo): Periodo {
+  if (rota === "prospect") return periodo;
+  return periodo === "mensal" ? "anual" : periodo;
+}
+
+/** Máximo de parcelas conforme rota e período. */
+export function maxParcelasPeriodo(rota: Rota | null, periodo: Periodo): number {
+  const p = periodoEfetivo(rota, periodo);
+  if (p === "semestral") return MAX_PARCELAS_SEMESTRAL;
+  return rota === "prospect" ? 12 : 10;
+}
+
 
 export interface PlanoCatalogo {
   nome: string;
@@ -79,6 +100,7 @@ export const nomePlanoExibicao = (nome: string) => PLANO_NOME_EXIBICAO[nome] ?? 
 
 export interface OfertaCorrida {
   planoAnual?: PlanoCatalogo | null;
+  planoSemestral?: PlanoCatalogo | null;
   planoMensal?: PlanoCatalogo | null;
   kits: CampanhaItem[];
   aval?: CampanhaItem | null;
@@ -90,7 +112,7 @@ export interface OfertaCorrida {
 export interface ResumoParams {
   oferta: OfertaCorrida | null;
   rota: Rota | null;
-  periodo: "mensal" | "anual";
+  periodo: Periodo;
   distanciaCortesia: Distancia;
   kitNivel: string | null;
   mipoa: boolean;
@@ -144,24 +166,32 @@ export function calcularResumoCorrida(params: ResumoParams): ResumoCorrida | nul
       hoje += Number(item.valor);
     });
   } else {
-    const anual = rota !== "prospect" || periodo === "anual";
-    const p = anual ? oferta.planoAnual : oferta.planoMensal;
+    const efetivo = periodoEfetivo(rota, periodo);
+    const p =
+      efetivo === "mensal"
+        ? oferta.planoMensal
+        : efetivo === "semestral"
+          ? oferta.planoSemestral
+          : oferta.planoAnual;
     if (p) {
       const nomeExib = nomePlanoExibicao(p.nome);
-      if (anual) {
-        linhas.push({
-          label: `${nomeExib} — ${brl(Number(p.valor) / 12)}/mês (Plano Anual)`,
-          valor: Number(p.valor),
-          nota: `${brl(Number(p.valor))} em até ${maxParcelas}x`,
-        });
-        hoje += Number(p.valor);
-      } else {
+      if (efetivo === "mensal") {
         linhas.push({ label: `${nomeExib} — Mensal`, valor: Number(p.valor), nota: "recorrência mensal no cartão" });
         hoje += Number(p.valor);
         recorrente = Number(p.valor);
+      } else {
+        const meses = efetivo === "semestral" ? 6 : 12;
+        const parcelasMax =
+          efetivo === "semestral" ? Math.min(MAX_PARCELAS_SEMESTRAL, maxParcelas) : maxParcelas;
+        linhas.push({
+          label: `${nomeExib} — ${brl(Number(p.valor) / meses)}/mês (Plano ${efetivo === "semestral" ? "Semestral" : "Anual"})`,
+          valor: Number(p.valor),
+          nota: `${brl(Number(p.valor))} em até ${parcelasMax}x`,
+        });
+        hoje += Number(p.valor);
       }
     }
-    const cortesiaAtiva = oferta.cortesia && (rota !== "prospect" || periodo === "anual");
+    const cortesiaAtiva = oferta.cortesia && efetivo === "anual";
     if (cortesiaAtiva) {
       const c = oferta.cortesia!;
       const valorCortesia = c.isento ? 0 : Number(c.valor);

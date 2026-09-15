@@ -120,7 +120,8 @@ const PagamentoStep = ({
 }: Props) => {
   const rotaPedido = String(payloadPedido.rota ?? "");
   const periodoPedido = String(payloadPedido.periodo ?? "");
-  const maxParcelas = rotaPedido === "prospect" ? 12 : 10;
+  const maxParcelas =
+    periodoPedido === "semestral" ? 6 : rotaPedido === "prospect" ? 12 : 10;
   const parcelamentoDisponivel =
     rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
   const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
