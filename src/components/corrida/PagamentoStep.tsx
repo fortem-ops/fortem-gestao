@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, CheckCircle2, CreditCard, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Copy, CreditCard, Loader2, QrCode, ShieldCheck } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 
