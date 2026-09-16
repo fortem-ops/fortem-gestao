@@ -36,9 +36,7 @@ export function ForcaTab({ alunoId, latest, history, aluno, readOnly = false }: 
   const sexoRpc: "M" | "F" | null =
     aluno?.sexo?.toLowerCase().startsWith("m") ? "M" :
     aluno?.sexo?.toLowerCase().startsWith("f") ? "F" : null;
-  const idadeRpc: number | null = aluno?.data_nascimento
-    ? differenceInYears(new Date(), parseISO(aluno.data_nascimento))
-    : null;
+  const idadeRpc: number | null = idadeAtual(aluno?.data_nascimento);
 
   const { data: comparativos } = useQuery({
     queryKey: ["forca-comparativo", latest?.data, sexoRpc, idadeRpc, exercicios.map((e) => e.nome).join(",")],
