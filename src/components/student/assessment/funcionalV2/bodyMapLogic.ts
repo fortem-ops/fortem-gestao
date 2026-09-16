@@ -341,7 +341,7 @@ export function corGradienteAssimetria(
     hue = 160 - 4 * t;
     sat = 34 + 6 * t;
     light = 64 - 6 * t;
-  } else if (p < 20) {
+  } else if (p <= 20) {
     // champagne → âmbar suave
     const t = (p - 10) / 10;
     hue = 48 - 6 * t;
