@@ -106,6 +106,13 @@ export function EncomendasTab() {
         0,
       );
       const valorFinal = Number(p.valor_final ?? somaItens);
+      const resumoPedido = itens
+        .filter((it) => it.produtos_variantes)
+        .map((it) => {
+          const v = it.produtos_variantes!;
+          return `${it.quantidade}x ${v.produtos_catalogo?.nome || "Produto removido"} (${v.cor || "—"} / ${v.tamanho || "—"})`;
+        })
+        .join(", ");
       itens.forEach((it, idx) => {
         const v = it.produtos_variantes;
         if (!v) return;
@@ -120,6 +127,8 @@ export function EncomendasTab() {
           tamanho: v.tamanho || "—",
           quantidade: it.quantidade,
           valorItens,
+          valorFinalPedido: valorFinal,
+          resumoPedido,
           valorRecebido:
             p.status === "aguardando_pagamento" ? 0 : Math.round(valorFinal * proporcao * 100) / 100,
           cupom: p.promocoes?.codigo ?? null,
