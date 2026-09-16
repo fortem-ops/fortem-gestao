@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -31,11 +32,12 @@ export default function Clube() {
   const { data: alunosOpts = [] } = useQuery({
     queryKey: ["clube-alunos-membros", user?.id, isCoordAdmin],
     queryFn: async () => {
-      const { data: membros } = await supabase
-        .from("clube_fortem_membros")
-        .select("aluno_id")
-        .order("created_at", { ascending: false });
-      const ids = (membros || []).map((m) => m.aluno_id);
+      const membros = await carregarTodasAsPaginas<{ aluno_id: string }>({
+        tabela: "clube_fortem_membros",
+        colunas: "aluno_id",
+        ordenarPor: [{ coluna: "created_at", ascending: false }, { coluna: "id" }],
+      });
+      const ids = membros.map((m) => m.aluno_id);
       if (!ids.length) return [];
 
       let query = supabase.from("alunos").select("id, nome, responsavel_id").in("id", ids);

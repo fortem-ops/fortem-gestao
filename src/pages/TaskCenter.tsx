@@ -344,14 +344,17 @@ export default function TaskCenter() {
     queryKey: ["tarefas-all", effectiveResponsavelId],
     enabled: !!user,
     queryFn: async () => {
-      let q = supabase
-        .from("tarefas")
-        .select("*")
-        .order("data_limite", { ascending: true, nullsFirst: false });
-      if (effectiveResponsavelId) q = q.eq("responsavel_id", effectiveResponsavelId);
-      const { data, error } = await q;
-      if (error) throw error;
-      if (!data?.length) return [];
+      const data = await carregarTodasAsPaginas<Tables<"tarefas">>({
+        tabela: "tarefas",
+        colunas: "*",
+        ordenarPor: [
+          { coluna: "data_limite", ascending: true, nullsFirst: false },
+          { coluna: "id" },
+        ],
+        filtros: (q: any) =>
+          effectiveResponsavelId ? q.eq("responsavel_id", effectiveResponsavelId) : q,
+      });
+      if (!data.length) return [];
 
       const userIds = [
         ...new Set(data.map((t) => t.responsavel_id)),

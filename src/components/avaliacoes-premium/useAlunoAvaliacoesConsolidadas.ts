@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
 import type { Tables } from "@/integrations/supabase/types";
 import type { AssimetriaReferenceData, ForcaInput, MetricInput, MobilidadeReferenceData, ReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { ALL_FUNCTIONAL_METRICS, ASSIMETRIA_ABSOLUTA, criarReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
@@ -169,6 +170,9 @@ export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefine
  * ~3 mil linhas) uma vez por sessão e organiza em arrays ordenados por
  * métrica/sexo, prontos para busca binária de percentil (ver percentilMobilidade).
  */
+/** Ordenação estável usada na paginação das tabelas de referência. */
+const ORDEM_REFERENCIA = [{ coluna: "metrica" }, { coluna: "id" }];
+
 export function useMobilidadeReferenceData() {
   return useQuery<MobilidadeReferenceData>({
     queryKey: ["mobilidade-referencia-fortem-v2"],
@@ -179,7 +183,11 @@ export function useMobilidadeReferenceData() {
         sexo: string;
         valor: number | string;
         faixa_etaria: string | null;
-      }>("mobilidade_amostras_fortem", "metrica, sexo, valor, faixa_etaria");
+      }>({
+        tabela: "mobilidade_amostras_fortem",
+        colunas: "metrica, sexo, valor, faixa_etaria",
+        ordenarPor: ORDEM_REFERENCIA,
+      });
       const ref: MobilidadeReferenceData = {};
       for (const row of data ?? []) {
         const bucket = (ref[row.metrica] ??= { M: criarReferenciaFaixas(), F: criarReferenciaFaixas() });
@@ -207,7 +215,11 @@ export function useMobilidadeAssimetriaReferenceData() {
         sexo: string;
         assimetria_pct: number | string;
         faixa_etaria: string | null;
-      }>("mobilidade_assimetria_fortem", "metrica, sexo, assimetria_pct, faixa_etaria");
+      }>({
+        tabela: "mobilidade_assimetria_fortem",
+        colunas: "metrica, sexo, assimetria_pct, faixa_etaria",
+        ordenarPor: ORDEM_REFERENCIA,
+      });
       const ref: AssimetriaReferenceData = {};
       for (const row of data ?? []) {
         const bucket = (ref[row.metrica] ??= { M: criarReferenciaFaixas(), F: criarReferenciaFaixas() });
@@ -223,38 +235,6 @@ export function useMobilidadeAssimetriaReferenceData() {
       return ref;
     },
   });
-}
-
-const PAGINA_REFERENCIA = 1000;
-const MAX_PAGINAS_REFERENCIA = 20;
-
-/**
- * O PostgREST corta respostas em 1.000 linhas. As tabelas de referência já
- * passam disso, então é obrigatório paginar com `range` e uma ordenação
- * estável (metrica, id) para não repetir nem pular linhas entre as páginas.
- */
-async function carregarTodasAsPaginas<T>(
-  tabela: "mobilidade_amostras_fortem" | "mobilidade_assimetria_fortem",
-  colunas: string,
-): Promise<T[]> {
-  const todas: T[] = [];
-  for (let pagina = 0; pagina < MAX_PAGINAS_REFERENCIA; pagina++) {
-    const inicio = pagina * PAGINA_REFERENCIA;
-    const { data, error } = await supabase
-      .from(tabela)
-      .select(colunas)
-      .order("metrica", { ascending: true })
-      .order("id", { ascending: true })
-      .range(inicio, inicio + PAGINA_REFERENCIA - 1);
-    if (error) throw error;
-    const linhas = (data ?? []) as unknown as T[];
-    todas.push(...linhas);
-    if (linhas.length < PAGINA_REFERENCIA) return todas;
-  }
-  console.warn(
-    `[referencia-fortem] limite de ${MAX_PAGINAS_REFERENCIA} páginas atingido em ${tabela}; a base de referência pode estar incompleta.`,
-  );
-  return todas;
 }
 
 /** Avisa se alguma das nove métricas funcionais ficou sem amostra na referência. */
