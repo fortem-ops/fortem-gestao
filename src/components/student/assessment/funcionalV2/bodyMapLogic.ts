@@ -242,21 +242,23 @@ export function severidadeAssimetriaClinica(
   return nivel === "severa" ? "severe" : nivel === "moderada" ? "moderate" : null;
 }
 
-export type AssimetriaReferenceData = Record<string, { M: number[]; F: number[] }>;
+export type AssimetriaReferenceData = Record<string, { M: ReferenciaFaixas; F: ReferenciaFaixas }>;
 
 /**
  * Percentil da MAGNITUDE de assimetria (diferença % bruta em graus entre E/D)
- * dentro da base Fortem, por métrica/sexo. Percentil ALTO = assimetria MAIOR (pior).
+ * dentro da base Fortem, por métrica/sexo (segmentado por faixa etária quando
+ * disponível). Percentil ALTO = assimetria MAIOR (pior).
  */
 export function percentilAssimetria(
   metric: string,
   sexo: "M" | "F",
   assimetriaPct: number,
   ref: AssimetriaReferenceData | undefined,
+  faixa?: FaixaEtaria | null,
 ): number | null {
   if (!ref) return null;
-  const arr = ref[metric]?.[sexo];
-  if (!arr || arr.length < 15) return null;
+  const arr = arrayReferencia(ref[metric]?.[sexo], faixa);
+  if (!arr) return null;
   let lo = 0, hi = arr.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
