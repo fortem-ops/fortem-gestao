@@ -261,6 +261,19 @@ export const SEVERITY_COLOR_VAR: Record<Severity, string> = {
 };
 
 /**
+ * Converte o valor de assimetria para a escala visual 0–30 usada pelo gradiente.
+ * Métricas absolutas (graus) são mapeadas para as MESMAS faixas de cor: abaixo do
+ * limiar moderado → verde; entre moderado e severo → âmbar; acima do severo → coral.
+ */
+function escalaVisualAssimetria(metric: string | undefined, valor: number): number {
+  const abs = metric ? ASSIMETRIA_ABSOLUTA[metric] : undefined;
+  if (!abs) return valor;
+  if (valor < abs.moderado) return (valor / abs.moderado) * 9.9;
+  if (valor <= abs.severo) return 10 + ((valor - abs.moderado) / (abs.severo - abs.moderado)) * 9.9;
+  return 20 + Math.min(10, (valor - abs.severo) * 3);
+}
+
+/**
  * Escala contínua de assimetria com tonalidades clean/modern/futuristas:
  *  - 0–10%  → menta/sálvia frio, luminoso e pouco saturado
  *  - 10–20% → âmbar/champagne suave
