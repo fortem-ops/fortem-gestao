@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
 import type { Tables } from "@/integrations/supabase/types";
-import type { AssimetriaReferenceData, ForcaInput, MetricInput, MobilidadeReferenceData, ReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import { ALL_FUNCTIONAL_METRICS, ASSIMETRIA_ABSOLUTA, criarReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { ForcaInput, MetricInput, MobilidadeReferenceData, ReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { ALL_FUNCTIONAL_METRICS, criarReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { FAIXAS_ETARIAS, type FaixaEtaria } from "@/lib/faixaEtaria";
 
 export interface ForcaSavedRow {
@@ -205,50 +205,12 @@ export function useMobilidadeReferenceData() {
   });
 }
 
-export function useMobilidadeAssimetriaReferenceData() {
-  return useQuery<AssimetriaReferenceData>({
-    queryKey: ["mobilidade-assimetria-referencia-fortem-v2"],
-    staleTime: 1000 * 60 * 60,
-    queryFn: async () => {
-      const data = await carregarTodasAsPaginas<{
-        metrica: string;
-        sexo: string;
-        assimetria_pct: number | string;
-        faixa_etaria: string | null;
-      }>({
-        tabela: "mobilidade_assimetria_fortem",
-        colunas: "metrica, sexo, assimetria_pct, faixa_etaria",
-        ordenarPor: ORDEM_REFERENCIA,
-      });
-      const ref: AssimetriaReferenceData = {};
-      for (const row of data ?? []) {
-        const bucket = (ref[row.metrica] ??= { M: criarReferenciaFaixas(), F: criarReferenciaFaixas() });
-        const porSexo = bucket[row.sexo as "M" | "F"];
-        if (!porSexo) continue;
-        const valor = Number(row.assimetria_pct);
-        porSexo.todos.push(valor);
-        const faixa = row.faixa_etaria as FaixaEtaria | null;
-        if (faixa && faixa in porSexo) porSexo[faixa].push(valor);
-      }
-      ordenarReferencia(ref);
-      avisarMetricasFaltantes(ref, "mobilidade_assimetria_fortem");
-      return ref;
-    },
-  });
-}
-
 /** Avisa se alguma das nove métricas funcionais ficou sem amostra na referência. */
 function avisarMetricasFaltantes(
   ref: Record<string, { M: ReferenciaFaixas; F: ReferenciaFaixas }>,
   tabela: string,
 ) {
-  // Na tabela de assimetria, métricas avaliadas por diferença absoluta em graus
-  // (ex.: Flexibilidade Psoas) não têm amostras por design — ausência esperada.
-  const metricasEsperadas =
-    tabela === "mobilidade_assimetria_fortem"
-      ? ALL_FUNCTIONAL_METRICS.filter((metrica) => !(metrica in ASSIMETRIA_ABSOLUTA))
-      : ALL_FUNCTIONAL_METRICS;
-  const faltantes = metricasEsperadas.filter((metrica) => {
+  const faltantes = ALL_FUNCTIONAL_METRICS.filter((metrica) => {
     const bucket = ref[metrica];
     return !bucket || (bucket.M.todos.length === 0 && bucket.F.todos.length === 0);
   });
