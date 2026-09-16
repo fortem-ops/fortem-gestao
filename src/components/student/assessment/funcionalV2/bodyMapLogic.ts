@@ -671,8 +671,20 @@ export function buildMetricAttentionList(analysis: BodyMapAnalysis, max = 6): Ar
   label: string;
   metricLabel: string;
   percentage: number;
+  unidade: "°" | "%";
+  metric: string;
 }> {
-  const items = [...analysis.metricAsymmetries].sort((a, b) => b.diff - a.diff).slice(0, max);
+  // Ordena por severidade clínica primeiro (severa > moderada > nenhuma) e só
+  // depois pelo valor — escalas diferentes (graus × percentual) não são comparáveis.
+  const sevOrder: Record<AssimetriaNivel, number> = { severa: 2, moderada: 1, nenhuma: 0 };
+  const items = [...analysis.metricAsymmetries]
+    .sort((a, b) => {
+      const sevA = sevOrder[nivelAssimetria(a.metric, a.diff)];
+      const sevB = sevOrder[nivelAssimetria(b.metric, b.diff)];
+      if (sevA !== sevB) return sevB - sevA;
+      return b.diff - a.diff;
+    })
+    .slice(0, max);
   return items.map((x, i) => ({
     id: x.metric,
     number: i + 1,
@@ -681,6 +693,8 @@ export function buildMetricAttentionList(analysis: BodyMapAnalysis, max = 6): Ar
       .replace(/^Flexibilidade\s+/i, ""),
     metricLabel: "",
     percentage: Math.round(x.diff * 10) / 10,
+    unidade: x.unidade,
+    metric: x.metric,
   }));
 }
 
@@ -883,6 +897,8 @@ export function applyForcaToRegions(
       score: Math.round(score),
       severity: severityFromScore(score),
       asymmetry: asym ? Math.round(asym.assimetria * 10) / 10 : undefined,
+      // Força é sempre percentual — sobrescreve a unidade (ex.: "°" do Psoas na mesma região).
+      asymmetryUnit: asym ? "%" : undefined,
       contributing: asym
         ? [{ metric: FORCA_EXERCICIO_LABEL[asym.exercicio], side: newRegions[id].side, value: null, classification: null }]
         : newRegions[id].contributing,
