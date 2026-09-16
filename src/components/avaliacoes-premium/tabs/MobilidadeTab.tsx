@@ -218,6 +218,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
     : aluno?.sexo?.toLowerCase().startsWith("m")
     ? "M"
     : undefined;
+  const faixaRpc = faixaEtariaDe(aluno?.data_nascimento);
   const { user } = useAuth();
   const qc = useQueryClient();
 
