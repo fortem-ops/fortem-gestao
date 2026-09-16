@@ -211,7 +211,6 @@ describe("Análise completa do mapa corporal", () => {
       undefined,
       "M",
       refMobilidade(PSOAS, faixas({ todos: serie(20) })),
-      refAssimetria(PSOAS, faixas({ todos: serie(20) })),
       "30-44",
     );
     const item = analysis.metricAsymmetries.find((a) => a.metric === PSOAS)!;
@@ -228,7 +227,6 @@ describe("Análise completa do mapa corporal", () => {
       undefined,
       "M",
       refMobilidade(OMBRO, faixas({ todos: serie(20) })),
-      refAssimetria(OMBRO, faixas({ todos: serie(20) })),
       null,
     );
     const item = analysis.metricAsymmetries.find((a) => a.metric === OMBRO)!;
