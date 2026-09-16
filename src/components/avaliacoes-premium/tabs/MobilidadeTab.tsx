@@ -22,6 +22,7 @@ import {
   ALL_FUNCTIONAL_METRICS,
   METRIC_META,
   percentilMobilidade,
+  classificarAssimetria,
   getMetricDisplayLabel,
   type MetricInput,
   type MobilidadeReferenceData,
@@ -78,13 +79,19 @@ interface CurveMarker {
 const LADO_ESQ_COLOR = "#378ADD";
 const LADO_DIR_COLOR = "#E8843C";
 
-/** Rosca Esquerda vs Direita com % de assimetria abaixo. */
-function AssimetriaDonut({ left, right, unit }: { left: number | null; right: number | null; unit: string }) {
+/** Rosca Esquerda vs Direita com a assimetria da métrica abaixo (% ou graus). */
+function AssimetriaDonut({
+  metric,
+  left,
+  right,
+  unit,
+}: { metric: string; left: number | null; right: number | null; unit: string }) {
   if (left === null || right === null || left + right <= 0) return null;
   const total = left + right;
-  const maior = Math.max(left, right);
-  const menor = Math.min(left, right);
-  const assimetria = maior > 0 ? ((maior - menor) / maior) * 100 : 0;
+  // Ponto único de verdade: a unidade e o valor vêm da regra da própria métrica.
+  const info = classificarAssimetria(metric, left, right);
+  const assimetria = info?.valor ?? 0;
+  const assimetriaUnidade = info?.unidade ?? "%";
 
   const r = 34;
   const c = 2 * Math.PI * r;
@@ -122,7 +129,7 @@ function AssimetriaDonut({ left, right, unit }: { left: number | null; right: nu
           </g>
         </svg>
         <p className="text-[11px] font-semibold text-[hsl(var(--bio-ink))] -mt-1">
-          {assimetria.toFixed(1)}% <span className="font-normal text-[hsl(var(--bio-ink-muted))]">Assimetria</span>
+          {assimetria.toFixed(1)}{assimetriaUnidade} <span className="font-normal text-[hsl(var(--bio-ink-muted))]">Assimetria</span>
         </p>
       </div>
       <div className="text-left">
@@ -197,7 +204,7 @@ function PercentileCurveCard({
       <div className="text-center mt-1">
         <span className="text-[10px] text-[hsl(var(--bio-ink-muted))]">média {mean.toFixed(1)}{unit}</span>
       </div>
-      {donut && <AssimetriaDonut left={donut.left} right={donut.right} unit={unit} />}
+      {donut && <AssimetriaDonut metric={metric} left={donut.left} right={donut.right} unit={unit} />}
     </div>
 
   );

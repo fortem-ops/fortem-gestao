@@ -1,4 +1,4 @@
-import { corGradienteAssimetria, getMetricDisplayLabel } from "./bodyMapLogic";
+import { classificarAssimetria, corGradienteAssimetria, getMetricDisplayLabel } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
 import { pointsToSmoothPath } from "./pointsToPath";
@@ -82,9 +82,9 @@ export function BodyMapSVG({
           ].filter((x): x is { shapeKey: string; value: number; side: string } => x !== null);
           const max = Math.max(...values.map((x) => x.value), 0);
           const min = Math.min(...values.map((x) => x.value));
-          // Assimetria do PAR: ambos os lados recebem a mesma cor do gradiente.
-          const pairAsymmetry = max > 0 && values.length > 1 ? ((max - min) / max) * 100 : 0;
-          const pairFill = corGradienteAssimetria(pairAsymmetry);
+          // Assimetria do PAR pela regra da própria métrica; ambos os lados recebem a mesma cor.
+          const pairInfo = values.length > 1 ? classificarAssimetria(m.metric, min, max) : null;
+          const pairFill = corGradienteAssimetria(pairInfo?.valor ?? 0, m.metric);
           return values.flatMap((x) => {
             const shape = shapesMap[x.shapeKey];
             if (!shape) return [];
@@ -116,11 +116,12 @@ export function BodyMapSVG({
         .filter((m) => m.left !== null && m.right !== null && FLEXIBILIDADE_SHAPE_MUSCLE[m.metric])
         .flatMap((m) => {
           const muscle = FLEXIBILIDADE_SHAPE_MUSCLE[m.metric];
-          const max = Math.max(m.left!, m.right!);
-          const pairAsymmetry = max > 0 ? (Math.abs(m.left! - m.right!) / max) * 100 : 0;
-          // Abaixo do limiar de atenção, mantém o neutro; com assimetria, AMBOS os lados
+          // Ponto único de verdade: graus para métricas absolutas (Psoas), % para as demais.
+          const info = classificarAssimetria(m.metric, m.left, m.right);
+          // Sem assimetria relevante, mantém o neutro; com assimetria, AMBOS os lados
           // recebem a mesma cor do gradiente.
-          const fill = pairAsymmetry >= 10 ? corGradienteAssimetria(pairAsymmetry) : "#7A8B99";
+          const fill =
+            info && info.nivel !== "nenhuma" ? corGradienteAssimetria(info.valor, m.metric) : "#7A8B99";
           const labelBase = getMetricDisplayLabel ? getMetricDisplayLabel(m.metric) : m.metric;
           const out: Array<{ key: string; shape: BodyMapShape; fill: string; label: string }> = [];
           const shapeR = shapesMap[`${muscle}-direito`];

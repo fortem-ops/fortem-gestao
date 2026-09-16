@@ -22,11 +22,17 @@ interface Props {
 /** Percentuais de assimetria separados por categoria a partir do nome da métrica. */
 export function assimetriasPorCategoria(scores: PremiumScores, forca: ForcaResumoInput[] = []) {
   const metricas = scores.analysisAsym?.metricAsymmetries ?? [];
-  const mob = metricas.filter((m) => /^mobilidade/i.test(m.metric)).map((m) => m.diff);
-  const flex = metricas.filter((m) => /^flexibilidade/i.test(m.metric)).map((m) => m.diff);
+  // Mantém a métrica de origem para cada item: a contagem classifica cada assimetria
+  // pela regra da sua própria escala (graus x percentual).
+  const mob = metricas
+    .filter((m) => /^mobilidade/i.test(m.metric))
+    .map((m) => ({ metric: m.metric, diff: m.diff }));
+  const flex = metricas
+    .filter((m) => /^flexibilidade/i.test(m.metric))
+    .map((m) => ({ metric: m.metric, diff: m.diff }));
   const forcaPcts = forca
     .filter((e) => e.direito_kg != null && e.esquerdo_kg != null)
-    .map((e) => classifyForca(e.direito_kg!, e.esquerdo_kg!).assimetria);
+    .map((e) => ({ diff: classifyForca(e.direito_kg!, e.esquerdo_kg!).assimetria }));
 
   return {
     mobilidade: contarAssimetriasPorFaixa(mob),

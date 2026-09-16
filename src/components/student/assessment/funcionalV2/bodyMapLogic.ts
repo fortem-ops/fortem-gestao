@@ -116,6 +116,92 @@ export function percentilMobilidade(
   return METRICAS_INVERTIDAS.has(metric) ? 100 - pct : pct;
 }
 
+// ============================================================================
+// PONTO ÚNICO DE VERDADE DA ASSIMETRIA
+// ----------------------------------------------------------------------------
+// Métricas de escala curta (ex.: Flexibilidade Psoas — mediana 3°, p95 8,5°) não
+// podem ser avaliadas por assimetria percentual: 1° vs 2° viraria 50%, que é
+// ruído de goniômetro. Para elas a regra é a DIFERENÇA ABSOLUTA em graus.
+// Nenhum consumidor deve reimplementar essa decisão nem testar a métrica por nome.
+// ============================================================================
+
+/** Métricas avaliadas por diferença ABSOLUTA (graus) em vez de percentual. */
+export const ASSIMETRIA_ABSOLUTA: Record<string, { moderado: number; severo: number }> = {
+  "Flexibilidade Psoas": { moderado: 3, severo: 5 },
+};
+
+/** Limiares percentuais usados na escala visual/contagem (inalterados). */
+export const ASSIMETRIA_PCT_LIMIARES = { moderado: 10, severo: 20 } as const;
+/** Limiares percentuais do fallback clínico do analyze() (inalterados). */
+const ASSIMETRIA_PCT_LIMIARES_CLINICO = { moderado: 15, severo: 25 } as const;
+
+export type AssimetriaNivel = "nenhuma" | "moderada" | "severa";
+
+export interface AssimetriaInfo {
+  /** Valor a exibir: graus (métricas absolutas) ou percentual (demais). */
+  valor: number;
+  unidade: "°" | "%";
+  /** true quando a métrica usa diferença absoluta em graus. */
+  absoluta: boolean;
+  nivel: AssimetriaNivel;
+}
+
+function nivelPorLimiar(
+  valor: number,
+  moderado: number,
+  severo: number,
+  severoInclusivo = false,
+): AssimetriaNivel {
+  if (severoInclusivo ? valor >= severo : valor > severo) return "severa";
+  if (valor >= moderado) return "moderada";
+  return "nenhuma";
+}
+
+/**
+ * Classificação compartilhada de assimetria a partir dos dois lados.
+ * Retorna null quando falta algum lado.
+ */
+export function classificarAssimetria(
+  metric: string,
+  esquerdo: number | null | undefined,
+  direito: number | null | undefined,
+): AssimetriaInfo | null {
+  if (esquerdo === null || esquerdo === undefined || direito === null || direito === undefined) return null;
+  const abs = ASSIMETRIA_ABSOLUTA[metric];
+  if (abs) {
+    const valor = Math.abs(esquerdo - direito);
+    return { valor, unidade: "°", absoluta: true, nivel: nivelPorLimiar(valor, abs.moderado, abs.severo) };
+  }
+  const max = Math.max(Math.abs(esquerdo), Math.abs(direito));
+  const valor = max > 0 ? (Math.abs(esquerdo - direito) / max) * 100 : 0;
+  return {
+    valor,
+    unidade: "%",
+    absoluta: false,
+    nivel: nivelPorLimiar(valor, ASSIMETRIA_PCT_LIMIARES.moderado, ASSIMETRIA_PCT_LIMIARES.severo),
+  };
+}
+
+/** Classificação do nível a partir de um valor já calculado (escala visual/contagem). */
+export function nivelAssimetria(metric: string | undefined, valor: number): AssimetriaNivel {
+  const abs = metric ? ASSIMETRIA_ABSOLUTA[metric] : undefined;
+  return abs
+    ? nivelPorLimiar(valor, abs.moderado, abs.severo)
+    : nivelPorLimiar(valor, ASSIMETRIA_PCT_LIMIARES.moderado, ASSIMETRIA_PCT_LIMIARES.severo);
+}
+
+/** Severidade clínica usada no analyze() (graus para métricas absolutas, 15%/25% para as demais). */
+export function severidadeAssimetriaClinica(
+  metric: string | undefined,
+  valor: number,
+): "severe" | "moderate" | null {
+  const abs = metric ? ASSIMETRIA_ABSOLUTA[metric] : undefined;
+  const nivel = abs
+    ? nivelPorLimiar(valor, abs.moderado, abs.severo)
+    : nivelPorLimiar(valor, ASSIMETRIA_PCT_LIMIARES_CLINICO.moderado, ASSIMETRIA_PCT_LIMIARES_CLINICO.severo, true);
+  return nivel === "severa" ? "severe" : nivel === "moderada" ? "moderate" : null;
+}
+
 export type AssimetriaReferenceData = Record<string, { M: number[]; F: number[] }>;
 
 /**
@@ -175,17 +261,33 @@ export const SEVERITY_COLOR_VAR: Record<Severity, string> = {
 };
 
 /**
+ * Converte o valor de assimetria para a escala visual 0–30 usada pelo gradiente.
+ * Métricas absolutas (graus) são mapeadas para as MESMAS faixas de cor: abaixo do
+ * limiar moderado → verde; entre moderado e severo → âmbar; acima do severo → coral.
+ */
+function escalaVisualAssimetria(metric: string | undefined, valor: number): number {
+  const abs = metric ? ASSIMETRIA_ABSOLUTA[metric] : undefined;
+  if (!abs) return valor;
+  if (valor < abs.moderado) return (valor / abs.moderado) * 9.9;
+  if (valor <= abs.severo) return 10 + ((valor - abs.moderado) / (abs.severo - abs.moderado)) * 9.9;
+  return 20 + Math.min(10, (valor - abs.severo) * 3);
+}
+
+/**
  * Escala contínua de assimetria com tonalidades clean/modern/futuristas:
  *  - 0–10%  → menta/sálvia frio, luminoso e pouco saturado
  *  - 10–20% → âmbar/champagne suave
  *  - >=20%  → coral-rosa futurista, sem vermelho puro agressivo
  * A troca de cor acontece perto dos limiares 10% e 20%.
  */
-export function corGradienteAssimetria(pct: number | null | undefined): string {
-  if (pct === null || pct === undefined || Number.isNaN(pct)) {
+export function corGradienteAssimetria(
+  valor: number | null | undefined,
+  metric?: string,
+): string {
+  if (valor === null || valor === undefined || Number.isNaN(valor)) {
     return "hsl(var(--bodymap-silhouette))";
   }
-  const p = Math.max(0, pct);
+  const p = Math.max(0, escalaVisualAssimetria(metric, valor));
   let hue: number, sat: number, light: number;
 
   if (p < 10) {
@@ -223,25 +325,35 @@ export interface ContagemAssimetrias {
   total: number;
 }
 
+/** Item de assimetria com a métrica de origem (permite escala em graus). */
+export interface AssimetriaItem {
+  metric?: string;
+  diff: number;
+}
+
 /**
- * Conta assimetrias por faixa (>20% / 10–20% / <10%).
- * Aceita um BodyMapAnalysis (usa `metricAsymmetries`) ou uma lista de percentuais
- * (ex.: assimetrias de força já calculadas).
+ * Conta assimetrias por faixa. Cada item é classificado pela regra da sua própria
+ * métrica (graus para métricas absolutas, percentual para as demais) — as contagens
+ * nunca somam escalas diferentes por engano.
+ * Aceita um BodyMapAnalysis, uma lista de percentuais ou uma lista de itens.
  */
 export function contarAssimetriasPorFaixa(
-  origem: BodyMapAnalysis | ReadonlyArray<number> | null | undefined,
+  origem: BodyMapAnalysis | ReadonlyArray<number | AssimetriaItem> | null | undefined,
 ): ContagemAssimetrias {
-  const pcts: number[] = !origem
+  const itens: AssimetriaItem[] = !origem
     ? []
     : Array.isArray(origem)
-    ? (origem as ReadonlyArray<number>).slice()
-    : (origem as BodyMapAnalysis).metricAsymmetries.map((a) => a.diff);
+    ? (origem as ReadonlyArray<number | AssimetriaItem>).map((x) =>
+        typeof x === "number" ? { diff: x } : x,
+      )
+    : (origem as BodyMapAnalysis).metricAsymmetries.map((a) => ({ metric: a.metric, diff: a.diff }));
 
-  const validos = pcts.filter((p) => typeof p === "number" && !Number.isNaN(p));
+  const validos = itens.filter((i) => i && typeof i.diff === "number" && !Number.isNaN(i.diff));
   let alta = 0, moderada = 0, baixa = 0;
-  for (const p of validos) {
-    if (p > 20) alta++;
-    else if (p >= 10) moderada++;
+  for (const i of validos) {
+    const nivel = nivelAssimetria(i.metric, i.diff);
+    if (nivel === "severa") alta++;
+    else if (nivel === "moderada") moderada++;
     else baixa++;
   }
   return { alta, moderada, baixa, total: validos.length };
@@ -254,8 +366,10 @@ export interface RegionState {
   /** 0–100; null when no data */
   score: number | null;
   severity: Severity;
-  /** for asymmetry mode; absolute diff vs opposite side */
+  /** for asymmetry mode; diff vs opposite side (unidade em `asymmetryUnit`) */
   asymmetry?: number;
+  /** unidade do valor em `asymmetry`: "%" (padrão) ou "°" (métricas absolutas) */
+  asymmetryUnit?: "°" | "%";
   contributing: Array<{ metric: string; side: Side | "center"; value: number | null; classification: AssessmentClassification | null }>;
 }
 
@@ -272,8 +386,8 @@ export interface BodyMapAnalysis {
   scoreSimetria: number | null;
   scoreEstabilidade: number | null;
   scoreForca: number | null;
-  asymmetries: Array<{ region: RegionId; diff: number; severity: "moderate" | "severe" }>;
-  metricAsymmetries: Array<{ metric: string; diff: number; asymPercentile: number | null }>;
+  asymmetries: Array<{ region: RegionId; diff: number; unidade: "°" | "%"; severity: "moderate" | "severe" }>;
+  metricAsymmetries: Array<{ metric: string; diff: number; unidade: "°" | "%"; absoluta: boolean; asymPercentile: number | null }>;
   riskLevel: "low" | "attention" | "high";
   chains: CompensationChain[];
 }
@@ -382,7 +496,15 @@ export function analyze(
     ["ham-l","ham-r"],
     ["ankle-l","ankle-r"],
   ];
-  const regionDiffs: Partial<Record<RegionId, { diff: number; weakerSide: "left" | "right"; asymPercentile: number | null }>> = {};
+  type RegionDiff = {
+    diff: number;
+    unidade: "°" | "%";
+    metric: string;
+    absoluta: boolean;
+    weakerSide: "left" | "right";
+    asymPercentile: number | null;
+  };
+  const regionDiffs: Partial<Record<RegionId, RegionDiff>> = {};
   const metricAsymmetries: BodyMapAnalysis["metricAsymmetries"] = [];
 
   for (const m of metrics) {
@@ -391,27 +513,51 @@ export function analyze(
     const lScore = scoreForSide(m, "left");
     const rScore = scoreForSide(m, "right");
     if (lScore === null || rScore === null) continue;
-    const rawAsymPct =
-      m.left !== null && m.right !== null && Math.max(Math.abs(m.left), Math.abs(m.right)) > 0
-        ? (Math.abs(m.left - m.right) / Math.max(Math.abs(m.left), Math.abs(m.right))) * 100
-        : null;
-    if (rawAsymPct === null || rawAsymPct === 0) continue;
-    const asymPercentile = sexo ? percentilAssimetria(m.metric, sexo, rawAsymPct, assimetriaReferenceData) : null;
-    metricAsymmetries.push({ metric: m.metric, diff: rawAsymPct, asymPercentile });
+    // Ponto único de verdade: graus para métricas absolutas, percentual para as demais.
+    const info = classificarAssimetria(m.metric, m.left, m.right);
+    if (!info || info.valor === 0) continue;
+    // Percentil da base Fortem só faz sentido na escala percentual.
+    const asymPercentile =
+      sexo && !info.absoluta ? percentilAssimetria(m.metric, sexo, info.valor, assimetriaReferenceData) : null;
+    metricAsymmetries.push({
+      metric: m.metric,
+      diff: info.valor,
+      unidade: info.unidade,
+      absoluta: info.absoluta,
+      asymPercentile,
+    });
     const weakerSide: "left" | "right" = lScore < rScore ? "left" : "right";
+    const entry: RegionDiff = {
+      diff: info.valor,
+      unidade: info.unidade,
+      metric: m.metric,
+      absoluta: info.absoluta,
+      weakerSide,
+      asymPercentile,
+    };
 
     for (const r of meta.regions) {
       if ("both" in r) {
         const prev = regionDiffs[r.both];
-        if (!prev || rawAsymPct > prev.diff) regionDiffs[r.both] = { diff: rawAsymPct, weakerSide, asymPercentile };
+        if (!prev || info.valor > prev.diff) regionDiffs[r.both] = entry;
         continue;
       }
       for (const regionId of [r.left, r.right]) {
         const prev = regionDiffs[regionId];
-        if (!prev || rawAsymPct > prev.diff) regionDiffs[regionId] = { diff: rawAsymPct, weakerSide, asymPercentile };
+        if (!prev || info.valor > prev.diff) regionDiffs[regionId] = entry;
       }
     }
   }
+
+  const severidadeDe = (info: RegionDiff): "severe" | "moderate" | null => {
+    // Métricas absolutas: classificação apenas por graus (sem percentil e sem corte de 15%/25%).
+    if (info.absoluta) return severidadeAssimetriaClinica(info.metric, info.diff);
+    const sevByPercentile: "severe" | "moderate" | null =
+      info.asymPercentile !== null && info.asymPercentile !== undefined
+        ? info.asymPercentile >= 90 ? "severe" : info.asymPercentile >= 75 ? "moderate" : null
+        : null;
+    return sevByPercentile ?? severidadeAssimetriaClinica(info.metric, info.diff);
+  };
 
   const pairedRegionIds = new Set<RegionId>(pairs.flat());
 
@@ -419,16 +565,12 @@ export function analyze(
     const info = regionDiffs[a] ?? regionDiffs[b];
     if (!info) continue;
     regions[a].asymmetry = info.diff;
+    regions[a].asymmetryUnit = info.unidade;
     regions[b].asymmetry = info.diff;
+    regions[b].asymmetryUnit = info.unidade;
     const weakerRegion = info.weakerSide === "left" ? a : b;
-    const sevByPercentile: "severe" | "moderate" | null =
-      info.asymPercentile !== null && info.asymPercentile !== undefined
-        ? info.asymPercentile >= 90 ? "severe" : info.asymPercentile >= 75 ? "moderate" : null
-        : null;
-    const sevByFixedCut: "severe" | "moderate" | null =
-      info.diff >= 25 ? "severe" : info.diff >= 15 ? "moderate" : null;
-    const finalSev = sevByPercentile ?? sevByFixedCut;
-    if (finalSev) asymmetries.push({ region: weakerRegion, diff: info.diff, severity: finalSev });
+    const finalSev = severidadeDe(info);
+    if (finalSev) asymmetries.push({ region: weakerRegion, diff: info.diff, unidade: info.unidade, severity: finalSev });
   }
 
   // Regiões "both" com dado E/D real (ex: torácica — rotação de tronco), atribuídas
@@ -438,14 +580,9 @@ export function analyze(
     const info = regionDiffs[regionId];
     if (!info) continue;
     regions[regionId].asymmetry = info.diff;
-    const sevByPercentile: "severe" | "moderate" | null =
-      info.asymPercentile !== null && info.asymPercentile !== undefined
-        ? info.asymPercentile >= 90 ? "severe" : info.asymPercentile >= 75 ? "moderate" : null
-        : null;
-    const sevByFixedCut: "severe" | "moderate" | null =
-      info.diff >= 25 ? "severe" : info.diff >= 15 ? "moderate" : null;
-    const finalSev = sevByPercentile ?? sevByFixedCut;
-    if (finalSev) asymmetries.push({ region: regionId, diff: info.diff, severity: finalSev });
+    regions[regionId].asymmetryUnit = info.unidade;
+    const finalSev = severidadeDe(info);
+    if (finalSev) asymmetries.push({ region: regionId, diff: info.diff, unidade: info.unidade, severity: finalSev });
   }
 
   // Compensation chains
