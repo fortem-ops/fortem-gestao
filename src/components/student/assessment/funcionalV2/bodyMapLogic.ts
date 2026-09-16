@@ -88,6 +88,11 @@ export type MobilidadeReferenceData = Record<string, { M: number[]; F: number[] 
 /** Métricas onde valor MENOR é melhor (hoje só Psoas — teste de encurtamento). */
 const METRICAS_INVERTIDAS = new Set(["Flexibilidade Psoas"]);
 
+/** true quando aumentar o valor da métrica é ruim (ex: Psoas — quanto mais próximo de 0°, melhor). */
+export function metricaInvertida(metric: string): boolean {
+  return METRICAS_INVERTIDAS.has(metric);
+}
+
 /**
  * Percentil do valor do aluno dentro da base interna Fortem (por métrica/sexo).
  * Requer amostra mínima de 15 (mesmo limiar usado na Força) para evitar percentil
