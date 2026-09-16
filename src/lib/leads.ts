@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
 
 export const ORIGEM_LEAD_OPTIONS = [
   "Indicação",
@@ -28,8 +29,14 @@ export function normalizePhone(s: string | null | undefined): string {
 export async function findAlunoByPhone(telefone: string): Promise<{ id: string; nome: string } | null> {
   const digits = normalizePhone(telefone);
   if (digits.length < 8) return null;
-  const { data } = await supabase.from("alunos").select("id, nome, telefone");
-  const found = (data || []).find((a) => normalizePhone(a.telefone) === digits);
+  // A base de alunos já passa de 1.000 linhas: sem paginação a verificação de
+  // duplicidade ignorava o excedente e deixava criar cadastro repetido.
+  const data = await carregarTodasAsPaginas<{ id: string; nome: string; telefone: string | null }>({
+    tabela: "alunos",
+    colunas: "id, nome, telefone",
+    ordenarPor: [{ coluna: "id" }],
+  });
+  const found = data.find((a) => normalizePhone(a.telefone) === digits);
   return found ? { id: found.id, nome: found.nome } : null;
 }
 

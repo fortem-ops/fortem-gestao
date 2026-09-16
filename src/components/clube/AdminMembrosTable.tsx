@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { NIVEL_LABEL, STATUS_LABEL, type NivelMembro, type StatusMembro } from "@/lib/clube";
 import type { Database } from "@/integrations/supabase/types";
+import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
 
 const STATUS_OPTS: StatusMembro[] = ["ativo", "bloqueado", "inadimplente", "cancelado"];
 const NIVEL_OPTS: NivelMembro[] = ["bronze", "prata", "ouro", "diamante", "platina"];
@@ -19,17 +20,17 @@ export function AdminMembrosTable() {
   const { data, isLoading } = useQuery({
     queryKey: ["clube-membros-admin"],
     queryFn: async () => {
-      const { data: membros, error } = await supabase
-        .from("clube_fortem_membros")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const ids = (membros || []).map((m) => m.aluno_id);
+      const membros = await carregarTodasAsPaginas<Database["public"]["Tables"]["clube_fortem_membros"]["Row"]>({
+        tabela: "clube_fortem_membros",
+        colunas: "*",
+        ordenarPor: [{ coluna: "created_at", ascending: false }, { coluna: "id" }],
+      });
+      const ids = membros.map((m) => m.aluno_id);
       const { data: alunos } = ids.length
         ? await supabase.from("alunos").select("id, nome").in("id", ids)
         : { data: [] as any[] };
       const map = new Map((alunos || []).map((a: any) => [a.id, a.nome]));
-      return (membros || []).map((m) => ({ ...m, aluno_nome: map.get(m.aluno_id) })) as Row[];
+      return membros.map((m) => ({ ...m, aluno_nome: map.get(m.aluno_id) })) as Row[];
     },
   });
 
