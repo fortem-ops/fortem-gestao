@@ -280,6 +280,10 @@ export function BodyMap({
   layer: layerProp,
   onLayerChange,
   layout = "default",
+  sexo,
+  faixaEtaria,
+  referenceData,
+  assimetriaReferenceData,
 }: Props) {
   
   const [layerLocal, setLayerLocal] = useState<Layer>("mobility");
