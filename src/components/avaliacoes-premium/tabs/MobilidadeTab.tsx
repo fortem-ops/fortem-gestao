@@ -79,13 +79,19 @@ interface CurveMarker {
 const LADO_ESQ_COLOR = "#378ADD";
 const LADO_DIR_COLOR = "#E8843C";
 
-/** Rosca Esquerda vs Direita com % de assimetria abaixo. */
-function AssimetriaDonut({ left, right, unit }: { left: number | null; right: number | null; unit: string }) {
+/** Rosca Esquerda vs Direita com a assimetria da métrica abaixo (% ou graus). */
+function AssimetriaDonut({
+  metric,
+  left,
+  right,
+  unit,
+}: { metric: string; left: number | null; right: number | null; unit: string }) {
   if (left === null || right === null || left + right <= 0) return null;
   const total = left + right;
-  const maior = Math.max(left, right);
-  const menor = Math.min(left, right);
-  const assimetria = maior > 0 ? ((maior - menor) / maior) * 100 : 0;
+  // Ponto único de verdade: a unidade e o valor vêm da regra da própria métrica.
+  const info = classificarAssimetria(metric, left, right);
+  const assimetria = info?.valor ?? 0;
+  const assimetriaUnidade = info?.unidade ?? "%";
 
   const r = 34;
   const c = 2 * Math.PI * r;
