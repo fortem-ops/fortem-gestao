@@ -819,7 +819,10 @@ export interface ForcaAttentionItem {
   id: string;
   number: number;
   label: string;
+  metricLabel: string;
   percentage: number;
+  /** Assimetria de dinamometria é sempre percentual. */
+  unidade: "%" | "°";
   riskLabel: string;
   riskColor: string;
 }

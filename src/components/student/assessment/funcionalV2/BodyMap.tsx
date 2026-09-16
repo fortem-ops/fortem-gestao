@@ -301,11 +301,11 @@ export function BodyMap({
   const asymmetryCountDisplay = canonical ? canonical.asymmetryCount : analysis.asymmetries.length;
   const chainsDisplay = canonical ? canonical.chains : analysis.chains;
 
-  const regionList = useMemo(
+  const regionList = useMemo<RegionListItem[]>(
     () =>
-      (layer === "strength"
+      layer === "strength"
         ? buildForcaAttentionList(forcaExercises, 6)
-        : buildMetricAttentionList(analysis, 6)) as RegionListItem[],
+        : buildMetricAttentionList(analysis, 6),
     [analysis, layer, forcaExercises],
   );
 
