@@ -47,6 +47,14 @@ interface Props {
    * antigo). "resultados" reorganiza o mapa no formato do dashboard de Resultados.
    */
   layout?: "default" | "resultados";
+  /**
+   * Contexto de comparação com a base Fortem (opcional). Quando não fornecido,
+   * a análise cai nos cortes fixos — comportamento original preservado.
+   */
+  sexo?: "M" | "F";
+  faixaEtaria?: FaixaEtaria | null;
+  referenceData?: MobilidadeReferenceData;
+  assimetriaReferenceData?: AssimetriaReferenceData;
 }
 
 
