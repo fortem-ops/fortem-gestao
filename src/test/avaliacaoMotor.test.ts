@@ -86,28 +86,27 @@ describe("Assimetria: régua da própria métrica", () => {
   });
 });
 
-describe("Assimetria: escala visual (10/20) e escala clínica (15/25)", () => {
-  it("percentual: 10% já aparece como moderada na escala visual", () => {
+describe("Assimetria: limiar único de 10% e 20%", () => {
+  it("percentual: 10% já é moderada, 9,9% ainda não é", () => {
     expect(nivelAssimetria(OMBRO, 9.9)).toBe("nenhuma");
     expect(nivelAssimetria(OMBRO, 10)).toBe("moderada");
   });
 
-  it("percentual: 20% ainda é moderada na escala visual, 20,1% é severa", () => {
+  it("percentual: 20% ainda é moderada, 20,1% é severa", () => {
     expect(nivelAssimetria(OMBRO, 20)).toBe("moderada");
     expect(nivelAssimetria(OMBRO, 20.1)).toBe("severa");
   });
 
-  it("percentual: a escala clínica só acusa a partir de 15%", () => {
-    expect(severidadeAssimetriaClinica(OMBRO, 14.9)).toBeNull();
+  it("o que é detectado como assimetria usa exatamente os mesmos 10% e 20% da cor", () => {
+    expect(severidadeAssimetriaClinica(OMBRO, 9.9)).toBeNull();
+    expect(severidadeAssimetriaClinica(OMBRO, 10)).toBe("moderate");
     expect(severidadeAssimetriaClinica(OMBRO, 15)).toBe("moderate");
-  });
-
-  it("percentual: 25% exatos já são severos na escala clínica", () => {
-    expect(severidadeAssimetriaClinica(OMBRO, 24.9)).toBe("moderate");
+    expect(severidadeAssimetriaClinica(OMBRO, 20)).toBe("moderate");
+    expect(severidadeAssimetriaClinica(OMBRO, 20.1)).toBe("severe");
     expect(severidadeAssimetriaClinica(OMBRO, 25)).toBe("severe");
   });
 
-  it("Psoas usa 3° e 5° nas duas escalas", () => {
+  it("Psoas continua em 3° e 5°, nas duas leituras", () => {
     expect(nivelAssimetria(PSOAS, 2.9)).toBe("nenhuma");
     expect(nivelAssimetria(PSOAS, 3)).toBe("moderada");
     expect(nivelAssimetria(PSOAS, 5)).toBe("moderada");
