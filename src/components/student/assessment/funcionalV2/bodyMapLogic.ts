@@ -562,17 +562,14 @@ export function analyze(
     // Ponto único de verdade: graus para métricas absolutas, percentual para as demais.
     const info = classificarAssimetria(m.metric, m.left, m.right);
     if (!info || info.valor === 0) continue;
-    // Percentil da base Fortem só faz sentido na escala percentual.
-    const asymPercentile =
-      sexo && !info.absoluta
-        ? percentilAssimetria(m.metric, sexo, info.valor, assimetriaReferenceData, faixaEtaria)
-        : null;
+    // A assimetria é sempre a comparação entre os dois lados do próprio aluno;
+    // a base Fortem não entra nesta classificação.
     metricAsymmetries.push({
       metric: m.metric,
       diff: info.valor,
       unidade: info.unidade,
       absoluta: info.absoluta,
-      asymPercentile,
+      asymPercentile: null,
     });
     const weakerSide: "left" | "right" = lScore < rScore ? "left" : "right";
     const entry: RegionDiff = {
@@ -581,7 +578,7 @@ export function analyze(
       metric: m.metric,
       absoluta: info.absoluta,
       weakerSide,
-      asymPercentile,
+      asymPercentile: null,
     };
 
     for (const r of meta.regions) {
@@ -597,15 +594,8 @@ export function analyze(
     }
   }
 
-  const severidadeDe = (info: RegionDiff): "severe" | "moderate" | null => {
-    // Métricas absolutas: classificação apenas por graus (sem percentil e sem corte de 15%/25%).
-    if (info.absoluta) return severidadeAssimetriaClinica(info.metric, info.diff);
-    const sevByPercentile: "severe" | "moderate" | null =
-      info.asymPercentile !== null && info.asymPercentile !== undefined
-        ? info.asymPercentile >= 90 ? "severe" : info.asymPercentile >= 75 ? "moderate" : null
-        : null;
-    return sevByPercentile ?? severidadeAssimetriaClinica(info.metric, info.diff);
-  };
+  const severidadeDe = (info: RegionDiff): "severe" | "moderate" | null =>
+    severidadeAssimetriaClinica(info.metric, info.diff);
 
   const pairedRegionIds = new Set<RegionId>(pairs.flat());
 
