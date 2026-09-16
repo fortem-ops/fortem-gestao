@@ -88,7 +88,7 @@ export function EncomendasTab() {
           "id, nome, created_at, valor_total, desconto, valor_final, brinde_escolhido, status, promocoes(codigo), pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .eq("eh_encomenda", true)
-        .in("status", ["pago", "estornado"])
+        .in("status", ["pago", "estornado", "aguardando_pagamento"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as PedidoRow[];
@@ -118,7 +118,8 @@ export function EncomendasTab() {
           tamanho: v.tamanho || "—",
           quantidade: it.quantidade,
           valorItens,
-          valorRecebido: Math.round(valorFinal * proporcao * 100) / 100,
+          valorRecebido:
+            p.status === "aguardando_pagamento" ? 0 : Math.round(valorFinal * proporcao * 100) / 100,
           cupom: p.promocoes?.codigo ?? null,
           brinde: p.brinde_escolhido ?? null,
           data: p.created_at,
@@ -344,6 +345,11 @@ export function EncomendasTab() {
                           {l.status === "estornado" && (
                             <Badge variant="outline" className="ml-2 status-urgent text-[10px]">
                               Estornado
+                            </Badge>
+                          )}
+                          {l.status === "aguardando_pagamento" && (
+                            <Badge variant="outline" className="ml-2 status-warning text-[10px]">
+                              Aguardando pagamento
                             </Badge>
                           )}
                         </TableCell>
