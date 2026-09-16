@@ -284,6 +284,11 @@ export function EvolucaoTab({ data }: Props) {
       )}
 
       {selectedDates.length > 0 &&
+        charts.some((c) => c.id === "mobility" || c.id === "flexibility" || c.id === "forca") && (
+          <LadoLegendTraco />
+        )}
+
+      {selectedDates.length > 0 &&
         charts.map((chart) => (
           <div key={chart.id} className="bio-card p-5">
             <h3 className="bio-heading text-base mb-3">{chart.titulo}</h3>
