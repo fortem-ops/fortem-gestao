@@ -258,6 +258,13 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
     [historico, selectedId, selectedDate, readOnly],
   );
 
+  /** Métricas da avaliação selecionada que pertencem à camada atual (mobility/flexibility). */
+  const metricasDaCamada = useMemo(() => {
+    if (!selecionada) return [];
+    if (layerFilter !== "mobility" && layerFilter !== "flexibility") return selecionada.metricas;
+    return selecionada.metricas.filter((m) => METRIC_META[m.metric]?.layer === layerFilter);
+  }, [selecionada, layerFilter]);
+
   const curvasData = useMemo(() => {
     if (!selecionada || !sexoRpc || !referenceData) return [];
     return selecionada.metricas
@@ -677,6 +684,30 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
             <p className="text-[11px] text-[hsl(var(--bio-ink-faint))] mt-3">
               Curva representa a distribuição da base Fortem (mesmo sexo). Linha tracejada = média. Pontos coloridos = valores do aluno (E azul, D laranja).
             </p>
+          </div>
+        )}
+
+        {curvasData.length === 0 && selecionada && metricasDaCamada.length > 0 && (
+          <div className="bio-card p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <h3 className="bio-heading text-base">Distribuição vs. base Fortem</h3>
+              {sexoRpc && (
+                <span className="bio-label">{sexoRpc === "F" ? "Mulheres avaliadas" : "Homens avaliados"}</span>
+              )}
+            </div>
+            {sexoRpc === undefined ? (
+              <p className="text-sm text-[hsl(var(--bio-ink-muted))] text-center py-6">
+                Cadastro sem sexo informado. A comparação com a base Fortem é separada por sexo — preencha o cadastro do aluno para ver as curvas.
+              </p>
+            ) : !referenceData ? (
+              <div className="py-6 text-center">
+                <Loader2 className="w-5 h-5 animate-spin mx-auto text-[hsl(var(--bio-ink-muted))]" />
+              </div>
+            ) : (
+              <p className="text-sm text-[hsl(var(--bio-ink-muted))] text-center py-6">
+                Ainda não há amostra suficiente na base Fortem para as métricas desta camada.
+              </p>
+            )}
           </div>
         )}
 
