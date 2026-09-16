@@ -258,6 +258,13 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
     [historico, selectedId, selectedDate, readOnly],
   );
 
+  /** Métricas da avaliação selecionada que pertencem à camada atual (mobility/flexibility). */
+  const metricasDaCamada = useMemo(() => {
+    if (!selecionada) return [];
+    if (layerFilter !== "mobility" && layerFilter !== "flexibility") return selecionada.metricas;
+    return selecionada.metricas.filter((m) => METRIC_META[m.metric]?.layer === layerFilter);
+  }, [selecionada, layerFilter]);
+
   const curvasData = useMemo(() => {
     if (!selecionada || !sexoRpc || !referenceData) return [];
     return selecionada.metricas
