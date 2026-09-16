@@ -21,7 +21,7 @@ interface Props {
  * Wrapper premium do BodyMap existente. Adiciona halo radial e alerta de
  * incompletude, mas não traz borda de card — o card é responsabilidade do pai.
  */
-export function PremiumBodyMap({ funcional, scores, layer, onLayerChange }: Props) {
+export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, sexo, faixaEtaria, referenceData, assimetriaReferenceData }: Props) {
   if (!funcional || (funcional.metricas.length === 0 && funcional.forca.length === 0)) {
     return (
       <div className="p-8 text-center text-[hsl(var(--bio-ink-muted))]">
@@ -76,6 +76,10 @@ export function PremiumBodyMap({ funcional, scores, layer, onLayerChange }: Prop
           layer={layer}
           onLayerChange={onLayerChange}
           forcaExercises={forcaInputs}
+          sexo={sexo}
+          faixaEtaria={faixaEtaria}
+          referenceData={referenceData}
+          assimetriaReferenceData={assimetriaReferenceData}
           layout="resultados"
           rings={
             scores

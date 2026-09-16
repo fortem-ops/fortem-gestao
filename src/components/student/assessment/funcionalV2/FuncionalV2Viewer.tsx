@@ -2,10 +2,15 @@ import type { Tables } from "@/integrations/supabase/types";
 import { BodyMap } from "./BodyMap";
 import { getClassificationColor } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
-import { FORCA_EXERCICIO_LABEL, type ForcaInput, type MetricInput } from "./bodyMapLogic";
+import { FORCA_EXERCICIO_LABEL, type AssimetriaReferenceData, type ForcaInput, type MetricInput, type MobilidadeReferenceData } from "./bodyMapLogic";
+import type { FaixaEtaria } from "@/lib/faixaEtaria";
 
 interface Props {
   avaliacao: Tables<"avaliacoes">;
+  sexo?: "M" | "F";
+  faixaEtaria?: FaixaEtaria | null;
+  referenceData?: MobilidadeReferenceData;
+  assimetriaReferenceData?: AssimetriaReferenceData;
 }
 
 interface ForcaSaved {
@@ -21,7 +26,7 @@ interface ForcaSaved {
   scoreForca?: number | null;
 }
 
-export function FuncionalV2Viewer({ avaliacao }: Props) {
+export function FuncionalV2Viewer({ avaliacao, sexo, faixaEtaria, referenceData, assimetriaReferenceData }: Props) {
   const dados = (avaliacao.dados as Record<string, unknown>) || {};
   const metricas = (dados.metricas as MetricInput[] | undefined) || [];
   const forca = dados.forca as ForcaSaved | null | undefined;
@@ -31,7 +36,7 @@ export function FuncionalV2Viewer({ avaliacao }: Props) {
 
   return (
     <div className="space-y-4">
-      <BodyMap metrics={metricas} forcaExercises={forcaInputs} />
+      <BodyMap metrics={metricas} forcaExercises={forcaInputs} sexo={sexo} faixaEtaria={faixaEtaria} referenceData={referenceData} assimetriaReferenceData={assimetriaReferenceData} />
 
       {metricas.length > 0 && (
         <div className="glass-card rounded-lg overflow-hidden">
