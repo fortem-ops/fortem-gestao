@@ -460,6 +460,7 @@ export function analyze(
   sexo?: "M" | "F",
   referenceData?: MobilidadeReferenceData,
   assimetriaReferenceData?: AssimetriaReferenceData,
+  faixaEtaria?: FaixaEtaria | null,
 ): BodyMapAnalysis {
   const regions: Record<RegionId, RegionState> = Object.fromEntries(
     ALL_REGIONS.map((r) => [r, emptyRegion(r)]),
@@ -473,7 +474,7 @@ export function analyze(
 
   const scoreForSide = (m: MetricInput, side: "left" | "right"): number | null => {
     if (sexo && referenceData) {
-      const pct = percentilMobilidade(m.metric, sexo, side === "left" ? m.left : m.right, referenceData);
+      const pct = percentilMobilidade(m.metric, sexo, side === "left" ? m.left : m.right, referenceData, faixaEtaria);
       if (pct !== null) return pct;
     }
     const cls = side === "left" ? m.leftClass : m.rightClass;
