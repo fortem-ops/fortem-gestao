@@ -106,8 +106,8 @@ export async function buildAgendaContext(
   if (agenda.aluno_id) {
     const [anaRes, avalRes, metaRes] = await Promise.all([
       admin.from('prospect_anamnese').select('*').eq('aluno_id', agenda.aluno_id).maybeSingle(),
-      admin.from('avaliacoes').select('data_avaliacao, created_at').eq('aluno_id', agenda.aluno_id)
-        .order('data_avaliacao', { ascending: false }).limit(1).maybeSingle(),
+      admin.from('avaliacoes').select('data, created_at').eq('aluno_id', agenda.aluno_id)
+        .order('data', { ascending: false }).limit(1).maybeSingle(),
       admin.from('pipeline_metadata').select('origem_lead').eq('aluno_id', agenda.aluno_id).maybeSingle(),
     ]);
     anamnese = (anaRes as any).data;
@@ -132,7 +132,7 @@ export async function buildAgendaContext(
     '%OBJETIVO%': anamnese?.objetivo_treinamento ?? '—',
     '%COMO_CONHECEU%': pipelineMeta?.origem_lead ?? '—',
     '%QUEIXA%': anamnese?.queixa ?? anamnese?.limitacoes ?? '—',
-    '%ULTIMA_AVALIACAO%': formatDateBR(ultimaAvaliacao?.data_avaliacao ?? null) || 'Nenhuma',
+    '%ULTIMA_AVALIACAO%': formatDateBR(ultimaAvaliacao?.data ?? null) || 'Nenhuma',
     '%PROTOCOLO%': agenda.protocolo ?? '—',
     '%OBSERVACOES%': (agenda as any).observacoes ?? '—',
   };
