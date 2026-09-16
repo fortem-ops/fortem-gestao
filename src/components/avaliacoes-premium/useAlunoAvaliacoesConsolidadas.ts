@@ -191,6 +191,7 @@ export function useMobilidadeReferenceData() {
         if (faixa && faixa in porSexo) porSexo[faixa].push(valor);
       }
       ordenarReferencia(ref);
+      avisarMetricasFaltantes(ref, "mobilidade_amostras_fortem");
       return ref;
     },
   });
@@ -201,10 +202,12 @@ export function useMobilidadeAssimetriaReferenceData() {
     queryKey: ["mobilidade-assimetria-referencia-fortem-v2"],
     staleTime: 1000 * 60 * 60,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mobilidade_assimetria_fortem")
-        .select("metrica, sexo, assimetria_pct, faixa_etaria");
-      if (error) throw error;
+      const data = await carregarTodasAsPaginas<{
+        metrica: string;
+        sexo: string;
+        assimetria_pct: number | string;
+        faixa_etaria: string | null;
+      }>("mobilidade_assimetria_fortem", "metrica, sexo, assimetria_pct, faixa_etaria");
       const ref: AssimetriaReferenceData = {};
       for (const row of data ?? []) {
         const bucket = (ref[row.metrica] ??= { M: criarReferenciaFaixas(), F: criarReferenciaFaixas() });
