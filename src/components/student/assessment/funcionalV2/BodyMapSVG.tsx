@@ -82,9 +82,9 @@ export function BodyMapSVG({
           ].filter((x): x is { shapeKey: string; value: number; side: string } => x !== null);
           const max = Math.max(...values.map((x) => x.value), 0);
           const min = Math.min(...values.map((x) => x.value));
-          // Assimetria do PAR: ambos os lados recebem a mesma cor do gradiente.
-          const pairAsymmetry = max > 0 && values.length > 1 ? ((max - min) / max) * 100 : 0;
-          const pairFill = corGradienteAssimetria(pairAsymmetry);
+          // Assimetria do PAR pela regra da própria métrica; ambos os lados recebem a mesma cor.
+          const pairInfo = values.length > 1 ? classificarAssimetria(m.metric, min, max) : null;
+          const pairFill = corGradienteAssimetria(pairInfo?.valor ?? 0, m.metric);
           return values.flatMap((x) => {
             const shape = shapesMap[x.shapeKey];
             if (!shape) return [];
