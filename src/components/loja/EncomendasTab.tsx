@@ -17,7 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Gift, PackageOpen, RotateCcw, Trash2, X } from "lucide-react";
+import { BadgeCheck, Gift, PackageOpen, RotateCcw, Trash2, X } from "lucide-react";
+import { DarBaixaPedidoDialog, type PedidoBaixa } from "./DarBaixaPedidoDialog";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { estornarPedido } from "@/lib/lojaEstorno";
@@ -78,6 +79,7 @@ export function EncomendasTab() {
   const [excluindo, setExcluindo] = useState(false);
   const [estornar, setEstornar] = useState<Linha | null>(null);
   const [estornando, setEstornando] = useState(false);
+  const [baixa, setBaixa] = useState<PedidoBaixa | null>(null);
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["loja-encomendas"],
@@ -363,6 +365,23 @@ export function EncomendasTab() {
                         <TableCell className="text-right text-muted-foreground">{formatBRL(l.valorItens)}</TableCell>
                         <TableCell className="text-right font-semibold">{formatBRL(l.valorRecebido)}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">
+                          {l.status === "aguardando_pagamento" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() =>
+                                setBaixa({
+                                  id: l.pedidoId,
+                                  nome: l.cliente,
+                                  valor_final: l.valorItens,
+                                  resumo: `${l.quantidade}x ${l.produto} (${l.cor} / ${l.tamanho})`,
+                                })
+                              }
+                              title="Dar baixa (pagamento presencial)"
+                            >
+                              <BadgeCheck className="w-4 h-4 text-primary" />
+                            </Button>
+                          )}
                           {l.status === "pago" && (
                             <Button
                               size="icon"
