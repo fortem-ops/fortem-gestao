@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
 import { useParams, useNavigate } from "react-router-dom";
 import { StudentPicker } from "@/components/student/StudentPicker";
-import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 
 import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
 import { ResultadosDateSelect, type ResultadosDateOption } from "@/components/avaliacoes-premium/ResultadosDateSelect";
@@ -35,7 +35,6 @@ export default function AvaliacoesPremium() {
 
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(alunoId || null);
   const { data: mobilidadeRef } = useMobilidadeReferenceData();
-  const { data: assimetriaRef } = useMobilidadeAssimetriaReferenceData();
   const { data: exerciciosVinculados } = useExerciciosPorArticulacao();
   const sexoAluno = sexoDe(data?.aluno?.sexo);
   const faixaAluno = faixaEtariaDe(data?.aluno?.data_nascimento);
@@ -80,7 +79,7 @@ export default function AvaliacoesPremium() {
   const scores = useMemo(
     () =>
       data
-        ? computePremiumScores(funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno)
+        ? computePremiumScores(funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, faixaAluno)
         : null,
     [data, funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno],
   );
@@ -164,7 +163,6 @@ export default function AvaliacoesPremium() {
                           sexo={sexoAluno}
                           faixaEtaria={faixaAluno}
                           referenceData={mobilidadeRef}
-                          assimetriaReferenceData={assimetriaRef}
                         />
                         {layer === "strength" ? (
                           <ForcaTab

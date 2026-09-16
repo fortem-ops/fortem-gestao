@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
-import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { useAlunoAvaliacoesConsolidadas, useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 import { FuncionalV2Viewer } from "@/components/student/assessment/funcionalV2/FuncionalV2Viewer";
 import { differenceInDays, format, parseISO } from "date-fns";
@@ -271,7 +271,6 @@ function MetricCard({ label, value, sub, tone }: { label: string; value: string;
 function PortalFuncionalViewer({ avaliacao }: { avaliacao: Tables<"avaliacoes"> }) {
   const { student } = useStudentPortal();
   const { data: mobilidadeRef } = useMobilidadeReferenceData();
-  const { data: assimetriaRef } = useMobilidadeAssimetriaReferenceData();
   return (
     <div className="portal-avaliacao-viewer overflow-x-auto">
       <FuncionalV2Viewer
@@ -279,7 +278,6 @@ function PortalFuncionalViewer({ avaliacao }: { avaliacao: Tables<"avaliacoes"> 
         sexo={sexoDe(student?.sexo)}
         faixaEtaria={faixaEtariaDe(student?.data_nascimento)}
         referenceData={mobilidadeRef}
-        assimetriaReferenceData={assimetriaRef}
       />
     </div>
   );
