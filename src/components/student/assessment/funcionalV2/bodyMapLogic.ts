@@ -386,8 +386,8 @@ export interface BodyMapAnalysis {
   scoreSimetria: number | null;
   scoreEstabilidade: number | null;
   scoreForca: number | null;
-  asymmetries: Array<{ region: RegionId; diff: number; severity: "moderate" | "severe" }>;
-  metricAsymmetries: Array<{ metric: string; diff: number; asymPercentile: number | null }>;
+  asymmetries: Array<{ region: RegionId; diff: number; unidade: "°" | "%"; severity: "moderate" | "severe" }>;
+  metricAsymmetries: Array<{ metric: string; diff: number; unidade: "°" | "%"; absoluta: boolean; asymPercentile: number | null }>;
   riskLevel: "low" | "attention" | "high";
   chains: CompensationChain[];
 }
