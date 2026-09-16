@@ -303,12 +303,12 @@ export function BodyMap({
   const { shapesMap } = useBodyMapShapes();
 
   const analysis = useMemo(() => {
-    const base = analyze(metrics, layer, forcaExercises);
+    const base = analyze(metrics, layer, forcaExercises, sexo, referenceData, assimetriaReferenceData, faixaEtaria);
     if (layer === "strength" && forcaExercises && forcaExercises.length) {
       return applyForcaToRegions(base, forcaExercises);
     }
     return base;
-  }, [metrics, layer, forcaExercises]);
+  }, [metrics, layer, forcaExercises, sexo, referenceData, assimetriaReferenceData, faixaEtaria]);
   const risk = RISK_STYLE[analysis.riskLevel];
   const riskDisplay = canonical ? RISK_STYLE[canonical.riskLevel] : risk;
   const asymmetryCountDisplay = canonical ? canonical.asymmetryCount : analysis.asymmetries.length;
