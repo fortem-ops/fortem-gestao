@@ -232,15 +232,16 @@ export function nivelAssimetria(metric: string | undefined, valor: number): Assi
     : nivelPorLimiar(valor, ASSIMETRIA_PCT_LIMIARES.moderado, ASSIMETRIA_PCT_LIMIARES.severo);
 }
 
-/** Severidade clínica usada no analyze() (graus para métricas absolutas, 15%/25% para as demais). */
+/**
+ * Severidade usada no analyze(). Mesma régua de `nivelAssimetria`: a comparação é
+ * sempre entre os dois lados do próprio aluno (graus nas métricas absolutas,
+ * 10%/20% nas demais). A base Fortem não participa desta classificação.
+ */
 export function severidadeAssimetriaClinica(
   metric: string | undefined,
   valor: number,
 ): "severe" | "moderate" | null {
-  const abs = metric ? ASSIMETRIA_ABSOLUTA[metric] : undefined;
-  const nivel = abs
-    ? nivelPorLimiar(valor, abs.moderado, abs.severo)
-    : nivelPorLimiar(valor, ASSIMETRIA_PCT_LIMIARES_CLINICO.moderado, ASSIMETRIA_PCT_LIMIARES_CLINICO.severo, true);
+  const nivel = nivelAssimetria(metric, valor);
   return nivel === "severa" ? "severe" : nivel === "moderada" ? "moderate" : null;
 }
 
