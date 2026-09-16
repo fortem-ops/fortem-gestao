@@ -116,11 +116,12 @@ export function BodyMapSVG({
         .filter((m) => m.left !== null && m.right !== null && FLEXIBILIDADE_SHAPE_MUSCLE[m.metric])
         .flatMap((m) => {
           const muscle = FLEXIBILIDADE_SHAPE_MUSCLE[m.metric];
-          const max = Math.max(m.left!, m.right!);
-          const pairAsymmetry = max > 0 ? (Math.abs(m.left! - m.right!) / max) * 100 : 0;
-          // Abaixo do limiar de atenção, mantém o neutro; com assimetria, AMBOS os lados
+          // Ponto único de verdade: graus para métricas absolutas (Psoas), % para as demais.
+          const info = classificarAssimetria(m.metric, m.left, m.right);
+          // Sem assimetria relevante, mantém o neutro; com assimetria, AMBOS os lados
           // recebem a mesma cor do gradiente.
-          const fill = pairAsymmetry >= 10 ? corGradienteAssimetria(pairAsymmetry) : "#7A8B99";
+          const fill =
+            info && info.nivel !== "nenhuma" ? corGradienteAssimetria(info.valor, m.metric) : "#7A8B99";
           const labelBase = getMetricDisplayLabel ? getMetricDisplayLabel(m.metric) : m.metric;
           const out: Array<{ key: string; shape: BodyMapShape; fill: string; label: string }> = [];
           const shapeR = shapesMap[`${muscle}-direito`];
