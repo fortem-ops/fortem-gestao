@@ -9,6 +9,7 @@ import {
   type ForcaExercicio,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { EvolucaoSeletor, type SeletorGrupo } from "./EvolucaoSeletor";
+import { LadoLegendTraco } from "../LadoLegend";
 
 interface Props {
   data: ConsolidadoAluno;
@@ -281,6 +282,11 @@ export function EvolucaoTab({ data }: Props) {
           Selecione ao menos uma data e um dado para visualizar a evolução.
         </div>
       )}
+
+      {selectedDates.length > 0 &&
+        charts.some((c) => c.id === "mobility" || c.id === "flexibility" || c.id === "forca") && (
+          <LadoLegendTraco />
+        )}
 
       {selectedDates.length > 0 &&
         charts.map((chart) => (
