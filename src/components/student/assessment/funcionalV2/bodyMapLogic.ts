@@ -496,7 +496,15 @@ export function analyze(
     ["ham-l","ham-r"],
     ["ankle-l","ankle-r"],
   ];
-  const regionDiffs: Partial<Record<RegionId, { diff: number; weakerSide: "left" | "right"; asymPercentile: number | null }>> = {};
+  type RegionDiff = {
+    diff: number;
+    unidade: "°" | "%";
+    metric: string;
+    absoluta: boolean;
+    weakerSide: "left" | "right";
+    asymPercentile: number | null;
+  };
+  const regionDiffs: Partial<Record<RegionId, RegionDiff>> = {};
   const metricAsymmetries: BodyMapAnalysis["metricAsymmetries"] = [];
 
   for (const m of metrics) {
@@ -505,27 +513,51 @@ export function analyze(
     const lScore = scoreForSide(m, "left");
     const rScore = scoreForSide(m, "right");
     if (lScore === null || rScore === null) continue;
-    const rawAsymPct =
-      m.left !== null && m.right !== null && Math.max(Math.abs(m.left), Math.abs(m.right)) > 0
-        ? (Math.abs(m.left - m.right) / Math.max(Math.abs(m.left), Math.abs(m.right))) * 100
-        : null;
-    if (rawAsymPct === null || rawAsymPct === 0) continue;
-    const asymPercentile = sexo ? percentilAssimetria(m.metric, sexo, rawAsymPct, assimetriaReferenceData) : null;
-    metricAsymmetries.push({ metric: m.metric, diff: rawAsymPct, asymPercentile });
+    // Ponto único de verdade: graus para métricas absolutas, percentual para as demais.
+    const info = classificarAssimetria(m.metric, m.left, m.right);
+    if (!info || info.valor === 0) continue;
+    // Percentil da base Fortem só faz sentido na escala percentual.
+    const asymPercentile =
+      sexo && !info.absoluta ? percentilAssimetria(m.metric, sexo, info.valor, assimetriaReferenceData) : null;
+    metricAsymmetries.push({
+      metric: m.metric,
+      diff: info.valor,
+      unidade: info.unidade,
+      absoluta: info.absoluta,
+      asymPercentile,
+    });
     const weakerSide: "left" | "right" = lScore < rScore ? "left" : "right";
+    const entry: RegionDiff = {
+      diff: info.valor,
+      unidade: info.unidade,
+      metric: m.metric,
+      absoluta: info.absoluta,
+      weakerSide,
+      asymPercentile,
+    };
 
     for (const r of meta.regions) {
       if ("both" in r) {
         const prev = regionDiffs[r.both];
-        if (!prev || rawAsymPct > prev.diff) regionDiffs[r.both] = { diff: rawAsymPct, weakerSide, asymPercentile };
+        if (!prev || info.valor > prev.diff) regionDiffs[r.both] = entry;
         continue;
       }
       for (const regionId of [r.left, r.right]) {
         const prev = regionDiffs[regionId];
-        if (!prev || rawAsymPct > prev.diff) regionDiffs[regionId] = { diff: rawAsymPct, weakerSide, asymPercentile };
+        if (!prev || info.valor > prev.diff) regionDiffs[regionId] = entry;
       }
     }
   }
+
+  const severidadeDe = (info: RegionDiff): "severe" | "moderate" | null => {
+    // Métricas absolutas: classificação apenas por graus (sem percentil e sem corte de 15%/25%).
+    if (info.absoluta) return severidadeAssimetriaClinica(info.metric, info.diff);
+    const sevByPercentile: "severe" | "moderate" | null =
+      info.asymPercentile !== null && info.asymPercentile !== undefined
+        ? info.asymPercentile >= 90 ? "severe" : info.asymPercentile >= 75 ? "moderate" : null
+        : null;
+    return sevByPercentile ?? severidadeAssimetriaClinica(info.metric, info.diff);
+  };
 
   const pairedRegionIds = new Set<RegionId>(pairs.flat());
 
@@ -533,16 +565,12 @@ export function analyze(
     const info = regionDiffs[a] ?? regionDiffs[b];
     if (!info) continue;
     regions[a].asymmetry = info.diff;
+    regions[a].asymmetryUnit = info.unidade;
     regions[b].asymmetry = info.diff;
+    regions[b].asymmetryUnit = info.unidade;
     const weakerRegion = info.weakerSide === "left" ? a : b;
-    const sevByPercentile: "severe" | "moderate" | null =
-      info.asymPercentile !== null && info.asymPercentile !== undefined
-        ? info.asymPercentile >= 90 ? "severe" : info.asymPercentile >= 75 ? "moderate" : null
-        : null;
-    const sevByFixedCut: "severe" | "moderate" | null =
-      info.diff >= 25 ? "severe" : info.diff >= 15 ? "moderate" : null;
-    const finalSev = sevByPercentile ?? sevByFixedCut;
-    if (finalSev) asymmetries.push({ region: weakerRegion, diff: info.diff, severity: finalSev });
+    const finalSev = severidadeDe(info);
+    if (finalSev) asymmetries.push({ region: weakerRegion, diff: info.diff, unidade: info.unidade, severity: finalSev });
   }
 
   // Regiões "both" com dado E/D real (ex: torácica — rotação de tronco), atribuídas
@@ -552,14 +580,9 @@ export function analyze(
     const info = regionDiffs[regionId];
     if (!info) continue;
     regions[regionId].asymmetry = info.diff;
-    const sevByPercentile: "severe" | "moderate" | null =
-      info.asymPercentile !== null && info.asymPercentile !== undefined
-        ? info.asymPercentile >= 90 ? "severe" : info.asymPercentile >= 75 ? "moderate" : null
-        : null;
-    const sevByFixedCut: "severe" | "moderate" | null =
-      info.diff >= 25 ? "severe" : info.diff >= 15 ? "moderate" : null;
-    const finalSev = sevByPercentile ?? sevByFixedCut;
-    if (finalSev) asymmetries.push({ region: regionId, diff: info.diff, severity: finalSev });
+    regions[regionId].asymmetryUnit = info.unidade;
+    const finalSev = severidadeDe(info);
+    if (finalSev) asymmetries.push({ region: regionId, diff: info.diff, unidade: info.unidade, severity: finalSev });
   }
 
   // Compensation chains
