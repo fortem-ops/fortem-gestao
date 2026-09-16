@@ -3,7 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import type { FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 import type { PremiumScores } from "./scoringPremium";
 import { assimetriasPorCategoria } from "./DashboardSummary";
-import type { AssimetriaReferenceData, Layer, MobilidadeReferenceData } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { Layer, MobilidadeReferenceData } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import type { FaixaEtaria } from "@/lib/faixaEtaria";
 
 interface Props {
@@ -14,14 +14,13 @@ interface Props {
   sexo?: "M" | "F";
   faixaEtaria?: FaixaEtaria | null;
   referenceData?: MobilidadeReferenceData;
-  assimetriaReferenceData?: AssimetriaReferenceData;
 }
 
 /**
  * Wrapper premium do BodyMap existente. Adiciona halo radial e alerta de
  * incompletude, mas não traz borda de card — o card é responsabilidade do pai.
  */
-export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, sexo, faixaEtaria, referenceData, assimetriaReferenceData }: Props) {
+export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, sexo, faixaEtaria, referenceData }: Props) {
   if (!funcional || (funcional.metricas.length === 0 && funcional.forca.length === 0)) {
     return (
       <div className="p-8 text-center text-[hsl(var(--bio-ink-muted))]">
@@ -79,7 +78,6 @@ export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, sexo, 
           sexo={sexo}
           faixaEtaria={faixaEtaria}
           referenceData={referenceData}
-          assimetriaReferenceData={assimetriaReferenceData}
           layout="resultados"
           rings={
             scores

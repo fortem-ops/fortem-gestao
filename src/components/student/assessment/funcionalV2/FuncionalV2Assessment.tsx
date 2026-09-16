@@ -11,7 +11,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { classifyAngle, assessmentReferences, getClassificationColor } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { AvaliacaoAnexos } from "../AvaliacaoAnexos";
-import { useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 import { BodyMap } from "./BodyMap";
 import {
@@ -88,13 +88,12 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
   [forca]);
 
   const { data: mobilidadeRef } = useMobilidadeReferenceData();
-  const { data: assimetriaRef } = useMobilidadeAssimetriaReferenceData();
   const sexoAluno = sexoDe(student?.sexo);
   const faixaAluno = faixaEtariaDe(student?.data_nascimento);
 
   const analysis = useMemo(
-    () => analyze(rows, "asymmetry", forcaInputs, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno),
-    [rows, forcaInputs, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno],
+    () => analyze(rows, "asymmetry", forcaInputs, sexoAluno, mobilidadeRef, faixaAluno),
+    [rows, forcaInputs, sexoAluno, mobilidadeRef, faixaAluno],
   );
 
   async function handlePdfUpload(file: File) {
@@ -191,7 +190,7 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
 
   return (
     <div className="space-y-6">
-      <BodyMap metrics={rows} forcaExercises={forcaInputs} sexo={sexoAluno} faixaEtaria={faixaAluno} referenceData={mobilidadeRef} assimetriaReferenceData={assimetriaRef} />
+      <BodyMap metrics={rows} forcaExercises={forcaInputs} sexo={sexoAluno} faixaEtaria={faixaAluno} referenceData={mobilidadeRef} />
 
       <div className="glass-card rounded-lg overflow-hidden">
         <table className="w-full">

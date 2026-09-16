@@ -245,34 +245,6 @@ export function severidadeAssimetriaClinica(
   return nivel === "severa" ? "severe" : nivel === "moderada" ? "moderate" : null;
 }
 
-export type AssimetriaReferenceData = Record<string, { M: ReferenciaFaixas; F: ReferenciaFaixas }>;
-
-/**
- * Percentil da MAGNITUDE de assimetria (diferença % bruta em graus entre E/D)
- * dentro da base Fortem, por métrica/sexo (segmentado por faixa etária quando
- * disponível). Percentil ALTO = assimetria MAIOR (pior).
- */
-export function percentilAssimetria(
-  metric: string,
-  sexo: "M" | "F",
-  assimetriaPct: number,
-  ref: AssimetriaReferenceData | undefined,
-  faixa?: FaixaEtaria | null,
-): number | null {
-  if (!ref) return null;
-  const arr = arrayReferencia(ref[metric]?.[sexo], faixa);
-  if (!arr) return null;
-  let lo = 0, hi = arr.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (arr[mid] <= assimetriaPct) lo = mid + 1; else hi = mid;
-  }
-  return Math.round((lo / arr.length) * 100);
-}
-
-
-
-
 export function severityFromScore(score: number | null): Severity {
   if (score === null) return "none";
   if (score >= 90) return "excellent";
@@ -462,7 +434,6 @@ export function analyze(
   strengthExercises?: ForcaInput[],
   sexo?: "M" | "F",
   referenceData?: MobilidadeReferenceData,
-  assimetriaReferenceData?: AssimetriaReferenceData,
   faixaEtaria?: FaixaEtaria | null,
 ): BodyMapAnalysis {
   const regions: Record<RegionId, RegionState> = Object.fromEntries(

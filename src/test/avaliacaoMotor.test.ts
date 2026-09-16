@@ -6,7 +6,6 @@ import {
   arrayReferencia,
   criarReferenciaFaixas,
   percentilMobilidade,
-  percentilAssimetria,
   contarAssimetriasPorFaixa,
   buildMetricAttentionList,
   analyze,
@@ -14,7 +13,6 @@ import {
   type BodyMapAnalysis,
   type MetricInput,
   type MobilidadeReferenceData,
-  type AssimetriaReferenceData,
   type ReferenciaFaixas,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
@@ -32,10 +30,6 @@ function faixas(parcial: Partial<ReferenciaFaixas>): ReferenciaFaixas {
 }
 
 function refMobilidade(metric: string, bucket: ReferenciaFaixas): MobilidadeReferenceData {
-  return { [metric]: { M: bucket, F: bucket } };
-}
-
-function refAssimetria(metric: string, bucket: ReferenciaFaixas): AssimetriaReferenceData {
   return { [metric]: { M: bucket, F: bucket } };
 }
 
@@ -171,14 +165,6 @@ describe("Percentil na base Fortem", () => {
     expect(percentilMobilidade(OMBRO, "M", 10, ref, "30-44")).toBe(0);
   });
 
-  it("percentil de assimetria cresce com a diferença e respeita a faixa etária", () => {
-    const porFaixa = faixas({ "18-29": serie(20), "45+": serie(20, 101), todos: serie(20) });
-    const ref = refAssimetria(OMBRO, porFaixa);
-    expect(percentilAssimetria(OMBRO, "M", 10, ref, "18-29")).toBe(50);
-    expect(percentilAssimetria(OMBRO, "M", 20, ref, "18-29")).toBe(100);
-    expect(percentilAssimetria(OMBRO, "M", 10, ref, "45+")).toBe(0);
-    expect(percentilAssimetria(OMBRO, "M", 10, refAssimetria(OMBRO, faixas({ todos: serie(10) })))).toBeNull();
-  });
 });
 
 describe("Contagem de assimetrias", () => {
@@ -225,7 +211,6 @@ describe("Análise completa do mapa corporal", () => {
       undefined,
       "M",
       refMobilidade(PSOAS, faixas({ todos: serie(20) })),
-      refAssimetria(PSOAS, faixas({ todos: serie(20) })),
       "30-44",
     );
     const item = analysis.metricAsymmetries.find((a) => a.metric === PSOAS)!;
@@ -242,7 +227,6 @@ describe("Análise completa do mapa corporal", () => {
       undefined,
       "M",
       refMobilidade(OMBRO, faixas({ todos: serie(20) })),
-      refAssimetria(OMBRO, faixas({ todos: serie(20) })),
       null,
     );
     const item = analysis.metricAsymmetries.find((a) => a.metric === OMBRO)!;
@@ -268,7 +252,6 @@ describe("Análise completa do mapa corporal", () => {
       undefined,
       "F",
       refMobilidade(OMBRO, faixas({ todos: serie(20) })),
-      refAssimetria(OMBRO, faixas({ todos: serie(20) })),
       "45+",
     );
     const semBase = analyze(metricas, "asymmetry");
