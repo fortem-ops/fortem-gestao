@@ -9,6 +9,7 @@ import {
   type AssimetriaReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import type { ComposicaoSnapshot, FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
+import type { FaixaEtaria } from "@/lib/faixaEtaria";
 
 export type SeverityBand = "good" | "warn" | "risk" | "none";
 

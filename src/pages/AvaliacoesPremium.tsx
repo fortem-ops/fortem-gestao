@@ -41,6 +41,7 @@ export default function AvaliacoesPremium() {
     : data?.aluno?.sexo?.toLowerCase().startsWith("m")
     ? "M"
     : undefined;
+  const faixaAluno = faixaEtariaDe(data?.aluno?.data_nascimento);
 
   const dateOptions = useMemo<ResultadosDateOption[]>(() => {
     if (!data) return [];
