@@ -366,8 +366,10 @@ export interface RegionState {
   /** 0–100; null when no data */
   score: number | null;
   severity: Severity;
-  /** for asymmetry mode; absolute diff vs opposite side */
+  /** for asymmetry mode; diff vs opposite side (unidade em `asymmetryUnit`) */
   asymmetry?: number;
+  /** unidade do valor em `asymmetry`: "%" (padrão) ou "°" (métricas absolutas) */
+  asymmetryUnit?: "°" | "%";
   contributing: Array<{ metric: string; side: Side | "center"; value: number | null; classification: AssessmentClassification | null }>;
 }
 
