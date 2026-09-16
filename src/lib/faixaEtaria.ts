@@ -5,10 +5,16 @@ export type FaixaEtaria = "18-29" | "30-44" | "45+";
 
 export const FAIXAS_ETARIAS: FaixaEtaria[] = ["18-29", "30-44", "45+"];
 
-/** Idade ATUAL do aluno a partir da data de nascimento (null quando não há data). */
-export function idadeAtual(dataNascimento: string | null | undefined): number | null {
+/**
+ * Idade ATUAL do aluno a partir da data de nascimento (null quando não há data).
+ * `referencia` permite fixar a data "de hoje" (usado nos testes).
+ */
+export function idadeAtual(
+  dataNascimento: string | null | undefined,
+  referencia: Date = new Date(),
+): number | null {
   if (!dataNascimento) return null;
-  const idade = differenceInYears(new Date(), parseISO(dataNascimento));
+  const idade = differenceInYears(referencia, parseISO(dataNascimento));
   return Number.isFinite(idade) ? idade : null;
 }
 
@@ -16,8 +22,11 @@ export function idadeAtual(dataNascimento: string | null | undefined): number | 
  * Faixa etária a partir da data de nascimento, usando a idade ATUAL.
  * Menor de 18 ou sem data → null (cai no fallback "todos" da referência).
  */
-export function faixaEtariaDe(dataNascimento: string | null | undefined): FaixaEtaria | null {
-  const idade = idadeAtual(dataNascimento);
+export function faixaEtariaDe(
+  dataNascimento: string | null | undefined,
+  referencia: Date = new Date(),
+): FaixaEtaria | null {
+  const idade = idadeAtual(dataNascimento, referencia);
   if (idade === null || idade < 18) return null;
   if (idade <= 29) return "18-29";
   if (idade <= 44) return "30-44";
