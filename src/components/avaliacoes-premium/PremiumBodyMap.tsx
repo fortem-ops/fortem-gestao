@@ -3,13 +3,18 @@ import { AlertTriangle } from "lucide-react";
 import type { FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 import type { PremiumScores } from "./scoringPremium";
 import { assimetriasPorCategoria } from "./DashboardSummary";
-import type { Layer } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { AssimetriaReferenceData, Layer, MobilidadeReferenceData } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { FaixaEtaria } from "@/lib/faixaEtaria";
 
 interface Props {
   funcional: FuncionalSnapshot | null;
   scores: PremiumScores | null;
   layer?: Layer;
   onLayerChange?: (layer: Layer) => void;
+  sexo?: "M" | "F";
+  faixaEtaria?: FaixaEtaria | null;
+  referenceData?: MobilidadeReferenceData;
+  assimetriaReferenceData?: AssimetriaReferenceData;
 }
 
 /**
