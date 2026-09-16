@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComparacoesSalvas, type ComparativoSalvo } from "./ComparacoesSalvas";
 import { SalvarComparacaoDialog } from "./SalvarComparacaoDialog";
-import { ALL_FUNCTIONAL_METRICS } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { ALL_FUNCTIONAL_METRICS, metricaInvertida } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 
 interface Props {
   data: ConsolidadoAluno;
@@ -78,6 +78,7 @@ function funcRows(a: FuncionalSnapshot | null, b: FuncionalSnapshot | null): Com
     return typeof v === "number" ? v : null;
   };
   ALL_FUNCTIONAL_METRICS.forEach((metric) => {
+    const maiorMelhor = !metricaInvertida(metric);
     ([
       ["left", "E"],
       ["right", "D"],
@@ -85,7 +86,7 @@ function funcRows(a: FuncionalSnapshot | null, b: FuncionalSnapshot | null): Com
       const va = lado(a, metric, side);
       const vb = lado(b, metric, side);
       if (va === null && vb === null) return;
-      rows.push({ label: `${metric} (${sigla})`, a: va, b: vb, suffix: "°" });
+      rows.push({ label: `${metric} (${sigla})`, a: va, b: vb, suffix: "°", higherIsBetter: maiorMelhor });
     });
   });
   return rows;
