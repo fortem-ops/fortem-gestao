@@ -37,11 +37,7 @@ export default function AvaliacoesPremium() {
   const { data: mobilidadeRef } = useMobilidadeReferenceData();
   const { data: assimetriaRef } = useMobilidadeAssimetriaReferenceData();
   const { data: exerciciosVinculados } = useExerciciosPorArticulacao();
-  const sexoAluno: "M" | "F" | undefined = data?.aluno?.sexo?.toLowerCase().startsWith("f")
-    ? "F"
-    : data?.aluno?.sexo?.toLowerCase().startsWith("m")
-    ? "M"
-    : undefined;
+  const sexoAluno = sexoDe(data?.aluno?.sexo);
   const faixaAluno = faixaEtariaDe(data?.aluno?.data_nascimento);
 
   const dateOptions = useMemo<ResultadosDateOption[]>(() => {
@@ -165,6 +161,10 @@ export default function AvaliacoesPremium() {
                           scores={scores}
                           layer={layer}
                           onLayerChange={setLayer}
+                          sexo={sexoAluno}
+                          faixaEtaria={faixaAluno}
+                          referenceData={mobilidadeRef}
+                          assimetriaReferenceData={assimetriaRef}
                         />
                         {layer === "strength" ? (
                           <ForcaTab

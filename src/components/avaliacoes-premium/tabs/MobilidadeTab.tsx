@@ -213,11 +213,7 @@ function PercentileCurveCard({
 }
 
 export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, readOnly = false, selectedDate, layerFilter }: Props) {
-  const sexoRpc: "M" | "F" | undefined = aluno?.sexo?.toLowerCase().startsWith("f")
-    ? "F"
-    : aluno?.sexo?.toLowerCase().startsWith("m")
-    ? "M"
-    : undefined;
+  const sexoRpc = sexoDe(aluno?.sexo);
   const faixaRpc = faixaEtariaDe(aluno?.data_nascimento);
   const { user } = useAuth();
   const qc = useQueryClient();

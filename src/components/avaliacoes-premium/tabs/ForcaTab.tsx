@@ -34,9 +34,7 @@ function classFromDiff(diff: number): { label: string; cls: string } {
 export function ForcaTab({ alunoId, latest, history, aluno, readOnly = false }: Props) {
   const exercicios = latest?.forca ?? [];
 
-  const sexoRpc: "M" | "F" | null =
-    aluno?.sexo?.toLowerCase().startsWith("m") ? "M" :
-    aluno?.sexo?.toLowerCase().startsWith("f") ? "F" : null;
+  const sexoRpc: "M" | "F" | null = sexoDe(aluno?.sexo) ?? null;
   const idadeRpc: number | null = idadeAtual(aluno?.data_nascimento);
 
   const { data: comparativos } = useQuery({
