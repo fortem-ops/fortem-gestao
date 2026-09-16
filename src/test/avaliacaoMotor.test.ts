@@ -86,28 +86,27 @@ describe("Assimetria: régua da própria métrica", () => {
   });
 });
 
-describe("Assimetria: escala visual (10/20) e escala clínica (15/25)", () => {
-  it("percentual: 10% já aparece como moderada na escala visual", () => {
+describe("Assimetria: limiar único de 10% e 20%", () => {
+  it("percentual: 10% já é moderada, 9,9% ainda não é", () => {
     expect(nivelAssimetria(OMBRO, 9.9)).toBe("nenhuma");
     expect(nivelAssimetria(OMBRO, 10)).toBe("moderada");
   });
 
-  it("percentual: 20% ainda é moderada na escala visual, 20,1% é severa", () => {
+  it("percentual: 20% ainda é moderada, 20,1% é severa", () => {
     expect(nivelAssimetria(OMBRO, 20)).toBe("moderada");
     expect(nivelAssimetria(OMBRO, 20.1)).toBe("severa");
   });
 
-  it("percentual: a escala clínica só acusa a partir de 15%", () => {
-    expect(severidadeAssimetriaClinica(OMBRO, 14.9)).toBeNull();
+  it("o que é detectado como assimetria usa exatamente os mesmos 10% e 20% da cor", () => {
+    expect(severidadeAssimetriaClinica(OMBRO, 9.9)).toBeNull();
+    expect(severidadeAssimetriaClinica(OMBRO, 10)).toBe("moderate");
     expect(severidadeAssimetriaClinica(OMBRO, 15)).toBe("moderate");
-  });
-
-  it("percentual: 25% exatos já são severos na escala clínica", () => {
-    expect(severidadeAssimetriaClinica(OMBRO, 24.9)).toBe("moderate");
+    expect(severidadeAssimetriaClinica(OMBRO, 20)).toBe("moderate");
+    expect(severidadeAssimetriaClinica(OMBRO, 20.1)).toBe("severe");
     expect(severidadeAssimetriaClinica(OMBRO, 25)).toBe("severe");
   });
 
-  it("Psoas usa 3° e 5° nas duas escalas", () => {
+  it("Psoas continua em 3° e 5°, nas duas leituras", () => {
     expect(nivelAssimetria(PSOAS, 2.9)).toBe("nenhuma");
     expect(nivelAssimetria(PSOAS, 3)).toBe("moderada");
     expect(nivelAssimetria(PSOAS, 5)).toBe("moderada");
@@ -248,16 +247,36 @@ describe("Análise completa do mapa corporal", () => {
     );
     const item = analysis.metricAsymmetries.find((a) => a.metric === OMBRO)!;
     expect(item.unidade).toBe("%");
-    expect(item.asymPercentile).toBe(100);
-    expect(analysis.asymmetries[0].severity).toBe("severe");
+    expect(item.diff).toBe(20);
+    expect(item.asymPercentile).toBeNull();
+    expect(analysis.asymmetries[0].severity).toBe("moderate");
   });
 
-  it("sem sexo e sem base, a classificação cai no corte fixo de sempre", () => {
+  it("sem sexo e sem base, a classificação é a mesma", () => {
     const analysis = analyze([metrica(OMBRO, 100, 80)], "mobility");
     const item = analysis.metricAsymmetries.find((a) => a.metric === OMBRO)!;
     expect(item.diff).toBe(20);
     expect(item.asymPercentile).toBeNull();
     expect(analysis.asymmetries[0].severity).toBe("moderate");
+  });
+
+  it("a base Fortem não altera a classificação de assimetria", () => {
+    const metricas = [metrica(OMBRO, 100, 70), metrica(PSOAS, 2, 6)];
+    const comBase = analyze(
+      metricas,
+      "asymmetry",
+      undefined,
+      "F",
+      refMobilidade(OMBRO, faixas({ todos: serie(20) })),
+      refAssimetria(OMBRO, faixas({ todos: serie(20) })),
+      "45+",
+    );
+    const semBase = analyze(metricas, "asymmetry");
+
+    const severidades = (a: typeof comBase) =>
+      a.asymmetries.map((x) => `${x.region}:${x.severity}:${x.diff.toFixed(2)}${x.unidade}`).sort();
+    expect(severidades(comBase)).toEqual(severidades(semBase));
+    expect(comBase.metricAsymmetries.every((m) => m.asymPercentile === null)).toBe(true);
   });
 });
 
