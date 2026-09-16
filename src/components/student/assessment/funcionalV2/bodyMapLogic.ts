@@ -267,11 +267,14 @@ export const SEVERITY_COLOR_VAR: Record<Severity, string> = {
  *  - >=20%  → coral-rosa futurista, sem vermelho puro agressivo
  * A troca de cor acontece perto dos limiares 10% e 20%.
  */
-export function corGradienteAssimetria(pct: number | null | undefined): string {
-  if (pct === null || pct === undefined || Number.isNaN(pct)) {
+export function corGradienteAssimetria(
+  valor: number | null | undefined,
+  metric?: string,
+): string {
+  if (valor === null || valor === undefined || Number.isNaN(valor)) {
     return "hsl(var(--bodymap-silhouette))";
   }
-  const p = Math.max(0, pct);
+  const p = Math.max(0, escalaVisualAssimetria(metric, valor));
   let hue: number, sat: number, light: number;
 
   if (p < 10) {
