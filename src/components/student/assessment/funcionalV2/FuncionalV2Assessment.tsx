@@ -92,8 +92,8 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
   const faixaAluno = faixaEtariaDe(student?.data_nascimento);
 
   const analysis = useMemo(
-    () => analyze(rows, "asymmetry", forcaInputs, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno),
-    [rows, forcaInputs, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno],
+    () => analyze(rows, "asymmetry", forcaInputs, sexoAluno, mobilidadeRef, faixaAluno),
+    [rows, forcaInputs, sexoAluno, mobilidadeRef, faixaAluno],
   );
 
   async function handlePdfUpload(file: File) {
