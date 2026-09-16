@@ -32,6 +32,10 @@ export interface RegionListItem {
   label: string;
   metricLabel: string;
   percentage: number;
+  /** Unidade do valor exibido: "%" (padrão) ou "°" (métricas de escala absoluta). */
+  unidade: "°" | "%";
+  /** Métrica de origem — usada para colorir na escala correta. */
+  metric?: string;
 }
 
 export function buildRegionList(analysis: BodyMapAnalysis, max = 6, _layer?: Layer): RegionListItem[] {
@@ -51,6 +55,8 @@ export function buildRegionList(analysis: BodyMapAnalysis, max = 6, _layer?: Lay
       label: REGION_SHORT_LABEL[id],
       metricLabel,
       percentage: Math.round(state.asymmetry ?? 0),
+      unidade: state.asymmetryUnit ?? "%",
+      metric: firstMetric,
     };
   });
 }
@@ -83,9 +89,9 @@ export function RegionListPanel({ items }: { items: RegionListItem[] }) {
           <div className="text-right shrink-0">
             <p
               className="text-[14px] font-bold leading-tight"
-              style={{ color: corGradienteAssimetria(it.percentage) }}
+              style={{ color: corGradienteAssimetria(it.percentage, it.metric) }}
             >
-              {it.percentage}%
+              {it.percentage}{it.unidade}
             </p>
           </div>
 
