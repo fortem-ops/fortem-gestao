@@ -850,6 +850,7 @@ export function buildForcaAttentionList(exercises: ForcaInput[] | undefined, max
       label: FORCA_EXERCICIO_LABEL[x.nome],
       metricLabel: "",
       percentage: Math.round(x.assimetria * 10) / 10,
+      unidade: "%",
       riskLabel,
       riskColor,
     };
