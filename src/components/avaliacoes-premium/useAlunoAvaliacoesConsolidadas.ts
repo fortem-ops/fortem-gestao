@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import type { AssimetriaReferenceData, ForcaInput, MetricInput, MobilidadeReferenceData } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { AssimetriaReferenceData, ForcaInput, MetricInput, MobilidadeReferenceData, ReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { criarReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { FAIXAS_ETARIAS, type FaixaEtaria } from "@/lib/faixaEtaria";
 
 export interface ForcaSavedRow {
   nome: ForcaInput["nome"];

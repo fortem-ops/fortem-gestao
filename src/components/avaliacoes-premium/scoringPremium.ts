@@ -72,6 +72,7 @@ export function computePremiumScores(
   sexo?: "M" | "F",
   referenceData?: MobilidadeReferenceData,
   assimetriaReferenceData?: AssimetriaReferenceData,
+  faixaEtaria?: FaixaEtaria | null,
 ): PremiumScores {
   const metrics: MetricInput[] = funcional?.metricas ?? [];
   const forcaInputs: ForcaInput[] = (funcional?.forca ?? []).map((e) => ({
@@ -82,10 +83,10 @@ export function computePremiumScores(
 
   // Analyses isoladas por camada — mobilidade aproveita a já calculada em "mobility",
   // flexibilidade idem; força usa computeForcaScore direto.
-  const analysisMobility = analyze(metrics, "mobility", forcaInputs, sexo, referenceData, assimetriaReferenceData);
-  const analysisFlex = analyze(metrics, "flexibility", forcaInputs, sexo, referenceData, assimetriaReferenceData);
-  const analysisAsym = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData, assimetriaReferenceData);
-  const analysisQualityBase = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData, assimetriaReferenceData);
+  const analysisMobility = analyze(metrics, "mobility", forcaInputs, sexo, referenceData, assimetriaReferenceData, faixaEtaria);
+  const analysisFlex = analyze(metrics, "flexibility", forcaInputs, sexo, referenceData, assimetriaReferenceData, faixaEtaria);
+  const analysisAsym = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData, assimetriaReferenceData, faixaEtaria);
+  const analysisQualityBase = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData, assimetriaReferenceData, faixaEtaria);
   const analysisQuality =
     forcaInputs.length > 0 ? applyForcaToRegions(analysisQualityBase, forcaInputs) : analysisQualityBase;
 
