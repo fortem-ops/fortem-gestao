@@ -170,10 +170,12 @@ export const ASSIMETRIA_ABSOLUTA: Record<string, { moderado: number; severo: num
   "Flexibilidade Psoas": { moderado: 3, severo: 5 },
 };
 
-/** Limiares percentuais usados na escala visual/contagem (inalterados). */
+/**
+ * Limiares percentuais ÚNICOS: valem para a cor, para as contagens e para o que
+ * conta como assimetria detectada. Moderada a partir de 10% (inclusive), severa
+ * acima de 20% (exclusivo).
+ */
 export const ASSIMETRIA_PCT_LIMIARES = { moderado: 10, severo: 20 } as const;
-/** Limiares percentuais do fallback clínico do analyze() (inalterados). */
-const ASSIMETRIA_PCT_LIMIARES_CLINICO = { moderado: 15, severo: 25 } as const;
 
 export type AssimetriaNivel = "nenhuma" | "moderada" | "severa";
 
