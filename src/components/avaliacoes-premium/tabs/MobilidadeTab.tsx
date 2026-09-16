@@ -129,7 +129,7 @@ function AssimetriaDonut({
           </g>
         </svg>
         <p className="text-[11px] font-semibold text-[hsl(var(--bio-ink))] -mt-1">
-          {assimetria.toFixed(1)}% <span className="font-normal text-[hsl(var(--bio-ink-muted))]">Assimetria</span>
+          {assimetria.toFixed(1)}{assimetriaUnidade} <span className="font-normal text-[hsl(var(--bio-ink-muted))]">Assimetria</span>
         </p>
       </div>
       <div className="text-left">
@@ -204,7 +204,7 @@ function PercentileCurveCard({
       <div className="text-center mt-1">
         <span className="text-[10px] text-[hsl(var(--bio-ink-muted))]">média {mean.toFixed(1)}{unit}</span>
       </div>
-      {donut && <AssimetriaDonut left={donut.left} right={donut.right} unit={unit} />}
+      {donut && <AssimetriaDonut metric={metric} left={donut.left} right={donut.right} unit={unit} />}
     </div>
 
   );
