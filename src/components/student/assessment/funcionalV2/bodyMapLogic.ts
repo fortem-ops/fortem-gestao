@@ -819,7 +819,10 @@ export interface ForcaAttentionItem {
   id: string;
   number: number;
   label: string;
+  metricLabel: string;
   percentage: number;
+  /** Assimetria de dinamometria é sempre percentual. */
+  unidade: "%" | "°";
   riskLabel: string;
   riskColor: string;
 }
@@ -847,6 +850,7 @@ export function buildForcaAttentionList(exercises: ForcaInput[] | undefined, max
       label: FORCA_EXERCICIO_LABEL[x.nome],
       metricLabel: "",
       percentage: Math.round(x.assimetria * 10) / 10,
+      unidade: "%",
       riskLabel,
       riskColor,
     };
