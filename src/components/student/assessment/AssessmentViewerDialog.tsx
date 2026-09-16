@@ -45,6 +45,8 @@ interface FuncMetric {
 export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: mobilidadeRef } = useMobilidadeReferenceData();
+  const { data: assimetriaRef } = useMobilidadeAssimetriaReferenceData();
   const [editing, setEditing] = useState(false);
 
   const isFuncional = avaliacao?.tipo === "funcional";
