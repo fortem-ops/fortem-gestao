@@ -56,3 +56,39 @@ export function LadoLegend({ compact, className = "" }: LadoLegendProps) {
     </div>
   );
 }
+
+/**
+ * Variante para gráficos da Evolução, em que a cor varia por métrica e o que
+ * diferencia os lados é o estilo do traço: contínuo = esquerdo, tracejado = direito.
+ */
+export function LadoLegendTraco({ className = "" }: { className?: string }) {
+  const amostra = (dashed: boolean) => (
+    <svg width="26" height="8" viewBox="0 0 26 8" aria-hidden className="shrink-0">
+      <line
+        x1="1"
+        y1="4"
+        x2="25"
+        y2="4"
+        stroke="hsl(var(--bio-ink))"
+        strokeWidth="2"
+        strokeDasharray={dashed ? "5 4" : undefined}
+      />
+    </svg>
+  );
+  return (
+    <div
+      className={`inline-flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-surface-2))] px-3 py-2 ${className}`}
+      aria-label="Legenda de lados"
+    >
+      <span className="text-[11px] text-[hsl(var(--bio-ink-muted))] uppercase tracking-wider">Lados</span>
+      <span className="inline-flex items-center gap-1.5 text-xs text-[hsl(var(--bio-ink))]">
+        {amostra(false)}
+        Contínua = Esquerdo (E)
+      </span>
+      <span className="inline-flex items-center gap-1.5 text-xs text-[hsl(var(--bio-ink))]">
+        {amostra(true)}
+        Tracejada = Direito (D)
+      </span>
+    </div>
+  );
+}
