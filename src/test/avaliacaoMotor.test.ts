@@ -39,8 +39,12 @@ function refAssimetria(metric: string, bucket: ReferenciaFaixas): AssimetriaRefe
   return { [metric]: { M: bucket, F: bucket } };
 }
 
+/**
+ * Métrica lançada com classificação nos dois lados — sem classificação e sem
+ * base de percentil o motor ignora a métrica (comportamento esperado).
+ */
 function metrica(metric: string, left: number | null, right: number | null): MetricInput {
-  return { metric, left, right, leftClass: null, rightClass: null };
+  return { metric, left, right, leftClass: "Bom", rightClass: "Médio" };
 }
 
 describe("Assimetria: régua da própria métrica", () => {
