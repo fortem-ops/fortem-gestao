@@ -1,0 +1,312 @@
+import { describe, it, expect } from "vitest";
+import {
+  classificarAssimetria,
+  nivelAssimetria,
+  severidadeAssimetriaClinica,
+  arrayReferencia,
+  criarReferenciaFaixas,
+  percentilMobilidade,
+  percentilAssimetria,
+  contarAssimetriasPorFaixa,
+  buildMetricAttentionList,
+  analyze,
+  applyForcaToRegions,
+  type BodyMapAnalysis,
+  type MetricInput,
+  type MobilidadeReferenceData,
+  type AssimetriaReferenceData,
+  type ReferenciaFaixas,
+} from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
+
+const PSOAS = "Flexibilidade Psoas";
+const OMBRO = "Mobilidade Ombro RI";
+
+/** Sequência ordenada de `n` valores começando em `inicio` (base de referência sintética). */
+function serie(n: number, inicio = 1): number[] {
+  return Array.from({ length: n }, (_, i) => inicio + i);
+}
+
+function faixas(parcial: Partial<ReferenciaFaixas>): ReferenciaFaixas {
+  return { ...criarReferenciaFaixas(), ...parcial };
+}
+
+function refMobilidade(metric: string, bucket: ReferenciaFaixas): MobilidadeReferenceData {
+  return { [metric]: { M: bucket, F: bucket } };
+}
+
+function refAssimetria(metric: string, bucket: ReferenciaFaixas): AssimetriaReferenceData {
+  return { [metric]: { M: bucket, F: bucket } };
+}
+
+/**
+ * Métrica lançada com classificação nos dois lados — sem classificação e sem
+ * base de percentil o motor ignora a métrica (comportamento esperado).
+ */
+function metrica(metric: string, left: number | null, right: number | null): MetricInput {
+  return { metric, left, right, leftClass: "Bom", rightClass: "Médio" };
+}
+
+describe("Assimetria: régua da própria métrica", () => {
+  it("métrica percentual com 100 e 80 tem 20% de assimetria", () => {
+    const info = classificarAssimetria(OMBRO, 100, 80);
+    expect(info).toEqual({ valor: 20, unidade: "%", absoluta: false, nivel: "moderada" });
+  });
+
+  it("Psoas com 1° e 2° não é assimetria — é 1°, não 50%", () => {
+    const info = classificarAssimetria(PSOAS, 1, 2);
+    expect(info).toEqual({ valor: 1, unidade: "°", absoluta: true, nivel: "nenhuma" });
+  });
+
+  it("Psoas: diferença de 2,9° ainda não é assimetria", () => {
+    expect(classificarAssimetria(PSOAS, 0, 2.9)!.nivel).toBe("nenhuma");
+  });
+
+  it("Psoas: diferença de 3° já é moderada (limiar inclusivo)", () => {
+    expect(classificarAssimetria(PSOAS, 0, 3)!.nivel).toBe("moderada");
+  });
+
+  it("Psoas: diferença de 5° continua moderada (limiar severo exclusivo)", () => {
+    expect(classificarAssimetria(PSOAS, 2, 7)!.nivel).toBe("moderada");
+  });
+
+  it("Psoas: diferença de 5,1° é severa", () => {
+    expect(classificarAssimetria(PSOAS, 2, 7.1)!.nivel).toBe("severa");
+  });
+
+  it("falta um dos lados: não há assimetria a calcular", () => {
+    expect(classificarAssimetria(OMBRO, 100, null)).toBeNull();
+    expect(classificarAssimetria(OMBRO, null, 80)).toBeNull();
+    expect(classificarAssimetria(OMBRO, 100, undefined)).toBeNull();
+  });
+
+  it("dois lados zerados não geram divisão por zero", () => {
+    const info = classificarAssimetria(OMBRO, 0, 0);
+    expect(info).toEqual({ valor: 0, unidade: "%", absoluta: false, nivel: "nenhuma" });
+  });
+});
+
+describe("Assimetria: escala visual (10/20) e escala clínica (15/25)", () => {
+  it("percentual: 10% já aparece como moderada na escala visual", () => {
+    expect(nivelAssimetria(OMBRO, 9.9)).toBe("nenhuma");
+    expect(nivelAssimetria(OMBRO, 10)).toBe("moderada");
+  });
+
+  it("percentual: 20% ainda é moderada na escala visual, 20,1% é severa", () => {
+    expect(nivelAssimetria(OMBRO, 20)).toBe("moderada");
+    expect(nivelAssimetria(OMBRO, 20.1)).toBe("severa");
+  });
+
+  it("percentual: a escala clínica só acusa a partir de 15%", () => {
+    expect(severidadeAssimetriaClinica(OMBRO, 14.9)).toBeNull();
+    expect(severidadeAssimetriaClinica(OMBRO, 15)).toBe("moderate");
+  });
+
+  it("percentual: 25% exatos já são severos na escala clínica", () => {
+    expect(severidadeAssimetriaClinica(OMBRO, 24.9)).toBe("moderate");
+    expect(severidadeAssimetriaClinica(OMBRO, 25)).toBe("severe");
+  });
+
+  it("Psoas usa 3° e 5° nas duas escalas", () => {
+    expect(nivelAssimetria(PSOAS, 2.9)).toBe("nenhuma");
+    expect(nivelAssimetria(PSOAS, 3)).toBe("moderada");
+    expect(nivelAssimetria(PSOAS, 5)).toBe("moderada");
+    expect(nivelAssimetria(PSOAS, 5.1)).toBe("severa");
+    expect(severidadeAssimetriaClinica(PSOAS, 2.9)).toBeNull();
+    expect(severidadeAssimetriaClinica(PSOAS, 3)).toBe("moderate");
+    expect(severidadeAssimetriaClinica(PSOAS, 5)).toBe("moderate");
+    expect(severidadeAssimetriaClinica(PSOAS, 5.1)).toBe("severe");
+  });
+});
+
+describe("Escolha da base de comparação por faixa etária", () => {
+  it("faixa com 15 amostras é usada em vez da base geral", () => {
+    const bucket = faixas({ "18-29": serie(15, 100), todos: serie(50) });
+    expect(arrayReferencia(bucket, "18-29")).toEqual(serie(15, 100));
+  });
+
+  it("faixa com 14 amostras é pouca — cai na base geral", () => {
+    const bucket = faixas({ "18-29": serie(14, 100), todos: serie(50) });
+    expect(arrayReferencia(bucket, "18-29")).toEqual(serie(50));
+  });
+
+  it("aluno sem faixa etária usa a base geral", () => {
+    const bucket = faixas({ "18-29": serie(30, 100), todos: serie(50) });
+    expect(arrayReferencia(bucket, null)).toEqual(serie(50));
+  });
+
+  it("base geral com menos de 15 amostras não é usada", () => {
+    expect(arrayReferencia(faixas({ todos: serie(14) }), null)).toBeNull();
+    expect(arrayReferencia(undefined, "18-29")).toBeNull();
+  });
+});
+
+describe("Percentil na base Fortem", () => {
+  const bucket = faixas({ todos: serie(20) });
+
+  it("valor no meio da base fica no meio da distribuição", () => {
+    expect(percentilMobilidade(OMBRO, "M", 10, refMobilidade(OMBRO, bucket))).toBe(50);
+  });
+
+  it("pior valor da base fica embaixo e o melhor no topo", () => {
+    expect(percentilMobilidade(OMBRO, "M", 1, refMobilidade(OMBRO, bucket))).toBe(5);
+    expect(percentilMobilidade(OMBRO, "M", 20, refMobilidade(OMBRO, bucket))).toBe(100);
+  });
+
+  it("no Psoas, valor menor é melhor: 2° dá percentil alto", () => {
+    expect(percentilMobilidade(PSOAS, "M", 2, refMobilidade(PSOAS, bucket))).toBe(90);
+    expect(percentilMobilidade(PSOAS, "M", 19, refMobilidade(PSOAS, bucket))).toBe(5);
+  });
+
+  it("base curta demais não gera percentil", () => {
+    const curta = faixas({ todos: serie(10) });
+    expect(percentilMobilidade(OMBRO, "M", 5, refMobilidade(OMBRO, curta))).toBeNull();
+    expect(percentilMobilidade(OMBRO, "M", 5, undefined)).toBeNull();
+    expect(percentilMobilidade(OMBRO, "M", null, refMobilidade(OMBRO, bucket))).toBeNull();
+  });
+
+  it("mesmo valor em faixas etárias diferentes dá percentis diferentes", () => {
+    const porFaixa = faixas({ "18-29": serie(20), "30-44": serie(20, 101), todos: serie(20) });
+    const ref = refMobilidade(OMBRO, porFaixa);
+    expect(percentilMobilidade(OMBRO, "M", 10, ref, "18-29")).toBe(50);
+    expect(percentilMobilidade(OMBRO, "M", 10, ref, "30-44")).toBe(0);
+  });
+
+  it("percentil de assimetria cresce com a diferença e respeita a faixa etária", () => {
+    const porFaixa = faixas({ "18-29": serie(20), "45+": serie(20, 101), todos: serie(20) });
+    const ref = refAssimetria(OMBRO, porFaixa);
+    expect(percentilAssimetria(OMBRO, "M", 10, ref, "18-29")).toBe(50);
+    expect(percentilAssimetria(OMBRO, "M", 20, ref, "18-29")).toBe(100);
+    expect(percentilAssimetria(OMBRO, "M", 10, ref, "45+")).toBe(0);
+    expect(percentilAssimetria(OMBRO, "M", 10, refAssimetria(OMBRO, faixas({ todos: serie(10) })))).toBeNull();
+  });
+});
+
+describe("Contagem de assimetrias", () => {
+  it("cada item é contado pela régua da sua própria métrica", () => {
+    const contagem = contarAssimetriasPorFaixa([
+      { metric: PSOAS, diff: 4 },
+      { metric: PSOAS, diff: 6 },
+      { metric: OMBRO, diff: 4 },
+      { metric: OMBRO, diff: 25 },
+    ]);
+    expect(contagem).toEqual({ alta: 2, moderada: 1, baixa: 1, total: 4 });
+  });
+
+  it("Psoas de 4° não é assimetria baixa só por ser menor que 10", () => {
+    expect(contarAssimetriasPorFaixa([{ metric: PSOAS, diff: 4 }])).toEqual({
+      alta: 0,
+      moderada: 1,
+      baixa: 0,
+      total: 1,
+    });
+  });
+});
+
+describe("Lista de atenção", () => {
+  it("Psoas severo de 6° vem antes de percentual moderado de 18%", () => {
+    const analysis = {
+      metricAsymmetries: [
+        { metric: OMBRO, diff: 18, unidade: "%" as const, absoluta: false, asymPercentile: null },
+        { metric: PSOAS, diff: 6, unidade: "°" as const, absoluta: true, asymPercentile: null },
+      ],
+    } as unknown as BodyMapAnalysis;
+    const lista = buildMetricAttentionList(analysis);
+    expect(lista.map((i) => i.metric)).toEqual([PSOAS, OMBRO]);
+    expect(lista[0].unidade).toBe("°");
+    expect(lista[1].unidade).toBe("%");
+  });
+});
+
+describe("Análise completa do mapa corporal", () => {
+  it("assimetria de Psoas sai em graus e não consulta a base de percentil", () => {
+    const analysis = analyze(
+      [metrica(PSOAS, 2, 6)],
+      "flexibility",
+      undefined,
+      "M",
+      refMobilidade(PSOAS, faixas({ todos: serie(20) })),
+      refAssimetria(PSOAS, faixas({ todos: serie(20) })),
+      "30-44",
+    );
+    const item = analysis.metricAsymmetries.find((a) => a.metric === PSOAS)!;
+    expect(item.diff).toBe(4);
+    expect(item.unidade).toBe("°");
+    expect(item.absoluta).toBe(true);
+    expect(item.asymPercentile).toBeNull();
+  });
+
+  it("métrica percentual com sexo e base usa o percentil da base", () => {
+    const analysis = analyze(
+      [metrica(OMBRO, 100, 80)],
+      "mobility",
+      undefined,
+      "M",
+      refMobilidade(OMBRO, faixas({ todos: serie(20) })),
+      refAssimetria(OMBRO, faixas({ todos: serie(20) })),
+      null,
+    );
+    const item = analysis.metricAsymmetries.find((a) => a.metric === OMBRO)!;
+    expect(item.unidade).toBe("%");
+    expect(item.asymPercentile).toBe(100);
+    expect(analysis.asymmetries[0].severity).toBe("severe");
+  });
+
+  it("sem sexo e sem base, a classificação cai no corte fixo de sempre", () => {
+    const analysis = analyze([metrica(OMBRO, 100, 80)], "mobility");
+    const item = analysis.metricAsymmetries.find((a) => a.metric === OMBRO)!;
+    expect(item.diff).toBe(20);
+    expect(item.asymPercentile).toBeNull();
+    expect(analysis.asymmetries[0].severity).toBe("moderate");
+  });
+});
+
+describe("Camada de força sobre o mapa", () => {
+  it("força sobrescreve a unidade da região, mesmo onde havia Psoas em graus", () => {
+    const base = analyze([metrica(PSOAS, 2, 6)], "flexibility");
+    expect(base.regions["quad-l"].asymmetryUnit).toBe("°");
+
+    const comForca = applyForcaToRegions(base, [
+      { nome: "extensao_joelho", direito_kg: 100, esquerdo_kg: 70 },
+    ]);
+    expect(comForca.regions["quad-l"].asymmetryUnit).toBe("%");
+    expect(comForca.regions["quad-r"].asymmetryUnit).toBe("%");
+    expect(comForca.regions["quad-l"].asymmetry).toBe(30);
+  });
+});
+
+describe("Faixa etária e sexo do cadastro", () => {
+  const hoje = new Date("2026-09-16T12:00:00Z");
+
+  it("menor de 18 não entra em nenhuma faixa", () => {
+    expect(faixaEtariaDe("2009-09-17", hoje)).toBeNull();
+  });
+
+  it("aos 18 entra na faixa 18-29 e aos 29 ainda está nela", () => {
+    expect(faixaEtariaDe("2008-09-16", hoje)).toBe("18-29");
+    expect(faixaEtariaDe("1997-09-16", hoje)).toBe("18-29");
+  });
+
+  it("aos 30 passa para 30-44 e aos 44 ainda está nela", () => {
+    expect(faixaEtariaDe("1996-09-16", hoje)).toBe("30-44");
+    expect(faixaEtariaDe("1982-09-16", hoje)).toBe("30-44");
+  });
+
+  it("aos 45 passa para a faixa 45+", () => {
+    expect(faixaEtariaDe("1981-09-16", hoje)).toBe("45+");
+  });
+
+  it("cadastro sem data de nascimento não tem faixa", () => {
+    expect(faixaEtariaDe(null, hoje)).toBeNull();
+    expect(faixaEtariaDe(undefined, hoje)).toBeNull();
+  });
+
+  it("sexo do cadastro é normalizado pelo início do texto", () => {
+    expect(sexoDe("masculino")).toBe("M");
+    expect(sexoDe("feminino")).toBe("F");
+    expect(sexoDe("M")).toBe("M");
+    expect(sexoDe("F")).toBe("F");
+    expect(sexoDe(null)).toBeUndefined();
+    expect(sexoDe("outro")).toBeUndefined();
+  });
+});
