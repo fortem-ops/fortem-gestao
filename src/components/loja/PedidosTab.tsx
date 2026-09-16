@@ -16,9 +16,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Gift, PackageOpen, Trash2 } from "lucide-react";
+import { BadgeCheck, ChevronDown, ChevronRight, Gift, PackageOpen, Trash2 } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
+import { DarBaixaPedidoDialog, type PedidoBaixa } from "./DarBaixaPedidoDialog";
 
 
 type Item = {
@@ -159,6 +160,7 @@ export function PedidosTab() {
   const [aberto, setAberto] = useState<string | null>(null);
   const [excluir, setExcluir] = useState<Pedido | null>(null);
   const [excluindo, setExcluindo] = useState(false);
+  const [baixa, setBaixa] = useState<PedidoBaixa | null>(null);
 
   const confirmarExclusao = async () => {
     if (!excluir) return;
@@ -269,7 +271,25 @@ export function PedidosTab() {
                       )}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">{fmtData(p.created_at)}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
+                      {p.status === "aguardando_pagamento" && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Dar baixa (pagamento presencial)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setBaixa({
+                              id: p.id,
+                              nome: p.nome,
+                              valor_final: Number(p.valor_final ?? 0),
+                              resumo: resumoItens(p.pedido_itens || []),
+                            });
+                          }}
+                        >
+                          <BadgeCheck className="w-4 h-4 text-primary" />
+                        </Button>
+                      )}
                       <Button
                         size="icon"
                         variant="ghost"
@@ -356,6 +376,7 @@ export function PedidosTab() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <DarBaixaPedidoDialog pedido={baixa} onOpenChange={(o) => !o && setBaixa(null)} />
     </div>
   );
 }
