@@ -7,7 +7,7 @@ import { LadoLegend } from "../LadoLegend";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { useMemo } from "react";
 import { format, parseISO } from "date-fns";
-import { idadeAtual } from "@/lib/faixaEtaria";
+import { idadeAtual, sexoDe } from "@/lib/faixaEtaria";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 

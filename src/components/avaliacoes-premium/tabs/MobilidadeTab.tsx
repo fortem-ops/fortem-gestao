@@ -29,7 +29,7 @@ import {
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 
-import { faixaEtariaDe } from "@/lib/faixaEtaria";
+import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 import { classifyAngle } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { getFuncionalV2DefaultProtocoloId } from "@/lib/kinologyImport";
