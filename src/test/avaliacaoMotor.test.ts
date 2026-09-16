@@ -247,16 +247,36 @@ describe("Análise completa do mapa corporal", () => {
     );
     const item = analysis.metricAsymmetries.find((a) => a.metric === OMBRO)!;
     expect(item.unidade).toBe("%");
-    expect(item.asymPercentile).toBe(100);
-    expect(analysis.asymmetries[0].severity).toBe("severe");
+    expect(item.diff).toBe(20);
+    expect(item.asymPercentile).toBeNull();
+    expect(analysis.asymmetries[0].severity).toBe("moderate");
   });
 
-  it("sem sexo e sem base, a classificação cai no corte fixo de sempre", () => {
+  it("sem sexo e sem base, a classificação é a mesma", () => {
     const analysis = analyze([metrica(OMBRO, 100, 80)], "mobility");
     const item = analysis.metricAsymmetries.find((a) => a.metric === OMBRO)!;
     expect(item.diff).toBe(20);
     expect(item.asymPercentile).toBeNull();
     expect(analysis.asymmetries[0].severity).toBe("moderate");
+  });
+
+  it("a base Fortem não altera a classificação de assimetria", () => {
+    const metricas = [metrica(OMBRO, 100, 70), metrica(PSOAS, 2, 6)];
+    const comBase = analyze(
+      metricas,
+      "asymmetry",
+      undefined,
+      "F",
+      refMobilidade(OMBRO, faixas({ todos: serie(20) })),
+      refAssimetria(OMBRO, faixas({ todos: serie(20) })),
+      "45+",
+    );
+    const semBase = analyze(metricas, "asymmetry");
+
+    const severidades = (a: typeof comBase) =>
+      a.asymmetries.map((x) => `${x.region}:${x.severity}:${x.diff.toFixed(2)}${x.unidade}`).sort();
+    expect(severidades(comBase)).toEqual(severidades(semBase));
+    expect(comBase.metricAsymmetries.every((m) => m.asymPercentile === null)).toBe(true);
   });
 });
 
