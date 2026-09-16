@@ -1,4 +1,4 @@
-import { corGradienteAssimetria, getMetricDisplayLabel } from "./bodyMapLogic";
+import { classificarAssimetria, corGradienteAssimetria, getMetricDisplayLabel } from "./bodyMapLogic";
 import { AnatomyFront } from "./anatomy/AnatomyFront";
 import { AnatomyBack } from "./anatomy/AnatomyBack";
 import { pointsToSmoothPath } from "./pointsToPath";
