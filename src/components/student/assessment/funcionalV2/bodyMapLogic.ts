@@ -116,6 +116,92 @@ export function percentilMobilidade(
   return METRICAS_INVERTIDAS.has(metric) ? 100 - pct : pct;
 }
 
+// ============================================================================
+// PONTO ÚNICO DE VERDADE DA ASSIMETRIA
+// ----------------------------------------------------------------------------
+// Métricas de escala curta (ex.: Flexibilidade Psoas — mediana 3°, p95 8,5°) não
+// podem ser avaliadas por assimetria percentual: 1° vs 2° viraria 50%, que é
+// ruído de goniômetro. Para elas a regra é a DIFERENÇA ABSOLUTA em graus.
+// Nenhum consumidor deve reimplementar essa decisão nem testar a métrica por nome.
+// ============================================================================
+
+/** Métricas avaliadas por diferença ABSOLUTA (graus) em vez de percentual. */
+export const ASSIMETRIA_ABSOLUTA: Record<string, { moderado: number; severo: number }> = {
+  "Flexibilidade Psoas": { moderado: 3, severo: 5 },
+};
+
+/** Limiares percentuais usados na escala visual/contagem (inalterados). */
+export const ASSIMETRIA_PCT_LIMIARES = { moderado: 10, severo: 20 } as const;
+/** Limiares percentuais do fallback clínico do analyze() (inalterados). */
+const ASSIMETRIA_PCT_LIMIARES_CLINICO = { moderado: 15, severo: 25 } as const;
+
+export type AssimetriaNivel = "nenhuma" | "moderada" | "severa";
+
+export interface AssimetriaInfo {
+  /** Valor a exibir: graus (métricas absolutas) ou percentual (demais). */
+  valor: number;
+  unidade: "°" | "%";
+  /** true quando a métrica usa diferença absoluta em graus. */
+  absoluta: boolean;
+  nivel: AssimetriaNivel;
+}
+
+function nivelPorLimiar(
+  valor: number,
+  moderado: number,
+  severo: number,
+  severoInclusivo = false,
+): AssimetriaNivel {
+  if (severoInclusivo ? valor >= severo : valor > severo) return "severa";
+  if (valor >= moderado) return "moderada";
+  return "nenhuma";
+}
+
+/**
+ * Classificação compartilhada de assimetria a partir dos dois lados.
+ * Retorna null quando falta algum lado.
+ */
+export function classificarAssimetria(
+  metric: string,
+  esquerdo: number | null | undefined,
+  direito: number | null | undefined,
+): AssimetriaInfo | null {
+  if (esquerdo === null || esquerdo === undefined || direito === null || direito === undefined) return null;
+  const abs = ASSIMETRIA_ABSOLUTA[metric];
+  if (abs) {
+    const valor = Math.abs(esquerdo - direito);
+    return { valor, unidade: "°", absoluta: true, nivel: nivelPorLimiar(valor, abs.moderado, abs.severo) };
+  }
+  const max = Math.max(Math.abs(esquerdo), Math.abs(direito));
+  const valor = max > 0 ? (Math.abs(esquerdo - direito) / max) * 100 : 0;
+  return {
+    valor,
+    unidade: "%",
+    absoluta: false,
+    nivel: nivelPorLimiar(valor, ASSIMETRIA_PCT_LIMIARES.moderado, ASSIMETRIA_PCT_LIMIARES.severo),
+  };
+}
+
+/** Classificação do nível a partir de um valor já calculado (escala visual/contagem). */
+export function nivelAssimetria(metric: string | undefined, valor: number): AssimetriaNivel {
+  const abs = metric ? ASSIMETRIA_ABSOLUTA[metric] : undefined;
+  return abs
+    ? nivelPorLimiar(valor, abs.moderado, abs.severo)
+    : nivelPorLimiar(valor, ASSIMETRIA_PCT_LIMIARES.moderado, ASSIMETRIA_PCT_LIMIARES.severo);
+}
+
+/** Severidade clínica usada no analyze() (graus para métricas absolutas, 15%/25% para as demais). */
+export function severidadeAssimetriaClinica(
+  metric: string | undefined,
+  valor: number,
+): "severe" | "moderate" | null {
+  const abs = metric ? ASSIMETRIA_ABSOLUTA[metric] : undefined;
+  const nivel = abs
+    ? nivelPorLimiar(valor, abs.moderado, abs.severo)
+    : nivelPorLimiar(valor, ASSIMETRIA_PCT_LIMIARES_CLINICO.moderado, ASSIMETRIA_PCT_LIMIARES_CLINICO.severo, true);
+  return nivel === "severa" ? "severe" : nivel === "moderada" ? "moderate" : null;
+}
+
 export type AssimetriaReferenceData = Record<string, { M: number[]; F: number[] }>;
 
 /**
