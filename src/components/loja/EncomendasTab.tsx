@@ -17,7 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Gift, PackageOpen, RotateCcw, Trash2, X } from "lucide-react";
+import { BadgeCheck, Gift, PackageOpen, RotateCcw, Trash2, X } from "lucide-react";
+import { DarBaixaPedidoDialog, type PedidoBaixa } from "./DarBaixaPedidoDialog";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { estornarPedido } from "@/lib/lojaEstorno";
@@ -78,6 +79,7 @@ export function EncomendasTab() {
   const [excluindo, setExcluindo] = useState(false);
   const [estornar, setEstornar] = useState<Linha | null>(null);
   const [estornando, setEstornando] = useState(false);
+  const [baixa, setBaixa] = useState<PedidoBaixa | null>(null);
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["loja-encomendas"],
@@ -88,7 +90,7 @@ export function EncomendasTab() {
           "id, nome, created_at, valor_total, desconto, valor_final, brinde_escolhido, status, promocoes(codigo), pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(id, tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .eq("eh_encomenda", true)
-        .in("status", ["pago", "estornado"])
+        .in("status", ["pago", "estornado", "aguardando_pagamento"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as PedidoRow[];
@@ -118,7 +120,8 @@ export function EncomendasTab() {
           tamanho: v.tamanho || "—",
           quantidade: it.quantidade,
           valorItens,
-          valorRecebido: Math.round(valorFinal * proporcao * 100) / 100,
+          valorRecebido:
+            p.status === "aguardando_pagamento" ? 0 : Math.round(valorFinal * proporcao * 100) / 100,
           cupom: p.promocoes?.codigo ?? null,
           brinde: p.brinde_escolhido ?? null,
           data: p.created_at,
@@ -346,6 +349,11 @@ export function EncomendasTab() {
                               Estornado
                             </Badge>
                           )}
+                          {l.status === "aguardando_pagamento" && (
+                            <Badge variant="outline" className="ml-2 status-warning text-[10px]">
+                              Aguardando pagamento
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>{l.produto}</TableCell>
                         <TableCell>{l.cor}</TableCell>
@@ -357,6 +365,23 @@ export function EncomendasTab() {
                         <TableCell className="text-right text-muted-foreground">{formatBRL(l.valorItens)}</TableCell>
                         <TableCell className="text-right font-semibold">{formatBRL(l.valorRecebido)}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">
+                          {l.status === "aguardando_pagamento" && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() =>
+                                setBaixa({
+                                  id: l.pedidoId,
+                                  nome: l.cliente,
+                                  valor_final: l.valorItens,
+                                  resumo: `${l.quantidade}x ${l.produto} (${l.cor} / ${l.tamanho})`,
+                                })
+                              }
+                              title="Dar baixa (pagamento presencial)"
+                            >
+                              <BadgeCheck className="w-4 h-4 text-primary" />
+                            </Button>
+                          )}
                           {l.status === "pago" && (
                             <Button
                               size="icon"
@@ -451,6 +476,8 @@ export function EncomendasTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DarBaixaPedidoDialog pedido={baixa} onOpenChange={(o) => !o && setBaixa(null)} />
     </div>
   );
 }
