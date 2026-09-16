@@ -174,10 +174,12 @@ export function useMobilidadeReferenceData() {
     queryKey: ["mobilidade-referencia-fortem-v2"],
     staleTime: 1000 * 60 * 60,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mobilidade_amostras_fortem")
-        .select("metrica, sexo, valor, faixa_etaria");
-      if (error) throw error;
+      const data = await carregarTodasAsPaginas<{
+        metrica: string;
+        sexo: string;
+        valor: number | string;
+        faixa_etaria: string | null;
+      }>("mobilidade_amostras_fortem", "metrica, sexo, valor, faixa_etaria");
       const ref: MobilidadeReferenceData = {};
       for (const row of data ?? []) {
         const bucket = (ref[row.metrica] ??= { M: criarReferenciaFaixas(), F: criarReferenciaFaixas() });
