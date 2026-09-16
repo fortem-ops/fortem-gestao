@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import type { AssimetriaReferenceData, ForcaInput, MetricInput, MobilidadeReferenceData } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { AssimetriaReferenceData, ForcaInput, MetricInput, MobilidadeReferenceData, ReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { criarReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { FAIXAS_ETARIAS, type FaixaEtaria } from "@/lib/faixaEtaria";
 
 export interface ForcaSavedRow {
   nome: ForcaInput["nome"];
@@ -169,22 +171,24 @@ export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefine
  */
 export function useMobilidadeReferenceData() {
   return useQuery<MobilidadeReferenceData>({
-    queryKey: ["mobilidade-referencia-fortem"],
+    queryKey: ["mobilidade-referencia-fortem-v2"],
     staleTime: 1000 * 60 * 60,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mobilidade_amostras_fortem")
-        .select("metrica, sexo, valor");
+        .select("metrica, sexo, valor, faixa_etaria");
       if (error) throw error;
       const ref: MobilidadeReferenceData = {};
       for (const row of data ?? []) {
-        const bucket = (ref[row.metrica] ??= { M: [], F: [] });
-        bucket[row.sexo as "M" | "F"].push(Number(row.valor));
+        const bucket = (ref[row.metrica] ??= { M: criarReferenciaFaixas(), F: criarReferenciaFaixas() });
+        const porSexo = bucket[row.sexo as "M" | "F"];
+        if (!porSexo) continue;
+        const valor = Number(row.valor);
+        porSexo.todos.push(valor);
+        const faixa = row.faixa_etaria as FaixaEtaria | null;
+        if (faixa && faixa in porSexo) porSexo[faixa].push(valor);
       }
-      for (const bucket of Object.values(ref)) {
-        bucket.M.sort((a, b) => a - b);
-        bucket.F.sort((a, b) => a - b);
-      }
+      ordenarReferencia(ref);
       return ref;
     },
   });
@@ -192,23 +196,36 @@ export function useMobilidadeReferenceData() {
 
 export function useMobilidadeAssimetriaReferenceData() {
   return useQuery<AssimetriaReferenceData>({
-    queryKey: ["mobilidade-assimetria-referencia-fortem"],
+    queryKey: ["mobilidade-assimetria-referencia-fortem-v2"],
     staleTime: 1000 * 60 * 60,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mobilidade_assimetria_fortem")
-        .select("metrica, sexo, assimetria_pct");
+        .select("metrica, sexo, assimetria_pct, faixa_etaria");
       if (error) throw error;
       const ref: AssimetriaReferenceData = {};
       for (const row of data ?? []) {
-        const bucket = (ref[row.metrica] ??= { M: [], F: [] });
-        bucket[row.sexo as "M" | "F"].push(Number(row.assimetria_pct));
+        const bucket = (ref[row.metrica] ??= { M: criarReferenciaFaixas(), F: criarReferenciaFaixas() });
+        const porSexo = bucket[row.sexo as "M" | "F"];
+        if (!porSexo) continue;
+        const valor = Number(row.assimetria_pct);
+        porSexo.todos.push(valor);
+        const faixa = row.faixa_etaria as FaixaEtaria | null;
+        if (faixa && faixa in porSexo) porSexo[faixa].push(valor);
       }
-      for (const bucket of Object.values(ref)) {
-        bucket.M.sort((a, b) => a - b);
-        bucket.F.sort((a, b) => a - b);
-      }
+      ordenarReferencia(ref);
       return ref;
     },
   });
+}
+
+/** Ordena ascendente todos os arrays (por sexo e faixa) para busca binária. */
+function ordenarReferencia(ref: Record<string, { M: ReferenciaFaixas; F: ReferenciaFaixas }>) {
+  const asc = (a: number, b: number) => a - b;
+  for (const bucket of Object.values(ref)) {
+    for (const porSexo of [bucket.M, bucket.F]) {
+      porSexo.todos.sort(asc);
+      for (const faixa of FAIXAS_ETARIAS) porSexo[faixa].sort(asc);
+    }
+  }
 }

@@ -22,12 +22,14 @@ import {
   ALL_FUNCTIONAL_METRICS,
   METRIC_META,
   percentilMobilidade,
+  arrayReferencia,
   classificarAssimetria,
   getMetricDisplayLabel,
   type MetricInput,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 
+import { faixaEtariaDe } from "@/lib/faixaEtaria";
 import { classifyAngle } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { getFuncionalV2DefaultProtocoloId } from "@/lib/kinologyImport";
@@ -40,7 +42,7 @@ interface Props {
   alunoId: string;
   latest?: FuncionalSnapshot | null;
   history?: FuncionalSnapshot[];
-  aluno?: { sexo: string | null } | null;
+  aluno?: { sexo: string | null; data_nascimento?: string | null } | null;
   referenceData?: MobilidadeReferenceData;
   initialFormOpen?: boolean;
   readOnly?: boolean;
@@ -216,6 +218,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
     : aluno?.sexo?.toLowerCase().startsWith("m")
     ? "M"
     : undefined;
+  const faixaRpc = faixaEtariaDe(aluno?.data_nascimento);
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -264,23 +267,23 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
           METRIC_META[m.metric]?.layer === layerFilter,
       )
       .map((m) => {
-        const arr = referenceData[m.metric]?.[sexoRpc];
-        if (!arr || arr.length < 15) return null;
+        const arr = arrayReferencia(referenceData[m.metric]?.[sexoRpc], faixaRpc);
+        if (!arr) return null;
         const { mean, sigma } = statsFromArray(arr);
         const markers: CurveMarker[] = [];
         if (m.left !== null) {
-          const pct = percentilMobilidade(m.metric, sexoRpc, m.left, referenceData);
+          const pct = percentilMobilidade(m.metric, sexoRpc, m.left, referenceData, faixaRpc);
           if (pct !== null) markers.push({ id: "E", value: m.left, percentile: pct, color: "#378ADD" });
         }
         if (m.right !== null) {
-          const pct = percentilMobilidade(m.metric, sexoRpc, m.right, referenceData);
+          const pct = percentilMobilidade(m.metric, sexoRpc, m.right, referenceData, faixaRpc);
           if (pct !== null) markers.push({ id: "D", value: m.right, percentile: pct, color: "#D85A30" });
         }
         if (markers.length === 0) return null;
         return { metric: m.metric, mean, sigma, unit: "°", markers, left: m.left, right: m.right };
       })
       .filter((d): d is NonNullable<typeof d> => d !== null);
-  }, [selecionada, sexoRpc, referenceData, layerFilter]);
+  }, [selecionada, sexoRpc, faixaRpc, referenceData, layerFilter]);
 
   const [formOpen, setFormOpen] = useState(initialFormOpen ?? false);
   const [editandoId, setEditandoId] = useState<string | null>(null);

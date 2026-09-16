@@ -8,6 +8,7 @@ import { PremiumBodyMap } from "@/components/avaliacoes-premium/PremiumBodyMap";
 import { ResultadosDateSelect, type ResultadosDateOption } from "@/components/avaliacoes-premium/ResultadosDateSelect";
 import { ResultadosNav, type ResultadoView } from "@/components/avaliacoes-premium/ResultadosNav";
 import { computePremiumScores } from "@/components/avaliacoes-premium/scoringPremium";
+import { faixaEtariaDe } from "@/lib/faixaEtaria";
 import { gerarRecomendacoes } from "@/components/avaliacoes-premium/recomendacoesEngine";
 import { useExerciciosPorArticulacao } from "@/hooks/useExerciciosPorArticulacao";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,6 +42,7 @@ export default function AvaliacoesPremium() {
     : data?.aluno?.sexo?.toLowerCase().startsWith("m")
     ? "M"
     : undefined;
+  const faixaAluno = faixaEtariaDe(data?.aluno?.data_nascimento);
 
   const dateOptions = useMemo<ResultadosDateOption[]>(() => {
     if (!data) return [];
@@ -82,9 +84,9 @@ export default function AvaliacoesPremium() {
   const scores = useMemo(
     () =>
       data
-        ? computePremiumScores(funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef)
+        ? computePremiumScores(funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno)
         : null,
-    [data, funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef],
+    [data, funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno],
   );
   const recomendacoes = useMemo(
     () => (scores && data ? gerarRecomendacoes(scores, funcionalDaData, composicaoDaData, exerciciosVinculados) : []),
