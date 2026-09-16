@@ -11,7 +11,6 @@ import { Loader2, CheckCircle2, Plus, Lock, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useDebounce as _unusedDebounce } from "@/hooks/useDebounce";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { fetchProtocolos } from "@/lib/avaliacaoProtocolos";
 import type {
