@@ -219,9 +219,58 @@ export function useMobilidadeAssimetriaReferenceData() {
         if (faixa && faixa in porSexo) porSexo[faixa].push(valor);
       }
       ordenarReferencia(ref);
+      avisarMetricasFaltantes(ref, "mobilidade_assimetria_fortem");
       return ref;
     },
   });
+}
+
+const PAGINA_REFERENCIA = 1000;
+const MAX_PAGINAS_REFERENCIA = 20;
+
+/**
+ * O PostgREST corta respostas em 1.000 linhas. As tabelas de referência já
+ * passam disso, então é obrigatório paginar com `range` e uma ordenação
+ * estável (metrica, id) para não repetir nem pular linhas entre as páginas.
+ */
+async function carregarTodasAsPaginas<T>(
+  tabela: "mobilidade_amostras_fortem" | "mobilidade_assimetria_fortem",
+  colunas: string,
+): Promise<T[]> {
+  const todas: T[] = [];
+  for (let pagina = 0; pagina < MAX_PAGINAS_REFERENCIA; pagina++) {
+    const inicio = pagina * PAGINA_REFERENCIA;
+    const { data, error } = await supabase
+      .from(tabela)
+      .select(colunas)
+      .order("metrica", { ascending: true })
+      .order("id", { ascending: true })
+      .range(inicio, inicio + PAGINA_REFERENCIA - 1);
+    if (error) throw error;
+    const linhas = (data ?? []) as unknown as T[];
+    todas.push(...linhas);
+    if (linhas.length < PAGINA_REFERENCIA) return todas;
+  }
+  console.warn(
+    `[referencia-fortem] limite de ${MAX_PAGINAS_REFERENCIA} páginas atingido em ${tabela}; a base de referência pode estar incompleta.`,
+  );
+  return todas;
+}
+
+/** Avisa se alguma das nove métricas funcionais ficou sem amostra na referência. */
+function avisarMetricasFaltantes(
+  ref: Record<string, { M: ReferenciaFaixas; F: ReferenciaFaixas }>,
+  tabela: string,
+) {
+  const faltantes = ALL_FUNCTIONAL_METRICS.filter((metrica) => {
+    const bucket = ref[metrica];
+    return !bucket || (bucket.M.todos.length === 0 && bucket.F.todos.length === 0);
+  });
+  if (faltantes.length > 0) {
+    console.warn(
+      `[referencia-fortem] ${tabela}: sem amostras para ${faltantes.length} métrica(s): ${faltantes.join(", ")}`,
+    );
+  }
 }
 
 /** Ordena ascendente todos os arrays (por sexo e faixa) para busca binária. */
