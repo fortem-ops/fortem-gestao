@@ -20,17 +20,15 @@ export function AdminMembrosTable() {
   const { data, isLoading } = useQuery({
     queryKey: ["clube-membros-admin"],
     queryFn: async () => {
-      const membros = await carregarTodasAsPaginas<Database["public"]["Tables"]["clube_fortem_membros"]["Row"]>({
+      type MembroComAluno = Database["public"]["Tables"]["clube_fortem_membros"]["Row"] & {
+        alunos: { nome: string } | null;
+      };
+      const membros = await carregarTodasAsPaginas<MembroComAluno>({
         tabela: "clube_fortem_membros",
-        colunas: "*",
+        colunas: `*, alunos!clube_fortem_membros_aluno_id_fkey(nome)`,
         ordenarPor: [{ coluna: "created_at", ascending: false }, { coluna: "id" }],
       });
-      const ids = membros.map((m) => m.aluno_id);
-      const { data: alunos } = ids.length
-        ? await supabase.from("alunos").select("id, nome").in("id", ids)
-        : { data: [] as any[] };
-      const map = new Map((alunos || []).map((a: any) => [a.id, a.nome]));
-      return membros.map((m) => ({ ...m, aluno_nome: map.get(m.aluno_id) })) as Row[];
+      return membros.map(({ alunos, ...m }) => ({ ...m, aluno_nome: alunos?.nome })) as Row[];
     },
   });
 

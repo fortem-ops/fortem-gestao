@@ -32,18 +32,23 @@ export default function Clube() {
   const { data: alunosOpts = [] } = useQuery({
     queryKey: ["clube-alunos-membros", user?.id, isCoordAdmin],
     queryFn: async () => {
-      const membros = await carregarTodasAsPaginas<{ aluno_id: string }>({
+      type MembroComAluno = {
+        aluno_id: string;
+        alunos: { id: string; nome: string; responsavel_id: string | null } | null;
+      };
+      const membros = await carregarTodasAsPaginas<MembroComAluno>({
         tabela: "clube_fortem_membros",
-        colunas: "aluno_id",
+        colunas: `aluno_id, alunos!clube_fortem_membros_aluno_id_fkey!inner(id, nome, responsavel_id)`,
         ordenarPor: [{ coluna: "created_at", ascending: false }, { coluna: "id" }],
+        filtros: isCoordAdmin
+          ? undefined
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ((q: any) => q.eq("alunos.responsavel_id", user!.id)) as never,
       });
-      const ids = membros.map((m) => m.aluno_id);
-      if (!ids.length) return [];
-
-      let query = supabase.from("alunos").select("id, nome, responsavel_id").in("id", ids);
-      if (!isCoordAdmin) query = query.eq("responsavel_id", user!.id);
-      const { data } = await query.order("nome");
-      return data || [];
+      return membros
+        .map((m) => m.alunos)
+        .filter((a): a is NonNullable<MembroComAluno["alunos"]> => !!a)
+        .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
     },
     enabled: !!user,
   });
