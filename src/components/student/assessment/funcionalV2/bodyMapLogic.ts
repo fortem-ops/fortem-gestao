@@ -1,4 +1,6 @@
 import type { AssessmentClassification } from "@/lib/mock-data";
+import type { FaixaEtaria } from "@/lib/faixaEtaria";
+
 
 export type Side = "left" | "right";
 export type Severity = "excellent" | "good" | "medium" | "attention" | "weak" | "none";
