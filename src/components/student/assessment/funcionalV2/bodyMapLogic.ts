@@ -561,7 +561,9 @@ export function analyze(
     if (!info || info.valor === 0) continue;
     // Percentil da base Fortem só faz sentido na escala percentual.
     const asymPercentile =
-      sexo && !info.absoluta ? percentilAssimetria(m.metric, sexo, info.valor, assimetriaReferenceData) : null;
+      sexo && !info.absoluta
+        ? percentilAssimetria(m.metric, sexo, info.valor, assimetriaReferenceData, faixaEtaria)
+        : null;
     metricAsymmetries.push({
       metric: m.metric,
       diff: info.valor,
