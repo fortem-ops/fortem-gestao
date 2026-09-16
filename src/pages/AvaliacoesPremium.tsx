@@ -83,9 +83,9 @@ export default function AvaliacoesPremium() {
   const scores = useMemo(
     () =>
       data
-        ? computePremiumScores(funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef)
+        ? computePremiumScores(funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno)
         : null,
-    [data, funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef],
+    [data, funcionalDaData, composicaoDaData, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno],
   );
   const recomendacoes = useMemo(
     () => (scores && data ? gerarRecomendacoes(scores, funcionalDaData, composicaoDaData, exerciciosVinculados) : []),
