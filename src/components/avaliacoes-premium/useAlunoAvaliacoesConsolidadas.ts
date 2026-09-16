@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import type { AssimetriaReferenceData, ForcaInput, MetricInput, MobilidadeReferenceData, ReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import { ALL_FUNCTIONAL_METRICS, criarReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { ALL_FUNCTIONAL_METRICS, ASSIMETRIA_ABSOLUTA, criarReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { FAIXAS_ETARIAS, type FaixaEtaria } from "@/lib/faixaEtaria";
 
 export interface ForcaSavedRow {
@@ -262,7 +262,13 @@ function avisarMetricasFaltantes(
   ref: Record<string, { M: ReferenciaFaixas; F: ReferenciaFaixas }>,
   tabela: string,
 ) {
-  const faltantes = ALL_FUNCTIONAL_METRICS.filter((metrica) => {
+  // Na tabela de assimetria, métricas avaliadas por diferença absoluta em graus
+  // (ex.: Flexibilidade Psoas) não têm amostras por design — ausência esperada.
+  const metricasEsperadas =
+    tabela === "mobilidade_assimetria_fortem"
+      ? ALL_FUNCTIONAL_METRICS.filter((metrica) => !(metrica in ASSIMETRIA_ABSOLUTA))
+      : ALL_FUNCTIONAL_METRICS;
+  const faltantes = metricasEsperadas.filter((metrica) => {
     const bucket = ref[metrica];
     return !bucket || (bucket.M.todos.length === 0 && bucket.F.todos.length === 0);
   });
