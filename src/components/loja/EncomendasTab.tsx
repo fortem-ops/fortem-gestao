@@ -57,6 +57,8 @@ type Linha = {
   tamanho: string;
   quantidade: number;
   valorItens: number;
+  valorFinalPedido: number;
+  resumoPedido: string;
   valorRecebido: number;
   cupom: string | null;
   brinde: string | null;
@@ -382,8 +384,8 @@ export function EncomendasTab() {
                                 setBaixa({
                                   id: l.pedidoId,
                                   nome: l.cliente,
-                                  valor_final: l.valorItens,
-                                  resumo: `${l.quantidade}x ${l.produto} (${l.cor} / ${l.tamanho})`,
+                                  valor_final: l.valorFinalPedido,
+                                  resumo: l.resumoPedido,
                                 })
                               }
                               title="Dar baixa (pagamento presencial)"
