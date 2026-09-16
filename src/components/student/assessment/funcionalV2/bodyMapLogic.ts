@@ -83,7 +83,42 @@ const CLASS_SCORE: Record<AssessmentClassification, number> = {
   Fraco: 25,
 };
 
-export type MobilidadeReferenceData = Record<string, { M: number[]; F: number[] }>;
+/**
+ * Arrays ordenados de referência por faixa etária, mais "todos" (todas as linhas
+ * daquele sexo, incluindo as de faixa nula) — "todos" é o fallback e reproduz
+ * exatamente a curva usada antes da segmentação por idade.
+ */
+export interface ReferenciaFaixas {
+  todos: number[];
+  "18-29": number[];
+  "30-44": number[];
+  "45+": number[];
+}
+
+export type MobilidadeReferenceData = Record<string, { M: ReferenciaFaixas; F: ReferenciaFaixas }>;
+
+/** Amostra mínima para um array de referência ser considerado utilizável. */
+export const REF_MIN_AMOSTRA = 15;
+
+export function criarReferenciaFaixas(): ReferenciaFaixas {
+  return { todos: [], "18-29": [], "30-44": [], "45+": [] };
+}
+
+/**
+ * Escolhe o array de referência: a faixa etária quando tem amostra suficiente,
+ * senão o "todos" (também sujeito ao corte mínimo).
+ */
+export function arrayReferencia(
+  bucket: ReferenciaFaixas | undefined,
+  faixa?: FaixaEtaria | null,
+): number[] | null {
+  if (!bucket) return null;
+  if (faixa) {
+    const arr = bucket[faixa];
+    if (arr && arr.length >= REF_MIN_AMOSTRA) return arr;
+  }
+  return bucket.todos && bucket.todos.length >= REF_MIN_AMOSTRA ? bucket.todos : null;
+}
 
 /** Métricas onde valor MENOR é melhor (hoje só Psoas — teste de encurtamento). */
 const METRICAS_INVERTIDAS = new Set(["Flexibilidade Psoas"]);
@@ -94,7 +129,8 @@ export function metricaInvertida(metric: string): boolean {
 }
 
 /**
- * Percentil do valor do aluno dentro da base interna Fortem (por métrica/sexo).
+ * Percentil do valor do aluno dentro da base interna Fortem (por métrica/sexo,
+ * segmentado por faixa etária quando disponível).
  * Requer amostra mínima de 15 (mesmo limiar usado na Força) para evitar percentil
  * ruidoso em métricas com poucos dados ainda (ex: recém adicionadas).
  */
@@ -103,10 +139,11 @@ export function percentilMobilidade(
   sexo: "M" | "F",
   valor: number | null,
   ref: MobilidadeReferenceData | undefined,
+  faixa?: FaixaEtaria | null,
 ): number | null {
   if (valor === null || !ref) return null;
-  const arr = ref[metric]?.[sexo];
-  if (!arr || arr.length < 15) return null;
+  const arr = arrayReferencia(ref[metric]?.[sexo], faixa);
+  if (!arr) return null;
   let lo = 0, hi = arr.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
@@ -115,6 +152,7 @@ export function percentilMobilidade(
   const pct = Math.round((lo / arr.length) * 100);
   return METRICAS_INVERTIDAS.has(metric) ? 100 - pct : pct;
 }
+
 
 // ============================================================================
 // PONTO ÚNICO DE VERDADE DA ASSIMETRIA
