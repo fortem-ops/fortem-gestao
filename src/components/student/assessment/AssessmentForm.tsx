@@ -16,6 +16,7 @@ import { Save, FileDown, Loader2 } from "lucide-react";
 import { BodyDiagram } from "./BodyDiagram";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { DynamicAssessment } from "./DynamicAssessment";
+import { ReabilitacaoEvolucao, isProtocoloEvolucao } from "./ReabilitacaoEvolucao";
 import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
 import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import type { ExperimentalSchema } from "./experimentalTemplate";
