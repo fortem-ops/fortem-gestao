@@ -16,6 +16,7 @@ import { Save, FileDown, Loader2 } from "lucide-react";
 import { BodyDiagram } from "./BodyDiagram";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { DynamicAssessment } from "./DynamicAssessment";
+import { ReabilitacaoEvolucao, isProtocoloEvolucao } from "./ReabilitacaoEvolucao";
 import { fetchTipos, fetchProtocolos, type AvaliacaoTipo, type AvaliacaoProtocolo } from "@/lib/avaliacaoProtocolos";
 import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import type { ExperimentalSchema } from "./experimentalTemplate";
@@ -458,6 +459,19 @@ function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"aluno
     return <div className="glass-card rounded-lg p-6 text-center text-sm text-muted-foreground">Selecione um protocolo para começar.</div>;
   }
   const schema = (protocolo.schema as ExperimentalSchema) ?? { sections: [] };
+  if (tipo.slug === "reabilitacao" && isProtocoloEvolucao(protocolo.nome)) {
+    return (
+      <ReabilitacaoEvolucao
+        key={protocolo.id}
+        student={student}
+        tipoId={tipo.id}
+        tipoSlug={tipo.slug}
+        protocoloId={protocolo.id}
+        schema={schema}
+        permiteUpload={permiteUpload}
+      />
+    );
+  }
   return (
     <DynamicAssessment
       key={protocolo.id}
