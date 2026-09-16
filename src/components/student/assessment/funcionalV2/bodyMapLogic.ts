@@ -325,25 +325,35 @@ export interface ContagemAssimetrias {
   total: number;
 }
 
+/** Item de assimetria com a métrica de origem (permite escala em graus). */
+export interface AssimetriaItem {
+  metric?: string;
+  diff: number;
+}
+
 /**
- * Conta assimetrias por faixa (>20% / 10–20% / <10%).
- * Aceita um BodyMapAnalysis (usa `metricAsymmetries`) ou uma lista de percentuais
- * (ex.: assimetrias de força já calculadas).
+ * Conta assimetrias por faixa. Cada item é classificado pela regra da sua própria
+ * métrica (graus para métricas absolutas, percentual para as demais) — as contagens
+ * nunca somam escalas diferentes por engano.
+ * Aceita um BodyMapAnalysis, uma lista de percentuais ou uma lista de itens.
  */
 export function contarAssimetriasPorFaixa(
-  origem: BodyMapAnalysis | ReadonlyArray<number> | null | undefined,
+  origem: BodyMapAnalysis | ReadonlyArray<number | AssimetriaItem> | null | undefined,
 ): ContagemAssimetrias {
-  const pcts: number[] = !origem
+  const itens: AssimetriaItem[] = !origem
     ? []
     : Array.isArray(origem)
-    ? (origem as ReadonlyArray<number>).slice()
-    : (origem as BodyMapAnalysis).metricAsymmetries.map((a) => a.diff);
+    ? (origem as ReadonlyArray<number | AssimetriaItem>).map((x) =>
+        typeof x === "number" ? { diff: x } : x,
+      )
+    : (origem as BodyMapAnalysis).metricAsymmetries.map((a) => ({ metric: a.metric, diff: a.diff }));
 
-  const validos = pcts.filter((p) => typeof p === "number" && !Number.isNaN(p));
+  const validos = itens.filter((i) => i && typeof i.diff === "number" && !Number.isNaN(i.diff));
   let alta = 0, moderada = 0, baixa = 0;
-  for (const p of validos) {
-    if (p > 20) alta++;
-    else if (p >= 10) moderada++;
+  for (const i of validos) {
+    const nivel = nivelAssimetria(i.metric, i.diff);
+    if (nivel === "severa") alta++;
+    else if (nivel === "moderada") moderada++;
     else baixa++;
   }
   return { alta, moderada, baixa, total: validos.length };
