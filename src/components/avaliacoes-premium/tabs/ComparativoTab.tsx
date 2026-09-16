@@ -64,49 +64,52 @@ function nearest<T extends { data: string }>(
 }
 
 function funcRows(a: FuncionalSnapshot | null, b: FuncionalSnapshot | null): CompareRow[] {
-  const compA = a ? computePremiumScores(a, null) : null;
-  const compB = b ? computePremiumScores(b, null) : null;
   const rows: CompareRow[] = [
-    { label: "Score Mobilidade", a: compA?.mobilidade ?? null, b: compB?.mobilidade ?? null, suffix: "" },
-    { label: "Score Flexibilidade", a: compA?.flexibilidade ?? null, b: compB?.flexibilidade ?? null, suffix: "" },
-    { label: "Simetria", a: compA?.assimetria ?? null, b: compB?.assimetria ?? null, suffix: "" },
-    { label: "Risco (100 = baixíssimo)", a: compA?.risco ?? null, b: compB?.risco ?? null, suffix: "" },
     { label: "Nº métricas registradas", a: a?.metricas.length ?? null, b: b?.metricas.length ?? null, higherIsBetter: true, format: (v) => `${Math.round(v)}` },
   ];
-  // Métrica a métrica (média entre esquerdo/direito), igual ao padrão da Força
-  const media = (snap: FuncionalSnapshot | null, metric: string): number | null => {
+  // Métrica a métrica, com os lados separados (E/D)
+  const lado = (
+    snap: FuncionalSnapshot | null,
+    metric: string,
+    side: "left" | "right",
+  ): number | null => {
     const m = snap?.metricas.find((x) => x.metric === metric);
-    if (!m) return null;
-    const vals = [m.left, m.right].filter((v): v is number => typeof v === "number");
-    if (vals.length === 0) return null;
-    return vals.reduce((s, v) => s + v, 0) / vals.length;
+    const v = m?.[side];
+    return typeof v === "number" ? v : null;
   };
   ALL_FUNCTIONAL_METRICS.forEach((metric) => {
-    const ma = media(a, metric);
-    const mb = media(b, metric);
-    if (ma === null && mb === null) return;
-    rows.push({ label: `${metric} (média °)`, a: ma, b: mb, suffix: "°" });
+    ([
+      ["left", "E"],
+      ["right", "D"],
+    ] as const).forEach(([side, sigla]) => {
+      const va = lado(a, metric, side);
+      const vb = lado(b, metric, side);
+      if (va === null && vb === null) return;
+      rows.push({ label: `${metric} (${sigla})`, a: va, b: vb, suffix: "°" });
+    });
   });
   return rows;
 }
 
 
 function forcaRows(a: FuncionalSnapshot | null, b: FuncionalSnapshot | null): CompareRow[] {
-  const compA = a ? computePremiumScores(a, null) : null;
-  const compB = b ? computePremiumScores(b, null) : null;
-  const rows: CompareRow[] = [
-    { label: "Score Força (0–100)", a: compA?.forca ?? null, b: compB?.forca ?? null },
-  ];
-  // por exercício
+  const rows: CompareRow[] = [];
+  // por exercício, com os lados separados (E/D)
   const nomes = new Set<string>();
   a?.forca.forEach((e) => nomes.add(e.nome));
   b?.forca.forEach((e) => nomes.add(e.nome));
   nomes.forEach((nome) => {
     const ea = a?.forca.find((x) => x.nome === nome) ?? null;
     const eb = b?.forca.find((x) => x.nome === nome) ?? null;
-    const mediaA = ea ? (ea.direito_kg + ea.esquerdo_kg) / 2 : null;
-    const mediaB = eb ? (eb.direito_kg + eb.esquerdo_kg) / 2 : null;
-    rows.push({ label: `${nome} (média kg)`, a: mediaA, b: mediaB, suffix: " kg" });
+    ([
+      ["esquerdo_kg", "E"],
+      ["direito_kg", "D"],
+    ] as const).forEach(([campo, sigla]) => {
+      const va = typeof ea?.[campo] === "number" ? ea[campo] : null;
+      const vb = typeof eb?.[campo] === "number" ? eb[campo] : null;
+      if (va === null && vb === null) return;
+      rows.push({ label: `${nome} (${sigla})`, a: va, b: vb, suffix: " kg" });
+    });
   });
   return rows;
 }
