@@ -22,6 +22,7 @@ import {
   ALL_FUNCTIONAL_METRICS,
   METRIC_META,
   percentilMobilidade,
+  classificarAssimetria,
   getMetricDisplayLabel,
   type MetricInput,
   type MobilidadeReferenceData,
