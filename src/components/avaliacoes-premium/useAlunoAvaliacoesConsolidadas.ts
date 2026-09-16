@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import type { AssimetriaReferenceData, ForcaInput, MetricInput, MobilidadeReferenceData, ReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import { criarReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { ALL_FUNCTIONAL_METRICS, criarReferenciaFaixas } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { FAIXAS_ETARIAS, type FaixaEtaria } from "@/lib/faixaEtaria";
 
 export interface ForcaSavedRow {
@@ -174,10 +174,12 @@ export function useMobilidadeReferenceData() {
     queryKey: ["mobilidade-referencia-fortem-v2"],
     staleTime: 1000 * 60 * 60,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mobilidade_amostras_fortem")
-        .select("metrica, sexo, valor, faixa_etaria");
-      if (error) throw error;
+      const data = await carregarTodasAsPaginas<{
+        metrica: string;
+        sexo: string;
+        valor: number | string;
+        faixa_etaria: string | null;
+      }>("mobilidade_amostras_fortem", "metrica, sexo, valor, faixa_etaria");
       const ref: MobilidadeReferenceData = {};
       for (const row of data ?? []) {
         const bucket = (ref[row.metrica] ??= { M: criarReferenciaFaixas(), F: criarReferenciaFaixas() });
@@ -189,6 +191,7 @@ export function useMobilidadeReferenceData() {
         if (faixa && faixa in porSexo) porSexo[faixa].push(valor);
       }
       ordenarReferencia(ref);
+      avisarMetricasFaltantes(ref, "mobilidade_amostras_fortem");
       return ref;
     },
   });
@@ -199,10 +202,12 @@ export function useMobilidadeAssimetriaReferenceData() {
     queryKey: ["mobilidade-assimetria-referencia-fortem-v2"],
     staleTime: 1000 * 60 * 60,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mobilidade_assimetria_fortem")
-        .select("metrica, sexo, assimetria_pct, faixa_etaria");
-      if (error) throw error;
+      const data = await carregarTodasAsPaginas<{
+        metrica: string;
+        sexo: string;
+        assimetria_pct: number | string;
+        faixa_etaria: string | null;
+      }>("mobilidade_assimetria_fortem", "metrica, sexo, assimetria_pct, faixa_etaria");
       const ref: AssimetriaReferenceData = {};
       for (const row of data ?? []) {
         const bucket = (ref[row.metrica] ??= { M: criarReferenciaFaixas(), F: criarReferenciaFaixas() });
@@ -214,9 +219,58 @@ export function useMobilidadeAssimetriaReferenceData() {
         if (faixa && faixa in porSexo) porSexo[faixa].push(valor);
       }
       ordenarReferencia(ref);
+      avisarMetricasFaltantes(ref, "mobilidade_assimetria_fortem");
       return ref;
     },
   });
+}
+
+const PAGINA_REFERENCIA = 1000;
+const MAX_PAGINAS_REFERENCIA = 20;
+
+/**
+ * O PostgREST corta respostas em 1.000 linhas. As tabelas de referência já
+ * passam disso, então é obrigatório paginar com `range` e uma ordenação
+ * estável (metrica, id) para não repetir nem pular linhas entre as páginas.
+ */
+async function carregarTodasAsPaginas<T>(
+  tabela: "mobilidade_amostras_fortem" | "mobilidade_assimetria_fortem",
+  colunas: string,
+): Promise<T[]> {
+  const todas: T[] = [];
+  for (let pagina = 0; pagina < MAX_PAGINAS_REFERENCIA; pagina++) {
+    const inicio = pagina * PAGINA_REFERENCIA;
+    const { data, error } = await supabase
+      .from(tabela)
+      .select(colunas)
+      .order("metrica", { ascending: true })
+      .order("id", { ascending: true })
+      .range(inicio, inicio + PAGINA_REFERENCIA - 1);
+    if (error) throw error;
+    const linhas = (data ?? []) as unknown as T[];
+    todas.push(...linhas);
+    if (linhas.length < PAGINA_REFERENCIA) return todas;
+  }
+  console.warn(
+    `[referencia-fortem] limite de ${MAX_PAGINAS_REFERENCIA} páginas atingido em ${tabela}; a base de referência pode estar incompleta.`,
+  );
+  return todas;
+}
+
+/** Avisa se alguma das nove métricas funcionais ficou sem amostra na referência. */
+function avisarMetricasFaltantes(
+  ref: Record<string, { M: ReferenciaFaixas; F: ReferenciaFaixas }>,
+  tabela: string,
+) {
+  const faltantes = ALL_FUNCTIONAL_METRICS.filter((metrica) => {
+    const bucket = ref[metrica];
+    return !bucket || (bucket.M.todos.length === 0 && bucket.F.todos.length === 0);
+  });
+  if (faltantes.length > 0) {
+    console.warn(
+      `[referencia-fortem] ${tabela}: sem amostras para ${faltantes.length} métrica(s): ${faltantes.join(", ")}`,
+    );
+  }
 }
 
 /** Ordena ascendente todos os arrays (por sexo e faixa) para busca binária. */
