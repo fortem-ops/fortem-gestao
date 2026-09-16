@@ -190,7 +190,7 @@ describe("Contagem de assimetrias", () => {
       { metric: OMBRO, diff: 4 },
       { metric: OMBRO, diff: 25 },
     ]);
-    expect(contagem).toEqual({ alta: 2, moderada: 2, baixa: 1, total: 5 - 1 });
+    expect(contagem).toEqual({ alta: 2, moderada: 1, baixa: 1, total: 4 });
   });
 
   it("Psoas de 4° não é assimetria baixa só por ser menor que 10", () => {
@@ -284,11 +284,11 @@ describe("Faixa etária e sexo do cadastro", () => {
 
   it("aos 18 entra na faixa 18-29 e aos 29 ainda está nela", () => {
     expect(faixaEtariaDe("2008-09-16", hoje)).toBe("18-29");
-    expect(faixaEtariaDe("1996-09-16", hoje)).toBe("18-29");
+    expect(faixaEtariaDe("1997-09-16", hoje)).toBe("18-29");
   });
 
   it("aos 30 passa para 30-44 e aos 44 ainda está nela", () => {
-    expect(faixaEtariaDe("1996-09-15", hoje)).toBe("30-44");
+    expect(faixaEtariaDe("1996-09-16", hoje)).toBe("30-44");
     expect(faixaEtariaDe("1982-09-16", hoje)).toBe("30-44");
   });
 
