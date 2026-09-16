@@ -11,6 +11,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { classifyAngle, assessmentReferences, getClassificationColor } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { AvaliacaoAnexos } from "../AvaliacaoAnexos";
+import { useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 import { BodyMap } from "./BodyMap";
 import {
   analyze,
@@ -85,7 +87,15 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
     }).filter((x) => x.direito_kg !== null && x.esquerdo_kg !== null),
   [forca]);
 
-  const analysis = useMemo(() => analyze(rows, "asymmetry", forcaInputs), [rows, forcaInputs]);
+  const { data: mobilidadeRef } = useMobilidadeReferenceData();
+  const { data: assimetriaRef } = useMobilidadeAssimetriaReferenceData();
+  const sexoAluno = sexoDe(student?.sexo);
+  const faixaAluno = faixaEtariaDe(student?.data_nascimento);
+
+  const analysis = useMemo(
+    () => analyze(rows, "asymmetry", forcaInputs, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno),
+    [rows, forcaInputs, sexoAluno, mobilidadeRef, assimetriaRef, faixaAluno],
+  );
 
   async function handlePdfUpload(file: File) {
     if (!user) { toast.error("Usuário não autenticado"); return; }
@@ -181,7 +191,7 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
 
   return (
     <div className="space-y-6">
-      <BodyMap metrics={rows} forcaExercises={forcaInputs} />
+      <BodyMap metrics={rows} forcaExercises={forcaInputs} sexo={sexoAluno} faixaEtaria={faixaAluno} referenceData={mobilidadeRef} assimetriaReferenceData={assimetriaRef} />
 
       <div className="glass-card rounded-lg overflow-hidden">
         <table className="w-full">

@@ -23,6 +23,8 @@ import { fetchExperimentalSchema, migrateLegacyDados, ensureFaseInicialQuestion,
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
+import { useMobilidadeReferenceData, useMobilidadeAssimetriaReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 
 interface Props {
@@ -43,6 +45,8 @@ interface FuncMetric {
 export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: mobilidadeRef } = useMobilidadeReferenceData();
+  const { data: assimetriaRef } = useMobilidadeAssimetriaReferenceData();
   const [editing, setEditing] = useState(false);
 
   const isFuncional = avaliacao?.tipo === "funcional";
@@ -190,7 +194,13 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
 
         {avaliacao.tipo === "funcional_v2" ? (
-          <FuncionalV2Viewer avaliacao={avaliacao} />
+          <FuncionalV2Viewer
+            avaliacao={avaliacao}
+            sexo={sexoDe(student?.sexo)}
+            faixaEtaria={faixaEtariaDe(student?.data_nascimento)}
+            referenceData={mobilidadeRef}
+            assimetriaReferenceData={assimetriaRef}
+          />
         ) : isExperimental && editing ? (
           <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
         ) : isDynamic && (expSchema || schemaPending) ? (

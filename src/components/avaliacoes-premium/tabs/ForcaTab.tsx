@@ -7,7 +7,7 @@ import { LadoLegend } from "../LadoLegend";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { useMemo } from "react";
 import { format, parseISO } from "date-fns";
-import { idadeAtual } from "@/lib/faixaEtaria";
+import { idadeAtual, sexoDe } from "@/lib/faixaEtaria";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -34,9 +34,7 @@ function classFromDiff(diff: number): { label: string; cls: string } {
 export function ForcaTab({ alunoId, latest, history, aluno, readOnly = false }: Props) {
   const exercicios = latest?.forca ?? [];
 
-  const sexoRpc: "M" | "F" | null =
-    aluno?.sexo?.toLowerCase().startsWith("m") ? "M" :
-    aluno?.sexo?.toLowerCase().startsWith("f") ? "F" : null;
+  const sexoRpc: "M" | "F" | null = sexoDe(aluno?.sexo) ?? null;
   const idadeRpc: number | null = idadeAtual(aluno?.data_nascimento);
 
   const { data: comparativos } = useQuery({

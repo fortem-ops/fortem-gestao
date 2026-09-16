@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { ShieldAlert, Layers } from "lucide-react";
 import { BodyMapSVG } from "./BodyMapSVG";
-import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type BodyMapAnalysis, type ContagemAssimetrias, type ForcaInput, type Layer, type MetricInput, type RegionId } from "./bodyMapLogic";
+import { analyze, applyForcaToRegions, buildForcaAttentionList, buildMetricAttentionList, corGradienteAssimetria, type AssimetriaReferenceData, type BodyMapAnalysis, type ContagemAssimetrias, type ForcaInput, type Layer, type MetricInput, type MobilidadeReferenceData, type RegionId } from "./bodyMapLogic";
+import type { FaixaEtaria } from "@/lib/faixaEtaria";
 import { useBodyMapShapes } from "./useBodyMapShapes";
 
 import { RegionListPanel, type RegionListItem } from "./RegionListPanel";
@@ -47,6 +48,14 @@ interface Props {
    * antigo). "resultados" reorganiza o mapa no formato do dashboard de Resultados.
    */
   layout?: "default" | "resultados";
+  /**
+   * Contexto de comparação com a base Fortem (opcional). Quando não fornecido,
+   * a análise cai nos cortes fixos — comportamento original preservado.
+   */
+  sexo?: "M" | "F";
+  faixaEtaria?: FaixaEtaria | null;
+  referenceData?: MobilidadeReferenceData;
+  assimetriaReferenceData?: AssimetriaReferenceData;
 }
 
 
@@ -280,6 +289,10 @@ export function BodyMap({
   layer: layerProp,
   onLayerChange,
   layout = "default",
+  sexo,
+  faixaEtaria,
+  referenceData,
+  assimetriaReferenceData,
 }: Props) {
   
   const [layerLocal, setLayerLocal] = useState<Layer>("mobility");
@@ -290,12 +303,12 @@ export function BodyMap({
   const { shapesMap } = useBodyMapShapes();
 
   const analysis = useMemo(() => {
-    const base = analyze(metrics, layer, forcaExercises);
+    const base = analyze(metrics, layer, forcaExercises, sexo, referenceData, assimetriaReferenceData, faixaEtaria);
     if (layer === "strength" && forcaExercises && forcaExercises.length) {
       return applyForcaToRegions(base, forcaExercises);
     }
     return base;
-  }, [metrics, layer, forcaExercises]);
+  }, [metrics, layer, forcaExercises, sexo, referenceData, assimetriaReferenceData, faixaEtaria]);
   const risk = RISK_STYLE[analysis.riskLevel];
   const riskDisplay = canonical ? RISK_STYLE[canonical.riskLevel] : risk;
   const asymmetryCountDisplay = canonical ? canonical.asymmetryCount : analysis.asymmetries.length;

@@ -23,3 +23,15 @@ export function faixaEtariaDe(dataNascimento: string | null | undefined): FaixaE
   if (idade <= 44) return "30-44";
   return "45+";
 }
+
+/**
+ * Sexo normalizado para as bases de referência ("M" | "F").
+ * Mesma regra usada historicamente nas telas: compara o início do texto do cadastro.
+ * Retorna undefined quando o cadastro não tem sexo ou tem valor irreconhecível.
+ */
+export function sexoDe(sexo: string | null | undefined): "M" | "F" | undefined {
+  const s = sexo?.toLowerCase();
+  if (s?.startsWith("f")) return "F";
+  if (s?.startsWith("m")) return "M";
+  return undefined;
+}
