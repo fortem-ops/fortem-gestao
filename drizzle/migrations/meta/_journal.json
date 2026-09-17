@@ -85,6 +85,13 @@
       "when": 1789651792455,
       "tag": "0011_reativar_tarefas_reavaliacao",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789652737341,
+      "tag": "0012_tarefas_pipeline_admin_e_exclusao",
+      "breakpoints": true
     }
   ]
 }

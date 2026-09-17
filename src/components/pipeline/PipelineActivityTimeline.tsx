@@ -38,7 +38,6 @@ export function PipelineActivityTimeline({ alunoId }: { alunoId: string }) {
           .select("id, titulo, descricao, tipo_atividade, updated_at, responsavel_id, status")
           .eq("aluno_id", alunoId)
           .eq("origem", "pipeline")
-          .eq("status", "concluida")
           .order("updated_at", { ascending: false }),
       ]);
 

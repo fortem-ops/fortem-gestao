@@ -38,24 +38,23 @@ function TaskItem({
   highlight,
 }: {
   task: TaskRow;
-  onToggle: (id: string, status: string) => void;
+  onToggle: (id: string) => void;
   onChanged: () => void;
-  highlight?: "overdue" | "done";
+  highlight?: "overdue";
 }) {
-  const isDone = task.status === "concluida";
-  const Icon = highlight === "overdue" ? AlertCircle : isDone ? CheckCircle : Clock;
+  const Icon = highlight === "overdue" ? AlertCircle : Clock;
   const iconColor =
-    highlight === "overdue" ? "text-destructive" : isDone ? "text-success" : "text-muted-foreground";
+    highlight === "overdue" ? "text-destructive" : "text-muted-foreground";
   const cfg = ATIVIDADE_CONFIG[(task.tipo_atividade as TipoAtividade) || "tarefa"];
   const AtvIcon = cfg?.icon;
 
   return (
     <div className="rounded-lg border border-border bg-card/50 p-3 flex items-start gap-3">
-      <button onClick={() => onToggle(task.id, task.status)} className="mt-0.5 shrink-0" title={isDone ? "Reabrir" : "Concluir"}>
+      <button onClick={() => onToggle(task.id)} className="mt-0.5 shrink-0" title="Concluir">
         <Icon className={`w-4 h-4 ${iconColor}`} />
       </button>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
+        <p className="text-sm font-medium text-foreground">
           {task.titulo}
         </p>
         {task.descricao && <p className="text-xs text-muted-foreground whitespace-pre-line">{task.descricao}</p>}
@@ -67,12 +66,10 @@ function TaskItem({
           {task.data_limite && ` · ${new Date(task.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`}
         </p>
       </div>
-      {!isDone && (
-        <RescheduleDialog
-          task={{ id: task.id, descricao: task.descricao, data_limite: task.data_limite }}
-          onDone={onChanged}
-        />
-      )}
+      <RescheduleDialog
+        task={{ id: task.id, descricao: task.descricao, data_limite: task.data_limite }}
+        onDone={onChanged}
+      />
       {task.automatica && (
         <Badge variant="outline" className="text-[10px] shrink-0 border-info/30 text-info bg-info/10">Automática</Badge>
       )}
@@ -95,6 +92,7 @@ export function PipelineTasksPanel({ student }: { student: Tables<"alunos"> }) {
         .select("*")
         .eq("aluno_id", student.id)
         .eq("origem", "pipeline")
+        .neq("status", "concluida")
         .order("data_limite", { ascending: true, nullsFirst: false });
       if (error) throw error;
       if (!data?.length) return [] as TaskRow[];
@@ -112,21 +110,21 @@ export function PipelineTasksPanel({ student }: { student: Tables<"alunos"> }) {
     qc.invalidateQueries({ queryKey: ["pipeline-atividades-timeline", student.id] });
     qc.invalidateQueries({ queryKey: ["pipeline-lead-summary", student.id] });
     qc.invalidateQueries({ queryKey: ["tarefas-all"] });
+    qc.invalidateQueries({ queryKey: ["tarefas-badge"] });
     qc.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
     qc.invalidateQueries({ queryKey: ["registros-count", "tarefas", student.id] });
   }
 
-  async function handleToggle(id: string, currentStatus: string) {
-    const newStatus = currentStatus === "concluida" ? "pendente" : "concluida";
-    const { error } = await supabase.from("tarefas").update({ status: newStatus }).eq("id", id);
-    if (error) { toast.error("Erro ao atualizar tarefa"); return; }
+  async function handleToggle(id: string) {
+    const { error } = await supabase.from("tarefas").delete().eq("id", id);
+    if (error) { toast.error("Erro ao concluir tarefa"); return; }
+    toast.success("Tarefa concluída");
     invalidate();
   }
 
   const todayStr = new Date().toISOString().split("T")[0];
-  const overdue = tasks.filter((t) => t.status !== "concluida" && t.data_limite && t.data_limite < todayStr);
-  const scheduled = tasks.filter((t) => t.status !== "concluida" && (!t.data_limite || t.data_limite >= todayStr));
-  const done = tasks.filter((t) => t.status === "concluida");
+  const overdue = tasks.filter((t) => t.data_limite && t.data_limite < todayStr);
+  const scheduled = tasks.filter((t) => !t.data_limite || t.data_limite >= todayStr);
 
   return (
     <Card>
@@ -159,14 +157,6 @@ export function PipelineTasksPanel({ student }: { student: Tables<"alunos"> }) {
                 scheduled.map((t) => <TaskItem key={t.id} task={t} onToggle={handleToggle} onChanged={invalidate} />)
               )}
             </section>
-            {done.length > 0 && (
-              <section className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Concluídas ({done.length})</h4>
-                {done.map((t) => (
-                  <TaskItem key={t.id} task={t} onToggle={handleToggle} onChanged={invalidate} highlight="done" />
-                ))}
-              </section>
-            )}
           </>
         )}
       </CardContent>

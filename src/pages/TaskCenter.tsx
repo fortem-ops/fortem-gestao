@@ -20,6 +20,7 @@ import { RescheduleDialog } from "@/components/tasks/RescheduleDialog";
 import { getTaskActionTarget } from "@/lib/taskAction";
 import { AtividadeTipoSelector } from "@/components/pipeline/AtividadeTipoSelector";
 import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -50,7 +51,7 @@ function TaskList({
   onRescheduled,
 }: {
   tasks: TaskRow[];
-  onToggle: (id: string, currentStatus: string) => void;
+  onToggle: (id: string) => void;
   onRescheduled: () => void;
 }) {
   const navigate = useNavigate();
@@ -66,10 +67,10 @@ function TaskList({
     <div className="space-y-2">
       {tasks.map((task) => {
         const isOverdue =
-          task.status !== "concluida" &&
           task.data_limite &&
           task.data_limite < new Date().toISOString().split("T")[0];
-        const isDone = task.status === "concluida";
+        const isDone = false;
+
 
         const actionTarget = getTaskActionTarget(task);
         const fallbackTarget = task.aluno_id ? `/alunos/${task.aluno_id}` : null;
@@ -82,14 +83,12 @@ function TaskList({
           >
             <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
               <button
-                onClick={() => onToggle(task.id, task.status)}
+                onClick={() => onToggle(task.id)}
                 className="mt-0.5 shrink-0"
-                title={isDone ? "Reabrir tarefa" : "Concluir tarefa"}
+                title="Concluir tarefa"
               >
                 {isOverdue ? (
                   <AlertCircle className="w-4 h-4 text-destructive" />
-                ) : isDone ? (
-                  <CheckCircle className="w-4 h-4 text-success" />
                 ) : (
                   <Clock className="w-4 h-4 text-muted-foreground" />
                 )}
@@ -305,15 +304,9 @@ export default function TaskCenter() {
   const { user } = useAuth();
   const [selectedProfessorId, setSelectedProfessorId] = useState<string>("self");
 
-  const { data: isCoordAdmin } = useQuery({
-    queryKey: ["taskcenter-isCoordAdmin", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
-      return !!data;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60_000,
-  });
+  const { data: roles } = useUserRoles();
+  const isCoordAdmin = !!roles?.isCoordAdmin;
+  const isAdmin = !!roles?.isAdmin;
 
   const { data: professors = [] } = useQuery({
     queryKey: ["taskcenter-professors"],
@@ -343,8 +336,8 @@ export default function TaskCenter() {
     : user?.id || null;
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tarefas-all", effectiveResponsavelId],
-    enabled: !!user,
+    queryKey: ["tarefas-all", effectiveResponsavelId, isAdmin],
+    enabled: !!user && !!roles,
     queryFn: async () => {
       const data = await carregarTodasAsPaginas<Tables<"tarefas">>({
         tabela: "tarefas",
@@ -353,8 +346,13 @@ export default function TaskCenter() {
           { coluna: "data_limite", ascending: true, nullsFirst: false },
           { coluna: "id" },
         ],
-        filtros: (q: any) =>
-          effectiveResponsavelId ? q.eq("responsavel_id", effectiveResponsavelId) : q,
+        filtros: (q: any) => {
+          let query = q.neq("status", "concluida");
+          // Tarefas comerciais (pipeline) são exclusivas de administradores
+          if (!isAdmin) query = query.neq("origem", "pipeline");
+          if (effectiveResponsavelId) query = query.eq("responsavel_id", effectiveResponsavelId);
+          return query;
+        },
       });
       if (!data.length) return [];
 
@@ -398,31 +396,23 @@ export default function TaskCenter() {
     },
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: async ({
-      id,
-      newStatus,
-    }: {
-      id: string;
-      newStatus: string;
-    }) => {
-      const { error } = await supabase
-        .from("tarefas")
-        .update({ status: newStatus })
-        .eq("id", id);
+  const concluirMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tarefas").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Tarefa concluída");
       queryClient.invalidateQueries({ queryKey: ["tarefas-all"] });
       queryClient.invalidateQueries({ queryKey: ["tarefas-badge"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-alerts"] });
     },
-    onError: () => toast.error("Erro ao atualizar tarefa"),
+    onError: () => toast.error("Erro ao concluir tarefa"),
   });
 
-  const handleToggle = (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === "concluida" ? "pendente" : "concluida";
-    toggleMutation.mutate({ id, newStatus });
+  const handleToggle = (id: string) => {
+    concluirMutation.mutate(id);
   };
 
   const handleRescheduled = () => {
@@ -435,10 +425,7 @@ export default function TaskCenter() {
   const pending = tasks.filter(
     (t) => t.status === "pendente" && !t.atrasada
   );
-  const overdue = tasks.filter(
-    (t) => t.status !== "concluida" && t.atrasada
-  );
-  const done = tasks.filter((t) => t.status === "concluida");
+  const overdue = tasks.filter((t) => t.atrasada);
   const auto = tasks.filter((t) => t.automatica);
 
   return (
@@ -490,9 +477,6 @@ export default function TaskCenter() {
           <TabsTrigger value="automaticas">
             Automáticas ({auto.length})
           </TabsTrigger>
-          <TabsTrigger value="concluidas">
-            Concluídas ({done.length})
-          </TabsTrigger>
           <TabsTrigger value="todas">Todas</TabsTrigger>
         </TabsList>
         <TabsContent value="pendentes">
@@ -503,9 +487,6 @@ export default function TaskCenter() {
         </TabsContent>
         <TabsContent value="automaticas">
           <TaskList tasks={auto} onToggle={handleToggle} onRescheduled={handleRescheduled} />
-        </TabsContent>
-        <TabsContent value="concluidas">
-          <TaskList tasks={done} onToggle={handleToggle} onRescheduled={handleRescheduled} />
         </TabsContent>
         <TabsContent value="todas">
           <TaskList tasks={tasks} onToggle={handleToggle} onRescheduled={handleRescheduled} />
