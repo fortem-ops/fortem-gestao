@@ -353,12 +353,9 @@ export default function CarteiraAlunos() {
                           </TableCell>
                         )}
                         <TableCell>
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{aluno.nome}</p>
-                              <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal === 5 ? "Livre" : `${aluno.frequencia_semanal || 0}x/semana`}</p>
-                            </div>
-                            <Badge variant="outline" className="status-active text-xs shrink-0 ml-auto">Ativo</Badge>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{aluno.nome}</p>
+                            <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal === 5 ? "Livre" : `${aluno.frequencia_semanal || 0}x/semana`}</p>
                           </div>
                         </TableCell>
                         <TableCell>
