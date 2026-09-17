@@ -8669,6 +8669,7 @@ export type Database = {
         }
         Returns: string
       }
+      fn_gerar_tarefas_pos_experimental: { Args: never; Returns: Json }
       fn_gerar_tarefas_relatorio_tecnico: {
         Args: { _data?: string }
         Returns: number

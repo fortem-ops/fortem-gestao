@@ -414,6 +414,7 @@ export default function TaskCenter() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tarefas-all"] });
+      queryClient.invalidateQueries({ queryKey: ["tarefas-badge"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
     },
     onError: () => toast.error("Erro ao atualizar tarefa"),
@@ -426,6 +427,7 @@ export default function TaskCenter() {
 
   const handleRescheduled = () => {
     queryClient.invalidateQueries({ queryKey: ["tarefas-all"] });
+    queryClient.invalidateQueries({ queryKey: ["tarefas-badge"] });
     queryClient.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
     queryClient.invalidateQueries({ queryKey: ["dashboard-alerts"] });
   };

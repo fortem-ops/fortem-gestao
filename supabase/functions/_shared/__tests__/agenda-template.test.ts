@@ -305,7 +305,7 @@ describe("buildAgendaContext", () => {
       alunos: { id: "aluno-1", nome: "Gustavo", data_nascimento: "1990-05-10", telefone: "5551988887777" },
       profiles: { user_id: "prof-1", full_name: "Carlos Silva", phone: "5551977776666", specialty: "fisioterapia" },
       prospect_anamnese: { limitacoes: "Dor lombar", atividade_fisica: "Corrida", objetivo_treinamento: "Hipertrofia" },
-      avaliacoes: { data_avaliacao: "2026-03-01" },
+      avaliacoes: { data: "2026-03-01" },
       pipeline_metadata: { origem_lead: "Instagram" },
       user_roles: { role: "fisioterapeuta" },
     });

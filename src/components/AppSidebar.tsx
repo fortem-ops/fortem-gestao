@@ -3,6 +3,7 @@ import { useNotificacaoRealtime, useUnreadCount } from "@/hooks/useNotificacoes"
 import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
 import { usePontoStatus } from "@/hooks/usePontoStatus";
+import { useTarefasBadge } from "@/hooks/useTarefasBadge";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
@@ -26,7 +27,6 @@ import { Button } from "@/components/ui/button";
 /* ─── Principal ─── */
 const principalItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
   { title: "Notificar", url: "/notificar", icon: Bell, badge: "unread" as const },
   { title: "Comissionamentos", url: "/comissionamentos", icon: DollarSign },
 ];
@@ -144,6 +144,45 @@ function SidebarItem({ item, isActive }: { item: { title: string; url: string; i
     </SidebarMenuItem>
   );
 }
+
+function TarefasSidebarItem({ isActive }: { isActive: (p: string) => boolean }) {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  const { data } = useTarefasBadge();
+  const atrasadas = data?.atrasadas ?? 0;
+  const automaticas = data?.automaticas ?? 0;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive("/tarefas")}>
+        <NavLink to="/tarefas" end={false} activeClassName="bg-sidebar-accent text-sidebar-primary">
+          <ClipboardList className="mr-2 h-4 w-4" />
+          {!collapsed && <span className="flex-1">Tarefas</span>}
+          {(atrasadas > 0 || automaticas > 0) && (
+            <span className={`${collapsed ? "absolute right-1 top-1" : "ml-auto"} flex items-center gap-1`}>
+              {atrasadas > 0 && (
+                <span
+                  title="Tarefas atrasadas"
+                  className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold"
+                >
+                  {atrasadas > 99 ? "99+" : atrasadas}
+                </span>
+              )}
+              {!collapsed && automaticas > 0 && (
+                <span
+                  title="Tarefas automáticas"
+                  className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold"
+                >
+                  {automaticas > 99 ? "99+" : automaticas}
+                </span>
+              )}
+            </span>
+          )}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 function WhatsAppSidebarItem({ isActive, enabled }: { isActive: (p: string) => boolean; enabled: boolean }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -243,6 +282,8 @@ export function AppSidebar() {
                   isActive={isActive}
                 />
               )}
+
+              <TarefasSidebarItem isActive={isActive} />
 
               {principalItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
