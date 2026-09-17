@@ -83,14 +83,12 @@ function TaskList({
           >
             <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
               <button
-                onClick={() => onToggle(task.id, task.status)}
+                onClick={() => onToggle(task.id)}
                 className="mt-0.5 shrink-0"
-                title={isDone ? "Reabrir tarefa" : "Concluir tarefa"}
+                title="Concluir tarefa"
               >
                 {isOverdue ? (
                   <AlertCircle className="w-4 h-4 text-destructive" />
-                ) : isDone ? (
-                  <CheckCircle className="w-4 h-4 text-success" />
                 ) : (
                   <Clock className="w-4 h-4 text-muted-foreground" />
                 )}
