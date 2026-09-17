@@ -92,6 +92,7 @@ export function PipelineTasksPanel({ student }: { student: Tables<"alunos"> }) {
         .select("*")
         .eq("aluno_id", student.id)
         .eq("origem", "pipeline")
+        .neq("status", "concluida")
         .order("data_limite", { ascending: true, nullsFirst: false });
       if (error) throw error;
       if (!data?.length) return [] as TaskRow[];
@@ -109,21 +110,21 @@ export function PipelineTasksPanel({ student }: { student: Tables<"alunos"> }) {
     qc.invalidateQueries({ queryKey: ["pipeline-atividades-timeline", student.id] });
     qc.invalidateQueries({ queryKey: ["pipeline-lead-summary", student.id] });
     qc.invalidateQueries({ queryKey: ["tarefas-all"] });
+    qc.invalidateQueries({ queryKey: ["tarefas-badge"] });
     qc.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
     qc.invalidateQueries({ queryKey: ["registros-count", "tarefas", student.id] });
   }
 
-  async function handleToggle(id: string, currentStatus: string) {
-    const newStatus = currentStatus === "concluida" ? "pendente" : "concluida";
-    const { error } = await supabase.from("tarefas").update({ status: newStatus }).eq("id", id);
-    if (error) { toast.error("Erro ao atualizar tarefa"); return; }
+  async function handleToggle(id: string) {
+    const { error } = await supabase.from("tarefas").delete().eq("id", id);
+    if (error) { toast.error("Erro ao concluir tarefa"); return; }
+    toast.success("Tarefa concluída");
     invalidate();
   }
 
   const todayStr = new Date().toISOString().split("T")[0];
-  const overdue = tasks.filter((t) => t.status !== "concluida" && t.data_limite && t.data_limite < todayStr);
-  const scheduled = tasks.filter((t) => t.status !== "concluida" && (!t.data_limite || t.data_limite >= todayStr));
-  const done = tasks.filter((t) => t.status === "concluida");
+  const overdue = tasks.filter((t) => t.data_limite && t.data_limite < todayStr);
+  const scheduled = tasks.filter((t) => !t.data_limite || t.data_limite >= todayStr);
 
   return (
     <Card>
