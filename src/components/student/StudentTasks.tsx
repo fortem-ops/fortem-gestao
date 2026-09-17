@@ -211,6 +211,7 @@ export function StudentTasks({ student }: { student: Tables<"alunos"> }) {
         .select("*")
         .eq("aluno_id", student.id)
         .eq("origem", "tecnico")
+        .neq("status", "concluida")
         .order("data_limite", { ascending: true, nullsFirst: false });
       if (error) throw error;
       if (!data?.length) return [] as TaskRow[];
@@ -228,32 +229,34 @@ export function StudentTasks({ student }: { student: Tables<"alunos"> }) {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
-      const { error } = await supabase.from("tarefas").update({ status: newStatus }).eq("id", id);
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tarefas").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Tarefa concluída");
       queryClient.invalidateQueries({ queryKey: ["tarefas-aluno", student.id] });
       queryClient.invalidateQueries({ queryKey: ["tarefas-all"] });
+      queryClient.invalidateQueries({ queryKey: ["tarefas-badge"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
     },
-    onError: () => toast.error("Erro ao atualizar tarefa"),
+    onError: () => toast.error("Erro ao concluir tarefa"),
   });
 
-  const handleToggle = (id: string, currentStatus: string) => {
-    toggleMutation.mutate({ id, newStatus: currentStatus === "concluida" ? "pendente" : "concluida" });
+  const handleToggle = (id: string) => {
+    toggleMutation.mutate(id);
   };
 
   const onChanged = () => {
     queryClient.invalidateQueries({ queryKey: ["tarefas-aluno", student.id] });
     queryClient.invalidateQueries({ queryKey: ["tarefas-all"] });
+    queryClient.invalidateQueries({ queryKey: ["tarefas-badge"] });
     queryClient.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
   };
 
   const todayStr = new Date().toISOString().split("T")[0];
-  const overdue = tasks.filter((t) => t.status !== "concluida" && t.data_limite && t.data_limite < todayStr);
-  const scheduled = tasks.filter((t) => t.status !== "concluida" && (!t.data_limite || t.data_limite >= todayStr));
-  const done = tasks.filter((t) => t.status === "concluida");
+  const overdue = tasks.filter((t) => t.data_limite && t.data_limite < todayStr);
+  const scheduled = tasks.filter((t) => !t.data_limite || t.data_limite >= todayStr);
 
   return (
     <div className="space-y-6 mt-4">
