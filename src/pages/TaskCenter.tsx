@@ -481,11 +481,24 @@ export default function TaskCenter() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="pendentes">
-          <TaskList tasks={pending} onToggle={handleToggle} onRescheduled={handleRescheduled} />
+          <GroupedTaskTabs
+            tasks={pending}
+            counterClass="bg-success text-success-foreground"
+            showVideos={isCoordAdmin}
+            onToggle={handleToggle}
+            onRescheduled={handleRescheduled}
+          />
         </TabsContent>
         <TabsContent value="atrasadas">
-          <TaskList tasks={overdue} onToggle={handleToggle} onRescheduled={handleRescheduled} />
+          <GroupedTaskTabs
+            tasks={overdue}
+            counterClass="bg-destructive text-destructive-foreground"
+            showVideos={isCoordAdmin}
+            onToggle={handleToggle}
+            onRescheduled={handleRescheduled}
+          />
         </TabsContent>
+
       </Tabs>
     </div>
   );
