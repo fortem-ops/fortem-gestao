@@ -8548,6 +8548,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_coordenador_tarefas: { Args: never; Returns: string }
       fn_corrida_consumir_vaga_nb: {
         Args: never
         Returns: {

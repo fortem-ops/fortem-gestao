@@ -99,6 +99,13 @@
       "when": 1789653514752,
       "tag": "0013_ponto_fechamento_tarefas_sem_duplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789654181925,
+      "tag": "0014_tarefas_sem_primeiro_contato_e_relatorio_coordenador",
+      "breakpoints": true
     }
   ]
 }
