@@ -338,8 +338,8 @@ export default function TaskCenter() {
     : user?.id || null;
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tarefas-all", effectiveResponsavelId],
-    enabled: !!user,
+    queryKey: ["tarefas-all", effectiveResponsavelId, isAdmin],
+    enabled: !!user && !!roles,
     queryFn: async () => {
       const data = await carregarTodasAsPaginas<Tables<"tarefas">>({
         tabela: "tarefas",
@@ -348,8 +348,13 @@ export default function TaskCenter() {
           { coluna: "data_limite", ascending: true, nullsFirst: false },
           { coluna: "id" },
         ],
-        filtros: (q: any) =>
-          effectiveResponsavelId ? q.eq("responsavel_id", effectiveResponsavelId) : q,
+        filtros: (q: any) => {
+          let query = q.neq("status", "concluida");
+          // Tarefas comerciais (pipeline) são exclusivas de administradores
+          if (!isAdmin) query = query.neq("origem", "pipeline");
+          if (effectiveResponsavelId) query = query.eq("responsavel_id", effectiveResponsavelId);
+          return query;
+        },
       });
       if (!data.length) return [];
 
