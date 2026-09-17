@@ -32,7 +32,7 @@ export function PipelineLeadSummary({ student }: Props) {
   const { data, isLoading } = useQuery({
     queryKey: ["pipeline-lead-summary", student.id],
     queryFn: async () => {
-      const [{ data: meta }, { data: lastMove }, { data: lastDone }] = await Promise.all([
+      const [{ data: meta }, { data: lastMove }] = await Promise.all([
         supabase
           .from("pipeline_metadata")
           .select(
@@ -47,16 +47,8 @@ export function PipelineLeadSummary({ student }: Props) {
           .order("moved_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
-        supabase
-          .from("tarefas")
-          .select("updated_at, data_limite, titulo")
-          .eq("aluno_id", student.id)
-          .eq("origem", "pipeline")
-          .eq("status", "concluida")
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
       ]);
+      const lastDone = null;
 
       const ids = [meta?.responsavel_comercial_id, student.responsavel_id].filter(Boolean) as string[];
       let nameMap: Record<string, string> = {};

@@ -19,9 +19,12 @@ interface Props {
 
 export function TasksWidget({ professorId }: Props) {
   const navigate = useNavigate();
+  const { data: roles } = useUserRoles();
+  const isAdmin = !!roles?.isAdmin;
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["dashboard-tarefas", professorId],
+    queryKey: ["dashboard-tarefas", professorId, isAdmin],
+    enabled: !!roles,
     queryFn: async () => {
       let q = supabase
         .from("tarefas")
@@ -29,6 +32,8 @@ export function TasksWidget({ professorId }: Props) {
         .neq("status", "concluida")
         .order("data_limite", { ascending: true, nullsFirst: false })
         .limit(5);
+      // Tarefas comerciais (pipeline) são exclusivas de administradores
+      if (!isAdmin) q = q.neq("origem", "pipeline");
       if (professorId) q = q.eq("responsavel_id", professorId);
       const { data } = await q;
       if (!data?.length) return [];
