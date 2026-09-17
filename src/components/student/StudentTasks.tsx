@@ -298,17 +298,6 @@ export function StudentTasks({ student }: { student: Tables<"alunos"> }) {
               ))
             )}
           </section>
-
-          {done.length > 0 && (
-            <section className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Concluídas ({done.length})
-              </h4>
-              {done.map((t) => (
-                <TaskItem key={t.id} task={t} onToggle={handleToggle} onRescheduled={onChanged} highlight="done" />
-              ))}
-            </section>
-          )}
         </div>
       )}
     </div>
