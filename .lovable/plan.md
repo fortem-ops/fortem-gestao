@@ -5,7 +5,7 @@
 Ao lado de "Tarefas" passam a aparecer dois números, no mesmo estilo do "Notificar":
 
 - vermelho: tarefas atrasadas (prazo vencido e não concluídas)
-- azul: tarefas automáticas em aberto
+- verde: tarefas automáticas em aberto
 
 Ambos contam apenas as tarefas em que o usuário logado é o responsável. Atualizam sozinhos a cada minuto e quando a Central de Tarefas é usada.
 
