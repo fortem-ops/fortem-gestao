@@ -299,6 +299,101 @@ function NewTaskDialog({ onCreated, defaultResponsavelId }: { onCreated: () => v
   );
 }
 
+type TaskGroupId = "videos" | "treinos" | "avaliacoes" | "relatorios" | "ponto" | "comercial" | "outras";
+
+const TASK_GROUPS: { id: TaskGroupId; label: string }[] = [
+  { id: "videos", label: "Vídeos" },
+  { id: "treinos", label: "Treinos" },
+  { id: "avaliacoes", label: "Avaliações" },
+  { id: "relatorios", label: "Relatórios" },
+  { id: "ponto", label: "Ponto" },
+  { id: "comercial", label: "Comercial" },
+  { id: "outras", label: "Outras" },
+];
+
+function grupoDaTarefa(task: TaskRow & { origem?: string | null }): TaskGroupId {
+  switch (task.tipo_auto) {
+    case "gravar_video":
+      return "videos";
+    case "atualizar_treino":
+      return "treinos";
+    case "reavaliacao_funcional":
+    case "avaliacao_funcional_agendada":
+    case "relatorio_experimental":
+      return "avaliacoes";
+    case "relatorio_tecnico_forca":
+    case "relatorio_tecnico_corrida":
+      return "relatorios";
+    case "ponto_fechamento":
+      return "ponto";
+    default:
+      break;
+  }
+  if ((task as any).origem === "pipeline") return "comercial";
+  return "outras";
+}
+
+function GroupedTaskTabs({
+  tasks,
+  counterClass,
+  showVideos,
+  onToggle,
+  onRescheduled,
+}: {
+  tasks: TaskRow[];
+  counterClass: string;
+  showVideos: boolean;
+  onToggle: (id: string) => void;
+  onRescheduled: () => void;
+}) {
+  const buckets: Record<TaskGroupId, TaskRow[]> = {
+    videos: [],
+    treinos: [],
+    avaliacoes: [],
+    relatorios: [],
+    ponto: [],
+    comercial: [],
+    outras: [],
+  };
+  tasks.forEach((t) => {
+    const g = grupoDaTarefa(t);
+    buckets[g === "videos" && !showVideos ? "outras" : g].push(t);
+  });
+
+  const visiveis = TASK_GROUPS.filter(
+    (g) => buckets[g.id].length > 0 && (g.id !== "videos" || showVideos)
+  );
+
+  return (
+    <Tabs defaultValue="todas" className="mt-3">
+      <TabsList className="bg-secondary/30 border border-border flex-wrap h-auto">
+        <TabsTrigger value="todas">
+          Todas{" "}
+          <span className={`ml-1 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 rounded-full text-[11px] font-bold ${counterClass}`}>
+            {tasks.length}
+          </span>
+        </TabsTrigger>
+        {visiveis.map((g) => (
+          <TabsTrigger key={g.id} value={g.id}>
+            {g.label}{" "}
+            <span className={`ml-1 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 rounded-full text-[11px] font-bold ${counterClass}`}>
+              {buckets[g.id].length}
+            </span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      <TabsContent value="todas">
+        <TaskList tasks={tasks} onToggle={onToggle} onRescheduled={onRescheduled} />
+      </TabsContent>
+      {visiveis.map((g) => (
+        <TabsContent key={g.id} value={g.id}>
+          <TaskList tasks={buckets[g.id]} onToggle={onToggle} onRescheduled={onRescheduled} />
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
+
 export default function TaskCenter() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -481,11 +576,24 @@ export default function TaskCenter() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="pendentes">
-          <TaskList tasks={pending} onToggle={handleToggle} onRescheduled={handleRescheduled} />
+          <GroupedTaskTabs
+            tasks={pending}
+            counterClass="bg-success text-success-foreground"
+            showVideos={isCoordAdmin}
+            onToggle={handleToggle}
+            onRescheduled={handleRescheduled}
+          />
         </TabsContent>
         <TabsContent value="atrasadas">
-          <TaskList tasks={overdue} onToggle={handleToggle} onRescheduled={handleRescheduled} />
+          <GroupedTaskTabs
+            tasks={overdue}
+            counterClass="bg-destructive text-destructive-foreground"
+            showVideos={isCoordAdmin}
+            onToggle={handleToggle}
+            onRescheduled={handleRescheduled}
+          />
         </TabsContent>
+
       </Tabs>
     </div>
   );
