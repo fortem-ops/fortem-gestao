@@ -51,7 +51,7 @@ function TaskList({
   onRescheduled,
 }: {
   tasks: TaskRow[];
-  onToggle: (id: string, currentStatus: string) => void;
+  onToggle: (id: string) => void;
   onRescheduled: () => void;
 }) {
   const navigate = useNavigate();
@@ -67,10 +67,10 @@ function TaskList({
     <div className="space-y-2">
       {tasks.map((task) => {
         const isOverdue =
-          task.status !== "concluida" &&
           task.data_limite &&
           task.data_limite < new Date().toISOString().split("T")[0];
-        const isDone = task.status === "concluida";
+        const isDone = false;
+
 
         const actionTarget = getTaskActionTarget(task);
         const fallbackTarget = task.aluno_id ? `/alunos/${task.aluno_id}` : null;
