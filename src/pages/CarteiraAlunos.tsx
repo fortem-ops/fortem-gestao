@@ -302,13 +302,27 @@ export default function CarteiraAlunos() {
             <CardContent className="p-0">
               <div className="divide-y divide-border">
                 {alunos.map((aluno: any) => {
-                  const last = aluno.ultima_aval_funcional as string | null;
-                  const today = new Date(); today.setHours(0, 0, 0, 0);
-                  const limit = new Date(today); limit.setMonth(limit.getMonth() - 6);
-                  const isAtrasada = !last || new Date(last + "T00:00:00") < limit;
-                  const lastLabel = last
-                    ? new Date(last + "T00:00:00").toLocaleDateString("pt-BR")
-                    : "Nunca avaliado";
+                  const last = aluno.ultima_aval_funcional as Date | null;
+                  const sev = severityForLastFuncional(last);
+                  const statusAF: PillStatus =
+                    sev.className === "status-active"
+                      ? "em_dia"
+                      : sev.className === "status-warning"
+                        ? "pendente"
+                        : "atrasada";
+                  const lastLabel = last ? last.toLocaleDateString("pt-BR") : "Nunca avaliado";
+                  const hojeStr = new Date().toISOString().split("T")[0];
+                  const tarefas = tarefasPorAluno[aluno.id];
+                  const tFicha = tarefas?.ficha ?? null;
+                  const tRel = tarefas?.relatorio ?? null;
+                  const venc = (t: TarefaCarteira | null) =>
+                    !!t?.data_limite && t.data_limite < hojeStr;
+                  const prazo = (t: TarefaCarteira | null) =>
+                    t?.data_limite
+                      ? `prazo ${new Date(t.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`
+                      : t
+                        ? "sem prazo"
+                        : "sem pendência";
                   return (
                     <div
                       key={aluno.id}
