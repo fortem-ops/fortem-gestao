@@ -398,31 +398,23 @@ export default function TaskCenter() {
     },
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: async ({
-      id,
-      newStatus,
-    }: {
-      id: string;
-      newStatus: string;
-    }) => {
-      const { error } = await supabase
-        .from("tarefas")
-        .update({ status: newStatus })
-        .eq("id", id);
+  const concluirMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tarefas").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Tarefa concluída");
       queryClient.invalidateQueries({ queryKey: ["tarefas-all"] });
       queryClient.invalidateQueries({ queryKey: ["tarefas-badge"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-alerts"] });
     },
-    onError: () => toast.error("Erro ao atualizar tarefa"),
+    onError: () => toast.error("Erro ao concluir tarefa"),
   });
 
-  const handleToggle = (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === "concluida" ? "pendente" : "concluida";
-    toggleMutation.mutate({ id, newStatus });
+  const handleToggle = (id: string) => {
+    concluirMutation.mutate(id);
   };
 
   const handleRescheduled = () => {
@@ -435,10 +427,7 @@ export default function TaskCenter() {
   const pending = tasks.filter(
     (t) => t.status === "pendente" && !t.atrasada
   );
-  const overdue = tasks.filter(
-    (t) => t.status !== "concluida" && t.atrasada
-  );
-  const done = tasks.filter((t) => t.status === "concluida");
+  const overdue = tasks.filter((t) => t.atrasada);
   const auto = tasks.filter((t) => t.automatica);
 
   return (
