@@ -97,11 +97,13 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
         if (error) throw error;
         toast.success("Tarefa reagendada");
       } else {
+        // Tarefas comerciais ficam sob responsabilidade de um administrador
+        const { data: adminId } = await supabase.rpc("fn_admin_tarefas_pipeline");
         const { error } = await supabase.from("tarefas").insert({
           titulo: titulo.trim(),
           descricao: descricao.trim() || null,
           aluno_id: alunoId,
-          responsavel_id: responsavelId || user.id,
+          responsavel_id: (adminId as string | null) || responsavelId || user.id,
           criado_por_id: user.id,
           data_limite,
           prioridade,

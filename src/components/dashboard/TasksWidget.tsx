@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 import { getTaskActionTarget } from "@/lib/taskAction";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
