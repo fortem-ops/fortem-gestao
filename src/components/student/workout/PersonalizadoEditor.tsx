@@ -640,13 +640,12 @@ export function PersonalizadoEditor({
           .eq("id", targetAlunoId)
           .maybeSingle();
         const respId = alunoRow?.responsavel_id || user.id;
-        // Concluir tarefas antigas pendentes desse tipo para o mesmo aluno
+        // Remove tarefas antigas pendentes desse tipo para o mesmo aluno
         await supabase
           .from("tarefas")
-          .update({ status: "concluida", updated_at: new Date().toISOString() })
+          .delete()
           .eq("aluno_id", targetAlunoId)
-          .eq("tipo_auto", "atualizar_treino")
-          .neq("status", "concluida");
+          .eq("tipo_auto", "atualizar_treino");
         const dataLimite = new Date();
         dataLimite.setDate(dataLimite.getDate() + 30);
         await supabase.from("tarefas").insert({

@@ -125,7 +125,7 @@ export function ScheduleTaskDialog({ open, onOpenChange, alunoId, alunoNome, res
     if (!existing) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from("tarefas").update({ status: "concluida" }).eq("id", existing.id);
+      const { error } = await supabase.from("tarefas").delete().eq("id", existing.id);
       if (error) throw error;
       toast.success("Tarefa concluída");
       invalidate();

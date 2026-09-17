@@ -62,13 +62,14 @@ export function RecordVideoUpload({ taskId, descricao }: Props) {
       // uma por coordenador), não apenas a clicada.
       const { error: taskErr } = await supabase
         .from("tarefas")
-        .update({ status: "concluida" })
+        .delete()
         .eq("tipo_auto", "gravar_video")
         .eq("descricao", `exercicio_id:${exercicioId}`);
       if (taskErr) throw taskErr;
 
       toast.success("Vídeo enviado e tarefa concluída!");
       queryClient.invalidateQueries({ queryKey: ["tarefas-all"] });
+      queryClient.invalidateQueries({ queryKey: ["tarefas-badge"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-tarefas"] });
       queryClient.invalidateQueries({ queryKey: ["exercicios-bank"] });
       queryClient.invalidateQueries({ queryKey: ["exercicios-bank-selector"] });
