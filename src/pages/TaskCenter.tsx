@@ -20,6 +20,7 @@ import { RescheduleDialog } from "@/components/tasks/RescheduleDialog";
 import { getTaskActionTarget } from "@/lib/taskAction";
 import { AtividadeTipoSelector } from "@/components/pipeline/AtividadeTipoSelector";
 import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -305,15 +306,9 @@ export default function TaskCenter() {
   const { user } = useAuth();
   const [selectedProfessorId, setSelectedProfessorId] = useState<string>("self");
 
-  const { data: isCoordAdmin } = useQuery({
-    queryKey: ["taskcenter-isCoordAdmin", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
-      return !!data;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60_000,
-  });
+  const { data: roles } = useUserRoles();
+  const isCoordAdmin = !!roles?.isCoordAdmin;
+  const isAdmin = !!roles?.isAdmin;
 
   const { data: professors = [] } = useQuery({
     queryKey: ["taskcenter-professors"],
