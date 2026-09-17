@@ -479,9 +479,6 @@ export default function TaskCenter() {
           <TabsTrigger value="automaticas">
             Automáticas ({auto.length})
           </TabsTrigger>
-          <TabsTrigger value="concluidas">
-            Concluídas ({done.length})
-          </TabsTrigger>
           <TabsTrigger value="todas">Todas</TabsTrigger>
         </TabsList>
         <TabsContent value="pendentes">
@@ -492,9 +489,6 @@ export default function TaskCenter() {
         </TabsContent>
         <TabsContent value="automaticas">
           <TaskList tasks={auto} onToggle={handleToggle} onRescheduled={handleRescheduled} />
-        </TabsContent>
-        <TabsContent value="concluidas">
-          <TaskList tasks={done} onToggle={handleToggle} onRescheduled={handleRescheduled} />
         </TabsContent>
         <TabsContent value="todas">
           <TaskList tasks={tasks} onToggle={handleToggle} onRescheduled={handleRescheduled} />
