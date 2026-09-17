@@ -339,12 +339,38 @@ export default function CarteiraAlunos() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{aluno.nome}</p>
                         <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal === 5 ? "Livre" : `${aluno.frequencia_semanal || 0}x/semana`}</p>
-                        <p className={`text-xs mt-0.5 flex items-center gap-2 ${isAtrasada ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                          Última aval. funcional: {lastLabel}
-                          {isAtrasada && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">ATRASADA</Badge>}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <StatusPill
+                            label="AF"
+                            titulo="Avaliação Funcional"
+                            status={statusAF}
+                            detalhe={`última em ${lastLabel}`}
+                            acaoLabel="Agendar/registrar avaliação"
+                            acaoHref={`/alunos/${aluno.id}?tab=avaliacoes`}
+                          />
+                          <StatusPill
+                            label="Ficha"
+                            titulo="Troca de Ficha"
+                            status={venc(tFicha) ? "atrasada" : "em_dia"}
+                            detalhe={prazo(tFicha)}
+                            acaoLabel="Completar troca de ficha"
+                            acaoHref={`/alunos/${aluno.id}?tab=treinos`}
+                            tarefa={tFicha}
+                            onReagendado={() => queryClient.invalidateQueries({ queryKey: ["carteira-tarefas-abertas"] })}
+                          />
+                          <StatusPill
+                            label="Relatório"
+                            titulo="Relatório"
+                            status={venc(tRel) ? "atrasada" : "em_dia"}
+                            detalhe={prazo(tRel)}
+                            acaoLabel="Completar relatório"
+                            acaoHref={`/alunos/${aluno.id}?tab=registros&sub=relatorios`}
+                            tarefa={tRel}
+                            onReagendado={() => queryClient.invalidateQueries({ queryKey: ["carteira-tarefas-abertas"] })}
+                          />
+                        </div>
                       </div>
-                      <Badge variant="outline" className="status-active text-xs">Ativo</Badge>
+                      <Badge variant="outline" className="status-active text-xs shrink-0">Ativo</Badge>
                     </div>
                   );
                 })}
