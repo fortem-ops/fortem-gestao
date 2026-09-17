@@ -157,14 +157,6 @@ export function PipelineTasksPanel({ student }: { student: Tables<"alunos"> }) {
                 scheduled.map((t) => <TaskItem key={t.id} task={t} onToggle={handleToggle} onChanged={invalidate} />)
               )}
             </section>
-            {done.length > 0 && (
-              <section className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Concluídas ({done.length})</h4>
-                {done.map((t) => (
-                  <TaskItem key={t.id} task={t} onToggle={handleToggle} onChanged={invalidate} highlight="done" />
-                ))}
-              </section>
-            )}
           </>
         )}
       </CardContent>
