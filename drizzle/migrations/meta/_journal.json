@@ -92,6 +92,13 @@
       "when": 1789652737341,
       "tag": "0012_tarefas_pipeline_admin_e_exclusao",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789653514752,
+      "tag": "0013_ponto_fechamento_tarefas_sem_duplicar",
+      "breakpoints": true
     }
   ]
 }
