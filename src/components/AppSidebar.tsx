@@ -283,6 +283,8 @@ export function AppSidebar() {
                 />
               )}
 
+              <TarefasSidebarItem isActive={isActive} />
+
               {principalItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
