@@ -12,6 +12,26 @@ import { toast } from "sonner";
 import { Users, ArrowRightLeft, Search, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
+import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
+import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
+import { StatusPill, type PillStatus } from "@/components/carteira/StatusPills";
+import type { ReschedTask } from "@/components/tasks/RescheduleDialog";
+
+const TIPOS_FICHA = ["atualizar_treino"];
+const TIPOS_RELATORIO = ["relatorio_tecnico_forca", "relatorio_tecnico_corrida"];
+
+interface TarefaCarteira extends ReschedTask {
+  aluno_id: string | null;
+  tipo_auto: string | null;
+}
+
+/** Entre tarefas abertas do mesmo grupo, vale a mais crítica (prazo mais antigo). */
+function maisCritica(a: TarefaCarteira | null, b: TarefaCarteira): TarefaCarteira {
+  if (!a) return b;
+  const da = a.data_limite ?? "9999-12-31";
+  const db = b.data_limite ?? "9999-12-31";
+  return db < da ? b : a;
+}
 
 export default function CarteiraAlunos() {
   const { user } = useAuth();
@@ -71,18 +91,38 @@ export default function CarteiraAlunos() {
         .order("nome");
       if (!alunos?.length) return [];
 
-      const { data: avs } = await supabase
-        .from("avaliacoes")
-        .select("aluno_id, data")
-        .eq("tipo", "funcional")
-        .in("aluno_id", alunos.map((a) => a.id))
-        .order("data", { ascending: false });
-      const lastByAluno: Record<string, string> = {};
-      (avs || []).forEach((a) => { if (!lastByAluno[a.aluno_id]) lastByAluno[a.aluno_id] = a.data; });
+      const lastByAluno = await fetchLastFuncionalDateBatch(alunos.map((a) => a.id));
 
-      return alunos.map((a) => ({ ...a, ultima_aval_funcional: lastByAluno[a.id] || null }));
+      return alunos.map((a) => ({ ...a, ultima_aval_funcional: lastByAluno[a.id] ?? null }));
     },
   });
+
+  // Tarefas abertas de troca de ficha e relatório técnico
+  const { data: tarefasAbertas = [] } = useQuery({
+    queryKey: ["carteira-tarefas-abertas"],
+    queryFn: async () =>
+      carregarTodasAsPaginas<TarefaCarteira>({
+        tabela: "tarefas",
+        colunas: "id, descricao, data_limite, aluno_id, tipo_auto",
+        ordenarPor: [{ coluna: "id", ascending: true }],
+        filtros: (q: any) =>
+          q.neq("status", "concluida").in("tipo_auto", [...TIPOS_FICHA, ...TIPOS_RELATORIO]),
+      }),
+  });
+
+  const tarefasPorAluno = useMemo(() => {
+    const m: Record<string, { ficha: TarefaCarteira | null; relatorio: TarefaCarteira | null }> = {};
+    tarefasAbertas.forEach((t) => {
+      if (!t.aluno_id) return;
+      if (!m[t.aluno_id]) m[t.aluno_id] = { ficha: null, relatorio: null };
+      if (TIPOS_FICHA.includes(t.tipo_auto || "")) {
+        m[t.aluno_id].ficha = maisCritica(m[t.aluno_id].ficha, t);
+      } else if (TIPOS_RELATORIO.includes(t.tipo_auto || "")) {
+        m[t.aluno_id].relatorio = maisCritica(m[t.aluno_id].relatorio, t);
+      }
+    });
+    return m;
+  }, [tarefasAbertas]);
 
   const profMap = useMemo(() => {
     const m: Record<string, string> = {};
@@ -262,13 +302,27 @@ export default function CarteiraAlunos() {
             <CardContent className="p-0">
               <div className="divide-y divide-border">
                 {alunos.map((aluno: any) => {
-                  const last = aluno.ultima_aval_funcional as string | null;
-                  const today = new Date(); today.setHours(0, 0, 0, 0);
-                  const limit = new Date(today); limit.setMonth(limit.getMonth() - 6);
-                  const isAtrasada = !last || new Date(last + "T00:00:00") < limit;
-                  const lastLabel = last
-                    ? new Date(last + "T00:00:00").toLocaleDateString("pt-BR")
-                    : "Nunca avaliado";
+                  const last = aluno.ultima_aval_funcional as Date | null;
+                  const sev = severityForLastFuncional(last);
+                  const statusAF: PillStatus =
+                    sev.className === "status-active"
+                      ? "em_dia"
+                      : sev.className === "status-warning"
+                        ? "pendente"
+                        : "atrasada";
+                  const lastLabel = last ? last.toLocaleDateString("pt-BR") : "Nunca avaliado";
+                  const hojeStr = new Date().toISOString().split("T")[0];
+                  const tarefas = tarefasPorAluno[aluno.id];
+                  const tFicha = tarefas?.ficha ?? null;
+                  const tRel = tarefas?.relatorio ?? null;
+                  const venc = (t: TarefaCarteira | null) =>
+                    !!t?.data_limite && t.data_limite < hojeStr;
+                  const prazo = (t: TarefaCarteira | null) =>
+                    t?.data_limite
+                      ? `prazo ${new Date(t.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`
+                      : t
+                        ? "sem prazo"
+                        : "sem pendência";
                   return (
                     <div
                       key={aluno.id}
@@ -285,12 +339,38 @@ export default function CarteiraAlunos() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{aluno.nome}</p>
                         <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal === 5 ? "Livre" : `${aluno.frequencia_semanal || 0}x/semana`}</p>
-                        <p className={`text-xs mt-0.5 flex items-center gap-2 ${isAtrasada ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                          Última aval. funcional: {lastLabel}
-                          {isAtrasada && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">ATRASADA</Badge>}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <StatusPill
+                            label="AF"
+                            titulo="Avaliação Funcional"
+                            status={statusAF}
+                            detalhe={`última em ${lastLabel}`}
+                            acaoLabel="Agendar/registrar avaliação"
+                            acaoHref={`/alunos/${aluno.id}?tab=avaliacoes`}
+                          />
+                          <StatusPill
+                            label="Ficha"
+                            titulo="Troca de Ficha"
+                            status={venc(tFicha) ? "atrasada" : "em_dia"}
+                            detalhe={prazo(tFicha)}
+                            acaoLabel="Completar troca de ficha"
+                            acaoHref={`/alunos/${aluno.id}?tab=treinos`}
+                            tarefa={tFicha}
+                            onReagendado={() => queryClient.invalidateQueries({ queryKey: ["carteira-tarefas-abertas"] })}
+                          />
+                          <StatusPill
+                            label="Relatório"
+                            titulo="Relatório"
+                            status={venc(tRel) ? "atrasada" : "em_dia"}
+                            detalhe={prazo(tRel)}
+                            acaoLabel="Completar relatório"
+                            acaoHref={`/alunos/${aluno.id}?tab=registros&sub=relatorios`}
+                            tarefa={tRel}
+                            onReagendado={() => queryClient.invalidateQueries({ queryKey: ["carteira-tarefas-abertas"] })}
+                          />
+                        </div>
                       </div>
-                      <Badge variant="outline" className="status-active text-xs">Ativo</Badge>
+                      <Badge variant="outline" className="status-active text-xs shrink-0">Ativo</Badge>
                     </div>
                   );
                 })}
