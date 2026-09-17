@@ -38,24 +38,23 @@ function TaskItem({
   highlight,
 }: {
   task: TaskRow;
-  onToggle: (id: string, status: string) => void;
+  onToggle: (id: string) => void;
   onChanged: () => void;
-  highlight?: "overdue" | "done";
+  highlight?: "overdue";
 }) {
-  const isDone = task.status === "concluida";
-  const Icon = highlight === "overdue" ? AlertCircle : isDone ? CheckCircle : Clock;
+  const Icon = highlight === "overdue" ? AlertCircle : Clock;
   const iconColor =
-    highlight === "overdue" ? "text-destructive" : isDone ? "text-success" : "text-muted-foreground";
+    highlight === "overdue" ? "text-destructive" : "text-muted-foreground";
   const cfg = ATIVIDADE_CONFIG[(task.tipo_atividade as TipoAtividade) || "tarefa"];
   const AtvIcon = cfg?.icon;
 
   return (
     <div className="rounded-lg border border-border bg-card/50 p-3 flex items-start gap-3">
-      <button onClick={() => onToggle(task.id, task.status)} className="mt-0.5 shrink-0" title={isDone ? "Reabrir" : "Concluir"}>
+      <button onClick={() => onToggle(task.id)} className="mt-0.5 shrink-0" title="Concluir">
         <Icon className={`w-4 h-4 ${iconColor}`} />
       </button>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>
+        <p className="text-sm font-medium text-foreground">
           {task.titulo}
         </p>
         {task.descricao && <p className="text-xs text-muted-foreground whitespace-pre-line">{task.descricao}</p>}
@@ -67,12 +66,10 @@ function TaskItem({
           {task.data_limite && ` · ${new Date(task.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`}
         </p>
       </div>
-      {!isDone && (
-        <RescheduleDialog
-          task={{ id: task.id, descricao: task.descricao, data_limite: task.data_limite }}
-          onDone={onChanged}
-        />
-      )}
+      <RescheduleDialog
+        task={{ id: task.id, descricao: task.descricao, data_limite: task.data_limite }}
+        onDone={onChanged}
+      />
       {task.automatica && (
         <Badge variant="outline" className="text-[10px] shrink-0 border-info/30 text-info bg-info/10">Automática</Badge>
       )}
