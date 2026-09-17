@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const cfg of (configs ?? []) as any[]) {
-      if (cfg.atividades && Array.isArray(cfg.atividades) && cfg.atividades.length > 0) {
+      if (!forcarTodasAtividades && cfg.atividades && Array.isArray(cfg.atividades) && cfg.atividades.length > 0) {
         if (!cfg.atividades.includes(ctx.agenda.atividade)) continue;
       }
 
