@@ -12,6 +12,26 @@ import { toast } from "sonner";
 import { Users, ArrowRightLeft, Search, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
+import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
+import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
+import { StatusPill, type PillStatus } from "@/components/carteira/StatusPills";
+import type { ReschedTask } from "@/components/tasks/RescheduleDialog";
+
+const TIPOS_FICHA = ["atualizar_treino"];
+const TIPOS_RELATORIO = ["relatorio_tecnico_forca", "relatorio_tecnico_corrida"];
+
+interface TarefaCarteira extends ReschedTask {
+  aluno_id: string | null;
+  tipo_auto: string | null;
+}
+
+/** Entre tarefas abertas do mesmo grupo, vale a mais crítica (prazo mais antigo). */
+function maisCritica(a: TarefaCarteira | null, b: TarefaCarteira): TarefaCarteira {
+  if (!a) return b;
+  const da = a.data_limite ?? "9999-12-31";
+  const db = b.data_limite ?? "9999-12-31";
+  return db < da ? b : a;
+}
 
 export default function CarteiraAlunos() {
   const { user } = useAuth();
