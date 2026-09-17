@@ -150,7 +150,7 @@ function TarefasSidebarItem({ isActive }: { isActive: (p: string) => boolean }) 
   const collapsed = state === "collapsed";
   const { data } = useTarefasBadge();
   const atrasadas = data?.atrasadas ?? 0;
-  const automaticas = data?.automaticas ?? 0;
+  const programadas = data?.programadas ?? 0;
 
   return (
     <SidebarMenuItem>
@@ -158,7 +158,7 @@ function TarefasSidebarItem({ isActive }: { isActive: (p: string) => boolean }) 
         <NavLink to="/tarefas" end={false} activeClassName="bg-sidebar-accent text-sidebar-primary">
           <ClipboardList className="mr-2 h-4 w-4" />
           {!collapsed && <span className="flex-1">Tarefas</span>}
-          {(atrasadas > 0 || automaticas > 0) && (
+          {(atrasadas > 0 || programadas > 0) && (
             <span className={`${collapsed ? "absolute right-1 top-1" : "ml-auto"} flex items-center gap-1`}>
               {atrasadas > 0 && (
                 <span
@@ -168,12 +168,12 @@ function TarefasSidebarItem({ isActive }: { isActive: (p: string) => boolean }) 
                   {atrasadas > 99 ? "99+" : atrasadas}
                 </span>
               )}
-              {!collapsed && automaticas > 0 && (
+              {!collapsed && programadas > 0 && (
                 <span
-                  title="Tarefas automáticas"
+                  title="Tarefas programadas"
                   className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold"
                 >
-                  {automaticas > 99 ? "99+" : automaticas}
+                  {programadas > 99 ? "99+" : programadas}
                 </span>
               )}
             </span>
