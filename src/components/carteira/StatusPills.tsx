@@ -43,7 +43,6 @@ export interface StatusPillProps {
 }
 
 export function StatusPill({
-  label,
   titulo,
   status,
   detalhe,
@@ -64,8 +63,8 @@ export function StatusPill({
             title={detalhe ? `${titulo}: ${STATUS_LABEL[status]} · ${detalhe}` : `${titulo}: ${STATUS_LABEL[status]}`}
             className="focus:outline-none"
           >
-            <Badge variant="outline" className={`${STATUS_CLASS[status]} text-[10px] px-1.5 py-0 cursor-pointer`}>
-              {label}
+            <Badge variant="outline" className={`${STATUS_CLASS[status]} text-xs px-2.5 py-0.5 cursor-pointer`}>
+              {STATUS_LABEL[status]}
             </Badge>
           </button>
         </DropdownMenuTrigger>
