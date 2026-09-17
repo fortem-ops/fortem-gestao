@@ -91,18 +91,38 @@ export default function CarteiraAlunos() {
         .order("nome");
       if (!alunos?.length) return [];
 
-      const { data: avs } = await supabase
-        .from("avaliacoes")
-        .select("aluno_id, data")
-        .eq("tipo", "funcional")
-        .in("aluno_id", alunos.map((a) => a.id))
-        .order("data", { ascending: false });
-      const lastByAluno: Record<string, string> = {};
-      (avs || []).forEach((a) => { if (!lastByAluno[a.aluno_id]) lastByAluno[a.aluno_id] = a.data; });
+      const lastByAluno = await fetchLastFuncionalDateBatch(alunos.map((a) => a.id));
 
-      return alunos.map((a) => ({ ...a, ultima_aval_funcional: lastByAluno[a.id] || null }));
+      return alunos.map((a) => ({ ...a, ultima_aval_funcional: lastByAluno[a.id] ?? null }));
     },
   });
+
+  // Tarefas abertas de troca de ficha e relatório técnico
+  const { data: tarefasAbertas = [] } = useQuery({
+    queryKey: ["carteira-tarefas-abertas"],
+    queryFn: async () =>
+      carregarTodasAsPaginas<TarefaCarteira>({
+        tabela: "tarefas",
+        colunas: "id, descricao, data_limite, aluno_id, tipo_auto",
+        ordenarPor: [{ coluna: "id", ascending: true }],
+        filtros: (q: any) =>
+          q.neq("status", "concluida").in("tipo_auto", [...TIPOS_FICHA, ...TIPOS_RELATORIO]),
+      }),
+  });
+
+  const tarefasPorAluno = useMemo(() => {
+    const m: Record<string, { ficha: TarefaCarteira | null; relatorio: TarefaCarteira | null }> = {};
+    tarefasAbertas.forEach((t) => {
+      if (!t.aluno_id) return;
+      if (!m[t.aluno_id]) m[t.aluno_id] = { ficha: null, relatorio: null };
+      if (TIPOS_FICHA.includes(t.tipo_auto || "")) {
+        m[t.aluno_id].ficha = maisCritica(m[t.aluno_id].ficha, t);
+      } else if (TIPOS_RELATORIO.includes(t.tipo_auto || "")) {
+        m[t.aluno_id].relatorio = maisCritica(m[t.aluno_id].relatorio, t);
+      }
+    });
+    return m;
+  }, [tarefasAbertas]);
 
   const profMap = useMemo(() => {
     const m: Record<string, string> = {};
