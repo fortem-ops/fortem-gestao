@@ -57,6 +57,10 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     const evento: string = body?.evento;
     const agendaId: string = body?.agenda_id;
+    // Quando o cancelamento parte da tela de Agenda, o aviso vale para todas as
+    // atividades, ignorando o filtro de atividades da config.
+    const forcarTodasAtividades: boolean =
+      body?.forcar_todas_atividades === true && evento === 'agendamento_cancelado';
 
     if (!evento || !agendaId) {
       return new Response(JSON.stringify({ error: 'Requer { evento, agenda_id }' }), {
@@ -131,7 +135,7 @@ Deno.serve(async (req) => {
     const results: any[] = [];
 
     for (const cfg of (configs ?? []) as any[]) {
-      if (cfg.atividades && Array.isArray(cfg.atividades) && cfg.atividades.length > 0) {
+      if (!forcarTodasAtividades && cfg.atividades && Array.isArray(cfg.atividades) && cfg.atividades.length > 0) {
         if (!cfg.atividades.includes(ctx.agenda.atividade)) continue;
       }
 

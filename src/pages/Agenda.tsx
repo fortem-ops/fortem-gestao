@@ -23,6 +23,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,6 +59,7 @@ export default function Agenda() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date; tipo: string } | null>(null);
+  const [avisarWhatsApp, setAvisarWhatsApp] = useState(true);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<"dia" | "semana" | null>(null);
@@ -149,14 +151,14 @@ export default function Agenda() {
   };
 
   const deleteMutation = useMutation({
-    mutationFn: async ({ id, modo = "padrao" }: { id: string; modo?: DeleteModo }) => {
+    mutationFn: async ({ id, modo = "padrao", avisar = true }: { id: string; modo?: DeleteModo; avisar?: boolean }) => {
       const ev = agendas.find((a: any) => a.id === id);
 
       // Dispara WhatsApp ANTES do delete (enquanto o registro ainda existe no banco)
-      if (ev?.id) {
+      if (ev?.id && avisar) {
         try {
           await supabase.functions.invoke("whatsapp-disparo-agenda", {
-            body: { evento: "agendamento_cancelado", agenda_id: ev.id },
+            body: { evento: "agendamento_cancelado", agenda_id: ev.id, forcar_todas_atividades: true },
           });
         } catch (e) {
           console.error("[WhatsApp Disparo cancelado] erro:", e);
@@ -616,7 +618,7 @@ export default function Agenda() {
 
       <AddAgendaDialog open={dialogOpen} onOpenChange={handleOpenChange} prefill={prefill} editEvent={editEvent} cellDate={cellDate} />
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setAvisarWhatsApp(true); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover horário?</AlertDialogTitle>
@@ -628,6 +630,21 @@ export default function Agenda() {
                   : "Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <div className="flex items-start gap-2 rounded-lg border p-3">
+            <Checkbox
+              id="avisar-whatsapp"
+              checked={avisarWhatsApp}
+              onCheckedChange={(v) => setAvisarWhatsApp(v === true)}
+            />
+            <label htmlFor="avisar-whatsapp" className="text-sm leading-snug cursor-pointer">
+              Avisar profissional e consultor no WhatsApp
+              <span className="block text-xs text-muted-foreground">
+                Desmarque se não quiser enviar o aviso de cancelamento.
+              </span>
+            </label>
+          </div>
+
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             {deleteTarget?.tipo === "fixo" && (
@@ -643,21 +660,21 @@ export default function Agenda() {
               <>
                 <Button
                   variant="outline"
-                  onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, modo: "liberar_vaga" })}
+                  onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, modo: "liberar_vaga", avisar: avisarWhatsApp })}
                   disabled={deleteMutation.isPending}
                 >
                   Remover só o aluno
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, modo: "somente_dia" })}
+                  onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, modo: "somente_dia", avisar: avisarWhatsApp })}
                   disabled={deleteMutation.isPending}
                 >
                   Cancelar só este dia
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, modo: "futuras" })}
+                  onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, modo: "futuras", avisar: avisarWhatsApp })}
                   disabled={deleteMutation.isPending}
                 >
                   Cancelar todas as futuras
@@ -665,7 +682,7 @@ export default function Agenda() {
               </>
             )}
             {!deleteTargetVagaFixa && (
-              <AlertDialogAction onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id })}>
+              <AlertDialogAction onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id, avisar: avisarWhatsApp })}>
                 {deleteTarget?.tipo === "fixo" ? "Toda a recorrência" : "Remover"}
               </AlertDialogAction>
             )}
