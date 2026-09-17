@@ -58,6 +58,7 @@ export default function Agenda() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: Date; tipo: string } | null>(null);
+  const [avisarWhatsApp, setAvisarWhatsApp] = useState(true);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<"dia" | "semana" | null>(null);
@@ -149,14 +150,14 @@ export default function Agenda() {
   };
 
   const deleteMutation = useMutation({
-    mutationFn: async ({ id, modo = "padrao" }: { id: string; modo?: DeleteModo }) => {
+    mutationFn: async ({ id, modo = "padrao", avisar = true }: { id: string; modo?: DeleteModo; avisar?: boolean }) => {
       const ev = agendas.find((a: any) => a.id === id);
 
       // Dispara WhatsApp ANTES do delete (enquanto o registro ainda existe no banco)
-      if (ev?.id) {
+      if (ev?.id && avisar) {
         try {
           await supabase.functions.invoke("whatsapp-disparo-agenda", {
-            body: { evento: "agendamento_cancelado", agenda_id: ev.id },
+            body: { evento: "agendamento_cancelado", agenda_id: ev.id, forcar_todas_atividades: true },
           });
         } catch (e) {
           console.error("[WhatsApp Disparo cancelado] erro:", e);
