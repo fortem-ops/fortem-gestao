@@ -61,11 +61,13 @@ export function RescheduleDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" onClick={(e) => e.stopPropagation()}>
-          Reagendar
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline" onClick={(e) => e.stopPropagation()}>
+            Reagendar
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>Reagendar tarefa</DialogTitle>
