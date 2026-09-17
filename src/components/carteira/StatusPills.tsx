@@ -43,7 +43,6 @@ export interface StatusPillProps {
 }
 
 export function StatusPill({
-  label,
   titulo,
   status,
   detalhe,
