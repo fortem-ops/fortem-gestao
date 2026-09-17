@@ -71,6 +71,13 @@
       "when": 1789473961845,
       "tag": "0009_fix_grants_anon_role_fns_e_uso_cupom_no_pagamento",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789651736918,
+      "tag": "0010_tarefas_auto_ajustes",
+      "breakpoints": true
     }
   ]
 }
