@@ -426,7 +426,6 @@ export default function TaskCenter() {
     (t) => t.status === "pendente" && !t.atrasada
   );
   const overdue = tasks.filter((t) => t.atrasada);
-  const auto = tasks.filter((t) => t.automatica);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -469,27 +468,23 @@ export default function TaskCenter() {
       <Tabs defaultValue="pendentes">
         <TabsList className="bg-secondary/50 border border-border">
           <TabsTrigger value="pendentes">
-            Programadas ({pending.length})
+            Programadas{" "}
+            <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 rounded-full bg-success text-success-foreground text-[11px] font-bold">
+              {pending.length}
+            </span>
           </TabsTrigger>
           <TabsTrigger value="atrasadas">
-            Atrasadas ({overdue.length})
+            Atrasadas{" "}
+            <span className="ml-1 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold">
+              {overdue.length}
+            </span>
           </TabsTrigger>
-          <TabsTrigger value="automaticas">
-            Automáticas ({auto.length})
-          </TabsTrigger>
-          <TabsTrigger value="todas">Todas</TabsTrigger>
         </TabsList>
         <TabsContent value="pendentes">
           <TaskList tasks={pending} onToggle={handleToggle} onRescheduled={handleRescheduled} />
         </TabsContent>
         <TabsContent value="atrasadas">
           <TaskList tasks={overdue} onToggle={handleToggle} onRescheduled={handleRescheduled} />
-        </TabsContent>
-        <TabsContent value="automaticas">
-          <TaskList tasks={auto} onToggle={handleToggle} onRescheduled={handleRescheduled} />
-        </TabsContent>
-        <TabsContent value="todas">
-          <TaskList tasks={tasks} onToggle={handleToggle} onRescheduled={handleRescheduled} />
         </TabsContent>
       </Tabs>
     </div>

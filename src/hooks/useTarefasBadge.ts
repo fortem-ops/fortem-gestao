@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
- * Contadores do menu lateral: tarefas atrasadas e automáticas em aberto
+ * Contadores do menu lateral: tarefas atrasadas e programadas em aberto
  * do próprio usuário logado.
  */
 export function useTarefasBadge() {
@@ -14,10 +14,10 @@ export function useTarefasBadge() {
     staleTime: 60_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      if (!user) return { atrasadas: 0, automaticas: 0 };
+      if (!user) return { atrasadas: 0, programadas: 0 };
       const hoje = new Date().toISOString().split("T")[0];
 
-      const [atrasadasRes, automaticasRes] = await Promise.all([
+      const [atrasadasRes, programadasRes] = await Promise.all([
         supabase
           .from("tarefas")
           .select("id", { count: "exact", head: true })
@@ -28,13 +28,13 @@ export function useTarefasBadge() {
           .from("tarefas")
           .select("id", { count: "exact", head: true })
           .eq("responsavel_id", user.id)
-          .neq("status", "concluida")
-          .eq("automatica", true),
+          .eq("status", "pendente")
+          .or(`data_limite.gte.${hoje},data_limite.is.null`),
       ]);
 
       return {
         atrasadas: atrasadasRes.count ?? 0,
-        automaticas: automaticasRes.count ?? 0,
+        programadas: programadasRes.count ?? 0,
       };
     },
   });
