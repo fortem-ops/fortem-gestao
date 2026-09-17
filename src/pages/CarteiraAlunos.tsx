@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -300,46 +301,67 @@ export default function CarteiraAlunos() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="divide-y divide-border">
-                {alunos.map((aluno: any) => {
-                  const last = aluno.ultima_aval_funcional as Date | null;
-                  const sev = severityForLastFuncional(last);
-                  const statusAF: PillStatus =
-                    sev.className === "status-active"
-                      ? "em_dia"
-                      : sev.className === "status-warning"
-                        ? "pendente"
-                        : "atrasada";
-                  const lastLabel = last ? last.toLocaleDateString("pt-BR") : "Nunca avaliado";
-                  const hojeStr = new Date().toISOString().split("T")[0];
-                  const tarefas = tarefasPorAluno[aluno.id];
-                  const tFicha = tarefas?.ficha ?? null;
-                  const tRel = tarefas?.relatorio ?? null;
-                  const venc = (t: TarefaCarteira | null) =>
-                    !!t?.data_limite && t.data_limite < hojeStr;
-                  const prazo = (t: TarefaCarteira | null) =>
-                    t?.data_limite
-                      ? `prazo ${new Date(t.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`
-                      : t
-                        ? "sem prazo"
-                        : "sem pendência";
-                  return (
-                    <div
-                      key={aluno.id}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/alunos/${aluno.id}`)}
-                    >
-                      {isCoordAdmin && (
-                        <Checkbox
-                          checked={selected.has(aluno.id)}
-                          onCheckedChange={(e) => { e && e !== true; toggleSelect(aluno.id); }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{aluno.nome}</p>
-                        <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal === 5 ? "Livre" : `${aluno.frequencia_semanal || 0}x/semana`}</p>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    {isCoordAdmin && <TableHead className="w-10" />}
+                    <TableHead>Aluno</TableHead>
+                    <TableHead className="whitespace-nowrap">Avaliação Funcional</TableHead>
+                    <TableHead className="whitespace-nowrap">Ficha</TableHead>
+                    <TableHead className="whitespace-nowrap">Relatório</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {alunos.map((aluno: any) => {
+                    const last = aluno.ultima_aval_funcional as Date | null;
+                    const sev = severityForLastFuncional(last);
+                    const statusAF: PillStatus =
+                      sev.className === "status-active"
+                        ? "em_dia"
+                        : sev.className === "status-warning"
+                          ? "pendente"
+                          : "atrasada";
+                    const lastLabel = last ? last.toLocaleDateString("pt-BR") : "Nunca avaliado";
+                    const hojeStr = new Date().toISOString().split("T")[0];
+                    const tarefas = tarefasPorAluno[aluno.id];
+                    const tFicha = tarefas?.ficha ?? null;
+                    const tRel = tarefas?.relatorio ?? null;
+                    const venc = (t: TarefaCarteira | null) =>
+                      !!t?.data_limite && t.data_limite < hojeStr;
+                    const prazo = (t: TarefaCarteira | null) =>
+                      t?.data_limite
+                        ? `prazo ${new Date(t.data_limite + "T00:00:00").toLocaleDateString("pt-BR")}`
+                        : t
+                          ? "sem prazo"
+                          : "sem pendência";
+                    return (
+                      <TableRow
+                        key={aluno.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/alunos/${aluno.id}`)}
+                      >
+                        {isCoordAdmin && (
+                          <TableCell
+                            className="w-10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Checkbox
+                              checked={selected.has(aluno.id)}
+                              onCheckedChange={(e) => { e && e !== true; toggleSelect(aluno.id); }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{aluno.nome}</p>
+                              <p className="text-xs text-muted-foreground">{aluno.email || "Sem email"} · {aluno.frequencia_semanal === 5 ? "Livre" : `${aluno.frequencia_semanal || 0}x/semana`}</p>
+                            </div>
+                            <Badge variant="outline" className="status-active text-xs shrink-0 ml-auto">Ativo</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <StatusPill
                             label="AF"
                             titulo="Avaliação Funcional"
@@ -348,6 +370,8 @@ export default function CarteiraAlunos() {
                             acaoLabel="Agendar/registrar avaliação"
                             acaoHref={`/alunos/${aluno.id}?tab=avaliacoes`}
                           />
+                        </TableCell>
+                        <TableCell>
                           <StatusPill
                             label="Ficha"
                             titulo="Troca de Ficha"
@@ -358,6 +382,8 @@ export default function CarteiraAlunos() {
                             tarefa={tFicha}
                             onReagendado={() => queryClient.invalidateQueries({ queryKey: ["carteira-tarefas-abertas"] })}
                           />
+                        </TableCell>
+                        <TableCell>
                           <StatusPill
                             label="Relatório"
                             titulo="Relatório"
@@ -368,13 +394,12 @@ export default function CarteiraAlunos() {
                             tarefa={tRel}
                             onReagendado={() => queryClient.invalidateQueries({ queryKey: ["carteira-tarefas-abertas"] })}
                           />
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="status-active text-xs shrink-0">Ativo</Badge>
-                    </div>
-                  );
-                })}
-              </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         ))
