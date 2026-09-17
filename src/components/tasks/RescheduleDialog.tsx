@@ -14,8 +14,25 @@ export interface ReschedTask {
   data_limite: string | null;
 }
 
-export function RescheduleDialog({ task, onDone }: { task: ReschedTask; onDone: () => void }) {
-  const [open, setOpen] = useState(false);
+export function RescheduleDialog({
+  task,
+  onDone,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
+}: {
+  task: ReschedTask;
+  onDone: () => void;
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
+  hideTrigger?: boolean;
+}) {
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (v: boolean) => {
+    setOpenState(v);
+    onOpenChange?.(v);
+  };
   const [data, setData] = useState(task.data_limite || "");
   const [motivo, setMotivo] = useState("");
   const todayStr = new Date().toISOString().split("T")[0];
