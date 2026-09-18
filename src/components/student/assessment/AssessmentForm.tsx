@@ -366,7 +366,17 @@ function BodyComposition({ student, protocoloId, permiteUpload }: { student: Tab
 // criados em Administração > Relatórios — ficam disponíveis aqui.
 const ENGINES_EXCLUIDAS_LEGADO = ["funcional_v2", "composicao_pollock"];
 
-export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
+export function AssessmentForm({
+  student,
+  tipoSlugInicial,
+  protocoloNomeInicial,
+}: {
+  student: Tables<"alunos">;
+  /** Pré-seleciona o tipo pelo slug (ex.: vindo de uma tarefa). */
+  tipoSlugInicial?: string | null;
+  /** Pré-seleciona o protocolo pelo nome/prefixo (ex.: "evolucao"). */
+  protocoloNomeInicial?: string | null;
+}) {
   const { data: tipos = [], isLoading: loadingTipos } = useQuery({
     queryKey: ["avaliacao-tipos"],
     queryFn: fetchTipos,
@@ -378,10 +388,15 @@ export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
 
   const [tipoId, setTipoId] = useState<string>("");
   const [protocoloId, setProtocoloId] = useState<string>("");
+  const prefillProtocoloAplicado = useRef(false);
 
   useEffect(() => {
-    if (!tipoId && tiposAtivos.length) setTipoId(tiposAtivos[0].id);
-  }, [tipoId, tiposAtivos]);
+    if (tipoId || !tiposAtivos.length) return;
+    const porSlug = tipoSlugInicial
+      ? tiposAtivos.find((t) => t.slug === tipoSlugInicial)
+      : null;
+    setTipoId((porSlug ?? tiposAtivos[0]).id);
+  }, [tipoId, tiposAtivos, tipoSlugInicial]);
 
   const tipoSel = tiposAtivos.find((t) => t.id === tipoId) ?? null;
 
@@ -394,11 +409,26 @@ export function AssessmentForm({ student }: { student: Tables<"alunos"> }) {
 
   useEffect(() => {
     if (!protocolosAtivos.length) { setProtocoloId(""); return; }
+    if (
+      protocoloNomeInicial &&
+      !prefillProtocoloAplicado.current &&
+      tipoSel?.slug === tipoSlugInicial
+    ) {
+      const alvo = protocolosAtivos.find((p) =>
+        normalizarNome(p.nome).startsWith(normalizarNome(protocoloNomeInicial)),
+      );
+      if (alvo) {
+        prefillProtocoloAplicado.current = true;
+        setProtocoloId(alvo.id);
+        return;
+      }
+    }
     if (!protocolosAtivos.find((p) => p.id === protocoloId)) {
       const def = protocolosAtivos.find((p) => p.is_default) ?? protocolosAtivos[0];
       setProtocoloId(def.id);
     }
-  }, [protocolosAtivos, protocoloId]);
+  }, [protocolosAtivos, protocoloId, protocoloNomeInicial, tipoSel, tipoSlugInicial]);
+
 
   const protoSel = protocolosAtivos.find((p) => p.id === protocoloId) ?? null;
 
