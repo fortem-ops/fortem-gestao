@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Loader2, CheckCircle2, Plus, Lock, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle2, Plus, Lock, AlertTriangle, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
+import { ImportarEvolucaoDialog } from "./ImportarEvolucaoDialog";
+import type { SessaoImportada } from "@/lib/fisioEvolucaoImport";
 import { fetchProtocolos } from "@/lib/avaliacaoProtocolos";
 import type {
   ExperimentalSchema,
@@ -24,6 +26,10 @@ export interface SessaoEvolucao {
   finalizado_em: string | null;
   autor_id: string | null;
   autor_nome: string | null;
+  /** Data do atendimento (YYYY-MM-DD) — presente em sessões importadas. */
+  data?: string | null;
+  /** "importacao" quando a sessão veio de um documento enviado. */
+  origem?: string | null;
 }
 
 interface EvolucaoDados {
@@ -120,6 +126,7 @@ export function ReabilitacaoEvolucao({ student, tipoId, tipoSlug, protocoloId, s
   const [dados, setDados] = useState<EvolucaoDados>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const lastSerialized = useRef<string>(JSON.stringify(EMPTY));
   const initialized = useRef(false);
@@ -277,6 +284,51 @@ export function ReabilitacaoEvolucao({ student, tipoId, tipoSlug, protocoloId, s
     });
   };
 
+  /** Importa sessões lidas de um documento, já registradas. */
+  const importarSessoes = (importadas: SessaoImportada[], modo: "substituir" | "renumerar") => {
+    setDados((d) => {
+      const agora = new Date().toISOString();
+      const existentes = d.sessoes;
+      let novas: SessaoEvolucao[] = [];
+      let base = existentes;
+
+      if (modo === "substituir") {
+        const numeros = new Set(importadas.map((s) => s.n));
+        base = existentes.filter((s) => !numeros.has(s.n));
+        novas = importadas.map((s) => ({
+          n: s.n,
+          texto: s.texto,
+          data: s.data,
+          origem: "importacao",
+          finalizado_em: agora,
+          autor_id: user?.id ?? null,
+          autor_nome: user?.email ?? null,
+        }));
+      } else {
+        const ocupados = new Set(existentes.map((s) => s.n));
+        let proximo = existentes.length
+          ? Math.max(...existentes.map((s) => s.n)) + 1
+          : primeiraNumeracao;
+        novas = importadas.map((s) => {
+          const n = ocupados.has(s.n) ? proximo++ : s.n;
+          ocupados.add(n);
+          return {
+            n,
+            texto: s.texto,
+            data: s.data,
+            origem: "importacao",
+            finalizado_em: agora,
+            autor_id: user?.id ?? null,
+            autor_nome: user?.email ?? null,
+          };
+        });
+      }
+
+      return { ...d, sessoes: [...base, ...novas] };
+    });
+    toast.success(`${importadas.length} sessão(ões) importada(s).`);
+  };
+
   const finalizarSessao = (n: number) => {
     const alvo = dados.sessoes.find((s) => s.n === n);
     if (!alvo || !alvo.texto.trim()) {
@@ -387,7 +439,14 @@ export function ReabilitacaoEvolucao({ student, tipoId, tipoSlug, protocoloId, s
         return (
           <section key={s.n} className="glass-card rounded-lg p-5 space-y-3">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <h3 className="font-heading font-semibold text-foreground">Sessão {s.n}</h3>
+              <h3 className="font-heading font-semibold text-foreground">
+                Sessão {s.n}
+                {s.data && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    {format(new Date(`${s.data}T12:00:00`), "dd/MM/yyyy")}
+                  </span>
+                )}
+              </h3>
               <div className="flex items-center gap-2">
                 {finalizada && (
                   <Badge variant="outline" className="border-success/40 text-success">
@@ -425,11 +484,21 @@ export function ReabilitacaoEvolucao({ student, tipoId, tipoSlug, protocoloId, s
         );
       })}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2 flex-wrap">
+        <Button variant="outline" onClick={() => setImportOpen(true)}>
+          <Upload className="w-4 h-4 mr-2" /> Importar histórico
+        </Button>
         <Button variant="outline" onClick={novaSessao}>
           <Plus className="w-4 h-4 mr-2" /> Nova sessão
         </Button>
       </div>
+
+      <ImportarEvolucaoDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        numerosExistentes={dados.sessoes.map((s) => s.n)}
+        onConfirmar={importarSessoes}
+      />
 
       {permiteUpload && <AvaliacaoAnexos avaliacaoId={id} />}
     </div>
