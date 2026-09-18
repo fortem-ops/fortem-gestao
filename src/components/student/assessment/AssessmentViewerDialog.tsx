@@ -52,16 +52,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
   const isComposicao = avaliacao?.tipo === "composicao_corporal";
   const isExperimental = avaliacao?.tipo === "experimental";
 
-  const { data: canEdit } = useQuery({
-    queryKey: ["is-coord-or-admin", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase.rpc("is_coordinator_or_admin", { _user_id: user!.id });
-      return !!data;
-    },
-  });
-
-  const { data: canDelete } = useQuery({
+  const { data: canEditar } = useQuery({
     queryKey: ["is-staff", user?.id],
     enabled: !!user,
     queryFn: async () => {
