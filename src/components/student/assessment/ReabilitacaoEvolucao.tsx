@@ -26,6 +26,10 @@ export interface SessaoEvolucao {
   finalizado_em: string | null;
   autor_id: string | null;
   autor_nome: string | null;
+  /** Data do atendimento (YYYY-MM-DD) — presente em sessões importadas. */
+  data?: string | null;
+  /** "importacao" quando a sessão veio de um documento enviado. */
+  origem?: string | null;
 }
 
 interface EvolucaoDados {
