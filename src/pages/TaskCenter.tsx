@@ -18,6 +18,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 import { RescheduleDialog } from "@/components/tasks/RescheduleDialog";
 import { getTaskActionTarget } from "@/lib/taskAction";
+import { agoraSaoPaulo, tarefaAtrasada } from "@/lib/tarefaAtraso";
+
 import { AtividadeTipoSelector } from "@/components/pipeline/AtividadeTipoSelector";
 import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
 import { useUserRoles } from "@/hooks/useUserRoles";
