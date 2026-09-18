@@ -14,27 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _imp_aval: {
-        Row: {
-          av: string | null
-          dt: string | null
-          nome_key: string | null
-          vals: string | null
-        }
-        Insert: {
-          av?: string | null
-          dt?: string | null
-          nome_key?: string | null
-          vals?: string | null
-        }
-        Update: {
-          av?: string | null
-          dt?: string | null
-          nome_key?: string | null
-          vals?: string | null
-        }
-        Relationships: []
-      }
       adquirentes_config: {
         Row: {
           adquirente: string
