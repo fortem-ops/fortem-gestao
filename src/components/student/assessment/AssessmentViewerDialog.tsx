@@ -113,15 +113,17 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     queryFn: async () => {
       const { data } = await supabase
         .from("avaliacao_tipos" as never)
-        .select("nome")
+        .select("id, nome")
         .eq("slug", avaliacao!.tipo)
         .maybeSingle();
-      return data as { nome: string } | null;
+      return data as { id: string; nome: string } | null;
     },
   });
 
   const nomeTipo = tipoInfo?.nome ?? avaliacao?.tipo?.replace(/_/g, " ") ?? "";
   const tituloTipo = protocoloInfo?.nome ? `${nomeTipo} — ${protocoloInfo.nome}` : nomeTipo;
+  // Evolução da Reabilitação tem motor próprio (prontuário com sessões): nunca editar pelo genérico.
+  const isEvolucao = avaliacao?.tipo === "reabilitacao" && isProtocoloEvolucao(protocoloInfo?.nome);
 
 
   if (!avaliacao) return null;
