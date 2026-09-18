@@ -213,6 +213,15 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           />
         ) : editing && isExperimental && !avaliacao.protocolo_id ? (
           <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
+        ) : editing && isEvolucao && expSchema && avaliacao.protocolo_id && tipoInfo?.id ? (
+          <ReabilitacaoEvolucao
+            student={student}
+            tipoId={tipoInfo.id}
+            tipoSlug={avaliacao.tipo}
+            protocoloId={avaliacao.protocolo_id}
+            schema={expSchema as never}
+            permiteUpload
+          />
         ) : editing && isDynamic && expSchema && avaliacao.protocolo_id ? (
           <DynamicAssessment
             student={student}
