@@ -47,7 +47,7 @@ export function tituloDeSessao(linhaOriginal: string): { n: number; data: string
   if (linha.length > 140) return null;
 
   // Formato "N° fisio/sessão [data]"
-  let m = /^(\d{1,3})\s*[°ºoa�ª]?\s*(?:fisio(?:terapia)?|sess[ãa]o|atendimento)\b(.*)$/i.exec(linha);
+  let m = /^(\d{1,3})\s*[°ºoª]?\s*(?:fisio(?:terapia)?|sess[ãa]o|atendimento)\b(.*)$/i.exec(linha);
   if (!m) {
     // Formato "fisio N - data"
     m = /^(?:fisio(?:terapia)?|sess[ãa]o|atendimento)\s*(?:n[º°.]?\s*)?(\d{1,3})\b(.*)$/i.exec(linha);
