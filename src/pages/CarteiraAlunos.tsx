@@ -54,23 +54,36 @@ export default function CarteiraAlunos() {
     enabled: !!user,
   });
 
-  // Fetch professors (derived from distinct responsavel_id in alunos to bypass user_roles RLS)
+  // Fetch professionals (RPC bypasses user_roles RLS), merged with any responsavel_id already in use
   const { data: professors = [] } = useQuery({
     queryKey: ["professors-carteira"],
     queryFn: async () => {
+      const { data: equipe } = await supabase.rpc("fn_listar_profissionais");
+      const lista: { user_id: string; full_name: string }[] = (equipe || []).map((e: any) => ({
+        user_id: e.user_id as string,
+        full_name: (e.full_name as string) || "",
+      }));
+      const conhecidos = new Set(lista.map((p) => p.user_id));
+
       const { data: alunos } = await supabase
         .from("alunos")
         .select("responsavel_id")
         .not("responsavel_id", "is", null);
-      const ids = [...new Set((alunos || []).map((a) => a.responsavel_id).filter(Boolean) as string[])];
-      if (!ids.length) return [];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", ids);
-      return (profiles || []).sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
+      const faltantes = [
+        ...new Set((alunos || []).map((a) => a.responsavel_id).filter((id): id is string => !!id && !conhecidos.has(id))),
+      ];
+      if (faltantes.length) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", faltantes);
+        (profiles || []).forEach((p) => lista.push({ user_id: p.user_id, full_name: p.full_name || "" }));
+      }
+
+      return lista.sort((a, b) => a.full_name.localeCompare(b.full_name));
     },
   });
+
 
   // Fetch active students (those with active plans) + last functional assessment
   const { data: studentsWithPlans = [], isLoading } = useQuery({
