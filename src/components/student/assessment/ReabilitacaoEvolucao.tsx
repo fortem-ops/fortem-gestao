@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Loader2, CheckCircle2, Plus, Lock, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle2, Plus, Lock, AlertTriangle, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
+import { ImportarEvolucaoDialog } from "./ImportarEvolucaoDialog";
+import type { SessaoImportada } from "@/lib/fisioEvolucaoImport";
 import { fetchProtocolos } from "@/lib/avaliacaoProtocolos";
 import type {
   ExperimentalSchema,
