@@ -481,17 +481,17 @@ export default function TaskCenter() {
         alunoMap[a.id] = a.nome;
       });
 
-      const todayStr = new Date().toISOString().split("T")[0];
+      const agora = agoraSaoPaulo();
 
       return data.map((t) => ({
         ...t,
         responsavel_nome: nameMap[t.responsavel_id] || "—",
         aluno_nome: t.aluno_id ? alunoMap[t.aluno_id] || "" : "",
         atrasada:
-          t.status !== "concluida" && t.data_limite
-            ? t.data_limite < todayStr
-            : false,
+          t.status !== "concluida" &&
+          tarefaAtrasada(t.data_limite, (t as any).hora_limite, agora),
       }));
+
     },
   });
 
