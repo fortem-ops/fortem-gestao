@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useNavigate } from "react-router-dom";
 import { fetchLastFuncionalDateBatch, severityForLastFuncional } from "@/lib/avaliacaoFuncional";
 import { carregarTodasAsPaginas } from "@/lib/supabasePaginado";
+import { getDisplayStatus, ACTIVE_STATUS_KEYS } from "@/lib/studentStatus";
+import { selecionarPlanoExibicao, planoDataFim } from "@/lib/planoPrincipal";
 import { StatusPill, type PillStatus } from "@/components/carteira/StatusPills";
 import type { ReschedTask } from "@/components/tasks/RescheduleDialog";
 
@@ -85,13 +87,13 @@ export default function CarteiraAlunos() {
   });
 
 
-  // Fetch active students (those with active plans) + last functional assessment
+  // Fetch active students (regra canônica de Alunos Ativos: plano vigente, licença ou corrida) + last functional assessment
   const { data: studentsWithPlans = [], isLoading } = useQuery({
     queryKey: ["carteira-alunos"],
     queryFn: async () => {
       const { data: activePlans } = await supabase
         .from("planos")
-        .select("aluno_id")
+        .select("id, aluno_id, tipo, atividade, data_inicio, data_fim, duracao_meses, ativo, created_at")
         .eq("ativo", true);
       if (!activePlans?.length) return [];
 
@@ -101,13 +103,38 @@ export default function CarteiraAlunos() {
         .select("id, nome, email, status, responsavel_id, frequencia_semanal")
         .in("id", alunoIds)
         .eq("is_equipe", false)
-        .eq("status", "ativo")
         .order("nome");
       if (!alunos?.length) return [];
 
-      const lastByAluno = await fetchLastFuncionalDateBatch(alunos.map((a) => a.id));
+      const { data: licencas } = await supabase
+        .from("aluno_licencas")
+        .select("aluno_id, tipo, data_inicio, data_fim, dias, motivo")
+        .in("aluno_id", alunos.map((a) => a.id));
+      const licencasMap: Record<string, any[]> = {};
+      (licencas || []).forEach((l: any) => { (licencasMap[l.aluno_id] ||= []).push(l); });
 
-      return alunos.map((a) => ({ ...a, ultima_aval_funcional: lastByAluno[a.id] ?? null }));
+      const planosPorAluno: Record<string, any[]> = {};
+      activePlans.forEach((p: any) => { (planosPorAluno[p.aluno_id] ||= []).push(p); });
+
+      // Mesma regra de Cadastros > Alunos Ativos: vigência pela data/licença,
+      // não apenas pelo flag planos.ativo (que permanece true em planos vencidos).
+      const ativos = alunos.filter((a) => {
+        const selecao = selecionarPlanoExibicao(planosPorAluno[a.id] ?? []);
+        const plano = selecao.plano as any;
+        const display = getDisplayStatus(
+          a.status,
+          planoDataFim(plano),
+          licencasMap[a.id] || [],
+          plano?.tipo ?? null,
+          { corridaOnly: selecao.corridaOnly },
+        );
+        return (ACTIVE_STATUS_KEYS as string[]).includes(display.key);
+      });
+      if (!ativos.length) return [];
+
+      const lastByAluno = await fetchLastFuncionalDateBatch(ativos.map((a) => a.id));
+
+      return ativos.map((a) => ({ ...a, ultima_aval_funcional: lastByAluno[a.id] ?? null }));
     },
   });
 
