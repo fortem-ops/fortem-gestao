@@ -23,6 +23,7 @@ import { fetchExperimentalSchema, migrateLegacyDados, ensureFaseInicialQuestion,
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { DynamicAssessment } from "./DynamicAssessment";
+import { ReabilitacaoEvolucao, isProtocoloEvolucao } from "./ReabilitacaoEvolucao";
 import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
 import { useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
