@@ -35,6 +35,8 @@ interface TaskRow {
   prioridade: string;
   status: string;
   data_limite: string | null;
+  hora_limite?: string | null;
+
   automatica: boolean;
   tipo_auto: string | null;
   tipo_atividade: string | null;
@@ -323,7 +325,9 @@ function grupoDaTarefa(task: TaskRow & { origem?: string | null }): TaskGroupId 
       return "avaliacoes";
     case "relatorio_tecnico_forca":
     case "relatorio_tecnico_corrida":
+    case "relatorio_reabilitacao":
       return "relatorios";
+
     case "ponto_fechamento":
       return "ponto";
     default:

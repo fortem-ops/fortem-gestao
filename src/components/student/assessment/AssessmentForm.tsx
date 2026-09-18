@@ -1,4 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+
+/** Normaliza nome de protocolo (sem acento, minúsculo) para o pré-preenchimento. */
+function normalizarNome(v: string | null | undefined): string {
+  return (v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
 import { useQuery } from "@tanstack/react-query";
 import { classifyAngle, getClassificationColor, assessmentReferences } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";

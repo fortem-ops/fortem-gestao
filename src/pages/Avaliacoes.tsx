@@ -57,7 +57,12 @@ export default function Avaliacoes() {
           </Button>
           <h1 className="text-2xl font-heading font-bold text-foreground">Novo Relatório — {aluno.nome}</h1>
         </div>
-        <AssessmentForm student={aluno} />
+        <AssessmentForm
+          student={aluno}
+          tipoSlugInicial={searchParams.get("tipo")}
+          protocoloNomeInicial={searchParams.get("protocolo")}
+        />
+
       </div>
     );
   }
