@@ -6928,6 +6928,7 @@ export type Database = {
           criado_por_id: string
           data_limite: string | null
           descricao: string | null
+          hora_limite: string | null
           id: string
           origem: string
           prioridade: string
@@ -6945,6 +6946,7 @@ export type Database = {
           criado_por_id: string
           data_limite?: string | null
           descricao?: string | null
+          hora_limite?: string | null
           id?: string
           origem?: string
           prioridade?: string
@@ -6962,6 +6964,7 @@ export type Database = {
           criado_por_id?: string
           data_limite?: string | null
           descricao?: string | null
+          hora_limite?: string | null
           id?: string
           origem?: string
           prioridade?: string

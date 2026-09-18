@@ -18,6 +18,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 import { RescheduleDialog } from "@/components/tasks/RescheduleDialog";
 import { getTaskActionTarget } from "@/lib/taskAction";
+import { agoraSaoPaulo, tarefaAtrasada } from "@/lib/tarefaAtraso";
+
 import { AtividadeTipoSelector } from "@/components/pipeline/AtividadeTipoSelector";
 import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -35,6 +37,8 @@ interface TaskRow {
   prioridade: string;
   status: string;
   data_limite: string | null;
+  hora_limite?: string | null;
+
   automatica: boolean;
   tipo_auto: string | null;
   tipo_atividade: string | null;
@@ -323,7 +327,9 @@ function grupoDaTarefa(task: TaskRow & { origem?: string | null }): TaskGroupId 
       return "avaliacoes";
     case "relatorio_tecnico_forca":
     case "relatorio_tecnico_corrida":
+    case "relatorio_reabilitacao":
       return "relatorios";
+
     case "ponto_fechamento":
       return "ponto";
     default:
@@ -477,17 +483,17 @@ export default function TaskCenter() {
         alunoMap[a.id] = a.nome;
       });
 
-      const todayStr = new Date().toISOString().split("T")[0];
+      const agora = agoraSaoPaulo();
 
       return data.map((t) => ({
         ...t,
         responsavel_nome: nameMap[t.responsavel_id] || "—",
         aluno_nome: t.aluno_id ? alunoMap[t.aluno_id] || "" : "",
         atrasada:
-          t.status !== "concluida" && t.data_limite
-            ? t.data_limite < todayStr
-            : false,
+          t.status !== "concluida" &&
+          tarefaAtrasada(t.data_limite, (t as any).hora_limite, agora),
       }));
+
     },
   });
 

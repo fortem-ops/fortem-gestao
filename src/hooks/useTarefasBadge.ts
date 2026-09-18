@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { agoraSaoPaulo, tarefaAtrasada } from "@/lib/tarefaAtraso";
 
 /**
  * Contadores do menu lateral: tarefas atrasadas e programadas em aberto
@@ -15,27 +16,23 @@ export function useTarefasBadge() {
     refetchInterval: 60_000,
     queryFn: async () => {
       if (!user) return { atrasadas: 0, programadas: 0 };
-      const hoje = new Date().toISOString().split("T")[0];
 
-      const [atrasadasRes, programadasRes] = await Promise.all([
-        supabase
-          .from("tarefas")
-          .select("id", { count: "exact", head: true })
-          .eq("responsavel_id", user.id)
-          .neq("status", "concluida")
-          .lt("data_limite", hoje),
-        supabase
-          .from("tarefas")
-          .select("id", { count: "exact", head: true })
-          .eq("responsavel_id", user.id)
-          .eq("status", "pendente")
-          .or(`data_limite.gte.${hoje},data_limite.is.null`),
-      ]);
+      const { data, error } = await supabase
+        .from("tarefas")
+        .select("data_limite, hora_limite, status")
+        .eq("responsavel_id", user.id)
+        .neq("status", "concluida");
+      if (error) throw error;
 
-      return {
-        atrasadas: atrasadasRes.count ?? 0,
-        programadas: programadasRes.count ?? 0,
-      };
+      const agora = agoraSaoPaulo();
+      let atrasadas = 0;
+      let programadas = 0;
+      (data || []).forEach((t) => {
+        if (tarefaAtrasada(t.data_limite, t.hora_limite, agora)) atrasadas += 1;
+        else if (t.status === "pendente") programadas += 1;
+      });
+
+      return { atrasadas, programadas };
     },
   });
 }
