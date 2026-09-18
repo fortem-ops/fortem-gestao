@@ -106,6 +106,22 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
   const schemaPending = isDynamic && !expSchema && (!!avaliacao?.protocolo_id || isExperimental);
   const podeEditarRelatorio = !!canEditar && isDynamic && !!expSchema;
 
+  const { data: tipoInfo } = useTplQuery({
+    queryKey: ["avaliacao-tipo-nome", avaliacao?.tipo],
+    enabled: !!avaliacao?.tipo,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("avaliacao_tipos" as never)
+        .select("nome")
+        .eq("slug", avaliacao!.tipo)
+        .maybeSingle();
+      return data as { nome: string } | null;
+    },
+  });
+
+  const nomeTipo = tipoInfo?.nome ?? avaliacao?.tipo?.replace(/_/g, " ") ?? "";
+  const tituloTipo = protocoloInfo?.nome ? `${nomeTipo} — ${protocoloInfo.nome}` : nomeTipo;
+
 
   if (!avaliacao) return null;
 
@@ -171,8 +187,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     <Dialog open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="capitalize flex items-center gap-2 flex-wrap">
-            {avaliacao.tipo.replace(/_/g, ' ')} — {format(new Date(avaliacao.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          <DialogTitle className="flex items-center gap-2 flex-wrap">
+            {tituloTipo} — {format(new Date(avaliacao.data), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
             {isDynamic && expDados && (
               <Badge variant="outline" className={expDados.status === "finalizado" ? "border-success/40 text-success" : "border-warning/40 text-warning"}>
                 {expDados.status === "finalizado" ? "Finalizada" : "Rascunho"}
