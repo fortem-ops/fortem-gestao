@@ -23,6 +23,7 @@ import { fetchExperimentalSchema, migrateLegacyDados, ensureFaseInicialQuestion,
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { DynamicAssessment } from "./DynamicAssessment";
+import { ReabilitacaoEvolucao, isProtocoloEvolucao } from "./ReabilitacaoEvolucao";
 import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
 import { useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
@@ -112,15 +113,17 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     queryFn: async () => {
       const { data } = await supabase
         .from("avaliacao_tipos" as never)
-        .select("nome")
+        .select("id, nome")
         .eq("slug", avaliacao!.tipo)
         .maybeSingle();
-      return data as { nome: string } | null;
+      return data as { id: string; nome: string } | null;
     },
   });
 
   const nomeTipo = tipoInfo?.nome ?? avaliacao?.tipo?.replace(/_/g, " ") ?? "";
   const tituloTipo = protocoloInfo?.nome ? `${nomeTipo} — ${protocoloInfo.nome}` : nomeTipo;
+  // Evolução da Reabilitação tem motor próprio (prontuário com sessões): nunca editar pelo genérico.
+  const isEvolucao = avaliacao?.tipo === "reabilitacao" && isProtocoloEvolucao(protocoloInfo?.nome);
 
 
   if (!avaliacao) return null;
@@ -210,6 +213,15 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           />
         ) : editing && isExperimental && !avaliacao.protocolo_id ? (
           <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
+        ) : editing && isEvolucao && expSchema && avaliacao.protocolo_id && tipoInfo?.id ? (
+          <ReabilitacaoEvolucao
+            student={student}
+            tipoId={tipoInfo.id}
+            tipoSlug={avaliacao.tipo}
+            protocoloId={avaliacao.protocolo_id}
+            schema={expSchema as never}
+            permiteUpload
+          />
         ) : editing && isDynamic && expSchema && avaliacao.protocolo_id ? (
           <DynamicAssessment
             student={student}
