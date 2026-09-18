@@ -10,7 +10,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,6 +22,7 @@ import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAsses
 import { fetchExperimentalSchema, migrateLegacyDados, ensureFaseInicialQuestion, type ExperimentalRecordDados } from "./experimentalTemplate";
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
+import { DynamicAssessment } from "./DynamicAssessment";
 import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
 import { useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
@@ -300,7 +301,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
               <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir edição
             </Button>
           )}
-          {canDelete && (
+          {canEditar && !editing && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
