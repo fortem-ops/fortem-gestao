@@ -283,6 +283,51 @@ export function ReabilitacaoEvolucao({ student, tipoId, tipoSlug, protocoloId, s
     });
   };
 
+  /** Importa sessões lidas de um documento, já registradas. */
+  const importarSessoes = (importadas: SessaoImportada[], modo: "substituir" | "renumerar") => {
+    setDados((d) => {
+      const agora = new Date().toISOString();
+      const existentes = d.sessoes;
+      let novas: SessaoEvolucao[] = [];
+      let base = existentes;
+
+      if (modo === "substituir") {
+        const numeros = new Set(importadas.map((s) => s.n));
+        base = existentes.filter((s) => !numeros.has(s.n));
+        novas = importadas.map((s) => ({
+          n: s.n,
+          texto: s.texto,
+          data: s.data,
+          origem: "importacao",
+          finalizado_em: agora,
+          autor_id: user?.id ?? null,
+          autor_nome: user?.email ?? null,
+        }));
+      } else {
+        const ocupados = new Set(existentes.map((s) => s.n));
+        let proximo = existentes.length
+          ? Math.max(...existentes.map((s) => s.n)) + 1
+          : primeiraNumeracao;
+        novas = importadas.map((s) => {
+          const n = ocupados.has(s.n) ? proximo++ : s.n;
+          ocupados.add(n);
+          return {
+            n,
+            texto: s.texto,
+            data: s.data,
+            origem: "importacao",
+            finalizado_em: agora,
+            autor_id: user?.id ?? null,
+            autor_nome: user?.email ?? null,
+          };
+        });
+      }
+
+      return { ...d, sessoes: [...base, ...novas] };
+    });
+    toast.success(`${importadas.length} sessão(ões) importada(s).`);
+  };
+
   const finalizarSessao = (n: number) => {
     const alvo = dados.sessoes.find((s) => s.n === n);
     if (!alvo || !alvo.texto.trim()) {
