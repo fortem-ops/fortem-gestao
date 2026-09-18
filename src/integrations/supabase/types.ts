@@ -8726,6 +8726,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      fn_listar_profissionais: {
+        Args: never
+        Returns: {
+          full_name: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
       fn_local_mais_proximo: {
         Args: { _lat: number; _lng: number }
         Returns: {
