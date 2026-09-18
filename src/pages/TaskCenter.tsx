@@ -412,17 +412,11 @@ export default function TaskCenter() {
   const { data: professors = [] } = useQuery({
     queryKey: ["taskcenter-professors"],
     queryFn: async () => {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .in("role", ["professor", "coordenador", "admin"]);
-      if (!roles?.length) return [];
-      const userIds = roles.map((r) => r.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-      return (profiles || []).sort((a, b) => a.full_name.localeCompare(b.full_name));
+      const { data, error } = await supabase.rpc("fn_listar_profissionais");
+      if (error) throw error;
+      return (data || [])
+        .map((p) => ({ user_id: p.user_id, full_name: p.full_name }))
+        .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
     },
     enabled: !!isCoordAdmin,
     staleTime: 5 * 60_000,
