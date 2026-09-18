@@ -199,8 +199,17 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
             faixaEtaria={faixaEtariaDe(student?.data_nascimento)}
             referenceData={mobilidadeRef}
           />
-        ) : isExperimental && editing ? (
+        ) : editing && isExperimental && !avaliacao.protocolo_id ? (
           <ExperimentalAssessment student={student} avaliacaoId={avaliacao.id} />
+        ) : editing && isDynamic && expSchema && avaliacao.protocolo_id ? (
+          <DynamicAssessment
+            student={student}
+            tipoSlug={avaliacao.tipo}
+            protocoloId={avaliacao.protocolo_id}
+            schema={expSchema as never}
+            avaliacaoId={avaliacao.id}
+            permiteUpload
+          />
         ) : isDynamic && (expSchema || schemaPending) ? (
           <ExperimentalView dados={expDados!} schema={expSchema} withFaseInicial={isExperimental} />
         ) : isLoading && isFuncional ? (
@@ -280,12 +289,23 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           </div>
         )}
 
-        <AvaliacaoAnexos avaliacaoId={avaliacao.id} canEdit={!!canEdit} />
+        {!editing && <AvaliacaoAnexos avaliacaoId={avaliacao.id} canEdit={!!canEditar} />}
 
         <DialogFooter className="gap-2 flex-wrap">
-          {isExperimental && canEdit && !editing && (
+          {podeEditarRelatorio && !editing && (
             <Button variant="outline" onClick={() => setEditing(true)}>
               <Pencil className="w-4 h-4 mr-2" /> Editar
+            </Button>
+          )}
+          {editing && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditing(false);
+                invalidateAvaliacaoFuncional(queryClient, student.id);
+              }}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir edição
             </Button>
           )}
           {canDelete && (
