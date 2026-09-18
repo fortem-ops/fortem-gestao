@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useSupabaseMutation } from "@/hooks/useSupabaseMutation";
 import { invalidateAvaliacaoFuncional } from "@/lib/query-invalidation";
 import { cn } from "@/lib/utils";
+import { fetchTipos, fetchProtocolos } from "@/lib/avaliacaoProtocolos";
 
 // Motores estruturais: ficam na sub-aba "Avaliações". Todo o resto é Relatório.
 export const TIPOS_ESTRUTURAIS = ["funcional", "funcional_v2", "composicao_corporal"];
@@ -83,6 +84,26 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
   const lista = (avaliacoes ?? []).filter((a) =>
     isAval ? TIPOS_ESTRUTURAIS.includes(a.tipo) : !TIPOS_ESTRUTURAIS.includes(a.tipo),
   );
+
+  const { data: tipos } = useQuery({
+    queryKey: ["avaliacao-tipos-nomes"],
+    staleTime: 5 * 60_000,
+    queryFn: fetchTipos,
+  });
+  const { data: protocolos } = useQuery({
+    queryKey: ["avaliacao-protocolos-nomes"],
+    staleTime: 5 * 60_000,
+    queryFn: () => fetchProtocolos(),
+  });
+
+  /** "Relatórios Técnicos — Treinos de corrida"; cai no slug quando não encontra. */
+  const rotuloAvaliacao = (a: Tables<"avaliacoes">) => {
+    const nomeTipo = (tipos ?? []).find((t) => t.slug === a.tipo)?.nome ?? a.tipo.replace(/_/g, " ");
+    const nomeProto = a.protocolo_id
+      ? (protocolos ?? []).find((p) => p.id === a.protocolo_id)?.nome
+      : null;
+    return nomeProto ? `${nomeTipo} — ${nomeProto}` : nomeTipo;
+  };
 
 
 
@@ -194,7 +215,7 @@ export function StudentAssessments({ student, modo = "avaliacoes" }: { student: 
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold text-foreground capitalize">{a.tipo.replace(/_/g, ' ')}</p>
+                  <p className="text-sm font-semibold text-foreground">{rotuloAvaliacao(a)}</p>
                   {(a as any).origem === "historico_manual" && (
                     <Badge variant="outline" className="status-info text-[10px]">Registro histórico</Badge>
                   )}
