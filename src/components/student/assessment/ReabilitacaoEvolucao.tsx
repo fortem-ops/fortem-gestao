@@ -126,6 +126,7 @@ export function ReabilitacaoEvolucao({ student, tipoId, tipoSlug, protocoloId, s
   const [dados, setDados] = useState<EvolucaoDados>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const lastSerialized = useRef<string>(JSON.stringify(EMPTY));
   const initialized = useRef(false);
