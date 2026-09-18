@@ -439,7 +439,14 @@ export function ReabilitacaoEvolucao({ student, tipoId, tipoSlug, protocoloId, s
         return (
           <section key={s.n} className="glass-card rounded-lg p-5 space-y-3">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <h3 className="font-heading font-semibold text-foreground">Sessão {s.n}</h3>
+              <h3 className="font-heading font-semibold text-foreground">
+                Sessão {s.n}
+                {s.data && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    {format(new Date(`${s.data}T12:00:00`), "dd/MM/yyyy")}
+                  </span>
+                )}
+              </h3>
               <div className="flex items-center gap-2">
                 {finalizada && (
                   <Badge variant="outline" className="border-success/40 text-success">
