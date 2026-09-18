@@ -477,11 +477,21 @@ export function ReabilitacaoEvolucao({ student, tipoId, tipoSlug, protocoloId, s
         );
       })}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2 flex-wrap">
+        <Button variant="outline" onClick={() => setImportOpen(true)}>
+          <Upload className="w-4 h-4 mr-2" /> Importar histórico
+        </Button>
         <Button variant="outline" onClick={novaSessao}>
           <Plus className="w-4 h-4 mr-2" /> Nova sessão
         </Button>
       </div>
+
+      <ImportarEvolucaoDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        numerosExistentes={dados.sessoes.map((s) => s.n)}
+        onConfirmar={importarSessoes}
+      />
 
       {permiteUpload && <AvaliacaoAnexos avaliacaoId={id} />}
     </div>
