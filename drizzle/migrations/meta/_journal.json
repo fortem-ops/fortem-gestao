@@ -134,6 +134,13 @@
       "when": 1789825619498,
       "tag": "0018_fix_trigger_alunos_block_self_sensitive_updates",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789826344673,
+      "tag": "0019_allow_reveal_cpf_service_audit_operacao",
+      "breakpoints": true
     }
   ]
 }
