@@ -180,7 +180,8 @@ export function normalizarEntradaQuadriceps(valorDigitado: number): Normalizacao
 /** Texto de apoio mostrado ao lado do campo do Quadríceps enquanto se digita. */
 export function textoAuxiliarQuadriceps(valorDigitado: number): string | null {
   const r = normalizarEntradaQuadriceps(valorDigitado);
-  if (!r.ok) return r.erro;
+  if (r.ok !== true) return QUADRICEPS_MENSAGEM_INVALIDA;
+
   return r.somou
     ? `Leitura ${valorDigitado}° → valor clínico ${r.valor}°`
     : `Valor clínico ${r.valor}°`;
