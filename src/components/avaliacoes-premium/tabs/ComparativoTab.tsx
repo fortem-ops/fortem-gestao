@@ -4,6 +4,8 @@ import { AlertCircle } from "lucide-react";
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -485,7 +487,7 @@ function AssimetriaComparativoChart({
     <div className="bio-card p-5">
       <h3 className="bio-heading text-base mb-3">Assimetrias</h3>
       <ResponsiveContainer width="100%" height={Math.max(280, usable.length * 34)}>
-        <LineChart data={chartRows} layout="vertical" margin={{ top: 8, right: 24, bottom: 8, left: 160 }}>
+        <BarChart data={chartRows} layout="vertical" margin={{ top: 8, right: 24, bottom: 8, left: 160 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--bio-line))" />
           <XAxis type="number" stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
           <YAxis dataKey="metrica" type="category" stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} width={150} />
@@ -502,9 +504,9 @@ function AssimetriaComparativoChart({
             }}
           />
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Line type="monotone" dataKey={labelA} name={labelA} stroke="hsl(var(--sev-attention))" strokeWidth={2} dot={{ r: 4 }} connectNulls />
-          <Line type="monotone" dataKey={labelB} name={labelB} stroke="hsl(var(--sev-good))" strokeWidth={2} dot={{ r: 4 }} connectNulls />
-        </LineChart>
+          <Bar dataKey={labelA} name={labelA} fill="hsl(var(--sev-attention))" radius={[0, 4, 4, 0]} />
+          <Bar dataKey={labelB} name={labelB} fill="hsl(var(--sev-good))" radius={[0, 4, 4, 0]} />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
