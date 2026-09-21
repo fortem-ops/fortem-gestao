@@ -18,4 +18,4 @@
 - [x] Escopo de carteira (responsável ou consultor) nos quadros do painel e na Central de Tarefas.
 - [x] Nova tela Cadastros > Carteira Consultor com avaliação, frequência e funil.
 - [x] Tarefa automática de reavaliação quando pendente/atrasada.
-- [ ] Redesenhar as avaliações do Portal do Aluno para celular, sem classificações antigas.
+- [x] Redesenhar as avaliações do Portal do Aluno para celular, sem classificações antigas.
