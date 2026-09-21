@@ -875,13 +875,9 @@ export function buildForcaAttentionList(exercises: ForcaInput[] | undefined, max
     .slice(0, max);
 
   return items.map((x, i) => {
-    const riskLabel = x.assimetria < 10
-      ? ASSIMETRIA_NIVEL_LABEL.nenhuma
-      : x.assimetria < 20
-        ? ASSIMETRIA_NIVEL_LABEL.moderada
-        : ASSIMETRIA_NIVEL_LABEL.severa;
-    const riskColor =
-      x.assimetria < 10 ? "var(--sev-good)" : x.assimetria < 20 ? "var(--sev-attention)" : "var(--sev-weak)";
+    const nivel = nivelAssimetria(undefined, x.assimetria);
+    const riskLabel = ASSIMETRIA_NIVEL_LABEL[nivel];
+    const riskColor = nivel === "nenhuma" ? "var(--sev-good)" : nivel === "moderada" ? "var(--sev-attention)" : "var(--sev-weak)";
     return {
       id: x.nome,
       number: i + 1,

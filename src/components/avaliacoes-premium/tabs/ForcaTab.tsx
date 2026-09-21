@@ -1,4 +1,4 @@
-import { ASSIMETRIA_NIVEL_LABEL, FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { ASSIMETRIA_NIVEL_LABEL, FORCA_EXERCICIO_LABEL, nivelAssimetria } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import type { FuncionalSnapshot } from "../useAlunoAvaliacoesConsolidadas";
 import { PremiumKinologyImport } from "../PremiumKinologyImport";
 import { AvaliacaoDeleteList } from "../AvaliacaoDeleteList";
@@ -25,10 +25,11 @@ interface Props {
   readOnly?: boolean;
 }
 
-function classFromDiff(diff: number): { label: string; cls: string } {
-  if (diff < 10) return { label: ASSIMETRIA_NIVEL_LABEL.nenhuma, cls: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" };
-  if (diff < 20) return { label: ASSIMETRIA_NIVEL_LABEL.moderada, cls: "text-amber-600 bg-amber-500/10 border-amber-500/30" };
-  return { label: ASSIMETRIA_NIVEL_LABEL.severa, cls: "text-rose-600 bg-rose-500/10 border-rose-500/30" };
+export function classFromDiff(diff: number): { label: string; cls: string } {
+  const nivel = nivelAssimetria(undefined, diff);
+  if (nivel === "nenhuma") return { label: ASSIMETRIA_NIVEL_LABEL[nivel], cls: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" };
+  if (nivel === "moderada") return { label: ASSIMETRIA_NIVEL_LABEL[nivel], cls: "text-amber-600 bg-amber-500/10 border-amber-500/30" };
+  return { label: ASSIMETRIA_NIVEL_LABEL[nivel], cls: "text-rose-600 bg-rose-500/10 border-rose-500/30" };
 }
 
 export function ForcaTab({ alunoId, latest, history, aluno, readOnly = false }: Props) {

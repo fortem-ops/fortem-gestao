@@ -8,6 +8,7 @@ import {
   percentilMobilidade,
   contarAssimetriasPorFaixa,
   buildMetricAttentionList,
+  buildForcaAttentionList,
   classifyForca,
   analyze,
   applyForcaToRegions,
@@ -16,6 +17,7 @@ import {
   type MobilidadeReferenceData,
   type ReferenciaFaixas,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { classFromDiff } from "@/components/avaliacoes-premium/tabs/ForcaTab";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 import {
   calcularTendenciaAssimetria,
@@ -223,6 +225,14 @@ describe("Lista de atenção", () => {
     expect(lista.map((i) => i.metric)).toEqual([PSOAS, OMBRO]);
     expect(lista[0].unidade).toBe("°");
     expect(lista[1].unidade).toBe("%");
+  });
+
+  it("força com exatamente 20% permanece no nível Atenção em todos os consumidores", () => {
+    const lista = buildForcaAttentionList([{ nome: "rotacao_interna", direito_kg: 10, esquerdo_kg: 8 }]);
+    expect(lista[0]?.percentage).toBe(20);
+    expect(lista[0]?.riskLabel).toBe("Atenção");
+    expect(lista[0]?.riskColor).toBe("var(--sev-attention)");
+    expect(classFromDiff(20).label).toBe("Atenção");
   });
 });
 
