@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Save, Loader2, Upload, FileText, Sparkles, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { classifyAngle, assessmentReferences, getClassificationColor } from "@/lib/mock-data";
-import type { AssessmentClassification } from "@/lib/mock-data";
+
 import { AvaliacaoAnexos } from "../AvaliacaoAnexos";
 import { useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
