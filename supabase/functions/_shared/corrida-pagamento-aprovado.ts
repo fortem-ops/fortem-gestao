@@ -62,6 +62,18 @@ export async function processarPagamentoAprovadoCorrida(
     await supabase.from("contratos").update({ status: "ativo" }).eq("id", contratoId);
   }
 
+  // ---------- link público de pagamento: só encerra com pagamento aprovado ----------
+  try {
+    await supabase
+      .from("corrida_links_pagamento")
+      .update({ usado_em: new Date().toISOString() })
+      .eq("venda_id", vendaId)
+      .is("usado_em", null);
+  } catch (e) {
+    console.error(`[${modulo}] falha ao marcar link de pagamento como usado:`, String(e));
+  }
+
+
   // ---------- e-mail de confirmação — fire and forget ----------
   try {
     supabase.functions
