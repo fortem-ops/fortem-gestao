@@ -46,6 +46,11 @@ interface Props {
   onVoltar: () => void;
   pedido: PedidoCriado | null;
   setPedido: (p: PedidoCriado | null) => void;
+  /**
+   * Link público de pagamento (/corrida/pagamento/:token): a venda e o contrato
+   * já existem — nenhum pedido novo é criado e o parcelamento já está definido.
+   */
+  modoLink?: { pixDisponivel: boolean } | null;
 }
 
 type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "pix" | "sucesso" | "erro";
