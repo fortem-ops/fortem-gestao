@@ -118,6 +118,28 @@ Deno.serve(async (req) => {
       if (jaEnviado) return json(200, { ok: true, duplicado: true });
     }
 
+    // ---------- inferência do contexto (recusa na tokenização) ----------
+    // A tokenização é comum aos dois fluxos; descobre o que o aluno tentava
+    // comprar olhando a tentativa aberta mais recente.
+    let fluxoFinal: "loja" | "corrida" = fluxo;
+    let pedidoRef = pedidoId;
+    let vendaRef = vendaId;
+    if (!pedidoRef && !vendaRef && alunoId) {
+      const desde2h = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const [{ data: p }, { data: v }] = await Promise.all([
+        supabase.from("pedidos").select("id, created_at").eq("aluno_id", alunoId)
+          .eq("status", "aguardando_pagamento").gte("created_at", desde2h)
+          .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("vendas").select("id, created_at").eq("aluno_id", alunoId)
+          .neq("status_pagamento", "pago").gte("created_at", desde2h)
+          .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      const tP = p?.created_at ? new Date(p.created_at).getTime() : 0;
+      const tV = v?.created_at ? new Date(v.created_at).getTime() : 0;
+      if (tV > tP && v?.id) { vendaRef = v.id; fluxoFinal = "corrida"; }
+      else if (p?.id) { pedidoRef = p.id; fluxoFinal = "loja"; }
+    }
+
     // ---------- dados da tentativa ----------
     let nome = "";
     let email = "";
