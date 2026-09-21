@@ -101,6 +101,65 @@ function parsePliometria(row: Tables<"avaliacoes">): PliometriaSnapshot | null {
   };
 }
 
+/** Diferença em dias entre duas datas ISO (yyyy-mm-dd). */
+function diasEntre(a: string, b: string): number {
+  const ms = Math.abs(new Date(a + "T00:00:00").getTime() - new Date(b + "T00:00:00").getTime());
+  return Math.round(ms / 86400000);
+}
+
+/**
+ * Remove cópias de uma mesma avaliação: registros com valores idênticos e datas
+ * a até 3 dias de distância. Mantém a linha mais rica (mais dados preenchidos)
+ * e, em empate, a mais recente. Espera `history` ordenado da mais recente p/ a mais antiga.
+ */
+function removerDuplicadas<T extends { data: string }>(
+  history: T[],
+  chave: (s: T) => string,
+  riqueza: (s: T) => number,
+): T[] {
+  const mantidos: T[] = [];
+  for (const atual of history) {
+    const k = chave(atual);
+    const idx = mantidos.findIndex((m) => chave(m) === k && diasEntre(m.data, atual.data) <= 3);
+    if (idx === -1) {
+      mantidos.push(atual);
+      continue;
+    }
+    const existente = mantidos[idx];
+    const melhor =
+      riqueza(atual) > riqueza(existente) ||
+      (riqueza(atual) === riqueza(existente) && atual.data > existente.data)
+        ? atual
+        : existente;
+    mantidos[idx] = melhor;
+  }
+  return mantidos;
+}
+
+const chaveFuncional = (s: FuncionalSnapshot) =>
+  JSON.stringify(
+    [...s.metricas]
+      .map((m) => [m.metric, m.left ?? null, m.right ?? null])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+  );
+
+const chaveComposicao = (s: ComposicaoSnapshot) =>
+  JSON.stringify([s.bf, s.peso, s.sigma7, s.massaMagra ?? null, s.massaGorda ?? null]);
+
+const chavePliometria = (s: PliometriaSnapshot) =>
+  JSON.stringify([
+    s.salto_vertical ?? null,
+    s.salto_horizontal ?? null,
+    s.rsi ?? null,
+    s.tempo_contato ?? null,
+    s.potencia ?? null,
+    s.stiffness ?? null,
+    s.assimetria ?? null,
+  ]);
+
+const contarPreenchidos = (obj: Record<string, unknown>) =>
+  Object.values(obj).filter((v) => v !== null && v !== undefined && v !== "").length;
+
 export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefined) {
   return useQuery<ConsolidadoAluno>({
     enabled: !!alunoId,
