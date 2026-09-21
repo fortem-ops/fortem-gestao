@@ -205,14 +205,18 @@ export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefine
         : null;
 
       const compRows = rows.filter((r) => r.tipo === "composicao_corporal");
-      const compHistory = compRows
-        .map(parseComposicao)
-        .filter((x): x is ComposicaoSnapshot => !!x);
+      const compHistory = removerDuplicadas(
+        compRows.map(parseComposicao).filter((x): x is ComposicaoSnapshot => !!x),
+        chaveComposicao,
+        (s) => contarPreenchidos(s as unknown as Record<string, unknown>),
+      );
 
       const plioRows = rows.filter((r) => r.tipo === "pliometria");
-      const plioHistory = plioRows
-        .map(parsePliometria)
-        .filter((x): x is PliometriaSnapshot => !!x);
+      const plioHistory = removerDuplicadas(
+        plioRows.map(parsePliometria).filter((x): x is PliometriaSnapshot => !!x),
+        chavePliometria,
+        (s) => contarPreenchidos(s as unknown as Record<string, unknown>),
+      );
 
       return {
         aluno: aluno ?? null,
