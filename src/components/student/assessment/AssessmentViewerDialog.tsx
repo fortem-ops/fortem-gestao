@@ -199,7 +199,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
         </DialogHeader>
 
 
-        {avaliacao.tipo === "funcional_v2" ? (
+        {temMetricas ? (
           <FuncionalV2Viewer
             avaliacao={avaliacao}
             sexo={sexoDe(student?.sexo)}
