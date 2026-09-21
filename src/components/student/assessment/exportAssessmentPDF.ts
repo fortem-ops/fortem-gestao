@@ -10,7 +10,10 @@ interface Row {
   leftClass: string;
   right: string | number;
   rightClass: string;
+  /** Avaliação funcional: diferença entre os lados com o nível (substitui as classificações). */
+  diff?: string;
 }
+
 
 interface ExportArgs {
   student: Tables<"alunos">;
