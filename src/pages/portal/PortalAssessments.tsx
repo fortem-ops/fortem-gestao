@@ -10,7 +10,7 @@ import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 export default function PortalAssessments() {
   const { student } = useStudentPortal();
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(student?.id);
-  const { data: referenceData } = useMobilidadeReferenceData();
+  const { data: resumoReferencia } = useMobilidadeResumoReferencia();
 
   if (!student) return null;
 
