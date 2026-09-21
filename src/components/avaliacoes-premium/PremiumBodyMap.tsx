@@ -90,8 +90,6 @@ export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, sexo, 
           canonical={
             scores
               ? {
-                  geral: scores.indiceFortem,
-                  mobilidade: scores.mobilidade,
                   simetria: scores.assimetria,
                   estabilidade: scores.analysisQuality.scoreEstabilidade,
                   forca: scores.forca,
