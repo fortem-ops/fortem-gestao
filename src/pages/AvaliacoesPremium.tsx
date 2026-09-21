@@ -209,9 +209,6 @@ export default function AvaliacoesPremium() {
                         data={data}
                         alunoId={alunoId}
                         onGoEvolucao={() => setView("evolucao")}
-                        sexo={sexoAluno}
-                        faixaEtaria={faixaAluno}
-                        referenceData={mobilidadeRef}
                       />
                     )}
                     {view === "recomendacoes" && <RecomendacoesTab recomendacoes={recomendacoes} />}

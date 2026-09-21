@@ -28,7 +28,8 @@ import {
   type AssimetriaResumoEvolucao,
 } from "@/components/avaliacoes-premium/assimetriaGrafico";
 import {
-  movimentoFaixaPercentil,
+  calcularStatsComparativoValores,
+  movimentoMobilidade,
   movimentoForca,
   montarForcaComparativo,
   ordenarForcaComparativo,
@@ -431,22 +432,38 @@ describe("Evolução de assimetrias", () => {
 });
 
 describe("Comparativo de valores", () => {
-  it("movimento de faixa usa as faixas de percentil do mapa corporal", () => {
-    expect(movimentoFaixaPercentil(42, 61)).toBe("subiu");
-    expect(movimentoFaixaPercentil(92, 74)).toBe("caiu");
-    expect(movimentoFaixaPercentil(76, 89)).toBe("igual");
-    expect(movimentoFaixaPercentil(null, 80)).toBeNull();
-  });
-
-  it("cor da variação respeita métrica comum", () => {
+  it("direção da variação respeita métrica comum", () => {
     expect(tomVariacaoMobilidade(OMBRO, 5)).toBe("melhora");
     expect(tomVariacaoMobilidade(OMBRO, -5)).toBe("piora");
     expect(tomVariacaoMobilidade(OMBRO, 0)).toBe("neutro");
+    expect(movimentoMobilidade(OMBRO, 5)).toBe("Ganhou amplitude");
+    expect(movimentoMobilidade(OMBRO, -5)).toBe("Perdeu amplitude");
+    expect(movimentoMobilidade(OMBRO, 0)).toBe("Sem mudança");
   });
 
-  it("cor da variação respeita métrica invertida", () => {
+  it("direção da variação respeita métrica invertida", () => {
     expect(tomVariacaoMobilidade(PSOAS, -1)).toBe("melhora");
     expect(tomVariacaoMobilidade(PSOAS, 1)).toBe("piora");
+    expect(tomVariacaoMobilidade(PSOAS, 0)).toBe("neutro");
+    expect(movimentoMobilidade(PSOAS, -1)).toBe("Ganhou amplitude");
+    expect(movimentoMobilidade(PSOAS, 1)).toBe("Perdeu amplitude");
+    expect(movimentoMobilidade(PSOAS, 0)).toBe("Sem mudança");
+  });
+
+  it("conta lados que ganharam e perderam amplitude", () => {
+    const lado = (movimento: LinhaMobilidadeComparativo["esquerdo"]["movimento"]) =>
+      ({ movimento }) as LinhaMobilidadeComparativo["esquerdo"];
+    const mobilidade = [
+      { esquerdo: lado("Ganhou amplitude"), direito: lado("Perdeu amplitude") },
+      { esquerdo: lado("Sem mudança"), direito: lado("Ganhou amplitude") },
+    ] as LinhaMobilidadeComparativo[];
+
+    expect(calcularStatsComparativoValores(mobilidade, [])).toEqual({
+      mobilidadeGanhou: 2,
+      mobilidadePerdeu: 1,
+      forcaGanhou: 0,
+      forcaPerdeu: 0,
+    });
   });
 
   it("variação de força usa corte provisório de 5%", () => {
@@ -458,26 +475,26 @@ describe("Comparativo de valores", () => {
     expect(variacaoForcaPct(0, 10)).toBeNull();
   });
 
-  it("ordenação de mobilidade prioriza queda, subida e depois ordem canônica", () => {
+  it("ordenação de mobilidade prioriza perda, ganho e depois ordem canônica", () => {
     const linha = (metric: string, ordem: number, resumo: LinhaMobilidadeComparativo["resumo"]) =>
       ({ metric, label: metric, ordem, resumo }) as LinhaMobilidadeComparativo;
 
     const rows = [
-      linha("sem base", 3, "Sem base de comparação"),
       linha("sem mudança cedo", 0, "Sem mudança"),
-      linha("subiu tarde", 7, "Subiu de faixa"),
-      linha("caiu tarde", 8, "Caiu de faixa"),
-      linha("subiu cedo", 1, "Subiu de faixa"),
-      linha("caiu cedo", 2, "Caiu de faixa"),
+      linha("ganhou tarde", 7, "Ganhou amplitude"),
+      linha("perdeu tarde", 8, "Perdeu amplitude"),
+      linha("ganhou cedo", 1, "Ganhou amplitude"),
+      linha("perdeu cedo", 2, "Perdeu amplitude"),
+      linha("sem mudança tarde", 3, "Sem mudança"),
     ];
 
     expect(ordenarMobilidadeComparativo(rows).map((row) => row.metric)).toEqual([
-      "caiu cedo",
-      "caiu tarde",
-      "subiu cedo",
-      "subiu tarde",
+      "perdeu cedo",
+      "perdeu tarde",
+      "ganhou cedo",
+      "ganhou tarde",
       "sem mudança cedo",
-      "sem base",
+      "sem mudança tarde",
     ]);
   });
 
