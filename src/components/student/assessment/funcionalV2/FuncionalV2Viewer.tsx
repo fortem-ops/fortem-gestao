@@ -2,8 +2,35 @@ import type { Tables } from "@/integrations/supabase/types";
 import { BodyMap } from "./BodyMap";
 import { getClassificationColor } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
-import { FORCA_EXERCICIO_LABEL, type ForcaInput, type MetricInput, type MobilidadeReferenceData } from "./bodyMapLogic";
+import {
+  ASSIMETRIA_NIVEL_LABEL,
+  FORCA_EXERCICIO_LABEL,
+  classificarAssimetria,
+  getMetricDisplayLabel,
+  type AssimetriaNivel,
+  type ForcaInput,
+  type MetricInput,
+  type MobilidadeReferenceData,
+} from "./bodyMapLogic";
 import type { FaixaEtaria } from "@/lib/faixaEtaria";
+
+const NIVEL_CLS: Record<AssimetriaNivel, string> = {
+  nenhuma: "text-emerald-500",
+  moderada: "text-amber-500",
+  severa: "text-rose-500",
+};
+
+/** Diferença entre os lados com o nível de assimetria (regra compartilhada). */
+export function AssimetriaCelula({ metric, left, right }: { metric: string; left: number | null; right: number | null }) {
+  const info = classificarAssimetria(metric, left, right);
+  if (!info) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className={`text-xs font-semibold ${NIVEL_CLS[info.nivel]}`}>
+      {info.valor.toFixed(1)}{info.unidade} · {ASSIMETRIA_NIVEL_LABEL[info.nivel]}
+    </span>
+  );
+}
+
 
 interface Props {
   avaliacao: Tables<"avaliacoes">;
