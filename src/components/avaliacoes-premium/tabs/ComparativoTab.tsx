@@ -162,6 +162,8 @@ export function ComparativoTab({ data, alunoId }: Props) {
   const autoFunc = { A: data.funcional.history[1] ?? null, B: data.funcional.history[0] ?? null };
   const autoComp = { A: data.composicao.history[1] ?? null, B: data.composicao.history[0] ?? null };
   const autoPlio = { A: data.pliometria.history[1] ?? null, B: data.pliometria.history[0] ?? null };
+  const autoDataA = autoFunc.A?.data ?? autoComp.A?.data ?? autoPlio.A?.data ?? null;
+  const autoDataB = autoFunc.B?.data ?? autoComp.B?.data ?? autoPlio.B?.data ?? null;
 
   // --- Modo DATAS: escolhe A/B e cada categoria pega o mais próximo ---
   const datasFuncA = nearest(data.funcional.history, dataA);
@@ -275,10 +277,10 @@ export function ComparativoTab({ data, alunoId }: Props) {
             </>
           )}
 
-          {modo === "auto" && todasDatas.length >= 2 && (
+          {modo === "auto" && autoDataA && autoDataB && (
             <p className="text-xs text-[hsl(var(--bio-ink-muted))]">
-              Comparando <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(data.funcional.history[1]?.data ?? data.composicao.history[1]?.data ?? todasDatas[1]), "dd/MM/yy")}</b>{" "}
-              → <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(todasDatas[0]), "dd/MM/yy")}</b>
+              Comparando <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(autoDataA), "dd/MM/yy")}</b>{" "}
+              → <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(autoDataB), "dd/MM/yy")}</b>
             </p>
           )}
 
