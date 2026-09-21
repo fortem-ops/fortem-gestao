@@ -33,6 +33,7 @@ const AgendaTreinos = lazyWithReload(() => import("./pages/AgendaTreinos"));
 const KnowledgeBase = lazyWithReload(() => import("./pages/KnowledgeBase"));
 const Presencas = lazyWithReload(() => import("./pages/Presencas"));
 const CarteiraAlunos = lazyWithReload(() => import("./pages/CarteiraAlunos"));
+const CarteiraConsultor = lazyWithReload(() => import("./pages/CarteiraConsultor"));
 const ExerciseBank = lazyWithReload(() => import("./pages/ExerciseBank"));
 const Avaliacoes = lazyWithReload(() => import("./pages/Avaliacoes"));
 const AvaliacoesPremium = lazyWithReload(() => import("./pages/AvaliacoesPremium"));

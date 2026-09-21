@@ -23,6 +23,7 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
     plano: undefined, plano_consultas: undefined,
     plano_valor: undefined, plano_data_inicio: today,
     professor_responsavel_id: undefined,
+    consultor_id: undefined,
     origem_lead: undefined,
   };
 
@@ -43,6 +44,7 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
         frequencia_semanal: values.frequencia_semanal,
         observacoes: values.observacoes || null,
         responsavel_id: responsavelId,
+        consultor_id: values.consultor_id || null,
       }).select("id").single();
       if (error) throw error;
 
@@ -74,7 +76,7 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
           await supabase.from("pipeline_metadata").upsert({
             aluno_id: aluno.id,
             origem_lead: values.origem_lead,
-            responsavel_comercial_id: responsavelId,
+            responsavel_comercial_id: values.consultor_id || responsavelId,
           }, { onConflict: "aluno_id" });
         }
         if (!plan) {

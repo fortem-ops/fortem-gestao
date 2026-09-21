@@ -71,6 +71,7 @@ const cadastrosMidItems = [
   { title: "Alunos Ativos", url: "/alunos", icon: Users },
   { title: "Alunos Inativos", url: "/alunos-inativos", icon: UserX },
   { title: "Clientes Avulsos", url: "/clientes-avulsos", icon: UserRound },
+  { title: "Carteira Consultor", url: "/carteira-consultor", icon: Briefcase },
 ];
 
 const cadastrosAdminItems = [

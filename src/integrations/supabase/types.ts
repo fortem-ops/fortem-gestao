@@ -363,6 +363,7 @@ export type Database = {
           cep: string | null
           cidade: string | null
           complemento: string | null
+          consultor_id: string | null
           cpf_encrypted: string | null
           cpf_hash: string | null
           cpf_ultimos3: string | null
@@ -394,6 +395,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           complemento?: string | null
+          consultor_id?: string | null
           cpf_encrypted?: string | null
           cpf_hash?: string | null
           cpf_ultimos3?: string | null
@@ -425,6 +427,7 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           complemento?: string | null
+          consultor_id?: string | null
           cpf_encrypted?: string | null
           cpf_hash?: string | null
           cpf_ultimos3?: string | null

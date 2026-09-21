@@ -68,6 +68,7 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
     plano_valor: planDefaults.plano_valor,
     plano_data_inicio: planDefaults.plano_data_inicio,
     professor_responsavel_id: student.responsavel_id || undefined,
+    consultor_id: (student as any).consultor_id || undefined,
   };
 
   async function onSubmit(values: StudentFormValues) {
@@ -84,6 +85,7 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
         frequencia_semanal: values.frequencia_semanal,
         observacoes: values.observacoes || null,
         responsavel_id: responsavelId,
+        consultor_id: values.consultor_id || null,
       }).eq("id", student.id);
       if (error) throw error;
 
