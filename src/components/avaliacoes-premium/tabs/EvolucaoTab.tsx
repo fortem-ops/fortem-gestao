@@ -18,6 +18,7 @@ import {
   METRIC_META,
   getMetricDisplayLabel,
   FORCA_EXERCICIO_LABEL,
+  ASSIMETRIA_NIVEL_LABEL,
   type ForcaExercicio,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { EvolucaoSeletor, type SeletorGrupo } from "./EvolucaoSeletor";
@@ -74,12 +75,6 @@ interface Serie {
   color: string;
   dashed: boolean;
 }
-
-const NIVEL_LABEL: Record<"nenhuma" | "moderada" | "severa", string> = {
-  nenhuma: "Normal",
-  moderada: "Moderada",
-  severa: "Severa",
-};
 
 const TENDENCIA_LABEL: Record<TendenciaAssimetria, string> = {
   melhorou: "Melhorou",
@@ -412,18 +407,18 @@ export function EvolucaoTab({ data }: Props) {
               <p className="bio-label">Faixas de assimetria</p>
               <div className="space-y-2 text-xs text-[hsl(var(--bio-ink-muted))]">
                 <LegendaFaixa nivel="nenhuma">
-                  Verde: &lt; {limiaresPadrao.moderado}%
+                  {ASSIMETRIA_NIVEL_LABEL.nenhuma} · Verde: &lt; {limiaresPadrao.moderado}%
                 </LegendaFaixa>
                 <LegendaFaixa nivel="moderada">
-                  Âmbar: {limiaresPadrao.moderado}%–{limiaresPadrao.severo}%
+                  {ASSIMETRIA_NIVEL_LABEL.moderada} · Âmbar: {limiaresPadrao.moderado}%–{limiaresPadrao.severo}%
                 </LegendaFaixa>
                 <LegendaFaixa nivel="severa">
-                  Coral: &gt; {limiaresPadrao.severo}%
+                  {ASSIMETRIA_NIVEL_LABEL.severa} · Coral: &gt; {limiaresPadrao.severo}%
                 </LegendaFaixa>
               </div>
               {tipoAssimetria === "mobilidade" && (
                 <p className="text-[11px] leading-relaxed text-[hsl(var(--bio-ink-faint))]">
-                  Psoas é medido em graus: moderada a partir de {limiaresPsoas.moderado}° e severa acima de {limiaresPsoas.severo}°.
+                  Psoas é medido em graus: {ASSIMETRIA_NIVEL_LABEL.moderada} a partir de {limiaresPsoas.moderado}° e {ASSIMETRIA_NIVEL_LABEL.severa.toLowerCase()} acima de {limiaresPsoas.severo}°.
                 </p>
               )}
             </div>
@@ -620,7 +615,7 @@ function RetratoAssimetria({ resumos }: { resumos: AssimetriaResumoEvolucao[] })
               {resumo.ultima && <ValorBadge ponto={resumo.ultima} />}
             </div>
             <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[hsl(var(--bio-ink-muted))]">
-              <span>{resumo.ultima ? NIVEL_LABEL[resumo.ultima.nivel] : "Sem faixa"}</span>
+              <span>{resumo.ultima ? ASSIMETRIA_NIVEL_LABEL[resumo.ultima.nivel] : "Sem faixa"}</span>
               <span>{formatLado(resumo.ultimoLadoValido)}</span>
             </div>
           </div>
@@ -709,7 +704,7 @@ function ValorBadge({ ponto }: { ponto: AssimetriaPontoEvolucao }) {
 function NivelBadge({ nivel }: { nivel: "nenhuma" | "moderada" | "severa" }) {
   return (
     <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1 text-xs font-semibold ${nivelBadgeClass(nivel)}`}>
-      {NIVEL_LABEL[nivel]}
+      {ASSIMETRIA_NIVEL_LABEL[nivel]}
     </span>
   );
 }
@@ -738,7 +733,7 @@ function AssimetriaTooltip({ active, payload }: { active?: boolean; payload?: Ar
   return (
     <div className="rounded-md border border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-surface-2))] px-3 py-2 text-xs text-[hsl(var(--bio-ink))] shadow-sm">
       <div className="font-semibold">{format(parseISO(ponto.data), "dd/MM/yyyy")}</div>
-      <div>{formatValor(ponto.valor, ponto.unidade)} · {NIVEL_LABEL[ponto.nivel]}</div>
+      <div>{formatValor(ponto.valor, ponto.unidade)} · {ASSIMETRIA_NIVEL_LABEL[ponto.nivel]}</div>
       <div className="text-[hsl(var(--bio-ink-muted))]">{formatLado(ponto.ladoMaisFraco)}</div>
     </div>
   );

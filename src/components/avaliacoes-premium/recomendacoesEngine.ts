@@ -1,6 +1,6 @@
 import type { PremiumScores } from "./scoringPremium";
 import type { ComposicaoSnapshot, FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
-import { FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { ASSIMETRIA_NIVEL_LABEL, FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import {
   gerarSugestoesAquecimento,
   type ExercicioSugerido,
@@ -46,7 +46,7 @@ export function gerarRecomendacoes(
       list.push({
         id: `forca-${ex.nome}`,
         titulo: `Atenção: ${label}`,
-        descricao: `Assimetria moderada (${diff.toFixed(0)}%). Incluir trabalho unilateral controlado nas próximas 4 semanas.`,
+        descricao: `Assimetria em ${ASSIMETRIA_NIVEL_LABEL.moderada.toLowerCase()} (${diff.toFixed(0)}%). Incluir trabalho unilateral controlado nas próximas 4 semanas.`,
         prioridade: "media",
         area: "forca",
       });

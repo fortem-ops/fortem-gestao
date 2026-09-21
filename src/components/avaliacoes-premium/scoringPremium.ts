@@ -1,6 +1,7 @@
 import {
   analyze,
   applyForcaToRegions,
+  ASSIMETRIA_NIVEL_LABEL,
   type BodyMapAnalysis,
   type ForcaInput,
   type MetricInput,
@@ -97,11 +98,11 @@ export function computePremiumScores(
     assimetria:
       assimetria === null
         ? semDados
-        : `${analysisAsym.asymmetries.length} assimetria(s) detectada(s) (${sev} severa(s), ${mod} moderada(s)). 100 = perfeitamente simétrico.`,
+        : `${analysisAsym.asymmetries.length} assimetria(s) detectada(s) (${sev} em ${ASSIMETRIA_NIVEL_LABEL.severa.toLowerCase()}, ${mod} em ${ASSIMETRIA_NIVEL_LABEL.moderada.toLowerCase()}). 100 = perfeitamente simétrico.`,
     risco:
       risco === null
         ? semDados
-        : `Combina assimetrias severas (-25 cada), moderadas (-10 cada) e cadeias compensatórias (-8 cada). Detectadas: ${sev} severas, ${mod} moderadas, ${chains} cadeia(s).`,
+        : `Combina assimetrias em ${ASSIMETRIA_NIVEL_LABEL.severa.toLowerCase()} (-25 cada), em ${ASSIMETRIA_NIVEL_LABEL.moderada.toLowerCase()} (-10 cada) e cadeias compensatórias (-8 cada). Detectadas: ${sev} em ${ASSIMETRIA_NIVEL_LABEL.severa.toLowerCase()}, ${mod} em ${ASSIMETRIA_NIVEL_LABEL.moderada.toLowerCase()}, ${chains} cadeia(s).`,
   };
 
   return {

@@ -197,6 +197,13 @@ export const ASSIMETRIA_PCT_LIMIARES = { moderado: 10, severo: 20 } as const;
 
 export type AssimetriaNivel = "nenhuma" | "moderada" | "severa";
 
+/** Rótulos compartilhados de interface; os valores internos permanecem estáveis. */
+export const ASSIMETRIA_NIVEL_LABEL: Record<AssimetriaNivel, string> = {
+  nenhuma: "Equilibrado",
+  moderada: "Atenção",
+  severa: "Prioridade",
+};
+
 export interface AssimetriaInfo {
   /** Valor a exibir: graus (métricas absolutas) ou percentual (demais). */
   valor: number;
@@ -868,7 +875,11 @@ export function buildForcaAttentionList(exercises: ForcaInput[] | undefined, max
     .slice(0, max);
 
   return items.map((x, i) => {
-    const riskLabel = x.assimetria < 10 ? "BAIXO" : x.assimetria < 20 ? "ATENÇÃO" : "ALTO";
+    const riskLabel = x.assimetria < 10
+      ? ASSIMETRIA_NIVEL_LABEL.nenhuma
+      : x.assimetria < 20
+        ? ASSIMETRIA_NIVEL_LABEL.moderada
+        : ASSIMETRIA_NIVEL_LABEL.severa;
     const riskColor =
       x.assimetria < 10 ? "var(--sev-good)" : x.assimetria < 20 ? "var(--sev-attention)" : "var(--sev-weak)";
     return {

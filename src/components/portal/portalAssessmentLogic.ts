@@ -1,5 +1,6 @@
 import {
   METRIC_META,
+  ASSIMETRIA_NIVEL_LABEL,
   classificarAssimetria,
   classifyForca,
   getMetricDisplayLabel,
@@ -72,7 +73,12 @@ export function portalNivel(nivel: AssimetriaNivel): PortalNivel {
 }
 
 export function portalNivelLabel(nivel: PortalNivel): string {
-  return { equilibrado: "Equilibrado", atencao: "Atenção", prioridade: "Prioridade" }[nivel];
+  const nivelMotor: Record<PortalNivel, AssimetriaNivel> = {
+    equilibrado: "nenhuma",
+    atencao: "moderada",
+    prioridade: "severa",
+  };
+  return ASSIMETRIA_NIVEL_LABEL[nivelMotor[nivel]];
 }
 
 export function montarMedidasPortal(snapshot: FuncionalSnapshot | null | undefined): PortalMedida[] {
