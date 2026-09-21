@@ -194,25 +194,41 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
           <tbody>
             {functionalMetrics.map(metric => {
               const v = values[metric] || { left: '', right: '' };
-              const leftNum = parseInt(v.left);
-              const rightNum = parseInt(v.right);
+              const leftRaw = parseInt(v.left);
+              const rightRaw = parseInt(v.right);
+              const leftNum = normQuad(metric, leftRaw);
+              const rightNum = normQuad(metric, rightRaw);
               const leftClass = !isNaN(leftNum) ? classifyAngle(metric, leftNum) : null;
               const rightClass = !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null;
               const ref = assessmentReferences[metric]?.referenceText;
+              const isQuad = metric === METRICA_QUADRICEPS;
+              const hintE = isQuad && v.left !== '' ? textoAuxiliarQuadriceps(leftRaw) : null;
+              const hintD = isQuad && v.right !== '' ? textoAuxiliarQuadriceps(rightRaw) : null;
+              const invE = isQuad && v.left !== '' && !normalizarEntradaQuadriceps(leftRaw).ok;
+              const invD = isQuad && v.right !== '' && !normalizarEntradaQuadriceps(rightRaw).ok;
               return (
                 <tr key={metric} className="border-b border-border/50">
                   <td className="p-3">
                     <p className="text-sm text-foreground">{metric}</p>
+                    {isQuad && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5 italic">
+                        Digite a leitura do goniômetro; o sistema soma 90°.
+                      </p>
+                    )}
                     {ref && <p className="text-[10px] text-muted-foreground mt-0.5 italic">{ref}</p>}
                   </td>
                   <td className="p-3">
                     <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.left} onChange={(e) => handleChange(metric, 'left', e.target.value)} placeholder="°" />
+                    {hintE && <p className={`text-[10px] mt-1 text-center ${invE ? 'text-red-400' : 'text-muted-foreground'}`}>{hintE}</p>}
                   </td>
                   <td className="p-3 text-center">
                     {leftClass && <span className={`text-xs font-semibold ${getClassificationColor(leftClass)}`}>{leftClass}</span>}
                   </td>
                   <td className="p-3">
                     <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.right} onChange={(e) => handleChange(metric, 'right', e.target.value)} placeholder="°" />
+                    {hintD && <p className={`text-[10px] mt-1 text-center ${invD ? 'text-red-400' : 'text-muted-foreground'}`}>{hintD}</p>}
+                  </td>
+
                   </td>
                   <td className="p-3 text-center">
                     {rightClass && <span className={`text-xs font-semibold ${getClassificationColor(rightClass)}`}>{rightClass}</span>}
