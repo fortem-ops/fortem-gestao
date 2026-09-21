@@ -92,7 +92,6 @@ export function PremiumBodyMap({ funcional, scores, layer, onLayerChange, sexo, 
               ? {
                   simetria: scores.assimetria,
                   estabilidade: scores.analysisQuality.scoreEstabilidade,
-                  forca: scores.forca,
                   riskLevel: scores.analysisQuality.riskLevel,
                   asymmetryCount: scores.analysisQuality.asymmetries.length,
                   chains: scores.analysisQuality.chains,

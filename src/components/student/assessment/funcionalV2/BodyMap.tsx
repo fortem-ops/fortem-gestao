@@ -19,7 +19,6 @@ interface Props {
   canonical?: {
     simetria: number | null;
     estabilidade: number | null;
-    forca: number | null;
     riskLevel: "low" | "attention" | "high";
     asymmetryCount: number;
     chains: Array<{ from: RegionId; to: RegionId; reason: string }>;
@@ -194,7 +193,6 @@ function ScoreRingsPanel({ canonical, analysis }: { canonical?: Props["canonical
     <div className="flex items-center gap-4 flex-wrap">
       <ScoreRing value={canonical ? canonical.simetria : analysis.scoreSimetria} label="Simetria" />
       <ScoreRing value={canonical ? canonical.estabilidade : analysis.scoreEstabilidade} label="Estabilidade" />
-      <ScoreRing value={canonical ? canonical.forca : analysis.scoreForca} label="Força" />
     </div>
   );
 }

@@ -217,7 +217,6 @@ export function ComparativoTab({ data, alunoId }: Props) {
         );
         return {
           data: format(parseISO(dt), "dd/MM/yy"),
-          forca: s.forca,
           composicao: s.composicao,
           bf: c?.bf ?? null,
           salto: p?.salto_vertical ?? null,
@@ -570,7 +569,6 @@ function IntervaloGrafico({
             <YAxis stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
             <Tooltip contentStyle={{ background: "hsl(var(--bio-surface-2))", border: "1px solid hsl(var(--bio-line))", borderRadius: 8, color: "hsl(var(--bio-ink))" }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="forca" name="Força" stroke="hsl(var(--sev-good))" strokeWidth={2} connectNulls />
             <Line type="monotone" dataKey="composicao" name="Composição" stroke="hsl(var(--sev-attention))" strokeWidth={2} connectNulls />
             <Line type="monotone" dataKey="bf" name="% Gordura" stroke="hsl(var(--sev-excellent))" strokeWidth={2} strokeDasharray="4 4" connectNulls />
             <Line type="monotone" dataKey="salto" name="Salto Vertical (cm)" stroke="hsl(var(--sev-medium))" strokeWidth={2} strokeDasharray="4 4" connectNulls />

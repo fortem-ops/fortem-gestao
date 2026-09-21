@@ -1,7 +1,6 @@
 import {
   analyze,
   applyForcaToRegions,
-  computeForcaScore,
   type BodyMapAnalysis,
   type ForcaInput,
   type MetricInput,
@@ -43,14 +42,12 @@ export function scoreComposicaoFromBF(bf: number, sexo: "M" | "F"): number {
 }
 
 export interface PremiumJustificativas {
-  forca: string;
   composicao: string;
   assimetria: string;
   risco: string;
 }
 
 export interface PremiumScores {
-  forca: number | null;
   composicao: number | null;
   assimetria: number | null;   // 0–100 (100 = sem assimetria)
   risco: number | null;        // 0–100 (100 = baixíssimo risco)
@@ -79,7 +76,6 @@ export function computePremiumScores(
   const analysisQuality =
     forcaInputs.length > 0 ? applyForcaToRegions(analysisQualityBase, forcaInputs) : analysisQualityBase;
 
-  const forca = computeForcaScore(forcaInputs);
   const composicaoScore = composicao
     ? scoreComposicaoFromBF(composicao.bf, composicao.sexo)
     : null;
@@ -94,10 +90,6 @@ export function computePremiumScores(
 
   const semDados = "Sem dados suficientes para cálculo. Realize uma avaliação funcional/composição.";
   const justificativas: PremiumJustificativas = {
-    forca:
-      forca === null
-        ? semDados
-        : `Calculado sobre ${forcaInputs.length} exercício(s) bilateral(is). Penaliza assimetrias > 10% e déficits abaixo da referência por peso corporal.`,
     composicao:
       composicaoScore === null
         ? semDados
@@ -113,7 +105,6 @@ export function computePremiumScores(
   };
 
   return {
-    forca,
     composicao: composicaoScore,
     assimetria,
     risco,

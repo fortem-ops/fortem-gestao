@@ -43,16 +43,15 @@ export function assimetriasPorCategoria(scores: PremiumScores, forca: ForcaResum
 }
 
 export function DashboardSummary({ scores, forca = [] }: Props) {
-  const j = scores.justificativas;
   const contagens = useMemo(() => assimetriasPorCategoria(scores, forca), [scores, forca]);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
       <DashboardCountCard label="Mobilidade" contagem={contagens.mobilidade} simples />
       <DashboardCountCard label="Flexibilidade" contagem={contagens.flexibilidade} simples />
-      <DashboardCountCard label="Força" contagem={contagens.forca} tooltip={j.forca} />
+      <DashboardCountCard label="Força" contagem={contagens.forca} />
       <DashboardRiscoCard contagem={contagens.geral} />
-      <DashboardScoreCard label="Composição" value={scores.composicao} subtle tooltip={j.composicao} />
+      <DashboardScoreCard label="Composição" value={scores.composicao} subtle tooltip={scores.justificativas.composicao} />
     </div>
 
   );
