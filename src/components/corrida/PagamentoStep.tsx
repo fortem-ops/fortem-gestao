@@ -782,7 +782,7 @@ const PagamentoStep = ({
 
       {erro && <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">{erro}</div>}
 
-      {fase !== "confirmando" && fase !== "cobrando" && (
+      {!modoLink && fase !== "confirmando" && fase !== "cobrando" && (
         <div className="pt-2">
           <button
             onClick={onVoltar}
