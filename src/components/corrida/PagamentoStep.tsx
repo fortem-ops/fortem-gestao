@@ -219,7 +219,7 @@ const PagamentoStep = ({
         criandoRef.current = false;
       }
     },
-    [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas, inscricaoId],
+    [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas, inscricaoId, modoLink],
   );
 
 
@@ -306,7 +306,7 @@ const PagamentoStep = ({
         setLoading(false);
       }
     },
-    [payloadPedido, inscricaoId, idempotencyKey, dados, acompanharPix],
+    [payloadPedido, inscricaoId, idempotencyKey, dados, acompanharPix, modoLink],
   );
 
   const iniciarPix = async () => {
@@ -337,7 +337,7 @@ const PagamentoStep = ({
       const { data, error } = await supabase.functions.invoke("corrida-aceitar-contrato", {
         body: {
           contratos_documentos_ids: pedido.contratos_documentos_ids,
-          formato_aceite: "checkout_corrida",
+          formato_aceite: modoLink ? "link_pagamento_corrida" : "checkout_corrida",
         },
       });
       if (error || !data?.ok) throw new Error(data?.error ?? "falha");
