@@ -21,6 +21,15 @@ import {
 } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 import type { ReactNode } from "react";
+import { useAlunoAvaliacoesConsolidadas } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import {
+  montarMedidasPortal,
+  montarResumoPortal,
+  montarSelosInicio,
+  portalNivelLabel,
+  type PortalMedida,
+  type PortalNivel,
+} from "@/components/portal/portalAssessmentLogic";
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
@@ -37,6 +46,7 @@ function toTitleCase(name: string) {
 export default function PortalHome() {
   const { student } = useStudentPortal();
   const navigate = useNavigate();
+  const { data: avaliacoesConsolidadas } = useAlunoAvaliacoesConsolidadas(student?.id);
 
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
@@ -99,22 +109,6 @@ export default function PortalHome() {
     },
   });
 
-
-  const { data: avaliacaoResume } = useQuery({
-    queryKey: ["portal-home-avaliacao", student?.id],
-    enabled: !!student,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("avaliacoes")
-        .select("id, tipo, data, dados")
-        .eq("aluno_id", student!.id)
-        .in("tipo", ["funcional_v2", "funcional"])
-        .order("data", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-  });
 
   const { data: creditosAll = [] } = useQuery({
     queryKey: ["portal-home-creditos-all", student?.id],
@@ -297,21 +291,10 @@ export default function PortalHome() {
   const ringLen = 132;
   const streakPct = Math.min(streakSemanas / 8, 1);
 
-  const scoreGeral = avaliacaoResume
-    ? (() => {
-        const dados = (avaliacaoResume.dados as any) || {};
-        const metricas: any[] = dados.metricas || [];
-        if (!metricas.length) return null;
-        const scoreMap: Record<string, number> = {
-          Excelente: 100, Bom: 80, Regular: 60, Médio: 55, Fraco: 30
-        };
-        const scores = metricas.flatMap((m: any) => [
-          scoreMap[m.leftClass] ?? null,
-          scoreMap[m.rightClass] ?? null,
-        ]).filter((v): v is number => v !== null);
-        return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
-      })()
-    : null;
+  const avaliacaoResume = avaliacoesConsolidadas?.funcional.latest ?? null;
+  const medidasAvaliacao = montarMedidasPortal(avaliacaoResume);
+  const resumoAvaliacao = montarResumoPortal(medidasAvaliacao);
+  const selosAvaliacao = montarSelosInicio(medidasAvaliacao);
 
   const diasDesdeAvaliacao = avaliacaoResume
     ? differenceInCalendarDays(new Date(), new Date(avaliacaoResume.data))
@@ -320,15 +303,16 @@ export default function PortalHome() {
   const mesesDesde = diasDesdeAvaliacao !== null ? Math.floor(diasDesdeAvaliacao / 30) : null;
   const precisaReavaliar = mesesDesde !== null && mesesDesde >= 4;
 
-  const metricasAtencao = avaliacaoResume
-    ? (() => {
-        const dados = (avaliacaoResume.dados as any) || {};
-        const metricas: any[] = dados.metricas || [];
-        return metricas.filter((m: any) =>
-          ["Fraco", "Regular"].includes(m.leftClass) || ["Fraco", "Regular"].includes(m.rightClass)
-        ).length;
-      })()
-    : 0;
+  const metricasAtencao = resumoAvaliacao.pontos;
+
+  const seloStyle: Record<PortalNivel, string> = {
+    equilibrado: "border-success/30 bg-success/10 text-success",
+    atencao: "border-warning/30 bg-warning/10 text-warning",
+    prioridade: "border-destructive/30 bg-destructive/10 text-destructive",
+  };
+
+  const numeroMedida = (medida: PortalMedida) =>
+    `${Number.isInteger(medida.diferenca) ? medida.diferenca : medida.diferenca.toFixed(1).replace(".", ",")}${medida.unidadeDiferenca}`;
 
   return (
     <div className="space-y-5 animate-fade-in pb-32 pt-4">
@@ -578,40 +562,12 @@ export default function PortalHome() {
         <section className="space-y-2">
           <SectionLabel>Diagnóstico Funcional</SectionLabel>
           <Link to="/portal/avaliacoes">
-            <div className={`rounded-2xl p-4 flex items-center gap-4 border ${
+            <div className={`rounded-2xl p-4 border ${
               precisaReavaliar
                 ? "bg-primary/5 border-primary/30"
                 : "bg-card border-border"
             }`}>
-              {/* Score ring */}
-              <div className="relative w-16 h-16 shrink-0">
-                {(() => {
-                  const score = scoreGeral ?? 0;
-                  const radius = 26;
-                  const circ = 2 * Math.PI * radius;
-                  const color = score >= 85 ? "#22C55E" : score >= 70 ? "#4ADE80" : score >= 55 ? "#60A5FA" : score >= 40 ? "#F59E0B" : "#EF4444";
-                  return (
-                    <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
-                      <circle cx="32" cy="32" r={radius} fill="none" stroke="hsl(0 0% 20%)" strokeWidth="5" />
-                      <circle
-                        cx="32" cy="32" r={radius} fill="none"
-                        stroke={color} strokeWidth="5"
-                        strokeDasharray={`${(score / 100) * circ} ${circ}`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  );
-                })()}
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-black text-foreground leading-none" style={{fontFamily:'Archivo,sans-serif'}}>
-                    {scoreGeral ?? "—"}
-                  </span>
-                  <span className="text-[9px] text-muted-foreground">/100</span>
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0">
                 <p className="font-bold text-sm text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
                   {precisaReavaliar ? "Hora de reavaliar!" : "Avaliação em dia"}
                 </p>
@@ -619,12 +575,26 @@ export default function PortalHome() {
                   {mesesDesde === 0
                     ? "Avaliado este mês"
                     : `Há ${mesesDesde} ${mesesDesde === 1 ? "mês" : "meses"}`}
-                  {metricasAtencao > 0 ? ` · ${metricasAtencao} ponto${metricasAtencao > 1 ? "s" : ""} de atenção` : ""}
-                </p>
-                <p className="text-[11px] text-primary font-semibold mt-1.5">
-                  Ver diagnóstico completo →
+                  {` · ${metricasAtencao} ponto${metricasAtencao === 1 ? "" : "s"} de atenção`}
                 </p>
               </div>
+              <div className="mt-3 grid min-w-0 gap-2 sm:grid-cols-2">
+                {[selosAvaliacao.atencao, selosAvaliacao.equilibrado].map((selo) => (
+                  <div key={selo.titulo} className={`min-w-0 rounded-lg border p-3 ${seloStyle[selo.nivel]}`}>
+                    <p className="text-[10px] font-bold uppercase text-current/75">{selo.titulo}</p>
+                    <p className="mt-1 break-words text-xs font-bold leading-snug text-current">{selo.texto}</p>
+                    {selo.medida && (
+                      <p className="mt-1 text-[11px] font-semibold text-current/80">
+                        {numeroMedida(selo.medida)}
+                        {selo.titulo === "Ponto de atenção" ? ` · ${portalNivelLabel(selo.nivel)}` : ""}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-primary font-semibold">
+                Ver diagnóstico completo →
+              </p>
             </div>
           </Link>
         </section>

@@ -61,6 +61,19 @@ export interface PortalGrupoMedidas {
   medidas: PortalMedida[];
 }
 
+export interface PortalSeloInicio {
+  titulo: string;
+  texto: string;
+  medida: PortalMedida | null;
+  nivel: PortalNivel;
+  quantidade: number;
+}
+
+export interface PortalSelosInicio {
+  atencao: PortalSeloInicio;
+  equilibrado: PortalSeloInicio;
+}
+
 const NIVEL_ORDEM: Record<PortalNivel, number> = { equilibrado: 0, atencao: 1, prioridade: 2 };
 
 export function portalMetricLabel(metric: string): string {
@@ -190,6 +203,64 @@ export function montarResumoPortal(medidas: PortalMedida[]): PortalResumo {
     frase: `A maior diferença entre os lados está em ${maior.camada === "forca" ? "Força · " : ""}${maior.nome}. ${outras}`,
     pontos: pontos.length,
     equilibradas,
+  };
+}
+
+function nomeCompletoMedida(medida: PortalMedida): string {
+  return medida.camada === "forca" ? `Força · ${medida.nome}` : medida.nome;
+}
+
+export function montarSelosInicio(medidas: PortalMedida[]): PortalSelosInicio {
+  const ordenadas = [...medidas].sort((a, b) => {
+    const porNivel = NIVEL_ORDEM[b.nivel] - NIVEL_ORDEM[a.nivel];
+    if (porNivel !== 0) return porNivel;
+    const porRazao = b.razaoSevero - a.razaoSevero;
+    return porRazao !== 0 ? porRazao : a.nome.localeCompare(b.nome);
+  });
+  const medidaAtencao = ordenadas.find((medida) => medida.nivel !== "equilibrado") ?? null;
+  const menorRazao = medidas.reduce(
+    (menor, medida) => Math.min(menor, medida.razaoSevero),
+    Number.POSITIVE_INFINITY,
+  );
+  const maisEquilibradas = Number.isFinite(menorRazao)
+    ? medidas.filter((medida) => Math.abs(medida.razaoSevero - menorRazao) < 1e-9)
+    : [];
+  const medidaEquilibrada = maisEquilibradas[0] ?? null;
+  const empateEmZero = medidaEquilibrada?.diferenca === 0;
+
+  return {
+    atencao: medidaAtencao
+      ? {
+          titulo: "Ponto de atenção",
+          texto: nomeCompletoMedida(medidaAtencao),
+          medida: medidaAtencao,
+          nivel: medidaAtencao.nivel,
+          quantidade: 1,
+        }
+      : {
+          titulo: "Ponto de atenção",
+          texto: "Nenhum ponto de atenção",
+          medida: null,
+          nivel: "equilibrado",
+          quantidade: 0,
+        },
+    equilibrado: maisEquilibradas.length > 1
+      ? {
+          titulo: "Mais equilibrado",
+          texto: empateEmZero
+            ? `${maisEquilibradas.length} medidas sem diferença entre os lados`
+            : `${maisEquilibradas.length} medidas igualmente equilibradas`,
+          medida: null,
+          nivel: "equilibrado",
+          quantidade: maisEquilibradas.length,
+        }
+      : {
+          titulo: "Mais equilibrado",
+          texto: medidaEquilibrada ? nomeCompletoMedida(medidaEquilibrada) : "Sem medidas comparáveis",
+          medida: medidaEquilibrada,
+          nivel: "equilibrado",
+          quantidade: medidaEquilibrada ? 1 : 0,
+        },
   };
 }
 

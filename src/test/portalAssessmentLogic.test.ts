@@ -8,6 +8,8 @@ import {
   montarAneisPortal,
   montarMedidasPortal,
   montarResumoPortal,
+  montarSelosInicio,
+  type PortalMedida,
 } from "@/components/portal/portalAssessmentLogic";
 
 const snapshot = (ombroE: number, ombroD: number, psoasE = 2, psoasD = 3): FuncionalSnapshot => ({
@@ -17,6 +19,19 @@ const snapshot = (ombroE: number, ombroD: number, psoasE = 2, psoasD = 3): Funci
     { metric: "Flexibilidade Psoas", left: psoasE, right: psoasD, leftClass: null, rightClass: null },
   ],
   forca: [],
+});
+
+const medida = (overrides: Partial<PortalMedida> & Pick<PortalMedida, "id" | "diferenca" | "razaoSevero">): PortalMedida => ({
+  origem: overrides.id,
+  nome: overrides.id,
+  camada: "mobilidade",
+  esquerdo: 10,
+  direito: 10 + overrides.diferenca,
+  unidadeLados: "°",
+  unidadeDiferenca: "%",
+  nivel: "equilibrado",
+  nivelMotor: "nenhuma",
+  ...overrides,
 });
 
 describe("Resumo do portal de avaliações", () => {
@@ -79,5 +94,52 @@ describe("Resumo do portal de avaliações", () => {
       forca: [{ nome: "abducao_quadril", esquerdo_kg: 6, direito_kg: 10 }],
     };
     expect(montarResumoPortal(montarMedidasPortal(comForca)).frase).toContain("Força · Abdução de quadril");
+  });
+
+  it("escolhe a pior medida pela régua normalizada misturando graus e percentual", () => {
+    const medidas = [
+      medida({ id: "ombro", diferenca: 22, razaoSevero: 1.1, nivel: "prioridade", nivelMotor: "severa" }),
+      medida({ id: "Psoas", diferenca: 6, razaoSevero: 1.2, unidadeDiferenca: "°", camada: "flexibilidade", nivel: "prioridade", nivelMotor: "severa" }),
+    ];
+    expect(montarSelosInicio(medidas).atencao.medida?.id).toBe("Psoas");
+  });
+
+  it("informa quando não há nenhum ponto de atenção", () => {
+    expect(montarSelosInicio([medida({ id: "ombro", diferenca: 4, razaoSevero: 0.2 })]).atencao).toMatchObject({
+      texto: "Nenhum ponto de atenção",
+      medida: null,
+      nivel: "equilibrado",
+    });
+  });
+
+  it("escolhe uma única medida mais equilibrada", () => {
+    const selos = montarSelosInicio([
+      medida({ id: "ombro", diferenca: 4, razaoSevero: 0.2 }),
+      medida({ id: "quadril", diferenca: 2, razaoSevero: 0.1 }),
+    ]);
+    expect(selos.equilibrado.medida?.id).toBe("quadril");
+  });
+
+  it("resume empate em zero sem escolher uma medida", () => {
+    const selo = montarSelosInicio([
+      medida({ id: "ombro", diferenca: 0, razaoSevero: 0 }),
+      medida({ id: "quadril", diferenca: 0, razaoSevero: 0 }),
+    ]).equilibrado;
+    expect(selo).toMatchObject({ texto: "2 medidas sem diferença entre os lados", medida: null, quantidade: 2 });
+  });
+
+  it("resume empate fora de zero sem escolher uma medida", () => {
+    const selo = montarSelosInicio([
+      medida({ id: "ombro", diferenca: 2, razaoSevero: 0.1 }),
+      medida({ id: "quadril", diferenca: 1, razaoSevero: 0.1 }),
+    ]).equilibrado;
+    expect(selo).toMatchObject({ texto: "2 medidas igualmente equilibradas", medida: null, quantidade: 2 });
+  });
+
+  it("usa nos selos a mesma contagem de pontos do resumo", () => {
+    const medidas = montarMedidasPortal(snapshot(60, 90, 2, 8));
+    const selos = montarSelosInicio(medidas);
+    expect(medidas.filter((item) => item.nivel !== "equilibrado")).toHaveLength(montarResumoPortal(medidas).pontos);
+    expect(selos.atencao.medida).toBe(medidas.find((item) => item.nivel !== "equilibrado"));
   });
 });
