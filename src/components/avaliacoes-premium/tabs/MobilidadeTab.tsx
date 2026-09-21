@@ -26,8 +26,12 @@ import {
   classificarAssimetria,
   getMetricDisplayLabel,
   METRICA_QUADRICEPS,
-  quadricepsEntradaParaValor,
   quadricepsValorParaEntrada,
+  normalizarEntradaQuadriceps,
+  textoAuxiliarQuadriceps,
+  QUADRICEPS_MENSAGEM_INVALIDA,
+  QUADRICEPS_VALOR_CLINICO_MINIMO,
+
   type MetricInput,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
