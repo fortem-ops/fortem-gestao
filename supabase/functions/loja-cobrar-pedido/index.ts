@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { checkRateLimit } from "../_shared/loja-rate-limit.ts";
+import { dispararAvisoRecusa } from "../_shared/avisar-recusa.ts";
 
 const REDE_URLS = {
   sandbox: "https://sandbox-erede.useredecloud.com.br/v2",
@@ -280,6 +281,16 @@ Deno.serve(async (req) => {
         console.error("[loja-cobrar-pedido] falha ao enviar e-mail:", String(e));
       }
     } else {
+      // aviso interno à equipe (não bloqueia a resposta ao aluno)
+      dispararAvisoRecusa(supabase, {
+        fluxo: "loja",
+        etapa: "cobranca",
+        pedido_id: pedidoId,
+        aluno_id: compradorId,
+        return_code: returnCode,
+        return_message: redeResponse?.returnMessage ?? null,
+      });
+
       await supabase
         .from("pedidos")
         .update({ status: "cancelado", cobranca_id: pagamento?.id ?? null })
