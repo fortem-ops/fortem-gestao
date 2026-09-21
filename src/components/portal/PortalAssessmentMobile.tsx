@@ -324,10 +324,10 @@ function ReferenceCurves({ measures, sexo, faixaEtaria, referenceData }: { measu
     return [{ measure, base }];
   });
   if (!cards.length) return <EmptyLine>Sem base suficiente para esta faixa.</EmptyLine>;
-  return <div className="space-y-3">{cards.map(({ measure, base }) => <ReferenceCurve key={measure.id} measure={measure} base={base} />)}</div>;
+  return <div className="space-y-3">{cards.map(({ measure, base }) => <ReferenceCurve key={measure.id} measure={measure} base={base} sexo={sexo} faixaEtaria={faixaEtaria} referenceData={referenceData} />)}</div>;
 }
 
-function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: number[] }) {
+function ReferenceCurve({ measure, base, sexo, faixaEtaria, referenceData }: { measure: PortalMedida; base: number[]; sexo: "M" | "F"; faixaEtaria?: FaixaEtaria | null; referenceData?: MobilidadeReferenceData }) {
   const mean = base.reduce((sum, value) => sum + value, 0) / base.length;
   const sigma = Math.sqrt(base.reduce((sum, value) => sum + (value - mean) ** 2, 0) / base.length) || 1;
   const min = Math.max(0, mean - 3 * sigma), max = mean + 3 * sigma;
@@ -341,7 +341,7 @@ function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: number
   const markers = [{ label: "E", value: measure.esquerdo, color: "#60a5fa" }, { label: "D", value: measure.direito, color: "#fb923c" }];
   return (
     <div className="rounded-xl bg-secondary/50 p-3">
-      <div className="flex items-start justify-between gap-2"><p className="text-xs font-semibold text-foreground">{measure.nome}</p><p className="shrink-0 text-[10px] text-muted-foreground">E P{percentilMobilidade(base, measure.esquerdo)} · D P{percentilMobilidade(base, measure.direito)}</p></div>
+      <div className="flex items-start justify-between gap-2"><p className="text-xs font-semibold text-foreground">{measure.nome}</p><p className="shrink-0 text-[10px] text-muted-foreground">E P{percentilMobilidade(measure.origem, sexo, measure.esquerdo, referenceData, faixaEtaria)} · D P{percentilMobilidade(measure.origem, sexo, measure.direito, referenceData, faixaEtaria)}</p></div>
       <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-[78px] w-full">
         <polyline points={pts} fill="none" stroke="#8a8a8a" strokeWidth="1.5" />
         {markers.map((marker) => <g key={marker.label}><line x1={x(marker.value)} x2={x(marker.value)} y1="10" y2={baseY} stroke={marker.color} strokeWidth="2" /><text x={x(marker.value)} y="8" textAnchor="middle" fill={marker.color} fontSize="9">{marker.label} {numero(marker.value)}°</text></g>)}
