@@ -36,7 +36,6 @@ import {
   type LinhaForcaComparativo,
   type LinhaMobilidadeComparativo,
   type ResumoForca,
-  type ResumoMobilidade,
   type TomVariacao,
 } from "../comparativoValores";
 
