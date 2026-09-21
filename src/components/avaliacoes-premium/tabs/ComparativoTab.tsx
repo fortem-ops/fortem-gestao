@@ -25,8 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComparacoesSalvas, type ComparativoSalvo } from "./ComparacoesSalvas";
 import { SalvarComparacaoDialog } from "./SalvarComparacaoDialog";
-import { getMetricDisplayLabel, metricaInvertida, type MobilidadeReferenceData, type Severity } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import type { FaixaEtaria } from "@/lib/faixaEtaria";
+import { getMetricDisplayLabel, metricaInvertida } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import {
   calcularStatsComparativoValores,
   CORTE_VARIACAO_FORCA_PCT,
@@ -37,7 +36,6 @@ import {
   type LinhaForcaComparativo,
   type LinhaMobilidadeComparativo,
   type ResumoForca,
-  type ResumoMobilidade,
   type TomVariacao,
 } from "../comparativoValores";
 
@@ -45,9 +43,6 @@ interface Props {
   data: ConsolidadoAluno;
   alunoId: string;
   onGoEvolucao?: () => void;
-  sexo?: "M" | "F";
-  faixaEtaria?: FaixaEtaria | null;
-  referenceData?: MobilidadeReferenceData;
 }
 
 type Modo = "auto" | "datas" | "intervalo";
@@ -113,7 +108,7 @@ function dataCurta(data: string | null): string | null {
   return data ? format(parseISO(data), "dd/MM/yyyy") : null;
 }
 
-export function ComparativoTab({ data, alunoId, onGoEvolucao, sexo, faixaEtaria, referenceData }: Props) {
+export function ComparativoTab({ data, alunoId, onGoEvolucao }: Props) {
   const [modo, setModo] = useState<Modo>("auto");
 
   // União de datas disponíveis (para modo "datas")
@@ -289,9 +284,6 @@ export function ComparativoTab({ data, alunoId, onGoEvolucao, sexo, faixaEtaria,
           plioA={autoPlio.A}
           plioB={autoPlio.B}
           onGoEvolucao={onGoEvolucao}
-          sexo={sexo}
-          faixaEtaria={faixaEtaria}
-          referenceData={referenceData}
         />
       )}
 
@@ -320,9 +312,6 @@ export function ComparativoTab({ data, alunoId, onGoEvolucao, sexo, faixaEtaria,
             plioA={datasPlioA.snap}
             plioB={datasPlioB.snap}
             onGoEvolucao={onGoEvolucao}
-            sexo={sexo}
-            faixaEtaria={faixaEtaria}
-            referenceData={referenceData}
           />
         </>
       )}
@@ -408,9 +397,6 @@ function ModoTabelas({
   plioA,
   plioB,
   onGoEvolucao,
-  sexo,
-  faixaEtaria,
-  referenceData,
 }: {
   labelA: string;
   labelB: string;
@@ -423,13 +409,10 @@ function ModoTabelas({
   plioA: PliometriaSnapshot | null;
   plioB: PliometriaSnapshot | null;
   onGoEvolucao?: () => void;
-  sexo?: "M" | "F";
-  faixaEtaria?: FaixaEtaria | null;
-  referenceData?: MobilidadeReferenceData;
 }) {
   const mobilidadeRows = useMemo(
-    () => montarMobilidadeComparativo(funcA, funcB, { sexo, faixaEtaria, referenceData }),
-    [funcA, funcB, sexo, faixaEtaria, referenceData],
+    () => montarMobilidadeComparativo(funcA, funcB),
+    [funcA, funcB],
   );
   const forcaRows = useMemo(() => montarForcaComparativo(funcA, funcB), [funcA, funcB]);
   const stats = useMemo(() => calcularStatsComparativoValores(mobilidadeRows, forcaRows), [mobilidadeRows, forcaRows]);
@@ -471,8 +454,8 @@ function ModoTabelas({
 
 function ResumoCards({ stats }: { stats: ReturnType<typeof calcularStatsComparativoValores> }) {
   const items = [
-    { label: "Lados que subiram de faixa", value: stats.mobilidadeSubiu, tone: "text-[hsl(var(--sev-excellent))]" },
-    { label: "Lados que caíram de faixa", value: stats.mobilidadeCaiu, tone: "text-[hsl(var(--sev-weak))]" },
+    { label: "Lados que ganharam amplitude", value: stats.mobilidadeGanhou, tone: "text-[hsl(var(--sev-excellent))]" },
+    { label: "Lados que perderam amplitude", value: stats.mobilidadePerdeu, tone: "text-[hsl(var(--sev-weak))]" },
     { label: "Lados que ganharam força", value: stats.forcaGanhou, tone: "text-[hsl(var(--sev-excellent))]" },
     { label: "Lados que perderam força", value: stats.forcaPerdeu, tone: "text-[hsl(var(--sev-weak))]" },
   ];
@@ -517,13 +500,12 @@ function TabelaMobilidadeValores({
         <h3 className="bio-heading text-base">Mobilidade / Flexibilidade</h3>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px]">
+        <table className="w-full min-w-[760px]">
           <thead>
             <tr className="border-b border-[hsl(var(--bio-line))] text-[11px] uppercase tracking-wide text-[hsl(var(--bio-ink-muted))]">
               <th className="text-left p-3 w-[22%]">Métrica</th>
               <th className="text-left p-3">Esquerdo</th>
               <th className="text-left p-3">Direito</th>
-              <th className="text-center p-3 w-44">Posição na base</th>
             </tr>
           </thead>
           <tbody>
@@ -537,7 +519,6 @@ function TabelaMobilidadeValores({
                 </td>
                 <td className="p-3"><CelulaMobilidade lado={row.esquerdo} /></td>
                 <td className="p-3"><CelulaMobilidade lado={row.direito} /></td>
-                <td className="p-3 text-center"><ResumoMobilidadeBadge resumo={row.resumo} /></td>
               </tr>
             ))}
           </tbody>
@@ -591,12 +572,12 @@ function TabelaForcaValores({
 }
 
 function CelulaMobilidade({ lado }: { lado: LadoMobilidadeComparativo }) {
-  if (!lado.antes || !lado.depois) return <span className="text-sm text-[hsl(var(--bio-ink-muted))]">—</span>;
+  if (lado.antes === null || lado.depois === null) return <span className="text-sm text-[hsl(var(--bio-ink-muted))]">—</span>;
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
-      <ValorGrausBadge ponto={lado.antes} />
+      <ValorGrausBadge valor={lado.antes} />
       <ArrowRight className="w-4 h-4 text-[hsl(var(--bio-ink-muted))]" />
-      <ValorGrausBadge ponto={lado.depois} />
+      <ValorGrausBadge valor={lado.depois} />
       <VariacaoGrausBadge variacao={lado.variacao} tom={lado.tom} />
     </div>
   );
@@ -626,10 +607,10 @@ function formatDeltaGraus(valor: number): string {
   return `${valor > 0 ? "+" : ""}${n}`;
 }
 
-function ValorGrausBadge({ ponto }: { ponto: NonNullable<LadoMobilidadeComparativo["antes"]> }) {
+function ValorGrausBadge({ valor }: { valor: number }) {
   return (
-    <span className={`rounded-md border px-2 py-1 ${classePercentil(ponto.severity)}`}>
-      {formatGraus(ponto.valor)}°
+    <span className="rounded-md border border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-surface-2))] px-2 py-1 text-[hsl(var(--bio-ink))]">
+      {formatGraus(valor)}°
     </span>
   );
 }
@@ -653,17 +634,6 @@ function VariacaoPctBadge({ variacao, resumo }: { variacao: number; resumo: Resu
   return <span className={`rounded-md border px-2 py-1 font-medium ${cls}`}>{formatDelta(variacao)}%</span>;
 }
 
-function ResumoMobilidadeBadge({ resumo }: { resumo: ResumoMobilidade }) {
-  const cls = resumo === "Subiu de faixa"
-    ? "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]"
-    : resumo === "Caiu de faixa"
-      ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
-      : resumo === "Sem base de comparação"
-        ? "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]"
-        : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
-  return <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${cls}`}>{resumo}</span>;
-}
-
 function ResumoForcaBadge({ resumo }: { resumo: ResumoForca }) {
   const cls = resumo === "Ganhou força"
     ? "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]"
@@ -671,23 +641,6 @@ function ResumoForcaBadge({ resumo }: { resumo: ResumoForca }) {
       ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
       : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
   return <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${cls}`}>{resumo}</span>;
-}
-
-function classePercentil(severity: Severity): string {
-  switch (severity) {
-    case "weak":
-      return "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]";
-    case "attention":
-      return "text-[hsl(var(--sev-attention))] bg-[hsl(var(--sev-attention)/0.12)] border-[hsl(var(--sev-attention)/0.35)]";
-    case "medium":
-      return "text-[hsl(var(--sev-medium))] bg-[hsl(var(--sev-medium)/0.12)] border-[hsl(var(--sev-medium)/0.35)]";
-    case "good":
-      return "text-[hsl(var(--sev-good))] bg-[hsl(var(--sev-good)/0.12)] border-[hsl(var(--sev-good)/0.35)]";
-    case "excellent":
-      return "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]";
-    case "none":
-      return "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
-  }
 }
 
 function formatDelta(valor: number): string {

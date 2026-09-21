@@ -2,34 +2,22 @@ import {
   ALL_FUNCTIONAL_METRICS,
   FORCA_EXERCICIO_LABEL,
   metricaInvertida,
-  percentilMobilidade,
-  severityFromScore,
   type ForcaExercicio,
-  type MobilidadeReferenceData,
-  type Severity,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import type { FaixaEtaria } from "@/lib/faixaEtaria";
 import type { FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 
 export type LadoComparativo = "esquerdo" | "direito";
-export type MovimentoFaixa = "caiu" | "subiu" | "igual";
 export type TomVariacao = "melhora" | "piora" | "neutro";
-export type ResumoMobilidade = "Caiu de faixa" | "Subiu de faixa" | "Sem mudança" | "Sem base de comparação";
+export type MovimentoMobilidade = "Perdeu amplitude" | "Ganhou amplitude" | "Sem mudança";
+export type ResumoMobilidade = MovimentoMobilidade;
 export type ResumoForca = "Perdeu força" | "Ganhou força" | "Estável";
-
-export interface ValorPercentilComparativo {
-  valor: number;
-  percentil: number | null;
-  severity: Severity;
-}
 
 export interface LadoMobilidadeComparativo {
   lado: LadoComparativo;
-  antes: ValorPercentilComparativo | null;
-  depois: ValorPercentilComparativo | null;
+  antes: number | null;
+  depois: number | null;
   variacao: number | null;
-  variacaoPercentil: number | null;
-  movimento: MovimentoFaixa | null;
+  movimento: MovimentoMobilidade | null;
   tom: TomVariacao;
 }
 
@@ -59,32 +47,16 @@ export interface LinhaForcaComparativo {
 }
 
 export interface StatsComparativoValores {
-  mobilidadeSubiu: number;
-  mobilidadeCaiu: number;
+  mobilidadeGanhou: number;
+  mobilidadePerdeu: number;
   forcaGanhou: number;
   forcaPerdeu: number;
 }
 
-export interface MobilidadeComparativoContexto {
-  sexo?: "M" | "F";
-  faixaEtaria?: FaixaEtaria | null;
-  referenceData?: MobilidadeReferenceData;
-}
-
-export const SEVERITY_ORDEM: Record<Severity, number> = {
-  none: -1,
-  weak: 0,
-  attention: 1,
-  medium: 2,
-  good: 3,
-  excellent: 4,
-};
-
 export const RESUMO_MOBILIDADE_ORDEM: Record<ResumoMobilidade, number> = {
-  "Caiu de faixa": 0,
-  "Subiu de faixa": 1,
+  "Perdeu amplitude": 0,
+  "Ganhou amplitude": 1,
   "Sem mudança": 2,
-  "Sem base de comparação": 3,
 };
 
 export const RESUMO_FORCA_ORDEM: Record<ResumoForca, number> = {
@@ -100,23 +72,21 @@ function numero(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
-export function movimentoFaixaPercentil(
-  antes: number | null | undefined,
-  depois: number | null | undefined,
-): MovimentoFaixa | null {
-  if (antes === null || antes === undefined || depois === null || depois === undefined) return null;
-  const antesSeverity = severityFromScore(antes);
-  const depoisSeverity = severityFromScore(depois);
-  const delta = SEVERITY_ORDEM[depoisSeverity] - SEVERITY_ORDEM[antesSeverity];
-  if (delta > 0) return "subiu";
-  if (delta < 0) return "caiu";
-  return "igual";
-}
-
 export function tomVariacaoMobilidade(metric: string, variacao: number | null | undefined): TomVariacao {
   if (!variacao) return "neutro";
   const melhora = metricaInvertida(metric) ? variacao < 0 : variacao > 0;
   return melhora ? "melhora" : "piora";
+}
+
+export function movimentoMobilidade(
+  metric: string,
+  variacao: number | null | undefined,
+): MovimentoMobilidade | null {
+  if (variacao === null || variacao === undefined || !Number.isFinite(variacao)) return null;
+  const tom = tomVariacaoMobilidade(metric, variacao);
+  if (tom === "melhora") return "Ganhou amplitude";
+  if (tom === "piora") return "Perdeu amplitude";
+  return "Sem mudança";
 }
 
 export function variacaoForcaPct(antes: number | null | undefined, depois: number | null | undefined): number | null {
@@ -135,10 +105,9 @@ export function movimentoForca(
 }
 
 function resumoMobilidade(esquerdo: LadoMobilidadeComparativo, direito: LadoMobilidadeComparativo): ResumoMobilidade {
-  if (esquerdo.movimento === "caiu" || direito.movimento === "caiu") return "Caiu de faixa";
-  if (esquerdo.movimento === "subiu" || direito.movimento === "subiu") return "Subiu de faixa";
-  if (esquerdo.movimento === "igual" || direito.movimento === "igual") return "Sem mudança";
-  return "Sem base de comparação";
+  if (esquerdo.movimento === "Perdeu amplitude" || direito.movimento === "Perdeu amplitude") return "Perdeu amplitude";
+  if (esquerdo.movimento === "Ganhou amplitude" || direito.movimento === "Ganhou amplitude") return "Ganhou amplitude";
+  return "Sem mudança";
 }
 
 function resumoForca(esquerdo: LadoForcaComparativo, direito: LadoForcaComparativo): ResumoForca {
@@ -152,39 +121,19 @@ function valorMetrica(snap: FuncionalSnapshot | null, metric: string, lado: "lef
   return numero(item?.[lado]);
 }
 
-function montarValorMobilidade(
-  metric: string,
-  valor: number | null,
-  contexto: MobilidadeComparativoContexto,
-): ValorPercentilComparativo | null {
-  if (valor === null) return null;
-  const percentil = contexto.sexo
-    ? percentilMobilidade(metric, contexto.sexo, valor, contexto.referenceData, contexto.faixaEtaria)
-    : null;
-  return { valor, percentil, severity: severityFromScore(percentil) };
-}
-
 function montarLadoMobilidade(
   metric: string,
   lado: LadoComparativo,
   antesValor: number | null,
   depoisValor: number | null,
-  contexto: MobilidadeComparativoContexto,
 ): LadoMobilidadeComparativo {
-  const antes = montarValorMobilidade(metric, antesValor, contexto);
-  const depois = montarValorMobilidade(metric, depoisValor, contexto);
   const variacao = antesValor !== null && depoisValor !== null ? depoisValor - antesValor : null;
-  const variacaoPercentil = antes?.percentil !== null && antes?.percentil !== undefined && depois?.percentil !== null && depois?.percentil !== undefined
-    ? depois.percentil - antes.percentil
-    : null;
-  const movimento = movimentoFaixaPercentil(antes?.percentil, depois?.percentil);
   return {
     lado,
-    antes,
-    depois,
+    antes: antesValor,
+    depois: depoisValor,
     variacao,
-    variacaoPercentil,
-    movimento,
+    movimento: movimentoMobilidade(metric, variacao),
     tom: tomVariacaoMobilidade(metric, variacao),
   };
 }
@@ -200,11 +149,10 @@ export function ordenarMobilidadeComparativo(rows: LinhaMobilidadeComparativo[])
 export function montarMobilidadeComparativo(
   antes: FuncionalSnapshot | null,
   depois: FuncionalSnapshot | null,
-  contexto: MobilidadeComparativoContexto = {},
 ): LinhaMobilidadeComparativo[] {
   const rows = ALL_FUNCTIONAL_METRICS.map((metric, ordem) => {
-    const esquerdo = montarLadoMobilidade(metric, "esquerdo", valorMetrica(antes, metric, "left"), valorMetrica(depois, metric, "left"), contexto);
-    const direito = montarLadoMobilidade(metric, "direito", valorMetrica(antes, metric, "right"), valorMetrica(depois, metric, "right"), contexto);
+    const esquerdo = montarLadoMobilidade(metric, "esquerdo", valorMetrica(antes, metric, "left"), valorMetrica(depois, metric, "left"));
+    const direito = montarLadoMobilidade(metric, "direito", valorMetrica(antes, metric, "right"), valorMetrica(depois, metric, "right"));
     return {
       metric,
       label: metric,
@@ -213,7 +161,7 @@ export function montarMobilidadeComparativo(
       direito,
       resumo: resumoMobilidade(esquerdo, direito),
     };
-  }).filter((row) => row.esquerdo.antes || row.esquerdo.depois || row.direito.antes || row.direito.depois);
+  }).filter((row) => row.esquerdo.antes !== null || row.esquerdo.depois !== null || row.direito.antes !== null || row.direito.depois !== null);
 
   return ordenarMobilidadeComparativo(rows);
 }
@@ -273,8 +221,8 @@ export function calcularStatsComparativoValores(
   const ladosMobilidade = mobilidade.flatMap((row) => [row.esquerdo, row.direito]);
   const ladosForca = forca.flatMap((row) => [row.esquerdo, row.direito]);
   return {
-    mobilidadeSubiu: ladosMobilidade.filter((lado) => lado.movimento === "subiu").length,
-    mobilidadeCaiu: ladosMobilidade.filter((lado) => lado.movimento === "caiu").length,
+    mobilidadeGanhou: ladosMobilidade.filter((lado) => lado.movimento === "Ganhou amplitude").length,
+    mobilidadePerdeu: ladosMobilidade.filter((lado) => lado.movimento === "Perdeu amplitude").length,
     forcaGanhou: ladosForca.filter((lado) => lado.movimento === "Ganhou força").length,
     forcaPerdeu: ladosForca.filter((lado) => lado.movimento === "Perdeu força").length,
   };
