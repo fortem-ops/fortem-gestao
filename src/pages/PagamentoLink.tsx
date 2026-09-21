@@ -11,6 +11,7 @@ import PagamentoStep, {
 type Estado = "carregando" | "pendente" | "invalido" | "expirado" | "ja_pago";
 
 type Validacao = {
+  origem?: "corrida" | "generica";
   venda: { id: string; valor_final: number; parcelas: number; nome_snapshot: string | null };
   resumo_linhas: { label: string; valor: number }[];
   pix_disponivel: boolean;
@@ -18,12 +19,12 @@ type Validacao = {
   pedido: PedidoCriado;
 };
 
-const Moldura = ({ children }: { children: React.ReactNode }) => (
+const Moldura = ({ children, subtitulo }: { children: React.ReactNode; subtitulo: string }) => (
   <div className="min-h-screen bg-background text-foreground px-4 py-10">
     <div className="mx-auto w-full max-w-lg space-y-6">
       <div className="text-center">
         <h1 className="font-display text-2xl font-bold tracking-tight">FORTEM</h1>
-        <p className="text-sm text-muted-foreground">Pagamento da sua inscrição</p>
+        <p className="text-sm text-muted-foreground">{subtitulo}</p>
       </div>
       {children}
     </div>
