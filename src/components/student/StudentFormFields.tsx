@@ -38,6 +38,7 @@ export const studentSchema = z.object({
   plano_valor: z.coerce.number().min(0, "Valor deve ser positivo").optional(),
   plano_data_inicio: z.string().optional(),
   professor_responsavel_id: z.string().optional(),
+  consultor_id: z.string().optional(),
   origem_lead: z.string().optional(),
 });
 
@@ -326,6 +327,26 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="consultor_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Consultor Responsável</FormLabel>
+              <Select value={field.value || "__none__"} onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}>
+                <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem consultor</SelectItem>
+                  {professors.map((p) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>{p.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
