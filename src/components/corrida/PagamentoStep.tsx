@@ -440,7 +440,7 @@ const PagamentoStep = ({
         });
         const status = String(data?.status ?? "").toLowerCase();
         if (status === "active" && data?.cartao_salvo_id) {
-          await cobrar(p);
+          await cobrar(p, String(data.cartao_salvo_id));
           return;
         }
         if (status === "failed" || status === "denied") {
