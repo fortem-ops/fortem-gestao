@@ -79,8 +79,8 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, resumoReferenc
     [history],
   );
   const analysis = useMemo(
-    () => latest ? analyze(latest.metricas, "asymmetry", latest.forca, sexo, referenceData, faixaEtaria) : null,
-    [latest, sexo, referenceData, faixaEtaria],
+    () => latest ? analyze(latest.metricas, "asymmetry", latest.forca, sexo, undefined, faixaEtaria) : null,
+    [latest, sexo, faixaEtaria],
   );
   const chains = useMemo(() => deduplicarCadeias(analysis?.chains ?? []), [analysis]);
 
