@@ -344,13 +344,17 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
   function abrirEdicao(row: MobilidadeRow) {
     const v: Record<string, { left: string; right: string }> = {};
     row.metricas.forEach((m) => {
-      // Quadríceps: o valor salvo é absoluto; o campo mostra a leitura a partir dos 90°.
-      const ajuste = (val: number | null | undefined) =>
-        val !== null && val !== undefined
-          ? String(m.metric === METRICA_QUADRICEPS ? quadricepsValorParaEntrada(val) : val)
-          : "";
+      // Quadríceps: valor clínico salvo (>=100) volta como leitura; valores legados ficam como estão.
+      const ajuste = (val: number | null | undefined) => {
+        if (val === null || val === undefined) return "";
+        if (m.metric === METRICA_QUADRICEPS && val >= QUADRICEPS_VALOR_CLINICO_MINIMO) {
+          return String(quadricepsValorParaEntrada(val));
+        }
+        return String(val);
+      };
       v[m.metric] = { left: ajuste(m.left), right: ajuste(m.right) };
     });
+
     setValues(v);
     setData(row.data);
     setEditandoId(row.id);
