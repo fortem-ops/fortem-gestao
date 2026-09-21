@@ -57,7 +57,7 @@ function numero(value: number, casas = 1): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(casas).replace(".", ",");
 }
 
-export function PortalAssessmentMobile({ data, sexo, faixaEtaria, referenceData }: Props) {
+export function PortalAssessmentMobile({ data, sexo, faixaEtaria, resumoReferencia }: Props) {
   const latest = data.funcional.latest;
   const medidas = useMemo(() => montarMedidasPortal(latest), [latest]);
   const resumo = useMemo(() => montarResumoPortal(medidas), [medidas]);
