@@ -2,8 +2,35 @@ import type { Tables } from "@/integrations/supabase/types";
 import { BodyMap } from "./BodyMap";
 import { getClassificationColor } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
-import { FORCA_EXERCICIO_LABEL, type ForcaInput, type MetricInput, type MobilidadeReferenceData } from "./bodyMapLogic";
+import {
+  ASSIMETRIA_NIVEL_LABEL,
+  FORCA_EXERCICIO_LABEL,
+  classificarAssimetria,
+  getMetricDisplayLabel,
+  type AssimetriaNivel,
+  type ForcaInput,
+  type MetricInput,
+  type MobilidadeReferenceData,
+} from "./bodyMapLogic";
 import type { FaixaEtaria } from "@/lib/faixaEtaria";
+
+const NIVEL_CLS: Record<AssimetriaNivel, string> = {
+  nenhuma: "text-emerald-500",
+  moderada: "text-amber-500",
+  severa: "text-rose-500",
+};
+
+/** Diferença entre os lados com o nível de assimetria (regra compartilhada). */
+export function AssimetriaCelula({ metric, left, right }: { metric: string; left: number | null; right: number | null }) {
+  const info = classificarAssimetria(metric, left, right);
+  if (!info) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className={`text-xs font-semibold ${NIVEL_CLS[info.nivel]}`}>
+      {info.valor.toFixed(1)}{info.unidade} · {ASSIMETRIA_NIVEL_LABEL[info.nivel]}
+    </span>
+  );
+}
+
 
 interface Props {
   avaliacao: Tables<"avaliacoes">;
@@ -44,26 +71,23 @@ export function FuncionalV2Viewer({ avaliacao, sexo, faixaEtaria, referenceData 
               <tr className="border-b border-border bg-secondary/30">
                 <th className="text-left text-xs font-medium text-muted-foreground p-3">Métrica</th>
                 <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Esq.</th>
-                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. E</th>
                 <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Dir.</th>
-                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. D</th>
+                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-40">Diferença entre os lados</th>
               </tr>
             </thead>
             <tbody>
               {metricas.map((m) => (
                 <tr key={m.metric} className="border-b border-border/40">
-                  <td className="p-3">{m.metric}</td>
+                  <td className="p-3">{getMetricDisplayLabel(m.metric)}</td>
                   <td className="p-3 text-center">{m.left !== null ? `${m.left}°` : "—"}</td>
-                  <td className="p-3 text-center">
-                    {m.leftClass && <span className={`text-xs font-semibold ${getClassificationColor(m.leftClass as AssessmentClassification)}`}>{m.leftClass}</span>}
-                  </td>
                   <td className="p-3 text-center">{m.right !== null ? `${m.right}°` : "—"}</td>
                   <td className="p-3 text-center">
-                    {m.rightClass && <span className={`text-xs font-semibold ${getClassificationColor(m.rightClass as AssessmentClassification)}`}>{m.rightClass}</span>}
+                    <AssimetriaCelula metric={m.metric} left={m.left} right={m.right} />
                   </td>
                 </tr>
               ))}
             </tbody>
+
           </table>
         </div>
       )}

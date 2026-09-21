@@ -14,10 +14,9 @@ import { CheckCircle2, FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { getClassificationColor } from "@/lib/mock-data";
 import type { AssessmentClassification } from "@/lib/mock-data";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
-import { BodyDiagram } from "./BodyDiagram";
+import { getMetricDisplayLabel, textoAssimetria } from "./funcionalV2/bodyMapLogic";
 import { ExperimentalAssessment, renderAnswerSummary } from "./ExperimentalAssessment";
 import { fetchExperimentalSchema, migrateLegacyDados, ensureFaseInicialQuestion, type ExperimentalRecordDados } from "./experimentalTemplate";
 import { useQuery as useTplQuery } from "@tanstack/react-query";
@@ -78,6 +77,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
   const dados = (avaliacao?.dados as Record<string, unknown>) || {};
   const metricasFromJson = (dados.metricas as FuncMetric[] | undefined) || [];
+  // Toda avaliação com métricas usa o visualizador funcional atual, qualquer que seja o tipo.
+  const temMetricas = metricasFromJson.length > 0;
   // Qualquer relatório dinâmico (experimental, força, reabilitação, novos tipos)
   const isDynamic =
     !isFuncional && !isComposicao && avaliacao?.tipo !== "funcional_v2" &&
@@ -142,13 +143,14 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
   }
 
   const handleExport = () => {
-    if (isFuncional) {
+    if (temMetricas) {
       const rows = metricasFromJson.map(m => ({
-        label: m.metric,
+        label: getMetricDisplayLabel(m.metric),
         left: m.left !== null ? `${m.left}°` : "—",
-        leftClass: m.leftClass || "—",
+        leftClass: "",
         right: m.right !== null ? `${m.right}°` : "—",
-        rightClass: m.rightClass || "—",
+        rightClass: "",
+        diff: textoAssimetria(m.metric, m.left, m.right),
       }));
       exportAssessmentPDF({
         student,
@@ -180,11 +182,6 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     }
   };
 
-  // Build classifications map for body diagram (functional only)
-  const diagramClassifications: Record<string, { left: AssessmentClassification | null; right: AssessmentClassification | null }> = {};
-  metricasFromJson.forEach(m => {
-    diagramClassifications[m.metric] = { left: m.leftClass, right: m.rightClass };
-  });
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
@@ -204,7 +201,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
         </DialogHeader>
 
 
-        {avaliacao.tipo === "funcional_v2" ? (
+        {temMetricas ? (
           <FuncionalV2Viewer
             avaliacao={avaliacao}
             sexo={sexoDe(student?.sexo)}
@@ -237,46 +234,13 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
-            {isFuncional && metricasFromJson.length > 0 && (
-              <>
-                <div className="glass-card rounded-lg p-4 flex flex-col items-center">
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Mapa Corporal</h4>
-                  <BodyDiagram classifications={diagramClassifications} />
-                </div>
-
-                <div className="glass-card rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-secondary/30">
-                        <th className="text-left text-xs font-medium text-muted-foreground p-3">Métrica</th>
-                        <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Esquerdo</th>
-                        <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. E</th>
-                        <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Direito</th>
-                        <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. D</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {metricasFromJson.map(m => (
-                        <tr key={m.metric} className="border-b border-border/50">
-                          <td className="p-3 text-foreground">{m.metric}</td>
-                          <td className="p-3 text-center">{m.left !== null ? `${m.left}°` : '—'}</td>
-                          <td className="p-3 text-center">{m.leftClass && <span className={`text-xs font-semibold ${getClassificationColor(m.leftClass)}`}>{m.leftClass}</span>}</td>
-                          <td className="p-3 text-center">{m.right !== null ? `${m.right}°` : '—'}</td>
-                          <td className="p-3 text-center">{m.rightClass && <span className={`text-xs font-semibold ${getClassificationColor(m.rightClass)}`}>{m.rightClass}</span>}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {funcional?.observacoes && !avaliacao.observacoes && (
-                  <div className="glass-card rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">Observações</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{funcional.observacoes}</p>
-                  </div>
-                )}
-              </>
+            {isFuncional && funcional?.observacoes && !avaliacao.observacoes && (
+              <div className="glass-card rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-foreground mb-2">Observações</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{funcional.observacoes}</p>
+              </div>
             )}
+
 
             {isComposicao && (
               <div className="glass-card rounded-lg p-4">
@@ -353,7 +317,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
             </AlertDialog>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-          {(isFuncional || isComposicao) && (
+          {(temMetricas || isComposicao) && (
             <Button onClick={handleExport}><FileDown className="w-4 h-4 mr-2" /> Exportar PDF</Button>
           )}
         </DialogFooter>

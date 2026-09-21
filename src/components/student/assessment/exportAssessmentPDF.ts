@@ -10,7 +10,10 @@ interface Row {
   leftClass: string;
   right: string | number;
   rightClass: string;
+  /** Avaliação funcional: diferença entre os lados com o nível (substitui as classificações). */
+  diff?: string;
 }
+
 
 interface ExportArgs {
   student: Tables<"alunos">;
@@ -47,13 +50,19 @@ export function exportAssessmentPDF({ student, tipo, rows, notes }: ExportArgs) 
   if (student.telefone) doc.text(`Telefone: ${student.telefone}`, 14, 48);
 
   // Table
+  const hasDiff = rows.some(r => r.diff !== undefined);
   const hasSides = rows.some(r => r.right !== "" && r.right !== null && r.right !== undefined);
-  const head = hasSides
-    ? [["Métrica", "Esquerdo", "Class. E", "Direito", "Class. D"]]
-    : [["Item", "Valor", "Classificação"]];
-  const body = rows.map(r => hasSides
-    ? [r.label, String(r.left ?? "—"), r.leftClass || "—", String(r.right ?? "—"), r.rightClass || "—"]
-    : [r.label, String(r.left ?? "—"), r.leftClass || "—"]);
+  const head = hasDiff
+    ? [["Métrica", "Esquerdo", "Direito", "Diferença entre os lados"]]
+    : hasSides
+      ? [["Métrica", "Esquerdo", "Class. E", "Direito", "Class. D"]]
+      : [["Item", "Valor", "Classificação"]];
+  const body = rows.map(r => hasDiff
+    ? [r.label, String(r.left ?? "—"), String(r.right ?? "—"), r.diff || "—"]
+    : hasSides
+      ? [r.label, String(r.left ?? "—"), r.leftClass || "—", String(r.right ?? "—"), r.rightClass || "—"]
+      : [r.label, String(r.left ?? "—"), r.leftClass || "—"]);
+
 
   autoTable(doc, {
     head,
