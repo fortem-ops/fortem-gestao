@@ -156,6 +156,12 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
     if (!user) { toast.error("Usuário não autenticado"); return; }
     const hasAny = rows.some((r) => r.left !== null || r.right !== null) || forcaInputs.length > 0;
     if (!hasAny) { toast.error("Insira ao menos um valor antes de salvar"); return; }
+    const q = values[METRICA_QUADRICEPS];
+    if ((["left", "right"] as const).some((lado) => (q?.[lado] ?? "") !== "" && !normalizarEntradaQuadriceps(parseInt(q![lado])).ok)) {
+      toast.error(QUADRICEPS_MENSAGEM_INVALIDA);
+      return;
+    }
+
     setSaving(true);
     try {
       const { data, error } = await supabase
