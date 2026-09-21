@@ -21,6 +21,8 @@ Juntar, antes de qualquer comparação, os registros funcionais da **mesma data*
 
 Com isso o Comparativo passa a mostrar 04/03/2026 como uma avaliação completa (mobilidade + força) e o modo automático compara 04/08/2025 → 04/03/2026. A linha do tempo de evolução e o "última avaliação" também passam a exibir a data completa.
 
+A regra vale para **todos os alunos e todas as datas**, não apenas este caso: sempre que houver mais de um registro funcional na mesma data, eles passam a ser lidos como uma avaliação só.
+
 Nenhum dado do banco é alterado — a junção acontece apenas na leitura.
 
 ## Detalhes técnicos
