@@ -71,26 +71,23 @@ export function FuncionalV2Viewer({ avaliacao, sexo, faixaEtaria, referenceData 
               <tr className="border-b border-border bg-secondary/30">
                 <th className="text-left text-xs font-medium text-muted-foreground p-3">Métrica</th>
                 <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Esq.</th>
-                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. E</th>
                 <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Dir.</th>
-                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. D</th>
+                <th className="text-center text-xs font-medium text-muted-foreground p-3 w-40">Diferença entre os lados</th>
               </tr>
             </thead>
             <tbody>
               {metricas.map((m) => (
                 <tr key={m.metric} className="border-b border-border/40">
-                  <td className="p-3">{m.metric}</td>
+                  <td className="p-3">{getMetricDisplayLabel(m.metric)}</td>
                   <td className="p-3 text-center">{m.left !== null ? `${m.left}°` : "—"}</td>
-                  <td className="p-3 text-center">
-                    {m.leftClass && <span className={`text-xs font-semibold ${getClassificationColor(m.leftClass as AssessmentClassification)}`}>{m.leftClass}</span>}
-                  </td>
                   <td className="p-3 text-center">{m.right !== null ? `${m.right}°` : "—"}</td>
                   <td className="p-3 text-center">
-                    {m.rightClass && <span className={`text-xs font-semibold ${getClassificationColor(m.rightClass as AssessmentClassification)}`}>{m.rightClass}</span>}
+                    <AssimetriaCelula metric={m.metric} left={m.left} right={m.right} />
                   </td>
                 </tr>
               ))}
             </tbody>
+
           </table>
         </div>
       )}
