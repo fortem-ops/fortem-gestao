@@ -594,11 +594,10 @@ function CelulaMobilidade({ lado }: { lado: LadoMobilidadeComparativo }) {
   if (!lado.antes || !lado.depois) return <span className="text-sm text-[hsl(var(--bio-ink-muted))]">—</span>;
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
-      <PercentilBadge ponto={lado.antes} />
+      <ValorGrausBadge ponto={lado.antes} />
       <ArrowRight className="w-4 h-4 text-[hsl(var(--bio-ink-muted))]" />
-      <PercentilBadge ponto={lado.depois} />
+      <ValorGrausBadge ponto={lado.depois} />
       <VariacaoGrausBadge variacao={lado.variacao} tom={lado.tom} />
-      <VariacaoPercentilBadge variacao={lado.variacaoPercentil} />
     </div>
   );
 }
@@ -615,11 +614,22 @@ function CelulaForca({ lado }: { lado: LadoForcaComparativo }) {
   );
 }
 
-function PercentilBadge({ ponto }: { ponto: NonNullable<LadoMobilidadeComparativo["antes"]> }) {
-  const texto = ponto.percentil === null ? `${ponto.valor.toFixed(1)}°` : `${ponto.valor.toFixed(1)}° · P${ponto.percentil}`;
+/** Graus exibidos sem casa decimal quando o valor é inteiro (67° em vez de 67.0°). */
+function formatGraus(valor: number): string {
+  return String(Number(valor.toFixed(1)));
+}
+
+/** Variação em graus, com sinal e sem casa decimal quando inteira (-12°, +3°, 0°). */
+function formatDeltaGraus(valor: number): string {
+  if (Math.abs(valor) < 0.05) return "0";
+  const n = Number(valor.toFixed(1));
+  return `${valor > 0 ? "+" : ""}${n}`;
+}
+
+function ValorGrausBadge({ ponto }: { ponto: NonNullable<LadoMobilidadeComparativo["antes"]> }) {
   return (
     <span className={`rounded-md border px-2 py-1 ${classePercentil(ponto.severity)}`}>
-      {texto}
+      {formatGraus(ponto.valor)}°
     </span>
   );
 }
@@ -631,18 +641,7 @@ function VariacaoGrausBadge({ variacao, tom }: { variacao: number | null; tom: T
     : tom === "piora"
       ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
       : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
-  return <span className={`rounded-md border px-2 py-1 font-medium ${cls}`}>{formatDelta(variacao)}°</span>;
-}
-
-
-function VariacaoPercentilBadge({ variacao }: { variacao: number | null }) {
-  if (variacao === null) return null;
-  const cls = variacao > 0
-    ? "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]"
-    : variacao < 0
-      ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
-      : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
-  return <span className={`rounded-md border px-2 py-1 font-medium ${cls}`}>{formatDelta(variacao)} pp</span>;
+  return <span className={`rounded-md border px-2 py-1 font-medium ${cls}`}>{formatDeltaGraus(variacao)}°</span>;
 }
 
 function VariacaoPctBadge({ variacao, resumo }: { variacao: number; resumo: ResumoForca | null }) {
