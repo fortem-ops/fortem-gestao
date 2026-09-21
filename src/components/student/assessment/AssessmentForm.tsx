@@ -121,6 +121,12 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
       toast.error("Insira ao menos um valor antes de salvar");
       return;
     }
+    const q = values[METRICA_QUADRICEPS];
+    if ((['left', 'right'] as const).some(lado => (q?.[lado] ?? '') !== '' && !normalizarEntradaQuadriceps(parseInt(q![lado])).ok)) {
+      toast.error(QUADRICEPS_MENSAGEM_INVALIDA);
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: aval, error: avalErr } = await supabase
