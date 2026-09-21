@@ -181,7 +181,7 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, resumoReferenc
           {!sexo ? (
             <EmptyLine>Comparação indisponível: informe o sexo no cadastro.</EmptyLine>
           ) : (
-            <ReferenceCurves measures={medidas.filter((m) => m.camada !== "forca")} sexo={sexo} faixaEtaria={faixaEtaria} referenceData={referenceData} />
+            <ReferenceCurves measures={medidas.filter((m) => m.camada !== "forca")} sexo={sexo} faixaEtaria={faixaEtaria} resumoReferencia={resumoReferencia} />
           )}
         </DetailsCard>
 
