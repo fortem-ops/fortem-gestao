@@ -76,7 +76,7 @@ export default function AddStudentDialog({ onStudentAdded }: AddStudentDialogPro
           await supabase.from("pipeline_metadata").upsert({
             aluno_id: aluno.id,
             origem_lead: values.origem_lead,
-            responsavel_comercial_id: responsavelId,
+            responsavel_comercial_id: values.consultor_id || responsavelId,
           }, { onConflict: "aluno_id" });
         }
         if (!plan) {
