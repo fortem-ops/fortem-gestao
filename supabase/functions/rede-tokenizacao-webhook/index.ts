@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { salvarCartaoComSubstituicao } from "../_shared/cartao-substituicao.ts";
+import { bandeiraRecusouToken } from "../_shared/rede-brand-token.ts";
+import { dispararAvisoRecusa } from "../_shared/avisar-recusa.ts";
 
 const TOKEN_SERVICE_URLS = {
   sandbox:  "https://rl7-sandbox-api.useredecloud.com.br/token-service/oauth/v2/tokenization",
@@ -229,6 +231,20 @@ serve(async (req) => {
         console.error("[rede-tokenizacao-webhook] falha ao registrar system_logs:", String(e));
       }
     }
+
+    // Recusa da bandeira (Failed / Unavailable / Deleted) → avisa a equipe.
+    const recusaDefinitiva =
+      falhaMascarada || (!aindaProcessando && tokenCode.length === 0 && bandeiraRecusouToken(consulta));
+    if (recusaDefinitiva && registro?.aluno_id) {
+      dispararAvisoRecusa(supabase, {
+        fluxo: "loja",
+        etapa: "tokenizacao",
+        aluno_id: registro.aluno_id,
+        erro: "recusado_bandeira",
+        return_message: consulta?.brand?.message ?? `brand.tokenStatus: ${brandTokenStatus || "ausente"}`,
+      });
+    }
+
 
     if (statusRede === "Active" && !falhaMascarada && !aindaProcessando && tokenCode.length > 0 && registro && !registro.cartao_salvo_id) {
       // Parse da validade no formato MM/YYYY (ex: "08/2034")
