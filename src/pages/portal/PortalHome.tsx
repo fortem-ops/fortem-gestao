@@ -575,7 +575,7 @@ export default function PortalHome() {
                   {mesesDesde === 0
                     ? "Avaliado este mês"
                     : `Há ${mesesDesde} ${mesesDesde === 1 ? "mês" : "meses"}`}
-                  {metricasAtencao > 0 ? ` · ${metricasAtencao} ponto${metricasAtencao > 1 ? "s" : ""} de atenção` : ""}
+                  {` · ${metricasAtencao} ponto${metricasAtencao === 1 ? "" : "s"} de atenção`}
                 </p>
               </div>
               <div className="mt-3 grid min-w-0 gap-2 sm:grid-cols-2">
@@ -585,7 +585,8 @@ export default function PortalHome() {
                     <p className="mt-1 break-words text-xs font-bold leading-snug text-current">{selo.texto}</p>
                     {selo.medida && (
                       <p className="mt-1 text-[11px] font-semibold text-current/80">
-                        {numeroMedida(selo.medida)} · {portalNivelLabel(selo.nivel)}
+                        {numeroMedida(selo.medida)}
+                        {selo.titulo === "Ponto de atenção" ? ` · ${portalNivelLabel(selo.nivel)}` : ""}
                       </p>
                     )}
                   </div>

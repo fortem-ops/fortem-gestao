@@ -223,7 +223,7 @@ export function montarSelosInicio(medidas: PortalMedida[]): PortalSelosInicio {
     Number.POSITIVE_INFINITY,
   );
   const maisEquilibradas = Number.isFinite(menorRazao)
-    ? medidas.filter((medida) => Math.abs(medida.razaoSevero - menorRazao) < Number.EPSILON)
+    ? medidas.filter((medida) => Math.abs(medida.razaoSevero - menorRazao) < 1e-9)
     : [];
   const medidaEquilibrada = maisEquilibradas[0] ?? null;
   const empateEmZero = medidaEquilibrada?.diferenca === 0;
