@@ -156,7 +156,9 @@ const App = () => (
             <Route path="/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><ResetPassword /></Suspense>} />
             <Route path="/corrida" element={<Suspense fallback={<RouteFallback />}><Corrida /></Suspense>} />
             <Route path="/pagamento/:token" element={<Suspense fallback={<RouteFallback />}><PagamentoLink /></Suspense>} />
-            <Route path="/corrida/pagamento/:token" element={<Navigate to="/pagamento/:token" replace />} />
+            {/* links antigos da Corrida continuam funcionando */}
+            <Route path="/corrida/pagamento/:token" element={<Suspense fallback={<RouteFallback />}><PagamentoLink /></Suspense>} />
+
 
             <Route path="/planos" element={<Suspense fallback={<RouteFallback />}><Planos /></Suspense>} />
             <Route path="/privacidade" element={<Suspense fallback={<RouteFallback />}><Privacidade /></Suspense>} />
