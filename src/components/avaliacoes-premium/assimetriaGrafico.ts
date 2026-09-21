@@ -3,6 +3,7 @@ import {
   ASSIMETRIA_ABSOLUTA,
   ASSIMETRIA_PCT_LIMIARES,
   classificarAssimetria,
+  classifyForca,
   FORCA_EXERCICIO_LABEL,
   getMetricDisplayLabel,
   metricaInvertida,
@@ -22,13 +23,6 @@ export interface AssimetriaGraficoItem {
   tipo: AssimetriaItemTipo;
   origem: string;
   unidade: "°" | "%";
-}
-
-export interface ProtocoloAssimetriaMarco {
-  tipo?: AssimetriaItemTipo;
-  origem: string;
-  data: string;
-  rotulo: string;
 }
 
 export interface AssimetriaPontoEvolucao {
@@ -54,7 +48,6 @@ export interface AssimetriaResumoEvolucao extends AssimetriaGraficoItem {
   corteSevero: number;
   razaoSeveroAtual: number;
   foraFaixaVerde: boolean;
-  marcos: ProtocoloAssimetriaMarco[];
 }
 
 export interface AssimetriaResumoStats {
@@ -62,9 +55,6 @@ export interface AssimetriaResumoStats {
   pioraram: number;
   inverteram: number;
 }
-
-/** Lista preparada para marcar mudanças de protocolo nos gráficos. Mantida vazia até haver data oficial. */
-export const MARCOS_PROTOCOLO_ASSIMETRIA: ProtocoloAssimetriaMarco[] = [];
 
 /** Paleta compartilhada para manter a mesma identidade visual entre abas. */
 const ASSIMETRIA_CORES = [
@@ -226,12 +216,12 @@ export function avaliarAssimetriaNoSnapshot(
   const f = snap.forca.find((x) => x.nome === item.origem);
   const esquerdo = numero(f?.esquerdo_kg);
   const direito = numero(f?.direito_kg);
-  const info = classificarAssimetria(item.origem, esquerdo, direito);
-  if (!info) return null;
+  if (esquerdo === null || direito === null) return null;
+  const valor = classifyForca(direito, esquerdo).assimetria;
   return {
-    valor: Number(info.valor.toFixed(1)),
+    valor: Number(valor.toFixed(1)),
     unidade: "%",
-    nivel: nivelAssimetria(undefined, info.valor),
+    nivel: nivelAssimetria(undefined, valor),
     ladoMaisFraco: ladoMaisFracoForca(esquerdo, direito),
   };
 }
@@ -267,11 +257,6 @@ export function montarResumoAssimetriaEvolucao(
       const ultimoLadoValido = [...pontos].reverse().find((p) => p.ladoMaisFraco && p.ladoMaisFraco !== "sem_diferenca")?.ladoMaisFraco ?? null;
       const metric = item.tipo === "metric" ? item.origem : undefined;
       const limiares = limiaresAssimetria(metric);
-      const marcos = MARCOS_PROTOCOLO_ASSIMETRIA.filter((marco) => {
-        if (marco.origem !== item.origem) return false;
-        if (marco.tipo && marco.tipo !== item.tipo) return false;
-        return datas.includes(marco.data);
-      });
 
       return {
         ...item,
@@ -288,7 +273,6 @@ export function montarResumoAssimetriaEvolucao(
         corteSevero: limiares.severo,
         razaoSeveroAtual: razaoSeveroAssimetria(metric, ultima?.valor),
         foraFaixaVerde: ultima ? ultima.nivel !== "nenhuma" : false,
-        marcos,
       };
     })
     .filter((resumo): resumo is AssimetriaResumoEvolucao => resumo !== null);
