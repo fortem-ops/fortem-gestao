@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
-import { format, parseISO, differenceInCalendarDays } from "date-fns";
-import { AlertCircle } from "lucide-react";
+import { format, parseISO, differenceInCalendarDays, differenceInCalendarMonths } from "date-fns";
+import { AlertCircle, ArrowRight } from "lucide-react";
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -27,17 +25,26 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComparacoesSalvas, type ComparativoSalvo } from "./ComparacoesSalvas";
 import { SalvarComparacaoDialog } from "./SalvarComparacaoDialog";
-import { ALL_FUNCTIONAL_METRICS, metricaInvertida } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { getMetricDisplayLabel, metricaInvertida } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { AssessmentClassification } from "@/lib/mock-data";
 import {
-  corAssimetria,
-  listarItensAssimetria,
-  valorAssimetria,
-  type AssimetriaGraficoItem,
-} from "../assimetriaGrafico";
+  calcularStatsComparativoValores,
+  CORTE_VARIACAO_FORCA_PCT,
+  montarForcaComparativo,
+  montarMobilidadeComparativo,
+  type LadoForcaComparativo,
+  type LadoMobilidadeComparativo,
+  type LinhaForcaComparativo,
+  type LinhaMobilidadeComparativo,
+  type ResumoForca,
+  type ResumoMobilidade,
+  type TomVariacao,
+} from "../comparativoValores";
 
 interface Props {
   data: ConsolidadoAluno;
   alunoId: string;
+  onGoEvolucao?: () => void;
 }
 
 type Modo = "auto" | "datas" | "intervalo";
@@ -71,58 +78,6 @@ function nearest<T extends { data: string }>(
   return { snap: best, diasDif: best ? bestDiff : null };
 }
 
-function funcRows(a: FuncionalSnapshot | null, b: FuncionalSnapshot | null): CompareRow[] {
-  const rows: CompareRow[] = [
-    { label: "Nº métricas registradas", a: a?.metricas.length ?? null, b: b?.metricas.length ?? null, higherIsBetter: true, format: (v) => `${Math.round(v)}` },
-  ];
-  // Métrica a métrica, com os lados separados (E/D)
-  const lado = (
-    snap: FuncionalSnapshot | null,
-    metric: string,
-    side: "left" | "right",
-  ): number | null => {
-    const m = snap?.metricas.find((x) => x.metric === metric);
-    const v = m?.[side];
-    return typeof v === "number" ? v : null;
-  };
-  ALL_FUNCTIONAL_METRICS.forEach((metric) => {
-    const maiorMelhor = !metricaInvertida(metric);
-    ([
-      ["left", "E"],
-      ["right", "D"],
-    ] as const).forEach(([side, sigla]) => {
-      const va = lado(a, metric, side);
-      const vb = lado(b, metric, side);
-      if (va === null && vb === null) return;
-      rows.push({ label: `${metric} (${sigla})`, a: va, b: vb, suffix: "°", higherIsBetter: maiorMelhor });
-    });
-  });
-  return rows;
-}
-
-
-function forcaRows(a: FuncionalSnapshot | null, b: FuncionalSnapshot | null): CompareRow[] {
-  const rows: CompareRow[] = [];
-  // por exercício, com os lados separados (E/D)
-  const nomes = new Set<string>();
-  a?.forca.forEach((e) => nomes.add(e.nome));
-  b?.forca.forEach((e) => nomes.add(e.nome));
-  nomes.forEach((nome) => {
-    const ea = a?.forca.find((x) => x.nome === nome) ?? null;
-    const eb = b?.forca.find((x) => x.nome === nome) ?? null;
-    ([
-      ["esquerdo_kg", "E"],
-      ["direito_kg", "D"],
-    ] as const).forEach(([campo, sigla]) => {
-      const va = typeof ea?.[campo] === "number" ? ea[campo] : null;
-      const vb = typeof eb?.[campo] === "number" ? eb[campo] : null;
-      if (va === null && vb === null) return;
-      rows.push({ label: `${nome} (${sigla})`, a: va, b: vb, suffix: " kg" });
-    });
-  });
-  return rows;
-}
-
 function compRows(a: ComposicaoSnapshot | null, b: ComposicaoSnapshot | null): CompareRow[] {
   return [
     { label: "% Gordura", a: a?.bf ?? null, b: b?.bf ?? null, suffix: "%", higherIsBetter: false },
@@ -146,20 +101,16 @@ function plioRows(a: PliometriaSnapshot | null, b: PliometriaSnapshot | null): C
   ];
 }
 
-function montarRowsAssimetria(
-  itens: AssimetriaGraficoItem[],
-  a: FuncionalSnapshot | null,
-  b: FuncionalSnapshot | null,
-) {
-  return itens.map((item) => ({
-    metrica: item.label,
-    a: valorAssimetria(a, item),
-    b: valorAssimetria(b, item),
-    unidade: item.unidade,
-  }));
+function mesesEntre(a: string | null, b: string | null): number | null {
+  if (!a || !b) return null;
+  return Math.abs(differenceInCalendarMonths(parseISO(b), parseISO(a)));
 }
 
-export function ComparativoTab({ data, alunoId }: Props) {
+function dataCurta(data: string | null): string | null {
+  return data ? format(parseISO(data), "dd/MM/yyyy") : null;
+}
+
+export function ComparativoTab({ data, alunoId, onGoEvolucao }: Props) {
   const [modo, setModo] = useState<Modo>("auto");
 
   // União de datas disponíveis (para modo "datas")
@@ -194,8 +145,6 @@ export function ComparativoTab({ data, alunoId }: Props) {
   const datasPlioA = nearest(data.pliometria.history, dataA);
   const datasPlioB = nearest(data.pliometria.history, dataB);
 
-  const assimetriaItens = useMemo(() => listarItensAssimetria(data.funcional.history), [data.funcional.history]);
-
   // --- Modo INTERVALO: filtra pontos dentro do range ---
   const filtro = (dt: string) =>
     (!intervaloDe || dt >= intervaloDe) && (!intervaloAte || dt <= intervaloAte);
@@ -212,21 +161,16 @@ export function ComparativoTab({ data, alunoId }: Props) {
         const c = data.composicao.history.find((x) => x.data === dt) ?? null;
         const p = data.pliometria.history.find((x) => x.data === dt) ?? null;
         const s = computePremiumScores(f, c);
-        const assimetrias = Object.fromEntries(
-          assimetriaItens.map((item) => [item.key, valorAssimetria(f, item)]),
-        );
         return {
           data: format(parseISO(dt), "dd/MM/yy"),
           composicao: s.composicao,
           bf: c?.bf ?? null,
           salto: p?.salto_vertical ?? null,
-          ...assimetrias,
         };
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modo, intervaloDe, intervaloAte, data, assimetriaItens]);
+  }, [modo, intervaloDe, intervaloAte, data]);
 
-  // Warnings quando o snapshot mais próximo diverge muito da data alvo
   const AVISO_DIAS = 7;
 
   const aplicarSalvo = (c: ComparativoSalvo) => {
@@ -244,72 +188,76 @@ export function ComparativoTab({ data, alunoId }: Props) {
     <div className="space-y-4">
       <ComparacoesSalvas alunoId={alunoId} onAplicar={aplicarSalvo} />
 
-      {/* Header: seletor de modo */}
-      <div className="bio-card p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[180px]">
-            <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">Modo</Label>
-            <Select value={modo} onValueChange={(v) => setModo(v as Modo)}>
-              <SelectTrigger className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">Automático (última vs. anterior)</SelectItem>
-                <SelectItem value="datas">Duas datas específicas</SelectItem>
-                <SelectItem value="intervalo">Intervalo (gráfico)</SelectItem>
-              </SelectContent>
-            </Select>
+      <div className="bio-card p-4 space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          <div>
+            <p className="bio-label">Comparativo</p>
+            <h2 className="bio-heading text-xl">Comparativo de valores</h2>
+            <PeriodoComparado
+              modo={modo}
+              dataA={modo === "auto" ? autoDataA : dataA || null}
+              dataB={modo === "auto" ? autoDataB : dataB || null}
+              intervaloDe={intervaloDe || null}
+              intervaloAte={intervaloAte || null}
+            />
           </div>
 
-          {modo === "datas" && (
-            <>
-              <DataSelector
-                label="Data A (referência)"
-                value={dataA}
-                onChange={setDataA}
-                options={todasDatas}
-              />
-              <DataSelector
-                label="Data B (comparação)"
-                value={dataB}
-                onChange={setDataB}
-                options={todasDatas}
-              />
-            </>
-          )}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[180px]">
+              <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">Modo</Label>
+              <Select value={modo} onValueChange={(v) => setModo(v as Modo)}>
+                <SelectTrigger className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Automático (última vs. anterior)</SelectItem>
+                  <SelectItem value="datas">Duas datas específicas</SelectItem>
+                  <SelectItem value="intervalo">Intervalo (gráfico)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {modo === "intervalo" && (
-            <>
-              <div>
-                <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">De</Label>
-                <Input
-                  type="date"
-                  value={intervaloDe}
-                  onChange={(e) => setIntervaloDe(e.target.value)}
-                  className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))] w-44"
+            {modo === "datas" && (
+              <>
+                <DataSelector
+                  label="Data A (referência)"
+                  value={dataA}
+                  onChange={setDataA}
+                  options={todasDatas}
                 />
-              </div>
-              <div>
-                <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">Até</Label>
-                <Input
-                  type="date"
-                  value={intervaloAte}
-                  onChange={(e) => setIntervaloAte(e.target.value)}
-                  className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))] w-44"
+                <DataSelector
+                  label="Data B (comparação)"
+                  value={dataB}
+                  onChange={setDataB}
+                  options={todasDatas}
                 />
-              </div>
-            </>
-          )}
+              </>
+            )}
 
-          {modo === "auto" && autoDataA && autoDataB && (
-            <p className="text-xs text-[hsl(var(--bio-ink-muted))]">
-              Comparando <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(autoDataA), "dd/MM/yy")}</b>{" "}
-              → <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(autoDataB), "dd/MM/yy")}</b>
-            </p>
-          )}
+            {modo === "intervalo" && (
+              <>
+                <div>
+                  <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">De</Label>
+                  <Input
+                    type="date"
+                    value={intervaloDe}
+                    onChange={(e) => setIntervaloDe(e.target.value)}
+                    className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))] w-44"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-[hsl(var(--bio-ink-muted))]">Até</Label>
+                  <Input
+                    type="date"
+                    value={intervaloAte}
+                    onChange={(e) => setIntervaloAte(e.target.value)}
+                    className="mt-1 h-9 bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))] text-[hsl(var(--bio-ink))] w-44"
+                  />
+                </div>
+              </>
+            )}
 
-          {modo !== "auto" && (
-            <div className="ml-auto">
+            {modo !== "auto" && (
               <SalvarComparacaoDialog
                 alunoId={alunoId}
                 params={{
@@ -320,23 +268,24 @@ export function ComparativoTab({ data, alunoId }: Props) {
                   intervalo_ate: modo === "intervalo" ? intervaloAte || null : null,
                 }}
               />
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Conteúdo por modo */}
       {modo === "auto" && (
         <ModoTabelas
           labelA="Anterior"
           labelB="Última"
+          dataA={autoDataA}
+          dataB={autoDataB}
           funcA={autoFunc.A}
           funcB={autoFunc.B}
           compA={autoComp.A}
           compB={autoComp.B}
           plioA={autoPlio.A}
           plioB={autoPlio.B}
-          assimetriaItens={assimetriaItens}
+          onGoEvolucao={onGoEvolucao}
         />
       )}
 
@@ -356,25 +305,57 @@ export function ComparativoTab({ data, alunoId }: Props) {
           <ModoTabelas
             labelA={dataA ? format(parseISO(dataA), "dd/MM/yy") : "A"}
             labelB={dataB ? format(parseISO(dataB), "dd/MM/yy") : "B"}
+            dataA={dataA || null}
+            dataB={dataB || null}
             funcA={datasFuncA.snap}
             funcB={datasFuncB.snap}
             compA={datasCompA.snap}
             compB={datasCompB.snap}
             plioA={datasPlioA.snap}
             plioB={datasPlioB.snap}
-            assimetriaItens={assimetriaItens}
+            onGoEvolucao={onGoEvolucao}
           />
         </>
       )}
 
       {modo === "intervalo" && (
-        <IntervaloGrafico serie={serieIntervalo} assimetriaItens={assimetriaItens} />
+        <IntervaloGrafico serie={serieIntervalo} />
       )}
     </div>
   );
 }
 
 /* ============ Sub-componentes ============ */
+
+function PeriodoComparado({
+  modo,
+  dataA,
+  dataB,
+  intervaloDe,
+  intervaloAte,
+}: {
+  modo: Modo;
+  dataA: string | null;
+  dataB: string | null;
+  intervaloDe: string | null;
+  intervaloAte: string | null;
+}) {
+  if (modo === "intervalo") {
+    const inicio = dataCurta(intervaloDe);
+    const fim = dataCurta(intervaloAte);
+    if (!inicio || !fim) return null;
+    return <p className="mt-1 text-sm text-[hsl(var(--bio-ink-muted))]">{inicio} → {fim}</p>;
+  }
+
+  const inicio = dataCurta(dataA);
+  const fim = dataCurta(dataB);
+  if (!inicio || !fim) {
+    return <p className="mt-1 text-sm text-[hsl(var(--bio-ink-muted))]">Selecione duas avaliações para comparar.</p>;
+  }
+  const meses = mesesEntre(dataA, dataB);
+  const textoMeses = meses === 1 ? "1 mês entre as avaliações" : `${meses ?? 0} meses entre as avaliações`;
+  return <p className="mt-1 text-sm text-[hsl(var(--bio-ink-muted))]">{inicio} → {fim} · {textoMeses}</p>;
+}
 
 function DataSelector({
   label,
@@ -409,46 +390,48 @@ function DataSelector({
 function ModoTabelas({
   labelA,
   labelB,
+  dataA,
+  dataB,
   funcA,
   funcB,
   compA,
   compB,
   plioA,
   plioB,
-  assimetriaItens,
+  onGoEvolucao,
 }: {
   labelA: string;
   labelB: string;
+  dataA: string | null;
+  dataB: string | null;
   funcA: FuncionalSnapshot | null;
   funcB: FuncionalSnapshot | null;
   compA: ComposicaoSnapshot | null;
   compB: ComposicaoSnapshot | null;
   plioA: PliometriaSnapshot | null;
   plioB: PliometriaSnapshot | null;
-  assimetriaItens: AssimetriaGraficoItem[];
+  onGoEvolucao?: () => void;
 }) {
+  const mobilidadeRows = useMemo(() => montarMobilidadeComparativo(funcA, funcB), [funcA, funcB]);
+  const forcaRows = useMemo(() => montarForcaComparativo(funcA, funcB), [funcA, funcB]);
+  const stats = useMemo(() => calcularStatsComparativoValores(mobilidadeRows, forcaRows), [mobilidadeRows, forcaRows]);
+  const possuiDuasAvaliacoes = Boolean(dataA && dataB && (funcA || compA || plioA) && (funcB || compB || plioB));
+
+  if (!possuiDuasAvaliacoes) {
+    return (
+      <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
+        Necessário ao menos 2 avaliações para comparar.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <AssimetriaComparativoChart
-        labelA={labelA}
-        labelB={labelB}
-        rows={montarRowsAssimetria(assimetriaItens, funcA, funcB)}
-      />
+      <ResumoCards stats={stats} />
+      <AtalhoEvolucao onGoEvolucao={onGoEvolucao} />
+      <TabelaMobilidadeValores rows={mobilidadeRows} />
+      <TabelaForcaValores rows={forcaRows} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <CompareTable
-          titulo="Mobilidade / Flexibilidade"
-          labelA={labelA}
-          labelB={labelB}
-          rows={funcRows(funcA, funcB)}
-          emptyMessage="Sem dados de mobilidade suficientes."
-        />
-        <CompareTable
-          titulo="Força"
-          labelA={labelA}
-          labelB={labelB}
-          rows={forcaRows(funcA, funcB)}
-          emptyMessage="Sem dados de força suficientes."
-        />
         <CompareTable
           titulo="Composição Corporal"
           labelA={labelA}
@@ -468,48 +451,229 @@ function ModoTabelas({
   );
 }
 
-function AssimetriaComparativoChart({
-  labelA,
-  labelB,
+function ResumoCards({ stats }: { stats: ReturnType<typeof calcularStatsComparativoValores> }) {
+  const items = [
+    { label: "Lados que subiram de faixa", value: stats.mobilidadeSubiu, tone: "text-[hsl(var(--sev-excellent))]" },
+    { label: "Lados que caíram de faixa", value: stats.mobilidadeCaiu, tone: "text-[hsl(var(--sev-weak))]" },
+    { label: "Lados que ganharam força", value: stats.forcaGanhou, tone: "text-[hsl(var(--sev-excellent))]" },
+    { label: "Lados que perderam força", value: stats.forcaPerdeu, tone: "text-[hsl(var(--sev-weak))]" },
+  ];
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      {items.map((item) => (
+        <div key={item.label} className="bio-card p-4">
+          <p className="text-xs text-[hsl(var(--bio-ink-muted))]">{item.label}</p>
+          <p className={`mt-1 text-2xl font-semibold ${item.tone}`}>{item.value}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AtalhoEvolucao({ onGoEvolucao }: { onGoEvolucao?: () => void }) {
+  return (
+    <div className="bio-card px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-l-2 border-[hsl(var(--info))]">
+      <p className="text-sm text-[hsl(var(--bio-ink-muted))]">
+        A diferença entre os lados nessas datas está na aba Evolução.
+      </p>
+      <Button type="button" size="sm" variant="outline" onClick={onGoEvolucao} disabled={!onGoEvolucao}>
+        Abrir Evolução
+        <ArrowRight className="w-4 h-4 ml-2" />
+      </Button>
+    </div>
+  );
+}
+
+function TabelaMobilidadeValores({
   rows,
 }: {
-  labelA: string;
-  labelB: string;
-  rows: Array<{ metrica: string; a: number | null; b: number | null; unidade: "°" | "%" }>;
+  rows: LinhaMobilidadeComparativo[];
 }) {
-  const usable = rows.filter((r) => r.a !== null || r.b !== null);
-  if (usable.length === 0) return null;
-  const chartRows = usable.map((r) => ({
-    metrica: r.metrica,
-    [labelA]: r.a,
-    [labelB]: r.b,
-    unidade: r.unidade,
-  }));
+  if (rows.length === 0) {
+    return <EmptyCard titulo="Mobilidade / Flexibilidade" message="Sem dados de mobilidade suficientes." />;
+  }
+
+  return (
+    <div className="bio-card overflow-hidden">
+      <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))]">
+        <h3 className="bio-heading text-base">Mobilidade / Flexibilidade</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[980px]">
+          <thead>
+            <tr className="border-b border-[hsl(var(--bio-line))] text-[11px] uppercase tracking-wide text-[hsl(var(--bio-ink-muted))]">
+              <th className="text-left p-3 w-[22%]">Métrica</th>
+              <th className="text-left p-3">Esquerdo</th>
+              <th className="text-left p-3">Direito</th>
+              <th className="text-center p-3 w-40">Faixa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.metric} className="border-b border-[hsl(var(--bio-line))] align-top">
+                <td className="p-3 text-sm text-[hsl(var(--bio-ink))]">
+                  <p className="font-medium">{getMetricDisplayLabel(row.metric)}</p>
+                  {metricaInvertida(row.metric) && (
+                    <p className="mt-1 text-[11px] text-[hsl(var(--bio-ink-muted))]">Menor valor é melhor</p>
+                  )}
+                </td>
+                <td className="p-3"><CelulaMobilidade lado={row.esquerdo} /></td>
+                <td className="p-3"><CelulaMobilidade lado={row.direito} /></td>
+                <td className="p-3 text-center"><ResumoMobilidadeBadge resumo={row.resumo} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function TabelaForcaValores({
+  rows,
+}: {
+  rows: LinhaForcaComparativo[];
+}) {
+  if (rows.length === 0) {
+    return <EmptyCard titulo="Força" message="Sem dados de força suficientes." />;
+  }
+
+  return (
+    <div className="bio-card overflow-hidden">
+      <div className="px-5 py-3 border-b border-[hsl(var(--bio-line))]">
+        <h3 className="bio-heading text-base">Força</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[980px]">
+          <thead>
+            <tr className="border-b border-[hsl(var(--bio-line))] text-[11px] uppercase tracking-wide text-[hsl(var(--bio-ink-muted))]">
+              <th className="text-left p-3 w-[22%]">Exercício</th>
+              <th className="text-left p-3">Esquerdo</th>
+              <th className="text-left p-3">Direito</th>
+              <th className="text-center p-3 w-40">Resumo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.nome} className="border-b border-[hsl(var(--bio-line))] align-top">
+                <td className="p-3 text-sm font-medium text-[hsl(var(--bio-ink))]">{row.label}</td>
+                <td className="p-3"><CelulaForca lado={row.esquerdo} /></td>
+                <td className="p-3"><CelulaForca lado={row.direito} /></td>
+                <td className="p-3 text-center"><ResumoForcaBadge resumo={row.resumo} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="px-5 py-3 text-xs text-[hsl(var(--bio-ink-muted))] border-t border-[hsl(var(--bio-line))]">
+        Variações abaixo de {CORTE_VARIACAO_FORCA_PCT}% contam como estáveis; este corte é provisório.
+      </p>
+    </div>
+  );
+}
+
+function CelulaMobilidade({ lado }: { lado: LadoMobilidadeComparativo }) {
+  if (!lado.antes || !lado.depois) return <span className="text-sm text-[hsl(var(--bio-ink-muted))]">—</span>;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <ClassificacaoBadge valor={lado.antes.valor} classificacao={lado.antes.classificacao} unidade="°" />
+      <ArrowRight className="w-4 h-4 text-[hsl(var(--bio-ink-muted))]" />
+      <ClassificacaoBadge valor={lado.depois.valor} classificacao={lado.depois.classificacao} unidade="°" />
+      <VariacaoGrausBadge variacao={lado.variacao} tom={lado.tom} />
+    </div>
+  );
+}
+
+function CelulaForca({ lado }: { lado: LadoForcaComparativo }) {
+  if (lado.antes === null || lado.depois === null || lado.variacaoPct === null) return <span className="text-sm text-[hsl(var(--bio-ink-muted))]">—</span>;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="rounded-md border border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-surface-2))] px-2 py-1 text-[hsl(var(--bio-ink))]">{lado.antes.toFixed(1)} kg</span>
+      <ArrowRight className="w-4 h-4 text-[hsl(var(--bio-ink-muted))]" />
+      <span className="rounded-md border border-[hsl(var(--bio-line))] bg-[hsl(var(--bio-surface-2))] px-2 py-1 text-[hsl(var(--bio-ink))]">{lado.depois.toFixed(1)} kg</span>
+      <VariacaoPctBadge variacao={lado.variacaoPct} resumo={lado.movimento} />
+    </div>
+  );
+}
+
+function ClassificacaoBadge({
+  valor,
+  classificacao,
+  unidade,
+}: {
+  valor: number;
+  classificacao: AssessmentClassification;
+  unidade: string;
+}) {
+  return (
+    <span className={`rounded-md border px-2 py-1 ${classeClassificacao(classificacao)}`}>
+      {valor.toFixed(1)}{unidade} · {classificacao}
+    </span>
+  );
+}
+
+function VariacaoGrausBadge({ variacao, tom }: { variacao: number | null; tom: TomVariacao }) {
+  if (variacao === null) return <span className="text-[hsl(var(--bio-ink-muted))]">—</span>;
+  const cls = tom === "melhora"
+    ? "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]"
+    : tom === "piora"
+      ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
+      : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
+  return <span className={`rounded-md border px-2 py-1 font-medium ${cls}`}>{formatDelta(variacao)}°</span>;
+}
+
+function VariacaoPctBadge({ variacao, resumo }: { variacao: number; resumo: ResumoForca | null }) {
+  const cls = resumo === "Ganhou força"
+    ? "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]"
+    : resumo === "Perdeu força"
+      ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
+      : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
+  return <span className={`rounded-md border px-2 py-1 font-medium ${cls}`}>{formatDelta(variacao)}%</span>;
+}
+
+function ResumoMobilidadeBadge({ resumo }: { resumo: ResumoMobilidade }) {
+  const cls = resumo === "Subiu de faixa"
+    ? "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]"
+    : resumo === "Caiu de faixa"
+      ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
+      : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
+  return <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${cls}`}>{resumo}</span>;
+}
+
+function ResumoForcaBadge({ resumo }: { resumo: ResumoForca }) {
+  const cls = resumo === "Ganhou força"
+    ? "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]"
+    : resumo === "Perdeu força"
+      ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
+      : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
+  return <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${cls}`}>{resumo}</span>;
+}
+
+function classeClassificacao(classificacao: AssessmentClassification): string {
+  switch (classificacao) {
+    case "Fraco":
+      return "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]";
+    case "Regular":
+      return "text-[hsl(var(--sev-attention))] bg-[hsl(var(--sev-attention)/0.12)] border-[hsl(var(--sev-attention)/0.35)]";
+    case "Médio":
+      return "text-[hsl(var(--sev-medium))] bg-[hsl(var(--sev-medium)/0.12)] border-[hsl(var(--sev-medium)/0.35)]";
+    case "Bom":
+      return "text-[hsl(var(--sev-good))] bg-[hsl(var(--sev-good)/0.12)] border-[hsl(var(--sev-good)/0.35)]";
+    case "Excelente":
+      return "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]";
+  }
+}
+
+function formatDelta(valor: number): string {
+  if (Math.abs(valor) < 0.05) return "0.0";
+  return `${valor > 0 ? "+" : ""}${valor.toFixed(1)}`;
+}
+
+function EmptyCard({ titulo, message }: { titulo: string; message: string }) {
   return (
     <div className="bio-card p-5">
-      <h3 className="bio-heading text-base mb-3">Assimetrias</h3>
-      <ResponsiveContainer width="100%" height={Math.max(280, usable.length * 34)}>
-        <BarChart data={chartRows} layout="vertical" margin={{ top: 8, right: 24, bottom: 8, left: 160 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--bio-line))" />
-          <XAxis type="number" stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
-          <YAxis dataKey="metrica" type="category" stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} width={150} />
-          <Tooltip
-            formatter={(value, _name, item) => {
-              const unidade = (item.payload as { unidade?: string } | undefined)?.unidade ?? "%";
-              return [`${Number(value).toFixed(1)}${unidade}`, item.name];
-            }}
-            contentStyle={{
-              background: "hsl(var(--bio-surface-2))",
-              border: "1px solid hsl(var(--bio-line))",
-              borderRadius: 8,
-              color: "hsl(var(--bio-ink))",
-            }}
-          />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey={labelA} name={labelA} fill="hsl(var(--sev-attention))" radius={[0, 4, 4, 0]} />
-          <Bar dataKey={labelB} name={labelB} fill="hsl(var(--sev-good))" radius={[0, 4, 4, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+      <h3 className="bio-heading text-base mb-2">{titulo}</h3>
+      <p className="text-sm text-[hsl(var(--bio-ink-muted))]">{message}</p>
     </div>
   );
 }
@@ -533,7 +697,7 @@ function AvisosProximidade({
           <p className="font-medium text-amber-700">Datas aproximadas</p>
           {alertas.map((a) => (
             <p key={a.nome}>
-              <b>{a.nome}</b>: usando {format(parseISO(a.snap!.data), "dd/MM/yy")} (a data escolhida
+              <b>{a.nome}</b>: usando {a.snap ? format(parseISO(a.snap.data), "dd/MM/yy") : "—"} (a data escolhida
               foi {format(parseISO(a.alvo), "dd/MM/yy")}, diferença de {a.diasDif} dia(s)).
             </p>
           ))}
@@ -545,10 +709,8 @@ function AvisosProximidade({
 
 function IntervaloGrafico({
   serie,
-  assimetriaItens,
 }: {
   serie: Array<Record<string, unknown>>;
-  assimetriaItens: AssimetriaGraficoItem[];
 }) {
   if (serie.length < 2) {
     return (
@@ -557,7 +719,6 @@ function IntervaloGrafico({
       </div>
     );
   }
-  const assimetriasVisiveis = assimetriaItens.slice(0, 6);
   return (
     <div className="space-y-4">
       <div className="bio-card p-5">
@@ -575,33 +736,6 @@ function IntervaloGrafico({
           </LineChart>
         </ResponsiveContainer>
       </div>
-
-      {assimetriasVisiveis.length > 0 && (
-        <div className="bio-card p-5">
-          <h3 className="bio-heading text-base mb-3">Assimetrias no intervalo</h3>
-          <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={serie as Record<string, string | number | null>[]}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--bio-line))" />
-              <XAxis dataKey="data" stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
-              <YAxis stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ background: "hsl(var(--bio-surface-2))", border: "1px solid hsl(var(--bio-line))", borderRadius: 8, color: "hsl(var(--bio-ink))" }} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              {assimetriasVisiveis.map((item, idx) => (
-                <Line
-                  key={item.key}
-                  type="monotone"
-                  dataKey={item.key}
-                  name={item.label}
-                  stroke={corAssimetria(idx)}
-                  strokeWidth={2}
-                  strokeDasharray={item.unidade === "°" ? "5 4" : undefined}
-                  connectNulls
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
     </div>
   );
 }

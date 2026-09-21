@@ -204,7 +204,7 @@ export default function AvaliacoesPremium() {
                       />
                     )}
                     {view === "evolucao" && <EvolucaoTab data={data} />}
-                    {view === "comparativo" && <ComparativoTab data={data} alunoId={alunoId} />}
+                    {view === "comparativo" && <ComparativoTab data={data} alunoId={alunoId} onGoEvolucao={() => setView("evolucao")} />}
                     {view === "recomendacoes" && <RecomendacoesTab recomendacoes={recomendacoes} />}
                   </div>
                 </div>

@@ -27,6 +27,16 @@ import {
   razaoSeveroAssimetria,
   type AssimetriaResumoEvolucao,
 } from "@/components/avaliacoes-premium/assimetriaGrafico";
+import {
+  movimentoFaixa,
+  movimentoForca,
+  ordenarForcaComparativo,
+  ordenarMobilidadeComparativo,
+  tomVariacaoMobilidade,
+  variacaoForcaPct,
+  type LinhaForcaComparativo,
+  type LinhaMobilidadeComparativo,
+} from "@/components/avaliacoes-premium/comparativoValores";
 
 const PSOAS = "Flexibilidade Psoas";
 const OMBRO = "Mobilidade Ombro RI";
@@ -416,5 +426,76 @@ describe("Evolução de assimetrias", () => {
 
       expect(ponto?.valor).toBe(Number(classifyForca(direito, esquerdo).assimetria.toFixed(1)));
     });
+  });
+});
+
+describe("Comparativo de valores", () => {
+  it("movimento de faixa identifica subida, queda e igualdade", () => {
+    expect(movimentoFaixa("Regular", "Bom")).toBe("subiu");
+    expect(movimentoFaixa("Excelente", "Médio")).toBe("caiu");
+    expect(movimentoFaixa("Bom", "Bom")).toBe("igual");
+    expect(movimentoFaixa(null, "Bom")).toBeNull();
+  });
+
+  it("cor da variação respeita métrica comum", () => {
+    expect(tomVariacaoMobilidade(OMBRO, 5)).toBe("melhora");
+    expect(tomVariacaoMobilidade(OMBRO, -5)).toBe("piora");
+    expect(tomVariacaoMobilidade(OMBRO, 0)).toBe("neutro");
+  });
+
+  it("cor da variação respeita métrica invertida", () => {
+    expect(tomVariacaoMobilidade(PSOAS, -1)).toBe("melhora");
+    expect(tomVariacaoMobilidade(PSOAS, 1)).toBe("piora");
+  });
+
+  it("variação de força usa corte provisório de 5%", () => {
+    expect(variacaoForcaPct(100, 105)).toBe(5);
+    expect(movimentoForca(5)).toBe("Ganhou força");
+    expect(movimentoForca(-5)).toBe("Perdeu força");
+    expect(movimentoForca(4.9)).toBe("Estável");
+    expect(movimentoForca(-4.9)).toBe("Estável");
+    expect(variacaoForcaPct(0, 10)).toBeNull();
+  });
+
+  it("ordenação de mobilidade prioriza queda, subida e depois ordem canônica", () => {
+    const linha = (metric: string, ordem: number, resumo: LinhaMobilidadeComparativo["resumo"]) =>
+      ({ metric, label: metric, ordem, resumo }) as LinhaMobilidadeComparativo;
+
+    const rows = [
+      linha("sem mudança cedo", 0, "Sem mudança"),
+      linha("subiu tarde", 7, "Subiu de faixa"),
+      linha("caiu tarde", 8, "Caiu de faixa"),
+      linha("subiu cedo", 1, "Subiu de faixa"),
+      linha("caiu cedo", 2, "Caiu de faixa"),
+    ];
+
+    expect(ordenarMobilidadeComparativo(rows).map((row) => row.metric)).toEqual([
+      "caiu cedo",
+      "caiu tarde",
+      "subiu cedo",
+      "subiu tarde",
+      "sem mudança cedo",
+    ]);
+  });
+
+  it("ordenação de força prioriza perda, ganho e estabilidade", () => {
+    const linha = (label: string, resumo: LinhaForcaComparativo["resumo"]) =>
+      ({ nome: label, label, resumo }) as LinhaForcaComparativo;
+
+    const rows = [
+      linha("Z estável", "Estável"),
+      linha("B ganhou", "Ganhou força"),
+      linha("C perdeu", "Perdeu força"),
+      linha("A ganhou", "Ganhou força"),
+      linha("A perdeu", "Perdeu força"),
+    ];
+
+    expect(ordenarForcaComparativo(rows).map((row) => row.label)).toEqual([
+      "A perdeu",
+      "C perdeu",
+      "A ganhou",
+      "B ganhou",
+      "Z estável",
+    ]);
   });
 });
