@@ -77,6 +77,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
 
   const dados = (avaliacao?.dados as Record<string, unknown>) || {};
   const metricasFromJson = (dados.metricas as FuncMetric[] | undefined) || [];
+  // Toda avaliação com métricas usa o visualizador funcional atual, qualquer que seja o tipo.
+  const temMetricas = metricasFromJson.length > 0;
   // Qualquer relatório dinâmico (experimental, força, reabilitação, novos tipos)
   const isDynamic =
     !isFuncional && !isComposicao && avaliacao?.tipo !== "funcional_v2" &&
