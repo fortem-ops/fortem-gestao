@@ -232,46 +232,13 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
-            {isFuncional && metricasFromJson.length > 0 && (
-              <>
-                <div className="glass-card rounded-lg p-4 flex flex-col items-center">
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Mapa Corporal</h4>
-                  <BodyDiagram classifications={diagramClassifications} />
-                </div>
-
-                <div className="glass-card rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-secondary/30">
-                        <th className="text-left text-xs font-medium text-muted-foreground p-3">Métrica</th>
-                        <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Esquerdo</th>
-                        <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. E</th>
-                        <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Direito</th>
-                        <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. D</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {metricasFromJson.map(m => (
-                        <tr key={m.metric} className="border-b border-border/50">
-                          <td className="p-3 text-foreground">{m.metric}</td>
-                          <td className="p-3 text-center">{m.left !== null ? `${m.left}°` : '—'}</td>
-                          <td className="p-3 text-center">{m.leftClass && <span className={`text-xs font-semibold ${getClassificationColor(m.leftClass)}`}>{m.leftClass}</span>}</td>
-                          <td className="p-3 text-center">{m.right !== null ? `${m.right}°` : '—'}</td>
-                          <td className="p-3 text-center">{m.rightClass && <span className={`text-xs font-semibold ${getClassificationColor(m.rightClass)}`}>{m.rightClass}</span>}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {funcional?.observacoes && !avaliacao.observacoes && (
-                  <div className="glass-card rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">Observações</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{funcional.observacoes}</p>
-                  </div>
-                )}
-              </>
+            {isFuncional && funcional?.observacoes && !avaliacao.observacoes && (
+              <div className="glass-card rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-foreground mb-2">Observações</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{funcional.observacoes}</p>
+              </div>
             )}
+
 
             {isComposicao && (
               <div className="glass-card rounded-lg p-4">
