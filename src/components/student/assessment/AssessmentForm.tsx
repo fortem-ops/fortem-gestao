@@ -29,6 +29,13 @@ import type { ExperimentalSchema } from "./experimentalTemplate";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Assessment } from "./funcionalV2/FuncionalV2Assessment";
 import { AssessmentDateField, todayISO } from "@/components/avaliacoes-premium/AssessmentDateField";
+import {
+  METRICA_QUADRICEPS,
+  normalizarEntradaQuadriceps,
+  textoAuxiliarQuadriceps,
+  QUADRICEPS_MENSAGEM_INVALIDA,
+} from "./funcionalV2/bodyMapLogic";
+
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
@@ -55,6 +62,14 @@ const metricColumnMap: Record<string, string> = {
   'Mobilidade Tornozelo': 'tornozelo',
 };
 
+/** Quadríceps: aplica a regra única (leitura <90 soma 90; >=100 é valor clínico). */
+function normQuad(metric: string, n: number): number {
+  if (isNaN(n) || metric !== METRICA_QUADRICEPS) return n;
+  const res = normalizarEntradaQuadriceps(n);
+  return res.ok ? res.valor : NaN;
+}
+
+
 function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student: Tables<"alunos">; protocoloId: string | null; permiteUpload: boolean }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -71,8 +86,8 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
     const result: Record<string, { left: AssessmentClassification | null; right: AssessmentClassification | null }> = {};
     functionalMetrics.forEach(metric => {
       const v = values[metric] || { left: '', right: '' };
-      const leftNum = parseInt(v.left);
-      const rightNum = parseInt(v.right);
+      const leftNum = normQuad(metric, parseInt(v.left));
+      const rightNum = normQuad(metric, parseInt(v.right));
       result[metric] = {
         left: !isNaN(leftNum) ? classifyAngle(metric, leftNum) : null,
         right: !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null,
@@ -83,8 +98,8 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
 
   const buildRows = () => functionalMetrics.map(metric => {
     const v = values[metric] || { left: '', right: '' };
-    const leftNum = parseInt(v.left);
-    const rightNum = parseInt(v.right);
+    const leftNum = normQuad(metric, parseInt(v.left));
+    const rightNum = normQuad(metric, parseInt(v.right));
     return {
       metric,
       left: !isNaN(leftNum) ? leftNum : null,
@@ -93,6 +108,7 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
       rightClass: !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null,
     };
   });
+
 
   const handleSave = async () => {
     if (!user) {
@@ -105,6 +121,12 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
       toast.error("Insira ao menos um valor antes de salvar");
       return;
     }
+    const q = values[METRICA_QUADRICEPS];
+    if ((['left', 'right'] as const).some(lado => (q?.[lado] ?? '') !== '' && !normalizarEntradaQuadriceps(parseInt(q![lado])).ok)) {
+      toast.error(QUADRICEPS_MENSAGEM_INVALIDA);
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: aval, error: avalErr } = await supabase
@@ -178,25 +200,39 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
           <tbody>
             {functionalMetrics.map(metric => {
               const v = values[metric] || { left: '', right: '' };
-              const leftNum = parseInt(v.left);
-              const rightNum = parseInt(v.right);
+              const leftRaw = parseInt(v.left);
+              const rightRaw = parseInt(v.right);
+              const leftNum = normQuad(metric, leftRaw);
+              const rightNum = normQuad(metric, rightRaw);
               const leftClass = !isNaN(leftNum) ? classifyAngle(metric, leftNum) : null;
               const rightClass = !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null;
               const ref = assessmentReferences[metric]?.referenceText;
+              const isQuad = metric === METRICA_QUADRICEPS;
+              const hintE = isQuad && v.left !== '' ? textoAuxiliarQuadriceps(leftRaw) : null;
+              const hintD = isQuad && v.right !== '' ? textoAuxiliarQuadriceps(rightRaw) : null;
+              const invE = isQuad && v.left !== '' && !normalizarEntradaQuadriceps(leftRaw).ok;
+              const invD = isQuad && v.right !== '' && !normalizarEntradaQuadriceps(rightRaw).ok;
               return (
                 <tr key={metric} className="border-b border-border/50">
                   <td className="p-3">
                     <p className="text-sm text-foreground">{metric}</p>
+                    {isQuad && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5 italic">
+                        Digite a leitura do goniômetro; o sistema soma 90°.
+                      </p>
+                    )}
                     {ref && <p className="text-[10px] text-muted-foreground mt-0.5 italic">{ref}</p>}
                   </td>
                   <td className="p-3">
                     <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.left} onChange={(e) => handleChange(metric, 'left', e.target.value)} placeholder="°" />
+                    {hintE && <p className={`text-[10px] mt-1 text-center ${invE ? 'text-red-400' : 'text-muted-foreground'}`}>{hintE}</p>}
                   </td>
                   <td className="p-3 text-center">
                     {leftClass && <span className={`text-xs font-semibold ${getClassificationColor(leftClass)}`}>{leftClass}</span>}
                   </td>
                   <td className="p-3">
                     <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.right} onChange={(e) => handleChange(metric, 'right', e.target.value)} placeholder="°" />
+                    {hintD && <p className={`text-[10px] mt-1 text-center ${invD ? 'text-red-400' : 'text-muted-foreground'}`}>{hintD}</p>}
                   </td>
                   <td className="p-3 text-center">
                     {rightClass && <span className={`text-xs font-semibold ${getClassificationColor(rightClass)}`}>{rightClass}</span>}

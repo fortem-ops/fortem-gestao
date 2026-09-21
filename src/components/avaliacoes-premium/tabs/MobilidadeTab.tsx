@@ -26,8 +26,12 @@ import {
   classificarAssimetria,
   getMetricDisplayLabel,
   METRICA_QUADRICEPS,
-  quadricepsEntradaParaValor,
   quadricepsValorParaEntrada,
+  normalizarEntradaQuadriceps,
+  textoAuxiliarQuadriceps,
+  QUADRICEPS_MENSAGEM_INVALIDA,
+  QUADRICEPS_VALOR_CLINICO_MINIMO,
+
   type MetricInput,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
@@ -311,9 +315,15 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
         const v = values[metric] || { left: "", right: "" };
         const lRaw = parseInt(v.left);
         const rRaw = parseInt(v.right);
-        // Quadríceps: o campo recebe a leitura a partir dos 90°; salva o valor absoluto.
-        const l = !isNaN(lRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(lRaw) : lRaw;
-        const r = !isNaN(rRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(rRaw) : rRaw;
+        // Quadríceps: regra única — leitura (<90) soma 90; valor clínico (>=100) fica como está.
+        const norm = (n: number) => {
+          if (isNaN(n)) return NaN;
+          if (metric !== METRICA_QUADRICEPS) return n;
+          const res = normalizarEntradaQuadriceps(n);
+          return res.ok ? res.valor : NaN;
+        };
+        const l = norm(lRaw);
+        const r = norm(rRaw);
         return {
           metric,
           left: !isNaN(l) ? l : null,
@@ -324,6 +334,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
       }),
     [values],
   );
+
 
   const preenchidos = rows.filter((r) => r.left !== null || r.right !== null);
 
@@ -337,13 +348,17 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
   function abrirEdicao(row: MobilidadeRow) {
     const v: Record<string, { left: string; right: string }> = {};
     row.metricas.forEach((m) => {
-      // Quadríceps: o valor salvo é absoluto; o campo mostra a leitura a partir dos 90°.
-      const ajuste = (val: number | null | undefined) =>
-        val !== null && val !== undefined
-          ? String(m.metric === METRICA_QUADRICEPS ? quadricepsValorParaEntrada(val) : val)
-          : "";
+      // Quadríceps: valor clínico salvo (>=100) volta como leitura; valores legados ficam como estão.
+      const ajuste = (val: number | null | undefined) => {
+        if (val === null || val === undefined) return "";
+        if (m.metric === METRICA_QUADRICEPS && val >= QUADRICEPS_VALOR_CLINICO_MINIMO) {
+          return String(quadricepsValorParaEntrada(val));
+        }
+        return String(val);
+      };
       v[m.metric] = { left: ajuste(m.left), right: ajuste(m.right) };
     });
+
     setValues(v);
     setData(row.data);
     setEditandoId(row.id);
@@ -394,6 +409,16 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
       toast.error("Preencha ao menos uma métrica antes de salvar");
       return;
     }
+    const q = values[METRICA_QUADRICEPS];
+    const quadInvalido = (["left", "right"] as const).some((lado) => {
+      const txt = q?.[lado] ?? "";
+      return txt !== "" && !normalizarEntradaQuadriceps(parseInt(txt)).ok;
+    });
+    if (quadInvalido) {
+      toast.error(QUADRICEPS_MENSAGEM_INVALIDA);
+      return;
+    }
+
     setSaving(true);
     try {
       const dataFinal = data || todayISO();
@@ -542,13 +567,17 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
             <tbody>
               {ALL_FUNCTIONAL_METRICS.map((metric) => {
                 const v = values[metric] || { left: "", right: "" };
+                const hintE = metric === METRICA_QUADRICEPS ? textoAuxiliarQuadriceps(parseInt(v.left)) : null;
+                const hintD = metric === METRICA_QUADRICEPS ? textoAuxiliarQuadriceps(parseInt(v.right)) : null;
+                const invE = metric === METRICA_QUADRICEPS && v.left !== "" && !normalizarEntradaQuadriceps(parseInt(v.left)).ok;
+                const invD = metric === METRICA_QUADRICEPS && v.right !== "" && !normalizarEntradaQuadriceps(parseInt(v.right)).ok;
                 return (
                   <tr key={metric} className="border-b border-[hsl(var(--bio-line))]">
                     <td className="p-3">
                       <p className="text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(metric)}</p>
                       {metric === METRICA_QUADRICEPS && (
                         <p className="text-[10px] text-[hsl(var(--bio-ink-muted))] mt-0.5 italic">
-                          Lance a leitura a partir dos 90° — os 90° já estão incluídos no cálculo.
+                          Digite a leitura do goniômetro; o sistema soma 90°.
                         </p>
                       )}
                     </td>
@@ -560,6 +589,9 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                         onChange={(e) => handleChange(metric, "left", e.target.value)}
                         placeholder="°"
                       />
+                      {v.left !== "" && hintE && (
+                        <p className={`text-[10px] mt-1 text-center ${invE ? "text-red-400" : "text-[hsl(var(--bio-ink-muted))]"}`}>{hintE}</p>
+                      )}
                     </td>
                     <td className="p-3">
                       <Input
@@ -569,10 +601,14 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                         onChange={(e) => handleChange(metric, "right", e.target.value)}
                         placeholder="°"
                       />
+                      {v.right !== "" && hintD && (
+                        <p className={`text-[10px] mt-1 text-center ${invD ? "text-red-400" : "text-[hsl(var(--bio-ink-muted))]"}`}>{hintD}</p>
+                      )}
                     </td>
                   </tr>
                 );
               })}
+
             </tbody>
           </table>
         </div>

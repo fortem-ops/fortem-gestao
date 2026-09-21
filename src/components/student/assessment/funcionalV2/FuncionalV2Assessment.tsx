@@ -20,11 +20,14 @@ import {
   classifyForca,
   FORCA_EXERCICIO_LABEL,
   METRICA_QUADRICEPS,
-  quadricepsEntradaParaValor,
+  normalizarEntradaQuadriceps,
+  textoAuxiliarQuadriceps,
+  QUADRICEPS_MENSAGEM_INVALIDA,
   type MetricInput,
   type ForcaInput,
   type ForcaExercicio,
 } from "./bodyMapLogic";
+
 
 interface Props {
   student: Tables<"alunos">;
@@ -70,10 +73,16 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
       const v = values[metric] || { left: "", right: "" };
       const lRaw = parseInt(v.left);
       const rRaw = parseInt(v.right);
-      // Quadríceps: o campo recebe a leitura a partir dos 90°; salva o valor absoluto.
-      const l = !isNaN(lRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(lRaw) : lRaw;
-      const r = !isNaN(rRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(rRaw) : rRaw;
+      // Quadríceps: regra única — leitura (<90) soma 90; valor clínico (>=100) fica como está.
+      const norm = (n: number) => {
+        if (isNaN(n) || metric !== METRICA_QUADRICEPS) return n;
+        const res = normalizarEntradaQuadriceps(n);
+        return res.ok ? res.valor : NaN;
+      };
+      const l = norm(lRaw);
+      const r = norm(rRaw);
       return {
+
         metric,
         left: !isNaN(l) ? l : null,
         right: !isNaN(r) ? r : null,
@@ -147,6 +156,12 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
     if (!user) { toast.error("Usuário não autenticado"); return; }
     const hasAny = rows.some((r) => r.left !== null || r.right !== null) || forcaInputs.length > 0;
     if (!hasAny) { toast.error("Insira ao menos um valor antes de salvar"); return; }
+    const q = values[METRICA_QUADRICEPS];
+    if ((["left", "right"] as const).some((lado) => (q?.[lado] ?? "") !== "" && !normalizarEntradaQuadriceps(parseInt(q![lado])).ok)) {
+      toast.error(QUADRICEPS_MENSAGEM_INVALIDA);
+      return;
+    }
+
     setSaving(true);
     try {
       const { data, error } = await supabase
@@ -213,31 +228,44 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
               const v = values[metric] || { left: "", right: "" };
               const lRaw = parseInt(v.left);
               const rRaw = parseInt(v.right);
-              const l = !isNaN(lRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(lRaw) : lRaw;
-              const r = !isNaN(rRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(rRaw) : rRaw;
+              const norm = (n: number) => {
+                if (isNaN(n) || metric !== METRICA_QUADRICEPS) return n;
+                const res = normalizarEntradaQuadriceps(n);
+                return res.ok ? res.valor : NaN;
+              };
+              const l = norm(lRaw);
+              const r = norm(rRaw);
               const lc = !isNaN(l) ? classifyAngle(metric, l) : null;
               const rc = !isNaN(r) ? classifyAngle(metric, r) : null;
               const ref = assessmentReferences[metric]?.referenceText;
+              const isQuad = metric === METRICA_QUADRICEPS;
+              const hintE = isQuad && v.left !== "" ? textoAuxiliarQuadriceps(lRaw) : null;
+              const hintD = isQuad && v.right !== "" ? textoAuxiliarQuadriceps(rRaw) : null;
+              const invE = isQuad && v.left !== "" && !normalizarEntradaQuadriceps(lRaw).ok;
+              const invD = isQuad && v.right !== "" && !normalizarEntradaQuadriceps(rRaw).ok;
               return (
                 <tr key={metric} className="border-b border-border/50">
                   <td className="p-3">
                     <p className="text-sm text-foreground">{metric}</p>
-                    {metric === METRICA_QUADRICEPS && (
+                    {isQuad && (
                       <p className="text-[10px] text-muted-foreground mt-0.5 italic">
-                        Lance a leitura a partir dos 90° — os 90° já estão incluídos no cálculo.
+                        Digite a leitura do goniômetro; o sistema soma 90°.
                       </p>
                     )}
                     {ref && <p className="text-[10px] text-muted-foreground mt-0.5 italic">{ref}</p>}
                   </td>
                   <td className="p-3">
                     <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.left} onChange={(e) => handleChange(metric, "left", e.target.value)} placeholder="°" />
+                    {hintE && <p className={`text-[10px] mt-1 text-center ${invE ? "text-red-400" : "text-muted-foreground"}`}>{hintE}</p>}
                   </td>
                   <td className="p-3 text-center">
                     {lc && <span className={`text-xs font-semibold ${getClassificationColor(lc as AssessmentClassification)}`}>{lc}</span>}
                   </td>
                   <td className="p-3">
                     <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.right} onChange={(e) => handleChange(metric, "right", e.target.value)} placeholder="°" />
+                    {hintD && <p className={`text-[10px] mt-1 text-center ${invD ? "text-red-400" : "text-muted-foreground"}`}>{hintD}</p>}
                   </td>
+
                   <td className="p-3 text-center">
                     {rc && <span className={`text-xs font-semibold ${getClassificationColor(rc as AssessmentClassification)}`}>{rc}</span>}
                   </td>

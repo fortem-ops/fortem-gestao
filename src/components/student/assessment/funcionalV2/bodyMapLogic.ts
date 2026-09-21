@@ -148,6 +148,46 @@ export function quadricepsValorParaEntrada(valor: number): number {
   return valor - QUADRICEPS_OFFSET_GRAUS;
 }
 
+/** Piso do valor clínico plausível do quadríceps (leitura + 90°). */
+export const QUADRICEPS_VALOR_CLINICO_MINIMO = 100;
+
+export const QUADRICEPS_MENSAGEM_INVALIDA =
+  "Flexibilidade Quadríceps: confira o valor. Digite a leitura do goniômetro (abaixo de 90°) ou o valor clínico (100° ou mais).";
+
+export type NormalizacaoQuadriceps =
+  | { ok: true; valor: number; somou: boolean }
+  | { ok: false; erro: string };
+
+/**
+ * Regra única de entrada do Quadríceps, usada por todos os caminhos de lançamento
+ * e de edição:
+ * - abaixo de 90° → leitura do goniômetro, soma 90° automaticamente;
+ * - 100° ou mais → já é o valor clínico, grava como está;
+ * - 90° a 99° → inválido, não deixa salvar.
+ * Idempotente: aplicar de novo sobre um valor já clínico não soma outros 90°.
+ */
+export function normalizarEntradaQuadriceps(valorDigitado: number): NormalizacaoQuadriceps {
+  if (!Number.isFinite(valorDigitado)) return { ok: false, erro: QUADRICEPS_MENSAGEM_INVALIDA };
+  if (valorDigitado < QUADRICEPS_OFFSET_GRAUS) {
+    return { ok: true, valor: quadricepsEntradaParaValor(valorDigitado), somou: true };
+  }
+  if (valorDigitado >= QUADRICEPS_VALOR_CLINICO_MINIMO) {
+    return { ok: true, valor: valorDigitado, somou: false };
+  }
+  return { ok: false, erro: QUADRICEPS_MENSAGEM_INVALIDA };
+}
+
+/** Texto de apoio mostrado ao lado do campo do Quadríceps enquanto se digita. */
+export function textoAuxiliarQuadriceps(valorDigitado: number): string | null {
+  const r = normalizarEntradaQuadriceps(valorDigitado);
+  if (r.ok !== true) return QUADRICEPS_MENSAGEM_INVALIDA;
+
+  return r.somou
+    ? `Leitura ${valorDigitado}° → valor clínico ${r.valor}°`
+    : `Valor clínico ${r.valor}°`;
+}
+
+
 /**
  * Percentil do valor do aluno dentro da base interna Fortem (por métrica/sexo,
  * segmentado por faixa etária quando disponível).
