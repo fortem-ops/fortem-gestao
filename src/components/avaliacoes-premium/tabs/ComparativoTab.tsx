@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { format, parseISO, differenceInCalendarDays, differenceInCalendarMonths } from "date-fns";
-import { AlertCircle, ArrowRight, Minus } from "lucide-react";
+import { AlertCircle, ArrowRight } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -429,8 +429,8 @@ function ModoTabelas({
     <div className="space-y-4">
       <ResumoCards stats={stats} />
       <AtalhoEvolucao onGoEvolucao={onGoEvolucao} />
-      <TabelaMobilidadeValores labelA={labelA} labelB={labelB} rows={mobilidadeRows} />
-      <TabelaForcaValores labelA={labelA} labelB={labelB} rows={forcaRows} />
+      <TabelaMobilidadeValores rows={mobilidadeRows} />
+      <TabelaForcaValores rows={forcaRows} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <CompareTable
           titulo="Composição Corporal"
@@ -485,12 +485,8 @@ function AtalhoEvolucao({ onGoEvolucao }: { onGoEvolucao?: () => void }) {
 }
 
 function TabelaMobilidadeValores({
-  labelA,
-  labelB,
   rows,
 }: {
-  labelA: string;
-  labelB: string;
   rows: LinhaMobilidadeComparativo[];
 }) {
   if (rows.length === 0) {
@@ -534,12 +530,8 @@ function TabelaMobilidadeValores({
 }
 
 function TabelaForcaValores({
-  labelA,
-  labelB,
   rows,
 }: {
-  labelA: string;
-  labelB: string;
   rows: LinhaForcaComparativo[];
 }) {
   if (rows.length === 0) {
