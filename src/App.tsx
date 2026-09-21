@@ -383,6 +383,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/carteira-consultor"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <CarteiraConsultor />
+                  </Suspense>
+                }
+              />
+              <Route
                 path="/tarefas"
                 element={
                   <Suspense fallback={<RouteFallback />}>

@@ -29,7 +29,7 @@ export function AlertsWidget({ professorId }: Props) {
       const today = new Date();
 
       const [alunosRes, treinosRes, avaliacoesRes, tarefasRes] = await Promise.all([
-        supabase.from("alunos").select("id, nome, status, frequencia_semanal, responsavel_id").eq("is_equipe", false),
+        supabase.from("alunos").select("id, nome, status, frequencia_semanal, responsavel_id, consultor_id").eq("is_equipe", false),
         supabase.from("treinos").select("id, aluno_id, created_at, status").eq("status", "atual"),
         supabase.from("avaliacoes").select("id, aluno_id, data, tipo").eq("tipo", "funcional").order("data", { ascending: false }),
         supabase.from("tarefas").select("id, aluno_id, responsavel_id, data_limite, status, tipo_auto").eq("tipo_auto", "atualizar_treino").neq("status", "concluida"),
@@ -40,14 +40,16 @@ export function AlertsWidget({ professorId }: Props) {
       const avaliacoes = avaliacoesRes.data || [];
       const tarefasAtualizar = tarefasRes.data || [];
 
-      const alunoMap: Record<string, { nome: string; freq: number | null; status: string; responsavel_id: string | null }> = {};
-      alunos.forEach((a) => {
-        alunoMap[a.id] = { nome: a.nome, freq: a.frequencia_semanal, status: a.status, responsavel_id: a.responsavel_id };
+      const alunoMap: Record<string, { nome: string; freq: number | null; status: string; responsavel_id: string | null; consultor_id: string | null }> = {};
+      alunos.forEach((a: any) => {
+        alunoMap[a.id] = { nome: a.nome, freq: a.frequencia_semanal, status: a.status, responsavel_id: a.responsavel_id, consultor_id: a.consultor_id ?? null };
       });
 
+      // Carteira = professor responsável OU consultor responsável.
       const isMyStudent = (alunoId: string) => {
         if (!professorId) return true;
-        return alunoMap[alunoId]?.responsavel_id === professorId;
+        const a = alunoMap[alunoId];
+        return !!a && (a.responsavel_id === professorId || a.consultor_id === professorId);
       };
 
       // Troca de ficha
@@ -102,7 +104,7 @@ export function AlertsWidget({ professorId }: Props) {
       // Atualização de treino (tarefa automática)
       tarefasAtualizar.forEach((t) => {
         if (!t.aluno_id || !t.data_limite) return;
-        if (professorId && t.responsavel_id !== professorId) return;
+        if (professorId && t.responsavel_id !== professorId && !isMyStudent(t.aluno_id)) return;
         const aluno = alunoMap[t.aluno_id];
         if (!aluno) return;
         const limit = new Date(t.data_limite + "T00:00:00");

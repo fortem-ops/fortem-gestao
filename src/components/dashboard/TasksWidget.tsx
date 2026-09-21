@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 import { getTaskActionTarget } from "@/lib/taskAction";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { fetchAlunosDaCarteira } from "@/lib/carteiraScope";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -35,7 +36,13 @@ export function TasksWidget({ professorId }: Props) {
         .limit(5);
       // Tarefas comerciais (pipeline) são exclusivas de administradores
       if (!isAdmin) q = q.neq("origem", "pipeline");
-      if (professorId) q = q.eq("responsavel_id", professorId);
+      if (professorId) {
+        // Vê também as tarefas dos alunos em que é consultor responsável.
+        const alunosCarteira = await fetchAlunosDaCarteira(professorId);
+        q = alunosCarteira.length
+          ? q.or(`responsavel_id.eq.${professorId},aluno_id.in.(${alunosCarteira.join(",")})`)
+          : q.eq("responsavel_id", professorId);
+      }
       const { data } = await q;
       if (!data?.length) return [];
 

@@ -23,6 +23,7 @@ import { agoraSaoPaulo, tarefaAtrasada } from "@/lib/tarefaAtraso";
 import { AtividadeTipoSelector } from "@/components/pipeline/AtividadeTipoSelector";
 import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { fetchAlunosDaCarteira } from "@/lib/carteiraScope";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -434,6 +435,10 @@ export default function TaskCenter() {
     queryKey: ["tarefas-all", effectiveResponsavelId, isAdmin],
     enabled: !!user && !!roles,
     queryFn: async () => {
+      // Inclui também as tarefas dos alunos em que a pessoa é consultor responsável.
+      const alunosCarteira = effectiveResponsavelId
+        ? await fetchAlunosDaCarteira(effectiveResponsavelId)
+        : [];
       const data = await carregarTodasAsPaginas<Tables<"tarefas">>({
         tabela: "tarefas",
         colunas: "*",
@@ -445,7 +450,11 @@ export default function TaskCenter() {
           let query = q.neq("status", "concluida");
           // Tarefas comerciais (pipeline) são exclusivas de administradores
           if (!isAdmin) query = query.neq("origem", "pipeline");
-          if (effectiveResponsavelId) query = query.eq("responsavel_id", effectiveResponsavelId);
+          if (effectiveResponsavelId) {
+            query = alunosCarteira.length
+              ? query.or(`responsavel_id.eq.${effectiveResponsavelId},aluno_id.in.(${alunosCarteira.join(",")})`)
+              : query.eq("responsavel_id", effectiveResponsavelId);
+          }
           return query;
         },
       });

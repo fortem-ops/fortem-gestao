@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,7 +47,14 @@ import {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [selectedProfessorId, setSelectedProfessorId] = useState<string>("todos");
+  // Visão inicial: a própria carteira (inclusive para coordenador/admin, que podem trocar para "Todos").
+  const [selectedProfessorId, setSelectedProfessorId] = useState<string>(user?.id ?? "todos");
+  const initRef = useRef(false);
+  useEffect(() => {
+    if (initRef.current || !user?.id) return;
+    initRef.current = true;
+    setSelectedProfessorId(user.id);
+  }, [user?.id]);
   const [editing, setEditing] = useState(false);
 
   const { data: isCoordAdmin } = useQuery({

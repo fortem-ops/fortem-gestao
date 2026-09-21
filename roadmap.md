@@ -14,7 +14,7 @@
 - [x] Exibir as galerias na vitrine, detalhes e carrinho.
 - [x] Mostrar em Encomendas o valor realmente recebido, com filtros e exclusão de pedidos.
 - [x] Gerar reposição automática ao remover aluno de um horário (serviços e treinos).
-- [ ] Criar consultor responsável do aluno (campo, migração e propagação do funil).
-- [ ] Escopo de carteira (responsável ou consultor) nos quadros do painel e na Central de Tarefas.
-- [ ] Nova tela Cadastros > Carteira Consultor com avaliação, frequência e funil.
-- [ ] Tarefa automática de reavaliação quando pendente/atrasada.
+- [x] Criar consultor responsável do aluno (campo, migração e propagação do funil).
+- [x] Escopo de carteira (responsável ou consultor) nos quadros do painel e na Central de Tarefas.
+- [x] Nova tela Cadastros > Carteira Consultor com avaliação, frequência e funil.
+- [x] Tarefa automática de reavaliação quando pendente/atrasada.

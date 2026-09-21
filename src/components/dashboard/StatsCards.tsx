@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { filtroCarteiraOr } from "@/lib/carteiraScope";
 
 interface Props {
   professorId: string | null;
@@ -79,7 +80,7 @@ export function StatsCards({ professorId }: Props) {
     queryKey: ["dashboard-aval-funcional-atrasada", professorId],
     queryFn: async () => {
       let alunosQ = supabase.from("alunos").select("id").eq("status", "ativo");
-      if (professorId) alunosQ = alunosQ.eq("responsavel_id", professorId);
+      if (professorId) alunosQ = alunosQ.or(filtroCarteiraOr(professorId));
       const { data: alunos } = await alunosQ;
       if (!alunos?.length) return 0;
       const ids = alunos.map((a) => a.id);
