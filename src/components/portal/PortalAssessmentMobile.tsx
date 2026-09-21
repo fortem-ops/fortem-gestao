@@ -350,20 +350,19 @@ function forceTone(movement: string | null): "melhora" | "piora" | "neutro" {
   return movement === "Ganhou força" ? "melhora" : movement === "Perdeu força" ? "piora" : "neutro";
 }
 
-function ReferenceCurves({ measures, sexo, faixaEtaria, referenceData }: { measures: PortalMedida[]; sexo: "M" | "F"; faixaEtaria?: FaixaEtaria | null; referenceData?: MobilidadeReferenceData }) {
+function ReferenceCurves({ measures, sexo, faixaEtaria, resumoReferencia }: { measures: PortalMedida[]; sexo: "M" | "F"; faixaEtaria?: FaixaEtaria | null; resumoReferencia?: ResumoReferenciaPortal }) {
   const cards = measures.flatMap((measure) => {
-    const bucket = referenceData?.[measure.origem]?.[sexo];
-    const base = arrayReferencia(bucket, faixaEtaria);
+    const base = escolherResumoReferencia(resumoReferencia?.[measure.origem]?.[sexo], faixaEtaria);
     if (!base) return [];
     return [{ measure, base }];
   });
   if (!cards.length) return <EmptyLine>Sem base suficiente para esta faixa.</EmptyLine>;
-  return <div className="space-y-3">{cards.map(({ measure, base }) => <ReferenceCurve key={measure.id} measure={measure} base={base} sexo={sexo} faixaEtaria={faixaEtaria} referenceData={referenceData} />)}</div>;
+  return <div className="space-y-3">{cards.map(({ measure, base }) => <ReferenceCurve key={measure.id} measure={measure} base={base} />)}</div>;
 }
 
-function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: number[]; sexo: "M" | "F"; faixaEtaria?: FaixaEtaria | null; referenceData?: MobilidadeReferenceData }) {
-  const mean = base.reduce((sum, value) => sum + value, 0) / base.length;
-  const sigma = Math.sqrt(base.reduce((sum, value) => sum + (value - mean) ** 2, 0) / base.length) || 1;
+function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: ResumoReferencia }) {
+  const mean = base.media;
+  const sigma = base.desvio || 1;
   const min = Math.max(0, mean - 3 * sigma), max = mean + 3 * sigma;
   const w = 280, h = 78, baseY = 62;
   const x = (v: number) => 8 + ((v - min) / (max - min || 1)) * 264;
