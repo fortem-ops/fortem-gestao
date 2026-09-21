@@ -28,8 +28,9 @@ import {
   type AssimetriaResumoEvolucao,
 } from "@/components/avaliacoes-premium/assimetriaGrafico";
 import {
-  movimentoFaixa,
+  movimentoFaixaPercentil,
   movimentoForca,
+  montarForcaComparativo,
   ordenarForcaComparativo,
   ordenarMobilidadeComparativo,
   tomVariacaoMobilidade,
@@ -430,11 +431,11 @@ describe("Evolução de assimetrias", () => {
 });
 
 describe("Comparativo de valores", () => {
-  it("movimento de faixa identifica subida, queda e igualdade", () => {
-    expect(movimentoFaixa("Regular", "Bom")).toBe("subiu");
-    expect(movimentoFaixa("Excelente", "Médio")).toBe("caiu");
-    expect(movimentoFaixa("Bom", "Bom")).toBe("igual");
-    expect(movimentoFaixa(null, "Bom")).toBeNull();
+  it("movimento de faixa usa as faixas de percentil do mapa corporal", () => {
+    expect(movimentoFaixaPercentil(42, 61)).toBe("subiu");
+    expect(movimentoFaixaPercentil(92, 74)).toBe("caiu");
+    expect(movimentoFaixaPercentil(76, 89)).toBe("igual");
+    expect(movimentoFaixaPercentil(null, 80)).toBeNull();
   });
 
   it("cor da variação respeita métrica comum", () => {
@@ -462,6 +463,7 @@ describe("Comparativo de valores", () => {
       ({ metric, label: metric, ordem, resumo }) as LinhaMobilidadeComparativo;
 
     const rows = [
+      linha("sem base", 3, "Sem base de comparação"),
       linha("sem mudança cedo", 0, "Sem mudança"),
       linha("subiu tarde", 7, "Subiu de faixa"),
       linha("caiu tarde", 8, "Caiu de faixa"),
@@ -475,6 +477,7 @@ describe("Comparativo de valores", () => {
       "subiu cedo",
       "subiu tarde",
       "sem mudança cedo",
+      "sem base",
     ]);
   });
 
@@ -498,4 +501,30 @@ describe("Comparativo de valores", () => {
       "Z estável",
     ]);
   });
+
+  it("força remove exercícios sem nenhum lado comparável", () => {
+    const rows = montarForcaComparativo(
+      {
+        data: "2026-01-01",
+        metricas: [],
+        forca: [
+          { nome: "abducao_quadril", direito_kg: 20, esquerdo_kg: 18 },
+          { nome: "extensao_joelho", direito_kg: 40, esquerdo_kg: 35 },
+        ],
+      },
+      {
+        data: "2026-02-01",
+        metricas: [],
+        forca: [
+          { nome: "abducao_quadril", direito_kg: null as unknown as number, esquerdo_kg: null as unknown as number },
+          { nome: "extensao_joelho", direito_kg: 42, esquerdo_kg: null as unknown as number },
+        ],
+      },
+    );
+
+    expect(rows.map((row) => row.nome)).toEqual(["extensao_joelho"]);
+    expect(rows[0].direito.movimento).toBe("Ganhou força");
+    expect(rows[0].esquerdo.movimento).toBeNull();
+  });
+
 });

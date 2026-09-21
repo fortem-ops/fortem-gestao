@@ -1,29 +1,34 @@
-import type { AssessmentClassification } from "@/lib/mock-data";
-import { classifyAngle } from "@/lib/mock-data";
 import {
   ALL_FUNCTIONAL_METRICS,
   FORCA_EXERCICIO_LABEL,
   metricaInvertida,
+  percentilMobilidade,
+  severityFromScore,
   type ForcaExercicio,
+  type MobilidadeReferenceData,
+  type Severity,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { FaixaEtaria } from "@/lib/faixaEtaria";
 import type { FuncionalSnapshot } from "./useAlunoAvaliacoesConsolidadas";
 
 export type LadoComparativo = "esquerdo" | "direito";
 export type MovimentoFaixa = "caiu" | "subiu" | "igual";
 export type TomVariacao = "melhora" | "piora" | "neutro";
-export type ResumoMobilidade = "Caiu de faixa" | "Subiu de faixa" | "Sem mudança";
+export type ResumoMobilidade = "Caiu de faixa" | "Subiu de faixa" | "Sem mudança" | "Sem base de comparação";
 export type ResumoForca = "Perdeu força" | "Ganhou força" | "Estável";
 
-export interface ValorClassificado {
+export interface ValorPercentilComparativo {
   valor: number;
-  classificacao: AssessmentClassification;
+  percentil: number | null;
+  severity: Severity;
 }
 
 export interface LadoMobilidadeComparativo {
   lado: LadoComparativo;
-  antes: ValorClassificado | null;
-  depois: ValorClassificado | null;
+  antes: ValorPercentilComparativo | null;
+  depois: ValorPercentilComparativo | null;
   variacao: number | null;
+  variacaoPercentil: number | null;
   movimento: MovimentoFaixa | null;
   tom: TomVariacao;
 }
@@ -60,18 +65,26 @@ export interface StatsComparativoValores {
   forcaPerdeu: number;
 }
 
-export const CLASSIFICACAO_ORDEM: Record<AssessmentClassification, number> = {
-  Fraco: 0,
-  Regular: 1,
-  Médio: 2,
-  Bom: 3,
-  Excelente: 4,
+export interface MobilidadeComparativoContexto {
+  sexo?: "M" | "F";
+  faixaEtaria?: FaixaEtaria | null;
+  referenceData?: MobilidadeReferenceData;
+}
+
+export const SEVERITY_ORDEM: Record<Severity, number> = {
+  none: -1,
+  weak: 0,
+  attention: 1,
+  medium: 2,
+  good: 3,
+  excellent: 4,
 };
 
 export const RESUMO_MOBILIDADE_ORDEM: Record<ResumoMobilidade, number> = {
   "Caiu de faixa": 0,
   "Subiu de faixa": 1,
   "Sem mudança": 2,
+  "Sem base de comparação": 3,
 };
 
 export const RESUMO_FORCA_ORDEM: Record<ResumoForca, number> = {
@@ -87,12 +100,14 @@ function numero(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
-export function movimentoFaixa(
-  antes: AssessmentClassification | null | undefined,
-  depois: AssessmentClassification | null | undefined,
+export function movimentoFaixaPercentil(
+  antes: number | null | undefined,
+  depois: number | null | undefined,
 ): MovimentoFaixa | null {
-  if (!antes || !depois) return null;
-  const delta = CLASSIFICACAO_ORDEM[depois] - CLASSIFICACAO_ORDEM[antes];
+  if (antes === null || antes === undefined || depois === null || depois === undefined) return null;
+  const antesSeverity = severityFromScore(antes);
+  const depoisSeverity = severityFromScore(depois);
+  const delta = SEVERITY_ORDEM[depoisSeverity] - SEVERITY_ORDEM[antesSeverity];
   if (delta > 0) return "subiu";
   if (delta < 0) return "caiu";
   return "igual";
@@ -122,7 +137,8 @@ export function movimentoForca(
 function resumoMobilidade(esquerdo: LadoMobilidadeComparativo, direito: LadoMobilidadeComparativo): ResumoMobilidade {
   if (esquerdo.movimento === "caiu" || direito.movimento === "caiu") return "Caiu de faixa";
   if (esquerdo.movimento === "subiu" || direito.movimento === "subiu") return "Subiu de faixa";
-  return "Sem mudança";
+  if (esquerdo.movimento === "igual" || direito.movimento === "igual") return "Sem mudança";
+  return "Sem base de comparação";
 }
 
 function resumoForca(esquerdo: LadoForcaComparativo, direito: LadoForcaComparativo): ResumoForca {
@@ -136,21 +152,38 @@ function valorMetrica(snap: FuncionalSnapshot | null, metric: string, lado: "lef
   return numero(item?.[lado]);
 }
 
+function montarValorMobilidade(
+  metric: string,
+  valor: number | null,
+  contexto: MobilidadeComparativoContexto,
+): ValorPercentilComparativo | null {
+  if (valor === null) return null;
+  const percentil = contexto.sexo
+    ? percentilMobilidade(metric, contexto.sexo, valor, contexto.referenceData, contexto.faixaEtaria)
+    : null;
+  return { valor, percentil, severity: severityFromScore(percentil) };
+}
+
 function montarLadoMobilidade(
   metric: string,
   lado: LadoComparativo,
   antesValor: number | null,
   depoisValor: number | null,
+  contexto: MobilidadeComparativoContexto,
 ): LadoMobilidadeComparativo {
-  const antes = antesValor === null ? null : { valor: antesValor, classificacao: classifyAngle(metric, antesValor) };
-  const depois = depoisValor === null ? null : { valor: depoisValor, classificacao: classifyAngle(metric, depoisValor) };
+  const antes = montarValorMobilidade(metric, antesValor, contexto);
+  const depois = montarValorMobilidade(metric, depoisValor, contexto);
   const variacao = antesValor !== null && depoisValor !== null ? depoisValor - antesValor : null;
-  const movimento = movimentoFaixa(antes?.classificacao, depois?.classificacao);
+  const variacaoPercentil = antes?.percentil !== null && antes?.percentil !== undefined && depois?.percentil !== null && depois?.percentil !== undefined
+    ? depois.percentil - antes.percentil
+    : null;
+  const movimento = movimentoFaixaPercentil(antes?.percentil, depois?.percentil);
   return {
     lado,
     antes,
     depois,
     variacao,
+    variacaoPercentil,
     movimento,
     tom: tomVariacaoMobilidade(metric, variacao),
   };
@@ -167,10 +200,11 @@ export function ordenarMobilidadeComparativo(rows: LinhaMobilidadeComparativo[])
 export function montarMobilidadeComparativo(
   antes: FuncionalSnapshot | null,
   depois: FuncionalSnapshot | null,
+  contexto: MobilidadeComparativoContexto = {},
 ): LinhaMobilidadeComparativo[] {
   const rows = ALL_FUNCTIONAL_METRICS.map((metric, ordem) => {
-    const esquerdo = montarLadoMobilidade(metric, "esquerdo", valorMetrica(antes, metric, "left"), valorMetrica(depois, metric, "left"));
-    const direito = montarLadoMobilidade(metric, "direito", valorMetrica(antes, metric, "right"), valorMetrica(depois, metric, "right"));
+    const esquerdo = montarLadoMobilidade(metric, "esquerdo", valorMetrica(antes, metric, "left"), valorMetrica(depois, metric, "left"), contexto);
+    const direito = montarLadoMobilidade(metric, "direito", valorMetrica(antes, metric, "right"), valorMetrica(depois, metric, "right"), contexto);
     return {
       metric,
       label: metric,
@@ -227,7 +261,7 @@ export function montarForcaComparativo(
       direito,
       resumo: resumoForca(esquerdo, direito),
     };
-  }).filter((row) => row.esquerdo.antes !== null || row.esquerdo.depois !== null || row.direito.antes !== null || row.direito.depois !== null);
+  }).filter((row) => row.esquerdo.movimento !== null || row.direito.movimento !== null);
 
   return ordenarForcaComparativo(rows);
 }
