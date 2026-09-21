@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { FuncionalSnapshot } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import {
   deduplicarCadeias,
+  agruparMedidasPortal,
   filtrarComparativoMudou,
   montarAneisPortal,
   montarMedidasPortal,
@@ -57,5 +58,25 @@ describe("Resumo do portal de avaliações", () => {
     expect(comparativo.mobilidade.map((row) => row.metric)).toEqual(["Mobilidade Ombro RI"]);
     expect(comparativo.mobilidadeSemMudanca).toBe(1);
     expect(comparativo.forca).toEqual([]);
+  });
+
+  it("distingue e agrupa o mesmo movimento em mobilidade e força", () => {
+    const comForca: FuncionalSnapshot = {
+      ...snapshot(60, 90),
+      forca: [{ nome: "rotacao_interna", esquerdo_kg: 8, direito_kg: 10 }],
+    };
+    const grupos = agruparMedidasPortal(montarMedidasPortal(comForca));
+    const mobilidade = grupos.find((grupo) => grupo.camada === "mobilidade")?.medidas[0];
+    const forca = grupos.find((grupo) => grupo.camada === "forca")?.medidas[0];
+    expect(mobilidade).toMatchObject({ nome: "Ombro · Rotação Interna", camada: "mobilidade", unidadeLados: "°" });
+    expect(forca).toMatchObject({ nome: "Rotação interna de ombro", camada: "forca", unidadeLados: "kg" });
+  });
+
+  it("deixa explícita a camada quando a maior diferença é de força", () => {
+    const comForca: FuncionalSnapshot = {
+      ...snapshot(90, 92),
+      forca: [{ nome: "abducao_quadril", esquerdo_kg: 6, direito_kg: 10 }],
+    };
+    expect(montarResumoPortal(montarMedidasPortal(comForca)).frase).toContain("Força · Abdução de quadril");
   });
 });

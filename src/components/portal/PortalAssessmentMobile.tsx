@@ -1,7 +1,9 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { format, parseISO } from "date-fns";
+import { differenceInDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronDown } from "lucide-react";
+import { AlertCircle, ArrowRight, CalendarCheck, ChevronDown, ClipboardCheck, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { BodyMapSVG } from "@/components/student/assessment/funcionalV2/BodyMapSVG";
 import { useBodyMapShapes } from "@/components/student/assessment/funcionalV2/useBodyMapShapes";
@@ -9,7 +11,6 @@ import {
   analyze,
   ASSIMETRIA_NIVEL_LABEL,
   arrayReferencia,
-  percentilMobilidade,
   type Layer,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
@@ -21,6 +22,7 @@ import {
 import type { ConsolidadoAluno } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import type { FaixaEtaria } from "@/lib/faixaEtaria";
 import {
+  agruparMedidasPortal,
   deduplicarCadeias,
   filtrarComparativoMudou,
   montarAneisPortal,
@@ -46,6 +48,8 @@ const NIVEL_STYLE: Record<PortalNivel, { text: string; bg: string; stroke: strin
   prioridade: { text: "text-[#fb806c]", bg: "bg-[#fb806c]/10 border-[#fb806c]/25", stroke: "#fb806c" },
 };
 
+const MESES_IDEAL_REAVALIAR = 4;
+
 function numero(value: number, casas = 1): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(casas).replace(".", ",");
 }
@@ -54,6 +58,7 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, referenceData 
   const latest = data.funcional.latest;
   const medidas = useMemo(() => montarMedidasPortal(latest), [latest]);
   const resumo = useMemo(() => montarResumoPortal(medidas), [medidas]);
+  const gruposMedidas = useMemo(() => agruparMedidasPortal(medidas), [medidas]);
   const aneis = useMemo(() => montarAneisPortal(medidas), [medidas]);
   const pontos = medidas.filter((m) => m.nivel !== "equilibrado");
   const history = data.funcional.history;
@@ -88,6 +93,8 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, referenceData 
         </p>
       </header>
 
+      <ReassessmentCard latestDate={latest.data} />
+
       <section className="rounded-2xl border border-border bg-card p-4">
         <p className="font-heading text-lg font-bold text-foreground">{resumo.titulo}</p>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{resumo.frase}</p>
@@ -117,7 +124,14 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, referenceData 
             </div>
             Psoas é medido em graus: {ASSIMETRIA_NIVEL_LABEL.moderada} a partir de 3° e {ASSIMETRIA_NIVEL_LABEL.severa} a partir de 5°.
           </div>
-          <div className="divide-y divide-border">{medidas.map((m) => <MeasureRow key={m.id} medida={m} />)}</div>
+          <div className="space-y-5">
+            {gruposMedidas.map((grupo) => (
+              <section key={grupo.camada} aria-labelledby={`portal-grupo-${grupo.camada}`}>
+                <h3 id={`portal-grupo-${grupo.camada}`} className="mb-1 text-xs font-bold uppercase text-muted-foreground">{grupo.label}</h3>
+                <div className="divide-y divide-border">{grupo.medidas.map((m) => <MeasureRow key={m.id} medida={m} />)}</div>
+              </section>
+            ))}
+          </div>
         </DetailsCard>
 
         {history.length >= 2 && (
@@ -167,6 +181,18 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, referenceData 
             <ReferenceCurves measures={medidas.filter((m) => m.camada !== "forca")} sexo={sexo} faixaEtaria={faixaEtaria} referenceData={referenceData} />
           )}
         </DetailsCard>
+
+        {data.composicao.latest && (
+          <DetailsCard title="Composição corporal" subtitle={`${data.composicao.history.length} ${data.composicao.history.length === 1 ? "medição registrada" : "medições registradas"}.`}>
+            <CompositionContent data={data} />
+          </DetailsCard>
+        )}
+
+        {assessmentHistory(data).length > 0 && (
+          <DetailsCard title="Histórico de avaliações" subtitle="Todas as avaliações registradas por tipo e data.">
+            <AssessmentHistory data={data} />
+          </DetailsCard>
+        )}
       </div>
     </div>
   );
@@ -202,7 +228,10 @@ function MeasureRow({ medida }: { medida: PortalMedida }) {
   return (
     <div className="flex min-w-0 items-center gap-3 border-b border-border py-3 last:border-b-0">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold leading-snug text-foreground">{medida.nome}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold leading-snug text-foreground">{medida.nome}</p>
+          {medida.camada === "forca" && <span className="rounded border border-border bg-secondary px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">Força</span>}
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">Esq. {numero(medida.esquerdo)}{medida.unidadeLados} · Dir. {numero(medida.direito)}{medida.unidadeLados}</p>
       </div>
       <div className="w-[76px] shrink-0 text-center">
@@ -247,10 +276,11 @@ function PortalBodyMap({ snapshot }: { snapshot: NonNullable<ConsolidadoAluno["f
     { id: "mobility", label: "Mobilidade" },
     { id: "flexibility", label: "Flexibilidade" },
     { id: "strength", label: "Força" },
+    { id: "asymmetry", label: "Tudo" },
   ];
   return (
     <section className="bodymap-surface min-w-0 overflow-hidden rounded-2xl p-3">
-      <div className="mb-3 flex gap-1 pb-1">
+       <div className="mb-3 grid grid-cols-4 gap-1 pb-1">
         {layers.map((item) => <button key={item.id} onClick={() => setLayer(item.id)} className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-2 text-xs font-semibold ${layer === item.id ? "bg-white text-black" : "bg-white/5 text-white/60"}`}>{item.label}</button>)}
       </div>
       <BodyMapSVG viewFilter={view} layer={layer} metrics={snapshot.metricas} forcaExercises={snapshot.forca} shapesMap={shapesMap} />
@@ -328,7 +358,7 @@ function ReferenceCurves({ measures, sexo, faixaEtaria, referenceData }: { measu
   return <div className="space-y-3">{cards.map(({ measure, base }) => <ReferenceCurve key={measure.id} measure={measure} base={base} sexo={sexo} faixaEtaria={faixaEtaria} referenceData={referenceData} />)}</div>;
 }
 
-function ReferenceCurve({ measure, base, sexo, faixaEtaria, referenceData }: { measure: PortalMedida; base: number[]; sexo: "M" | "F"; faixaEtaria?: FaixaEtaria | null; referenceData?: MobilidadeReferenceData }) {
+function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: number[]; sexo: "M" | "F"; faixaEtaria?: FaixaEtaria | null; referenceData?: MobilidadeReferenceData }) {
   const mean = base.reduce((sum, value) => sum + value, 0) / base.length;
   const sigma = Math.sqrt(base.reduce((sum, value) => sum + (value - mean) ** 2, 0) / base.length) || 1;
   const min = Math.max(0, mean - 3 * sigma), max = mean + 3 * sigma;
@@ -342,7 +372,7 @@ function ReferenceCurve({ measure, base, sexo, faixaEtaria, referenceData }: { m
   const markers = [{ label: "E", value: measure.esquerdo, color: "#60a5fa" }, { label: "D", value: measure.direito, color: "#fb923c" }];
   return (
     <div className="rounded-xl bg-secondary/50 p-3">
-      <div className="flex items-start justify-between gap-2"><p className="text-xs font-semibold text-foreground">{measure.nome}</p><p className="shrink-0 text-[10px] text-muted-foreground">E P{percentilMobilidade(measure.origem, sexo, measure.esquerdo, referenceData, faixaEtaria)} · D P{percentilMobilidade(measure.origem, sexo, measure.direito, referenceData, faixaEtaria)}</p></div>
+      <p className="text-xs font-semibold text-foreground">{measure.nome}</p>
       <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-[78px] w-full">
         <polyline points={pts} fill="none" stroke="#8a8a8a" strokeWidth="1.5" />
         {markers.map((marker) => <g key={marker.label}><line x1={x(marker.value)} x2={x(marker.value)} y1="10" y2={baseY} stroke={marker.color} strokeWidth="2" /><text x={x(marker.value)} y="8" textAnchor="middle" fill={marker.color} fontSize="9">{marker.label} {numero(marker.value)}°</text></g>)}
@@ -350,4 +380,55 @@ function ReferenceCurve({ measure, base, sexo, faixaEtaria, referenceData }: { m
       <p className="text-center text-[10px] text-muted-foreground">média da base {numero(mean)}°</p>
     </div>
   );
+}
+
+function ReassessmentCard({ latestDate }: { latestDate: string }) {
+  const monthsSince = Math.floor(differenceInDays(new Date(), parseISO(latestDate)) / 30);
+  const overdue = monthsSince >= MESES_IDEAL_REAVALIAR;
+  const nextIn = Math.max(0, MESES_IDEAL_REAVALIAR - monthsSince);
+  if (overdue) {
+    return (
+      <section className="space-y-3 rounded-2xl border border-primary/30 bg-card p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10"><AlertCircle className="h-5 w-5 text-primary" /></div>
+          <div><p className="text-sm font-bold text-foreground">Hora de comparar sua evolução!</p><p className="mt-1 text-xs text-muted-foreground">Sua última avaliação foi há {monthsSince} {monthsSince === 1 ? "mês" : "meses"}.</p></div>
+        </div>
+        <Button asChild className="min-h-11 w-full font-bold"><Link to="/portal/agenda">Agendar reavaliação <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+      </section>
+    );
+  }
+  return (
+    <section className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10"><CalendarCheck className="h-5 w-5 text-primary" /></div>
+      <div><p className="text-sm font-bold text-foreground">Avaliação em dia</p><p className="text-xs text-muted-foreground">Próxima reavaliação em aproximadamente {nextIn} {nextIn === 1 ? "mês" : "meses"}</p></div>
+    </section>
+  );
+}
+
+function CompositionContent({ data }: { data: ConsolidadoAluno }) {
+  const composition = data.composicao.latest;
+  if (!composition) return null;
+  const metrics = [
+    { label: "% Gordura", value: `${numero(composition.bf)}%`, detail: composition.classificacao },
+    { label: "Massa magra", value: composition.massaMagra == null ? "—" : `${numero(composition.massaMagra)} kg` },
+    { label: "Peso", value: `${numero(composition.peso)} kg` },
+    { label: "IMC", value: composition.imc == null ? "—" : numero(composition.imc) },
+  ];
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">{metrics.map((metric) => <div key={metric.label} className="rounded-xl border border-border bg-secondary/50 p-3 text-center"><p className="text-[10px] font-bold uppercase text-muted-foreground">{metric.label}</p><p className="mt-1 text-lg font-black text-foreground">{metric.value}</p>{metric.detail && <p className="text-[10px] text-muted-foreground">{metric.detail}</p>}</div>)}</div>
+      <div className="flex items-center gap-2 rounded-xl bg-secondary/60 p-3"><TrendingUp className="h-4 w-4 shrink-0 text-primary" /><p className="text-xs text-muted-foreground">Você tem <strong className="text-foreground">{data.composicao.history.length} {data.composicao.history.length === 1 ? "medição" : "medições"}</strong> de composição corporal.</p></div>
+    </div>
+  );
+}
+
+function assessmentHistory(data: ConsolidadoAluno): Array<{ id: string; type: string; date: string }> {
+  const labels: Record<string, string> = { funcional_v2: "Avaliação Funcional", funcional: "Avaliação Funcional", composicao_corporal: "Composição Corporal", pliometria: "Pliometria" };
+  return data.raw
+    .filter((item) => labels[item.tipo])
+    .map((item) => ({ id: item.id, type: labels[item.tipo], date: item.data }));
+}
+
+function AssessmentHistory({ data }: { data: ConsolidadoAluno }) {
+  return <div className="divide-y divide-border">{assessmentHistory(data).map((item) => <div key={item.id} className="flex min-h-14 items-center gap-3 py-2"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary"><ClipboardCheck className="h-4 w-4 text-primary" /></div><div><p className="text-sm font-semibold text-foreground">{item.type}</p><p className="text-xs text-muted-foreground">{format(parseISO(`${item.date}T12:00:00`), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p></div></div>)}</div>;
 }

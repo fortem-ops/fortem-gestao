@@ -19,3 +19,4 @@
 - [x] Nova tela Cadastros > Carteira Consultor com avaliação, frequência e funil.
 - [x] Tarefa automática de reavaliação quando pendente/atrasada.
 - [x] Unificar a nomenclatura de assimetria da equipe e do portal.
+- [x] Restaurar reavaliação, composição e histórico no novo portal e corrigir a classificação de força em 20%.

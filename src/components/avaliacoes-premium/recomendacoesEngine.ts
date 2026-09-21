@@ -46,7 +46,7 @@ export function gerarRecomendacoes(
       list.push({
         id: `forca-${ex.nome}`,
         titulo: `Atenção: ${label}`,
-        descricao: `Assimetria em ${ASSIMETRIA_NIVEL_LABEL.moderada.toLowerCase()} (${diff.toFixed(0)}%). Incluir trabalho unilateral controlado nas próximas 4 semanas.`,
+        descricao: `Assimetria no nível ${ASSIMETRIA_NIVEL_LABEL.moderada} (${diff.toFixed(0)}%). Incluir trabalho unilateral controlado nas próximas 4 semanas.`,
         prioridade: "media",
         area: "forca",
       });

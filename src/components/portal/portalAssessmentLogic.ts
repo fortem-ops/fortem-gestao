@@ -3,11 +3,11 @@ import {
   ASSIMETRIA_NIVEL_LABEL,
   classificarAssimetria,
   classifyForca,
+  FORCA_EXERCICIO_LABEL,
   getMetricDisplayLabel,
   nivelAssimetria,
   type AssimetriaNivel,
   type CompensationChain,
-  type ForcaExercicio,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import {
   compararPreocupacaoAssimetria,
@@ -53,6 +53,12 @@ export interface PortalResumo {
   frase: string;
   pontos: number;
   equilibradas: number;
+}
+
+export interface PortalGrupoMedidas {
+  camada: PortalCamada;
+  label: string;
+  medidas: PortalMedida[];
 }
 
 const NIVEL_ORDEM: Record<PortalNivel, number> = { equilibrado: 0, atencao: 1, prioridade: 2 };
@@ -113,7 +119,7 @@ export function montarMedidasPortal(snapshot: FuncionalSnapshot | null | undefin
     return [{
       id: `forca:${f.nome}`,
       origem: f.nome,
-      nome: getForcaLabel(f.nome),
+      nome: FORCA_EXERCICIO_LABEL[f.nome] ?? f.nome.replace(/_/g, " "),
       camada: "forca",
       esquerdo: f.esquerdo_kg,
       direito: f.direito_kg,
@@ -134,31 +140,16 @@ export function montarMedidasPortal(snapshot: FuncionalSnapshot | null | undefin
   });
 }
 
-function getForcaLabel(nome: string): string {
-  const labels: Partial<Record<ForcaExercicio, string>> = {
-    rotacao_interna: "Ombro · Rotação Interna",
-    rotacao_externa: "Ombro · Rotação Externa",
-    flexao_ombro: "Ombro · Flexão",
-    extensao_ombro: "Ombro · Extensão",
-    abducao_ombro: "Ombro · Abdução",
-    aducao_ombro: "Ombro · Adução",
-    flexao_cotovelo: "Cotovelo · Flexão",
-    extensao_cotovelo: "Cotovelo · Extensão",
-    pronacao_antebraco: "Antebraço · Pronação",
-    supinacao_antebraco: "Antebraço · Supinação",
-    flexao_punho: "Punho · Flexão",
-    extensao_punho: "Punho · Extensão",
-    dorsiflexao: "Tornozelo · Dorsiflexão",
-    flexao_plantar: "Tornozelo · Flexão Plantar",
-    inversao: "Tornozelo · Inversão",
-    flexao_joelho: "Joelho · Flexão",
-    extensao_joelho: "Joelho · Extensão",
-    flexao_quadril: "Quadril · Flexão",
-    extensao_quadril: "Quadril · Extensão",
-    abducao_quadril: "Quadril · Abdução",
-    aducao_quadril: "Quadril · Adução",
-  };
-  return labels[nome as ForcaExercicio] ?? nome.replace(/_/g, " ");
+export function agruparMedidasPortal(medidas: PortalMedida[]): PortalGrupoMedidas[] {
+  const grupos: Array<{ camada: PortalCamada; label: string }> = [
+    { camada: "mobilidade", label: "Mobilidade" },
+    { camada: "flexibilidade", label: "Flexibilidade" },
+    { camada: "forca", label: "Força" },
+  ];
+  return grupos.flatMap(({ camada, label }) => {
+    const itens = medidas.filter((medida) => medida.camada === camada);
+    return itens.length > 0 ? [{ camada, label, medidas: itens }] : [];
+  });
 }
 
 export function montarAneisPortal(medidas: PortalMedida[]): PortalAnel[] {
@@ -196,7 +187,7 @@ export function montarResumoPortal(medidas: PortalMedida[]): PortalResumo {
       : `As outras ${equilibradas} medidas estão equilibradas.`;
   return {
     titulo: `${pontos.length} ${pontos.length === 1 ? "ponto" : "pontos"} para acompanhar`,
-    frase: `A maior diferença entre os lados está em ${maior.nome}. ${outras}`,
+    frase: `A maior diferença entre os lados está em ${maior.camada === "forca" ? "Força · " : ""}${maior.nome}. ${outras}`,
     pontos: pontos.length,
     equilibradas,
   };
