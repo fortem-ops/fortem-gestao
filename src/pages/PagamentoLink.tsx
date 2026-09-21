@@ -47,11 +47,13 @@ const Aviso = ({
   </div>
 );
 
-export default function PagamentoLinkCorrida() {
+export default function PagamentoLink() {
   const { token } = useParams<{ token: string }>();
   const [estado, setEstado] = useState<Estado>("carregando");
   const [dados, setDados] = useState<Validacao | null>(null);
   const [pedido, setPedido] = useState<PedidoCriado | null>(null);
+  const corrida = dados?.origem !== "generica";
+  const subtitulo = corrida ? "Pagamento da sua inscrição" : "Pagamento do seu plano";
 
   useEffect(() => {
     let ativo = true;
@@ -61,7 +63,7 @@ export default function PagamentoLinkCorrida() {
         return;
       }
       try {
-        const { data, error } = await supabase.functions.invoke("corrida-validar-link-pagamento", {
+        const { data, error } = await supabase.functions.invoke("validar-link-pagamento", {
           body: { token },
         });
         if (!ativo) return;
@@ -101,7 +103,7 @@ export default function PagamentoLinkCorrida() {
 
   if (estado === "carregando") {
     return (
-      <Moldura>
+      <Moldura subtitulo={subtitulo}>
         <div className="bg-card border border-border rounded-2xl p-10 flex items-center justify-center gap-3">
           <Loader2 className="w-5 h-5 animate-spin text-primary" />
           <span className="text-sm text-muted-foreground">Carregando seu pagamento…</span>
@@ -112,7 +114,7 @@ export default function PagamentoLinkCorrida() {
 
   if (estado === "invalido" || estado === "expirado") {
     return (
-      <Moldura>
+      <Moldura subtitulo={subtitulo}>
         <Aviso
           icone={<AlertTriangle className="w-10 h-10 text-amber-400" />}
           titulo={estado === "expirado" ? "Este link expirou" : "Link inválido ou expirado"}
@@ -124,11 +126,11 @@ export default function PagamentoLinkCorrida() {
 
   if (estado === "ja_pago") {
     return (
-      <Moldura>
+      <Moldura subtitulo={subtitulo}>
         <Aviso
           icone={<CheckCircle2 className="w-12 h-12 text-primary" />}
           titulo="Pagamento já concluído"
-          texto="Esta inscrição já está paga. Você não precisa pagar novamente."
+          texto="Este pagamento já foi concluído. Você não precisa pagar novamente."
         />
       </Moldura>
     );
@@ -137,9 +139,9 @@ export default function PagamentoLinkCorrida() {
   if (!dados || !pedido) return null;
 
   return (
-    <Moldura>
+    <Moldura subtitulo={subtitulo}>
       <div className="bg-card border border-border rounded-2xl p-5">
-        <p className="font-display text-lg font-bold mb-3">{dados.venda.nome_snapshot ?? "Sua inscrição"}</p>
+        <p className="font-display text-lg font-bold mb-3">{dados.venda.nome_snapshot ?? (corrida ? "Sua inscrição" : "Seu pagamento")}</p>
         <ul className="text-sm divide-y divide-border">
           {dados.resumo_linhas.map((l, i) => (
             <li key={i} className="py-2 flex justify-between gap-4">
@@ -169,7 +171,11 @@ export default function PagamentoLinkCorrida() {
         onVoltar={() => {}}
         pedido={pedido}
         setPedido={setPedido}
-        modoLink={{ pixDisponivel: dados.pix_disponivel }}
+        modoLink={{
+          pixDisponivel: dados.pix_disponivel,
+          origem: dados.origem ?? "corrida",
+          token: token,
+        }}
       />
     </Moldura>
   );
