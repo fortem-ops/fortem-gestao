@@ -108,6 +108,10 @@ const MENSAGENS_ERRO: Record<string, string> = {
   falha_criptograma: "A operadora não autorizou o uso deste cartão. Tente outro cartão.",
 };
 
+// Bandeira recusou gerar o token do cartão (brand.tokenStatus Unavailable/Deleted).
+const MSG_RECUSADO_BANDEIRA =
+  "Não foi possível processar este cartão. Tente outro cartão ou outra bandeira.";
+
 const amigavel = (code?: string | null, fallback = "Não foi possível concluir. Tente novamente.") =>
   (code && MENSAGENS_ERRO[code]) || fallback;
 
@@ -441,6 +445,13 @@ const PagamentoStep = ({
         const status = String(data?.status ?? "").toLowerCase();
         if (status === "active" && data?.cartao_salvo_id) {
           await cobrar(p, String(data.cartao_salvo_id));
+          return;
+        }
+        // A bandeira respondeu que não vai gerar o token (Unavailable/Deleted):
+        // não adianta continuar esperando até o limite.
+        if (status === "recusado_bandeira") {
+          setResultado({ ok: false, mensagem: MSG_RECUSADO_BANDEIRA });
+          setFase("erro");
           return;
         }
         if (status === "failed" || status === "denied") {
