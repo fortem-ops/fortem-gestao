@@ -594,11 +594,10 @@ function CelulaMobilidade({ lado }: { lado: LadoMobilidadeComparativo }) {
   if (!lado.antes || !lado.depois) return <span className="text-sm text-[hsl(var(--bio-ink-muted))]">—</span>;
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
-      <PercentilBadge ponto={lado.antes} />
+      <ValorGrausBadge ponto={lado.antes} />
       <ArrowRight className="w-4 h-4 text-[hsl(var(--bio-ink-muted))]" />
-      <PercentilBadge ponto={lado.depois} />
+      <ValorGrausBadge ponto={lado.depois} />
       <VariacaoGrausBadge variacao={lado.variacao} tom={lado.tom} />
-      <VariacaoPercentilBadge variacao={lado.variacaoPercentil} />
     </div>
   );
 }
