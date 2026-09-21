@@ -55,6 +55,14 @@ const metricColumnMap: Record<string, string> = {
   'Mobilidade Tornozelo': 'tornozelo',
 };
 
+/** Quadríceps: aplica a regra única (leitura <90 soma 90; >=100 é valor clínico). */
+function normQuad(metric: string, n: number): number {
+  if (isNaN(n) || metric !== METRICA_QUADRICEPS) return n;
+  const res = normalizarEntradaQuadriceps(n);
+  return res.ok ? res.valor : NaN;
+}
+
+
 function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student: Tables<"alunos">; protocoloId: string | null; permiteUpload: boolean }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
