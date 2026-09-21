@@ -317,7 +317,7 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
             </AlertDialog>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-          {(isFuncional || isComposicao) && (
+          {(temMetricas || isComposicao) && (
             <Button onClick={handleExport}><FileDown className="w-4 h-4 mr-2" /> Exportar PDF</Button>
           )}
         </DialogFooter>
