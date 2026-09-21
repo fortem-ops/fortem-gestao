@@ -268,20 +268,22 @@ const PagamentoStep = ({
       setLoading(true);
       try {
         const { data, error } = await supabase.functions.invoke("corrida-criar-pix", {
-          body: {
-            ...payloadPedido,
-            inscricaoId: inscricaoId ?? null,
-            parcelas: 1,
-            idempotency_key: idempotencyKey,
-            dadosPessoais: {
-              nome: dados.nome.trim(),
-              sobrenome: dados.sobrenome.trim(),
-              email: dados.email.trim(),
-              cpf: dados.cpf.replace(/\D/g, ""),
-              telefone: dados.telefone.trim(),
-              data_nascimento: dados.data_nascimento,
+          body: modoLink
+            ? { venda_id: p.venda_id }
+            : {
+              ...payloadPedido,
+              inscricaoId: inscricaoId ?? null,
+              parcelas: 1,
+              idempotency_key: idempotencyKey,
+              dadosPessoais: {
+                nome: dados.nome.trim(),
+                sobrenome: dados.sobrenome.trim(),
+                email: dados.email.trim(),
+                cpf: dados.cpf.replace(/\D/g, ""),
+                telefone: dados.telefone.trim(),
+                data_nascimento: dados.data_nascimento,
+              },
             },
-          },
         });
         if (error || !data?.ok || !data?.pix_copia_cola) {
           throw new Error(data?.error ?? "falha_criar_cobranca_pix");
