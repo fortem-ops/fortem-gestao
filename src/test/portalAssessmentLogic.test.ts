@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FuncionalSnapshot } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { FORCA_EXERCICIO_LABEL } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import {
   deduplicarCadeias,
   agruparMedidasPortal,
