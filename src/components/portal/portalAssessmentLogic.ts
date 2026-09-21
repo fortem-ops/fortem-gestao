@@ -211,7 +211,13 @@ function nomeCompletoMedida(medida: PortalMedida): string {
 }
 
 export function montarSelosInicio(medidas: PortalMedida[]): PortalSelosInicio {
-  const medidaAtencao = medidas.find((medida) => medida.nivel !== "equilibrado") ?? null;
+  const ordenadas = [...medidas].sort((a, b) => {
+    const porNivel = NIVEL_ORDEM[b.nivel] - NIVEL_ORDEM[a.nivel];
+    if (porNivel !== 0) return porNivel;
+    const porRazao = b.razaoSevero - a.razaoSevero;
+    return porRazao !== 0 ? porRazao : a.nome.localeCompare(b.nome);
+  });
+  const medidaAtencao = ordenadas.find((medida) => medida.nivel !== "equilibrado") ?? null;
   const menorRazao = medidas.reduce(
     (menor, medida) => Math.min(menor, medida.razaoSevero),
     Number.POSITIVE_INFINITY,
