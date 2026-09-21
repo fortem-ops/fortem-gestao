@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ComparacoesSalvas, type ComparativoSalvo } from "./ComparacoesSalvas";
 import { SalvarComparacaoDialog } from "./SalvarComparacaoDialog";
 import { ALL_FUNCTIONAL_METRICS, metricaInvertida } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import { listarItensAssimetria, valorAssimetria, type AssimetriaGraficoItem } from "../assimetriaGrafico";
 
 interface Props {
   data: ConsolidadoAluno;
@@ -138,6 +139,19 @@ function plioRows(a: PliometriaSnapshot | null, b: PliometriaSnapshot | null): C
   ];
 }
 
+function montarRowsAssimetria(
+  itens: AssimetriaGraficoItem[],
+  a: FuncionalSnapshot | null,
+  b: FuncionalSnapshot | null,
+) {
+  return itens.map((item) => ({
+    metrica: item.label,
+    a: valorAssimetria(a, item),
+    b: valorAssimetria(b, item),
+    unidade: item.unidade,
+  }));
+}
+
 export function ComparativoTab({ data, alunoId }: Props) {
   const [modo, setModo] = useState<Modo>("auto");
 
@@ -204,6 +218,8 @@ export function ComparativoTab({ data, alunoId }: Props) {
 
   // Warnings quando o snapshot mais próximo diverge muito da data alvo
   const AVISO_DIAS = 7;
+
+  const assimetriaItens = useMemo(() => listarItensAssimetria(data.funcional.history), [data.funcional.history]);
 
   const aplicarSalvo = (c: ComparativoSalvo) => {
     setModo(c.modo);
@@ -312,6 +328,7 @@ export function ComparativoTab({ data, alunoId }: Props) {
           compB={autoComp.B}
           plioA={autoPlio.A}
           plioB={autoPlio.B}
+          assimetriaItens={assimetriaItens}
         />
       )}
 
@@ -337,12 +354,13 @@ export function ComparativoTab({ data, alunoId }: Props) {
             compB={datasCompB.snap}
             plioA={datasPlioA.snap}
             plioB={datasPlioB.snap}
+            assimetriaItens={assimetriaItens}
           />
         </>
       )}
 
       {modo === "intervalo" && (
-        <IntervaloGrafico serie={serieIntervalo} />
+        <IntervaloGrafico serie={serieIntervalo} assimetriaItens={assimetriaItens} />
       )}
     </div>
   );
@@ -389,6 +407,7 @@ function ModoTabelas({
   compB,
   plioA,
   plioB,
+  assimetriaItens,
 }: {
   labelA: string;
   labelB: string;
@@ -398,37 +417,91 @@ function ModoTabelas({
   compB: ComposicaoSnapshot | null;
   plioA: PliometriaSnapshot | null;
   plioB: PliometriaSnapshot | null;
+  assimetriaItens: AssimetriaGraficoItem[];
 }) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <CompareTable
-        titulo="Mobilidade / Flexibilidade"
+    <div className="space-y-4">
+      <AssimetriaComparativoChart
         labelA={labelA}
         labelB={labelB}
-        rows={funcRows(funcA, funcB)}
-        emptyMessage="Sem dados de mobilidade suficientes."
+        rows={montarRowsAssimetria(assimetriaItens, funcA, funcB)}
       />
-      <CompareTable
-        titulo="Força"
-        labelA={labelA}
-        labelB={labelB}
-        rows={forcaRows(funcA, funcB)}
-        emptyMessage="Sem dados de força suficientes."
-      />
-      <CompareTable
-        titulo="Composição Corporal"
-        labelA={labelA}
-        labelB={labelB}
-        rows={compRows(compA, compB)}
-        emptyMessage="Sem dados de composição suficientes."
-      />
-      <CompareTable
-        titulo="Pliometria"
-        labelA={labelA}
-        labelB={labelB}
-        rows={plioRows(plioA, plioB)}
-        emptyMessage="Sem dados de pliometria suficientes."
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <CompareTable
+          titulo="Mobilidade / Flexibilidade"
+          labelA={labelA}
+          labelB={labelB}
+          rows={funcRows(funcA, funcB)}
+          emptyMessage="Sem dados de mobilidade suficientes."
+        />
+        <CompareTable
+          titulo="Força"
+          labelA={labelA}
+          labelB={labelB}
+          rows={forcaRows(funcA, funcB)}
+          emptyMessage="Sem dados de força suficientes."
+        />
+        <CompareTable
+          titulo="Composição Corporal"
+          labelA={labelA}
+          labelB={labelB}
+          rows={compRows(compA, compB)}
+          emptyMessage="Sem dados de composição suficientes."
+        />
+        <CompareTable
+          titulo="Pliometria"
+          labelA={labelA}
+          labelB={labelB}
+          rows={plioRows(plioA, plioB)}
+          emptyMessage="Sem dados de pliometria suficientes."
+        />
+      </div>
+    </div>
+  );
+}
+
+function AssimetriaComparativoChart({
+  labelA,
+  labelB,
+  rows,
+}: {
+  labelA: string;
+  labelB: string;
+  rows: Array<{ metrica: string; a: number | null; b: number | null; unidade: "°" | "%" }>;
+}) {
+  const usable = rows.filter((r) => r.a !== null || r.b !== null);
+  if (usable.length === 0) return null;
+  const chartRows = usable.map((r) => ({
+    metrica: r.metrica,
+    [labelA]: r.a,
+    [labelB]: r.b,
+    unidade: r.unidade,
+  }));
+  return (
+    <div className="bio-card p-5">
+      <h3 className="bio-heading text-base mb-3">Assimetrias</h3>
+      <ResponsiveContainer width="100%" height={Math.max(280, usable.length * 34)}>
+        <LineChart data={chartRows} layout="vertical" margin={{ top: 8, right: 24, bottom: 8, left: 160 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--bio-line))" />
+          <XAxis type="number" stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
+          <YAxis dataKey="metrica" type="category" stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} width={150} />
+          <Tooltip
+            formatter={(value, _name, item) => {
+              const unidade = (item.payload as { unidade?: string } | undefined)?.unidade ?? "%";
+              return [`${Number(value).toFixed(1)}${unidade}`, item.name];
+            }}
+            contentStyle={{
+              background: "hsl(var(--bio-surface-2))",
+              border: "1px solid hsl(var(--bio-line))",
+              borderRadius: 8,
+              color: "hsl(var(--bio-ink))",
+            }}
+          />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Line type="monotone" dataKey={labelA} name={labelA} stroke="hsl(var(--sev-attention))" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+          <Line type="monotone" dataKey={labelB} name={labelB} stroke="hsl(var(--sev-good))" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -462,7 +535,13 @@ function AvisosProximidade({
   );
 }
 
-function IntervaloGrafico({ serie }: { serie: Array<Record<string, unknown>> }) {
+function IntervaloGrafico({
+  serie,
+  assimetriaItens,
+}: {
+  serie: Array<Record<string, unknown>>;
+  assimetriaItens: AssimetriaGraficoItem[];
+}) {
   if (serie.length < 2) {
     return (
       <div className="bio-card p-8 text-center text-[hsl(var(--bio-ink-muted))] text-sm">
@@ -470,24 +549,54 @@ function IntervaloGrafico({ serie }: { serie: Array<Record<string, unknown>> }) 
       </div>
     );
   }
+  const assimetriasVisiveis = assimetriaItens.slice(0, 6);
   return (
-    <div className="bio-card p-5">
-      <h3 className="bio-heading text-base mb-3">Evolução no intervalo</h3>
-      <ResponsiveContainer width="100%" height={320}>
-        <LineChart data={serie as Record<string, string | number | null>[]}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 86%)" />
-          <XAxis dataKey="data" stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} />
-          <YAxis stroke="hsl(220 12% 45%)" tick={{ fontSize: 11 }} />
-          <Tooltip contentStyle={{ background: "hsl(0 0% 100%)", border: "1px solid hsl(220 14% 86%)", borderRadius: 8 }} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Line type="monotone" dataKey="indice" name="Índice Fortem" stroke="hsl(0 84% 60%)" strokeWidth={3} dot={{ r: 4 }} connectNulls />
-          <Line type="monotone" dataKey="mobilidade" name="Mobilidade" stroke="hsl(var(--sev-medium))" strokeWidth={2} connectNulls />
-          <Line type="monotone" dataKey="forca" name="Força" stroke="hsl(var(--sev-good))" strokeWidth={2} connectNulls />
-          <Line type="monotone" dataKey="composicao" name="Composição" stroke="hsl(var(--sev-attention))" strokeWidth={2} connectNulls />
-          <Line type="monotone" dataKey="bf" name="% Gordura" stroke="hsl(30 90% 60%)" strokeWidth={2} strokeDasharray="4 4" connectNulls />
-          <Line type="monotone" dataKey="salto" name="Salto Vertical (cm)" stroke="hsl(200 80% 60%)" strokeWidth={2} strokeDasharray="4 4" connectNulls />
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="space-y-4">
+      <div className="bio-card p-5">
+        <h3 className="bio-heading text-base mb-3">Evolução no intervalo</h3>
+        <ResponsiveContainer width="100%" height={320}>
+          <LineChart data={serie as Record<string, string | number | null>[]}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--bio-line))" />
+            <XAxis dataKey="data" stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
+            <YAxis stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
+            <Tooltip contentStyle={{ background: "hsl(var(--bio-surface-2))", border: "1px solid hsl(var(--bio-line))", borderRadius: 8, color: "hsl(var(--bio-ink))" }} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Line type="monotone" dataKey="indice" name="Índice Fortem" stroke="hsl(var(--sev-weak))" strokeWidth={3} dot={{ r: 4 }} connectNulls />
+            <Line type="monotone" dataKey="mobilidade" name="Mobilidade" stroke="hsl(var(--sev-medium))" strokeWidth={2} connectNulls />
+            <Line type="monotone" dataKey="forca" name="Força" stroke="hsl(var(--sev-good))" strokeWidth={2} connectNulls />
+            <Line type="monotone" dataKey="composicao" name="Composição" stroke="hsl(var(--sev-attention))" strokeWidth={2} connectNulls />
+            <Line type="monotone" dataKey="bf" name="% Gordura" stroke="hsl(var(--sev-excellent))" strokeWidth={2} strokeDasharray="4 4" connectNulls />
+            <Line type="monotone" dataKey="salto" name="Salto Vertical (cm)" stroke="hsl(var(--sev-medium))" strokeWidth={2} strokeDasharray="4 4" connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {assimetriasVisiveis.length > 0 && (
+        <div className="bio-card p-5">
+          <h3 className="bio-heading text-base mb-3">Assimetrias no intervalo</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={serie as Record<string, string | number | null>[]}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--bio-line))" />
+              <XAxis dataKey="data" stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
+              <YAxis stroke="hsl(var(--bio-ink-muted))" tick={{ fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: "hsl(var(--bio-surface-2))", border: "1px solid hsl(var(--bio-line))", borderRadius: 8, color: "hsl(var(--bio-ink))" }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              {assimetriasVisiveis.map((item, idx) => (
+                <Line
+                  key={item.key}
+                  type="monotone"
+                  dataKey={item.key}
+                  name={item.label}
+                  stroke={idx % 2 === 0 ? "hsl(var(--sev-attention))" : "hsl(var(--sev-good))"}
+                  strokeWidth={2}
+                  strokeDasharray={item.unidade === "°" ? "5 4" : undefined}
+                  connectNulls
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }
