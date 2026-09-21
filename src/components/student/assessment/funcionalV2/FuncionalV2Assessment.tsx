@@ -20,11 +20,14 @@ import {
   classifyForca,
   FORCA_EXERCICIO_LABEL,
   METRICA_QUADRICEPS,
-  quadricepsEntradaParaValor,
+  normalizarEntradaQuadriceps,
+  textoAuxiliarQuadriceps,
+  QUADRICEPS_MENSAGEM_INVALIDA,
   type MetricInput,
   type ForcaInput,
   type ForcaExercicio,
 } from "./bodyMapLogic";
+
 
 interface Props {
   student: Tables<"alunos">;
