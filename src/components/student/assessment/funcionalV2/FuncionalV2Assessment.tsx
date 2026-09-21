@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Save, Loader2, Upload, FileText, Sparkles, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { classifyAngle, assessmentReferences, getClassificationColor } from "@/lib/mock-data";
-import type { AssessmentClassification } from "@/lib/mock-data";
+
 import { AvaliacaoAnexos } from "../AvaliacaoAnexos";
 import { useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
@@ -217,10 +217,8 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
           <thead>
             <tr className="border-b border-border">
               <th className="text-left text-xs font-medium text-muted-foreground p-3">Mobilidade / Flexibilidade</th>
-              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Esquerdo</th>
-              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. E</th>
-              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-20">Direito</th>
-              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Class. D</th>
+              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Esquerdo</th>
+              <th className="text-center text-xs font-medium text-muted-foreground p-3 w-24">Direito</th>
             </tr>
           </thead>
           <tbody>
@@ -228,15 +226,6 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
               const v = values[metric] || { left: "", right: "" };
               const lRaw = parseInt(v.left);
               const rRaw = parseInt(v.right);
-              const norm = (n: number) => {
-                if (isNaN(n) || metric !== METRICA_QUADRICEPS) return n;
-                const res = normalizarEntradaQuadriceps(n);
-                return res.ok ? res.valor : NaN;
-              };
-              const l = norm(lRaw);
-              const r = norm(rRaw);
-              const lc = !isNaN(l) ? classifyAngle(metric, l) : null;
-              const rc = !isNaN(r) ? classifyAngle(metric, r) : null;
               const ref = assessmentReferences[metric]?.referenceText;
               const isQuad = metric === METRICA_QUADRICEPS;
               const hintE = isQuad && v.left !== "" ? textoAuxiliarQuadriceps(lRaw) : null;
@@ -258,20 +247,14 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
                     <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.left} onChange={(e) => handleChange(metric, "left", e.target.value)} placeholder="°" />
                     {hintE && <p className={`text-[10px] mt-1 text-center ${invE ? "text-red-400" : "text-muted-foreground"}`}>{hintE}</p>}
                   </td>
-                  <td className="p-3 text-center">
-                    {lc && <span className={`text-xs font-semibold ${getClassificationColor(lc as AssessmentClassification)}`}>{lc}</span>}
-                  </td>
                   <td className="p-3">
                     <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.right} onChange={(e) => handleChange(metric, "right", e.target.value)} placeholder="°" />
                     {hintD && <p className={`text-[10px] mt-1 text-center ${invD ? "text-red-400" : "text-muted-foreground"}`}>{hintD}</p>}
                   </td>
-
-                  <td className="p-3 text-center">
-                    {rc && <span className={`text-xs font-semibold ${getClassificationColor(rc as AssessmentClassification)}`}>{rc}</span>}
-                  </td>
                 </tr>
               );
             })}
+
           </tbody>
         </table>
       </div>

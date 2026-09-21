@@ -155,6 +155,13 @@
       "when": 1790006727883,
       "tag": "0021_add_consultor_responsavel",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790030561507,
+      "tag": "0022_validar_quadriceps_avaliacoes",
+      "breakpoints": true
     }
   ]
 }
