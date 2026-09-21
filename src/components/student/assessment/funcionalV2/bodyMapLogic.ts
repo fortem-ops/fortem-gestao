@@ -289,6 +289,19 @@ export function classificarAssimetria(
   };
 }
 
+/** Texto único da diferença entre os lados (usado em tela e no PDF). */
+export function textoAssimetria(
+  metric: string,
+  esquerdo: number | null | undefined,
+  direito: number | null | undefined,
+): string {
+  const info = classificarAssimetria(metric, esquerdo, direito);
+  if (!info) return "—";
+  return `${info.valor.toFixed(1)}${info.unidade} · ${ASSIMETRIA_NIVEL_LABEL[info.nivel]}`;
+}
+
+
+
 /** Classificação do nível a partir de um valor já calculado (escala visual/contagem). */
 export function nivelAssimetria(metric: string | undefined, valor: number): AssimetriaNivel {
   const abs = metric ? ASSIMETRIA_ABSOLUTA[metric] : undefined;
