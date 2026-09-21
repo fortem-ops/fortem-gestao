@@ -79,7 +79,7 @@ export function StatsCards({ professorId }: Props) {
     queryKey: ["dashboard-aval-funcional-atrasada", professorId],
     queryFn: async () => {
       let alunosQ = supabase.from("alunos").select("id").eq("status", "ativo");
-      if (professorId) alunosQ = alunosQ.eq("responsavel_id", professorId);
+      if (professorId) alunosQ = alunosQ.or(filtroCarteiraOr(professorId));
       const { data: alunos } = await alunosQ;
       if (!alunos?.length) return 0;
       const ids = alunos.map((a) => a.id);
