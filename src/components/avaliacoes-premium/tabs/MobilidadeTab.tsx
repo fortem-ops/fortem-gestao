@@ -542,13 +542,17 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
             <tbody>
               {ALL_FUNCTIONAL_METRICS.map((metric) => {
                 const v = values[metric] || { left: "", right: "" };
+                const hintE = metric === METRICA_QUADRICEPS ? textoAuxiliarQuadriceps(parseInt(v.left)) : null;
+                const hintD = metric === METRICA_QUADRICEPS ? textoAuxiliarQuadriceps(parseInt(v.right)) : null;
+                const invE = metric === METRICA_QUADRICEPS && v.left !== "" && !normalizarEntradaQuadriceps(parseInt(v.left)).ok;
+                const invD = metric === METRICA_QUADRICEPS && v.right !== "" && !normalizarEntradaQuadriceps(parseInt(v.right)).ok;
                 return (
                   <tr key={metric} className="border-b border-[hsl(var(--bio-line))]">
                     <td className="p-3">
                       <p className="text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(metric)}</p>
                       {metric === METRICA_QUADRICEPS && (
                         <p className="text-[10px] text-[hsl(var(--bio-ink-muted))] mt-0.5 italic">
-                          Lance a leitura a partir dos 90° — os 90° já estão incluídos no cálculo.
+                          Digite a leitura do goniômetro; o sistema soma 90°.
                         </p>
                       )}
                     </td>
@@ -560,6 +564,9 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                         onChange={(e) => handleChange(metric, "left", e.target.value)}
                         placeholder="°"
                       />
+                      {v.left !== "" && hintE && (
+                        <p className={`text-[10px] mt-1 text-center ${invE ? "text-red-400" : "text-[hsl(var(--bio-ink-muted))]"}`}>{hintE}</p>
+                      )}
                     </td>
                     <td className="p-3">
                       <Input
@@ -569,10 +576,14 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                         onChange={(e) => handleChange(metric, "right", e.target.value)}
                         placeholder="°"
                       />
+                      {v.right !== "" && hintD && (
+                        <p className={`text-[10px] mt-1 text-center ${invD ? "text-red-400" : "text-[hsl(var(--bio-ink-muted))]"}`}>{hintD}</p>
+                      )}
                     </td>
                   </tr>
                 );
               })}
+
             </tbody>
           </table>
         </div>
