@@ -141,6 +141,13 @@
       "when": 1789826344673,
       "tag": "0019_allow_reveal_cpf_service_audit_operacao",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789988107505,
+      "tag": "0020_audit_log_operacao_check_amplia_valores",
+      "breakpoints": true
     }
   ]
 }
