@@ -122,8 +122,8 @@ Deno.serve(async (req) => {
     // A tokenização é comum aos dois fluxos; descobre o que o aluno tentava
     // comprar olhando a tentativa aberta mais recente.
     let fluxoFinal: "loja" | "corrida" = fluxo;
-    let pedidoRef = pedidoRef;
-    let vendaRef = vendaRef;
+    let pedidoRef = pedidoId;
+    let vendaRef = vendaId;
     if (!pedidoRef && !vendaRef && alunoId) {
       const desde2h = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const [{ data: p }, { data: v }] = await Promise.all([
