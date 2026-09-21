@@ -25,6 +25,9 @@ import {
   arrayReferencia,
   classificarAssimetria,
   getMetricDisplayLabel,
+  METRICA_QUADRICEPS,
+  quadricepsEntradaParaValor,
+  quadricepsValorParaEntrada,
   type MetricInput,
   type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
@@ -306,8 +309,11 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
     () =>
       ALL_FUNCTIONAL_METRICS.map((metric) => {
         const v = values[metric] || { left: "", right: "" };
-        const l = parseInt(v.left);
-        const r = parseInt(v.right);
+        const lRaw = parseInt(v.left);
+        const rRaw = parseInt(v.right);
+        // Quadríceps: o campo recebe a leitura a partir dos 90°; salva o valor absoluto.
+        const l = !isNaN(lRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(lRaw) : lRaw;
+        const r = !isNaN(rRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(rRaw) : rRaw;
         return {
           metric,
           left: !isNaN(l) ? l : null,
@@ -331,10 +337,12 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
   function abrirEdicao(row: MobilidadeRow) {
     const v: Record<string, { left: string; right: string }> = {};
     row.metricas.forEach((m) => {
-      v[m.metric] = {
-        left: m.left !== null && m.left !== undefined ? String(m.left) : "",
-        right: m.right !== null && m.right !== undefined ? String(m.right) : "",
-      };
+      // Quadríceps: o valor salvo é absoluto; o campo mostra a leitura a partir dos 90°.
+      const ajuste = (val: number | null | undefined) =>
+        val !== null && val !== undefined
+          ? String(m.metric === METRICA_QUADRICEPS ? quadricepsValorParaEntrada(val) : val)
+          : "";
+      v[m.metric] = { left: ajuste(m.left), right: ajuste(m.right) };
     });
     setValues(v);
     setData(row.data);
@@ -538,6 +546,11 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
                   <tr key={metric} className="border-b border-[hsl(var(--bio-line))]">
                     <td className="p-3">
                       <p className="text-sm text-[hsl(var(--bio-ink))]">{getMetricDisplayLabel(metric)}</p>
+                      {metric === METRICA_QUADRICEPS && (
+                        <p className="text-[10px] text-[hsl(var(--bio-ink-muted))] mt-0.5 italic">
+                          Lance a leitura a partir dos 90° — os 90° já estão incluídos no cálculo.
+                        </p>
+                      )}
                     </td>
                     <td className="p-3">
                       <Input

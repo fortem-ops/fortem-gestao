@@ -131,6 +131,24 @@ export function metricaInvertida(metric: string): boolean {
 }
 
 /**
+ * Flexibilidade Quadríceps: a leitura do goniômetro é feita a partir dos 90°
+ * de flexão do joelho. As faixas de classificação e a base de referência usam o
+ * valor absoluto, então o lançamento soma os 90° automaticamente.
+ */
+export const METRICA_QUADRICEPS = "Flexibilidade Quadríceps";
+export const QUADRICEPS_OFFSET_GRAUS = 90;
+
+/** Leitura do goniômetro (a partir de 90°) → valor absoluto salvo/classificado. */
+export function quadricepsEntradaParaValor(leitura: number): number {
+  return leitura + QUADRICEPS_OFFSET_GRAUS;
+}
+
+/** Valor absoluto salvo → leitura do goniômetro exibida no campo (edição). */
+export function quadricepsValorParaEntrada(valor: number): number {
+  return valor - QUADRICEPS_OFFSET_GRAUS;
+}
+
+/**
  * Percentil do valor do aluno dentro da base interna Fortem (por métrica/sexo,
  * segmentado por faixa etária quando disponível).
  * Requer amostra mínima de 15 (mesmo limiar usado na Força) para evitar percentil
