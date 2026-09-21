@@ -141,13 +141,14 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
   }
 
   const handleExport = () => {
-    if (isFuncional) {
+    if (temMetricas) {
       const rows = metricasFromJson.map(m => ({
-        label: m.metric,
+        label: getMetricDisplayLabel(m.metric),
         left: m.left !== null ? `${m.left}°` : "—",
-        leftClass: m.leftClass || "—",
+        leftClass: "",
         right: m.right !== null ? `${m.right}°` : "—",
-        rightClass: m.rightClass || "—",
+        rightClass: "",
+        diff: textoAssimetria(m.metric, m.left, m.right),
       }));
       exportAssessmentPDF({
         student,
@@ -179,11 +180,6 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
     }
   };
 
-  // Build classifications map for body diagram (functional only)
-  const diagramClassifications: Record<string, { left: AssessmentClassification | null; right: AssessmentClassification | null }> = {};
-  metricasFromJson.forEach(m => {
-    diagramClassifications[m.metric] = { left: m.leftClass, right: m.rightClass };
-  });
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) setEditing(false); onOpenChange(o); }}>
