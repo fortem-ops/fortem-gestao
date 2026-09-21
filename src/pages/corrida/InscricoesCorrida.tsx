@@ -242,6 +242,9 @@ function ProgressoSection({ inscricao }: { inscricao: Inscricao }) {
               </div>
             </div>
           )}
+          {pagamentoPendente && inscricao.venda_id && (
+            <GerarLinkPagamento vendaId={inscricao.venda_id} />
+          )}
         </div>
 
         <div className="flex items-center justify-between p-3">
