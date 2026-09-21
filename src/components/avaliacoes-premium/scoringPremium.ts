@@ -43,9 +43,6 @@ export function scoreComposicaoFromBF(bf: number, sexo: "M" | "F"): number {
 }
 
 export interface PremiumJustificativas {
-  indiceFortem: string;
-  mobilidade: string;
-  flexibilidade: string;
   forca: string;
   composicao: string;
   assimetria: string;
@@ -53,9 +50,6 @@ export interface PremiumJustificativas {
 }
 
 export interface PremiumScores {
-  indiceFortem: number | null;
-  mobilidade: number | null;
-  flexibilidade: number | null;
   forca: number | null;
   composicao: number | null;
   assimetria: number | null;   // 0–100 (100 = sem assimetria)
@@ -80,30 +74,10 @@ export function computePremiumScores(
     esquerdo_kg: e.esquerdo_kg,
   }));
 
-  // Analyses isoladas por camada — mobilidade aproveita a já calculada em "mobility",
-  // flexibilidade idem; força usa computeForcaScore direto.
-  const analysisMobility = analyze(metrics, "mobility", forcaInputs, sexo, referenceData, faixaEtaria);
-  const analysisFlex = analyze(metrics, "flexibility", forcaInputs, sexo, referenceData, faixaEtaria);
   const analysisAsym = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData, faixaEtaria);
   const analysisQualityBase = analyze(metrics, "asymmetry", forcaInputs, sexo, referenceData, faixaEtaria);
   const analysisQuality =
     forcaInputs.length > 0 ? applyForcaToRegions(analysisQualityBase, forcaInputs) : analysisQualityBase;
-
-  const mobilidade = analysisMobility.scoreMobilidade;
-  // Re-aproveita scoreMobilidade do analyze por "flexibility" (calcula sobre regiões mobilityRegions
-  // — não ideal, então derivamos próprio das métricas flex).
-  const flexMetrics = metrics.filter((m) =>
-    /Flexibilidade/i.test(m.metric),
-  );
-  const flexScores: number[] = [];
-  flexMetrics.forEach((m) => {
-    const map: Record<string, number> = { Excelente: 100, Bom: 85, Médio: 70, Regular: 50, Fraco: 25 };
-    if (m.leftClass) flexScores.push(map[m.leftClass]);
-    if (m.rightClass) flexScores.push(map[m.rightClass]);
-  });
-  const flexibilidade = flexScores.length
-    ? Math.round(flexScores.reduce((a, b) => a + b, 0) / flexScores.length)
-    : null;
 
   const forca = computeForcaScore(forcaInputs);
   const composicaoScore = composicao
@@ -118,38 +92,8 @@ export function computePremiumScores(
   const riskRaw = Math.max(0, 100 - sev * 25 - mod * 10 - chains * 8);
   const risco = metrics.length > 0 ? riskRaw : null;
 
-  // Índice Fortem ponderado (entradas null não pesam)
-  const buckets: Array<[number | null, number]> = [
-    [mobilidade, 0.25],
-    [flexibilidade, 0.2],
-    [forca, 0.25],
-    [composicaoScore, 0.15],
-    [risco, 0.15],
-  ];
-  let s = 0, w = 0;
-  for (const [v, peso] of buckets) {
-    if (v === null) continue;
-    s += v * peso;
-    w += peso;
-  }
-  const indiceFortem = w > 0 ? Math.round(s / w) : null;
-
   const semDados = "Sem dados suficientes para cálculo. Realize uma avaliação funcional/composição.";
-  const mobMetricsN = metrics.filter((m) => /Mobilidade/i.test(m.metric)).length;
-  const componentesUsados = buckets.filter(([v]) => v !== null).length;
   const justificativas: PremiumJustificativas = {
-    indiceFortem:
-      indiceFortem === null
-        ? semDados
-        : `Média ponderada de mobilidade (25%), força (25%), flexibilidade (20%), composição (15%) e risco (15%). Componentes considerados: ${componentesUsados} de 5.`,
-    mobilidade:
-      mobilidade === null
-        ? semDados
-        : `Calculado a partir de ${mobMetricsN} métrica(s) de mobilidade funcional. Score médio das regiões avaliadas.`,
-    flexibilidade:
-      flexibilidade === null
-        ? semDados
-        : `Média de ${flexMetrics.length} teste(s) de flexibilidade (Excelente=100, Bom=85, Médio=70, Regular=50, Fraco=25).`,
     forca:
       forca === null
         ? semDados
@@ -169,9 +113,6 @@ export function computePremiumScores(
   };
 
   return {
-    indiceFortem,
-    mobilidade,
-    flexibilidade,
     forca,
     composicao: composicaoScore,
     assimetria,

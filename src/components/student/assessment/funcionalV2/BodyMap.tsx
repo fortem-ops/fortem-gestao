@@ -17,8 +17,6 @@ interface Props {
    * regiões continuam usando `analysis` (dependente da camada), isso é intencional.
    */
   canonical?: {
-    geral: number | null;
-    mobilidade: number | null;
     simetria: number | null;
     estabilidade: number | null;
     forca: number | null;
@@ -194,7 +192,6 @@ function RingsPanel({ rings }: { rings: NonNullable<Props["rings"]> }) {
 function ScoreRingsPanel({ canonical, analysis }: { canonical?: Props["canonical"]; analysis: BodyMapAnalysis }) {
   return (
     <div className="flex items-center gap-4 flex-wrap">
-      <ScoreRing value={canonical ? canonical.mobilidade : analysis.scoreMobilidade} label="Mobilidade" />
       <ScoreRing value={canonical ? canonical.simetria : analysis.scoreSimetria} label="Simetria" />
       <ScoreRing value={canonical ? canonical.estabilidade : analysis.scoreEstabilidade} label="Estabilidade" />
       <ScoreRing value={canonical ? canonical.forca : analysis.scoreForca} label="Força" />
