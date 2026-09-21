@@ -2,10 +2,45 @@ import { describe, it, expect } from "vitest";
 import {
   quadricepsEntradaParaValor,
   quadricepsValorParaEntrada,
+  normalizarEntradaQuadriceps,
+  textoAuxiliarQuadriceps,
   QUADRICEPS_OFFSET_GRAUS,
   METRICA_QUADRICEPS,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { classifyAngle } from "@/lib/mock-data";
+
+describe("normalizarEntradaQuadriceps — regra única de entrada", () => {
+  it("soma 90° quando o valor digitado é leitura do goniômetro", () => {
+    expect(normalizarEntradaQuadriceps(70)).toEqual({ ok: true, valor: 160, somou: true });
+    expect(normalizarEntradaQuadriceps(89)).toEqual({ ok: true, valor: 179, somou: true });
+  });
+
+  it("recusa a faixa implausível de 90° a 99°", () => {
+    expect(normalizarEntradaQuadriceps(90).ok).toBe(false);
+    expect(normalizarEntradaQuadriceps(99).ok).toBe(false);
+  });
+
+  it("mantém o valor clínico a partir de 100°", () => {
+    expect(normalizarEntradaQuadriceps(100)).toEqual({ ok: true, valor: 100, somou: false });
+    expect(normalizarEntradaQuadriceps(160)).toEqual({ ok: true, valor: 160, somou: false });
+  });
+
+  it("é idempotente: valor já clínico não ganha outros 90° na edição", () => {
+    const salvo = normalizarEntradaQuadriceps(70);
+    if (!salvo.ok) throw new Error("esperado ok");
+    const leitura = quadricepsValorParaEntrada(salvo.valor); // edição mostra a leitura
+    expect(leitura).toBe(70);
+    expect(normalizarEntradaQuadriceps(leitura)).toEqual({ ok: true, valor: 160, somou: true });
+    expect(normalizarEntradaQuadriceps(salvo.valor)).toEqual({ ok: true, valor: 160, somou: false });
+  });
+
+  it("texto auxiliar mostra a conta", () => {
+    expect(textoAuxiliarQuadriceps(70)).toBe("Leitura 70° → valor clínico 160°");
+    expect(textoAuxiliarQuadriceps(160)).toBe("Valor clínico 160°");
+    expect(textoAuxiliarQuadriceps(95)).toMatch(/confira o valor/);
+  });
+});
+
 
 describe("Flexibilidade Quadríceps — offset de 90° no lançamento", () => {
   it("soma 90° à leitura do goniômetro", () => {
