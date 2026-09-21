@@ -162,6 +162,8 @@ export function ComparativoTab({ data, alunoId }: Props) {
   const autoFunc = { A: data.funcional.history[1] ?? null, B: data.funcional.history[0] ?? null };
   const autoComp = { A: data.composicao.history[1] ?? null, B: data.composicao.history[0] ?? null };
   const autoPlio = { A: data.pliometria.history[1] ?? null, B: data.pliometria.history[0] ?? null };
+  const autoDataA = autoFunc.A?.data ?? autoComp.A?.data ?? autoPlio.A?.data ?? null;
+  const autoDataB = autoFunc.B?.data ?? autoComp.B?.data ?? autoPlio.B?.data ?? null;
 
   // --- Modo DATAS: escolhe A/B e cada categoria pega o mais próximo ---
   const datasFuncA = nearest(data.funcional.history, dataA);
