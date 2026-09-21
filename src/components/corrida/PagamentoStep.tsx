@@ -46,6 +46,11 @@ interface Props {
   onVoltar: () => void;
   pedido: PedidoCriado | null;
   setPedido: (p: PedidoCriado | null) => void;
+  /**
+   * Link público de pagamento (/corrida/pagamento/:token): a venda e o contrato
+   * já existem — nenhum pedido novo é criado e o parcelamento já está definido.
+   */
+  modoLink?: { pixDisponivel: boolean } | null;
 }
 
 type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "pix" | "sucesso" | "erro";
@@ -117,16 +122,19 @@ const PagamentoStep = ({
   onVoltar,
   pedido,
   setPedido,
+  modoLink = null,
 }: Props) => {
   const rotaPedido = String(payloadPedido.rota ?? "");
   const periodoPedido = String(payloadPedido.periodo ?? "");
   const maxParcelas =
     periodoPedido === "semestral" ? 6 : rotaPedido === "prospect" ? 12 : 10;
-  const parcelamentoDisponivel =
-    rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
+  const parcelamentoDisponivel = modoLink
+    ? false
+    : rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
   /** Pix à vista: apenas Semestral e Anual (Mensal é recorrência no cartão). */
-  const pixDisponivel =
-    rotaPedido !== "somente_provas" && (periodoPedido === "semestral" || periodoPedido === "anual");
+  const pixDisponivel = modoLink
+    ? modoLink.pixDisponivel
+    : rotaPedido !== "somente_provas" && (periodoPedido === "semestral" || periodoPedido === "anual");
   const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
 
@@ -170,6 +178,8 @@ const PagamentoStep = ({
   const criarPedido = useCallback(
     async (dp: DadosPessoaisPagamento, parcelasSel?: number): Promise<PedidoCriado | null> => {
       if (pedido) return pedido;
+      // no link público o pedido já existe; nunca criar outro
+      if (modoLink) return null;
       if (criandoRef.current) return null;
       criandoRef.current = true;
       setErro(null);
@@ -209,7 +219,7 @@ const PagamentoStep = ({
         criandoRef.current = false;
       }
     },
-    [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas, inscricaoId],
+    [payloadPedido, pedido, setPedido, idempotencyKey, parcelamentoDisponivel, parcelasEscolhidas, inscricaoId, modoLink],
   );
 
 
@@ -258,20 +268,22 @@ const PagamentoStep = ({
       setLoading(true);
       try {
         const { data, error } = await supabase.functions.invoke("corrida-criar-pix", {
-          body: {
-            ...payloadPedido,
-            inscricaoId: inscricaoId ?? null,
-            parcelas: 1,
-            idempotency_key: idempotencyKey,
-            dadosPessoais: {
-              nome: dados.nome.trim(),
-              sobrenome: dados.sobrenome.trim(),
-              email: dados.email.trim(),
-              cpf: dados.cpf.replace(/\D/g, ""),
-              telefone: dados.telefone.trim(),
-              data_nascimento: dados.data_nascimento,
+          body: modoLink
+            ? { venda_id: p.venda_id }
+            : {
+              ...payloadPedido,
+              inscricaoId: inscricaoId ?? null,
+              parcelas: 1,
+              idempotency_key: idempotencyKey,
+              dadosPessoais: {
+                nome: dados.nome.trim(),
+                sobrenome: dados.sobrenome.trim(),
+                email: dados.email.trim(),
+                cpf: dados.cpf.replace(/\D/g, ""),
+                telefone: dados.telefone.trim(),
+                data_nascimento: dados.data_nascimento,
+              },
             },
-          },
         });
         if (error || !data?.ok || !data?.pix_copia_cola) {
           throw new Error(data?.error ?? "falha_criar_cobranca_pix");
@@ -294,7 +306,7 @@ const PagamentoStep = ({
         setLoading(false);
       }
     },
-    [payloadPedido, inscricaoId, idempotencyKey, dados, acompanharPix],
+    [payloadPedido, inscricaoId, idempotencyKey, dados, acompanharPix, modoLink],
   );
 
   const iniciarPix = async () => {
@@ -325,7 +337,7 @@ const PagamentoStep = ({
       const { data, error } = await supabase.functions.invoke("corrida-aceitar-contrato", {
         body: {
           contratos_documentos_ids: pedido.contratos_documentos_ids,
-          formato_aceite: "checkout_corrida",
+          formato_aceite: modoLink ? "link_pagamento_corrida" : "checkout_corrida",
         },
       });
       if (error || !data?.ok) throw new Error(data?.error ?? "falha");
@@ -770,7 +782,7 @@ const PagamentoStep = ({
 
       {erro && <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">{erro}</div>}
 
-      {fase !== "confirmando" && fase !== "cobrando" && (
+      {!modoLink && fase !== "confirmando" && fase !== "cobrando" && (
         <div className="pt-2">
           <button
             onClick={onVoltar}

@@ -1,4 +1,7 @@
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Link2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, Database } from "@/integrations/supabase/types";
@@ -143,9 +146,51 @@ function InscricaoBadge({ inscricao }: { inscricao: Inscricao }) {
   return <StatusBadge label="Inscrição pendente" state="warning" />;
 }
 
+function GerarLinkPagamento({ vendaId }: { vendaId: string }) {
+  const [gerando, setGerando] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+
+  async function gerar() {
+    setGerando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("corrida-criar-link-pagamento", {
+        body: { venda_id: vendaId },
+      });
+      if (error || !data?.ok || !data?.url) throw new Error(data?.error ?? "falha");
+      setUrl(String(data.url));
+      try {
+        await navigator.clipboard.writeText(String(data.url));
+        setCopiado(true);
+        toast.success("Link copiado!");
+      } catch {
+        toast.success("Link gerado. Copie o endereço abaixo.");
+      }
+    } catch {
+      toast.error("Não foi possível gerar o link de pagamento.");
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  return (
+    <div className="pl-7 space-y-2">
+      <Button size="sm" variant="outline" onClick={gerar} disabled={gerando}>
+        {gerando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Link2 className="w-4 h-4 mr-2" />}
+        {copiado ? "Link copiado!" : "Gerar link de pagamento"}
+      </Button>
+      {url && (
+        <p className="text-xs text-muted-foreground break-all">{url}</p>
+      )}
+    </div>
+  );
+}
+
 function ProgressoSection({ inscricao }: { inscricao: Inscricao }) {
   const venda = inscricao.vendas;
   const provas = parseProvas(inscricao.provas);
+  const pagamentoPendente = !!inscricao.venda_id && venda?.status_pagamento !== "pago";
+
 
   return (
     <section className="space-y-3">
@@ -196,6 +241,9 @@ function ProgressoSection({ inscricao }: { inscricao: Inscricao }) {
                 </p>
               </div>
             </div>
+          )}
+          {pagamentoPendente && inscricao.venda_id && (
+            <GerarLinkPagamento vendaId={inscricao.venda_id} />
           )}
         </div>
 
