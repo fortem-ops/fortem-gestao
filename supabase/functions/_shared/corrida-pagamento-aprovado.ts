@@ -65,7 +65,7 @@ export async function processarPagamentoAprovadoCorrida(
   // ---------- link público de pagamento: só encerra com pagamento aprovado ----------
   try {
     await supabase
-      .from("corrida_links_pagamento")
+      .from("links_pagamento")
       .update({ usado_em: new Date().toISOString() })
       .eq("venda_id", vendaId)
       .is("usado_em", null);

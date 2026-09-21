@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
-    console.error("corrida-validar-link-pagamento error:", err);
+    console.error("validar-link-pagamento error:", err);
     return json(500, { ok: false, error: "erro_interno" });
   }
 });
