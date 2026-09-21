@@ -33,25 +33,56 @@ Deno.serve(async (req) => {
     if (!ok) return json(429, { ok: false, error: "muitas_tentativas" });
 
     const body = await req.json().catch(() => ({}));
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    /** Link público de pagamento: a venda já existe, não se cria pedido novo. */
+    const vendaExistenteId = typeof body?.venda_id === "string" && UUID_RE.test(body.venda_id.trim())
+      ? body.venda_id.trim()
+      : null;
+
     const periodo = String(body?.periodo ?? "");
-    if (periodo !== "semestral" && periodo !== "anual") {
+    if (!vendaExistenteId && periodo !== "semestral" && periodo !== "anual") {
       return json(400, { ok: false, error: "pix_indisponivel_para_este_periodo" });
     }
 
     const chavePix = Deno.env.get("INTER_PIX_CHAVE");
     if (!chavePix) return json(500, { ok: false, error: "chave_pix_nao_configurada" });
 
-    // ---------- 1. cria (ou reaproveita, via idempotency_key) o pedido ----------
-    const criarResp = await admin.functions.invoke("corrida-criar-pedido", { body });
-    const pedido: any = criarResp?.data ?? null;
-    if (criarResp?.error || !pedido?.ok || !pedido?.venda_id) {
-      console.error("[corrida-criar-pix] falha ao criar pedido:", String(criarResp?.error ?? pedido?.error ?? ""));
-      return json(200, { ok: false, error: "falha_criar_pedido" });
+    let vendaId: string;
+    let contratoId: string | null = null;
+    let alunoId: string | null = null;
+
+    if (vendaExistenteId) {
+      const { data: vendaLink } = await admin
+        .from("vendas")
+        .select("id, aluno_id, plano_id")
+        .eq("id", vendaExistenteId)
+        .maybeSingle();
+      if (!vendaLink) return json(200, { ok: false, error: "venda_nao_encontrada" });
+      vendaId = vendaLink.id;
+      alunoId = vendaLink.aluno_id ?? null;
+      const { data: contratoLink } = vendaLink.plano_id
+        ? await admin
+          .from("contratos")
+          .select("id")
+          .eq("plano_id", vendaLink.plano_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        : { data: null as any };
+      contratoId = contratoLink?.id ?? null;
+    } else {
+      // ---------- 1. cria (ou reaproveita, via idempotency_key) o pedido ----------
+      const criarResp = await admin.functions.invoke("corrida-criar-pedido", { body });
+      const pedido: any = criarResp?.data ?? null;
+      if (criarResp?.error || !pedido?.ok || !pedido?.venda_id) {
+        console.error("[corrida-criar-pix] falha ao criar pedido:", String(criarResp?.error ?? pedido?.error ?? ""));
+        return json(200, { ok: false, error: "falha_criar_pedido" });
+      }
+      vendaId = pedido.venda_id;
+      contratoId = pedido.contrato_id ?? null;
+      alunoId = pedido.aluno_id ?? null;
     }
 
-    const vendaId: string = pedido.venda_id;
-    const contratoId: string | null = pedido.contrato_id ?? null;
-    const alunoId: string | null = pedido.aluno_id ?? null;
 
     const { data: venda } = await admin
       .from("vendas")
