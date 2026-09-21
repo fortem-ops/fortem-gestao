@@ -401,6 +401,16 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
       toast.error("Preencha ao menos uma métrica antes de salvar");
       return;
     }
+    const q = values[METRICA_QUADRICEPS];
+    const quadInvalido = (["left", "right"] as const).some((lado) => {
+      const txt = q?.[lado] ?? "";
+      return txt !== "" && !normalizarEntradaQuadriceps(parseInt(txt)).ok;
+    });
+    if (quadInvalido) {
+      toast.error(QUADRICEPS_MENSAGEM_INVALIDA);
+      return;
+    }
+
     setSaving(true);
     try {
       const dataFinal = data || todayISO();
