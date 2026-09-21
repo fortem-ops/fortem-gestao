@@ -224,7 +224,7 @@ export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefine
         (r) => r.tipo === "funcional" || r.tipo === "kinology" || r.tipo === "funcional_v2",
       );
       const funcHistory = removerDuplicadas(
-        funcRows.map(parseFuncional).filter((x): x is FuncionalSnapshot => !!x),
+        mesclarPorData(funcRows.map(parseFuncional).filter((x): x is FuncionalSnapshot => !!x)),
         chaveFuncional,
         (s) => s.metricas.length + s.forca.length * 10,
       );
