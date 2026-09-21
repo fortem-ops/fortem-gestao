@@ -71,8 +71,8 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
     const result: Record<string, { left: AssessmentClassification | null; right: AssessmentClassification | null }> = {};
     functionalMetrics.forEach(metric => {
       const v = values[metric] || { left: '', right: '' };
-      const leftNum = parseInt(v.left);
-      const rightNum = parseInt(v.right);
+      const leftNum = normQuad(metric, parseInt(v.left));
+      const rightNum = normQuad(metric, parseInt(v.right));
       result[metric] = {
         left: !isNaN(leftNum) ? classifyAngle(metric, leftNum) : null,
         right: !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null,
@@ -83,8 +83,8 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
 
   const buildRows = () => functionalMetrics.map(metric => {
     const v = values[metric] || { left: '', right: '' };
-    const leftNum = parseInt(v.left);
-    const rightNum = parseInt(v.right);
+    const leftNum = normQuad(metric, parseInt(v.left));
+    const rightNum = normQuad(metric, parseInt(v.right));
     return {
       metric,
       left: !isNaN(leftNum) ? leftNum : null,
@@ -93,6 +93,7 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
       rightClass: !isNaN(rightNum) ? classifyAngle(metric, rightNum) : null,
     };
   });
+
 
   const handleSave = async () => {
     if (!user) {
