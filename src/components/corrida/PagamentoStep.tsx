@@ -47,10 +47,11 @@ interface Props {
   pedido: PedidoCriado | null;
   setPedido: (p: PedidoCriado | null) => void;
   /**
-   * Link público de pagamento (/corrida/pagamento/:token): a venda e o contrato
+   * Link público de pagamento (/pagamento/:token): a venda e o contrato
    * já existem — nenhum pedido novo é criado e o parcelamento já está definido.
+   * `origem` define a cadeia de cobrança: Corrida (própria) ou venda genérica.
    */
-  modoLink?: { pixDisponivel: boolean } | null;
+  modoLink?: { pixDisponivel: boolean; origem?: "corrida" | "generica"; token?: string } | null;
 }
 
 type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "pix" | "sucesso" | "erro";
