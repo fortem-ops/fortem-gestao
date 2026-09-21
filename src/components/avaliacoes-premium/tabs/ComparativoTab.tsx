@@ -187,6 +187,8 @@ export function ComparativoTab({ data, alunoId }: Props) {
   const datasPlioA = nearest(data.pliometria.history, dataA);
   const datasPlioB = nearest(data.pliometria.history, dataB);
 
+  const assimetriaItens = useMemo(() => listarItensAssimetria(data.funcional.history), [data.funcional.history]);
+
   // --- Modo INTERVALO: filtra pontos dentro do range ---
   const filtro = (dt: string) =>
     (!intervaloDe || dt >= intervaloDe) && (!intervaloAte || dt <= intervaloAte);
@@ -203,6 +205,9 @@ export function ComparativoTab({ data, alunoId }: Props) {
         const c = data.composicao.history.find((x) => x.data === dt) ?? null;
         const p = data.pliometria.history.find((x) => x.data === dt) ?? null;
         const s = computePremiumScores(f, c);
+        const assimetrias = Object.fromEntries(
+          assimetriaItens.map((item) => [item.key, valorAssimetria(f, item)]),
+        );
         return {
           data: format(parseISO(dt), "dd/MM/yy"),
           indice: s.indiceFortem,
@@ -211,15 +216,14 @@ export function ComparativoTab({ data, alunoId }: Props) {
           composicao: s.composicao,
           bf: c?.bf ?? null,
           salto: p?.salto_vertical ?? null,
+          ...assimetrias,
         };
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modo, intervaloDe, intervaloAte, data]);
+  }, [modo, intervaloDe, intervaloAte, data, assimetriaItens]);
 
   // Warnings quando o snapshot mais próximo diverge muito da data alvo
   const AVISO_DIAS = 7;
-
-  const assimetriaItens = useMemo(() => listarItensAssimetria(data.funcional.history), [data.funcional.history]);
 
   const aplicarSalvo = (c: ComparativoSalvo) => {
     setModo(c.modo);
