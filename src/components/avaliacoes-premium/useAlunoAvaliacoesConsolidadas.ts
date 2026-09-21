@@ -136,6 +136,37 @@ function removerDuplicadas<T extends { data: string }>(
   return mantidos;
 }
 
+/** Quantos campos úteis uma métrica traz (left/right preenchidos). */
+const riquezaMetrica = (m: MetricInput) =>
+  (m.left !== null && m.left !== undefined ? 1 : 0) + (m.right !== null && m.right !== undefined ? 1 : 0);
+
+/**
+ * Junta registros funcionais da MESMA data em uma única avaliação: mobilidade
+ * gravada num registro e força em outro passam a formar uma leitura só.
+ * Espera `history` ordenado da mais recente para a mais antiga (por data/created_at).
+ */
+function mesclarPorData(history: FuncionalSnapshot[]): FuncionalSnapshot[] {
+  const porData = new Map<string, { metricas: Map<string, MetricInput>; forca: ForcaSavedRow[]; data: string }>();
+  for (const snap of history) {
+    let acc = porData.get(snap.data);
+    if (!acc) {
+      acc = { metricas: new Map(), forca: [], data: snap.data };
+      porData.set(snap.data, acc);
+    }
+    for (const m of snap.metricas) {
+      const existente = acc.metricas.get(m.metric);
+      // `history` vem do mais recente para o mais antigo: só substitui se o novo for mais rico.
+      if (!existente || riquezaMetrica(m) > riquezaMetrica(existente)) acc.metricas.set(m.metric, m);
+    }
+    if (acc.forca.length === 0 && snap.forca.length > 0) acc.forca = snap.forca;
+  }
+  return [...porData.values()].map((acc) => ({
+    data: acc.data,
+    metricas: [...acc.metricas.values()],
+    forca: acc.forca,
+  }));
+}
+
 const chaveFuncional = (s: FuncionalSnapshot) =>
   JSON.stringify(
     [...s.metricas]
