@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
+import { resolverStatusTokenizacao } from "../_shared/rede-brand-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,15 +34,19 @@ Deno.serve(async (req) => {
 
     const { data: tok, error } = await admin
       .from("rede_tokenizacoes")
-      .select("status, cartao_salvo_id")
+      .select("status, cartao_salvo_id, raw_response")
       .eq("tokenization_id", tokenizationId)
       .maybeSingle();
 
     if (error) throw error;
     if (!tok) return json(404, { error: "nao_encontrado" });
 
+    // "pending" com resposta definitiva da bandeira (tokenStatus Unavailable /
+    // Deleted) não é demora: é recusa. Reportar como tal em vez de esperar.
+    const status = resolverStatusTokenizacao(tok.status, tok.raw_response);
+
     // resposta mínima: nada do titular do cartão é exposto
-    return json(200, { status: tok.status, cartao_salvo_id: tok.cartao_salvo_id ?? null });
+    return json(200, { status, cartao_salvo_id: tok.cartao_salvo_id ?? null });
   } catch (err) {
     console.error("corrida-status-tokenizacao error:", err);
     return json(500, { error: "erro_interno" });

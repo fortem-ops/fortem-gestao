@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/loja-rate-limit.ts";
+import { resolverStatusTokenizacao } from "../_shared/rede-brand-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,7 +34,7 @@ Deno.serve(async (req) => {
 
     const { data: tok, error } = await admin
       .from("rede_tokenizacoes")
-      .select("status, cartao_salvo_id")
+      .select("status, cartao_salvo_id, raw_response")
       .eq("tokenization_id", tokenizationId)
       .maybeSingle();
 
@@ -42,7 +43,11 @@ Deno.serve(async (req) => {
 
     // "active" só é reportado quando o cartão já foi efetivamente salvo,
     // evitando corrida com o webhook que grava o cartão e libera o link.
-    const status = tok.status === "active" && !tok.cartao_salvo_id ? "pending" : tok.status;
+    const bruto = tok.status === "active" && !tok.cartao_salvo_id ? "pending" : tok.status;
+
+    // "pending" com resposta definitiva da bandeira (tokenStatus Unavailable /
+    // Deleted) não é demora: é recusa. Reportar como tal em vez de esperar.
+    const status = resolverStatusTokenizacao(bruto, tok.raw_response);
 
     // resposta mínima: nada do titular do cartão é exposto
     return json(200, { status, cartao_salvo_id: tok.cartao_salvo_id ?? null });
