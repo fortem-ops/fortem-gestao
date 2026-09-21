@@ -183,7 +183,11 @@ export function montarResumoPortal(medidas: PortalMedida[]): PortalResumo {
     };
   }
   const maior = pontos[0];
-  const outras = equilibradas === 1 ? "A outra medida está equilibrada." : `As outras ${equilibradas} medidas estão equilibradas.`;
+  const outras = equilibradas === 0
+    ? "Nenhuma das demais medidas está equilibrada."
+    : equilibradas === 1
+      ? "A outra medida está equilibrada."
+      : `As outras ${equilibradas} medidas estão equilibradas.`;
   return {
     titulo: `${pontos.length} ${pontos.length === 1 ? "ponto" : "pontos"} para acompanhar`,
     frase: `A maior diferença entre os lados está em ${maior.nome}. ${outras}`,

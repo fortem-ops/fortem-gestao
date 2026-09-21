@@ -241,7 +241,7 @@ function EmptyLine({ children }: { children: ReactNode }) {
 function PortalBodyMap({ snapshot }: { snapshot: NonNullable<ConsolidadoAluno["funcional"]["latest"]> }) {
   const { shapesMap } = useBodyMapShapes();
   const [layer, setLayer] = useState<Layer>("mobility");
-  const [view, setView] = useState<"front" | "back">("front");
+  const [view, setView] = useState<"both" | "front" | "back">("both");
   const layers: Array<{ id: Layer; label: string }> = [
     { id: "mobility", label: "Mobilidade" },
     { id: "flexibility", label: "Flexibilidade" },
@@ -249,11 +249,12 @@ function PortalBodyMap({ snapshot }: { snapshot: NonNullable<ConsolidadoAluno["f
   ];
   return (
     <section className="bodymap-surface min-w-0 overflow-hidden rounded-2xl p-3">
-      <div className="mb-3 flex gap-1 overflow-x-auto pb-1">
+      <div className="mb-3 flex gap-1 pb-1">
         {layers.map((item) => <button key={item.id} onClick={() => setLayer(item.id)} className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-2 text-xs font-semibold ${layer === item.id ? "bg-white text-black" : "bg-white/5 text-white/60"}`}>{item.label}</button>)}
       </div>
       <BodyMapSVG viewFilter={view} layer={layer} metrics={snapshot.metricas} forcaExercises={snapshot.forca} shapesMap={shapesMap} />
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <button onClick={() => setView("both")} className={`min-h-11 rounded-xl text-xs font-semibold ${view === "both" ? "bg-white/15 text-white" : "bg-white/5 text-white/50"}`}>Ambas</button>
         <button onClick={() => setView("front")} className={`min-h-11 rounded-xl text-xs font-semibold ${view === "front" ? "bg-white/15 text-white" : "bg-white/5 text-white/50"}`}>Vista anterior</button>
         <button onClick={() => setView("back")} className={`min-h-11 rounded-xl text-xs font-semibold ${view === "back" ? "bg-white/15 text-white" : "bg-white/5 text-white/50"}`}>Vista posterior</button>
       </div>
@@ -340,7 +341,7 @@ function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: number
   const markers = [{ label: "E", value: measure.esquerdo, color: "#60a5fa" }, { label: "D", value: measure.direito, color: "#fb923c" }];
   return (
     <div className="rounded-xl bg-secondary/50 p-3">
-      <div className="flex items-start justify-between gap-2"><p className="text-xs font-semibold text-foreground">{measure.nome}</p><p className="shrink-0 text-[10px] text-muted-foreground">P{percentilMobilidade(base, (measure.esquerdo + measure.direito) / 2)}</p></div>
+      <div className="flex items-start justify-between gap-2"><p className="text-xs font-semibold text-foreground">{measure.nome}</p><p className="shrink-0 text-[10px] text-muted-foreground">E P{percentilMobilidade(base, measure.esquerdo)} · D P{percentilMobilidade(base, measure.direito)}</p></div>
       <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-[78px] w-full">
         <polyline points={pts} fill="none" stroke="#8a8a8a" strokeWidth="1.5" />
         {markers.map((marker) => <g key={marker.label}><line x1={x(marker.value)} x2={x(marker.value)} y1="10" y2={baseY} stroke={marker.color} strokeWidth="2" /><text x={x(marker.value)} y="8" textAnchor="middle" fill={marker.color} fontSize="9">{marker.label} {numero(marker.value)}°</text></g>)}
