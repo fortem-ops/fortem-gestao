@@ -8828,6 +8828,17 @@ export type Database = {
         }
         Returns: number
       }
+      fn_mobilidade_referencia_resumo: {
+        Args: never
+        Returns: {
+          desvio: number
+          faixa: string
+          media: number
+          metrica: string
+          n: number
+          sexo: string
+        }[]
+      }
       fn_move_pipeline: {
         Args: {
           _aluno_id: string
