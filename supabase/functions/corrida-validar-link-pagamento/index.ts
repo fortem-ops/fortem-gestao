@@ -78,16 +78,21 @@ Deno.serve(async (req) => {
     if (contratoId) {
       const { data: docs } = await admin
         .from("contratos_documentos")
-        .select("id, aceite, conteudo_gerado, contrato_templates(nome)")
+        .select("id, aceite, conteudo_gerado, template_id")
         .eq("contrato_id", contratoId);
 
-      documentosPendentes = (docs ?? [])
-        .filter((d: any) => !d.aceite)
-        .map((d: any) => ({
-          id: d.id,
-          nome: d.contrato_templates?.nome ?? "Contrato",
-          conteudo_gerado: d.conteudo_gerado ?? "",
-        }));
+      const pendentes = (docs ?? []).filter((d: any) => !d.aceite);
+      const templateIds = [...new Set(pendentes.map((d: any) => d.template_id).filter(Boolean))];
+      const { data: templates } = templateIds.length
+        ? await admin.from("contrato_templates").select("id, nome").in("id", templateIds)
+        : { data: [] as any[] };
+      const nomePorTemplate = new Map((templates ?? []).map((t: any) => [t.id, t.nome]));
+
+      documentosPendentes = pendentes.map((d: any) => ({
+        id: d.id,
+        nome: nomePorTemplate.get(d.template_id) ?? "Contrato",
+        conteudo_gerado: d.conteudo_gerado ?? "",
+      }));
     }
 
     // novo token de checkout do cartão (o original do pedido pode ter expirado)
