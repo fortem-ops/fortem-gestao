@@ -682,7 +682,7 @@ function MiniGraficoAssimetria({ resumo, color, xDomain }: { resumo: AssimetriaR
             tick={{ fontSize: 10 }}
             tickFormatter={(value) => `${value}${resumo.unidade}`}
           />
-          <Tooltip content={<AssimetriaTooltip unidade={resumo.unidade} />} cursor={{ stroke: "hsl(var(--bio-ink-muted))", strokeDasharray: "3 3" }} />
+          <Tooltip content={<AssimetriaTooltip />} cursor={{ stroke: "hsl(var(--bio-ink-muted))", strokeDasharray: "3 3" }} />
           <Line
             type="linear"
             dataKey="valor"
