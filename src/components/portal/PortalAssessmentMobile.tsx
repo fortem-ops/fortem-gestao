@@ -10,10 +10,13 @@ import { useBodyMapShapes } from "@/components/student/assessment/funcionalV2/us
 import {
   analyze,
   ASSIMETRIA_NIVEL_LABEL,
-  arrayReferencia,
   type Layer,
-  type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import {
+  escolherResumoReferencia,
+  type ResumoReferencia,
+  type ResumoReferenciaPortal,
+} from "./referenciaResumoPortal";
 import {
   montarResumoAssimetriaEvolucao,
   type AssimetriaResumoEvolucao,
@@ -39,7 +42,7 @@ interface Props {
   data: ConsolidadoAluno;
   sexo?: "M" | "F";
   faixaEtaria?: FaixaEtaria | null;
-  referenceData?: MobilidadeReferenceData;
+  resumoReferencia?: ResumoReferenciaPortal;
 }
 
 const NIVEL_STYLE: Record<PortalNivel, { text: string; bg: string; stroke: string }> = {
@@ -54,7 +57,7 @@ function numero(value: number, casas = 1): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(casas).replace(".", ",");
 }
 
-export function PortalAssessmentMobile({ data, sexo, faixaEtaria, referenceData }: Props) {
+export function PortalAssessmentMobile({ data, sexo, faixaEtaria, resumoReferencia }: Props) {
   const latest = data.funcional.latest;
   const medidas = useMemo(() => montarMedidasPortal(latest), [latest]);
   const resumo = useMemo(() => montarResumoPortal(medidas), [medidas]);
@@ -76,8 +79,8 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, referenceData 
     [history],
   );
   const analysis = useMemo(
-    () => latest ? analyze(latest.metricas, "asymmetry", latest.forca, sexo, referenceData, faixaEtaria) : null,
-    [latest, sexo, referenceData, faixaEtaria],
+    () => latest ? analyze(latest.metricas, "asymmetry", latest.forca, sexo, undefined, faixaEtaria) : null,
+    [latest, sexo, faixaEtaria],
   );
   const chains = useMemo(() => deduplicarCadeias(analysis?.chains ?? []), [analysis]);
 
@@ -178,7 +181,7 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, referenceData 
           {!sexo ? (
             <EmptyLine>Comparação indisponível: informe o sexo no cadastro.</EmptyLine>
           ) : (
-            <ReferenceCurves measures={medidas.filter((m) => m.camada !== "forca")} sexo={sexo} faixaEtaria={faixaEtaria} referenceData={referenceData} />
+            <ReferenceCurves measures={medidas.filter((m) => m.camada !== "forca")} sexo={sexo} faixaEtaria={faixaEtaria} resumoReferencia={resumoReferencia} />
           )}
         </DetailsCard>
 
@@ -347,20 +350,19 @@ function forceTone(movement: string | null): "melhora" | "piora" | "neutro" {
   return movement === "Ganhou força" ? "melhora" : movement === "Perdeu força" ? "piora" : "neutro";
 }
 
-function ReferenceCurves({ measures, sexo, faixaEtaria, referenceData }: { measures: PortalMedida[]; sexo: "M" | "F"; faixaEtaria?: FaixaEtaria | null; referenceData?: MobilidadeReferenceData }) {
+function ReferenceCurves({ measures, sexo, faixaEtaria, resumoReferencia }: { measures: PortalMedida[]; sexo: "M" | "F"; faixaEtaria?: FaixaEtaria | null; resumoReferencia?: ResumoReferenciaPortal }) {
   const cards = measures.flatMap((measure) => {
-    const bucket = referenceData?.[measure.origem]?.[sexo];
-    const base = arrayReferencia(bucket, faixaEtaria);
+    const base = escolherResumoReferencia(resumoReferencia?.[measure.origem]?.[sexo], faixaEtaria);
     if (!base) return [];
     return [{ measure, base }];
   });
   if (!cards.length) return <EmptyLine>Sem base suficiente para esta faixa.</EmptyLine>;
-  return <div className="space-y-3">{cards.map(({ measure, base }) => <ReferenceCurve key={measure.id} measure={measure} base={base} sexo={sexo} faixaEtaria={faixaEtaria} referenceData={referenceData} />)}</div>;
+  return <div className="space-y-3">{cards.map(({ measure, base }) => <ReferenceCurve key={measure.id} measure={measure} base={base} />)}</div>;
 }
 
-function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: number[]; sexo: "M" | "F"; faixaEtaria?: FaixaEtaria | null; referenceData?: MobilidadeReferenceData }) {
-  const mean = base.reduce((sum, value) => sum + value, 0) / base.length;
-  const sigma = Math.sqrt(base.reduce((sum, value) => sum + (value - mean) ** 2, 0) / base.length) || 1;
+function ReferenceCurve({ measure, base }: { measure: PortalMedida; base: ResumoReferencia }) {
+  const mean = base.media;
+  const sigma = base.desvio || 1;
   const min = Math.max(0, mean - 3 * sigma), max = mean + 3 * sigma;
   const w = 280, h = 78, baseY = 62;
   const x = (v: number) => 8 + ((v - min) / (max - min || 1)) * 264;

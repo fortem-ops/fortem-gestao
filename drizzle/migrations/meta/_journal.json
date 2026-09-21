@@ -162,6 +162,13 @@
       "when": 1790030561507,
       "tag": "0022_validar_quadriceps_avaliacoes",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790033470756,
+      "tag": "0023_portal_leitura_bodymap_e_resumo_referencia",
+      "breakpoints": true
     }
   ]
 }

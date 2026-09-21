@@ -2,17 +2,15 @@ import { Activity, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PortalAssessmentMobile } from "@/components/portal/PortalAssessmentMobile";
-import {
-  useAlunoAvaliacoesConsolidadas,
-  useMobilidadeReferenceData,
-} from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { useAlunoAvaliacoesConsolidadas } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { useMobilidadeResumoReferencia } from "@/components/portal/referenciaResumoPortal";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 
 export default function PortalAssessments() {
   const { student } = useStudentPortal();
   const { data, isLoading } = useAlunoAvaliacoesConsolidadas(student?.id);
-  const { data: referenceData } = useMobilidadeReferenceData();
+  const { data: resumoReferencia } = useMobilidadeResumoReferencia();
 
   if (!student) return null;
 
@@ -57,7 +55,7 @@ export default function PortalAssessments() {
         data={data}
         sexo={sexoDe(student.sexo)}
         faixaEtaria={faixaEtariaDe(student.data_nascimento)}
-        referenceData={referenceData}
+        resumoReferencia={resumoReferencia}
       />
     </div>
   );
