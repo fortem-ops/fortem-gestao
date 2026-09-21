@@ -108,6 +108,10 @@ const lerPedidoPago = (): string | null => {
   }
 };
 
+// Bandeira recusou gerar o token do cartão (brand.tokenStatus Unavailable/Deleted).
+const MSG_RECUSADO_BANDEIRA =
+  "Não foi possível processar este cartão. Tente outro cartão ou outra bandeira.";
+
 type Step = "dados" | "cartao-opcoes" | "cartao-salvo" | "cartao" | "pix" | "sucesso";
 type Metodo = "cartao" | "pix";
 
@@ -433,6 +437,11 @@ const CheckoutFlow = ({ items, subtotal, cupomCodigo = null, desconto = 0, total
       );
       if (error) throw new Error(error.message);
       if (data?.status === "active") return true;
+      // A bandeira respondeu que não vai gerar o token (Unavailable/Deleted):
+      // não adianta continuar esperando.
+      if (data?.status === "recusado_bandeira") {
+        throw new Error(MSG_RECUSADO_BANDEIRA);
+      }
       if (data?.status === "failed" || data?.status === "error") {
         throw new Error(friendlyMessage(data?.return_message));
       }
