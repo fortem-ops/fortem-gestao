@@ -17,6 +17,22 @@ export interface AssimetriaGraficoItem {
   unidade: "°" | "%";
 }
 
+/** Paleta compartilhada para manter a mesma identidade visual entre abas. */
+const ASSIMETRIA_CORES = [
+  "hsl(var(--info))",
+  "hsl(var(--destructive))",
+  "hsl(var(--license))",
+  "hsl(var(--warning))",
+  "hsl(var(--success))",
+  "hsl(var(--sev-weak))",
+  "hsl(var(--sev-medium))",
+  "hsl(var(--sev-excellent))",
+] as const;
+
+export function corAssimetria(indice: number): string {
+  return ASSIMETRIA_CORES[indice % ASSIMETRIA_CORES.length];
+}
+
 function numero(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }

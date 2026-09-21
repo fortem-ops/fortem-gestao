@@ -10,7 +10,12 @@ import {
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { EvolucaoSeletor, type SeletorGrupo } from "./EvolucaoSeletor";
 import { LadoLegendTraco } from "../LadoLegend";
-import { listarItensAssimetria, valorAssimetria, type AssimetriaGraficoItem } from "../assimetriaGrafico";
+import {
+  corAssimetria,
+  listarItensAssimetria,
+  valorAssimetria,
+  type AssimetriaGraficoItem,
+} from "../assimetriaGrafico";
 
 interface Props {
   data: ConsolidadoAluno;
@@ -193,7 +198,7 @@ export function EvolucaoTab({ data }: Props) {
       const series: Serie[] = assimetriasAtivas.map((item, idx) => ({
         key: item.key,
         label: item.label,
-        color: PALETTE[idx % PALETTE.length],
+        color: corAssimetria(idx),
         dashed: item.unidade === "°",
       }));
       const rows = base.map((row) => {
