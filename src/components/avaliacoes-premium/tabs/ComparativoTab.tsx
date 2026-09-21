@@ -28,7 +28,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ComparacoesSalvas, type ComparativoSalvo } from "./ComparacoesSalvas";
 import { SalvarComparacaoDialog } from "./SalvarComparacaoDialog";
 import { ALL_FUNCTIONAL_METRICS, metricaInvertida } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import { listarItensAssimetria, valorAssimetria, type AssimetriaGraficoItem } from "../assimetriaGrafico";
+import {
+  corAssimetria,
+  listarItensAssimetria,
+  valorAssimetria,
+  type AssimetriaGraficoItem,
+} from "../assimetriaGrafico";
 
 interface Props {
   data: ConsolidadoAluno;
@@ -593,7 +598,7 @@ function IntervaloGrafico({
                   type="monotone"
                   dataKey={item.key}
                   name={item.label}
-                  stroke={idx % 2 === 0 ? "hsl(var(--sev-attention))" : "hsl(var(--sev-good))"}
+                  stroke={corAssimetria(idx)}
                   strokeWidth={2}
                   strokeDasharray={item.unidade === "°" ? "5 4" : undefined}
                   connectNulls
