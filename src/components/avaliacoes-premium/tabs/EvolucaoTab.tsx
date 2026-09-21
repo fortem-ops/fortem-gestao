@@ -28,11 +28,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import {
   calcularStatsAssimetria,
-  corAssimetria,
   limiaresAssimetria,
   montarResumoAssimetriaEvolucao,
   selecionarDatasTabela,
-  valorAssimetria,
   type AssimetriaLado,
   type AssimetriaMedidaTipo,
   type AssimetriaPontoEvolucao,
@@ -451,11 +449,10 @@ export function EvolucaoTab({ data }: Props) {
                 <RetratoAssimetria resumos={assimetriasVisiveis} />
               ) : (
                 <div className="grid gap-4 xl:grid-cols-3">
-                  {assimetriasVisiveis.map((resumo, idx) => (
+                  {assimetriasVisiveis.map((resumo) => (
                     <MiniGraficoAssimetria
                       key={resumo.key}
                       resumo={resumo}
-                      color={corAssimetria(idx)}
                       xDomain={domainDatas(selectedFuncDates)}
                     />
                   ))}
@@ -633,7 +630,7 @@ function RetratoAssimetria({ resumos }: { resumos: AssimetriaResumoEvolucao[] })
   );
 }
 
-function MiniGraficoAssimetria({ resumo, color, xDomain }: { resumo: AssimetriaResumoEvolucao; color: string; xDomain: [number, number] }) {
+function MiniGraficoAssimetria({ resumo, xDomain }: { resumo: AssimetriaResumoEvolucao; xDomain: [number, number] }) {
   const maxValor = Math.max(...resumo.pontos.map((p) => p.valor), 0);
   const baseMax = resumo.unidade === "°" ? 8 : 30;
   const yMax = Math.max(baseMax, Math.ceil(maxValor));
@@ -657,15 +654,6 @@ function MiniGraficoAssimetria({ resumo, color, xDomain }: { resumo: AssimetriaR
           <ReferenceArea y1={resumo.corteSevero} y2={yMax} fill="hsl(var(--sev-weak))" fillOpacity={0.12} />
           <ReferenceLine y={resumo.corteModerado} stroke="hsl(var(--sev-attention))" strokeDasharray="3 3" label={{ value: `${resumo.corteModerado}${resumo.unidade}`, fontSize: 10, fill: "hsl(var(--bio-ink-muted))", position: "insideTopLeft" }} />
           <ReferenceLine y={resumo.corteSevero} stroke="hsl(var(--sev-weak))" strokeDasharray="3 3" label={{ value: `${resumo.corteSevero}${resumo.unidade}`, fontSize: 10, fill: "hsl(var(--bio-ink-muted))", position: "insideTopRight" }} />
-          {resumo.marcos.map((marco) => (
-            <ReferenceLine
-              key={`${marco.origem}:${marco.data}`}
-              x={new Date(`${marco.data}T00:00:00`).getTime()}
-              stroke="hsl(var(--bio-ink-muted))"
-              strokeDasharray="4 4"
-              label={{ value: marco.rotulo, fontSize: 10, fill: "hsl(var(--bio-ink-muted))", position: "insideTop" }}
-            />
-          ))}
           <XAxis
             dataKey="timestamp"
             type="number"
@@ -687,7 +675,7 @@ function MiniGraficoAssimetria({ resumo, color, xDomain }: { resumo: AssimetriaR
             type="linear"
             dataKey="valor"
             name={resumo.nome}
-            stroke={color}
+            stroke="hsl(var(--bio-ink))"
             strokeWidth={2}
             dot={(props) => <PontoAssimetria {...props} lastTimestamp={lastTimestamp} />}
             activeDot={{ r: 5 }}
