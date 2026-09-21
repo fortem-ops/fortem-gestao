@@ -23,6 +23,7 @@ import { agoraSaoPaulo, tarefaAtrasada } from "@/lib/tarefaAtraso";
 import { AtividadeTipoSelector } from "@/components/pipeline/AtividadeTipoSelector";
 import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { fetchAlunosDaCarteira } from "@/lib/carteiraScope";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
