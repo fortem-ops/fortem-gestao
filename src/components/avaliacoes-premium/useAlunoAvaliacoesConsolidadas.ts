@@ -192,9 +192,11 @@ export function useAlunoAvaliacoesConsolidadas(alunoId: string | null | undefine
       const funcRows = rows.filter(
         (r) => r.tipo === "funcional" || r.tipo === "kinology" || r.tipo === "funcional_v2",
       );
-      const funcHistory = funcRows
-        .map(parseFuncional)
-        .filter((x): x is FuncionalSnapshot => !!x);
+      const funcHistory = removerDuplicadas(
+        funcRows.map(parseFuncional).filter((x): x is FuncionalSnapshot => !!x),
+        chaveFuncional,
+        (s) => s.metricas.length + s.forca.length * 10,
+      );
       // Funcional latest = junta a métrica mais recente (mob/flex) com a força mais recente.
       const latestFunc = funcHistory[0] ?? null;
       const latestForca = funcHistory.find((s) => s.forca.length > 0)?.forca ?? [];
