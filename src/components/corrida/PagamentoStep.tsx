@@ -122,16 +122,19 @@ const PagamentoStep = ({
   onVoltar,
   pedido,
   setPedido,
+  modoLink = null,
 }: Props) => {
   const rotaPedido = String(payloadPedido.rota ?? "");
   const periodoPedido = String(payloadPedido.periodo ?? "");
   const maxParcelas =
     periodoPedido === "semestral" ? 6 : rotaPedido === "prospect" ? 12 : 10;
-  const parcelamentoDisponivel =
-    rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
+  const parcelamentoDisponivel = modoLink
+    ? false
+    : rotaPedido !== "somente_provas" && !(rotaPedido === "prospect" && periodoPedido === "mensal");
   /** Pix à vista: apenas Semestral e Anual (Mensal é recorrência no cartão). */
-  const pixDisponivel =
-    rotaPedido !== "somente_provas" && (periodoPedido === "semestral" || periodoPedido === "anual");
+  const pixDisponivel = modoLink
+    ? modoLink.pixDisponivel
+    : rotaPedido !== "somente_provas" && (periodoPedido === "semestral" || periodoPedido === "anual");
   const [parcelasEscolhidas, setParcelasEscolhidas] = useState(maxParcelas);
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
 
