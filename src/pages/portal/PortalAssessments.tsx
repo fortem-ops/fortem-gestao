@@ -2,10 +2,8 @@ import { Activity, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PortalAssessmentMobile } from "@/components/portal/PortalAssessmentMobile";
-import {
-  useAlunoAvaliacoesConsolidadas,
-  useMobilidadeReferenceData,
-} from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { useAlunoAvaliacoesConsolidadas } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
+import { useMobilidadeResumoReferencia } from "@/components/portal/referenciaResumoPortal";
 import { useStudentPortal } from "@/contexts/StudentPortalContext";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 
