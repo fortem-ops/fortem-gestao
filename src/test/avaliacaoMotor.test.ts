@@ -16,6 +16,15 @@ import {
   type ReferenciaFaixas,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
+import {
+  calcularTendenciaAssimetria,
+  compararPreocupacaoAssimetria,
+  houveInversaoLado,
+  ladoMaisFracoForca,
+  ladoMaisFracoMetrica,
+  razaoSeveroAssimetria,
+  type AssimetriaResumoEvolucao,
+} from "@/components/avaliacoes-premium/assimetriaGrafico";
 
 const PSOAS = "Flexibilidade Psoas";
 const OMBRO = "Mobilidade Ombro RI";
@@ -310,5 +319,72 @@ describe("Faixa etária e sexo do cadastro", () => {
     expect(sexoDe("F")).toBe("F");
     expect(sexoDe(null)).toBeUndefined();
     expect(sexoDe("outro")).toBeUndefined();
+  });
+});
+
+describe("Evolução de assimetrias", () => {
+  it("lado mais fraco em goniometria é o de menor amplitude", () => {
+    expect(ladoMaisFracoMetrica(OMBRO, 90, 110)).toBe("esquerdo");
+    expect(ladoMaisFracoMetrica(OMBRO, 120, 100)).toBe("direito");
+  });
+
+  it("lado mais fraco respeita métrica invertida como o Psoas", () => {
+    expect(ladoMaisFracoMetrica(PSOAS, 8, 3)).toBe("esquerdo");
+    expect(ladoMaisFracoMetrica(PSOAS, 2, 7)).toBe("direito");
+  });
+
+  it("lado mais fraco em força é o de menor kg", () => {
+    expect(ladoMaisFracoForca(42, 50)).toBe("esquerdo");
+    expect(ladoMaisFracoForca(60, 55)).toBe("direito");
+    expect(ladoMaisFracoForca(60, 60)).toBe("sem_diferenca");
+  });
+
+  it("inversão compara apenas lados válidos e ignora sem diferença", () => {
+    expect(houveInversaoLado("esquerdo", "direito")).toBe(true);
+    expect(houveInversaoLado("direito", "direito")).toBe(false);
+    expect(houveInversaoLado("sem_diferenca", "direito")).toBe(false);
+    expect(houveInversaoLado(null, "esquerdo")).toBe(false);
+  });
+
+  it("tendência percentual usa corte de estabilidade menor que 1 pp", () => {
+    expect(calcularTendenciaAssimetria(-1, "%")).toBe("melhorou");
+    expect(calcularTendenciaAssimetria(1, "%")).toBe("piorou");
+    expect(calcularTendenciaAssimetria(0.9, "%")).toBe("estavel");
+    expect(calcularTendenciaAssimetria(-0.9, "%")).toBe("estavel");
+  });
+
+  it("tendência em graus usa corte de estabilidade menor que 0,5°", () => {
+    expect(calcularTendenciaAssimetria(-0.5, "°")).toBe("melhorou");
+    expect(calcularTendenciaAssimetria(0.5, "°")).toBe("piorou");
+    expect(calcularTendenciaAssimetria(0.4, "°")).toBe("estavel");
+    expect(calcularTendenciaAssimetria(-0.4, "°")).toBe("estavel");
+  });
+
+  it("ordenação prioriza severidade e depois valor normalizado pelo corte severo", () => {
+    const resumo = (
+      nome: string,
+      nivel: "nenhuma" | "moderada" | "severa",
+      valor: number,
+      metric?: string,
+    ) =>
+      ({
+        nome,
+        ultima: { nivel, valor },
+        razaoSeveroAtual: razaoSeveroAssimetria(metric, valor),
+      }) as Pick<AssimetriaResumoEvolucao, "ultima" | "razaoSeveroAtual" | "nome">;
+
+    const itens = [
+      resumo("normal alto", "nenhuma", 9),
+      resumo("psoas moderado", "moderada", 4, PSOAS),
+      resumo("percentual moderado alto", "moderada", 18),
+      resumo("severo", "severa", 21),
+    ];
+
+    expect([...itens].sort(compararPreocupacaoAssimetria).map((i) => i.nome)).toEqual([
+      "severo",
+      "psoas moderado",
+      "percentual moderado alto",
+      "normal alto",
+    ]);
   });
 });

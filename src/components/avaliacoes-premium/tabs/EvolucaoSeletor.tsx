@@ -14,20 +14,22 @@ export interface SeletorGrupo {
 }
 
 interface Props {
-  dates: string[];
-  selectedDates: string[];
-  onToggleDate: (date: string) => void;
-  onAllDates: () => void;
-  onClearDates: () => void;
+  dates?: string[];
+  selectedDates?: string[];
+  onToggleDate?: (date: string) => void;
+  onAllDates?: () => void;
+  onClearDates?: () => void;
   grupos: SeletorGrupo[];
   selectedItems: Record<string, boolean>;
   onToggleItem: (key: string) => void;
   onToggleGrupo: (grupoId: string, checked: boolean) => void;
+  mostrarDatas?: boolean;
+  className?: string;
 }
 
 export function EvolucaoSeletor({
-  dates,
-  selectedDates,
+  dates = [],
+  selectedDates = [],
   onToggleDate,
   onAllDates,
   onClearDates,
@@ -35,28 +37,32 @@ export function EvolucaoSeletor({
   selectedItems,
   onToggleItem,
   onToggleGrupo,
+  mostrarDatas = true,
+  className = "bio-card p-5 space-y-5",
 }: Props) {
   return (
-    <div className="bio-card p-5 space-y-5">
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="bio-label">Datas das avaliações</p>
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onAllDates}>
-            Todas
-          </Button>
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onClearDates}>
-            Limpar
-          </Button>
+    <div className={className}>
+      {mostrarDatas && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="bio-label">Datas das avaliações</p>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onAllDates}>
+              Todas
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onClearDates}>
+              Limpar
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {dates.map((d) => (
+              <label key={d} className="flex items-center gap-2 text-sm text-[hsl(var(--bio-ink))] cursor-pointer">
+                <Checkbox checked={selectedDates.includes(d)} onCheckedChange={() => onToggleDate?.(d)} />
+                {format(parseISO(d), "dd/MM/yyyy")}
+              </label>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-x-5 gap-y-2">
-          {dates.map((d) => (
-            <label key={d} className="flex items-center gap-2 text-sm text-[hsl(var(--bio-ink))] cursor-pointer">
-              <Checkbox checked={selectedDates.includes(d)} onCheckedChange={() => onToggleDate(d)} />
-              {format(parseISO(d), "dd/MM/yyyy")}
-            </label>
-          ))}
-        </div>
-      </div>
+      )}
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {grupos.map((g) => {
