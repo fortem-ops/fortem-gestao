@@ -70,7 +70,7 @@ describe("Resumo do portal de avaliações", () => {
     const mobilidade = grupos.find((grupo) => grupo.camada === "mobilidade")?.medidas[0];
     const forca = grupos.find((grupo) => grupo.camada === "forca")?.medidas[0];
     expect(mobilidade).toMatchObject({ nome: "Ombro · Rotação Interna", camada: "mobilidade", unidadeLados: "°" });
-    expect(forca).toMatchObject({ nome: "Rotação interna de ombro", camada: "forca", unidadeLados: "kg" });
+    expect(forca).toMatchObject({ nome: FORCA_EXERCICIO_LABEL.rotacao_interna, camada: "forca", unidadeLados: "kg" });
   });
 
   it("deixa explícita a camada quando a maior diferença é de força", () => {
