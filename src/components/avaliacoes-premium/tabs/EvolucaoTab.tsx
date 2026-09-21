@@ -10,6 +10,7 @@ import {
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
 import { EvolucaoSeletor, type SeletorGrupo } from "./EvolucaoSeletor";
 import { LadoLegendTraco } from "../LadoLegend";
+import { listarItensAssimetria, valorAssimetria, type AssimetriaGraficoItem } from "../assimetriaGrafico";
 
 interface Props {
   data: ConsolidadoAluno;
@@ -88,7 +89,9 @@ export function EvolucaoTab({ data }: Props) {
       data.pliometria.history.some((p) => typeof p[f.key] === "number" && p[f.key] !== null),
     ).map((f) => ({ key: `plio:${f.key}`, label: f.label, field: f.key }));
 
-    return { mob, flex, forca, comp, plio };
+    const assimetrias = listarItensAssimetria(data.funcional.history);
+
+    return { mob, flex, forca, comp, plio, assimetrias };
   }, [data]);
 
   const dates = useMemo(() => {
@@ -105,7 +108,7 @@ export function EvolucaoTab({ data }: Props) {
   const [itemOverride, setItemOverride] = useState<Record<string, boolean> | null>(null);
   const defaultItems = useMemo(() => {
     const map: Record<string, boolean> = {};
-    [...catalogo.mob, ...catalogo.flex].forEach((i) => (map[i.key] = true));
+    [...catalogo.mob, ...catalogo.flex, ...catalogo.assimetrias].forEach((i) => (map[i.key] = true));
     return map;
   }, [catalogo]);
   const selectedItems = itemOverride ?? defaultItems;
@@ -116,6 +119,7 @@ export function EvolucaoTab({ data }: Props) {
         { id: "mobility", titulo: "Mobilidade", itens: catalogo.mob },
         { id: "flexibility", titulo: "Flexibilidade", itens: catalogo.flex },
         { id: "forca", titulo: "Força", itens: catalogo.forca },
+        { id: "assimetrias", titulo: "Assimetrias", itens: catalogo.assimetrias },
         { id: "comp", titulo: "Composição", itens: catalogo.comp },
         { id: "plio", titulo: "Pliometria", itens: catalogo.plio },
       ].filter((g) => g.itens.length > 0),
@@ -183,6 +187,25 @@ export function EvolucaoTab({ data }: Props) {
 
     buildMetricChart("mobility", "Mobilidade (graus)", catalogo.mob);
     buildMetricChart("flexibility", "Flexibilidade (graus)", catalogo.flex);
+
+    const assimetriasAtivas = catalogo.assimetrias.filter((i) => selectedItems[i.key]);
+    if (assimetriasAtivas.length > 0) {
+      const series: Serie[] = assimetriasAtivas.map((item, idx) => ({
+        key: item.key,
+        label: item.label,
+        color: PALETTE[idx % PALETTE.length],
+        dashed: item.unidade === "°",
+      }));
+      const rows = base.map((row) => {
+        const res: Record<string, unknown> = { data: row.data };
+        const snap = funcByDate.get(row._date)?.[0] ?? null;
+        assimetriasAtivas.forEach((item: AssimetriaGraficoItem) => {
+          res[item.key] = valorAssimetria(snap, item);
+        });
+        return res;
+      });
+      out.push({ id: "assimetrias", titulo: "Assimetrias", series, rows });
+    }
 
     const forcaAtivos = catalogo.forca.filter((i) => selectedItems[i.key]);
     if (forcaAtivos.length > 0) {
