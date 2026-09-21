@@ -234,8 +234,6 @@ function FunctionalAssessment({ student, protocoloId, permiteUpload }: { student
                     <Input type="number" className="w-16 text-center h-8 text-sm mx-auto" value={v.right} onChange={(e) => handleChange(metric, 'right', e.target.value)} placeholder="°" />
                     {hintD && <p className={`text-[10px] mt-1 text-center ${invD ? 'text-red-400' : 'text-muted-foreground'}`}>{hintD}</p>}
                   </td>
-
-                  </td>
                   <td className="p-3 text-center">
                     {rightClass && <span className={`text-xs font-semibold ${getClassificationColor(rightClass)}`}>{rightClass}</span>}
                   </td>
