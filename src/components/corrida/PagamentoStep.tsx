@@ -47,10 +47,11 @@ interface Props {
   pedido: PedidoCriado | null;
   setPedido: (p: PedidoCriado | null) => void;
   /**
-   * Link público de pagamento (/corrida/pagamento/:token): a venda e o contrato
+   * Link público de pagamento (/pagamento/:token): a venda e o contrato
    * já existem — nenhum pedido novo é criado e o parcelamento já está definido.
+   * `origem` define a cadeia de cobrança: Corrida (própria) ou venda genérica.
    */
-  modoLink?: { pixDisponivel: boolean } | null;
+  modoLink?: { pixDisponivel: boolean; origem?: "corrida" | "generica"; token?: string } | null;
 }
 
 type Fase = "dados" | "cartao" | "contrato" | "confirmando" | "cobrando" | "pix" | "sucesso" | "erro";
@@ -366,18 +367,23 @@ const PagamentoStep = ({
     /^\d{2}\/\d{2,4}$/.test(cartao.validade) &&
     cartao.cvv.replace(/\D/g, "").length >= 3;
 
-  const cobrar = async (p: PedidoCriado) => {
+  const cobrar = async (p: PedidoCriado, cartaoSalvoId?: string | null) => {
+    const generica = modoLink?.origem === "generica";
     setFase("cobrando");
     try {
-      const { data, error } = await supabase.functions.invoke("corrida-cobrar-pedido", {
-        body: { cartao_token: p.cartao_token, venda_id: p.venda_id, contrato_id: p.contrato_id },
-      });
+      const { data, error } = generica
+        ? await supabase.functions.invoke("cobrar-link-pagamento", {
+          body: { token: modoLink?.token, cartao_salvo_id: cartaoSalvoId },
+        })
+        : await supabase.functions.invoke("corrida-cobrar-pedido", {
+          body: { cartao_token: p.cartao_token, venda_id: p.venda_id, contrato_id: p.contrato_id },
+        });
       if (error) throw new Error("rede");
       if (data?.success) {
         setResultado({ ok: true, mensagem: "Pagamento confirmado!", protocolo: p.venda_id });
         setFase("sucesso");
         try {
-          if (typeof window.gtag === "function") {
+          if (!generica && typeof window.gtag === "function") {
             const emailNormalizado = dados.email.trim().toLowerCase();
             const telefoneDigits = dados.telefone.replace(/\D/g, "");
             const telefoneE164 = telefoneDigits.startsWith("55")
@@ -434,7 +440,7 @@ const PagamentoStep = ({
         });
         const status = String(data?.status ?? "").toLowerCase();
         if (status === "active" && data?.cartao_salvo_id) {
-          await cobrar(p);
+          await cobrar(p, String(data.cartao_salvo_id));
           return;
         }
         if (status === "failed" || status === "denied") {

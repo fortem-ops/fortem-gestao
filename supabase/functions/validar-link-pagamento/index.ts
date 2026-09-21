@@ -1,6 +1,7 @@
-// Valida o token público de um link de pagamento da Corrida e devolve
-// tudo o que a tela /corrida/pagamento/:token precisa para concluir o pagamento
-// de uma venda/contrato que já existem (não cria pedido novo).
+// Valida o token público de um link de pagamento e devolve tudo o que a tela
+// /pagamento/:token precisa para concluir o pagamento de uma venda/contrato
+// que já existem (não cria pedido novo). Serve tanto para vendas da Corrida
+// quanto para vendas internas genéricas (planos, VIP, etc).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
 
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
     if (!token || token.length > 128) return json(200, { ok: false, estado: "invalido" });
 
     const { data: link } = await admin
-      .from("corrida_links_pagamento")
+      .from("links_pagamento")
       .select("id, venda_id, expira_em")
       .eq("token", token)
       .maybeSingle();
@@ -54,6 +55,15 @@ Deno.serve(async (req) => {
 
     if (!venda) return json(200, { ok: false, estado: "invalido" });
     if (venda.status_pagamento === "pago") return json(200, { ok: false, estado: "ja_pago" });
+
+    // origem da venda: Corrida (tem inscrição de prova) ou venda interna genérica
+    const { data: inscricao } = await admin
+      .from("corrida_inscricoes_prova")
+      .select("id")
+      .eq("venda_id", venda.id)
+      .limit(1)
+      .maybeSingle();
+    const origem: "corrida" | "generica" = inscricao ? "corrida" : "generica";
 
     const { data: aluno } = await admin
       .from("alunos")
@@ -106,25 +116,38 @@ Deno.serve(async (req) => {
     });
     if (tokErr) throw tokErr;
 
-    let resumo: any = null;
-    let rota = "";
-    try {
-      const obs = JSON.parse(String(venda.observacoes ?? "{}"));
-      resumo = obs?.pedidoResumo ?? null;
-      rota = String(obs?.rota ?? "");
-    } catch { /* observacoes não-JSON */ }
+    let linhas: { label: string; valor: number }[];
+    let pixDisponivel = false;
 
-    const linhas = Array.isArray(resumo?.linhas)
-      ? resumo.linhas.map((l: any) => ({ label: String(l?.label ?? ""), valor: Number(l?.valor ?? 0) }))
-      : [{ label: String(venda.nome_snapshot ?? "Pedido Corrida Fortem"), valor: Number(venda.valor_final ?? 0) }];
+    if (origem === "corrida") {
+      let resumo: any = null;
+      let rota = "";
+      try {
+        const obs = JSON.parse(String(venda.observacoes ?? "{}"));
+        resumo = obs?.pedidoResumo ?? null;
+        rota = String(obs?.rota ?? "");
+      } catch { /* observacoes não-JSON */ }
 
-    // Pix à vista: mesma regra do checkout — indisponível para Somente Provas
-    // e para o plano mensal no cartão (recorrência).
-    const pixDisponivel = rota !== "somente_provas" && venda.forma_pagamento !== "cartao_recorrencia";
+      linhas = Array.isArray(resumo?.linhas)
+        ? resumo.linhas.map((l: any) => ({ label: String(l?.label ?? ""), valor: Number(l?.valor ?? 0) }))
+        : [{ label: String(venda.nome_snapshot ?? "Pedido Corrida Fortem"), valor: Number(venda.valor_final ?? 0) }];
+
+      // Pix à vista: mesma regra do checkout — indisponível para Somente Provas
+      // e para o plano mensal no cartão (recorrência).
+      pixDisponivel = rota !== "somente_provas" && venda.forma_pagamento !== "cartao_recorrencia";
+    } else {
+      // venda interna: resumo simples a partir dos próprios campos da venda.
+      linhas = [{
+        label: String(venda.nome_snapshot ?? "Pagamento Fortem"),
+        valor: Number(venda.valor_final ?? 0),
+      }];
+      pixDisponivel = false;
+    }
 
     return json(200, {
       ok: true,
       estado: "pendente",
+      origem,
       venda: {
         id: venda.id,
         valor_final: Number(venda.valor_final ?? 0),
@@ -148,7 +171,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
-    console.error("corrida-validar-link-pagamento error:", err);
+    console.error("validar-link-pagamento error:", err);
     return json(500, { ok: false, error: "erro_interno" });
   }
 });

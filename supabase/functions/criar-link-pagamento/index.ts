@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
 
     // reaproveita link ainda válido e não consumido
     const { data: existente } = await admin
-      .from("corrida_links_pagamento")
+      .from("links_pagamento")
       .select("token")
       .eq("venda_id", vendaId)
       .is("usado_em", null)
@@ -68,18 +68,18 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existente?.token) {
-      return json(200, { ok: true, reused: true, url: `${BASE_URL}/corrida/pagamento/${existente.token}` });
+      return json(200, { ok: true, reused: true, url: `${BASE_URL}/pagamento/${existente.token}` });
     }
 
     const token = gerarToken();
     const { error: insErr } = await admin
-      .from("corrida_links_pagamento")
+      .from("links_pagamento")
       .insert({ venda_id: vendaId, token, criado_por: user.id });
     if (insErr) throw insErr;
 
-    return json(200, { ok: true, url: `${BASE_URL}/corrida/pagamento/${token}` });
+    return json(200, { ok: true, url: `${BASE_URL}/pagamento/${token}` });
   } catch (err) {
-    console.error("corrida-criar-link-pagamento error:", err);
+    console.error("criar-link-pagamento error:", err);
     return json(500, { ok: false, error: "erro_interno" });
   }
 });

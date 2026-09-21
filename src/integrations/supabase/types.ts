@@ -3006,58 +3006,6 @@ export type Database = {
           },
         ]
       }
-      corrida_links_pagamento: {
-        Row: {
-          criado_em: string
-          criado_por: string | null
-          expira_em: string
-          id: string
-          token: string
-          usado_em: string | null
-          venda_id: string
-        }
-        Insert: {
-          criado_em?: string
-          criado_por?: string | null
-          expira_em?: string
-          id?: string
-          token: string
-          usado_em?: string | null
-          venda_id: string
-        }
-        Update: {
-          criado_em?: string
-          criado_por?: string | null
-          expira_em?: string
-          id?: string
-          token?: string
-          usado_em?: string | null
-          venda_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "corrida_links_pagamento_venda_id_fkey"
-            columns: ["venda_id"]
-            isOneToOne: false
-            referencedRelation: "v_cancelamentos"
-            referencedColumns: ["venda_id"]
-          },
-          {
-            foreignKeyName: "corrida_links_pagamento_venda_id_fkey"
-            columns: ["venda_id"]
-            isOneToOne: false
-            referencedRelation: "v_vendas_resumo"
-            referencedColumns: ["venda_id"]
-          },
-          {
-            foreignKeyName: "corrida_links_pagamento_venda_id_fkey"
-            columns: ["venda_id"]
-            isOneToOne: false
-            referencedRelation: "vendas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       creditos_aluno: {
         Row: {
           aluno_id: string
@@ -3924,6 +3872,58 @@ export type Database = {
             columns: ["contrato_documento_id"]
             isOneToOne: false
             referencedRelation: "contratos_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      links_pagamento: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          expira_em: string
+          id: string
+          token: string
+          usado_em: string | null
+          venda_id: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          expira_em?: string
+          id?: string
+          token: string
+          usado_em?: string | null
+          venda_id: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          expira_em?: string
+          id?: string
+          token?: string
+          usado_em?: string | null
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrida_links_pagamento_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_cancelamentos"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "corrida_links_pagamento_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "v_vendas_resumo"
+            referencedColumns: ["venda_id"]
+          },
+          {
+            foreignKeyName: "corrida_links_pagamento_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
             referencedColumns: ["id"]
           },
         ]

@@ -46,7 +46,7 @@ const Notificar = lazyWithReload(() => import("./pages/Notificar"));
 const Leads = lazyWithReload(() => import("./pages/Leads"));
 const Prospects = lazyWithReload(() => import("./pages/Prospects"));
 const InscricoesCorrida = lazyWithReload(() => import("./pages/corrida/InscricoesCorrida"));
-const PagamentoLinkCorrida = lazyWithReload(() => import("./pages/corrida/PagamentoLinkCorrida"));
+const PagamentoLink = lazyWithReload(() => import("./pages/PagamentoLink"));
 const Clube = lazyWithReload(() => import("./pages/Clube"));
 const ClubeFortem = lazyWithReload(() => import("./pages/ClubeFortem"));
 const AdminParceiros = lazyWithReload(() => import("./pages/AdminParceiros"));
@@ -155,7 +155,11 @@ const App = () => (
             <Route path="/recuperar-senha" element={<Suspense fallback={<RouteFallback />}><RecoverPassword /></Suspense>} />
             <Route path="/redefinir-senha" element={<Suspense fallback={<RouteFallback />}><ResetPassword /></Suspense>} />
             <Route path="/corrida" element={<Suspense fallback={<RouteFallback />}><Corrida /></Suspense>} />
-            <Route path="/corrida/pagamento/:token" element={<Suspense fallback={<RouteFallback />}><PagamentoLinkCorrida /></Suspense>} />
+            <Route path="/pagamento/:token" element={<Suspense fallback={<RouteFallback />}><PagamentoLink /></Suspense>} />
+            {/* links antigos da Corrida continuam funcionando */}
+            <Route path="/corrida/pagamento/:token" element={<Suspense fallback={<RouteFallback />}><PagamentoLink /></Suspense>} />
+
+
             <Route path="/planos" element={<Suspense fallback={<RouteFallback />}><Planos /></Suspense>} />
             <Route path="/privacidade" element={<Suspense fallback={<RouteFallback />}><Privacidade /></Suspense>} />
             <Route path="/termos/aptidao-fisica-uso-imagem" element={<Suspense fallback={<RouteFallback />}><TermoAptidaoUsoImagem /></Suspense>} />
