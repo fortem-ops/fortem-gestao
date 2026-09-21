@@ -178,6 +178,8 @@ const PagamentoStep = ({
   const criarPedido = useCallback(
     async (dp: DadosPessoaisPagamento, parcelasSel?: number): Promise<PedidoCriado | null> => {
       if (pedido) return pedido;
+      // no link público o pedido já existe; nunca criar outro
+      if (modoLink) return null;
       if (criandoRef.current) return null;
       criandoRef.current = true;
       setErro(null);
