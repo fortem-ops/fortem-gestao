@@ -42,7 +42,7 @@ interface Props {
   data: ConsolidadoAluno;
   sexo?: "M" | "F";
   faixaEtaria?: FaixaEtaria | null;
-  referenceData?: MobilidadeReferenceData;
+  resumoReferencia?: ResumoReferenciaPortal;
 }
 
 const NIVEL_STYLE: Record<PortalNivel, { text: string; bg: string; stroke: string }> = {
