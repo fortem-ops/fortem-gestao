@@ -311,9 +311,15 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
         const v = values[metric] || { left: "", right: "" };
         const lRaw = parseInt(v.left);
         const rRaw = parseInt(v.right);
-        // Quadríceps: o campo recebe a leitura a partir dos 90°; salva o valor absoluto.
-        const l = !isNaN(lRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(lRaw) : lRaw;
-        const r = !isNaN(rRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(rRaw) : rRaw;
+        // Quadríceps: regra única — leitura (<90) soma 90; valor clínico (>=100) fica como está.
+        const norm = (n: number) => {
+          if (isNaN(n)) return NaN;
+          if (metric !== METRICA_QUADRICEPS) return n;
+          const res = normalizarEntradaQuadriceps(n);
+          return res.ok ? res.valor : NaN;
+        };
+        const l = norm(lRaw);
+        const r = norm(rRaw);
         return {
           metric,
           left: !isNaN(l) ? l : null,
@@ -324,6 +330,7 @@ export function MobilidadeTab({ alunoId, aluno, referenceData, initialFormOpen, 
       }),
     [values],
   );
+
 
   const preenchidos = rows.filter((r) => r.left !== null || r.right !== null);
 
