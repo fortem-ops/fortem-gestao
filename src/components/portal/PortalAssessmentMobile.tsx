@@ -7,6 +7,7 @@ import { BodyMapSVG } from "@/components/student/assessment/funcionalV2/BodyMapS
 import { useBodyMapShapes } from "@/components/student/assessment/funcionalV2/useBodyMapShapes";
 import {
   analyze,
+  ASSIMETRIA_NIVEL_LABEL,
   arrayReferencia,
   percentilMobilidade,
   type Layer,
@@ -110,11 +111,11 @@ export function PortalAssessmentMobile({ data, sexo, faixaEtaria, referenceData 
         <DetailsCard title="Todas as medidas" subtitle="Valores dos dois lados e nível de equilíbrio.">
           <div className="mb-4 rounded-xl bg-secondary/60 p-3 text-xs leading-relaxed text-muted-foreground">
             <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1">
-              <LegendDot nivel="equilibrado" label="Equilibrado: abaixo de 10%" />
-              <LegendDot nivel="atencao" label="Atenção: 10% a 20%" />
-              <LegendDot nivel="prioridade" label="Prioridade: acima de 20%" />
+              <LegendDot nivel="equilibrado" label={`${ASSIMETRIA_NIVEL_LABEL.nenhuma}: abaixo de 10%`} />
+              <LegendDot nivel="atencao" label={`${ASSIMETRIA_NIVEL_LABEL.moderada}: 10% a 20%`} />
+              <LegendDot nivel="prioridade" label={`${ASSIMETRIA_NIVEL_LABEL.severa}: acima de 20%`} />
             </div>
-            Psoas é medido em graus: Atenção a partir de 3° e Prioridade a partir de 5°.
+            Psoas é medido em graus: {ASSIMETRIA_NIVEL_LABEL.moderada} a partir de 3° e {ASSIMETRIA_NIVEL_LABEL.severa} a partir de 5°.
           </div>
           <div className="divide-y divide-border">{medidas.map((m) => <MeasureRow key={m.id} medida={m} />)}</div>
         </DetailsCard>
