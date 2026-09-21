@@ -23,6 +23,7 @@ import { Flag, Check } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { InscricaoCpfRevealField } from "@/components/corrida/InscricaoCpfRevealField";
 import VagasNbCard from "@/components/corrida/VagasNbCard";
+import { GerarLinkPagamento } from "@/components/pagamentos/GerarLinkPagamento";
 
 type InscricaoBase = Tables<"corrida_inscricoes_prova">;
 type VendaStatus = Database["public"]["Enums"]["venda_status"];
@@ -212,7 +213,7 @@ function ProgressoSection({ inscricao }: { inscricao: Inscricao }) {
             </div>
           )}
           {pagamentoPendente && inscricao.venda_id && (
-            <GerarLinkPagamento vendaId={inscricao.venda_id} />
+            <GerarLinkPagamentoBloco vendaId={inscricao.venda_id} />
           )}
         </div>
 

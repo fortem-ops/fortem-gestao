@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { formatBRL } from "@/lib/vendas";
 import { PaymentFields, useFormasPagamento } from "./PaymentFields";
 import { PagarCartaoDialog } from "@/components/pagamentos/PagarCartaoDialog";
+import { GerarLinkPagamento } from "@/components/pagamentos/GerarLinkPagamento";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
 
 
@@ -362,6 +363,9 @@ export function HistoricoVendas({ alunoId }: Props) {
                             >
                               <CreditCard className="w-3.5 h-3.5" />
                             </Button>
+                          )}
+                          {(v.status_pagamento === "pendente" || v.status_pagamento === "falha") && (
+                            <GerarLinkPagamento vendaId={v.id} compacto />
                           )}
                           {isAdmin && v.status_pagamento === "pago" && tidsAprovados[v.id] && (
                             <Button
