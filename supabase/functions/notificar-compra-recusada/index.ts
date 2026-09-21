@@ -122,8 +122,8 @@ Deno.serve(async (req) => {
     // A tokenização é comum aos dois fluxos; descobre o que o aluno tentava
     // comprar olhando a tentativa aberta mais recente.
     let fluxoFinal: "loja" | "corrida" = fluxo;
-    let pedidoRef = pedidoId;
-    let vendaRef = vendaId;
+    let pedidoRef = pedidoRef;
+    let vendaRef = vendaRef;
     if (!pedidoRef && !vendaRef && alunoId) {
       const desde2h = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const [{ data: p }, { data: v }] = await Promise.all([
@@ -150,11 +150,11 @@ Deno.serve(async (req) => {
     let quando: string | null = null;
     let referencia = "";
 
-    if (pedidoId) {
+    if (pedidoRef) {
       const { data: pedido } = await supabase
         .from("pedidos")
         .select("id, nome, email, telefone, aluno_id, valor_final, created_at")
-        .eq("id", pedidoId)
+        .eq("id", pedidoRef)
         .maybeSingle();
       if (pedido) {
         nome = pedido.nome ?? "";
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
       const { data: itens } = await supabase
         .from("pedido_itens")
         .select("quantidade, preco_unitario_snapshot, produtos_variantes(tamanho, cor, sku, produtos_catalogo(nome))")
-        .eq("pedido_id", pedidoId);
+        .eq("pedido_id", pedidoRef);
       itensHtml = (itens ?? []).map((it: any) => {
         const v = it?.produtos_variantes;
         const produto = v?.produtos_catalogo?.nome ?? "Produto";
@@ -178,11 +178,11 @@ Deno.serve(async (req) => {
       }).join("");
     }
 
-    if (vendaId) {
+    if (vendaRef) {
       const { data: venda } = await supabase
         .from("vendas")
         .select("id, aluno_id, valor_final, parcelas, observacoes, created_at")
-        .eq("id", vendaId)
+        .eq("id", vendaRef)
         .maybeSingle();
       if (venda) {
         valor = Number(venda.valor_final ?? 0);
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
       const { data: inscricao } = await supabase
         .from("corrida_inscricoes_prova")
         .select("nome, sobrenome, email, telefone, rota, pedido_resumo")
-        .eq("venda_id", vendaId)
+        .eq("venda_id", vendaRef)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -223,14 +223,14 @@ Deno.serve(async (req) => {
     }
 
     if (!nome) nome = "Comprador não identificado";
-    if (!referencia) referencia = fluxo === "corrida" ? "Inscrição da Corrida" : "Compra na Loja";
+    if (!referencia) referencia = fluxoFinal === "corrida" ? "Inscrição da Corrida" : "Compra na Loja";
 
     const motivo = motivoComCodigo({ returnCode, returnMessage, erro });
     const motivoCurto = motivoAmigavel({ returnCode, returnMessage, erro });
     const etapaLabel = etapa === "tokenizacao"
       ? "Recusa na validação do cartão (tokenização)"
       : "Recusa na cobrança";
-    const fluxoLabel = fluxo === "corrida" ? "Corrida" : "Loja";
+    const fluxoLabel = fluxoFinal === "corrida" ? "Corrida" : "Loja";
 
     const html = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif">
 <div style="max-width:620px;margin:0 auto;padding:24px">
