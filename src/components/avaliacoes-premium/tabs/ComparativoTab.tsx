@@ -275,10 +275,10 @@ export function ComparativoTab({ data, alunoId }: Props) {
             </>
           )}
 
-          {modo === "auto" && todasDatas.length >= 2 && (
+          {modo === "auto" && autoDataA && autoDataB && (
             <p className="text-xs text-[hsl(var(--bio-ink-muted))]">
-              Comparando <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(data.funcional.history[1]?.data ?? data.composicao.history[1]?.data ?? todasDatas[1]), "dd/MM/yy")}</b>{" "}
-              → <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(todasDatas[0]), "dd/MM/yy")}</b>
+              Comparando <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(autoDataA), "dd/MM/yy")}</b>{" "}
+              → <b className="text-[hsl(var(--bio-ink))]">{format(parseISO(autoDataB), "dd/MM/yy")}</b>
             </p>
           )}
 
