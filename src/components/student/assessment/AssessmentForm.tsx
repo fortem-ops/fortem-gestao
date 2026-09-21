@@ -285,9 +285,11 @@ export function AssessmentForm({
 
 function EngineDispatcher({ student, tipo, protocolo }: { student: Tables<"alunos">; tipo: AvaliacaoTipo; protocolo: AvaliacaoProtocolo | null }) {
   const permiteUpload = !!protocolo?.permite_upload;
-  if (tipo.engine === "funcional_fixo") {
-    return <FunctionalAssessment student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
+  // Engine antigo `funcional_fixo` foi unificado no lançamento funcional v2.
+  if (tipo.engine === "funcional_fixo" || tipo.engine === "funcional_v2") {
+    return <FuncionalV2Assessment student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
   }
+
   if (tipo.engine === "funcional_v2") {
     return <FuncionalV2Assessment student={student} protocoloId={protocolo?.id ?? null} permiteUpload={permiteUpload} />;
   }
