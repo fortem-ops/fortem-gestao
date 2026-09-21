@@ -25,8 +25,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComparacoesSalvas, type ComparativoSalvo } from "./ComparacoesSalvas";
 import { SalvarComparacaoDialog } from "./SalvarComparacaoDialog";
-import { getMetricDisplayLabel, metricaInvertida } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
-import type { AssessmentClassification } from "@/lib/mock-data";
+import { getMetricDisplayLabel, metricaInvertida, type MobilidadeReferenceData, type Severity } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import type { FaixaEtaria } from "@/lib/faixaEtaria";
 import {
   calcularStatsComparativoValores,
   CORTE_VARIACAO_FORCA_PCT,
@@ -45,6 +45,9 @@ interface Props {
   data: ConsolidadoAluno;
   alunoId: string;
   onGoEvolucao?: () => void;
+  sexo?: "M" | "F";
+  faixaEtaria?: FaixaEtaria | null;
+  referenceData?: MobilidadeReferenceData;
 }
 
 type Modo = "auto" | "datas" | "intervalo";
@@ -110,7 +113,7 @@ function dataCurta(data: string | null): string | null {
   return data ? format(parseISO(data), "dd/MM/yyyy") : null;
 }
 
-export function ComparativoTab({ data, alunoId, onGoEvolucao }: Props) {
+export function ComparativoTab({ data, alunoId, onGoEvolucao, sexo, faixaEtaria, referenceData }: Props) {
   const [modo, setModo] = useState<Modo>("auto");
 
   // União de datas disponíveis (para modo "datas")
@@ -286,6 +289,9 @@ export function ComparativoTab({ data, alunoId, onGoEvolucao }: Props) {
           plioA={autoPlio.A}
           plioB={autoPlio.B}
           onGoEvolucao={onGoEvolucao}
+          sexo={sexo}
+          faixaEtaria={faixaEtaria}
+          referenceData={referenceData}
         />
       )}
 
@@ -314,6 +320,9 @@ export function ComparativoTab({ data, alunoId, onGoEvolucao }: Props) {
             plioA={datasPlioA.snap}
             plioB={datasPlioB.snap}
             onGoEvolucao={onGoEvolucao}
+            sexo={sexo}
+            faixaEtaria={faixaEtaria}
+            referenceData={referenceData}
           />
         </>
       )}
@@ -399,6 +408,9 @@ function ModoTabelas({
   plioA,
   plioB,
   onGoEvolucao,
+  sexo,
+  faixaEtaria,
+  referenceData,
 }: {
   labelA: string;
   labelB: string;
@@ -411,8 +423,14 @@ function ModoTabelas({
   plioA: PliometriaSnapshot | null;
   plioB: PliometriaSnapshot | null;
   onGoEvolucao?: () => void;
+  sexo?: "M" | "F";
+  faixaEtaria?: FaixaEtaria | null;
+  referenceData?: MobilidadeReferenceData;
 }) {
-  const mobilidadeRows = useMemo(() => montarMobilidadeComparativo(funcA, funcB), [funcA, funcB]);
+  const mobilidadeRows = useMemo(
+    () => montarMobilidadeComparativo(funcA, funcB, { sexo, faixaEtaria, referenceData }),
+    [funcA, funcB, sexo, faixaEtaria, referenceData],
+  );
   const forcaRows = useMemo(() => montarForcaComparativo(funcA, funcB), [funcA, funcB]);
   const stats = useMemo(() => calcularStatsComparativoValores(mobilidadeRows, forcaRows), [mobilidadeRows, forcaRows]);
   const possuiDuasAvaliacoes = Boolean(dataA && dataB && (funcA || compA || plioA) && (funcB || compB || plioB));
@@ -505,7 +523,7 @@ function TabelaMobilidadeValores({
               <th className="text-left p-3 w-[22%]">Métrica</th>
               <th className="text-left p-3">Esquerdo</th>
               <th className="text-left p-3">Direito</th>
-              <th className="text-center p-3 w-40">Faixa</th>
+              <th className="text-center p-3 w-44">Posição na base</th>
             </tr>
           </thead>
           <tbody>
@@ -535,7 +553,7 @@ function TabelaForcaValores({
   rows: LinhaForcaComparativo[];
 }) {
   if (rows.length === 0) {
-    return <EmptyCard titulo="Força" message="Sem dados de força suficientes." />;
+    return <EmptyCard titulo="Força" message="Não há força registrada nas duas datas." />;
   }
 
   return (
@@ -576,10 +594,11 @@ function CelulaMobilidade({ lado }: { lado: LadoMobilidadeComparativo }) {
   if (!lado.antes || !lado.depois) return <span className="text-sm text-[hsl(var(--bio-ink-muted))]">—</span>;
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
-      <ClassificacaoBadge valor={lado.antes.valor} classificacao={lado.antes.classificacao} unidade="°" />
+      <PercentilBadge ponto={lado.antes} />
       <ArrowRight className="w-4 h-4 text-[hsl(var(--bio-ink-muted))]" />
-      <ClassificacaoBadge valor={lado.depois.valor} classificacao={lado.depois.classificacao} unidade="°" />
+      <PercentilBadge ponto={lado.depois} />
       <VariacaoGrausBadge variacao={lado.variacao} tom={lado.tom} />
+      <VariacaoPercentilBadge variacao={lado.variacaoPercentil} />
     </div>
   );
 }
@@ -596,18 +615,11 @@ function CelulaForca({ lado }: { lado: LadoForcaComparativo }) {
   );
 }
 
-function ClassificacaoBadge({
-  valor,
-  classificacao,
-  unidade,
-}: {
-  valor: number;
-  classificacao: AssessmentClassification;
-  unidade: string;
-}) {
+function PercentilBadge({ ponto }: { ponto: NonNullable<LadoMobilidadeComparativo["antes"]> }) {
+  const texto = ponto.percentil === null ? `${ponto.valor.toFixed(1)}°` : `${ponto.valor.toFixed(1)}° · P${ponto.percentil}`;
   return (
-    <span className={`rounded-md border px-2 py-1 ${classeClassificacao(classificacao)}`}>
-      {valor.toFixed(1)}{unidade} · {classificacao}
+    <span className={`rounded-md border px-2 py-1 ${classePercentil(ponto.severity)}`}>
+      {texto}
     </span>
   );
 }
@@ -620,6 +632,17 @@ function VariacaoGrausBadge({ variacao, tom }: { variacao: number | null; tom: T
       ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
       : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
   return <span className={`rounded-md border px-2 py-1 font-medium ${cls}`}>{formatDelta(variacao)}°</span>;
+}
+
+
+function VariacaoPercentilBadge({ variacao }: { variacao: number | null }) {
+  if (variacao === null) return null;
+  const cls = variacao > 0
+    ? "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]"
+    : variacao < 0
+      ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
+      : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
+  return <span className={`rounded-md border px-2 py-1 font-medium ${cls}`}>{formatDelta(variacao)} pp</span>;
 }
 
 function VariacaoPctBadge({ variacao, resumo }: { variacao: number; resumo: ResumoForca | null }) {
@@ -636,7 +659,9 @@ function ResumoMobilidadeBadge({ resumo }: { resumo: ResumoMobilidade }) {
     ? "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]"
     : resumo === "Caiu de faixa"
       ? "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]"
-      : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
+      : resumo === "Sem base de comparação"
+        ? "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]"
+        : "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
   return <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${cls}`}>{resumo}</span>;
 }
 
@@ -649,18 +674,20 @@ function ResumoForcaBadge({ resumo }: { resumo: ResumoForca }) {
   return <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${cls}`}>{resumo}</span>;
 }
 
-function classeClassificacao(classificacao: AssessmentClassification): string {
-  switch (classificacao) {
-    case "Fraco":
+function classePercentil(severity: Severity): string {
+  switch (severity) {
+    case "weak":
       return "text-[hsl(var(--sev-weak))] bg-[hsl(var(--sev-weak)/0.12)] border-[hsl(var(--sev-weak)/0.35)]";
-    case "Regular":
+    case "attention":
       return "text-[hsl(var(--sev-attention))] bg-[hsl(var(--sev-attention)/0.12)] border-[hsl(var(--sev-attention)/0.35)]";
-    case "Médio":
+    case "medium":
       return "text-[hsl(var(--sev-medium))] bg-[hsl(var(--sev-medium)/0.12)] border-[hsl(var(--sev-medium)/0.35)]";
-    case "Bom":
+    case "good":
       return "text-[hsl(var(--sev-good))] bg-[hsl(var(--sev-good)/0.12)] border-[hsl(var(--sev-good)/0.35)]";
-    case "Excelente":
+    case "excellent":
       return "text-[hsl(var(--sev-excellent))] bg-[hsl(var(--sev-excellent)/0.12)] border-[hsl(var(--sev-excellent)/0.35)]";
+    case "none":
+      return "text-[hsl(var(--bio-ink-muted))] bg-[hsl(var(--bio-surface-2))] border-[hsl(var(--bio-line))]";
   }
 }
 
