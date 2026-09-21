@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { checkRateLimit } from "../_shared/corrida-rate-limit.ts";
 import { processarPagamentoAprovadoCorrida } from "../_shared/corrida-pagamento-aprovado.ts";
+import { dispararAvisoRecusa } from "../_shared/avisar-recusa.ts";
 
 
 const REDE_URLS = {
@@ -261,6 +262,16 @@ Deno.serve(async (req) => {
       if (vendaPlano?.plano_id) {
         await supabase.from("planos").update({ cartao_token_id: cartaoId }).eq("id", vendaPlano.plano_id);
       }
+    } else {
+      // aviso interno à equipe (não bloqueia a resposta ao aluno)
+      dispararAvisoRecusa(supabase, {
+        fluxo: "corrida",
+        etapa: "cobranca",
+        venda_id: vendaId,
+        aluno_id: alunoId,
+        return_code: returnCode,
+        return_message: redeResponse?.returnMessage ?? null,
+      });
     }
 
 
