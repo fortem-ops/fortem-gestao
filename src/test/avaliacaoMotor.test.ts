@@ -8,6 +8,7 @@ import {
   percentilMobilidade,
   contarAssimetriasPorFaixa,
   buildMetricAttentionList,
+  classifyForca,
   analyze,
   applyForcaToRegions,
   type BodyMapAnalysis,
@@ -18,6 +19,7 @@ import {
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
 import {
   calcularTendenciaAssimetria,
+  avaliarAssimetriaNoSnapshot,
   compararPreocupacaoAssimetria,
   houveInversaoLado,
   ladoMaisFracoForca,
@@ -382,9 +384,37 @@ describe("Evolução de assimetrias", () => {
 
     expect([...itens].sort(compararPreocupacaoAssimetria).map((i) => i.nome)).toEqual([
       "severo",
-      "psoas moderado",
       "percentual moderado alto",
+      "psoas moderado",
       "normal alto",
     ]);
+  });
+
+  it("valor de assimetria de força usa a mesma fórmula de classifyForca", () => {
+    const pares = [
+      { direito: 100, esquerdo: 80 },
+      { direito: 82.5, esquerdo: 91.2 },
+      { direito: 0, esquerdo: 0 },
+      { direito: 45, esquerdo: 0 },
+    ];
+
+    pares.forEach(({ direito, esquerdo }) => {
+      const ponto = avaliarAssimetriaNoSnapshot(
+        {
+          data: "2026-09-21",
+          metricas: [],
+          forca: [{ nome: "extensao_joelho", direito_kg: direito, esquerdo_kg: esquerdo }],
+        },
+        {
+          key: "assimetria:forca:extensao_joelho",
+          label: "Extensão de joelho (%)",
+          tipo: "forca",
+          origem: "extensao_joelho",
+          unidade: "%",
+        },
+      );
+
+      expect(ponto?.valor).toBe(Number(classifyForca(direito, esquerdo).assimetria.toFixed(1)));
+    });
   });
 });
