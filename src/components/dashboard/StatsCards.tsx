@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { filtroCarteiraOr } from "@/lib/carteiraScope";
 
 interface Props {
   professorId: string | null;
