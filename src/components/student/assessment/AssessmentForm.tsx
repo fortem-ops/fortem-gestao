@@ -29,6 +29,13 @@ import type { ExperimentalSchema } from "./experimentalTemplate";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Assessment } from "./funcionalV2/FuncionalV2Assessment";
 import { AssessmentDateField, todayISO } from "@/components/avaliacoes-premium/AssessmentDateField";
+import {
+  METRICA_QUADRICEPS,
+  normalizarEntradaQuadriceps,
+  textoAuxiliarQuadriceps,
+  QUADRICEPS_MENSAGEM_INVALIDA,
+} from "./funcionalV2/bodyMapLogic";
+
 
 const functionalMetrics = [
   'Flexibilidade Posterior MMII',
