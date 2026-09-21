@@ -6,20 +6,16 @@ function normalizarNome(v: string | null | undefined): string {
 }
 
 import { useQuery } from "@tanstack/react-query";
-import { classifyAngle, getClassificationColor, assessmentReferences } from "@/lib/mock-data";
-import type { AssessmentClassification } from "@/lib/mock-data";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, FileDown, Loader2 } from "lucide-react";
-import { BodyDiagram } from "./BodyDiagram";
 import { exportAssessmentPDF } from "./exportAssessmentPDF";
 import { DynamicAssessment } from "./DynamicAssessment";
 import { ReabilitacaoEvolucao, isProtocoloEvolucao } from "./ReabilitacaoEvolucao";
@@ -29,12 +25,7 @@ import type { ExperimentalSchema } from "./experimentalTemplate";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { FuncionalV2Assessment } from "./funcionalV2/FuncionalV2Assessment";
 import { AssessmentDateField, todayISO } from "@/components/avaliacoes-premium/AssessmentDateField";
-import {
-  METRICA_QUADRICEPS,
-  normalizarEntradaQuadriceps,
-  textoAuxiliarQuadriceps,
-  QUADRICEPS_MENSAGEM_INVALIDA,
-} from "./funcionalV2/bodyMapLogic";
+
 
 // O antigo formulário funcional fixo (tipo `funcional`) foi aposentado:
 // o tipo unificado é `funcional_v2` e o lançamento acontece no
