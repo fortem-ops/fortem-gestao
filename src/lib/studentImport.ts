@@ -571,6 +571,7 @@ export async function importStudents(
             { aluno_id: aluno.id, origem_lead: p.origem_lead, responsavel_comercial_id: responsavelId },
             { onConflict: "aluno_id" }
           );
+        await supabase.from("alunos").update({ consultor_id: responsavelId }).eq("id", aluno.id);
       }
 
       result.success++;

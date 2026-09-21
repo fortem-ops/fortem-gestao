@@ -82,6 +82,11 @@ export function PipelineMetadataDialog({ alunoId, open, onOpenChange }: Props) {
       };
       const { error } = await supabase.from("pipeline_metadata").upsert(payload, { onConflict: "aluno_id" });
       if (error) throw error;
+      // Mantém o consultor responsável do aluno alinhado ao responsável comercial do funil
+      await supabase
+        .from("alunos")
+        .update({ consultor_id: form.responsavel_comercial_id || null })
+        .eq("id", alunoId);
       toast.success("Dados comerciais salvos");
       queryClient.invalidateQueries({ queryKey: ["pipeline-metadata"] });
       queryClient.invalidateQueries({ queryKey: ["pipeline-metadata", alunoId] });
