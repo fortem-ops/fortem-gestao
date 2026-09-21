@@ -55,7 +55,7 @@ export default function PortalAssessments() {
         data={data}
         sexo={sexoDe(student.sexo)}
         faixaEtaria={faixaEtariaDe(student.data_nascimento)}
-        referenceData={referenceData}
+        resumoReferencia={resumoReferencia}
       />
     </div>
   );
