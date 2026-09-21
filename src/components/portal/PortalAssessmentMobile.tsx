@@ -10,10 +10,13 @@ import { useBodyMapShapes } from "@/components/student/assessment/funcionalV2/us
 import {
   analyze,
   ASSIMETRIA_NIVEL_LABEL,
-  arrayReferencia,
   type Layer,
-  type MobilidadeReferenceData,
 } from "@/components/student/assessment/funcionalV2/bodyMapLogic";
+import {
+  escolherResumoReferencia,
+  type ResumoReferencia,
+  type ResumoReferenciaPortal,
+} from "./referenciaResumoPortal";
 import {
   montarResumoAssimetriaEvolucao,
   type AssimetriaResumoEvolucao,
