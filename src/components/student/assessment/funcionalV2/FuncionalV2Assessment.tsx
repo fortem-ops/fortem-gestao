@@ -19,6 +19,8 @@ import {
   ALL_FUNCTIONAL_METRICS,
   classifyForca,
   FORCA_EXERCICIO_LABEL,
+  METRICA_QUADRICEPS,
+  quadricepsEntradaParaValor,
   type MetricInput,
   type ForcaInput,
   type ForcaExercicio,
@@ -66,8 +68,11 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
   const rows: MetricInput[] = useMemo(() =>
     ALL_FUNCTIONAL_METRICS.map((metric) => {
       const v = values[metric] || { left: "", right: "" };
-      const l = parseInt(v.left);
-      const r = parseInt(v.right);
+      const lRaw = parseInt(v.left);
+      const rRaw = parseInt(v.right);
+      // Quadríceps: o campo recebe a leitura a partir dos 90°; salva o valor absoluto.
+      const l = !isNaN(lRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(lRaw) : lRaw;
+      const r = !isNaN(rRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(rRaw) : rRaw;
       return {
         metric,
         left: !isNaN(l) ? l : null,
@@ -206,8 +211,10 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
           <tbody>
             {ALL_FUNCTIONAL_METRICS.map((metric) => {
               const v = values[metric] || { left: "", right: "" };
-              const l = parseInt(v.left);
-              const r = parseInt(v.right);
+              const lRaw = parseInt(v.left);
+              const rRaw = parseInt(v.right);
+              const l = !isNaN(lRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(lRaw) : lRaw;
+              const r = !isNaN(rRaw) && metric === METRICA_QUADRICEPS ? quadricepsEntradaParaValor(rRaw) : rRaw;
               const lc = !isNaN(l) ? classifyAngle(metric, l) : null;
               const rc = !isNaN(r) ? classifyAngle(metric, r) : null;
               const ref = assessmentReferences[metric]?.referenceText;
@@ -215,6 +222,11 @@ export function FuncionalV2Assessment({ student, protocoloId, permiteUpload }: P
                 <tr key={metric} className="border-b border-border/50">
                   <td className="p-3">
                     <p className="text-sm text-foreground">{metric}</p>
+                    {metric === METRICA_QUADRICEPS && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5 italic">
+                        Lance a leitura a partir dos 90° — os 90° já estão incluídos no cálculo.
+                      </p>
+                    )}
                     {ref && <p className="text-[10px] text-muted-foreground mt-0.5 italic">{ref}</p>}
                   </td>
                   <td className="p-3">
