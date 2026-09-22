@@ -1430,11 +1430,12 @@ export default function BancoTreinos() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(template => {
-                  const isUnderConstruction = ["Planilha 5RM"].includes(template.fase);
+                  const isUnderConstruction = false;
                   const is531 = template.fase === "5-3-1";
                   const isM102Sintetico = template.fase === "M102";
                   const isPSSintetico = template.fase === "Plan Strong 50";
-                  const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico;
+                  const is5RMSintetico = template.fase === "Planilha 5RM";
+                  const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico;
                   return (
                   <Card
                     key={template.fase}
@@ -1458,6 +1459,10 @@ export default function BancoTreinos() {
                       }
                       if (isPSSintetico) {
                         setSelectPSOpen(true);
+                        return;
+                      }
+                      if (is5RMSintetico) {
+                        setSelect5RMOpen(true);
                         return;
                       }
                        setAlunoCtx(null);
@@ -1495,6 +1500,10 @@ export default function BancoTreinos() {
                       ) : isPSSintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 1-6 meses · orçamento de volume (NL) por zona
+                        </p>
+                      ) : is5RMSintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 4 semanas · cargas anotadas manualmente
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
