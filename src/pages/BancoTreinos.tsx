@@ -1512,6 +1512,10 @@ export default function BancoTreinos() {
                         setSelectXFabOpen(true);
                         return;
                       }
+                      if (isPTTPSintetico) {
+                        setSelectPTTPOpen(true);
+                        return;
+                      }
                        setAlunoCtx(null);
                        setPendingTemplate(template);
                      }}
@@ -1555,6 +1559,10 @@ export default function BancoTreinos() {
                       ) : isXFabSintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 3 treinos/semana · 12 sessões por par
+                        </p>
+                      ) : isPTTPSintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 3-5 treinos/semana · progressão pelo resultado de cada sessão
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
