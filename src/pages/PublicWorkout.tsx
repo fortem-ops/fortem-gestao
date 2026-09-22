@@ -57,6 +57,18 @@ import {
   fpLevantamentosDoSlot,
   type FoolproofConteudo,
 } from "@/lib/foolproof";
+import {
+  isEasyStrengthContent,
+  EASY_STRENGTH_LABEL,
+  ES_LEV_BASE,
+  ES_NIVEL_LABEL,
+  ES_NIVEIS,
+  ES_TOTAL_SEMANAS,
+  esSlots,
+  kgES,
+  planoES,
+  type EasyStrengthConteudo,
+} from "@/lib/easyStrength";
 
 import {
   isM102,
@@ -175,6 +187,9 @@ export default function PublicWorkout() {
     treino?.template_fase === "X-FAB Hipertrofia" || isXFabContent(treino?.conteudo ?? null);
   const isFoolproofTreino =
     treino?.template_fase === FOOLPROOF_LABEL || isFoolproofContent(treino?.conteudo ?? null);
+  const isEasyStrengthTreino =
+    treino?.template_fase === EASY_STRENGTH_LABEL ||
+    isEasyStrengthContent(treino?.conteudo ?? null);
   const isPTTP2Treino =
     treino?.template_fase === PTTP2_LABEL || isPTTP2Content(treino?.conteudo ?? null);
   const isPTTPTreino =
@@ -190,11 +205,12 @@ export default function PublicWorkout() {
       isXFabTreino ||
       isPTTPTreino ||
       isPTTP2Treino ||
-      isFoolproofTreino
+      isFoolproofTreino ||
+      isEasyStrengthTreino
     )
       return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino, isFoolproofTreino]);
+  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino, isFoolproofTreino, isEasyStrengthTreino]);
 
   const xfabData = useMemo<XFabConteudo | null>(() => {
     if (!treino?.conteudo || !isXFabTreino) return null;
@@ -216,6 +232,11 @@ export default function PublicWorkout() {
     if (!treino?.conteudo || !isFoolproofTreino) return null;
     return treino.conteudo as unknown as FoolproofConteudo;
   }, [treino, isFoolproofTreino]);
+
+  const easyStrengthData = useMemo<EasyStrengthConteudo | null>(() => {
+    if (!treino?.conteudo || !isEasyStrengthTreino) return null;
+    return treino.conteudo as unknown as EasyStrengthConteudo;
+  }, [treino, isEasyStrengthTreino]);
 
   const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
     if (!treino?.conteudo || !is531) return null;
@@ -253,7 +274,7 @@ export default function PublicWorkout() {
   if (
     error ||
     !treino ||
-    (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData && !pttp2Data && !foolproofData)
+    (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData && !pttp2Data && !foolproofData && !easyStrengthData)
   ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
@@ -292,6 +313,10 @@ export default function PublicWorkout() {
 
   if (foolproofData) {
     return <FoolproofPublic treino={treino} aluno={aluno} data={foolproofData} />;
+  }
+
+  if (easyStrengthData) {
+    return <EasyStrengthPublic treino={treino} aluno={aluno} data={easyStrengthData} />;
   }
 
   if (pttp2Data) {

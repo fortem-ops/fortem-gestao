@@ -29,6 +29,8 @@ import { PrescricaoPTTP2Editor } from "@/components/student/workout/PrescricaoPT
 import { PTTP2_LABEL } from "@/lib/pttp2";
 import { PrescricaoFoolproofEditor } from "@/components/student/workout/PrescricaoFoolproofEditor";
 import { FOOLPROOF_LABEL } from "@/lib/foolproof";
+import { PrescricaoEasyStrengthEditor } from "@/components/student/workout/PrescricaoEasyStrengthEditor";
+import { EASY_STRENGTH_LABEL } from "@/lib/easyStrength";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
@@ -932,6 +934,8 @@ export default function BancoTreinos() {
   const [selectPTTP2Open, setSelectPTTP2Open] = useState(false);
   const [selectFoolproofOpen, setSelectFoolproofOpen] = useState(false);
   const [editorFoolproof, setEditorFoolproof] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [selectEasyStrengthOpen, setSelectEasyStrengthOpen] = useState(false);
+  const [editorEasyStrength, setEditorEasyStrength] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [editorPTTP2, setEditorPTTP2] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
@@ -1324,6 +1328,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editorEasyStrength) {
+    return (
+      <PrescricaoEasyStrengthEditor
+        alunoId={editorEasyStrength.alunoId}
+        alunoNome={editorEasyStrength.alunoNome}
+        onBack={() => setEditorEasyStrength(null)}
+      />
+    );
+  }
+
   if (editorFoolproof) {
     return (
       <PrescricaoFoolproofEditor
@@ -1501,7 +1515,13 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2, syntheticFoolproof];
+            const syntheticEasyStrength: WorkoutTemplate = {
+              fase: EASY_STRENGTH_LABEL,
+              frequencia: "2-3x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2, syntheticFoolproof, syntheticEasyStrength];
           }
           if (items.length === 0) return null;
           return (
@@ -1520,7 +1540,8 @@ export default function BancoTreinos() {
                    const isPTTPSintetico = template.fase === PTTP_LABEL;
                    const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
                    const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
-                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico;
+                   const isEasyStrengthSintetico = template.fase === EASY_STRENGTH_LABEL;
+                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico;
                   return (
                   <Card
                     key={template.fase}
@@ -1564,6 +1585,10 @@ export default function BancoTreinos() {
                       }
                       if (isFoolproofSintetico) {
                         setSelectFoolproofOpen(true);
+                        return;
+                      }
+                      if (isEasyStrengthSintetico) {
+                        setSelectEasyStrengthOpen(true);
                         return;
                       }
                        setAlunoCtx(null);
@@ -1621,6 +1646,10 @@ export default function BancoTreinos() {
                       ) : isFoolproofSintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · frequência livre · incremento fixo a partir do 1RM
+                        </p>
+                      ) : isEasyStrengthSintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 2-3 sessões/semana · tabela fixa de 9 semanas
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -1756,6 +1785,12 @@ export default function BancoTreinos() {
         onOpenChange={setSelectFoolproofOpen}
         title="Escolha o aluno para prescrever Foolproof"
         onSelect={(a) => setEditorFoolproof({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={selectEasyStrengthOpen}
+        onOpenChange={setSelectEasyStrengthOpen}
+        title="Escolha o aluno para prescrever Easy Strength"
+        onSelect={(a) => setEditorEasyStrength({ alunoId: a.id, alunoNome: a.nome })}
       />
       <Select531AlunoDialog
         open={!!pendingTemplate}
