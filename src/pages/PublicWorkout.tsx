@@ -226,11 +226,24 @@ export default function PublicWorkout() {
       isPTTPTreino ||
       isPTTP2Treino ||
       isFoolproofTreino ||
-      isEasyStrengthTreino
+      isEasyStrengthTreino ||
+      isMileDeep1RMTreino ||
+      isMileDeep5RMTreino
     )
       return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino, isFoolproofTreino, isEasyStrengthTreino]);
+  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino, isFoolproofTreino, isEasyStrengthTreino, isMileDeep1RMTreino, isMileDeep5RMTreino]);
+
+  const mileDeep1RMData = useMemo<MileDeep1RMConteudo | null>(() => {
+    if (!treino?.conteudo || !isMileDeep1RMTreino) return null;
+    return treino.conteudo as unknown as MileDeep1RMConteudo;
+  }, [treino, isMileDeep1RMTreino]);
+
+  const mileDeep5RMData = useMemo<MileDeep5RMConteudo | null>(() => {
+    if (!treino?.conteudo || !isMileDeep5RMTreino) return null;
+    return treino.conteudo as unknown as MileDeep5RMConteudo;
+  }, [treino, isMileDeep5RMTreino]);
+
 
   const xfabData = useMemo<XFabConteudo | null>(() => {
     if (!treino?.conteudo || !isXFabTreino) return null;
