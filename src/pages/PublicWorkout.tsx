@@ -57,6 +57,18 @@ import {
   fpLevantamentosDoSlot,
   type FoolproofConteudo,
 } from "@/lib/foolproof";
+import {
+  isEasyStrengthContent,
+  EASY_STRENGTH_LABEL,
+  ES_LEV_BASE,
+  ES_NIVEL_LABEL,
+  ES_NIVEIS,
+  ES_TOTAL_SEMANAS,
+  esSlots,
+  kgES,
+  planoES,
+  type EasyStrengthConteudo,
+} from "@/lib/easyStrength";
 
 import {
   isM102,
@@ -175,6 +187,9 @@ export default function PublicWorkout() {
     treino?.template_fase === "X-FAB Hipertrofia" || isXFabContent(treino?.conteudo ?? null);
   const isFoolproofTreino =
     treino?.template_fase === FOOLPROOF_LABEL || isFoolproofContent(treino?.conteudo ?? null);
+  const isEasyStrengthTreino =
+    treino?.template_fase === EASY_STRENGTH_LABEL ||
+    isEasyStrengthContent(treino?.conteudo ?? null);
   const isPTTP2Treino =
     treino?.template_fase === PTTP2_LABEL || isPTTP2Content(treino?.conteudo ?? null);
   const isPTTPTreino =
@@ -190,11 +205,12 @@ export default function PublicWorkout() {
       isXFabTreino ||
       isPTTPTreino ||
       isPTTP2Treino ||
-      isFoolproofTreino
+      isFoolproofTreino ||
+      isEasyStrengthTreino
     )
       return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino, isFoolproofTreino]);
+  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino, isFoolproofTreino, isEasyStrengthTreino]);
 
   const xfabData = useMemo<XFabConteudo | null>(() => {
     if (!treino?.conteudo || !isXFabTreino) return null;
@@ -216,6 +232,11 @@ export default function PublicWorkout() {
     if (!treino?.conteudo || !isFoolproofTreino) return null;
     return treino.conteudo as unknown as FoolproofConteudo;
   }, [treino, isFoolproofTreino]);
+
+  const easyStrengthData = useMemo<EasyStrengthConteudo | null>(() => {
+    if (!treino?.conteudo || !isEasyStrengthTreino) return null;
+    return treino.conteudo as unknown as EasyStrengthConteudo;
+  }, [treino, isEasyStrengthTreino]);
 
   const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
     if (!treino?.conteudo || !is531) return null;
@@ -253,7 +274,7 @@ export default function PublicWorkout() {
   if (
     error ||
     !treino ||
-    (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData && !pttp2Data && !foolproofData)
+    (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData && !pttp2Data && !foolproofData && !easyStrengthData)
   ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
@@ -292,6 +313,10 @@ export default function PublicWorkout() {
 
   if (foolproofData) {
     return <FoolproofPublic treino={treino} aluno={aluno} data={foolproofData} />;
+  }
+
+  if (easyStrengthData) {
+    return <EasyStrengthPublic treino={treino} aluno={aluno} data={easyStrengthData} />;
   }
 
   if (pttp2Data) {
@@ -1623,6 +1648,175 @@ function FoolproofPublic({
             </div>
           </section>
         ))}
+      </main>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Easy Strength · visão pública somente leitura
+// ─────────────────────────────────────────────────────────────
+
+function EasyStrengthPublic({
+  treino,
+  aluno,
+  data,
+}: {
+  treino: TreinoRow;
+  aluno: AlunoRow | null;
+  data: EasyStrengthConteudo;
+}) {
+  const blocosAq = Object.keys(data.aquecimento ?? {});
+  const slots = esSlots(data.frequencia);
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-sm leading-tight truncate">
+                {EASY_STRENGTH_LABEL} · {treino.descricao || "Prescrição"}
+              </h1>
+              {aluno && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {aluno.nome} · v{treino.versao} · {slots.length} sessões/semana
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+            Somente leitura
+          </span>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-4 space-y-6 pb-12">
+        <section className="rounded-xl border border-border p-4 space-y-2">
+          <h2 className="text-xs font-heading font-bold uppercase tracking-wider text-primary">
+            Levantamentos
+          </h2>
+          {data.levantamentos.map((l, i) => {
+            const base = ES_LEV_BASE[l.levantamento];
+            return (
+              <div key={i} className="flex justify-between text-sm gap-2">
+                <span className="truncate">
+                  <span className="font-semibold">{l.levantamento}</span>{" "}
+                  <span className="text-muted-foreground">· {base.nome}</span>
+                </span>
+                <span className="tabular-nums shrink-0">1RM {l.rm1 || "—"} kg</span>
+              </div>
+            );
+          })}
+        </section>
+
+        {blocosAq.some((k) => (data.aquecimento?.[k]?.length ?? 0) > 0) && (
+          <section className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Aquecimento
+              </p>
+            </div>
+            <div className="p-3 space-y-2">
+              {blocosAq.map((k) => {
+                const items = data.aquecimento?.[k] ?? [];
+                if (!items.length) return null;
+                return (
+                  <div key={k}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {k}
+                    </p>
+                    <ul className="space-y-1">
+                      {items.map((ex, i) => (
+                        <li
+                          key={i}
+                          className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
+                        >
+                          <span className="truncate">{ex.exercicio || "—"}</span>
+                          <span className="text-muted-foreground tabular-nums">
+                            {ex.repeticoes}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {slots.map((slot, i) => {
+          const sessao = data.sessoes?.find((s) => s.slot === slot);
+          if (!sessao) return null;
+          const plano = planoES(sessao.nivel, 1);
+          return (
+            <section key={slot} className="rounded-xl border border-border overflow-hidden">
+              <div className="px-3 py-2 bg-muted/60">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {slot} · Treino {i + 1} · {ES_NIVEL_LABEL[sessao.nivel]}
+                </p>
+              </div>
+              <div className="p-3 space-y-2">
+                {data.levantamentos.map((l, k) => (
+                  <div key={k} className="flex justify-between text-xs gap-2">
+                    <span className="truncate font-semibold">{l.levantamento}</span>
+                    <span className="tabular-nums text-muted-foreground shrink-0">
+                      {plano.esquema} @ {plano.pct}% · {kgES(l.rm1, plano.pct) || "—"} kg
+                    </span>
+                  </div>
+                ))}
+                {sessao.auxiliares.map((aux, k) => (
+                  <div key={`aux-${k}`} className="flex justify-between text-xs gap-2">
+                    <span className="truncate">
+                      <span className="font-semibold">{aux.categoria}</span>{" "}
+                      <span className="text-muted-foreground">{aux.exercicio || "—"}</span>
+                    </span>
+                    <span className="tabular-nums text-muted-foreground shrink-0">
+                      {aux.series}x{aux.reps}
+                      {aux.kg ? ` · ${aux.kg} kg` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+
+        <section className="rounded-xl border border-border p-4">
+          <h2 className="text-xs font-heading font-bold uppercase tracking-wider text-primary mb-2">
+            Tabela de referência · {ES_TOTAL_SEMANAS} semanas
+          </h2>
+          <table className="w-full text-xs tabular-nums">
+            <thead>
+              <tr className="text-muted-foreground text-left">
+                <th className="py-1 pr-3 font-semibold">Semana</th>
+                {ES_NIVEIS.map((n) => (
+                  <th key={n} className="py-1 pr-3 font-semibold">
+                    {ES_NIVEL_LABEL[n]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: ES_TOTAL_SEMANAS }, (_, i) => i + 1).map((semana) => (
+                <tr key={semana} className="border-t border-border/50">
+                  <td className="py-1 pr-3 font-semibold">Semana {semana}</td>
+                  {ES_NIVEIS.map((n) => {
+                    const p = planoES(n, semana);
+                    return (
+                      <td key={n} className="py-1 pr-3">
+                        {p.esquema} @ {p.pct}%
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
       </main>
     </div>
   );
