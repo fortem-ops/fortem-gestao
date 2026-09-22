@@ -25,6 +25,8 @@ import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM10
 import { PrescricaoXFabEditor } from "@/components/student/workout/PrescricaoXFabEditor";
 import { PrescricaoPTTPEditor } from "@/components/student/workout/PrescricaoPTTPEditor";
 import { PTTP_LABEL } from "@/lib/pttp";
+import { PrescricaoPTTP2Editor } from "@/components/student/workout/PrescricaoPTTP2Editor";
+import { PTTP2_LABEL } from "@/lib/pttp2";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
@@ -925,6 +927,8 @@ export default function BancoTreinos() {
   const [editorXFab, setEditorXFab] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [selectPTTPOpen, setSelectPTTPOpen] = useState(false);
   const [editorPTTP, setEditorPTTP] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [selectPTTP2Open, setSelectPTTP2Open] = useState(false);
+  const [editorPTTP2, setEditorPTTP2] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
