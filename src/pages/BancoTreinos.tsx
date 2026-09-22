@@ -1454,8 +1454,9 @@ export default function BancoTreinos() {
                   const is531 = template.fase === "5-3-1";
                   const isM102Sintetico = template.fase === "M102";
                   const isPSSintetico = template.fase === "Plan Strong 50";
-                  const is5RMSintetico = template.fase === "Planilha 5RM";
-                  const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico;
+                   const is5RMSintetico = template.fase === "Planilha 5RM";
+                   const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
+                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico;
                   return (
                   <Card
                     key={template.fase}
@@ -1483,6 +1484,10 @@ export default function BancoTreinos() {
                       }
                       if (is5RMSintetico) {
                         setSelect5RMOpen(true);
+                        return;
+                      }
+                      if (isXFabSintetico) {
+                        setSelectXFabOpen(true);
                         return;
                       }
                        setAlunoCtx(null);
@@ -1524,6 +1529,10 @@ export default function BancoTreinos() {
                       ) : is5RMSintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 4 semanas · cargas anotadas manualmente
+                        </p>
+                      ) : isXFabSintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 3 treinos/semana · 12 sessões por par
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
