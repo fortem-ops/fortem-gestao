@@ -23,7 +23,7 @@ import { agoraSaoPaulo, tarefaAtrasada } from "@/lib/tarefaAtraso";
 import { AtividadeTipoSelector } from "@/components/pipeline/AtividadeTipoSelector";
 import { ATIVIDADE_CONFIG, type TipoAtividade } from "@/lib/pipeline";
 import { useUserRoles } from "@/hooks/useUserRoles";
-import { fetchAlunosDaCarteira } from "@/lib/carteiraScope";
+import { fetchAlunosDaCarteira, filtrarTarefasConsultor } from "@/lib/carteiraScope";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -488,7 +488,7 @@ export default function TaskCenter() {
 
       const agora = agoraSaoPaulo();
 
-      return data.map((t) => ({
+      const comNomes = data.map((t) => ({
         ...t,
         responsavel_nome: nameMap[t.responsavel_id] || "—",
         aluno_nome: t.aluno_id ? alunoMap[t.aluno_id] || "" : "",
@@ -496,6 +496,7 @@ export default function TaskCenter() {
           t.status !== "concluida" &&
           tarefaAtrasada(t.data_limite, (t as any).hora_limite, agora),
       }));
+      return filtrarTarefasConsultor(comNomes, effectiveResponsavelId);
 
     },
   });

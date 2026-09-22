@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 import { getTaskActionTarget } from "@/lib/taskAction";
 import { useUserRoles } from "@/hooks/useUserRoles";
-import { fetchAlunosDaCarteira } from "@/lib/carteiraScope";
+import { fetchAlunosDaCarteira, filtrarTarefasConsultor } from "@/lib/carteiraScope";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
