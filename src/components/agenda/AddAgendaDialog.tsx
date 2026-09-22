@@ -607,7 +607,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
         },
       });
       if (error) throw error;
-      toast.success("Profissional notificado via WhatsApp");
+      toast.success("Professor e consultor notificados via WhatsApp");
     } catch (e: any) {
       toast.error("Erro ao notificar: " + (e?.message ?? "desconhecido"));
     } finally {
@@ -1014,7 +1014,7 @@ export function AddAgendaDialog({ open, onOpenChange, prefill, editEvent, cellDa
           {agendamentoSalvo ? (
             <div className="flex flex-col gap-2 w-full">
               <p className="text-sm text-muted-foreground text-center">
-                ✅ Agendamento salvo! Deseja notificar o profissional?
+                ✅ Agendamento salvo! Deseja notificar o professor e o consultor?
               </p>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={fecharSemNotificar}>
