@@ -1434,7 +1434,13 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM];
+            const syntheticXFab: WorkoutTemplate = {
+              fase: "X-FAB Hipertrofia",
+              frequencia: "3x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab];
           }
           if (items.length === 0) return null;
           return (
