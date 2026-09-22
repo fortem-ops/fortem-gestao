@@ -405,6 +405,7 @@ export function PedidosTab() {
       </AlertDialog>
 
       <DarBaixaPedidoDialog pedido={baixa} onOpenChange={(o) => !o && setBaixa(null)} />
+      <EditarItemPedidoDialog item={itemEdicao} onOpenChange={(o) => !o && setItemEdicao(null)} />
     </div>
   );
 }
