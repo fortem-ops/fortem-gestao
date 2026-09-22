@@ -1611,6 +1611,12 @@ export default function BancoTreinos() {
         onSelect={(a) => setEditorPS({ alunoId: a.id, alunoNome: a.nome })}
       />
       <Select531AlunoDialog
+        open={select5RMOpen}
+        onOpenChange={setSelect5RMOpen}
+        title="Escolha o aluno para prescrever a Planilha 5RM"
+        onSelect={(a) => setEditor5RM({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
         open={!!pendingTemplate}
         onOpenChange={(o) => { if (!o) setPendingTemplate(null); }}
         title={pendingTemplate ? `Escolha o aluno — ${pendingTemplate.fase}` : "Escolha o aluno"}
