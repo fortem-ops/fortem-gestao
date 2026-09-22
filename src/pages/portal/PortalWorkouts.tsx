@@ -273,6 +273,22 @@ export default function PortalWorkouts() {
     );
   }
 
+  // ── Power to the People 2.0: renderização dedicada ──────────
+  if (
+    treino &&
+    ((treino as any).template_fase === PTTP2_LABEL || isPTTP2Content(treino.conteudo))
+  ) {
+    return (
+      <PortalPTTP2View
+        treino={treino}
+        sessoes={sessoes}
+        student={student}
+        agendamentoHoje={agendamentoHoje ?? null}
+        qc={qc}
+      />
+    );
+  }
+
   // ── Power to the People: renderização dedicada ──────────────
   if (
     treino &&
