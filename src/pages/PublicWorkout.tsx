@@ -71,6 +71,7 @@ import {
 } from "@/lib/easyStrength";
 import {
   isMileDeep1RMContent,
+  MD1_FAIXAS,
   MILEDEEP1RM_LABEL,
   levantamentosDoParMD1,
   planoMD1,
@@ -78,6 +79,7 @@ import {
 } from "@/lib/mileDeep1RM";
 import {
   isMileDeep5RMContent,
+  MD5_FAIXAS,
   MILEDEEP5RM_LABEL,
   planoMD5,
   type MileDeep5RMConteudo,
@@ -1895,6 +1897,178 @@ function EasyStrengthPublic({
             </tbody>
           </table>
         </section>
+      </main>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Quality a Mile Deep (1RM e 5RM) · visão pública somente leitura
+// ─────────────────────────────────────────────────────────────
+
+interface MileDeepPublicSessao {
+  slot: string;
+  titulo: string;
+  ordem: MDBlocoId[];
+  faixas: MDFaixas;
+  plano: MDPlanoSemana;
+  auxiliares: MDAuxiliar[];
+  levantamentos: Array<{ nome: string; rm: number }>;
+}
+
+function MileDeepPublic({
+  treino,
+  aluno,
+  titulo,
+  refLabel,
+  aquecimento,
+  sessoes,
+}: {
+  treino: TreinoRow;
+  aluno: AlunoRow | null;
+  titulo: string;
+  refLabel: string;
+  aquecimento?: Record<string, Array<{ exercicio: string; repeticoes?: number | string }>>;
+  sessoes: MileDeepPublicSessao[];
+}) {
+  const blocosAq = Object.keys(aquecimento ?? {});
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-sm leading-tight truncate">
+                {titulo} · {treino.descricao || "Prescrição"}
+              </h1>
+              {aluno && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {aluno.nome} · v{treino.versao} · {sessoes.length} sessões/semana
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+            Somente leitura
+          </span>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-4 space-y-6 pb-12">
+        {blocosAq.some((k) => (aquecimento?.[k]?.length ?? 0) > 0) && (
+          <section className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Aquecimento
+              </p>
+            </div>
+            <div className="p-3 space-y-2">
+              {blocosAq.map((k) => {
+                const items = aquecimento?.[k] ?? [];
+                if (!items.length) return null;
+                return (
+                  <div key={k}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {k}
+                    </p>
+                    <ul className="space-y-1">
+                      {items.map((ex, i) => (
+                        <li
+                          key={i}
+                          className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
+                        >
+                          <span className="truncate">{ex.exercicio || "—"}</span>
+                          <span className="text-muted-foreground tabular-nums">
+                            {ex.repeticoes}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {sessoes.map((s) => (
+          <section key={s.slot} className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60 flex items-center justify-between gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                {s.slot} · {s.titulo}
+              </p>
+              <span className="text-[11px] text-muted-foreground shrink-0">
+                Semana 1 · {s.plano.bloco.label}
+              </span>
+            </div>
+            <div className="p-3 space-y-3">
+              {s.levantamentos.map((l, i) => (
+                <div key={i} className="flex justify-between text-sm gap-2">
+                  <span className="truncate">
+                    <span className="font-semibold">{l.nome}</span>{" "}
+                    <span className="text-muted-foreground">
+                      · {MD_LEV_BASE[l.nome as keyof typeof MD_LEV_BASE]?.nome}
+                    </span>
+                  </span>
+                  <span className="tabular-nums shrink-0">
+                    {s.plano.esquema} · {s.plano.faixaLabel} do {refLabel}
+                    {l.rm ? ` (${l.rm} kg)` : ""}
+                  </span>
+                </div>
+              ))}
+
+              {s.auxiliares.length > 0 && (
+                <div className="border rounded-lg p-3 space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Auxiliares
+                  </p>
+                  {s.auxiliares.map((aux, i) => (
+                    <div key={i} className="flex justify-between text-xs gap-2">
+                      <span className="truncate">
+                        <span className="font-semibold">{aux.categoria}</span>{" "}
+                        <span className="text-muted-foreground">{aux.exercicio || "—"}</span>
+                      </span>
+                      <span className="tabular-nums text-muted-foreground shrink-0">
+                        {aux.series}x{aux.reps}
+                        {aux.kg ? ` · ${aux.kg} kg` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-border overflow-hidden">
+                <table className="w-full text-[11px]">
+                  <thead className="bg-muted/60 text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-2 py-1 font-semibold">Semana</th>
+                      <th className="text-left px-2 py-1 font-semibold">Bloco</th>
+                      <th className="text-center px-2 py-1 font-semibold">Séries × reps</th>
+                      <th className="text-center px-2 py-1 font-semibold">% do {refLabel}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tabelaMD(s.ordem, s.faixas).map((linha) => (
+                      <tr key={linha.semana} className="border-t border-border/60">
+                        <td className="px-2 py-1 tabular-nums">{linha.semana}</td>
+                        <td className="px-2 py-1">{linha.bloco.label}</td>
+                        <td className="px-2 py-1 text-center tabular-nums">{linha.esquema}</td>
+                        <td className="px-2 py-1 text-center tabular-nums">{linha.faixaLabel}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Sem cálculo de carga: use a faixa de % do {refLabel} deixando 1-2 repetições de
+                reserva. Depois da semana {MD_TOTAL_SEMANAS} o ciclo reinicia.
+              </p>
+            </div>
+          </section>
+        ))}
       </main>
     </div>
   );
