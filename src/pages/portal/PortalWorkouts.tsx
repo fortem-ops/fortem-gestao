@@ -60,6 +60,20 @@ import {
   PTTP2_FASE_LABEL,
   type PTTP2Conteudo,
 } from "@/lib/pttp2";
+import {
+  isFoolproofContent,
+  alvoFP,
+  alvoHipertrofiaFP,
+  registrarSessaoPrincipalFP,
+  cicloConcluidoFP,
+  FOOLPROOF_LABEL,
+  FP_LEV_BASE,
+  FP_FASE_LABEL,
+  fpSlots,
+  fpAuxiliaresDoSlot,
+  fpLevantamentosDoSlot,
+  type FoolproofConteudo,
+} from "@/lib/foolproof";
 
 import {
   isPlanStrong50,
@@ -264,6 +278,22 @@ export default function PortalWorkouts() {
   ) {
     return (
       <PortalXFabView
+        treino={treino}
+        sessoes={sessoes}
+        student={student}
+        agendamentoHoje={agendamentoHoje ?? null}
+        qc={qc}
+      />
+    );
+  }
+
+  // ── Foolproof: renderização dedicada ────────────────────────
+  if (
+    treino &&
+    ((treino as any).template_fase === FOOLPROOF_LABEL || isFoolproofContent(treino.conteudo))
+  ) {
+    return (
+      <PortalFoolproofView
         treino={treino}
         sessoes={sessoes}
         student={student}
@@ -2415,6 +2445,286 @@ function PortalPTTP2View({
                 </p>
                 {tr.auxiliares.map((aux, i) => (
                   <div key={i} className="flex items-center justify-between text-xs gap-2">
+                    <span className="truncate flex items-center gap-1 min-w-0">
+                      <span className="font-semibold shrink-0">{aux.categoria}</span>
+                      <span className="text-muted-foreground truncate">
+                        {cleanName(aux.exercicio) || "—"}
+                      </span>
+                      {aux.video_url && (
+                        <a
+                          href={aux.video_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary shrink-0"
+                        >
+                          <PlayCircle className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </span>
+                    <span className="tabular-nums text-muted-foreground shrink-0">
+                      {aux.series}x{aux.reps}
+                      {aux.kg ? ` · ${aux.kg} kg` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-1 space-y-1">
+                <button
+                  onClick={() => handleConcluir(slot)}
+                  disabled={concluindoSlot !== null || !agendamentoHoje}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {concluindoSlot === slot ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Concluindo…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" /> Concluí a sessão ({slot})
+                    </>
+                  )}
+                </button>
+                {!agendamentoHoje && (
+                  <p className="text-[10px] text-warning text-center">
+                    Precisa de um treino agendado para hoje para concluir.
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function PortalFoolproofView({
+  treino,
+  sessoes,
+  student,
+  agendamentoHoje,
+  qc,
+}: {
+  treino: any;
+  sessoes: Array<{ variacao: string; concluido_em: string | null }>;
+  student: { id: string } | null;
+  agendamentoHoje: { id: string } | null;
+  qc: ReturnType<typeof useQueryClient>;
+}) {
+  const [concluindoSlot, setConcluindoSlot] = useState<string | null>(null);
+
+  const data = (treino?.conteudo ?? null) as FoolproofConteudo | null;
+
+  if (!data) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">Treino indisponível.</div>
+    );
+  }
+
+  const slots = fpSlots(data.diasTreinoSemana);
+  const concluidasPorSlot = (slot: string) =>
+    sessoes.filter((s) => s.concluido_em && s.variacao === slot).length;
+
+  async function handleConcluir(slot: string) {
+    if (!student || !treino?.id || !data) return;
+    if (!agendamentoHoje) {
+      toast.error("Você precisa ter um treino agendado para hoje para concluir.");
+      return;
+    }
+    setConcluindoSlot(slot);
+    try {
+      const hoje = format(new Date(), "yyyy-MM-dd");
+      // Só a sessão principal daquele dia faz o peso subir.
+      const novoConteudo: FoolproofConteudo = {
+        ...data,
+        levantamentos: data.levantamentos.map((l) =>
+          l.slotPrincipal === slot ? registrarSessaoPrincipalFP(l, hoje) : l,
+        ),
+      };
+      const { error } = await supabase
+        .from("treinos")
+        .update({ conteudo: novoConteudo as any, updated_at: new Date().toISOString() })
+        .eq("id", treino.id);
+      if (error) throw error;
+
+      await registrarSessaoConcluida({
+        alunoId: student.id,
+        treinoId: treino.id,
+        variacao: slot,
+        agendamentoId: agendamentoHoje.id,
+      });
+      qc.invalidateQueries({ queryKey: ["portal-treino-ativo"] });
+      qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
+      qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
+      qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
+      qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
+      toast.success(`${slot} concluído!`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao concluir sessão.");
+    } finally {
+      setConcluindoSlot(null);
+    }
+  }
+
+  const blocosAq = Object.keys(data.aquecimento ?? {});
+
+  return (
+    <div className="p-4 space-y-5 max-w-3xl mx-auto pb-16">
+      <header className="space-y-1">
+        <h1 className="text-lg font-bold">{FOOLPROOF_LABEL}</h1>
+        <p className="text-xs text-muted-foreground">
+          {slots.length} treinos por semana · {data.levantamentos.length} levantamentos
+        </p>
+      </header>
+
+      {blocosAq.some((k) => (data.aquecimento?.[k]?.length ?? 0) > 0) && (
+        <section className="rounded-xl border border-border overflow-hidden">
+          <div className="px-3 py-2 bg-muted/60">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Aquecimento
+            </p>
+          </div>
+          <div className="p-3 space-y-2">
+            {blocosAq.map((k) => {
+              const items = data.aquecimento?.[k] ?? [];
+              if (!items.length) return null;
+              return (
+                <div key={k}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    {catLabel(k)}
+                  </p>
+                  <ul className="space-y-1">
+                    {items.map((ex, i) => (
+                      <li
+                        key={i}
+                        className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
+                      >
+                        <span className="truncate flex items-center gap-1">
+                          {cleanName(ex.exercicio) || "—"}
+                          {ex.video_url && (
+                            <a
+                              href={ex.video_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary"
+                            >
+                              <PlayCircle className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </span>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <section className="rounded-xl border border-border overflow-hidden">
+        <div className="px-3 py-2 bg-muted/60">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Levantamentos
+          </p>
+        </div>
+        <div className="p-3 space-y-3">
+          {data.levantamentos.map((lev) => {
+            const base = FP_LEV_BASE[lev.levantamento];
+            const alvo = alvoFP(lev);
+            const hiper = alvoHipertrofiaFP(lev);
+            return (
+              <div key={lev.levantamento} className="border rounded-lg p-3 space-y-1">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="truncate flex items-center gap-1 min-w-0">
+                    <span className="font-semibold shrink-0">{lev.levantamento}</span>
+                    <span className="text-muted-foreground truncate">{cleanName(base.nome)}</span>
+                    {base.video_url && (
+                      <a
+                        href={base.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary shrink-0"
+                      >
+                        <PlayCircle className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </span>
+                  <span className="tabular-nums shrink-0">
+                    {alvo.concluido ? (
+                      <span className="font-semibold">Ciclo concluído</span>
+                    ) : (
+                      <>
+                        {lev.slotPrincipal} · {alvo.esquema} ·{" "}
+                        <span className="font-semibold">{alvo.peso || "—"} kg</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {cicloConcluidoFP(lev)
+                    ? `Ciclo concluído${lev.rm1Final ? ` — 1RM final: ${lev.rm1Final} kg` : ""}`
+                    : FP_FASE_LABEL[lev.fase]}
+                </p>
+                {hiper && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Hipertrofia ({lev.hipertrofia.slot}): {hiper.esquema} · {hiper.peso || "—"} kg
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {slots.map((slot, i) => {
+        const sessoesDoSlot = fpLevantamentosDoSlot(data, slot);
+        return (
+          <section key={slot} className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                {slot} · Treino {i + 1}
+              </p>
+              <span className="text-[11px] text-muted-foreground tabular-nums">
+                {concluidasPorSlot(slot)} sessões
+              </span>
+            </div>
+            <div className="p-3 space-y-3">
+              <div className="space-y-1">
+                {sessoesDoSlot.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Sem levantamentos principais neste dia.
+                  </p>
+                )}
+                {sessoesDoSlot.map((s, k) => {
+                  const alvo = alvoFP(s.estado);
+                  const hiper = alvoHipertrofiaFP(s.estado);
+                  return (
+                    <div key={k} className="flex items-center justify-between text-xs gap-2">
+                      <span className="font-semibold truncate">
+                        {s.estado.levantamento}
+                        {s.tipo === "hipertrofia" ? " · hipertrofia" : " · principal"}
+                      </span>
+                      <span className="tabular-nums text-muted-foreground shrink-0">
+                        {s.tipo === "hipertrofia"
+                          ? `${hiper?.esquema ?? "—"} · ${hiper?.peso || "—"} kg`
+                          : alvo.concluido
+                            ? "Ciclo concluído"
+                            : `${alvo.esquema} · ${alvo.peso || "—"} kg`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="border rounded-lg p-3 space-y-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Auxiliares
+                </p>
+                {fpAuxiliaresDoSlot(data, slot).map((aux, k) => (
+                  <div key={k} className="flex items-center justify-between text-xs gap-2">
                     <span className="truncate flex items-center gap-1 min-w-0">
                       <span className="font-semibold shrink-0">{aux.categoria}</span>
                       <span className="text-muted-foreground truncate">
