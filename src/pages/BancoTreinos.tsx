@@ -1455,7 +1455,13 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab];
+            const syntheticPTTP: WorkoutTemplate = {
+              fase: PTTP_LABEL,
+              frequencia: "3-5x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP];
           }
           if (items.length === 0) return null;
           return (
@@ -1471,7 +1477,8 @@ export default function BancoTreinos() {
                   const isPSSintetico = template.fase === "Plan Strong 50";
                    const is5RMSintetico = template.fase === "Planilha 5RM";
                    const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
-                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico;
+                   const isPTTPSintetico = template.fase === PTTP_LABEL;
+                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico;
                   return (
                   <Card
                     key={template.fase}
