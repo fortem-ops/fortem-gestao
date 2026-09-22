@@ -1832,12 +1832,12 @@ export default function BancoTreinos() {
                     return (
                       <div
                         key={sub.label}
-                        className="grid gap-3 border-t border-border/50 py-3 sm:grid-cols-[110px_minmax(0,1fr)] sm:items-start"
+                        className="border-t border-border/50 pb-3 pt-3"
                       >
-                        <h3 className="pt-1 text-[11px] font-semibold uppercase leading-4 text-muted-foreground">
+                        <h3 className="mb-2 text-[11px] font-semibold uppercase leading-4 text-muted-foreground">
                           {sub.label}
                         </h3>
-                        <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                           {subItems.map(renderMetodoCompacto)}
                         </div>
                       </div>
@@ -1854,7 +1854,8 @@ export default function BancoTreinos() {
                 {group.label}
               </h2>
               <TooltipProvider delayDuration={200}>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+
                   {items.map(renderMetodoCompacto)}
                 </div>
               </TooltipProvider>
@@ -1868,7 +1869,7 @@ export default function BancoTreinos() {
               {grupo.titulo}
             </h2>
             <TooltipProvider delayDuration={200}>
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {grupo.modelos.map((m) => {
                   const conteudo = (m.conteudo as unknown) as PersonalizadoConteudo;
                   const isOwner = m.criado_por === user?.id;
