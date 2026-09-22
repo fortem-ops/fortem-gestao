@@ -1278,6 +1278,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editor5RM) {
+    return (
+      <PrescricaoPlanilha5RMEditor
+        alunoId={editor5RM.alunoId}
+        alunoNome={editor5RM.alunoNome}
+        onBack={() => setEditor5RM(null)}
+      />
+    );
+  }
+
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
@@ -1404,7 +1414,13 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS];
+            const synthetic5RM: WorkoutTemplate = {
+              fase: "Planilha 5RM",
+              frequencia: "2-4x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM];
           }
           if (items.length === 0) return null;
           return (
