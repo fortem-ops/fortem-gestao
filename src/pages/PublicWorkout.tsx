@@ -84,7 +84,15 @@ import {
   planoMD5,
   type MileDeep5RMConteudo,
 } from "@/lib/mileDeep5RM";
-import { MD_LEV_BASE, MD_TOTAL_SEMANAS, tabelaMD } from "@/lib/mileDeepShared";
+import {
+  MD_LEV_BASE,
+  MD_TOTAL_SEMANAS,
+  tabelaMD,
+  type MDAuxiliar,
+  type MDBlocoId,
+  type MDFaixas,
+  type MDPlanoSemana,
+} from "@/lib/mileDeepShared";
 
 import {
   isM102,
