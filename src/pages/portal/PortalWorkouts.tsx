@@ -87,6 +87,20 @@ import {
   sessaoDoSlotES,
   type EasyStrengthConteudo,
 } from "@/lib/easyStrength";
+import {
+  isMileDeep1RMContent,
+  MILEDEEP1RM_LABEL,
+  levantamentosDoParMD1,
+  planoMD1,
+  type MileDeep1RMConteudo,
+} from "@/lib/mileDeep1RM";
+import {
+  isMileDeep5RMContent,
+  MILEDEEP5RM_LABEL,
+  planoMD5,
+  type MileDeep5RMConteudo,
+} from "@/lib/mileDeep5RM";
+import { MD_LEV_BASE, MD_TOTAL_SEMANAS, semanaAtualMD } from "@/lib/mileDeepShared";
 
 import {
   isPlanStrong50,
