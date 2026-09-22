@@ -16,13 +16,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { BadgeCheck, ChevronDown, ChevronRight, Gift, PackageOpen, Trash2 } from "lucide-react";
+import { BadgeCheck, ChevronDown, ChevronRight, Gift, PackageOpen, Pencil, Trash2 } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
 import { DarBaixaPedidoDialog, type PedidoBaixa } from "./DarBaixaPedidoDialog";
+import { EditarItemPedidoDialog, type ItemEdicao } from "./EditarItemPedidoDialog";
 
 
 type Item = {
+  id: string;
+  variante_id: string;
   quantidade: number;
   preco_unitario_snapshot: number;
   produtos_variantes: {
@@ -161,6 +164,7 @@ export function PedidosTab() {
   const [excluir, setExcluir] = useState<Pedido | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [baixa, setBaixa] = useState<PedidoBaixa | null>(null);
+  const [itemEdicao, setItemEdicao] = useState<ItemEdicao | null>(null);
 
   const confirmarExclusao = async () => {
     if (!excluir) return;
@@ -189,7 +193,7 @@ export function PedidosTab() {
       let q = (supabase as any)
         .from("pedidos")
         .select(
-          "id, nome, cpf, email, telefone, status, valor_final, forma_pagamento, eh_encomenda, brinde_escolhido, created_at, pedido_itens(quantidade, preco_unitario_snapshot, produtos_variantes(tamanho, cor, sku, produtos_catalogo(nome)))",
+          "id, nome, cpf, email, telefone, status, valor_final, forma_pagamento, eh_encomenda, brinde_escolhido, created_at, pedido_itens(id, variante_id, quantidade, preco_unitario_snapshot, produtos_variantes(tamanho, cor, sku, produtos_catalogo(nome)))",
         )
         .order("created_at", { ascending: false })
         .limit(500);
@@ -328,9 +332,33 @@ export function PedidosTab() {
                               const v = it.produtos_variantes;
                               const variante = [v?.tamanho, v?.cor].filter(Boolean).join(" / ") || v?.sku || "Padrão";
                               return (
-                                <li key={idx} className="text-xs">
-                                  {it.quantidade}x {v?.produtos_catalogo?.nome ?? "Produto"} — {variante} —{" "}
-                                  {formatBRL(Number(it.preco_unitario_snapshot) * it.quantidade)}
+                                <li key={it.id ?? idx} className="text-xs flex items-center gap-1">
+                                  <span>
+                                    {it.quantidade}x {v?.produtos_catalogo?.nome ?? "Produto"} — {variante} —{" "}
+                                    {formatBRL(Number(it.preco_unitario_snapshot) * it.quantidade)}
+                                  </span>
+                                  {p.status === "pago" && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      title="Editar item (tamanho/cor)"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setItemEdicao({
+                                          id: it.id,
+                                          pedido_id: p.id,
+                                          variante_id: it.variante_id,
+                                          quantidade: it.quantidade,
+                                          produto_nome: v?.produtos_catalogo?.nome ?? "Produto",
+                                          tamanho: v?.tamanho ?? null,
+                                          cor: v?.cor ?? null,
+                                        });
+                                      }}
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </Button>
+                                  )}
                                 </li>
                               );
                             })}
@@ -377,6 +405,7 @@ export function PedidosTab() {
       </AlertDialog>
 
       <DarBaixaPedidoDialog pedido={baixa} onOpenChange={(o) => !o && setBaixa(null)} />
+      <EditarItemPedidoDialog item={itemEdicao} onOpenChange={(o) => !o && setItemEdicao(null)} />
     </div>
   );
 }
