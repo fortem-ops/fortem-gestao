@@ -352,6 +352,51 @@ export default function PublicWorkout() {
     return <EasyStrengthPublic treino={treino} aluno={aluno} data={easyStrengthData} />;
   }
 
+  if (mileDeep1RMData) {
+    return (
+      <MileDeepPublic
+        treino={treino}
+        aluno={aluno}
+        titulo={MILEDEEP1RM_LABEL}
+        refLabel="1RM"
+        aquecimento={mileDeep1RMData.aquecimento}
+        sessoes={mileDeep1RMData.pares.map((par, i) => ({
+          slot: par.slot,
+          titulo: `Treino ${i + 1} · Par ${i + 1}`,
+          ordem: par.ordem,
+          faixas: MD1_FAIXAS,
+          plano: planoMD1(par, 1),
+          auxiliares: par.auxiliares,
+          levantamentos: levantamentosDoParMD1(par).map((l) => ({
+            nome: l.levantamento,
+            rm: l.rm1,
+          })),
+        }))}
+      />
+    );
+  }
+
+  if (mileDeep5RMData) {
+    return (
+      <MileDeepPublic
+        treino={treino}
+        aluno={aluno}
+        titulo={MILEDEEP5RM_LABEL}
+        refLabel="5RM"
+        aquecimento={mileDeep5RMData.aquecimento}
+        sessoes={mileDeep5RMData.sessoes.map((s, i) => ({
+          slot: s.slot,
+          titulo: `Treino ${i + 1} · ${s.levantamento}`,
+          ordem: s.ordem,
+          faixas: MD5_FAIXAS,
+          plano: planoMD5(s, 1),
+          auxiliares: s.auxiliares,
+          levantamentos: [{ nome: s.levantamento, rm: s.rm5 }],
+        }))}
+      />
+    );
+  }
+
   if (pttp2Data) {
     return <PTTP2Public treino={treino} aluno={aluno} data={pttp2Data} />;
   }
