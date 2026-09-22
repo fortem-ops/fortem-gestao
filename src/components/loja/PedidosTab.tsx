@@ -16,13 +16,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { BadgeCheck, ChevronDown, ChevronRight, Gift, PackageOpen, Trash2 } from "lucide-react";
+import { BadgeCheck, ChevronDown, ChevronRight, Gift, PackageOpen, Pencil, Trash2 } from "lucide-react";
 import { formatBRL } from "@/lib/vendas";
 import { labelFormaPagamento } from "@/lib/formasRecebimento";
 import { DarBaixaPedidoDialog, type PedidoBaixa } from "./DarBaixaPedidoDialog";
+import { EditarItemPedidoDialog, type ItemEdicao } from "./EditarItemPedidoDialog";
 
 
 type Item = {
+  id: string;
+  variante_id: string;
   quantidade: number;
   preco_unitario_snapshot: number;
   produtos_variantes: {
