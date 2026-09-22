@@ -237,6 +237,22 @@ export default function PortalWorkouts() {
     );
   }
 
+  // ── X-FAB Hipertrofia: renderização dedicada ────────────────
+  if (
+    treino &&
+    ((treino as any).template_fase === "X-FAB Hipertrofia" || isXFabContent(treino.conteudo))
+  ) {
+    return (
+      <PortalXFabView
+        treino={treino}
+        sessoes={sessoes}
+        student={student}
+        agendamentoHoje={agendamentoHoje ?? null}
+        qc={qc}
+      />
+    );
+  }
+
   // ── Plan Strong 50: renderização dedicada ───────────────────
   if (
     treino &&
