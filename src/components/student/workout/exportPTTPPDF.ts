@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import autoTable, { type CellHookData } from "jspdf-autotable";
 import { aquecimentoLabel, ordenarBlocosAquecimento } from "@/lib/aquecimentoBlocos";
 import type { Tables } from "@/integrations/supabase/types";
 import type { AquecimentoBloco, PersonalizadoAquecimentoEx } from "./personalizadoTypes";
@@ -66,7 +66,7 @@ export async function exportPTTPPDF({ student, data, print }: ExportArgs): Promi
     lineWidth: { bottom: 0.3 } as unknown as number,
     lineColor: INK,
   };
-  const bodyBorders = (hd: { section: string; cell: { styles: Record<string, unknown> } }) => {
+  const bodyBorders = (hd: CellHookData) => {
     if (hd.section === "body") {
       hd.cell.styles.lineWidth = { top: 0, right: 0, bottom: 0.25, left: 0 } as unknown as number;
       hd.cell.styles.lineColor = INK_SOFT;
