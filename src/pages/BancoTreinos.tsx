@@ -1507,7 +1507,9 @@ export default function BancoTreinos() {
     const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
     const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
     const isEasyStrengthSintetico = template.fase === EASY_STRENGTH_LABEL;
-    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico;
+    const isMD1Sintetico = template.fase === MILEDEEP1RM_LABEL;
+    const isMD5Sintetico = template.fase === MILEDEEP5RM_LABEL;
+    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico || isMD1Sintetico || isMD5Sintetico;
     return (
       <Card
         key={template.fase}
