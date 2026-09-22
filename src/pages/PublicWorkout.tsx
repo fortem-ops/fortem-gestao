@@ -317,7 +317,7 @@ export default function PublicWorkout() {
   if (
     error ||
     !treino ||
-    (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData && !pttp2Data && !foolproofData && !easyStrengthData)
+    (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData && !pttp2Data && !foolproofData && !easyStrengthData && !mileDeep1RMData && !mileDeep5RMData)
   ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">

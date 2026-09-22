@@ -168,11 +168,16 @@ function mesclarPorData(history: FuncionalSnapshot[]): FuncionalSnapshot[] {
 }
 
 const chaveFuncional = (s: FuncionalSnapshot) =>
-  JSON.stringify(
+  JSON.stringify([
     [...s.metricas]
       .map((m) => [m.metric, m.left ?? null, m.right ?? null])
       .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
-  );
+    // A força entra na chave: avaliações só de dinamometria (sem métricas) não
+    // podem colidir entre si só por terem `metricas` vazio.
+    [...s.forca]
+      .map((f) => [f.nome, f.direito_kg ?? null, f.esquerdo_kg ?? null])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+  ]);
 
 const chaveComposicao = (s: ComposicaoSnapshot) =>
   JSON.stringify([s.bf, s.peso, s.sigma7, s.massaMagra ?? null, s.massaGorda ?? null]);
