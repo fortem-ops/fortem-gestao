@@ -1658,7 +1658,9 @@ export default function BancoTreinos() {
     const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
     const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
     const isEasyStrengthSintetico = template.fase === EASY_STRENGTH_LABEL;
-    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico;
+    const isMD1Sintetico = template.fase === MILEDEEP1RM_LABEL;
+    const isMD5Sintetico = template.fase === MILEDEEP5RM_LABEL;
+    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico || isMD1Sintetico || isMD5Sintetico;
     const descricao = is531
       ? "Prescrição por aluno · 4 semanas · carga em % do 1RM"
       : isM102Sintetico
@@ -1677,7 +1679,11 @@ export default function BancoTreinos() {
                     ? "Prescrição por aluno · frequência livre · incremento fixo a partir do 1RM"
                     : isEasyStrengthSintetico
                       ? "Prescrição por aluno · 2-3 sessões/semana · tabela fixa de 9 semanas"
-                      : `${template.treinos.length} treinos · ${template.treinos.reduce((acc, treino) => acc + treino.exercicios.length, 0)} exercícios`;
+                      : isMD1Sintetico
+                        ? "Prescrição por aluno · 2 sessões/semana · 12 semanas · faixas de % do 1RM"
+                        : isMD5Sintetico
+                          ? "Prescrição por aluno · até 4 sessões/semana · 12 semanas · faixas de % do 5RM"
+                          : `${template.treinos.length} treinos · ${template.treinos.reduce((acc, treino) => acc + treino.exercicios.length, 0)} exercícios`;
 
     const abrirMetodo = () => {
       if (is531) return setSelect531Open(true);
@@ -1689,6 +1695,8 @@ export default function BancoTreinos() {
       if (isPTTP2Sintetico) return setSelectPTTP2Open(true);
       if (isFoolproofSintetico) return setSelectFoolproofOpen(true);
       if (isEasyStrengthSintetico) return setSelectEasyStrengthOpen(true);
+      if (isMD1Sintetico) return setSelectMileDeep1RMOpen(true);
+      if (isMD5Sintetico) return setSelectMileDeep5RMOpen(true);
       setAlunoCtx(null);
       setPendingTemplate(template);
     };
