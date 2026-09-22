@@ -120,10 +120,53 @@ Deno.serve(async (req) => {
         erro_detalhe: send.ok ? null : JSON.stringify({ error: send.error, details: send.details }),
       });
 
-      return new Response(JSON.stringify({ ok: send.ok, error: send.error, details: send.details }), {
-        status: send.ok ? 200 : 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Cópia para o consultor do agendamento (quando houver e for outro telefone)
+      let sendConsultorManual: { ok: boolean; error?: string } | null = null;
+      const consultorUserIdManual = (ctx.agenda as any).consultor_id ?? null;
+      if (consultorUserIdManual) {
+        const { data: consultorProfile } = await admin
+          .from('profiles')
+          .select('phone, full_name')
+          .eq('user_id', consultorUserIdManual)
+          .maybeSingle();
+        const consultorTel = normalizarTelefone((consultorProfile as any)?.phone);
+
+        if (consultorTel && consultorTel !== profTel) {
+          const consultorPayload = templatePayload ? { ...templatePayload, to: consultorTel } : null;
+          sendConsultorManual = consultorPayload
+            ? await callSendWhatsApp(consultorPayload)
+            : await sendWhatsAppText(
+                consultorTel,
+                `📅 Novo agendamento: ${ctx.agenda.atividade} com ${ctx.aluno?.nome ?? '—'} em ${ctx.vars['%DATA%']} às ${ctx.vars['%HORA_INICIO%']}. Local: ${ctx.agenda.local ?? '—'}.`
+              );
+
+          await admin.from('whatsapp_disparos_log').insert({
+            config_id: null,
+            agenda_id: agendaId,
+            aluno_id: ctx.agenda.aluno_id ?? null,
+            destinatario_telefone: consultorTel,
+            destinatario_nome: (consultorProfile as any)?.full_name ?? 'Consultor',
+            mensagem_enviada: `Notificação manual: ${ctx.agenda.atividade}`,
+            status: sendConsultorManual.ok ? 'enviado' : 'erro',
+            erro_detalhe: sendConsultorManual.ok
+              ? null
+              : JSON.stringify({ error: sendConsultorManual.error }),
+          });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          ok: send.ok,
+          error: send.error,
+          details: send.details,
+          consultor: sendConsultorManual ? { ok: sendConsultorManual.ok, error: sendConsultorManual.error } : null,
+        }),
+        {
+          status: send.ok ? 200 : 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     const { data: configs } = await admin

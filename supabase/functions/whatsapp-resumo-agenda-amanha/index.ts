@@ -212,6 +212,24 @@ Deno.serve(async (req) => {
         const destinoNome = paraConsultor ? consultor?.full_name ?? null : ctx.profissional?.full_name ?? null;
         const mensagem = resolveTemplate(cfg.template_texto ?? '', ctx.vars);
 
+        // Evita repetir o aviso para quem já recebeu no momento do agendamento
+        // (mesmo agendamento + mesmo telefone, por qualquer config).
+        if (destinoTelefone) {
+          const { data: jaRecebeu } = await admin
+            .from('whatsapp_disparos_log')
+            .select('id')
+            .eq('agenda_id', ag.id)
+            .eq('destinatario_telefone', destinoTelefone)
+            .eq('status', 'enviado')
+            .limit(1)
+            .maybeSingle();
+          if (jaRecebeu) {
+            results.push({ config: cfg.nome, agenda_id: ag.id, status: 'ja_recebeu_destinatario' });
+            continue;
+          }
+        }
+
+
 
         if (cfg.modo_teste) {
           await admin.from('whatsapp_disparos_log').insert({
