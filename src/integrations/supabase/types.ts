@@ -9148,6 +9148,7 @@ export type Database = {
       is_staff:
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }
+      is_staff_or_aluno: { Args: never; Returns: boolean }
       search_cadastros: {
         Args: { termo: string }
         Returns: {
