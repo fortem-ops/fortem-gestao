@@ -58,6 +58,8 @@ import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector"
 import { AuxiliaresBlock } from "@/components/student/workout/AuxiliaresBlock";
 import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
 import { HelpTip } from "@/components/student/workout/HelpTip";
+import { MethodGuideSheet } from "@/components/student/workout/MethodGuideSheet";
+import { PTTP_METHOD_GUIDE } from "@/components/student/workout/methodGuides";
 import { exportPTTPPDF } from "./exportPTTPPDF";
 
 interface Props {
@@ -590,6 +592,7 @@ export function PrescricaoPTTPEditor({
               {savingLabel}
             </span>
           )}
+          <MethodGuideSheet guide={PTTP_METHOD_GUIDE} />
           <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
             <FileDown className="w-3 h-3 mr-1" /> PDF
           </Button>

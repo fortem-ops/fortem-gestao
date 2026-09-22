@@ -55,6 +55,8 @@ import { ensureAquecimentoRecord } from "@/components/student/workout/personaliz
 import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector";
 import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
 import { HelpTip } from "@/components/student/workout/HelpTip";
+import { MethodGuideSheet } from "@/components/student/workout/MethodGuideSheet";
+import { XFAB_METHOD_GUIDE } from "@/components/student/workout/methodGuides";
 import { exportXFabPDF } from "./exportXFabPDF";
 
 interface Props {
@@ -396,6 +398,7 @@ export function PrescricaoXFabEditor({
               {savingLabel}
             </span>
           )}
+          <MethodGuideSheet guide={XFAB_METHOD_GUIDE} />
           <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
             <FileDown className="w-3 h-3 mr-1" /> PDF
           </Button>

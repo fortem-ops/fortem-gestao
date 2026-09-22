@@ -78,6 +78,8 @@ import { ExerciseSelector } from "@/components/student/workout/ExerciseSelector"
 import { AuxiliaresBlock } from "@/components/student/workout/AuxiliaresBlock";
 import { useExerciseCategories, GRUPO_AQUECIMENTO } from "@/hooks/useExerciseCategories";
 import { HelpTip } from "@/components/student/workout/HelpTip";
+import { MethodGuideSheet } from "@/components/student/workout/MethodGuideSheet";
+import { FOOLPROOF_METHOD_GUIDE } from "@/components/student/workout/methodGuides";
 import { exportFoolproofPDF } from "./exportFoolproofPDF";
 
 interface Props {
@@ -833,6 +835,7 @@ export function PrescricaoFoolproofEditor({
               {savingLabel}
             </span>
           )}
+          <MethodGuideSheet guide={FOOLPROOF_METHOD_GUIDE} />
           <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
             <FileDown className="w-3 h-3 mr-1" /> PDF
           </Button>
