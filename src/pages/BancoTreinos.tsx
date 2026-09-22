@@ -1803,7 +1803,19 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2, syntheticFoolproof, syntheticEasyStrength];
+            const syntheticMD1: WorkoutTemplate = {
+              fase: MILEDEEP1RM_LABEL,
+              frequencia: "2x",
+              aquecimento: [],
+              treinos: [],
+            };
+            const syntheticMD5: WorkoutTemplate = {
+              fase: MILEDEEP5RM_LABEL,
+              frequencia: "4x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2, syntheticFoolproof, syntheticEasyStrength, syntheticMD1, syntheticMD5];
           }
           if (group.label === "Métodos") {
             return (
