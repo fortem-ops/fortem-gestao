@@ -1785,9 +1785,11 @@ export default function BancoTreinos() {
               <h2 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
                 {group.label}
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map(renderMetodoCard)}
-              </div>
+              <TooltipProvider delayDuration={200}>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+                  {items.map(renderMetodoCompacto)}
+                </div>
+              </TooltipProvider>
             </section>
           );
         })}
@@ -1797,66 +1799,71 @@ export default function BancoTreinos() {
             <h2 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
               {grupo.titulo}
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {grupo.modelos.map((m) => {
-                const conteudo = (m.conteudo as unknown) as PersonalizadoConteudo;
-                const isOwner = m.criado_por === user?.id;
-                const canManage = isOwner || canEdit;
-                return (
-                  <Card key={m.id} className="hover:border-primary transition-colors group">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                          <Sparkles className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            title="Duplicar em Meus Modelos"
-                            onClick={() => handleDuplicateModelo({ nome: m.nome, conteudo: m.conteudo })}
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
-                          {canManage && (
-                            <>
+            <TooltipProvider delayDuration={200}>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {grupo.modelos.map((m) => {
+                  const conteudo = (m.conteudo as unknown) as PersonalizadoConteudo;
+                  const isOwner = m.criado_por === user?.id;
+                  const canManage = isOwner || canEdit;
+                  return (
+                    <Tooltip key={m.id}>
+                      <TooltipTrigger asChild>
+                        <Card className="group min-w-0 transition-colors hover:border-primary">
+                          <CardContent className="flex h-14 min-w-0 items-center gap-2 p-2.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 transition-colors group-hover:bg-primary/20">
+                              <Sparkles className="h-5 w-5 text-primary" />
+                            </div>
+                            <button
+                              type="button"
+                              className="min-w-0 flex-1 truncate text-left text-sm font-semibold hover:text-primary"
+                              onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
+                            >
+                              {m.nome}
+                            </button>
+                            <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7"
-                                onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
+                                title="Duplicar em Meus Modelos"
+                                onClick={() => handleDuplicateModelo({ nome: m.nome, conteudo: m.conteudo })}
                               >
-                                <Pencil className="h-3.5 w-3.5" />
+                                <Copy className="h-3.5 w-3.5" />
                               </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7 text-destructive"
-                                onClick={() => handleDeleteModelo(m.id)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <CardTitle
-                        className="text-lg mt-3 cursor-pointer"
-                        onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
-                      >
-                        {m.nome}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-xs text-muted-foreground">
+                              {canManage && (
+                                <>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7"
+                                    title="Editar modelo"
+                                    onClick={() => setPersonalizadoOpen({ mode: "edit", id: m.id, nome: m.nome, conteudo })}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-destructive"
+                                    title="Excluir modelo"
+                                    onClick={() => handleDeleteModelo(m.id)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" sideOffset={6} className="max-w-xs">
                         {conteudo?.treinos?.length || 0} treinos · atualizado {new Date(m.updated_at).toLocaleDateString("pt-BR")}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            </TooltipProvider>
           </section>
         ))}
       </div>
