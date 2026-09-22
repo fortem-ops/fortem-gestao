@@ -229,7 +229,11 @@ export default function PublicWorkout() {
     );
   }
 
-  if (error || !treino || (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData)) {
+  if (
+    error ||
+    !treino ||
+    (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData && !pttp2Data)
+  ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3 max-w-sm">
