@@ -190,6 +190,12 @@ export default function PublicWorkout() {
   const isEasyStrengthTreino =
     treino?.template_fase === EASY_STRENGTH_LABEL ||
     isEasyStrengthContent(treino?.conteudo ?? null);
+  const isMileDeep1RMTreino =
+    treino?.template_fase === MILEDEEP1RM_LABEL ||
+    isMileDeep1RMContent(treino?.conteudo ?? null);
+  const isMileDeep5RMTreino =
+    treino?.template_fase === MILEDEEP5RM_LABEL ||
+    isMileDeep5RMContent(treino?.conteudo ?? null);
   const isPTTP2Treino =
     treino?.template_fase === PTTP2_LABEL || isPTTP2Content(treino?.conteudo ?? null);
   const isPTTPTreino =
