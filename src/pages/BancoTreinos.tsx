@@ -1537,6 +1537,10 @@ export default function BancoTreinos() {
                         setSelectPTTPOpen(true);
                         return;
                       }
+                      if (isPTTP2Sintetico) {
+                        setSelectPTTP2Open(true);
+                        return;
+                      }
                        setAlunoCtx(null);
                        setPendingTemplate(template);
                      }}
