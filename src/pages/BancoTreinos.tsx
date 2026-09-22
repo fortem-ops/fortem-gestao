@@ -22,6 +22,7 @@ import { emptyPersonalizado, type PersonalizadoConteudo } from "@/components/stu
 import { Prescricao531Editor } from "@/components/student/workout/Prescricao531Editor";
 import { PrescricaoPlanilha5RMEditor } from "@/components/student/workout/PrescricaoPlanilha5RMEditor";
 import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM102Editor";
+import { PrescricaoXFabEditor } from "@/components/student/workout/PrescricaoXFabEditor";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
@@ -917,6 +918,9 @@ export default function BancoTreinos() {
   const [editorPS, setEditorPS] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [select5RMOpen, setSelect5RMOpen] = useState(false);
   const [editor5RM, setEditor5RM] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+
+  const [selectXFabOpen, setSelectXFabOpen] = useState(false);
+  const [editorXFab, setEditorXFab] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
