@@ -27,6 +27,21 @@ import {
   type M102Slot,
 } from "@/lib/m102";
 import {
+  isXFabContent,
+  statusPar,
+  sessaoAuxiliar,
+  alvoLevantamento,
+  XFAB_LEV_BASE,
+  XFAB_PARES,
+  XFAB_TREINOS,
+  XFAB_TOTAL_SESSOES,
+  XFAB_MENSAGEM_CONCLUIDO,
+  type XFabConteudo,
+  type XFabContagemTreinos,
+  type XFabSlot,
+  type XFabTreinoOrdem,
+} from "@/lib/xfab";
+import {
   isPlanStrong50,
   statusLevantamento,
   totalSessoes,
