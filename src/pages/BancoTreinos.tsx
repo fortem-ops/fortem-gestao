@@ -84,6 +84,24 @@ const PHASE_GROUPS = [
   { label: "Corrida", filter: (t: WorkoutTemplate) => t.fase.startsWith("Corrida") },
 ];
 
+/** Sub-agrupamentos da seção "Métodos" (ordem fixa). */
+const METODO_SUBGRUPOS: Array<{ label: string; fases: string[] }> = [
+  { label: "Não precisa de 1RM", fases: ["Personalizado"] },
+  { label: "Descobrir 5RM", fases: ["Planilha 5RM", PTTP_LABEL] },
+  { label: "Descobrir 1RM", fases: [PTTP2_LABEL] },
+  {
+    label: "Precisa de 1RM",
+    fases: [
+      FOOLPROOF_LABEL,
+      "5-3-1",
+      "Plan Strong 50",
+      "M102",
+      "X-FAB Hipertrofia",
+      EASY_STRENGTH_LABEL,
+    ],
+  },
+];
+
 /** Estrutura inicial do "Personalizado 2": 4 Treinos × 2 Blocos (Principais/Acessórios). */
 function emptyPersonalizado2(): PersonalizadoConteudo {
   return {
