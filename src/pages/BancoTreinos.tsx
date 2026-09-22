@@ -27,6 +27,8 @@ import { PrescricaoPTTPEditor } from "@/components/student/workout/PrescricaoPTT
 import { PTTP_LABEL } from "@/lib/pttp";
 import { PrescricaoPTTP2Editor } from "@/components/student/workout/PrescricaoPTTP2Editor";
 import { PTTP2_LABEL } from "@/lib/pttp2";
+import { PrescricaoFoolproofEditor } from "@/components/student/workout/PrescricaoFoolproofEditor";
+import { FOOLPROOF_LABEL } from "@/lib/foolproof";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
@@ -928,6 +930,8 @@ export default function BancoTreinos() {
   const [selectPTTPOpen, setSelectPTTPOpen] = useState(false);
   const [editorPTTP, setEditorPTTP] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [selectPTTP2Open, setSelectPTTP2Open] = useState(false);
+  const [selectFoolproofOpen, setSelectFoolproofOpen] = useState(false);
+  const [editorFoolproof, setEditorFoolproof] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [editorPTTP2, setEditorPTTP2] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
@@ -1320,6 +1324,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editorFoolproof) {
+    return (
+      <PrescricaoFoolproofEditor
+        alunoId={editorFoolproof.alunoId}
+        alunoNome={editorFoolproof.alunoNome}
+        onBack={() => setEditorFoolproof(null)}
+      />
+    );
+  }
+
   if (editorPTTP2) {
     return (
       <PrescricaoPTTP2Editor
@@ -1481,7 +1495,13 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2];
+            const syntheticFoolproof: WorkoutTemplate = {
+              fase: FOOLPROOF_LABEL,
+              frequencia: "2-6x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2, syntheticFoolproof];
           }
           if (items.length === 0) return null;
           return (
@@ -1499,7 +1519,8 @@ export default function BancoTreinos() {
                    const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
                    const isPTTPSintetico = template.fase === PTTP_LABEL;
                    const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
-                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico;
+                   const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
+                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico;
                   return (
                   <Card
                     key={template.fase}
@@ -1539,6 +1560,10 @@ export default function BancoTreinos() {
                       }
                       if (isPTTP2Sintetico) {
                         setSelectPTTP2Open(true);
+                        return;
+                      }
+                      if (isFoolproofSintetico) {
+                        setSelectFoolproofOpen(true);
                         return;
                       }
                        setAlunoCtx(null);
@@ -1592,6 +1617,10 @@ export default function BancoTreinos() {
                       ) : isPTTP2Sintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 3 treinos/semana · progressão automática por sessão
+                        </p>
+                      ) : isFoolproofSintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · frequência livre · incremento fixo a partir do 1RM
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -1721,6 +1750,12 @@ export default function BancoTreinos() {
         onOpenChange={setSelectPTTP2Open}
         title="Escolha o aluno para prescrever Power to the People 2.0"
         onSelect={(a) => setEditorPTTP2({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={selectFoolproofOpen}
+        onOpenChange={setSelectFoolproofOpen}
+        title="Escolha o aluno para prescrever Foolproof"
+        onSelect={(a) => setEditorFoolproof({ alunoId: a.id, alunoNome: a.nome })}
       />
       <Select531AlunoDialog
         open={!!pendingTemplate}
