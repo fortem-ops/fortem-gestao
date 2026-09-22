@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
 import { emptyPersonalizado, type PersonalizadoConteudo } from "@/components/student/workout/personalizadoTypes";
 import { Prescricao531Editor } from "@/components/student/workout/Prescricao531Editor";
+import { PrescricaoPlanilha5RMEditor } from "@/components/student/workout/PrescricaoPlanilha5RMEditor";
 import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM102Editor";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
@@ -914,6 +915,8 @@ export default function BancoTreinos() {
   const [editorM102, setEditorM102] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [selectPSOpen, setSelectPSOpen] = useState(false);
   const [editorPS, setEditorPS] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [select5RMOpen, setSelect5RMOpen] = useState(false);
+  const [editor5RM, setEditor5RM] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
