@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { RecordVideoUpload } from "@/components/tasks/RecordVideoUpload";
 import { getTaskActionTarget } from "@/lib/taskAction";
 import { useUserRoles } from "@/hooks/useUserRoles";
-import { fetchAlunosDaCarteira } from "@/lib/carteiraScope";
+import { fetchAlunosDaCarteira, filtrarTarefasConsultor } from "@/lib/carteiraScope";
 
 const priorityClass: Record<string, string> = {
   alta: "status-urgent",
@@ -58,12 +58,13 @@ export function TasksWidget({ professorId }: Props) {
         (alunos || []).forEach((a) => { alunoNameMap[a.id] = a.nome; });
       }
 
-      return data.map((t) => ({
+      const comNomes = data.map((t) => ({
         ...t,
         responsavel_nome: nameMap[t.responsavel_id] || "—",
         aluno_nome: t.aluno_id ? alunoNameMap[t.aluno_id] || null : null,
         atrasada: t.data_limite && t.data_limite < new Date().toISOString().split("T")[0],
       }));
+      return filtrarTarefasConsultor(comNomes, professorId);
     },
     staleTime: 60_000,
   });

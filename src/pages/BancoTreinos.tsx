@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { PersonalizadoEditor } from "@/components/student/workout/PersonalizadoEditor";
 import { emptyPersonalizado, type PersonalizadoConteudo } from "@/components/student/workout/personalizadoTypes";
 import { Prescricao531Editor } from "@/components/student/workout/Prescricao531Editor";
+import { PrescricaoPlanilha5RMEditor } from "@/components/student/workout/PrescricaoPlanilha5RMEditor";
 import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM102Editor";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
@@ -914,6 +915,8 @@ export default function BancoTreinos() {
   const [editorM102, setEditorM102] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [selectPSOpen, setSelectPSOpen] = useState(false);
   const [editorPS, setEditorPS] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [select5RMOpen, setSelect5RMOpen] = useState(false);
+  const [editor5RM, setEditor5RM] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
@@ -1275,6 +1278,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editor5RM) {
+    return (
+      <PrescricaoPlanilha5RMEditor
+        alunoId={editor5RM.alunoId}
+        alunoNome={editor5RM.alunoNome}
+        onBack={() => setEditor5RM(null)}
+      />
+    );
+  }
+
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
@@ -1401,7 +1414,13 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS];
+            const synthetic5RM: WorkoutTemplate = {
+              fase: "Planilha 5RM",
+              frequencia: "2-4x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM];
           }
           if (items.length === 0) return null;
           return (
@@ -1411,11 +1430,12 @@ export default function BancoTreinos() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map(template => {
-                  const isUnderConstruction = ["Planilha 5RM"].includes(template.fase);
+                  const isUnderConstruction = false;
                   const is531 = template.fase === "5-3-1";
                   const isM102Sintetico = template.fase === "M102";
                   const isPSSintetico = template.fase === "Plan Strong 50";
-                  const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico;
+                  const is5RMSintetico = template.fase === "Planilha 5RM";
+                  const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico;
                   return (
                   <Card
                     key={template.fase}
@@ -1439,6 +1459,10 @@ export default function BancoTreinos() {
                       }
                       if (isPSSintetico) {
                         setSelectPSOpen(true);
+                        return;
+                      }
+                      if (is5RMSintetico) {
+                        setSelect5RMOpen(true);
                         return;
                       }
                        setAlunoCtx(null);
@@ -1476,6 +1500,10 @@ export default function BancoTreinos() {
                       ) : isPSSintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 1-6 meses · orçamento de volume (NL) por zona
+                        </p>
+                      ) : is5RMSintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 4 semanas · cargas anotadas manualmente
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -1581,6 +1609,12 @@ export default function BancoTreinos() {
         onOpenChange={setSelectPSOpen}
         title="Escolha o aluno para prescrever Plan Strong 50"
         onSelect={(a) => setEditorPS({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={select5RMOpen}
+        onOpenChange={setSelect5RMOpen}
+        title="Escolha o aluno para prescrever a Planilha 5RM"
+        onSelect={(a) => setEditor5RM({ alunoId: a.id, alunoNome: a.nome })}
       />
       <Select531AlunoDialog
         open={!!pendingTemplate}

@@ -20,3 +20,5 @@
 - [x] Tarefa automática de reavaliação quando pendente/atrasada.
 - [x] Unificar a nomenclatura de assimetria da equipe e do portal.
 - [x] Restaurar reavaliação, composição e histórico no novo portal e corrigir a classificação de força em 20%.
+- [x] Ocultar Relatórios Técnicos e Atualizar treino para quem vê o aluno só como consultor.
+- [x] Implementar o método "Planilha 5RM" em Banco de Treinos > Métodos (editor, card, autosave e PDF).
