@@ -41,6 +41,8 @@ import type { AuxiliarItem } from "@/components/student/workout/AuxiliaresBlock"
 import { AuxiliaresBlock } from "@/components/student/workout/AuxiliaresBlock";
 import { useExerciseCategories } from "@/hooks/useExerciseCategories";
 import { HelpTip } from "@/components/student/workout/HelpTip";
+import { MethodGuideSheet } from "@/components/student/workout/MethodGuideSheet";
+import { MILE_DEEP_1RM_METHOD_GUIDE } from "@/components/student/workout/methodGuides";
 import {
   AquecimentoGlobalCard,
   OrdemBlocosSelect,
@@ -176,6 +178,7 @@ export function PrescricaoMileDeep1RMEditor({
               {savingLabel}
             </span>
           )}
+          <MethodGuideSheet guide={MILE_DEEP_1RM_METHOD_GUIDE} />
           <Button size="sm" variant="outline" onClick={() => handleExport("download")}>
             <FileDown className="w-3 h-3 mr-1" /> PDF
           </Button>
