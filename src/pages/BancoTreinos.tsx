@@ -1498,7 +1498,8 @@ export default function BancoTreinos() {
                    const is5RMSintetico = template.fase === "Planilha 5RM";
                    const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
                    const isPTTPSintetico = template.fase === PTTP_LABEL;
-                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico;
+                   const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
+                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico;
                   return (
                   <Card
                     key={template.fase}
