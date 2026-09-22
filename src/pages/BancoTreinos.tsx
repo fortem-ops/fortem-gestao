@@ -1992,6 +1992,18 @@ export default function BancoTreinos() {
         onSelect={(a) => setEditorEasyStrength({ alunoId: a.id, alunoNome: a.nome })}
       />
       <Select531AlunoDialog
+        open={selectMileDeep1RMOpen}
+        onOpenChange={setSelectMileDeep1RMOpen}
+        title={`Escolha o aluno para prescrever ${MILEDEEP1RM_LABEL}`}
+        onSelect={(a) => setEditorMileDeep1RM({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={selectMileDeep5RMOpen}
+        onOpenChange={setSelectMileDeep5RMOpen}
+        title={`Escolha o aluno para prescrever ${MILEDEEP5RM_LABEL}`}
+        onSelect={(a) => setEditorMileDeep5RM({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
         open={!!pendingTemplate}
         onOpenChange={(o) => { if (!o) setPendingTemplate(null); }}
         title={pendingTemplate ? `Escolha o aluno — ${pendingTemplate.fase}` : "Escolha o aluno"}
