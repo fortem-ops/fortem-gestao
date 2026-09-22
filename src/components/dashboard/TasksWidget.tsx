@@ -58,12 +58,13 @@ export function TasksWidget({ professorId }: Props) {
         (alunos || []).forEach((a) => { alunoNameMap[a.id] = a.nome; });
       }
 
-      return data.map((t) => ({
+      const comNomes = data.map((t) => ({
         ...t,
         responsavel_nome: nameMap[t.responsavel_id] || "—",
         aluno_nome: t.aluno_id ? alunoNameMap[t.aluno_id] || null : null,
         atrasada: t.data_limite && t.data_limite < new Date().toISOString().split("T")[0],
       }));
+      return filtrarTarefasConsultor(comNomes, professorId);
     },
     staleTime: 60_000,
   });

@@ -104,7 +104,8 @@ export function AlertsWidget({ professorId }: Props) {
       // Atualização de treino (tarefa automática)
       tarefasAtualizar.forEach((t) => {
         if (!t.aluno_id || !t.data_limite) return;
-        if (professorId && t.responsavel_id !== professorId && !isMyStudent(t.aluno_id)) return;
+        // Atualizar treino é tarefa do professor responsável: não aparece para quem é só consultor.
+        if (professorId && t.responsavel_id !== professorId) return;
         const aluno = alunoMap[t.aluno_id];
         if (!aluno) return;
         const limit = new Date(t.data_limite + "T00:00:00");
