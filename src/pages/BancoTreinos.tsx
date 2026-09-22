@@ -22,6 +22,7 @@ import { emptyPersonalizado, type PersonalizadoConteudo } from "@/components/stu
 import { Prescricao531Editor } from "@/components/student/workout/Prescricao531Editor";
 import { PrescricaoPlanilha5RMEditor } from "@/components/student/workout/PrescricaoPlanilha5RMEditor";
 import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM102Editor";
+import { PrescricaoXFabEditor } from "@/components/student/workout/PrescricaoXFabEditor";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
@@ -918,6 +919,9 @@ export default function BancoTreinos() {
   const [select5RMOpen, setSelect5RMOpen] = useState(false);
   const [editor5RM, setEditor5RM] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
+  const [selectXFabOpen, setSelectXFabOpen] = useState(false);
+  const [editorXFab, setEditorXFab] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
     enabled: !!user?.id,
@@ -1288,6 +1292,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editorXFab) {
+    return (
+      <PrescricaoXFabEditor
+        alunoId={editorXFab.alunoId}
+        alunoNome={editorXFab.alunoNome}
+        onBack={() => setEditorXFab(null)}
+      />
+    );
+  }
+
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
@@ -1420,7 +1434,13 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM];
+            const syntheticXFab: WorkoutTemplate = {
+              fase: "X-FAB Hipertrofia",
+              frequencia: "3x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab];
           }
           if (items.length === 0) return null;
           return (
@@ -1434,8 +1454,9 @@ export default function BancoTreinos() {
                   const is531 = template.fase === "5-3-1";
                   const isM102Sintetico = template.fase === "M102";
                   const isPSSintetico = template.fase === "Plan Strong 50";
-                  const is5RMSintetico = template.fase === "Planilha 5RM";
-                  const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico;
+                   const is5RMSintetico = template.fase === "Planilha 5RM";
+                   const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
+                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico;
                   return (
                   <Card
                     key={template.fase}
@@ -1463,6 +1484,10 @@ export default function BancoTreinos() {
                       }
                       if (is5RMSintetico) {
                         setSelect5RMOpen(true);
+                        return;
+                      }
+                      if (isXFabSintetico) {
+                        setSelectXFabOpen(true);
                         return;
                       }
                        setAlunoCtx(null);
@@ -1504,6 +1529,10 @@ export default function BancoTreinos() {
                       ) : is5RMSintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 4 semanas · cargas anotadas manualmente
+                        </p>
+                      ) : isXFabSintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 3 treinos/semana · 12 sessões por par
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -1615,6 +1644,12 @@ export default function BancoTreinos() {
         onOpenChange={setSelect5RMOpen}
         title="Escolha o aluno para prescrever a Planilha 5RM"
         onSelect={(a) => setEditor5RM({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={selectXFabOpen}
+        onOpenChange={setSelectXFabOpen}
+        title="Escolha o aluno para prescrever X-FAB Hipertrofia"
+        onSelect={(a) => setEditorXFab({ alunoId: a.id, alunoNome: a.nome })}
       />
       <Select531AlunoDialog
         open={!!pendingTemplate}
