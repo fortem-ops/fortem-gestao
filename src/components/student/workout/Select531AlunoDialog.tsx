@@ -15,7 +15,9 @@ import { useDebounce } from "@/hooks/useDebounce";
 interface AlunoRow {
   id: string;
   nome: string;
+  status: string | null;
 }
+
 
 interface Props {
   open: boolean;
@@ -38,17 +40,21 @@ export function Select531AlunoDialog({
   skipLabel = "Ver modelo sem aluno",
 }: Props) {
   const [q, setQ] = useState("");
+  const [mostrarTodos, setMostrarTodos] = useState(false);
   const debounced = useDebounce(q, 250);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["select-531-alunos", debounced],
+    queryKey: ["select-531-alunos", debounced, mostrarTodos],
     enabled: open,
     queryFn: async () => {
       let query = supabase
         .from("alunos")
-        .select("id, nome")
+        .select("id, nome, status")
         .order("nome", { ascending: true })
         .limit(30);
+      if (!mostrarTodos) {
+        query = query.eq("status", "ativo");
+      }
       if (debounced.trim()) {
         query = query.ilike("nome", `%${debounced.trim()}%`);
       }
@@ -57,6 +63,7 @@ export function Select531AlunoDialog({
       return (data || []) as AlunoRow[];
     },
   });
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -73,6 +80,21 @@ export function Select531AlunoDialog({
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
+        </div>
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs text-muted-foreground">
+            {mostrarTodos
+              ? "Exibindo alunos de todos os status"
+              : "Exibindo apenas alunos ativos"}
+          </p>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs"
+            onClick={() => setMostrarTodos((v) => !v)}
+          >
+            {mostrarTodos ? "Mostrar só ativos" : "Mostrar todos os status"}
+          </Button>
         </div>
         <div className="max-h-80 overflow-y-auto -mx-2">
           {isLoading ? (
@@ -97,10 +119,16 @@ export function Select531AlunoDialog({
                   >
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{a.nome}</span>
+                      {mostrarTodos && a.status && (
+                        <span className="text-xs text-muted-foreground capitalize">
+                          {a.status}
+                        </span>
+                      )}
                     </div>
                   </Button>
                 </li>
               ))}
+
             </ul>
           )}
         </div>
