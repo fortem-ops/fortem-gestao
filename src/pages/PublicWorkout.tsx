@@ -269,9 +269,14 @@ export default function PublicWorkout() {
     return <XFabPublic treino={treino} aluno={aluno} data={xfabData} />;
   }
 
+  if (pttp2Data) {
+    return <PTTP2Public treino={treino} aluno={aluno} data={pttp2Data} />;
+  }
+
   if (pttpData) {
     return <PTTPPublic treino={treino} aluno={aluno} data={pttpData} />;
   }
+
 
   // Group warm-up by category
   const warmupBlocks = (["LIB", "MOB", "ATI"] as const)
