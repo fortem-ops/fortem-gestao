@@ -1559,6 +1559,14 @@ export default function BancoTreinos() {
             setSelectEasyStrengthOpen(true);
             return;
           }
+          if (isMD1Sintetico) {
+            setSelectMileDeep1RMOpen(true);
+            return;
+          }
+          if (isMD5Sintetico) {
+            setSelectMileDeep5RMOpen(true);
+            return;
+          }
           setAlunoCtx(null);
           setPendingTemplate(template);
         }}
