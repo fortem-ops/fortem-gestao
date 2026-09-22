@@ -160,14 +160,25 @@ export default function PublicWorkout() {
     treino?.template_fase === "Plan Strong 50" || isPlanStrong50(treino?.conteudo ?? null);
   const isXFabTreino =
     treino?.template_fase === "X-FAB Hipertrofia" || isXFabContent(treino?.conteudo ?? null);
+  const isPTTP2Treino =
+    treino?.template_fase === PTTP2_LABEL || isPTTP2Content(treino?.conteudo ?? null);
   const isPTTPTreino =
-    treino?.template_fase === PTTP_LABEL || isPTTPContent(treino?.conteudo ?? null);
+    !isPTTP2Treino &&
+    (treino?.template_fase === PTTP_LABEL || isPTTPContent(treino?.conteudo ?? null));
 
   const data = useMemo<WorkoutData | null>(() => {
-    if (!treino?.conteudo || is531 || isM102Treino || isPSTreino || isXFabTreino || isPTTPTreino)
+    if (
+      !treino?.conteudo ||
+      is531 ||
+      isM102Treino ||
+      isPSTreino ||
+      isXFabTreino ||
+      isPTTPTreino ||
+      isPTTP2Treino
+    )
       return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino]);
+  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino]);
 
   const xfabData = useMemo<XFabConteudo | null>(() => {
     if (!treino?.conteudo || !isXFabTreino) return null;
@@ -178,6 +189,12 @@ export default function PublicWorkout() {
     if (!treino?.conteudo || !isPTTPTreino) return null;
     return treino.conteudo as unknown as PTTPConteudo;
   }, [treino, isPTTPTreino]);
+
+  const pttp2Data = useMemo<PTTP2Conteudo | null>(() => {
+    if (!treino?.conteudo || !isPTTP2Treino) return null;
+    return treino.conteudo as unknown as PTTP2Conteudo;
+  }, [treino, isPTTP2Treino]);
+
 
   const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
     if (!treino?.conteudo || !is531) return null;
