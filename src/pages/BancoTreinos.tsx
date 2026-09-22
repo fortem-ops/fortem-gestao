@@ -1627,6 +1627,14 @@ export default function BancoTreinos() {
             <p className="text-sm text-muted-foreground">
               Prescrição por aluno · 2-3 sessões/semana · tabela fixa de 9 semanas
             </p>
+          ) : isMD1Sintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 2 sessões/semana · 12 semanas · faixas de % do 1RM
+            </p>
+          ) : isMD5Sintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · até 4 sessões/semana · 12 semanas · faixas de % do 5RM
+            </p>
           ) : (
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>{template.treinos.length} treinos</span>
