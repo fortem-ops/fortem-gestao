@@ -22,6 +22,14 @@ import {
   type Wendler531Conteudo,
 } from "@/lib/wendler531";
 import {
+  isXFabContent,
+  XFAB_LEV_BASE,
+  XFAB_PARES,
+  XFAB_TREINOS,
+  type XFabConteudo,
+  type XFabTreinoOrdem,
+} from "@/lib/xfab";
+import {
   isM102,
   slotStatus,
   testSession,
@@ -180,7 +188,7 @@ export default function PublicWorkout() {
     );
   }
 
-  if (error || !treino || (!data && !wendlerData && !m102Data && !psData)) {
+  if (error || !treino || (!data && !wendlerData && !m102Data && !psData && !xfabData)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3 max-w-sm">
@@ -210,6 +218,10 @@ export default function PublicWorkout() {
 
   if (psData) {
     return <PlanStrongPublic treino={treino} aluno={aluno} data={psData} />;
+  }
+
+  if (xfabData) {
+    return <XFabPublic treino={treino} aluno={aluno} data={xfabData} />;
   }
 
   // Group warm-up by category
