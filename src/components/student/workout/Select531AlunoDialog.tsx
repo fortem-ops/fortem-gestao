@@ -15,7 +15,9 @@ import { useDebounce } from "@/hooks/useDebounce";
 interface AlunoRow {
   id: string;
   nome: string;
+  status: string | null;
 }
+
 
 interface Props {
   open: boolean;
