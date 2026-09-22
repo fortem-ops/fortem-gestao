@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dumbbell, Library, ArrowLeft, Flame, ListChecks, Video, AlertTriangle, Search, X, Check, Sparkles, Trash2, Pencil, Copy, Lock, Construction } from "lucide-react";
 import { WORKOUT_TEMPLATES, CATEGORY_LABELS, type WorkoutTemplate, type WorkoutExercise } from "@/components/student/workout/workoutTemplates";
 import { CODE_TO_GRUPO, CODE_TO_SUBCATEGORIA, resolverAlvo, itemCasaAlvo, categoriaEhFolha, type TaxonomiaGrupo } from "@/lib/exerciseMapping";
@@ -1599,6 +1600,80 @@ export default function BancoTreinos() {
     );
   };
 
+  const renderMetodoCompacto = (template: WorkoutTemplate) => {
+    const is531 = template.fase === "5-3-1";
+    const isM102Sintetico = template.fase === "M102";
+    const isPSSintetico = template.fase === "Plan Strong 50";
+    const is5RMSintetico = template.fase === "Planilha 5RM";
+    const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
+    const isPTTPSintetico = template.fase === PTTP_LABEL;
+    const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
+    const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
+    const isEasyStrengthSintetico = template.fase === EASY_STRENGTH_LABEL;
+    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico;
+    const descricao = is531
+      ? "Prescrição por aluno · 4 semanas · carga em % do 1RM"
+      : isM102Sintetico
+        ? "Prescrição por aluno · 11 semanas + teste · carga por tier em % do 1RM"
+        : isPSSintetico
+          ? "Prescrição por aluno · 1-6 meses · orçamento de volume (NL) por zona"
+          : is5RMSintetico
+            ? "Prescrição por aluno · 4 semanas · cargas anotadas manualmente"
+            : isXFabSintetico
+              ? "Prescrição por aluno · 3 treinos/semana · 12 sessões por par"
+              : isPTTPSintetico
+                ? "Prescrição por aluno · 3-5 treinos/semana · progressão pelo resultado de cada sessão"
+                : isPTTP2Sintetico
+                  ? "Prescrição por aluno · 3 treinos/semana · progressão automática por sessão"
+                  : isFoolproofSintetico
+                    ? "Prescrição por aluno · frequência livre · incremento fixo a partir do 1RM"
+                    : isEasyStrengthSintetico
+                      ? "Prescrição por aluno · 2-3 sessões/semana · tabela fixa de 9 semanas"
+                      : `${template.treinos.length} treinos · ${template.treinos.reduce((acc, treino) => acc + treino.exercicios.length, 0)} exercícios`;
+
+    const abrirMetodo = () => {
+      if (is531) return setSelect531Open(true);
+      if (isM102Sintetico) return setSelectM102Open(true);
+      if (isPSSintetico) return setSelectPSOpen(true);
+      if (is5RMSintetico) return setSelect5RMOpen(true);
+      if (isXFabSintetico) return setSelectXFabOpen(true);
+      if (isPTTPSintetico) return setSelectPTTPOpen(true);
+      if (isPTTP2Sintetico) return setSelectPTTP2Open(true);
+      if (isFoolproofSintetico) return setSelectFoolproofOpen(true);
+      if (isEasyStrengthSintetico) return setSelectEasyStrengthOpen(true);
+      setAlunoCtx(null);
+      setPendingTemplate(template);
+    };
+
+    return (
+      <Tooltip key={template.fase}>
+        <TooltipTrigger asChild>
+          <Card
+            className="group min-w-0 cursor-pointer transition-colors hover:border-primary"
+            onClick={abrirMetodo}
+          >
+            <CardContent className="flex h-14 min-w-0 items-center gap-2.5 p-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 transition-colors group-hover:bg-primary/20">
+                {template.fase === "Personalizado" || isDinamicoPorAluno
+                  ? <Sparkles className="h-5 w-5 text-primary" />
+                  : <Dumbbell className="h-5 w-5 text-primary" />}
+              </div>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                {template.fase}
+              </span>
+              <Badge variant="outline" className="shrink-0 px-1.5 py-0 text-[10px] font-medium">
+                {template.frequencia}
+              </Badge>
+            </CardContent>
+          </Card>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={6} className="max-w-xs">
+          {descricao}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-6xl animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
@@ -1680,22 +1755,27 @@ export default function BancoTreinos() {
                 <h2 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
                   {group.label}
                 </h2>
-                {METODO_SUBGRUPOS.map((sub) => {
-                  const subItems = sub.fases
-                    .map((f) => items.find((t) => t.fase === f))
-                    .filter((t): t is WorkoutTemplate => !!t);
-                  if (subItems.length === 0) return null;
-                  return (
-                    <div key={sub.label} className="mb-8 last:mb-0">
-                      <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
-                        {sub.label}
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {subItems.map(renderMetodoCard)}
+                <TooltipProvider delayDuration={200}>
+                  {METODO_SUBGRUPOS.map((sub) => {
+                    const subItems = sub.fases
+                      .map((f) => items.find((t) => t.fase === f))
+                      .filter((t): t is WorkoutTemplate => !!t);
+                    if (subItems.length === 0) return null;
+                    return (
+                      <div
+                        key={sub.label}
+                        className="grid gap-3 border-t border-border/50 py-3 sm:grid-cols-[110px_minmax(0,1fr)] sm:items-start"
+                      >
+                        <h3 className="pt-1 text-[11px] font-semibold uppercase leading-4 text-muted-foreground">
+                          {sub.label}
+                        </h3>
+                        <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+                          {subItems.map(renderMetodoCompacto)}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </TooltipProvider>
               </section>
             );
           }
