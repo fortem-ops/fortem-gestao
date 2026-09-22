@@ -84,6 +84,24 @@ const PHASE_GROUPS = [
   { label: "Corrida", filter: (t: WorkoutTemplate) => t.fase.startsWith("Corrida") },
 ];
 
+/** Sub-agrupamentos da seção "Métodos" (ordem fixa). */
+const METODO_SUBGRUPOS: Array<{ label: string; fases: string[] }> = [
+  { label: "Não precisa de 1RM", fases: ["Personalizado"] },
+  { label: "Descobrir 5RM", fases: ["Planilha 5RM", PTTP_LABEL] },
+  { label: "Descobrir 1RM", fases: [PTTP2_LABEL] },
+  {
+    label: "Precisa de 1RM",
+    fases: [
+      FOOLPROOF_LABEL,
+      "5-3-1",
+      "Plan Strong 50",
+      "M102",
+      "X-FAB Hipertrofia",
+      EASY_STRENGTH_LABEL,
+    ],
+  },
+];
+
 /** Estrutura inicial do "Personalizado 2": 4 Treinos × 2 Blocos (Principais/Acessórios). */
 function emptyPersonalizado2(): PersonalizadoConteudo {
   return {
@@ -1447,6 +1465,139 @@ export default function BancoTreinos() {
     );
   }
 
+  const renderMetodoCard = (template: WorkoutTemplate) => {
+    const isUnderConstruction = false;
+    const is531 = template.fase === "5-3-1";
+    const isM102Sintetico = template.fase === "M102";
+    const isPSSintetico = template.fase === "Plan Strong 50";
+    const is5RMSintetico = template.fase === "Planilha 5RM";
+    const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
+    const isPTTPSintetico = template.fase === PTTP_LABEL;
+    const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
+    const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
+    const isEasyStrengthSintetico = template.fase === EASY_STRENGTH_LABEL;
+    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico;
+    return (
+      <Card
+        key={template.fase}
+        className={`transition-colors group ${
+          isUnderConstruction
+            ? "cursor-not-allowed opacity-70"
+            : "cursor-pointer hover:border-primary"
+        }`}
+        onClick={() => {
+          if (isUnderConstruction) {
+            toast.info("Em Construção", { description: "Este modelo ainda não está disponível." });
+            return;
+          }
+          if (is531) {
+            setSelect531Open(true);
+            return;
+          }
+          if (isM102Sintetico) {
+            setSelectM102Open(true);
+            return;
+          }
+          if (isPSSintetico) {
+            setSelectPSOpen(true);
+            return;
+          }
+          if (is5RMSintetico) {
+            setSelect5RMOpen(true);
+            return;
+          }
+          if (isXFabSintetico) {
+            setSelectXFabOpen(true);
+            return;
+          }
+          if (isPTTPSintetico) {
+            setSelectPTTPOpen(true);
+            return;
+          }
+          if (isPTTP2Sintetico) {
+            setSelectPTTP2Open(true);
+            return;
+          }
+          if (isFoolproofSintetico) {
+            setSelectFoolproofOpen(true);
+            return;
+          }
+          if (isEasyStrengthSintetico) {
+            setSelectEasyStrengthOpen(true);
+            return;
+          }
+          setAlunoCtx(null);
+          setPendingTemplate(template);
+        }}
+      >
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              {isUnderConstruction
+                ? <Construction className="h-5 w-5 text-warning" />
+                : (template.fase === "Personalizado" || isDinamicoPorAluno)
+                  ? <Sparkles className="h-5 w-5 text-primary" />
+                  : <Dumbbell className="h-5 w-5 text-primary" />}
+            </div>
+            {isUnderConstruction ? (
+              <Badge variant="outline" className="border-warning/40 text-warning bg-warning/10">
+                Em Construção
+              </Badge>
+            ) : (
+              <Badge variant="outline">{template.frequencia}</Badge>
+            )}
+          </div>
+          <CardTitle className="text-lg mt-3">{template.fase}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {is531 ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 4 semanas · carga em % do 1RM
+            </p>
+          ) : isM102Sintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 11 semanas + teste · carga por tier em % do 1RM
+            </p>
+          ) : isPSSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 1-6 meses · orçamento de volume (NL) por zona
+            </p>
+          ) : is5RMSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 4 semanas · cargas anotadas manualmente
+            </p>
+          ) : isXFabSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 3 treinos/semana · 12 sessões por par
+            </p>
+          ) : isPTTPSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 3-5 treinos/semana · progressão pelo resultado de cada sessão
+            </p>
+          ) : isPTTP2Sintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 3 treinos/semana · progressão automática por sessão
+            </p>
+          ) : isFoolproofSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · frequência livre · incremento fixo a partir do 1RM
+            </p>
+          ) : isEasyStrengthSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 2-3 sessões/semana · tabela fixa de 9 semanas
+            </p>
+          ) : (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{template.treinos.length} treinos</span>
+              <span>
+                {template.treinos.reduce((acc, t) => acc + t.exercicios.length, 0)} exercícios
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="container mx-auto p-6 max-w-6xl animate-fade-in">
@@ -1523,6 +1674,31 @@ export default function BancoTreinos() {
             };
             items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2, syntheticFoolproof, syntheticEasyStrength];
           }
+          if (group.label === "Métodos") {
+            return (
+              <section key={group.label}>
+                <h2 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
+                  {group.label}
+                </h2>
+                {METODO_SUBGRUPOS.map((sub) => {
+                  const subItems = sub.fases
+                    .map((f) => items.find((t) => t.fase === f))
+                    .filter((t): t is WorkoutTemplate => !!t);
+                  if (subItems.length === 0) return null;
+                  return (
+                    <div key={sub.label} className="mb-8 last:mb-0">
+                      <h3 className="text-lg font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
+                        {sub.label}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {subItems.map(renderMetodoCard)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </section>
+            );
+          }
           if (items.length === 0) return null;
           return (
             <section key={group.label}>
@@ -1530,139 +1706,7 @@ export default function BancoTreinos() {
                 {group.label}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map(template => {
-                  const isUnderConstruction = false;
-                  const is531 = template.fase === "5-3-1";
-                  const isM102Sintetico = template.fase === "M102";
-                  const isPSSintetico = template.fase === "Plan Strong 50";
-                   const is5RMSintetico = template.fase === "Planilha 5RM";
-                   const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
-                   const isPTTPSintetico = template.fase === PTTP_LABEL;
-                   const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
-                   const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
-                   const isEasyStrengthSintetico = template.fase === EASY_STRENGTH_LABEL;
-                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico;
-                  return (
-                  <Card
-                    key={template.fase}
-                    className={`transition-colors group ${
-                      isUnderConstruction
-                        ? "cursor-not-allowed opacity-70"
-                        : "cursor-pointer hover:border-primary"
-                    }`}
-                    onClick={() => {
-                      if (isUnderConstruction) {
-                        toast.info("Em Construção", { description: "Este modelo ainda não está disponível." });
-                        return;
-                      }
-                      if (is531) {
-                        setSelect531Open(true);
-                        return;
-                      }
-                      if (isM102Sintetico) {
-                        setSelectM102Open(true);
-                        return;
-                      }
-                      if (isPSSintetico) {
-                        setSelectPSOpen(true);
-                        return;
-                      }
-                      if (is5RMSintetico) {
-                        setSelect5RMOpen(true);
-                        return;
-                      }
-                      if (isXFabSintetico) {
-                        setSelectXFabOpen(true);
-                        return;
-                      }
-                      if (isPTTPSintetico) {
-                        setSelectPTTPOpen(true);
-                        return;
-                      }
-                      if (isPTTP2Sintetico) {
-                        setSelectPTTP2Open(true);
-                        return;
-                      }
-                      if (isFoolproofSintetico) {
-                        setSelectFoolproofOpen(true);
-                        return;
-                      }
-                      if (isEasyStrengthSintetico) {
-                        setSelectEasyStrengthOpen(true);
-                        return;
-                      }
-                       setAlunoCtx(null);
-                       setPendingTemplate(template);
-                     }}
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                          {isUnderConstruction
-                            ? <Construction className="h-5 w-5 text-warning" />
-                            : (template.fase === "Personalizado" || isDinamicoPorAluno)
-                              ? <Sparkles className="h-5 w-5 text-primary" />
-                              : <Dumbbell className="h-5 w-5 text-primary" />}
-                        </div>
-                        {isUnderConstruction ? (
-                          <Badge variant="outline" className="border-warning/40 text-warning bg-warning/10">
-                            Em Construção
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">{template.frequencia}</Badge>
-                        )}
-                      </div>
-                      <CardTitle className="text-lg mt-3">{template.fase}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {is531 ? (
-                        <p className="text-sm text-muted-foreground">
-                          Prescrição por aluno · 4 semanas · carga em % do 1RM
-                        </p>
-                      ) : isM102Sintetico ? (
-                        <p className="text-sm text-muted-foreground">
-                          Prescrição por aluno · 11 semanas + teste · carga por tier em % do 1RM
-                        </p>
-                      ) : isPSSintetico ? (
-                        <p className="text-sm text-muted-foreground">
-                          Prescrição por aluno · 1-6 meses · orçamento de volume (NL) por zona
-                        </p>
-                      ) : is5RMSintetico ? (
-                        <p className="text-sm text-muted-foreground">
-                          Prescrição por aluno · 4 semanas · cargas anotadas manualmente
-                        </p>
-                      ) : isXFabSintetico ? (
-                        <p className="text-sm text-muted-foreground">
-                          Prescrição por aluno · 3 treinos/semana · 12 sessões por par
-                        </p>
-                      ) : isPTTPSintetico ? (
-                        <p className="text-sm text-muted-foreground">
-                          Prescrição por aluno · 3-5 treinos/semana · progressão pelo resultado de cada sessão
-                       </p>
-                      ) : isPTTP2Sintetico ? (
-                        <p className="text-sm text-muted-foreground">
-                          Prescrição por aluno · 3 treinos/semana · progressão automática por sessão
-                        </p>
-                      ) : isFoolproofSintetico ? (
-                        <p className="text-sm text-muted-foreground">
-                          Prescrição por aluno · frequência livre · incremento fixo a partir do 1RM
-                        </p>
-                      ) : isEasyStrengthSintetico ? (
-                        <p className="text-sm text-muted-foreground">
-                          Prescrição por aluno · 2-3 sessões/semana · tabela fixa de 9 semanas
-                        </p>
-                      ) : (
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <span>{template.treinos.length} treinos</span>
-                          <span>
-                            {template.treinos.reduce((acc, t) => acc + t.exercicios.length, 0)} exercícios
-                          </span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                  );
-                })}
+                {items.map(renderMetodoCard)}
               </div>
             </section>
           );
