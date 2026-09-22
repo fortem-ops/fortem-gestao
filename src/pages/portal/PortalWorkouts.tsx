@@ -51,6 +51,17 @@ import {
   type PTTPLevantamento,
 } from "@/lib/pttp";
 import {
+  isPTTP2Content,
+  alvoPTTP2,
+  registrarSessaoPTTP2,
+  cicloConcluidoPTTP2,
+  PTTP2_LABEL,
+  PTTP2_LEV_BASE,
+  PTTP2_FASE_LABEL,
+  type PTTP2Conteudo,
+} from "@/lib/pttp2";
+
+import {
   isPlanStrong50,
   statusLevantamento,
   totalSessoes,

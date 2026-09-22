@@ -37,6 +37,15 @@ import {
   type PTTPConteudo,
 } from "@/lib/pttp";
 import {
+  isPTTP2Content,
+  alvoPTTP2,
+  PTTP2_LABEL,
+  PTTP2_LEV_BASE,
+  PTTP2_FASE_ESQUEMA,
+  type PTTP2Conteudo,
+} from "@/lib/pttp2";
+
+import {
   isM102,
   slotStatus,
   testSession,
