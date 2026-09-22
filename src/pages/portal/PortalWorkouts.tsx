@@ -1394,6 +1394,255 @@ function PortalM102View({
 }
 
 // ─────────────────────────────────────────────────────────────
+// Portal X-FAB Hipertrofia: 3 treinos, pares avançam por soma de sessões
+// ─────────────────────────────────────────────────────────────
+
+/** Conta as sessões concluídas por treino (T1/T2/T3). Pura, testável. */
+export function contarSessoesXFab(
+  sessoes: Array<{ variacao: string; concluido_em: string | null }>,
+): XFabContagemTreinos {
+  const counts: XFabContagemTreinos = { T1: 0, T2: 0, T3: 0 };
+  sessoes.forEach((s) => {
+    if (!s.concluido_em) return;
+    if (s.variacao === "T1" || s.variacao === "T2" || s.variacao === "T3") {
+      counts[s.variacao as XFabSlot]++;
+    }
+  });
+  return counts;
+}
+
+function PortalXFabView({
+  treino,
+  sessoes,
+  student,
+  agendamentoHoje,
+  qc,
+}: {
+  treino: any;
+  sessoes: Array<{ variacao: string; concluido_em: string | null }>;
+  student: { id: string } | null;
+  agendamentoHoje: { id: string } | null;
+  qc: ReturnType<typeof useQueryClient>;
+}) {
+  const [concluindoSlot, setConcluindoSlot] = useState<XFabSlot | null>(null);
+
+  async function handleConcluirSlot(slot: XFabSlot) {
+    if (!student || !treino?.id) return;
+    if (!agendamentoHoje) {
+      toast.error("Você precisa ter um treino agendado para hoje para concluir.");
+      return;
+    }
+    setConcluindoSlot(slot);
+    try {
+      await registrarSessaoConcluida({
+        alunoId: student.id,
+        treinoId: treino.id,
+        variacao: slot,
+        agendamentoId: agendamentoHoje.id,
+      });
+      qc.invalidateQueries({ queryKey: ["portal-treino-sessoes"] });
+      qc.invalidateQueries({ queryKey: ["portal-treino-agendamento-hoje"] });
+      qc.invalidateQueries({ queryKey: ["portal-streak-real"] });
+      qc.invalidateQueries({ queryKey: ["portal-meus-agendamentos"] });
+      toast.success(`${slot} concluído!`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao concluir sessão.");
+    } finally {
+      setConcluindoSlot(null);
+    }
+  }
+
+  const data = (treino?.conteudo ?? null) as XFabConteudo | null;
+
+  if (!data) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        Treino indisponível.
+      </div>
+    );
+  }
+
+  const counts = contarSessoesXFab(sessoes);
+
+  return (
+    <div className="p-4 space-y-5 max-w-3xl mx-auto pb-16">
+      <header className="space-y-1">
+        <h1 className="text-lg font-bold">X-FAB Hipertrofia</h1>
+        <p className="text-xs text-muted-foreground">
+          3 treinos por semana · 12 sessões por par
+        </p>
+      </header>
+
+      {data.aquecimento && (["LIB", "MOB", "ATI", "PREV"] as const).some(
+        (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+      ) && (
+        <section className="rounded-xl border border-border overflow-hidden">
+          <div className="px-3 py-2 bg-muted/60">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Aquecimento
+            </p>
+          </div>
+          <div className="p-3 space-y-2">
+            {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
+              const items = data.aquecimento?.[k] ?? [];
+              if (!items.length) return null;
+              return (
+                <div key={k}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                    {k}
+                  </p>
+                  <ul className="space-y-1">
+                    {items.map((ex, i) => (
+                      <li key={i} className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2">
+                        <span className="truncate flex items-center gap-1">
+                          {ex.exercicio || "—"}
+                          {ex.video_url && (
+                            <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="text-primary">
+                              <PlayCircle className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </span>
+                        <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {([1, 2, 3] as XFabTreinoOrdem[]).map((ordem) => {
+        const slot = `T${ordem}` as XFabSlot;
+        const estrutura = XFAB_TREINOS[ordem];
+        const treinoDia = data.treinos?.find((t) => t.ordem === ordem);
+        const planoAux = sessaoAuxiliar(counts, ordem);
+        const todosPareConcluidos = estrutura.pares.every(
+          (par) => statusPar(counts, par).phase === "concluded",
+        );
+
+        return (
+          <section key={slot} className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {slot} · Treino
+                </p>
+                <p className="text-sm font-semibold">
+                  {estrutura.pares
+                    .map((par) => XFAB_PARES[par].map((l) => XFAB_LEV_BASE[l].label).join(" + "))
+                    .join(" | ")}
+                </p>
+              </div>
+              <span className="text-[11px] text-muted-foreground tabular-nums">
+                {counts[slot]} sessões
+              </span>
+            </div>
+
+            <div className="p-3 space-y-3">
+              {estrutura.pares.map((par, bi) => {
+                const st = statusPar(counts, par);
+                return (
+                  <div key={par} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                        Bloco {bi + 1} · Par {par} (série alternada)
+                      </p>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {Math.min(st.done, XFAB_TOTAL_SESSOES)}/{XFAB_TOTAL_SESSOES}
+                      </span>
+                    </div>
+                    {st.phase === "concluded" ? (
+                      <p className="text-xs text-success text-center py-1 italic">
+                        {XFAB_MENSAGEM_CONCLUIDO}
+                      </p>
+                    ) : (
+                      XFAB_PARES[par].map((lev) => {
+                        const base = XFAB_LEV_BASE[lev];
+                        const { alvo, kg } = alvoLevantamento(lev, st.proxima, data.rm);
+                        return (
+                          <div key={lev} className="flex items-center justify-between text-xs gap-2">
+                            <span className="truncate flex items-center gap-1 min-w-0">
+                              <span className="font-semibold shrink-0">{base.label}</span>
+                              <span className="text-muted-foreground truncate">{base.nome}</span>
+                              {base.video_url && (
+                                <a href={base.video_url} target="_blank" rel="noopener noreferrer" className="text-primary shrink-0">
+                                  <PlayCircle className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </span>
+                            <span className="tabular-nums text-muted-foreground shrink-0">
+                              {alvo}
+                              {kg ? <> · <span className="font-semibold text-foreground">{kg} kg</span></> : null}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                );
+              })}
+
+              {(treinoDia?.blocosAuxiliares ?? []).map((bloco, bi) => (
+                <div key={bi} className="border rounded-lg p-3 space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Bloco {bi + 3} · Auxiliares (série alternada)
+                  </p>
+                  {bloco.map((ex, ei) => (
+                    <div key={ei} className="flex items-center justify-between text-xs gap-2">
+                      <span className="truncate flex items-center gap-1 min-w-0">
+                        <span className="font-semibold shrink-0">{ex.categoria}</span>
+                        <span className="text-muted-foreground truncate">
+                          {cleanName(ex.exercicio) || "—"}
+                        </span>
+                        {ex.video_url && (
+                          <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="text-primary shrink-0">
+                            <PlayCircle className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </span>
+                      <span className="tabular-nums text-muted-foreground shrink-0">
+                        {planoAux ? planoAux.auxiliar : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              {todosPareConcluidos ? (
+                <p className="text-xs text-success text-center py-2 italic">
+                  {XFAB_MENSAGEM_CONCLUIDO}
+                </p>
+              ) : (
+                <div className="pt-1 space-y-1">
+                  <button
+                    onClick={() => handleConcluirSlot(slot)}
+                    disabled={concluindoSlot !== null || !agendamentoHoje}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {concluindoSlot === slot ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Concluindo…</>
+                    ) : (
+                      <><CheckCircle2 className="w-4 h-4" /> Concluir esta sessão ({slot})</>
+                    )}
+                  </button>
+                  {!agendamentoHoje && (
+                    <p className="text-[10px] text-warning text-center">
+                      Precisa de um treino agendado para hoje para concluir.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Portal Plan Strong 50: sessão atual calculada por levantamento
 // ─────────────────────────────────────────────────────────────
 
