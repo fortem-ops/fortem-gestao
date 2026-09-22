@@ -1292,6 +1292,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editorXFab) {
+    return (
+      <PrescricaoXFabEditor
+        alunoId={editorXFab.alunoId}
+        alunoNome={editorXFab.alunoNome}
+        onBack={() => setEditorXFab(null)}
+      />
+    );
+  }
+
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
     const isCorrida = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "corrida";
