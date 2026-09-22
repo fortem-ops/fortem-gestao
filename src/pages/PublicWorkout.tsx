@@ -69,6 +69,30 @@ import {
   planoES,
   type EasyStrengthConteudo,
 } from "@/lib/easyStrength";
+import {
+  isMileDeep1RMContent,
+  MD1_FAIXAS,
+  MILEDEEP1RM_LABEL,
+  levantamentosDoParMD1,
+  planoMD1,
+  type MileDeep1RMConteudo,
+} from "@/lib/mileDeep1RM";
+import {
+  isMileDeep5RMContent,
+  MD5_FAIXAS,
+  MILEDEEP5RM_LABEL,
+  planoMD5,
+  type MileDeep5RMConteudo,
+} from "@/lib/mileDeep5RM";
+import {
+  MD_LEV_BASE,
+  MD_TOTAL_SEMANAS,
+  tabelaMD,
+  type MDAuxiliar,
+  type MDBlocoId,
+  type MDFaixas,
+  type MDPlanoSemana,
+} from "@/lib/mileDeepShared";
 
 import {
   isM102,
@@ -190,6 +214,12 @@ export default function PublicWorkout() {
   const isEasyStrengthTreino =
     treino?.template_fase === EASY_STRENGTH_LABEL ||
     isEasyStrengthContent(treino?.conteudo ?? null);
+  const isMileDeep1RMTreino =
+    treino?.template_fase === MILEDEEP1RM_LABEL ||
+    isMileDeep1RMContent(treino?.conteudo ?? null);
+  const isMileDeep5RMTreino =
+    treino?.template_fase === MILEDEEP5RM_LABEL ||
+    isMileDeep5RMContent(treino?.conteudo ?? null);
   const isPTTP2Treino =
     treino?.template_fase === PTTP2_LABEL || isPTTP2Content(treino?.conteudo ?? null);
   const isPTTPTreino =
@@ -206,11 +236,24 @@ export default function PublicWorkout() {
       isPTTPTreino ||
       isPTTP2Treino ||
       isFoolproofTreino ||
-      isEasyStrengthTreino
+      isEasyStrengthTreino ||
+      isMileDeep1RMTreino ||
+      isMileDeep5RMTreino
     )
       return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino, isFoolproofTreino, isEasyStrengthTreino]);
+  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino, isFoolproofTreino, isEasyStrengthTreino, isMileDeep1RMTreino, isMileDeep5RMTreino]);
+
+  const mileDeep1RMData = useMemo<MileDeep1RMConteudo | null>(() => {
+    if (!treino?.conteudo || !isMileDeep1RMTreino) return null;
+    return treino.conteudo as unknown as MileDeep1RMConteudo;
+  }, [treino, isMileDeep1RMTreino]);
+
+  const mileDeep5RMData = useMemo<MileDeep5RMConteudo | null>(() => {
+    if (!treino?.conteudo || !isMileDeep5RMTreino) return null;
+    return treino.conteudo as unknown as MileDeep5RMConteudo;
+  }, [treino, isMileDeep5RMTreino]);
+
 
   const xfabData = useMemo<XFabConteudo | null>(() => {
     if (!treino?.conteudo || !isXFabTreino) return null;
@@ -317,6 +360,51 @@ export default function PublicWorkout() {
 
   if (easyStrengthData) {
     return <EasyStrengthPublic treino={treino} aluno={aluno} data={easyStrengthData} />;
+  }
+
+  if (mileDeep1RMData) {
+    return (
+      <MileDeepPublic
+        treino={treino}
+        aluno={aluno}
+        titulo={MILEDEEP1RM_LABEL}
+        refLabel="1RM"
+        aquecimento={mileDeep1RMData.aquecimento}
+        sessoes={mileDeep1RMData.pares.map((par, i) => ({
+          slot: par.slot,
+          titulo: `Treino ${i + 1} · Par ${i + 1}`,
+          ordem: par.ordem,
+          faixas: MD1_FAIXAS,
+          plano: planoMD1(par, 1),
+          auxiliares: par.auxiliares,
+          levantamentos: levantamentosDoParMD1(par).map((l) => ({
+            nome: l.levantamento,
+            rm: l.rm1,
+          })),
+        }))}
+      />
+    );
+  }
+
+  if (mileDeep5RMData) {
+    return (
+      <MileDeepPublic
+        treino={treino}
+        aluno={aluno}
+        titulo={MILEDEEP5RM_LABEL}
+        refLabel="5RM"
+        aquecimento={mileDeep5RMData.aquecimento}
+        sessoes={mileDeep5RMData.sessoes.map((s, i) => ({
+          slot: s.slot,
+          titulo: `Treino ${i + 1} · ${s.levantamento}`,
+          ordem: s.ordem,
+          faixas: MD5_FAIXAS,
+          plano: planoMD5(s, 1),
+          auxiliares: s.auxiliares,
+          levantamentos: [{ nome: s.levantamento, rm: s.rm5 }],
+        }))}
+      />
+    );
   }
 
   if (pttp2Data) {
@@ -1817,6 +1905,178 @@ function EasyStrengthPublic({
             </tbody>
           </table>
         </section>
+      </main>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Quality a Mile Deep (1RM e 5RM) · visão pública somente leitura
+// ─────────────────────────────────────────────────────────────
+
+interface MileDeepPublicSessao {
+  slot: string;
+  titulo: string;
+  ordem: MDBlocoId[];
+  faixas: MDFaixas;
+  plano: MDPlanoSemana;
+  auxiliares: MDAuxiliar[];
+  levantamentos: Array<{ nome: string; rm: number }>;
+}
+
+function MileDeepPublic({
+  treino,
+  aluno,
+  titulo,
+  refLabel,
+  aquecimento,
+  sessoes,
+}: {
+  treino: TreinoRow;
+  aluno: AlunoRow | null;
+  titulo: string;
+  refLabel: string;
+  aquecimento?: Record<string, Array<{ exercicio: string; repeticoes?: number | string }>>;
+  sessoes: MileDeepPublicSessao[];
+}) {
+  const blocosAq = Object.keys(aquecimento ?? {});
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-sm leading-tight truncate">
+                {titulo} · {treino.descricao || "Prescrição"}
+              </h1>
+              {aluno && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {aluno.nome} · v{treino.versao} · {sessoes.length} sessões/semana
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+            Somente leitura
+          </span>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-4 space-y-6 pb-12">
+        {blocosAq.some((k) => (aquecimento?.[k]?.length ?? 0) > 0) && (
+          <section className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Aquecimento
+              </p>
+            </div>
+            <div className="p-3 space-y-2">
+              {blocosAq.map((k) => {
+                const items = aquecimento?.[k] ?? [];
+                if (!items.length) return null;
+                return (
+                  <div key={k}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {k}
+                    </p>
+                    <ul className="space-y-1">
+                      {items.map((ex, i) => (
+                        <li
+                          key={i}
+                          className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
+                        >
+                          <span className="truncate">{ex.exercicio || "—"}</span>
+                          <span className="text-muted-foreground tabular-nums">
+                            {ex.repeticoes}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {sessoes.map((s) => (
+          <section key={s.slot} className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60 flex items-center justify-between gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+                {s.slot} · {s.titulo}
+              </p>
+              <span className="text-[11px] text-muted-foreground shrink-0">
+                Semana 1 · {s.plano.bloco.label}
+              </span>
+            </div>
+            <div className="p-3 space-y-3">
+              {s.levantamentos.map((l, i) => (
+                <div key={i} className="flex justify-between text-sm gap-2">
+                  <span className="truncate">
+                    <span className="font-semibold">{l.nome}</span>{" "}
+                    <span className="text-muted-foreground">
+                      · {MD_LEV_BASE[l.nome as keyof typeof MD_LEV_BASE]?.nome}
+                    </span>
+                  </span>
+                  <span className="tabular-nums shrink-0">
+                    {s.plano.esquema} · {s.plano.faixaLabel} do {refLabel}
+                    {l.rm ? ` (${l.rm} kg)` : ""}
+                  </span>
+                </div>
+              ))}
+
+              {s.auxiliares.length > 0 && (
+                <div className="border rounded-lg p-3 space-y-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Auxiliares
+                  </p>
+                  {s.auxiliares.map((aux, i) => (
+                    <div key={i} className="flex justify-between text-xs gap-2">
+                      <span className="truncate">
+                        <span className="font-semibold">{aux.categoria}</span>{" "}
+                        <span className="text-muted-foreground">{aux.exercicio || "—"}</span>
+                      </span>
+                      <span className="tabular-nums text-muted-foreground shrink-0">
+                        {aux.series}x{aux.reps}
+                        {aux.kg ? ` · ${aux.kg} kg` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-border overflow-hidden">
+                <table className="w-full text-[11px]">
+                  <thead className="bg-muted/60 text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-2 py-1 font-semibold">Semana</th>
+                      <th className="text-left px-2 py-1 font-semibold">Bloco</th>
+                      <th className="text-center px-2 py-1 font-semibold">Séries × reps</th>
+                      <th className="text-center px-2 py-1 font-semibold">% do {refLabel}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tabelaMD(s.ordem, s.faixas).map((linha) => (
+                      <tr key={linha.semana} className="border-t border-border/60">
+                        <td className="px-2 py-1 tabular-nums">{linha.semana}</td>
+                        <td className="px-2 py-1">{linha.bloco.label}</td>
+                        <td className="px-2 py-1 text-center tabular-nums">{linha.esquema}</td>
+                        <td className="px-2 py-1 text-center tabular-nums">{linha.faixaLabel}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Sem cálculo de carga: use a faixa de % do {refLabel} deixando 1-2 repetições de
+                reserva. Depois da semana {MD_TOTAL_SEMANAS} o ciclo reinicia.
+              </p>
+            </div>
+          </section>
+        ))}
       </main>
     </div>
   );

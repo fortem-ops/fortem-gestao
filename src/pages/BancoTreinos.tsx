@@ -32,6 +32,10 @@ import { PrescricaoFoolproofEditor } from "@/components/student/workout/Prescric
 import { FOOLPROOF_LABEL } from "@/lib/foolproof";
 import { PrescricaoEasyStrengthEditor } from "@/components/student/workout/PrescricaoEasyStrengthEditor";
 import { EASY_STRENGTH_LABEL } from "@/lib/easyStrength";
+import { PrescricaoMileDeep1RMEditor } from "@/components/student/workout/PrescricaoMileDeep1RMEditor";
+import { MILEDEEP1RM_LABEL } from "@/lib/mileDeep1RM";
+import { PrescricaoMileDeep5RMEditor } from "@/components/student/workout/PrescricaoMileDeep5RMEditor";
+import { MILEDEEP5RM_LABEL } from "@/lib/mileDeep5RM";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
@@ -99,6 +103,8 @@ const METODO_SUBGRUPOS: Array<{ label: string; fases: string[] }> = [
       "M102",
       "X-FAB Hipertrofia",
       EASY_STRENGTH_LABEL,
+      MILEDEEP1RM_LABEL,
+      MILEDEEP5RM_LABEL,
     ],
   },
 ];
@@ -955,6 +961,10 @@ export default function BancoTreinos() {
   const [editorFoolproof, setEditorFoolproof] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [selectEasyStrengthOpen, setSelectEasyStrengthOpen] = useState(false);
   const [editorEasyStrength, setEditorEasyStrength] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [selectMileDeep1RMOpen, setSelectMileDeep1RMOpen] = useState(false);
+  const [editorMileDeep1RM, setEditorMileDeep1RM] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [selectMileDeep5RMOpen, setSelectMileDeep5RMOpen] = useState(false);
+  const [editorMileDeep5RM, setEditorMileDeep5RM] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [editorPTTP2, setEditorPTTP2] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
@@ -1357,6 +1367,26 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editorMileDeep1RM) {
+    return (
+      <PrescricaoMileDeep1RMEditor
+        alunoId={editorMileDeep1RM.alunoId}
+        alunoNome={editorMileDeep1RM.alunoNome}
+        onBack={() => setEditorMileDeep1RM(null)}
+      />
+    );
+  }
+
+  if (editorMileDeep5RM) {
+    return (
+      <PrescricaoMileDeep5RMEditor
+        alunoId={editorMileDeep5RM.alunoId}
+        alunoNome={editorMileDeep5RM.alunoNome}
+        onBack={() => setEditorMileDeep5RM(null)}
+      />
+    );
+  }
+
   if (editorFoolproof) {
     return (
       <PrescricaoFoolproofEditor
@@ -1477,7 +1507,9 @@ export default function BancoTreinos() {
     const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
     const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
     const isEasyStrengthSintetico = template.fase === EASY_STRENGTH_LABEL;
-    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico;
+    const isMD1Sintetico = template.fase === MILEDEEP1RM_LABEL;
+    const isMD5Sintetico = template.fase === MILEDEEP5RM_LABEL;
+    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico || isMD1Sintetico || isMD5Sintetico;
     return (
       <Card
         key={template.fase}
@@ -1525,6 +1557,14 @@ export default function BancoTreinos() {
           }
           if (isEasyStrengthSintetico) {
             setSelectEasyStrengthOpen(true);
+            return;
+          }
+          if (isMD1Sintetico) {
+            setSelectMileDeep1RMOpen(true);
+            return;
+          }
+          if (isMD5Sintetico) {
+            setSelectMileDeep5RMOpen(true);
             return;
           }
           setAlunoCtx(null);
@@ -1587,6 +1627,14 @@ export default function BancoTreinos() {
             <p className="text-sm text-muted-foreground">
               Prescrição por aluno · 2-3 sessões/semana · tabela fixa de 9 semanas
             </p>
+          ) : isMD1Sintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 2 sessões/semana · 12 semanas · faixas de % do 1RM
+            </p>
+          ) : isMD5Sintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · até 4 sessões/semana · 12 semanas · faixas de % do 5RM
+            </p>
           ) : (
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>{template.treinos.length} treinos</span>
@@ -1610,7 +1658,9 @@ export default function BancoTreinos() {
     const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
     const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
     const isEasyStrengthSintetico = template.fase === EASY_STRENGTH_LABEL;
-    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico;
+    const isMD1Sintetico = template.fase === MILEDEEP1RM_LABEL;
+    const isMD5Sintetico = template.fase === MILEDEEP5RM_LABEL;
+    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico || isMD1Sintetico || isMD5Sintetico;
     const descricao = is531
       ? "Prescrição por aluno · 4 semanas · carga em % do 1RM"
       : isM102Sintetico
@@ -1629,7 +1679,11 @@ export default function BancoTreinos() {
                     ? "Prescrição por aluno · frequência livre · incremento fixo a partir do 1RM"
                     : isEasyStrengthSintetico
                       ? "Prescrição por aluno · 2-3 sessões/semana · tabela fixa de 9 semanas"
-                      : `${template.treinos.length} treinos · ${template.treinos.reduce((acc, treino) => acc + treino.exercicios.length, 0)} exercícios`;
+                      : isMD1Sintetico
+                        ? "Prescrição por aluno · 2 sessões/semana · 12 semanas · faixas de % do 1RM"
+                        : isMD5Sintetico
+                          ? "Prescrição por aluno · até 4 sessões/semana · 12 semanas · faixas de % do 5RM"
+                          : `${template.treinos.length} treinos · ${template.treinos.reduce((acc, treino) => acc + treino.exercicios.length, 0)} exercícios`;
 
     const abrirMetodo = () => {
       if (is531) return setSelect531Open(true);
@@ -1641,6 +1695,8 @@ export default function BancoTreinos() {
       if (isPTTP2Sintetico) return setSelectPTTP2Open(true);
       if (isFoolproofSintetico) return setSelectFoolproofOpen(true);
       if (isEasyStrengthSintetico) return setSelectEasyStrengthOpen(true);
+      if (isMD1Sintetico) return setSelectMileDeep1RMOpen(true);
+      if (isMD5Sintetico) return setSelectMileDeep5RMOpen(true);
       setAlunoCtx(null);
       setPendingTemplate(template);
     };
@@ -1747,7 +1803,19 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2, syntheticFoolproof, syntheticEasyStrength];
+            const syntheticMD1: WorkoutTemplate = {
+              fase: MILEDEEP1RM_LABEL,
+              frequencia: "2x",
+              aquecimento: [],
+              treinos: [],
+            };
+            const syntheticMD5: WorkoutTemplate = {
+              fase: MILEDEEP5RM_LABEL,
+              frequencia: "4x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2, syntheticFoolproof, syntheticEasyStrength, syntheticMD1, syntheticMD5];
           }
           if (group.label === "Métodos") {
             return (
@@ -1922,6 +1990,18 @@ export default function BancoTreinos() {
         onOpenChange={setSelectEasyStrengthOpen}
         title="Escolha o aluno para prescrever Easy Strength"
         onSelect={(a) => setEditorEasyStrength({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={selectMileDeep1RMOpen}
+        onOpenChange={setSelectMileDeep1RMOpen}
+        title={`Escolha o aluno para prescrever ${MILEDEEP1RM_LABEL}`}
+        onSelect={(a) => setEditorMileDeep1RM({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={selectMileDeep5RMOpen}
+        onOpenChange={setSelectMileDeep5RMOpen}
+        title={`Escolha o aluno para prescrever ${MILEDEEP5RM_LABEL}`}
+        onSelect={(a) => setEditorMileDeep5RM({ alunoId: a.id, alunoNome: a.nome })}
       />
       <Select531AlunoDialog
         open={!!pendingTemplate}
