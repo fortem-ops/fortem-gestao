@@ -25,6 +25,8 @@ import { PrescricaoM102Editor } from "@/components/student/workout/PrescricaoM10
 import { PrescricaoXFabEditor } from "@/components/student/workout/PrescricaoXFabEditor";
 import { PrescricaoPTTPEditor } from "@/components/student/workout/PrescricaoPTTPEditor";
 import { PTTP_LABEL } from "@/lib/pttp";
+import { PrescricaoPTTP2Editor } from "@/components/student/workout/PrescricaoPTTP2Editor";
+import { PTTP2_LABEL } from "@/lib/pttp2";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
@@ -925,6 +927,8 @@ export default function BancoTreinos() {
   const [editorXFab, setEditorXFab] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [selectPTTPOpen, setSelectPTTPOpen] = useState(false);
   const [editorPTTP, setEditorPTTP] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [selectPTTP2Open, setSelectPTTP2Open] = useState(false);
+  const [editorPTTP2, setEditorPTTP2] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
     queryKey: ["banco-treinos-personalizados-all"],
@@ -1316,6 +1320,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editorPTTP2) {
+    return (
+      <PrescricaoPTTP2Editor
+        alunoId={editorPTTP2.alunoId}
+        alunoNome={editorPTTP2.alunoNome}
+        onBack={() => setEditorPTTP2(null)}
+      />
+    );
+  }
+
 
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
@@ -1461,7 +1475,13 @@ export default function BancoTreinos() {
               aquecimento: [],
               treinos: [],
             };
-            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP];
+            const syntheticPTTP2: WorkoutTemplate = {
+              fase: PTTP2_LABEL,
+              frequencia: "3x",
+              aquecimento: [],
+              treinos: [],
+            };
+            items = [...items, synthetic531, syntheticM102, syntheticPS, synthetic5RM, syntheticXFab, syntheticPTTP, syntheticPTTP2];
           }
           if (items.length === 0) return null;
           return (
@@ -1478,7 +1498,8 @@ export default function BancoTreinos() {
                    const is5RMSintetico = template.fase === "Planilha 5RM";
                    const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
                    const isPTTPSintetico = template.fase === PTTP_LABEL;
-                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico;
+                   const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
+                   const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico;
                   return (
                   <Card
                     key={template.fase}
@@ -1514,6 +1535,10 @@ export default function BancoTreinos() {
                       }
                       if (isPTTPSintetico) {
                         setSelectPTTPOpen(true);
+                        return;
+                      }
+                      if (isPTTP2Sintetico) {
+                        setSelectPTTP2Open(true);
                         return;
                       }
                        setAlunoCtx(null);
@@ -1563,6 +1588,10 @@ export default function BancoTreinos() {
                       ) : isPTTPSintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 3-5 treinos/semana · progressão pelo resultado de cada sessão
+                       </p>
+                      ) : isPTTP2Sintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 3 treinos/semana · progressão automática por sessão
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -1686,6 +1715,12 @@ export default function BancoTreinos() {
         onOpenChange={setSelectPTTPOpen}
         title="Escolha o aluno para prescrever Power to the People"
         onSelect={(a) => setEditorPTTP({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
+        open={selectPTTP2Open}
+        onOpenChange={setSelectPTTP2Open}
+        title="Escolha o aluno para prescrever Power to the People 2.0"
+        onSelect={(a) => setEditorPTTP2({ alunoId: a.id, alunoNome: a.nome })}
       />
       <Select531AlunoDialog
         open={!!pendingTemplate}

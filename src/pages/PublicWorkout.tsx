@@ -37,6 +37,15 @@ import {
   type PTTPConteudo,
 } from "@/lib/pttp";
 import {
+  isPTTP2Content,
+  alvoPTTP2,
+  PTTP2_LABEL,
+  PTTP2_LEV_BASE,
+  PTTP2_FASE_ESQUEMA,
+  type PTTP2Conteudo,
+} from "@/lib/pttp2";
+
+import {
   isM102,
   slotStatus,
   testSession,
@@ -151,14 +160,25 @@ export default function PublicWorkout() {
     treino?.template_fase === "Plan Strong 50" || isPlanStrong50(treino?.conteudo ?? null);
   const isXFabTreino =
     treino?.template_fase === "X-FAB Hipertrofia" || isXFabContent(treino?.conteudo ?? null);
+  const isPTTP2Treino =
+    treino?.template_fase === PTTP2_LABEL || isPTTP2Content(treino?.conteudo ?? null);
   const isPTTPTreino =
-    treino?.template_fase === PTTP_LABEL || isPTTPContent(treino?.conteudo ?? null);
+    !isPTTP2Treino &&
+    (treino?.template_fase === PTTP_LABEL || isPTTPContent(treino?.conteudo ?? null));
 
   const data = useMemo<WorkoutData | null>(() => {
-    if (!treino?.conteudo || is531 || isM102Treino || isPSTreino || isXFabTreino || isPTTPTreino)
+    if (
+      !treino?.conteudo ||
+      is531 ||
+      isM102Treino ||
+      isPSTreino ||
+      isXFabTreino ||
+      isPTTPTreino ||
+      isPTTP2Treino
+    )
       return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino]);
+  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino, isPTTPTreino, isPTTP2Treino]);
 
   const xfabData = useMemo<XFabConteudo | null>(() => {
     if (!treino?.conteudo || !isXFabTreino) return null;
@@ -169,6 +189,12 @@ export default function PublicWorkout() {
     if (!treino?.conteudo || !isPTTPTreino) return null;
     return treino.conteudo as unknown as PTTPConteudo;
   }, [treino, isPTTPTreino]);
+
+  const pttp2Data = useMemo<PTTP2Conteudo | null>(() => {
+    if (!treino?.conteudo || !isPTTP2Treino) return null;
+    return treino.conteudo as unknown as PTTP2Conteudo;
+  }, [treino, isPTTP2Treino]);
+
 
   const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
     if (!treino?.conteudo || !is531) return null;
@@ -203,7 +229,11 @@ export default function PublicWorkout() {
     );
   }
 
-  if (error || !treino || (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData)) {
+  if (
+    error ||
+    !treino ||
+    (!data && !wendlerData && !m102Data && !psData && !xfabData && !pttpData && !pttp2Data)
+  ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3 max-w-sm">
@@ -239,9 +269,14 @@ export default function PublicWorkout() {
     return <XFabPublic treino={treino} aluno={aluno} data={xfabData} />;
   }
 
+  if (pttp2Data) {
+    return <PTTP2Public treino={treino} aluno={aluno} data={pttp2Data} />;
+  }
+
   if (pttpData) {
     return <PTTPPublic treino={treino} aluno={aluno} data={pttpData} />;
   }
+
 
   // Group warm-up by category
   const warmupBlocks = (["LIB", "MOB", "ATI"] as const)
@@ -1119,6 +1154,162 @@ function PTTPPublic({
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// Power to the People 2.0 · visão pública somente leitura
+// ─────────────────────────────────────────────────────────────
+
+function PTTP2Public({
+  treino,
+  aluno,
+  data,
+}: {
+  treino: TreinoRow;
+  aluno: AlunoRow | null;
+  data: PTTP2Conteudo;
+}) {
+  const blocosAq = Object.keys(data.aquecimento ?? {});
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-sm leading-tight truncate">
+                {PTTP2_LABEL} · {treino.descricao || "Prescrição"}
+              </h1>
+              {aluno && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {aluno.nome} · v{treino.versao} · 3 treinos/semana
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+            Somente leitura
+          </span>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-4 space-y-6 pb-12">
+        <section className="rounded-xl border border-border p-4 space-y-3">
+          <h2 className="text-xs font-heading font-bold uppercase tracking-wider text-primary">
+            Levantamentos
+          </h2>
+          {data.levantamentos.map((lev) => {
+            const base = PTTP2_LEV_BASE[lev.levantamento];
+            const alvo = alvoPTTP2(lev);
+            return (
+              <div key={lev.levantamento} className="text-sm">
+                <div className="flex justify-between gap-2">
+                  <span className="truncate">
+                    <span className="font-semibold">{lev.levantamento}</span>{" "}
+                    <span className="text-muted-foreground">· {base.nome}</span>
+                  </span>
+                  <span className="tabular-nums shrink-0">
+                    {alvo.concluido
+                      ? `Ciclo concluído — 1RM testado: ${lev.rm1Testado} kg`
+                      : `${alvo.esquema} · ${alvo.peso || "—"} kg`}
+                  </span>
+                </div>
+                {lev.historico.length > 0 && (
+                  <table className="w-full text-xs tabular-nums mt-2">
+                    <thead>
+                      <tr className="text-muted-foreground text-left">
+                        <th className="py-1 pr-3 font-semibold">Sessão</th>
+                        <th className="py-1 pr-3 font-semibold">Data</th>
+                        <th className="py-1 pr-3 font-semibold">Peso</th>
+                        <th className="py-1 font-semibold">Fase</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lev.historico.map((h, i) => (
+                        <tr key={i} className="border-t border-border/50">
+                          <td className="py-1 pr-3 font-semibold">TREINO #{i + 1}</td>
+                          <td className="py-1 pr-3">{h.data}</td>
+                          <td className="py-1 pr-3">{h.peso} kg</td>
+                          <td className="py-1">{PTTP2_FASE_ESQUEMA[h.fase]}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            );
+          })}
+        </section>
+
+        {blocosAq.some((k) => (data.aquecimento?.[k]?.length ?? 0) > 0) && (
+          <section className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Aquecimento
+              </p>
+            </div>
+            <div className="p-3 space-y-2">
+              {blocosAq.map((k) => {
+                const items = data.aquecimento?.[k] ?? [];
+                if (!items.length) return null;
+                return (
+                  <div key={k}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {k}
+                    </p>
+                    <ul className="space-y-1">
+                      {items.map((ex, i) => (
+                        <li
+                          key={i}
+                          className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2"
+                        >
+                          <span className="truncate">{ex.exercicio || "—"}</span>
+                          <span className="text-muted-foreground tabular-nums">
+                            {ex.repeticoes}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {data.treinos.map((tr) => (
+          <section key={tr.ordem} className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                T{tr.ordem} · Treino
+              </p>
+            </div>
+            <div className="p-3 space-y-1 text-xs">
+              {tr.auxiliares.map((aux, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between gap-2 border-l-2 border-primary/30 pl-2"
+                >
+                  <span className="truncate">
+                    <span className="font-semibold">{aux.categoria}</span>{" "}
+                    <span className="text-muted-foreground">· {aux.exercicio || "—"}</span>
+                  </span>
+                  <span className="tabular-nums text-muted-foreground shrink-0">
+                    {aux.series}x{aux.reps}
+                    {aux.kg ? ` · ${aux.kg} kg` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </main>
+    </div>
+  );
+}
+
+
 
 
 // ─────────────────────────────────────────────────────────────
