@@ -103,6 +103,8 @@ const METODO_SUBGRUPOS: Array<{ label: string; fases: string[] }> = [
       "M102",
       "X-FAB Hipertrofia",
       EASY_STRENGTH_LABEL,
+      MILEDEEP1RM_LABEL,
+      MILEDEEP5RM_LABEL,
     ],
   },
 ];
@@ -959,6 +961,10 @@ export default function BancoTreinos() {
   const [editorFoolproof, setEditorFoolproof] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [selectEasyStrengthOpen, setSelectEasyStrengthOpen] = useState(false);
   const [editorEasyStrength, setEditorEasyStrength] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [selectMileDeep1RMOpen, setSelectMileDeep1RMOpen] = useState(false);
+  const [editorMileDeep1RM, setEditorMileDeep1RM] = useState<{ alunoId: string; alunoNome: string } | null>(null);
+  const [selectMileDeep5RMOpen, setSelectMileDeep5RMOpen] = useState(false);
+  const [editorMileDeep5RM, setEditorMileDeep5RM] = useState<{ alunoId: string; alunoNome: string } | null>(null);
   const [editorPTTP2, setEditorPTTP2] = useState<{ alunoId: string; alunoNome: string } | null>(null);
 
   const { data: modelosPersonalizados = [], refetch: refetchModelos } = useQuery({
@@ -1357,6 +1363,26 @@ export default function BancoTreinos() {
         alunoId={editorEasyStrength.alunoId}
         alunoNome={editorEasyStrength.alunoNome}
         onBack={() => setEditorEasyStrength(null)}
+      />
+    );
+  }
+
+  if (editorMileDeep1RM) {
+    return (
+      <PrescricaoMileDeep1RMEditor
+        alunoId={editorMileDeep1RM.alunoId}
+        alunoNome={editorMileDeep1RM.alunoNome}
+        onBack={() => setEditorMileDeep1RM(null)}
+      />
+    );
+  }
+
+  if (editorMileDeep5RM) {
+    return (
+      <PrescricaoMileDeep5RMEditor
+        alunoId={editorMileDeep5RM.alunoId}
+        alunoNome={editorMileDeep5RM.alunoNome}
+        onBack={() => setEditorMileDeep5RM(null)}
       />
     );
   }
