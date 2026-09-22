@@ -1588,6 +1588,10 @@ export default function BancoTreinos() {
                       ) : isPTTPSintetico ? (
                         <p className="text-sm text-muted-foreground">
                           Prescrição por aluno · 3-5 treinos/semana · progressão pelo resultado de cada sessão
+                       </p>
+                      ) : isPTTP2Sintetico ? (
+                        <p className="text-sm text-muted-foreground">
+                          Prescrição por aluno · 3 treinos/semana · progressão automática por sessão
                         </p>
                       ) : (
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
