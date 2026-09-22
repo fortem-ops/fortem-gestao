@@ -27,6 +27,22 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
 
   useEffect(() => {
     if (!open) return;
+    // "Aluno desde": data mais antiga entre TODOS os planos do aluno
+    // (mesma lógica de primeiro_plano_data em StudentSummary.tsx).
+    supabase
+      .from("planos")
+      .select("id, data_inicio")
+      .eq("aluno_id", student.id)
+      .order("data_inicio", { ascending: true })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data: primeiroPlano }: any) => {
+        setPlanDefaults((prev) => ({
+          ...prev,
+          plano_data_inicio: primeiroPlano?.data_inicio || undefined,
+        }));
+      });
+
     queryPlanoPrincipalAtivo(student.id, "tipo, servicos, valor, data_inicio").then(
       ({ data: p }: any) => {
         if (p) {
@@ -42,14 +58,19 @@ export default function EditStudentDialog({ student, onStudentUpdated }: EditStu
             else consultas = "nutricao";
           }
           const tipoSelecao = p.tipo?.startsWith("VIP") ? "VIP" : p.tipo;
-          setPlanDefaults({
+          setPlanDefaults((prev) => ({
+            ...prev,
             plano: tipoSelecao,
             plano_consultas: consultas,
             plano_valor: p.valor ?? undefined,
-            plano_data_inicio: p.data_inicio,
-          });
+          }));
         } else {
-          setPlanDefaults({});
+          setPlanDefaults((prev) => ({
+            plano: undefined,
+            plano_consultas: undefined,
+            plano_valor: undefined,
+            plano_data_inicio: prev.plano_data_inicio,
+          }));
         }
       },
     );

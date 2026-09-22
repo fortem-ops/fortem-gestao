@@ -400,7 +400,7 @@ export default function StudentFormFields({ defaultValues, onSubmit, loading, su
               name="plano_data_inicio"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Data Início do Plano</FormLabel>
+                  <FormLabel>Aluno desde</FormLabel>
                   <FormControl><Input type="date" {...field} value={field.value ?? ""} /></FormControl>
                   <FormMessage />
                 </FormItem>
