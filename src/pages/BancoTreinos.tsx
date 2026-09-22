@@ -1682,6 +1682,12 @@ export default function BancoTreinos() {
         onSelect={(a) => setEditorXFab({ alunoId: a.id, alunoNome: a.nome })}
       />
       <Select531AlunoDialog
+        open={selectPTTPOpen}
+        onOpenChange={setSelectPTTPOpen}
+        title="Escolha o aluno para prescrever Power to the People"
+        onSelect={(a) => setEditorPTTP({ alunoId: a.id, alunoNome: a.nome })}
+      />
+      <Select531AlunoDialog
         open={!!pendingTemplate}
         onOpenChange={(o) => { if (!o) setPendingTemplate(null); }}
         title={pendingTemplate ? `Escolha o aluno — ${pendingTemplate.fase}` : "Escolha o aluno"}
