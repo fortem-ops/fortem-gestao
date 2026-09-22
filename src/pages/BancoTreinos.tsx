@@ -1465,6 +1465,139 @@ export default function BancoTreinos() {
     );
   }
 
+  const renderMetodoCard = (template: WorkoutTemplate) => {
+    const isUnderConstruction = false;
+    const is531 = template.fase === "5-3-1";
+    const isM102Sintetico = template.fase === "M102";
+    const isPSSintetico = template.fase === "Plan Strong 50";
+    const is5RMSintetico = template.fase === "Planilha 5RM";
+    const isXFabSintetico = template.fase === "X-FAB Hipertrofia";
+    const isPTTPSintetico = template.fase === PTTP_LABEL;
+    const isPTTP2Sintetico = template.fase === PTTP2_LABEL;
+    const isFoolproofSintetico = template.fase === FOOLPROOF_LABEL;
+    const isEasyStrengthSintetico = template.fase === EASY_STRENGTH_LABEL;
+    const isDinamicoPorAluno = is531 || isM102Sintetico || isPSSintetico || is5RMSintetico || isXFabSintetico || isPTTPSintetico || isPTTP2Sintetico || isFoolproofSintetico || isEasyStrengthSintetico;
+    return (
+      <Card
+        key={template.fase}
+        className={`transition-colors group ${
+          isUnderConstruction
+            ? "cursor-not-allowed opacity-70"
+            : "cursor-pointer hover:border-primary"
+        }`}
+        onClick={() => {
+          if (isUnderConstruction) {
+            toast.info("Em Construção", { description: "Este modelo ainda não está disponível." });
+            return;
+          }
+          if (is531) {
+            setSelect531Open(true);
+            return;
+          }
+          if (isM102Sintetico) {
+            setSelectM102Open(true);
+            return;
+          }
+          if (isPSSintetico) {
+            setSelectPSOpen(true);
+            return;
+          }
+          if (is5RMSintetico) {
+            setSelect5RMOpen(true);
+            return;
+          }
+          if (isXFabSintetico) {
+            setSelectXFabOpen(true);
+            return;
+          }
+          if (isPTTPSintetico) {
+            setSelectPTTPOpen(true);
+            return;
+          }
+          if (isPTTP2Sintetico) {
+            setSelectPTTP2Open(true);
+            return;
+          }
+          if (isFoolproofSintetico) {
+            setSelectFoolproofOpen(true);
+            return;
+          }
+          if (isEasyStrengthSintetico) {
+            setSelectEasyStrengthOpen(true);
+            return;
+          }
+          setAlunoCtx(null);
+          setPendingTemplate(template);
+        }}
+      >
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              {isUnderConstruction
+                ? <Construction className="h-5 w-5 text-warning" />
+                : (template.fase === "Personalizado" || isDinamicoPorAluno)
+                  ? <Sparkles className="h-5 w-5 text-primary" />
+                  : <Dumbbell className="h-5 w-5 text-primary" />}
+            </div>
+            {isUnderConstruction ? (
+              <Badge variant="outline" className="border-warning/40 text-warning bg-warning/10">
+                Em Construção
+              </Badge>
+            ) : (
+              <Badge variant="outline">{template.frequencia}</Badge>
+            )}
+          </div>
+          <CardTitle className="text-lg mt-3">{template.fase}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {is531 ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 4 semanas · carga em % do 1RM
+            </p>
+          ) : isM102Sintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 11 semanas + teste · carga por tier em % do 1RM
+            </p>
+          ) : isPSSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 1-6 meses · orçamento de volume (NL) por zona
+            </p>
+          ) : is5RMSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 4 semanas · cargas anotadas manualmente
+            </p>
+          ) : isXFabSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 3 treinos/semana · 12 sessões por par
+            </p>
+          ) : isPTTPSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 3-5 treinos/semana · progressão pelo resultado de cada sessão
+            </p>
+          ) : isPTTP2Sintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 3 treinos/semana · progressão automática por sessão
+            </p>
+          ) : isFoolproofSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · frequência livre · incremento fixo a partir do 1RM
+            </p>
+          ) : isEasyStrengthSintetico ? (
+            <p className="text-sm text-muted-foreground">
+              Prescrição por aluno · 2-3 sessões/semana · tabela fixa de 9 semanas
+            </p>
+          ) : (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{template.treinos.length} treinos</span>
+              <span>
+                {template.treinos.reduce((acc, t) => acc + t.exercicios.length, 0)} exercícios
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="container mx-auto p-6 max-w-6xl animate-fade-in">
