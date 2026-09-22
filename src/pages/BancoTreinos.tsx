@@ -32,6 +32,10 @@ import { PrescricaoFoolproofEditor } from "@/components/student/workout/Prescric
 import { FOOLPROOF_LABEL } from "@/lib/foolproof";
 import { PrescricaoEasyStrengthEditor } from "@/components/student/workout/PrescricaoEasyStrengthEditor";
 import { EASY_STRENGTH_LABEL } from "@/lib/easyStrength";
+import { PrescricaoMileDeep1RMEditor } from "@/components/student/workout/PrescricaoMileDeep1RMEditor";
+import { MILEDEEP1RM_LABEL } from "@/lib/mileDeep1RM";
+import { PrescricaoMileDeep5RMEditor } from "@/components/student/workout/PrescricaoMileDeep5RMEditor";
+import { MILEDEEP5RM_LABEL } from "@/lib/mileDeep5RM";
 import { PrescricaoPlanStrongEditor } from "@/components/student/workout/PrescricaoPlanStrongEditor";
 import { Select531AlunoDialog } from "@/components/student/workout/Select531AlunoDialog";
 import { AlunoDeficitsAlert } from "@/components/student/workout/AlunoDeficitsAlert";
