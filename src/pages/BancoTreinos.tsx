@@ -1731,7 +1731,7 @@ export default function BancoTreinos() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl animate-fade-in">
+    <div className="container mx-auto p-6 max-w-[1600px] animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 rounded-lg bg-primary/10">
           <Library className="h-6 w-6 text-primary" />
