@@ -22,6 +22,14 @@ import {
   type Wendler531Conteudo,
 } from "@/lib/wendler531";
 import {
+  isXFabContent,
+  XFAB_LEV_BASE,
+  XFAB_PARES,
+  XFAB_TREINOS,
+  type XFabConteudo,
+  type XFabTreinoOrdem,
+} from "@/lib/xfab";
+import {
   isM102,
   slotStatus,
   testSession,
@@ -134,11 +142,18 @@ export default function PublicWorkout() {
     treino?.template_fase === "M102" || isM102(treino?.conteudo ?? null);
   const isPSTreino =
     treino?.template_fase === "Plan Strong 50" || isPlanStrong50(treino?.conteudo ?? null);
+  const isXFabTreino =
+    treino?.template_fase === "X-FAB Hipertrofia" || isXFabContent(treino?.conteudo ?? null);
 
   const data = useMemo<WorkoutData | null>(() => {
-    if (!treino?.conteudo || is531 || isM102Treino || isPSTreino) return null;
+    if (!treino?.conteudo || is531 || isM102Treino || isPSTreino || isXFabTreino) return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531, isM102Treino, isPSTreino]);
+  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino]);
+
+  const xfabData = useMemo<XFabConteudo | null>(() => {
+    if (!treino?.conteudo || !isXFabTreino) return null;
+    return treino.conteudo as unknown as XFabConteudo;
+  }, [treino, isXFabTreino]);
 
   const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
     if (!treino?.conteudo || !is531) return null;
@@ -173,7 +188,7 @@ export default function PublicWorkout() {
     );
   }
 
-  if (error || !treino || (!data && !wendlerData && !m102Data && !psData)) {
+  if (error || !treino || (!data && !wendlerData && !m102Data && !psData && !xfabData)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-3 max-w-sm">
@@ -203,6 +218,10 @@ export default function PublicWorkout() {
 
   if (psData) {
     return <PlanStrongPublic treino={treino} aluno={aluno} data={psData} />;
+  }
+
+  if (xfabData) {
+    return <XFabPublic treino={treino} aluno={aluno} data={xfabData} />;
   }
 
   // Group warm-up by category
@@ -765,6 +784,168 @@ function M102Public({
       </main>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// X-FAB Hipertrofia · visão pública somente leitura
+// ─────────────────────────────────────────────────────────────
+
+function XFabPublic({
+  treino,
+  aluno,
+  data,
+}: {
+  treino: TreinoRow;
+  aluno: AlunoRow | null;
+  data: XFabConteudo;
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-sm leading-tight truncate">
+                X-FAB Hipertrofia · {treino.descricao || "Prescrição"}
+              </h1>
+              {aluno && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {aluno.nome} · v{treino.versao} · 3 treinos/semana
+                </p>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+            Somente leitura
+          </span>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-4 space-y-6 pb-12">
+        <section className="rounded-xl border border-border p-4">
+          <h2 className="text-xs font-heading font-bold uppercase tracking-wider text-primary mb-2">
+            1RM de referência
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div><span className="text-muted-foreground">Terra:</span> <span className="font-semibold tabular-nums">{data.rm.terra} kg</span></div>
+            <div><span className="text-muted-foreground">Press:</span> <span className="font-semibold tabular-nums">{data.rm.press} kg</span></div>
+            <div><span className="text-muted-foreground">Agach.:</span> <span className="font-semibold tabular-nums">{data.rm.agachamento} kg</span></div>
+            <div><span className="text-muted-foreground">Supino:</span> <span className="font-semibold tabular-nums">{data.rm.supino} kg</span></div>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-3 italic">
+            A sessão de cada par (1 a 12) é calculada ao vivo no portal do aluno conforme as sessões concluídas.
+          </p>
+        </section>
+
+        {data.aquecimento && (["LIB", "MOB", "ATI", "PREV"] as const).some(
+          (k) => (data.aquecimento?.[k]?.length ?? 0) > 0,
+        ) && (
+          <section className="rounded-xl border border-border overflow-hidden">
+            <div className="px-3 py-2 bg-muted/60">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Aquecimento
+              </p>
+            </div>
+            <div className="p-3 space-y-2">
+              {(["LIB", "MOB", "ATI", "PREV"] as const).map((k) => {
+                const items = data.aquecimento?.[k] ?? [];
+                if (!items.length) return null;
+                return (
+                  <div key={k}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {k}
+                    </p>
+                    <ul className="space-y-1">
+                      {items.map((ex, i) => (
+                        <li key={i} className="flex justify-between items-center text-xs border-l-2 border-primary/40 pl-2">
+                          <span className="truncate">{ex.exercicio || "—"}</span>
+                          <span className="text-muted-foreground tabular-nums">{ex.repeticoes}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {([1, 2, 3] as XFabTreinoOrdem[]).map((ordem) => {
+          const estrutura = XFAB_TREINOS[ordem];
+          const treinoDia = data.treinos?.find((t) => t.ordem === ordem);
+          return (
+            <section key={ordem} className="rounded-xl border border-border overflow-hidden">
+              <div className="px-3 py-2 bg-muted/60">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  T{ordem} · Treino
+                </p>
+                <p className="text-sm font-semibold">
+                  {estrutura.pares
+                    .map((par) => XFAB_PARES[par].map((l) => XFAB_LEV_BASE[l].label).join(" + "))
+                    .join(" | ")}
+                </p>
+              </div>
+              <div className="p-3 space-y-2 text-xs">
+                {estrutura.pares.map((par, bi) => (
+                  <div key={par}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      Bloco {bi + 1} · Par {par}
+                    </p>
+                    <ul className="space-y-1">
+                      {XFAB_PARES[par].map((lev) => {
+                        const base = XFAB_LEV_BASE[lev];
+                        return (
+                          <li key={lev} className="flex justify-between items-center border-l-2 border-primary/50 pl-2 gap-2">
+                            <span className="truncate">
+                              <span className="font-semibold">{base.label}</span>{" "}
+                              <span className="text-muted-foreground">· {base.nome}</span>
+                            </span>
+                            <span className="text-muted-foreground tabular-nums shrink-0">
+                              {base.comRM1 ? `1RM ${rmXFabLabel(data, lev)} kg` : "alvo em RM"}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+                {(treinoDia?.blocosAuxiliares ?? []).map((bloco, bi) => (
+                  <div key={bi} className="pt-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      Bloco {bi + 3} · Auxiliares
+                    </p>
+                    <ul className="space-y-1">
+                      {bloco.map((ex, ei) => (
+                        <li key={ei} className="flex justify-between border-l-2 border-primary/30 pl-2 gap-2">
+                          <span className="truncate">
+                            <span className="font-semibold">{ex.categoria}</span>{" "}
+                            <span className="text-muted-foreground">· {ex.exercicio || "—"}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </main>
+    </div>
+  );
+}
+
+function rmXFabLabel(data: XFabConteudo, lev: keyof typeof XFAB_LEV_BASE): number {
+  switch (lev) {
+    case "Terra": return data.rm.terra;
+    case "Press": return data.rm.press;
+    case "Agachamento": return data.rm.agachamento;
+    case "Supino": return data.rm.supino;
+    default: return 0;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
