@@ -331,6 +331,62 @@ export default function PortalWorkouts() {
     );
   }
 
+  // ── Quality a Mile Deep (1RM e 5RM): renderização dedicada ──
+  if (
+    treino &&
+    ((treino as any).template_fase === MILEDEEP1RM_LABEL || isMileDeep1RMContent(treino.conteudo))
+  ) {
+    const md = treino.conteudo as unknown as MileDeep1RMConteudo;
+    return (
+      <PortalMileDeepView
+        titulo={MILEDEEP1RM_LABEL}
+        refLabel="1RM"
+        aquecimento={md.aquecimento}
+        sessoesPlano={md.pares.map((par, i) => ({
+          slot: par.slot,
+          titulo: `Treino ${i + 1} · Par ${i + 1}`,
+          auxiliares: par.auxiliares,
+          plano: (semana: number) => planoMD1(par, semana),
+          levantamentos: levantamentosDoParMD1(par).map((l) => ({
+            nome: l.levantamento,
+            rm: l.rm1,
+          })),
+        }))}
+        treino={treino}
+        sessoes={sessoes}
+        student={student}
+        agendamentoHoje={agendamentoHoje ?? null}
+        qc={qc}
+      />
+    );
+  }
+
+  if (
+    treino &&
+    ((treino as any).template_fase === MILEDEEP5RM_LABEL || isMileDeep5RMContent(treino.conteudo))
+  ) {
+    const md = treino.conteudo as unknown as MileDeep5RMConteudo;
+    return (
+      <PortalMileDeepView
+        titulo={MILEDEEP5RM_LABEL}
+        refLabel="5RM"
+        aquecimento={md.aquecimento}
+        sessoesPlano={md.sessoes.map((s, i) => ({
+          slot: s.slot,
+          titulo: `Treino ${i + 1} · ${s.levantamento}`,
+          auxiliares: s.auxiliares,
+          plano: (semana: number) => planoMD5(s, semana),
+          levantamentos: [{ nome: s.levantamento, rm: s.rm5 }],
+        }))}
+        treino={treino}
+        sessoes={sessoes}
+        student={student}
+        agendamentoHoje={agendamentoHoje ?? null}
+        qc={qc}
+      />
+    );
+  }
+
   // ── Foolproof: renderização dedicada ────────────────────────
   if (
     treino &&
