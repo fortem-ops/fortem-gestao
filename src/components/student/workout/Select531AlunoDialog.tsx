@@ -40,17 +40,21 @@ export function Select531AlunoDialog({
   skipLabel = "Ver modelo sem aluno",
 }: Props) {
   const [q, setQ] = useState("");
+  const [mostrarTodos, setMostrarTodos] = useState(false);
   const debounced = useDebounce(q, 250);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["select-531-alunos", debounced],
+    queryKey: ["select-531-alunos", debounced, mostrarTodos],
     enabled: open,
     queryFn: async () => {
       let query = supabase
         .from("alunos")
-        .select("id, nome")
+        .select("id, nome, status")
         .order("nome", { ascending: true })
         .limit(30);
+      if (!mostrarTodos) {
+        query = query.eq("status", "ativo");
+      }
       if (debounced.trim()) {
         query = query.ilike("nome", `%${debounced.trim()}%`);
       }
@@ -59,6 +63,7 @@ export function Select531AlunoDialog({
       return (data || []) as AlunoRow[];
     },
   });
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
