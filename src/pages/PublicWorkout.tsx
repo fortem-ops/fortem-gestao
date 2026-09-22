@@ -134,11 +134,18 @@ export default function PublicWorkout() {
     treino?.template_fase === "M102" || isM102(treino?.conteudo ?? null);
   const isPSTreino =
     treino?.template_fase === "Plan Strong 50" || isPlanStrong50(treino?.conteudo ?? null);
+  const isXFabTreino =
+    treino?.template_fase === "X-FAB Hipertrofia" || isXFabContent(treino?.conteudo ?? null);
 
   const data = useMemo<WorkoutData | null>(() => {
-    if (!treino?.conteudo || is531 || isM102Treino || isPSTreino) return null;
+    if (!treino?.conteudo || is531 || isM102Treino || isPSTreino || isXFabTreino) return null;
     return treino.conteudo as unknown as WorkoutData;
-  }, [treino, is531, isM102Treino, isPSTreino]);
+  }, [treino, is531, isM102Treino, isPSTreino, isXFabTreino]);
+
+  const xfabData = useMemo<XFabConteudo | null>(() => {
+    if (!treino?.conteudo || !isXFabTreino) return null;
+    return treino.conteudo as unknown as XFabConteudo;
+  }, [treino, isXFabTreino]);
 
   const wendlerData = useMemo<Wendler531Conteudo | null>(() => {
     if (!treino?.conteudo || !is531) return null;
