@@ -1320,6 +1320,16 @@ export default function BancoTreinos() {
     );
   }
 
+  if (editorPTTP2) {
+    return (
+      <PrescricaoPTTP2Editor
+        alunoId={editorPTTP2.alunoId}
+        alunoNome={editorPTTP2.alunoNome}
+        onBack={() => setEditorPTTP2(null)}
+      />
+    );
+  }
+
 
   if (personalizadoOpen) {
     const isP2 = personalizadoOpen.mode === "new" && personalizadoOpen.variante === "personalizado2";
