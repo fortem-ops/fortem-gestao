@@ -104,6 +104,27 @@ export function useEstornosDoContrato(cobrancaIds: string[]) {
   });
 }
 
+/** Nome do usuário logado (usado no comprovante gerado logo após o estorno). */
+export function useMeuNome() {
+  return useQuery({
+    queryKey: ["meu-nome-perfil"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<string | null> => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id;
+      if (!uid) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", uid)
+        .maybeSingle();
+      return data?.full_name ?? null;
+    },
+  });
+}
+
+
+
 export interface ComprovanteEstorno {
   pagamento_id: string;
   cobranca_id: string;
