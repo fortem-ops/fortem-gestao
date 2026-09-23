@@ -26,7 +26,7 @@ export function useContratosAluno(alunoId: string) {
   });
 }
 
-export type StatusPagamento = 'pago' | 'pendente' | 'vencida' | 'sem_cobranca';
+export type StatusPagamento = 'pago' | 'pendente' | 'vencida' | 'estornado' | 'sem_cobranca';
 
 /** Busca todas as linhas em páginas de 1000 (contorna o limite padrão do PostgREST). */
 async function fetchAllPages<T = any>(buildQuery: (from: number, to: number) => any): Promise<T[]> {
@@ -134,6 +134,7 @@ export function useCobrancasListagem(filtroStatusContrato?: string) {
       return list.map((cb) => {
         let status_pagamento: StatusPagamento;
         if (cb.status === 'pago') status_pagamento = 'pago';
+        else if (cb.status === 'estornado') status_pagamento = 'estornado';
         else if ((cb.status === 'pendente' || cb.status === 'atrasado') && cb.data_vencimento) {
           const venc = new Date(cb.data_vencimento + 'T00:00:00');
           status_pagamento = venc < hoje ? 'vencida' : 'pendente';

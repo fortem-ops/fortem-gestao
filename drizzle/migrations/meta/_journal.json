@@ -267,6 +267,20 @@
       "when": 1790178458591,
       "tag": "0037_sistema_config_trava_cobranca",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790178894978,
+      "tag": "0038_estorno_cobranca_fase2",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1790179010679,
+      "tag": "0039_estorno_reserva_confirmacao",
+      "breakpoints": true
     }
   ]
 }

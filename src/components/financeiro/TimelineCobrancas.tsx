@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, Clock, AlertCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, XCircle, Loader2, Undo2 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -52,7 +52,7 @@ export function TimelineCobrancas({ contratoId, canRegister = false }: Props) {
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
                   <span className={`text-xs font-medium ${meta.text}`}>{meta.label}</span>
-                  {canRegister && (c.status === 'pendente' || c.status === 'atrasado') && (
+                  {canRegister && (c.status === 'pendente' || c.status === 'atrasado' || c.status === 'estornado') && (
                     <Button size="sm" variant="outline" onClick={() => setSelecionada(c)}>
                       Registrar pagamento
                     </Button>
@@ -142,6 +142,7 @@ const STATUS_META = {
   atrasado:  { icon: AlertCircle,  bg: 'bg-red-500',     text: 'text-red-600 dark:text-red-400',       label: 'Atrasado' },
   cancelado: { icon: XCircle,      bg: 'bg-muted-foreground', text: 'text-muted-foreground',           label: 'Cancelado' },
   isento:    { icon: CheckCircle2, bg: 'bg-blue-500',    text: 'text-blue-600 dark:text-blue-400',     label: 'Isento' },
+  estornado: { icon: Undo2,        bg: 'bg-orange-500',  text: 'text-orange-600 dark:text-orange-400', label: 'Estornado' },
 } as const;
 
 function formatDate(iso: string) {
