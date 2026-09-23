@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.fn_auditoria_fiscal_pipeline() TO public;
