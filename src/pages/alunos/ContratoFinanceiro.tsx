@@ -288,6 +288,9 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
           forma_pagamento: forma.value,
           gateway: forma.gateway,
           meio_registro: "manual_admin",
+          // Cobrança estornada: o recebimento manual não pode herdar a
+          // transação de cartão já estornada (o histórico fica em pagamentos_rede).
+          ...(baixaCobranca.status === "estornado" ? { tid: null } : {}),
         })
         .eq("id", baixaCobranca.id);
 
