@@ -225,6 +225,13 @@
       "when": 1790165370936,
       "tag": "0031_fix_plano_principal_hierarquia_e_valor_parcela",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790167723343,
+      "tag": "0032_fn_auditoria_fiscal_creditos",
+      "breakpoints": true
     }
   ]
 }

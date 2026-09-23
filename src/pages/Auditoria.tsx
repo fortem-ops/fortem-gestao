@@ -39,6 +39,7 @@ const SEVERIDADE_LABEL: Record<string, string> = {
 const CATEGORIA_LABEL: Record<string, string> = {
   pagamento: "Pagamentos",
   integracao: "Integrações",
+  creditos: "Créditos",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -137,6 +138,7 @@ export default function Auditoria() {
             <SelectItem value="todas">Todas as categorias</SelectItem>
             <SelectItem value="pagamento">Pagamentos</SelectItem>
             <SelectItem value="integracao">Integrações</SelectItem>
+            <SelectItem value="creditos">Créditos</SelectItem>
           </SelectContent>
         </Select>
 
