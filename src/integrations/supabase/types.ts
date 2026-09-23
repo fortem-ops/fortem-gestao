@@ -8663,6 +8663,7 @@ export type Database = {
       fn_auditoria_fiscal_agenda_servicos: { Args: never; Returns: Json }
       fn_auditoria_fiscal_creditos: { Args: never; Returns: Json }
       fn_auditoria_fiscal_pagamentos: { Args: never; Returns: Json }
+      fn_auditoria_fiscal_pipeline: { Args: never; Returns: Json }
       fn_calcular_rescisao: {
         Args: { p_contrato_id: string; p_data_cancelamento?: string }
         Returns: Json
@@ -8844,6 +8845,10 @@ export type Database = {
         Returns: number
       }
       fn_detect_evasao: { Args: never; Returns: Json }
+      fn_dias_uteis_entre: {
+        Args: { p_ate: string; p_de: string }
+        Returns: number
+      }
       fn_distancia_metros: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
