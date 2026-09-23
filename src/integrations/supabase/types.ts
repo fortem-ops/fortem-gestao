@@ -9217,6 +9217,11 @@ export type Database = {
         Args: { p_tipo_servico: string }
         Returns: number
       }
+      fn_presencas_auto: {
+        Args: { p_data: string; p_obs: string }
+        Returns: number
+      }
+      fn_presencas_auto_21h: { Args: never; Returns: number }
       fn_processar_comissao_carteira: {
         Args: { _ref?: string }
         Returns: number

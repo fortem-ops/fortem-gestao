@@ -97,6 +97,7 @@ export default function Presencas() {
       let query = supabase
         .from("agenda_servicos")
         .select("id, tipo, atividade, local, dia_semana, horario_inicio, horario_fim, data_especifica, profissional_id, aluno_id")
+        .not("aluno_id", "is", null)
         .order("horario_inicio");
 
       if (!isCoordAdmin || profFilter === "me") {
