@@ -84,20 +84,10 @@ serve(async (req) => {
   // ── 3. Idempotência por chave — devolve o resultado da primeira ──
   const { data: mesmaChave } = await supabase
     .from("pagamentos_rede")
-    .select("tid, status, return_code, return_message, amount")
+    .select("id, tid, status, return_code, return_message, amount")
     .eq("idempotency_key", idempotency_key)
     .maybeSingle();
-  if (mesmaChave) {
-    return json({
-      success: mesmaChave.status === "approved",
-      idempotente: true,
-      tid: mesmaChave.tid,
-      valor_centavos: mesmaChave.amount,
-      motivo: mesmaChave.status === "approved"
-        ? null
-        : motivoRecusaLegivel(mesmaChave.return_code, mesmaChave.return_message),
-    });
-  }
+  if (mesmaChave) return json(respostaIdempotente(mesmaChave));
 
   // ── 4. Venda + cartão + tokenização ───────────────────────
   const { data: venda } = await supabase.from("vendas")
