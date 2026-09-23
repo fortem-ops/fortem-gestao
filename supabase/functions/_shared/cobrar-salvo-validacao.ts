@@ -20,7 +20,7 @@ export interface ValidacaoInput {
 
 export type ValidacaoResultado =
   | { ok: true }
-  | { ok: false; codigo: string; motivo: string; tid?: string | null };
+  | { ok: false; codigo: string; motivo: string; tid?: string | null; statusExistente?: string | null };
 
 /** Cartão vale até o último dia do mês de validade. */
 export function cartaoVencido(mes: number | string, ano: number | string, agora: Date): boolean {
@@ -43,6 +43,7 @@ export function validarCobrancaSalvo(input: ValidacaoInput): ValidacaoResultado 
       codigo: "ja_cobrada",
       motivo: "Já existe uma cobrança aprovada ou em processamento para esta venda",
       tid: pagamentoExistente.tid,
+      statusExistente: pagamentoExistente.status ?? null,
     };
   }
   if (!cartao) return { ok: false, codigo: "cartao_inexistente", motivo: "Cartão não encontrado" };
