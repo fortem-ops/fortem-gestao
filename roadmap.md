@@ -24,3 +24,4 @@
 - [x] Implementar o método "Planilha 5RM" em Banco de Treinos > Métodos (editor, card, autosave e PDF).
 - [ ] Corrigir erro ao preencher relatório (etapas de CRM desativadas) — plano aguardando aprovação.
 - [ ] Investigar por que agendamento retroativo não consome crédito (caso Vítor Labres da Silveira).
+- [ ] Corrigir a exibição de total e parcela dos contratos usando venda e modalidade reais.
