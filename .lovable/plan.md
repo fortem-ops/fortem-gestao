@@ -64,7 +64,7 @@ Quando chegar a hora, a regra a implementar antes de reativar: a função só co
 
 ---
 
-## Fase 2 — Ação "Estornar cobrança" (aprovada em desenho, NÃO implementada)
+## Fase 2 — Ação "Estornar cobrança" (implementada)
 
 Decisões já fechadas por você:
 1. A venda vinculada vira `estornado` junto com a cobrança. A cobrança `estornado` continua mostrando "Dar baixa" (registro manual de recebimento), nunca é reprocessada pela cobrança automática e nunca gera inadimplência.
@@ -154,8 +154,8 @@ Banco: `CHECK` de `cobrancas.status` com `estornado`; coluna `idempotency_key` +
 
 - **Fase 0 — concluída.** Ambiente da Rede: **produção**.
 - **Fase 1 — concluída.** Trava global + aviso e interruptor.
-- **Fase 2 — aguardando sua confirmação.** Estorno total/parcial + comprovante.
-- **Fase 3** — auditoria fiscal e relatórios com o novo status.
+- **Fase 2 — concluída.** Estorno total/parcial + comprovante.
+- **Fase 3 — concluída.** Auditoria fiscal e relatórios com o novo status.
 - **Fase 4 (futuro)** — janela de vencimento e modo simulação antes de religar o agendamento.
 
 ## Como testar sem gastar dinheiro real
