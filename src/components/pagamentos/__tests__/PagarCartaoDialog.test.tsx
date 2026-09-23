@@ -122,4 +122,49 @@ describe("PagarCartaoDialog — cobrança de um clique", () => {
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     expect(spy).toHaveBeenCalled();
   });
+
+  it("resposta em_processamento (HTTP 200) trava o botão, mantém a chave e não mostra sucesso", async () => {
+    const { toast } = await import("sonner");
+    invoke.mockResolvedValue({
+      data: {
+        success: false,
+        idempotente: true,
+        em_processamento: true,
+        motivo: "Já existe uma cobrança em processamento ou com resultado incerto para esta venda. Confira na Rede antes de tentar de novo.",
+      },
+      error: null,
+    });
+    montar();
+    const botao = await screen.findByRole("button", { name: /Cobrar R\$/ });
+    fireEvent.click(botao);
+    await screen.findByText(/em processamento ou com resultado incerto/i);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Cobrar R\$/ })).toBeDisabled());
+    expect(toast.success).not.toHaveBeenCalled();
+    // Botão travado: novo clique não dispara outra chamada.
+    fireEvent.click(screen.getByRole("button", { name: /Cobrar R\$/ }));
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it("resposta em_processamento via erro HTTP 409 também trava o botão e mantém a chave", async () => {
+    const { toast } = await import("sonner");
+    const corpo = {
+      error: "Já existe cobrança aprovada ou em processamento para esta venda",
+      em_processamento: true,
+      motivo: "Já existe uma cobrança em processamento ou com resultado incerto para esta venda. Confira na Rede antes de tentar de novo.",
+    };
+    invoke.mockResolvedValue({
+      data: null,
+      error: Object.assign(new Error("Edge Function returned a non-2xx status code"), {
+        context: { json: async () => corpo },
+      }),
+    });
+    montar();
+    const botao = await screen.findByRole("button", { name: /Cobrar R\$/ });
+    fireEvent.click(botao);
+    await screen.findByText(/em processamento ou com resultado incerto/i);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Cobrar R\$/ })).toBeDisabled());
+    expect(toast.success).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /Cobrar R\$/ }));
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
 });
