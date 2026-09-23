@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getRedeAccessToken } from "../_shared/rede-auth.ts";
 import { salvarCartaoComSubstituicao } from "../_shared/cartao-substituicao.ts";
+import { atualizarVendaEParcelas, criarContratoPosAprovacao } from "../_shared/venda-pos-aprovacao.ts";
+
 import {
   loadSecrets,
   luhn,
@@ -317,22 +319,9 @@ serve(async (req) => {
   });
   if (insertErr) console.error("[rede] insert pagamentos_rede:", insertErr.message);
 
-  // Atualizar venda
-  await supabase.from("vendas")
-    .update({ status_pagamento: approved ? "pago" : "falha" })
-    .eq("id", venda_id);
+  // Atualizar venda + parcelas (módulo compartilhado — comportamento idêntico)
+  await atualizarVendaEParcelas(supabase, venda_id, approved);
 
-  // Atualizar parcelas se aprovado
-  if (approved) {
-    const { data: pagamento } = await supabase
-      .from("pagamentos").select("id").eq("venda_id", venda_id).maybeSingle();
-    if (pagamento) {
-      await supabase.from("pagamento_parcelas")
-        .update({ status: "pago", data_pagamento: new Date().toISOString().split("T")[0] })
-        .eq("pagamento_id", pagamento.id)
-        .eq("status", "pendente");
-    }
-  }
 
   // (a) Salvar token/cartão — só quando solicitado e aprovado
   let savedCartaoId: string | null = null;
@@ -385,44 +374,15 @@ serve(async (req) => {
   // independentemente de save_card. Se não houve cartão salvo, o contrato
   // nasce sem cartão vinculado (p_cartao_token_id = null).
   if (approved) {
-    // Recorrência: criar contrato + N cobranças (1ª paga), onde N = periodo_meses do plano
-    if (isRecorrencia) {
-      const periodoQ = await supabase.from("planos_catalogo")
-        .select("periodo_meses").eq("id", (venda as any)?.catalogo_id).maybeSingle();
-      const periodo = Math.max(1, Number((periodoQ.data as any)?.periodo_meses) || 1);
-      const subtotal = Math.max(0, (Number((venda as any)?.valor) || 0) - (Number((venda as any)?.desconto) || 0));
-      const valorMensal = subtotal / periodo;
-      const { error: rpcErr } = await supabase.rpc("fn_criar_contrato_recorrencia", {
-        p_venda_id: venda_id,
-        p_aluno_id: aluno_id,
-        p_plano_id: (venda as any)?.catalogo_id,
-        p_valor_mensal: valorMensal,
-        p_taxa_mensal: Number((venda as any)?.taxa_mensal) || 0,
-        p_data_inicio: (venda as any)?.data_venda ?? new Date().toISOString().split("T")[0],
-        p_forma_pagamento: "cartao_recorrencia",
-        p_cartao_token_id: savedCartaoId,
-        p_primeira_paga: true,
-        p_servicos_inclusos: servicos_inclusos,
-      });
-      if (rpcErr) console.error("[rede] fn_criar_contrato_recorrencia:", rpcErr.message);
-
-    } else {
-      // Tradicional pago via cartão online: contrato + cobranças (todas pagas)
-      const subtotal = Math.max(0, (Number((venda as any)?.valor) || 0) - (Number((venda as any)?.desconto) || 0));
-      const { error: rpcTradErr } = await supabase.rpc("fn_criar_contrato_tradicional", {
-        p_venda_id: venda_id,
-        p_aluno_id: aluno_id,
-        p_plano_id: (venda as any)?.catalogo_id,
-        p_valor_total: subtotal,
-        p_parcelas: Number((venda as any)?.parcelas) || 1,
-        p_forma_pagamento: "cartao_credito",
-        p_data_inicio: (venda as any)?.data_venda ?? new Date().toISOString().split("T")[0],
-        p_status_pagamento: "pago",
-        p_servicos_inclusos: servicos_inclusos,
-      });
-      if (rpcTradErr) console.error("[rede] fn_criar_contrato_tradicional:", rpcTradErr.message);
-    }
+    await criarContratoPosAprovacao(supabase, {
+      vendaId: venda_id,
+      alunoId: aluno_id,
+      venda,
+      cartaoTokenId: savedCartaoId,
+      servicosInclusos: servicos_inclusos,
+    });
   }
+
 
 
   return new Response(JSON.stringify({
