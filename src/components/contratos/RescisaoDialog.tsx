@@ -31,6 +31,9 @@ import {
 } from "@/lib/contratos-calc";
 import { useCalcularRescisao } from "@/hooks/useContratos";
 import { DetalheServicos } from "@/components/financeiro/DialogRescisao";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
 
 export type TratamentoMulta = "estorno" | "nova_cobranca";
 
@@ -68,6 +71,25 @@ export function RescisaoDialog({
   const hoje = new Date().toISOString().split("T")[0];
   const [loading, setLoading] = useState(false);
   const [dataCancelamento, setDataCancelamento] = useState(hoje);
+
+  const { data: venda } = useQuery({
+    queryKey: ["venda-contrato-rescisao", contrato.plano_id],
+    queryFn: async () => {
+      if (!contrato.plano_id) return null;
+      const { data, error } = await (supabase as any)
+        .from("vendas")
+        .select("valor_final, parcelas, tipo_cobranca")
+        .eq("plano_id", contrato.plano_id)
+        .eq("tipo", "plano")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as VendaVinculada | null;
+    },
+    enabled: open && !!contrato.plano_id,
+  });
+  const valoresContrato = calcularValoresContrato(contrato, venda);
 
   // Fonte de verdade única: RPC fn_calcular_rescisao (banco)
   const { data: rpc, isLoading: loadingCalc } = useCalcularRescisao(
@@ -150,7 +172,10 @@ export function RescisaoDialog({
             />
             <Info label="Mês atual" value={`${r.mes_atual || 1}º`} />
             <Info label="Meses restantes" value={String(r.meses_restantes)} />
-            <Info label="Valor mensal" value={fmt(contrato.valor_cobrado)} />
+            <Info
+              label={valoresContrato.recorrente ? "Valor mensal" : "Valor da parcela"}
+              value={fmt(valoresContrato.parcela)}
+            />
             <Info label="Pagamento" value={LABEL_PAGAMENTO[contrato.forma_pagamento]} />
           </div>
         </Card>
