@@ -218,6 +218,13 @@
       "when": 1790162843288,
       "tag": "0030_fix_plano_expirado_contrato_tratado",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790165370936,
+      "tag": "0031_fix_plano_principal_hierarquia_e_valor_parcela",
+      "breakpoints": true
     }
   ]
 }
