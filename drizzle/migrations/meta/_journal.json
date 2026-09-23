@@ -183,6 +183,27 @@
       "when": 1790090069595,
       "tag": "0025_rls_storage_leitura_escopada",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790160211062,
+      "tag": "0026_create_auditoria_inconsistencias",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790160268839,
+      "tag": "0027_fn_auditoria_fiscal_pagamentos",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1790160328709,
+      "tag": "0028_fn_auditoria_valor_mensal",
+      "breakpoints": true
     }
   ]
 }
