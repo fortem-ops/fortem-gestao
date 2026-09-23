@@ -4573,6 +4573,7 @@ export type Database = {
           idempotency_key: string | null
           installments: number
           kind: string
+          motivo_estorno: string | null
           nsu: string | null
           pedido_id: string | null
           raw_response: Json | null
@@ -4592,6 +4593,7 @@ export type Database = {
           idempotency_key?: string | null
           installments?: number
           kind?: string
+          motivo_estorno?: string | null
           nsu?: string | null
           pedido_id?: string | null
           raw_response?: Json | null
@@ -4611,6 +4613,7 @@ export type Database = {
           idempotency_key?: string | null
           installments?: number
           kind?: string
+          motivo_estorno?: string | null
           nsu?: string | null
           pedido_id?: string | null
           raw_response?: Json | null

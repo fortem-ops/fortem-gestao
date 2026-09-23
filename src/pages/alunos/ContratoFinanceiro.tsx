@@ -68,7 +68,7 @@ import { propagarBaixaParaVenda } from "@/lib/baixaVenda";
 import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
 import { EstornarCobrancaDialog } from "@/components/financeiro/EstornarCobrancaDialog";
 import { ComprovanteEstornoDialog } from "@/components/financeiro/ComprovanteEstornoDialog";
-import { useEstornosDoContrato, type EstornoRegistro } from "@/hooks/useEstorno";
+import { useEstornosDoContrato, useMeuNome, type EstornoRegistro } from "@/hooks/useEstorno";
 import type { ComprovanteEstornoDados } from "@/lib/estornoPdf";
 
 
@@ -590,6 +590,7 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
   const { data: estornosPorCobranca = {} } = useEstornosDoContrato(
     cobrancas.map((c: any) => c.id),
   );
+  const { data: meuNome } = useMeuNome();
 
   const abrirComprovante = (c: any, registro: EstornoRegistro) => {
     setComprovante({
@@ -931,7 +932,7 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
               return_message: comp.return_message,
               motivo: comp.motivo,
               executado_em: comp.executado_em,
-              executado_por_nome: "Administrador",
+              executado_por_nome: meuNome || "Administrador",
             });
           }}
         />
