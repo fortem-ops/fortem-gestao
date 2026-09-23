@@ -91,6 +91,8 @@ describe("PagarCartaoDialog — cobrança de um clique", () => {
     const botao = await screen.findByRole("button", { name: /Cobrar R\$/ });
     fireEvent.click(botao);
     fireEvent.click(botao);
+    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    fireEvent.click(botao);
     expect(invoke).toHaveBeenCalledTimes(1);
     resolver({ data: { success: true, tid: "T" }, error: null });
   });
