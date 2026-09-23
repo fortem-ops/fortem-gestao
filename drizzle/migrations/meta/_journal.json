@@ -323,6 +323,13 @@
       "when": 1790196319768,
       "tag": "0045_presencas_auto_21h",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790196353312,
+      "tag": "0046_presencas_auto_marcado_por",
+      "breakpoints": true
     }
   ]
 }
