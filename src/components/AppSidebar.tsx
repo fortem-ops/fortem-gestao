@@ -438,6 +438,9 @@ export function AppSidebar() {
               {isCoordAdmin && (
                 <WhatsAppSidebarItem isActive={isActive} enabled={!!isCoordAdmin} />
               )}
+              {isCoordAdmin && (
+                <AuditoriaSidebarItem isActive={isActive} enabled={!!isCoordAdmin} />
+              )}
               {isAdmin && sistemaAdminItems.map((item) => (
                 <SidebarItem key={item.title} item={item} isActive={isActive} />
               ))}
