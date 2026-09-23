@@ -847,6 +847,15 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
                         Estorno parcial {fmt(totalEstornado)} de {fmt(Number(c.valor))}
                       </Badge>
                     )}
+                    {estornoRecebidoDeNovo && (
+                      <Badge
+                        variant="outline"
+                        className="mt-1 block w-fit border-muted-foreground/40 text-muted-foreground"
+                      >
+                        Estornado e recebido novamente
+                      </Badge>
+                    )}
+
                     {Number((c as any).tentativas ?? 0) > 0 && (c as any).status !== "pago" && (
                       <Badge
                         variant="outline"
