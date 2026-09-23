@@ -146,10 +146,52 @@ serve(async (req) => {
   const amount = calcularAmountCentavos(venda as any, periodoMeses);
   if (amount <= 0) return json({ error: "Valor da venda inválido ou zerado" }, 400);
 
-  // ── 7. Credenciais + cobrança ─────────────────────────────
+  // ── 7. RESERVA antes de qualquer contato com a Rede ───────
+  // O índice único parcial por venda garante que um duplo clique
+  // não chegue a cobrar duas vezes: a segunda inserção falha aqui.
+  const { data: reserva, error: reservaErr } = await supabase
+    .from("pagamentos_rede")
+    .insert({
+      venda_id,
+      created_by: user.id,
+      idempotency_key,
+      amount,
+      installments,
+      kind: "token",
+      status: "pending",
+      tid: null,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (reservaErr || !reserva) {
+    if (isUniqueViolation(reservaErr)) {
+      const { data: linha } = await supabase
+        .from("pagamentos_rede")
+        .select("id, tid, status, return_code, return_message, amount")
+        .eq("idempotency_key", idempotency_key)
+        .maybeSingle();
+      const decisao = decidirConflitoReserva(linha);
+      if (decisao.tipo === "idempotente") return json(decisao.resposta);
+      return json({ error: decisao.motivo }, 409);
+    }
+    console.error("[rede-cobrar-salvo] falha ao reservar:", reservaErr?.message);
+    return json({ success: false, error: "Não foi possível iniciar a cobrança. Nada foi cobrado." }, 500);
+  }
+  const reservaId = reserva.id as string;
+
+  const apagarReserva = async () => {
+    const { error } = await supabase.from("pagamentos_rede").delete().eq("id", reservaId);
+    if (error) console.error("[rede-cobrar-salvo] falha ao apagar reserva:", error.message);
+  };
+
+  // ── 8. Credenciais + cobrança ─────────────────────────────
   const secrets = await loadSecrets(supabase);
   const pv = secrets["rede_pv"], token = secrets["rede_token"];
-  if (!pv || !token) return json({ error: "Credenciais Rede não configuradas" }, 500);
+  if (!pv || !token) {
+    await apagarReserva();
+    return json({ error: "Credenciais Rede não configuradas" }, 500);
+  }
   const ambiente = (secrets["rede_ambiente"] as "sandbox" | "producao") ?? "sandbox";
 
   let accessToken: string;
@@ -157,7 +199,8 @@ serve(async (req) => {
     accessToken = await getRedeAccessToken(pv, token, ambiente);
   } catch (e) {
     console.error("[rede-cobrar-salvo] falha de autenticação Rede:", String(e));
-    return json({ success: false, error: "Falha na comunicação com a operadora" }, 502);
+    await apagarReserva();
+    return json({ success: false, error: "Falha na comunicação com a operadora. Nada foi cobrado." }, 502);
   }
 
   const resultado = await cobrarComToken({
@@ -174,8 +217,9 @@ serve(async (req) => {
     tokenServiceBaseUrl: resolveTokenServiceUrl(ambiente),
   });
 
-  // ── 8. Falha técnica: nada alterado além de log ───────────
+  // ── 9. Falha técnica ──────────────────────────────────────
   if (resultado.errorKind) {
+    const incerto = resultado.stage === "transaction";
     console.error(
       "[rede-cobrar-salvo] falha técnica —", resultado.stage,
       "http:", resultado.httpStatus, "returnCode:", resultado.returnCode,
@@ -183,10 +227,14 @@ serve(async (req) => {
     try {
       await supabase.from("system_logs").insert({
         modulo: "rede-cobrar-salvo",
-        acao: resultado.stage === "cryptogram" ? "criptograma_falhou" : "transacao_falhou",
-        mensagem: `Falha ${resultado.errorKind} na etapa ${resultado.stage} — HTTP ${resultado.httpStatus}`,
+        acao: incerto ? "transacao_resultado_incerto" : "criptograma_falhou",
+        mensagem: incerto
+          ? `Resultado incerto na transação — HTTP ${resultado.httpStatus}. Reserva ${reservaId} mantida em pending.`
+          : `Falha ${resultado.errorKind} na etapa ${resultado.stage} — HTTP ${resultado.httpStatus}`,
         payload: {
           venda_id, cartao_id,
+          etapa: resultado.stage,
+          reserva_id: reservaId,
           return_code: resultado.returnCode,
           return_message: resultado.returnMessage,
           http_status: resultado.httpStatus,
@@ -195,19 +243,24 @@ serve(async (req) => {
     } catch (e) {
       console.error("[rede-cobrar-salvo] falha ao registrar system_logs:", String(e));
     }
+
+    if (incerto) {
+      // A Rede pode ter cobrado: a reserva fica em pending e trava novas tentativas.
+      return json({
+        success: false,
+        incerto: true,
+        error: "Resultado incerto — confira na Rede antes de tentar de novo.",
+      }, 502);
+    }
+
+    await apagarReserva();
     return json({ success: false, error: "Erro de comunicação com a operadora. Nada foi cobrado." }, 502);
   }
 
   const approved = resultado.approved;
 
-  // ── 9. Registro da transação ──────────────────────────────
-  const { error: insErr } = await supabase.from("pagamentos_rede").insert({
-    venda_id,
-    created_by: user.id,
-    idempotency_key,
-    amount,
-    installments,
-    kind: "token",
+  // ── 10. Conclusão da reserva ──────────────────────────────
+  const { error: updErr } = await supabase.from("pagamentos_rede").update({
     tid: resultado.tid,
     nsu: resultado.nsu,
     authorization_code: resultado.authorizationCode,
@@ -215,8 +268,28 @@ serve(async (req) => {
     return_message: resultado.returnMessage,
     status: approved ? "approved" : "denied",
     raw_response: resultado.raw,
-  });
-  if (insErr) console.error("[rede-cobrar-salvo] insert pagamentos_rede:", insErr.message);
+  }).eq("id", reservaId);
+
+  let avisoRegistro: string | null = null;
+  if (updErr) {
+    console.error("[rede-cobrar-salvo] FALHA AO GRAVAR RESULTADO — TID:", resultado.tid, updErr.message);
+    avisoRegistro = "Cobrança processada, mas houve falha ao registrar o resultado. Confira o comprovante.";
+    try {
+      await supabase.from("system_logs").insert({
+        modulo: "rede-cobrar-salvo",
+        acao: "registro_pos_cobranca_falhou",
+        mensagem: `TID ${resultado.tid ?? "-"} — falha ao atualizar pagamentos_rede ${reservaId}: ${updErr.message}`,
+        payload: {
+          venda_id, cartao_id, reserva_id: reservaId,
+          tid: resultado.tid, nsu: resultado.nsu,
+          return_code: resultado.returnCode,
+          aprovado: approved,
+        },
+      });
+    } catch (e) {
+      console.error("[rede-cobrar-salvo] falha ao registrar system_logs:", String(e));
+    }
+  }
 
   // ── 10. Pós-aprovação (venda, parcelas, contrato) ─────────
   await atualizarVendaEParcelas(supabase, venda_id, approved);
