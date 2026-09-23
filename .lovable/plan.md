@@ -1,43 +1,50 @@
-# Fiscal de Contratos — nova categoria "contratos" na Auditoria
+# Aceites do Tecnofit + Fiscal de Contratos
 
-## Como funciona hoje (levantado no banco)
+## Resultado da simulação (nada foi gravado)
 
-- **Aceite**: não fica na tabela de contratos. Cada contrato gera um **documento** (`contratos_documentos`) com o texto gerado, `aceite` (sim/não), `data_aceite`, `formato_aceite`, IP e assinatura. O "Copiar link de aceite" cria um registro em `links_contrato` (token, validade, usado), ligado ao documento.
-- **Anexos Jurídicos** (`legal_annexes`): NÃO têm vínculo com contrato — só com o aluno. São fichas de saúde/uso de imagem/termo experimental (34 "anexo", 2 "experimental", de 11 alunos). Não servem como "anexo do contrato".
-- Portanto o "documento do contrato" real é o `contratos_documentos`. Não existe PDF assinado guardado; o aceite é eletrônico (texto + data + IP + assinatura).
+Planilha do Tecnofit: 149 alunos, todos com "Aceito em dd/mm/aaaa hh:mm", status Ativo.
 
-Números atuais (contratos ativos/suspensos, sem TotalPass/Gympass = 144):
-- 85 sem nenhum documento gerado (60 antigos, com mais de 90 dias; 25 recentes)
-- 46 com documento mas sem aceite
-- 13 com aceite registrado
-- TotalPass/Gympass ativos: 62, quase todos sem documento (fluxo da agregadora).
+Comparação por nome (sem acento, maiúsculas, espaços normalizados):
+- **149 com um único aluno correspondente**, 0 sem correspondência, 0 com mais de um aluno.
 
-## Checagens propostas
+Situação desses 149 no sistema atual:
 
-1. **contrato_sem_documento** — contrato ativo/suspenso sem nenhum documento gerado.
-2. **aceite_pendente** — contrato ativo/suspenso com documento, sem aceite, criado há mais de N dias.
-3. (opcional) **anexo_saude_ausente** — aluno com contrato ativo sem ficha de Anexo Jurídico válida. Só se você quiser; hoje quase nenhum aluno tem, então nasceria com ~150 alertas.
-
-Regras comuns: ignora contratos cancelados/encerrados, ignora TotalPass/Gympass, não altera nenhum contrato, documento ou aceite — só registra o alerta. Resolve sozinho quando o documento/aceite aparecer (mesmo padrão dos outros fiscais).
+| Situação | Qtde | O que acontece |
+|---|---|---|
+| Um contrato ativo, documento sem aceite | 31 | Aceite é gravado no documento que já existe |
+| Um contrato ativo, **sem documento gerado** | 101 | Não há onde gravar o aceite — ver decisão 1 |
+| Um contrato ativo, já aceito no sistema atual | 4 | Não mexe (aceite atual é mantido) |
+| Mais de um contrato ativo | 7 | Bruna Meyer, Carmem Maria Galvão, Cecilia Pelisoli Gafforelli, Gabrieli Anay Pivetta Clerice, Juliana Leote Ribeiro, Laura de Castro e Garcia, Paula Cerski Lavratti — ver decisão 2 |
+| Sem contrato ativo | 6 | Alonso Cornejo, Carlos Piccinini, Carolina Barbosa, Cátia Vanzellotti, Gabrieli Lazzari Vieira, Giovanna Vanzin — ficam de fora |
 
 ## Decisões que preciso de você
 
-1. **Carência do aceite pendente**: sugiro **7 dias** após a criação do documento.
-2. **Severidade**: sugiro aceite pendente = **atenção** até 30 dias e **crítico** acima de 30 dias com contrato ativo (peso jurídico); sem documento = **atenção**.
-3. **Contratos antigos sem documento (60, anteriores ao sistema de aceite)**: (a) alertar todos, (b) só contratos criados a partir de uma data de corte (sugiro a data do primeiro documento gerado no sistema), ou (c) alertar antigos como informativo.
-4. **Corrida** (12 com documento, 8 sem aceite): entra normalmente? Sugiro sim.
-5. **Checagem 3 (ficha de saúde/Anexo Jurídico)**: incluir ou deixar de fora? Sugiro deixar de fora nesta versão.
+1. **Os 101 sem documento**: (a) criar para cada um um documento de registro "Aceite migrado do Tecnofit" ligado ao contrato ativo, já marcado como aceito com a data da planilha (recomendado), ou (b) não fazer nada e deixar o Fiscal acusar "sem documento".
+2. **Os 7 com mais de um contrato ativo**: (a) gravar no contrato ativo mais recente, ou (b) deixar de fora e eu mostro os contratos de cada um para você escolher (recomendado).
+3. **Aceite anterior ao contrato atual**: em alguns casos o contrato atual foi criado depois da data de aceite do Tecnofit (renovação). Gravar mesmo assim (o aceite migrado vale para o contrato vigente)? Recomendo gravar e mostrar a lista desses casos antes, na etapa de conferência.
 
-## O que será feito (após aprovação)
+## Como fica registrado que veio do Tecnofit
 
-- Função nova `fn_auditoria_fiscal_contratos()` com as checagens decididas; antes de gravar, rodo a lógica só como consulta e mostro a lista de casos.
-- Incluída no job diário (cron 33), junto dos quatro fiscais atuais, e na função que o job chama.
-- Tela Auditoria, widget do Dashboard e contador do menu ganham a categoria "Contratos".
+- `formato_aceite = 'migracao_tecnofit'` e `data_aceite` = a data da planilha (horário de Brasília).
+- `variaveis_utilizadas` guarda `{origem: "tecnofit", codigo_tecnofit, contrato_tecnofit, aceite_original}`.
+- Documentos novos (decisão 1a): texto "Aceite registrado no sistema anterior (Tecnofit) em dd/mm/aaaa hh:mm — contrato: X", sem modelo vinculado, versão 0.
+- Aceites que já existem nunca são sobrescritos (a gravação só atinge documentos com aceite = falso).
+
+## Etapas
+
+1. Depois das suas respostas: gero a lista final (aluno, contrato, documento, data) e mostro para conferência — nada gravado.
+2. Com sua confirmação: gravo os aceites (atualização dos 31 + criação dos documentos, se 1a) e confiro as contagens.
+3. Fiscal de Contratos, conforme já combinado:
+   - `aceite_pendente`: documento sem aceite há mais de 7 dias; atenção até 30 dias, crítico acima de 30 com contrato ativo.
+   - `contrato_sem_documento`: contrato ativo/suspenso sem documento — atenção.
+   - Ignora cancelados/encerrados e TotalPass/Gympass; Corrida entra; ficha de saúde fica de fora.
+   - Aceite migrado do Tecnofit conta como aceite válido.
+   - Entra no job diário junto dos outros quatro; categoria "Contratos" na Auditoria, no widget do Dashboard e no contador do menu.
 
 ## Detalhes técnicos
 
-- Migração nomeada `fiscal_contratos`: função SECURITY DEFINER, search_path=public, EXECUTE só service_role (revogada de PUBLIC/anon); grava em `auditoria_inconsistencias` com categoria `contratos`, subtipos acima, `registros_afetados` com contrato_id, documento_id, aluno, data de criação, dias pendentes, link de aceite (existe/expirado).
-- Documento considerado = o mais recente por contrato (`contratos_documentos` order by created_at desc).
-- Exclusão por `coalesce(plano_tipo,'') not in ('totalpass','gympass')`.
-- Alteração do cron 33 via `cron.alter_job` só no comando, mantendo horário; edge `auditoria-fiscal-pagamentos` passa a devolver `resultado_contratos` e é redeployada.
-- Frontend: `src/pages/Auditoria.tsx`, `src/components/dashboard/AuditoriaWidget.tsx` (filtro/painel/rótulos). Nada de Rede, cobranças, recorrência ou grants de outras funções.
+- Gravação de dados pelo executor de SQL (não por migração), em uma transação, com a lista fixa de ids conferida; WHERE `aceite = false` em todo UPDATE.
+- Os 35 registros de Gympass e 15 de TotalPass da planilha entram na migração de aceite normalmente; só o Fiscal os ignora.
+- Migração `fiscal_contratos`: `fn_auditoria_fiscal_contratos()` SECURITY DEFINER, search_path=public, EXECUTE só service_role; documento considerado = o mais recente do contrato.
+- Job 33 passa a chamar os 5 fiscais; edge `auditoria-fiscal-pagamentos` devolve `resultado_contratos` e é redeployada.
+- Frontend: `src/pages/Auditoria.tsx`, `src/components/dashboard/AuditoriaWidget.tsx`. Nada de Rede, cobranças ou grants de outras funções.
