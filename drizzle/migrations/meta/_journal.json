@@ -337,6 +337,13 @@
       "when": 1790196928247,
       "tag": "0047_fiscal_agenda_servicos",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1790197552158,
+      "tag": "0048_fiscal_agenda_considera_uso_registrado",
+      "breakpoints": true
     }
   ]
 }
