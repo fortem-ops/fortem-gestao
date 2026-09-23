@@ -288,6 +288,13 @@
       "when": 1790179856502,
       "tag": "0040_estorno_audit_motivo_resiliencia",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790181774069,
+      "tag": "0041_0041_fix_fn_processar_venda_freq_enum",
+      "breakpoints": true
     }
   ]
 }
