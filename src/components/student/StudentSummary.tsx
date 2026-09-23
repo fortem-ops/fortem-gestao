@@ -419,6 +419,26 @@ export function StudentSummary({ student }: { student: Aluno }) {
     },
   });
 
+  async function copiarLinkAceite() {
+    if (!contratoDoc?.id) return;
+    setCopiandoLinkAceite(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("fn_criar_link_contrato", {
+        p_contrato_documento_id: contratoDoc.id,
+      });
+      if (error) throw error;
+      if (!data?.ok || !data?.token) {
+        throw new Error(data?.motivo ?? "Não foi possível gerar o link.");
+      }
+      await navigator.clipboard.writeText(`${window.location.origin}/contrato/${data.token}`);
+      toast.success("Link copiado! Válido por 7 dias.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao gerar link. Tente novamente.");
+    } finally {
+      setCopiandoLinkAceite(false);
+    }
+  }
+
 
 
 
