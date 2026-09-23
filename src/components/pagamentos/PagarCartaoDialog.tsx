@@ -133,7 +133,107 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
           </DialogTitle>
         </DialogHeader>
 
+        {carregandoCartoes ? (
+          <div className="space-y-2 py-2" data-testid="cartoes-carregando">
+            <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+            <div className="h-12 w-full bg-muted animate-pulse rounded" />
+            <div className="h-9 w-full bg-muted animate-pulse rounded" />
+          </div>
+        ) : modoSalvo ? (
         <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Valor</span>
+            <span className="font-semibold">
+              {valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Cartão salvo</Label>
+            <div className="space-y-1.5">
+              {cartoes.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={cartaoSel === c.id}
+                  disabled={!c.apto}
+                  onClick={() => setCartaoSel(c.id)}
+                  className={`w-full flex items-center justify-between rounded-lg border p-2.5 text-left text-sm transition ${
+                    cartaoSel === c.id ? "border-primary bg-primary/5" : "border-border"
+                  } ${c.apto ? "" : "opacity-50 cursor-not-allowed"}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 shrink-0" />
+                    <span>
+                      {rotuloCartao(c)}
+                      {c.is_default && <span className="text-muted-foreground"> · Padrão</span>}
+                    </span>
+                  </span>
+                  {!c.apto && (
+                    <Badge variant="outline" className="text-[10px]">{c.motivo_inapto ?? "indisponível"}</Badge>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {recorrencia ? (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs leading-relaxed">
+              Será cobrada a <strong>1ª mensalidade</strong> de{" "}
+              <strong>{valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong> agora.
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Parcelas</Label>
+              <Select value={parcelas} onValueChange={setParcelas}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}x de {(valor / n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      {n === 1 ? " à vista" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {resultado && (
+            <div className={`text-xs p-2 rounded flex items-start gap-2 ${
+              resultado.status === "ok" ? "bg-success/10 text-success border border-success/30" :
+              resultado.status === "pending" ? "bg-warning/10 text-warning border border-warning/30" :
+              "bg-destructive/10 text-destructive border border-destructive/30"
+            }`}>
+              {resultado.status === "ok" ? <CheckCircle2 className="w-4 h-4 shrink-0" /> :
+               resultado.status === "pending" ? <Clock className="w-4 h-4 shrink-0" /> :
+               <XCircle className="w-4 h-4 shrink-0" />}
+              <span>{resultado.msg}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="text-xs text-primary underline underline-offset-2"
+            onClick={() => { setModo("manual"); setResultado(null); }}
+          >
+            Usar outro cartão (digitar os dados)
+          </button>
+
+          <DialogFooter className="pt-1">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Fechar
+            </Button>
+            <Button onClick={cobrarSalvo} disabled={!podeCobrarSalvo}>
+              {loading ? "Processando..." : textoBotaoSalvo}
+            </Button>
+          </DialogFooter>
+        </div>
+        ) : (
+        <>
+        <div className="space-y-3">
+
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Valor</span>
             <span className="font-semibold">
