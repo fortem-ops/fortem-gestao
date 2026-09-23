@@ -295,6 +295,13 @@
       "when": 1790181774069,
       "tag": "0041_0041_fix_fn_processar_venda_freq_enum",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790182364334,
+      "tag": "0042_fn_cartoes_cobraveis",
+      "breakpoints": true
     }
   ]
 }

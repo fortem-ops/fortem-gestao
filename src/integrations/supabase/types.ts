@@ -8686,6 +8686,19 @@ export type Database = {
         }[]
       }
       fn_carteira_total_ativos: { Args: never; Returns: number }
+      fn_cartoes_cobraveis: {
+        Args: { p_aluno_id: string }
+        Returns: {
+          apto: boolean
+          brand: string
+          expiration_month: number
+          expiration_year: number
+          id: string
+          is_default: boolean
+          last4: string
+          motivo_inapto: string
+        }[]
+      }
       fn_check_rate_limit: {
         Args: { p_aluno_id: string; p_janela: number; p_limite: number }
         Returns: boolean
