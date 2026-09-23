@@ -104,6 +104,8 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
   const [baixaData, setBaixaData] = useState(new Date().toISOString().split("T")[0]);
   const [baixaForma, setBaixaForma] = useState<string>("dinheiro");
   const [baixaLoading, setBaixaLoading] = useState(false);
+  const [excluirCobranca, setExcluirCobranca] = useState<any | null>(null);
+  const [excluirLoading, setExcluirLoading] = useState(false);
 
   const { data: contratos = [], isLoading } = useQuery({
     queryKey: ["contratos-aluno", alunoId],
