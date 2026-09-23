@@ -22,7 +22,7 @@ import { fetchExperimentalSchema, migrateLegacyDados, ensureFaseInicialQuestion,
 import { useQuery as useTplQuery } from "@tanstack/react-query";
 import { AvaliacaoAnexos } from "./AvaliacaoAnexos";
 import { DynamicAssessment } from "./DynamicAssessment";
-import { ReabilitacaoEvolucao, isProtocoloEvolucao } from "./ReabilitacaoEvolucao";
+import { ReabilitacaoEvolucao, ReabilitacaoEvolucaoViewer, isProtocoloEvolucao } from "./ReabilitacaoEvolucao";
 import { FuncionalV2Viewer } from "./funcionalV2/FuncionalV2Viewer";
 import { useMobilidadeReferenceData } from "@/components/avaliacoes-premium/useAlunoAvaliacoesConsolidadas";
 import { faixaEtariaDe, sexoDe } from "@/lib/faixaEtaria";
@@ -228,6 +228,8 @@ export function AssessmentViewerDialog({ open, onOpenChange, avaliacao, student 
             avaliacaoId={avaliacao.id}
             permiteUpload
           />
+        ) : isEvolucao && expSchema ? (
+          <ReabilitacaoEvolucaoViewer raw={dados} schema={expSchema as never} />
         ) : isDynamic && (expSchema || schemaPending) ? (
           <ExperimentalView dados={expDados!} schema={expSchema} withFaseInicial={isExperimental} />
         ) : isLoading && isFuncional ? (
