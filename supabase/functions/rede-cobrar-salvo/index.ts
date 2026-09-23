@@ -27,6 +27,7 @@ import { cobrarComToken, motivoRecusaLegivel } from "../_shared/rede-recorrencia
 import { atualizarVendaEParcelas, criarContratoPosAprovacao } from "../_shared/venda-pos-aprovacao.ts";
 import { validarCobrancaSalvo } from "../_shared/cobrar-salvo-validacao.ts";
 import {
+  classificarResultadoTransacao,
   decidirConflitoReserva,
   isUniqueViolation,
   respostaIdempotente,
