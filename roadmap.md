@@ -22,3 +22,5 @@
 - [x] Restaurar reavaliação, composição e histórico no novo portal e corrigir a classificação de força em 20%.
 - [x] Ocultar Relatórios Técnicos e Atualizar treino para quem vê o aluno só como consultor.
 - [x] Implementar o método "Planilha 5RM" em Banco de Treinos > Métodos (editor, card, autosave e PDF).
+- [ ] Corrigir erro ao preencher relatório (etapas de CRM desativadas) — plano aguardando aprovação.
+- [ ] Investigar por que agendamento retroativo não consome crédito (caso Vítor Labres da Silveira).
