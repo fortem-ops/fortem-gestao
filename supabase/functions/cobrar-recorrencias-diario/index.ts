@@ -177,12 +177,44 @@ async function alertarRecusa(params: {
   return { status: send.ok ? "enviado" : "erro" };
 }
 
+/**
+ * Trava global (sistema_config.cobranca_recorrente_ativa).
+ * Falha FECHADA: qualquer coisa diferente de `true` — inclusive erro de leitura
+ * ou chave ausente — significa PAUSADA. Vale para qualquer chamador
+ * (cron, service role ou admin logado).
+ */
+async function cobrancaLiberada(): Promise<boolean> {
+  try {
+    const { data, error } = await admin
+      .from("sistema_config")
+      .select("valor")
+      .eq("chave", "cobranca_recorrente_ativa")
+      .maybeSingle();
+    if (error) return false;
+    return data?.valor === true;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const headers = { ...corsHeaders, "Content-Type": "application/json" };
 
   if (!(await autorizar(req))) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers });
+  }
+
+  if (!(await cobrancaLiberada())) {
+    await logSistema(
+      "pausado",
+      "Cobrança automática PAUSADA (sistema_config.cobranca_recorrente_ativa) — nenhuma cobrança processada",
+      { origem: req.headers.get("x-webhook-secret") ? "cron" : "chamada_direta" },
+    );
+    return new Response(
+      JSON.stringify({ ok: true, pausado: true, elegiveis: 0, results: [] }),
+      { status: 200, headers },
+    );
   }
 
   try {
