@@ -104,6 +104,70 @@ function migrarSessoesDoSchema(
   return { ...dados, sessoes: encontradas };
 }
 
+/** Normaliza o formato atual e também recupera sessões dos relatórios antigos. */
+export function normalizarEvolucaoDados(
+  raw: Record<string, unknown> | null | undefined,
+  schema: ExperimentalSchema,
+): EvolucaoDados {
+  const base: EvolucaoDados = {
+    status: raw?.status === "finalizado" ? "finalizado" : "rascunho",
+    finalized_at: typeof raw?.finalized_at === "string" ? raw.finalized_at : null,
+    answers: raw?.answers && typeof raw.answers === "object"
+      ? raw.answers as Record<string, unknown>
+      : {},
+    sessoes: Array.isArray(raw?.sessoes) ? raw.sessoes as SessaoEvolucao[] : [],
+  };
+  return migrarSessoesDoSchema(base, schema);
+}
+
+export function ReabilitacaoEvolucaoViewer({
+  raw,
+  schema,
+}: {
+  raw: Record<string, unknown>;
+  schema: ExperimentalSchema;
+}) {
+  const sessoes = normalizarEvolucaoDados(raw, schema).sessoes
+    .filter((sessao) => sessao.texto.trim())
+    .sort((a, b) => a.n - b.n);
+
+  if (sessoes.length === 0) {
+    return (
+      <div className="glass-card rounded-lg p-6 text-center text-sm text-muted-foreground">
+        Nenhuma evolução registrada neste relatório.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {sessoes.map((sessao) => (
+        <section key={sessao.n} className="glass-card rounded-lg p-5 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="font-heading font-semibold text-foreground">
+              Sessão {sessao.n}
+              {sessao.data && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  {format(new Date(`${sessao.data}T12:00:00`), "dd/MM/yyyy")}
+                </span>
+              )}
+            </h3>
+            {sessao.finalizado_em && (
+              <Badge variant="outline" className="border-success/40 text-success">
+                Registrada em {format(new Date(sessao.finalizado_em), "dd/MM/yyyy HH:mm")}
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{sessao.texto}</p>
+          {sessao.autor_nome && (
+            <p className="text-[11px] text-muted-foreground">Preenchido por {sessao.autor_nome}</p>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+}
+
 interface Props {
   student: Tables<"alunos">;
   tipoId: string;
@@ -191,14 +255,8 @@ export function ReabilitacaoEvolucao({ student, tipoId, tipoSlug, protocoloId, s
         .maybeSingle();
       if (cancelado) return;
       if (data) {
-        const raw = (data.dados as Partial<EvolucaoDados>) ?? {};
-        const base: EvolucaoDados = {
-          status: raw.status === "finalizado" ? "finalizado" : "rascunho",
-          finalized_at: raw.finalized_at ?? null,
-          answers: raw.answers ?? {},
-          sessoes: Array.isArray(raw.sessoes) ? raw.sessoes : [],
-        };
-        const migrado = migrarSessoesDoSchema(base, schema);
+        const raw = (data.dados as Record<string, unknown>) ?? {};
+        const migrado = normalizarEvolucaoDados(raw, schema);
         setDados(migrado);
         lastSerialized.current = JSON.stringify(migrado);
         setId(data.id);
