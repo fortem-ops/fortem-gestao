@@ -1,74 +1,97 @@
-# Diagnóstico do estorno na aba de contrato do aluno (somente leitura)
+# Cobrar em um clique com cartão já salvo
 
-Tela analisada: `src/pages/alunos/ContratoFinanceiro.tsx` (tabela "Cobranças" com # / Vencimento / Pgto / Valor / Status / Recebido via / TID / Ação). `TimelineCobrancas.tsx` não foi considerada.
+Objetivo: quando o aluno já tem cartão salvo ativo, cobrar a venda com um clique, sem digitar dados do cartão. Sem cartão salvo, a tela continua exatamente como é hoje.
 
-Estado real conferido no banco para o contrato `5e7a99f7-...`: ciclos 10 e 11 estão `estornado` (com TID e `data_pagamento` 19/09 preservados), ciclo 12 `pendente`. Em `pagamentos_rede` há 2 registros `kind=refund / status=refunded` de R$ 559,00 cada, com motivo "Cobrança equivocada".
+## 1. Diagnóstico do que já existe
 
-## 1) "Dar baixa" em cobrança estornada — ATENDE, com 1 ressalva
+**O diálogo** é `src/components/pagamentos/PagarCartaoDialog.tsx` (aberto pelo ícone de cartão em `src/components/student/venda/HistoricoVendas.tsx` e também por `VendaDialog.tsx`). Hoje ele sempre monta o formulário completo e chama a função `rede-cobrar-cartao`.
 
-Comprovação (linhas 861-871): o botão aparece para `pendente`, `atrasado` **e** `estornado`.
+**`rede-cobrar-cartao`** (fluxo manual atual) faz, nesta ordem: limite de tentativas (`fn_check_rate_limit`, 5/min por aluno), exige login, exige coordenador ou admin (`is_coordinator_or_admin`), bloqueia repetição se já existe pagamento aprovado/pendente para a venda, calcula o valor no servidor a partir da venda (tratando recorrência), cobra na operadora, grava em `pagamentos_rede` com `created_by`, marca a venda como paga/falha, quita parcelas e — se aprovado — cria contrato e cobranças (`fn_criar_contrato_recorrencia` ou `fn_criar_contrato_tradicional`), além de salvar o cartão quando pedido.
 
-```tsx
-{(c.status === "pendente" || c.status === "atrasado" || c.status === "estornado") && (
-  <Button ...>Dar baixa</Button>
-)}
+**`rede-cobrar-token`** já cobra com cartão salvo: recebe `venda_id`, `cartao_id`, `amount`, `installments`; busca token do cartão e a tokenização ativa; usa `cobrarComToken` de `_shared/rede-recorrencia-core.ts`; grava `pagamentos_rede` e atualiza a venda. **Falta nele**, comparado ao fluxo manual: não exige login nem permissão (hoje só é chamada internamente pela recorrência), recebe o valor do cliente em vez de calcular no servidor, não aplica limite de tentativas, não grava `created_by`, não valida que o cartão é do mesmo aluno da venda, não usa `idempotency_key`, e **não cria contrato/cobranças** quando a venda é de plano.
+
+Conclusão: dá para reaproveitar `cobrarComToken` sem duplicar a chamada à operadora, mas o caminho de um clique deve reaproveitar também o pós-aprovação do fluxo manual (contrato, parcelas, venda). A proposta abaixo é uma nova função dedicada que junta as duas partes, deixando `rede-cobrar-token` intacta (a recorrência depende dela).
+
+Dados confirmados no banco: Rafaela tem 1 cartão Mastercard final 7452, validade 10/2029, padrão, ativo, com 1 tokenização ativa. Nada foi cobrado.
+
+## 2. Tela (mockup textual)
+
+Com cartão salvo ativo e tokenização válida:
+
+```text
+┌ Cobrar no cartão ─────────────────────────────┐
+│ Valor                             R$ 100,00   │
+│                                               │
+│ ● Mastercard ••••7452 · vence 10/2029  Padrão │
+│ ○ Visa ••••1234 · vence 05/2028               │   (só se houver 2+)
+│                                               │
+│ Parcelas   [ 1x de R$ 100,00 à vista   ▼ ]    │
+│                                               │
+│ [ Cobrar R$ 100,00 no Mastercard ••••7452 ]   │
+│ Usar outro cartão (digitar os dados)          │
+└───────────────────────────────────────────────┘
 ```
 
-O que a baixa grava (`handleBaixa`, linhas 283-307):
+- Um clique cobra, sem segunda confirmação. Durante o processamento o botão vira "Processando..." e fica travado (protege contra duplo clique).
+- "Usar outro cartão" abre o formulário atual, sem mudanças; há um caminho de volta para a lista de cartões.
+- Cartão com validade já vencida aparece desabilitado com a marca "vencido"; cartão sem tokenização ativa aparece com "precisa recadastrar".
+- Se nenhum cartão salvo servir, o diálogo abre direto no formulário de hoje.
+- Resultado aprovado, recusado ou erro aparece na mesma faixa de status que o diálogo já usa, com mensagem legível.
 
-```tsx
-.update({
-  status: "pago",
-  data_pagamento: baixaData,
-  forma_pagamento: forma.value,
-  gateway: forma.gateway,
-  meio_registro: "manual_admin",
-  ...(baixaCobranca.status === "estornado" ? { tid: null } : {}),
-})
-```
+## 3. Segurança
 
-- `status` → `pago`; `data_pagamento` → data informada; `forma_pagamento`/`gateway` → os da forma manual escolhida (`src/lib/formasRecebimento.ts`: dinheiro, inter_pix, maquina, rede, boleto); `meio_registro` → `manual_admin`.
-- `tid` é **zerado** só quando a cobrança estava `estornado` — não sobra TID antigo. Como o botão "Estornar" exige `c.tid` (linha 803), não há caminho para reestornar. Sem resquício que confunda o Fiscal.
-- Inadimplência aberta é regularizada e a venda vinculada é propagada (`propagarBaixaParaVenda`, que nunca reativa venda `cancelado`/`estornado`).
+- O cliente envia apenas `venda_id`, `aluno_id`, `cartao_id`, `installments` e uma chave de idempotência. Valor e token vêm do servidor.
+- O frontend nunca recebe `token_rede` nem `tokenization_id`: a consulta de cartões seleciona só id, bandeira, final, validade, padrão e ativo (padrão já usado em `usePortalCartoes`).
+- O servidor valida: usuário logado, coordenador ou admin (mesma regra de hoje), cartão pertence ao aluno da venda, cartão ativo, validade não vencida, tokenização ativa existente, venda ainda não paga.
+- Limite de tentativas com o mesmo `fn_check_rate_limit` já usado.
+- Idempotência dupla: bloqueio por pagamento aprovado/pendente da venda (como hoje) mais `pagamentos_rede.idempotency_key`, que já tem índice único parcial — a segunda tentativa com a mesma chave não cria segunda cobrança.
 
-**Ressalva (defeito visual real):** depois da baixa a cobrança volta a `pago`, mas os refunds continuam ligados a ela, e a regra do selo é `totalEstornado > 0 && c.status !== "estornado"` (linha 801). Resultado: a linha passa a exibir "Estorno parcial R$ 559,00 de R$ 559,00" mesmo tendo sido estorno **total** já recebido de novo.
+## 4. Resultado
 
-## 2) Diálogo "Estornar" — ATENDE
+- Aprovado: mesmos efeitos do fluxo manual — venda paga, parcelas quitadas, contrato/cobranças criados quando for plano, registro em `pagamentos_rede` com TID e `created_by`, aviso de sucesso e atualização da lista.
+- Recusado: mensagem legível via `motivoRecusaLegivel`, venda segue pendente, nada marcado como pago. Cartão vencido (código 54) desativa o cartão salvo, como já ocorre hoje.
+- Falha técnica (comunicação/criptograma): nada alterado no banco além do registro de log.
 
-`src/components/financeiro/EstornarCobrancaDialog.tsx`: opções Total/Parcial (RadioGroup), campo de valor no parcial, motivo obrigatório com mínimo de 10 caracteres, botão travado durante o envio.
+## 5. Recorrência automática
 
-```tsx
-const valorValido = tipo === "total"
-  ? disponivel > 0
-  : Number.isFinite(valorNumerico) && valorNumerico > 0 && valorNumerico <= disponivel + 0.001;
-```
+Este fluxo é manual, disparado pelo clique. Não lê nem escreve `sistema_config.cobranca_recorrente_ativa`, não toca no agendamento (job 28 segue inativo) nem em `cobrar-recorrencias-diario`. A trava global continua `false` e sem efeito sobre esta cobrança.
 
-O saldo vem do servidor (`fn_cobranca_saldo_estornavel` = valor pago − refunds confirmados do TID), nunca calculado no cliente.
+## 6. Arquivos, funções e migrações
 
-Após estorno **parcial**, `fn_estorno_confirmar` (migração 0040) só troca o status quando `v_integral` é verdadeiro — ou seja, a cobrança **continua `pago`**, e a tabela mostra o selo laranja "Estorno parcial R$ X de R$ Y" mais o botão "Comprovante". O saldo restante não é escrito literalmente na linha (fica implícito na diferença) — aparece explicitamente no diálogo e no comprovante.
+Novos:
+- `supabase/functions/rede-cobrar-salvo/index.ts` — cobrança de um clique (auth + permissão + limite + validações + `cobrarComToken` + pós-aprovação).
+- `supabase/functions/_shared/venda-pos-aprovacao.ts` — extração, sem mudança de comportamento, do bloco pós-aprovação de `rede-cobrar-cartao` (venda, parcelas, contrato) para ser usado pelas duas funções.
+- `src/hooks/useCartoesCobranca.ts` — lista de cartões ativos do aluno com sinal de tokenização válida.
 
-## 3) Regra desejada — ATENDIDA, exceto o selo
+Alterados:
+- `src/components/pagamentos/PagarCartaoDialog.tsx` — modo "cartão salvo" com seletor, parcelas e botão único; formulário atual preservado.
+- `rede-cobrar-cartao/index.ts` — apenas passa a importar o pós-aprovação extraído (comportamento idêntico).
 
-- 100% estornado → `status = 'estornado'` (`UPDATE public.cobrancas SET status = 'estornado'` em `fn_estorno_confirmar`) e "Dar baixa" disponível: OK.
-- Sem inadimplência nova: o estorno integral ainda **cancela** a inadimplência aberta daquela cobrança, e nenhuma rotina cria inadimplência a partir de `estornado`.
-- Sem nova tentativa automática: `cobrar-recorrencias-diario` seleciona apenas `.in("status", ["pendente","atrasado"])`, então `estornado` nunca é recobrado. (A recorrência segue desligada de qualquer forma.)
-- Parcial → continua `pago` com o selo: OK, com o texto do selo a corrigir no caso pós-baixa (item 1).
+Migração: nenhuma obrigatória. `pagamentos_rede.idempotency_key` e o índice único já existem. Opcional, aditivo: uma função de leitura que devolva os cartões elegíveis já com o sinal de tokenização ativa, evitando que o frontend consulte `rede_tokenizacoes`. Recomendado, porque `rede_tokenizacoes` hoje é legível por toda a equipe.
 
-## 4) Fiscal de pagamentos — ATENDE
+Intocados: `cobrar-recorrencias-diario`, `rede-cobrar-token`, `_shared/rede-recorrencia-core.ts`, `processar-cobrancas-diario`, cron, trava global.
 
-`fn_auditoria_fiscal_pagamentos` (migração 0038) filtra `AND c.status NOT IN ('cancelado', 'estornado')` nos dois achados que varrem cobranças (`cobranca_sem_contrato_ativo` e `valor_divergente_plano`); `cobranca_pendente_sem_retry` só olha `pendente`. No estorno parcial o valor da cobrança não muda, então nenhum achado falso é gerado.
+## 7. Riscos e decisões suas
 
-## O que falta — ajuste mínimo (1 linha, sem banco)
+Riscos: cobrança em produção, portanto o botão precisa deixar valor e cartão explícitos (previsto); token pode estar inválido na operadora mesmo com tokenização "ativa" no banco (tratado como recusa legível); extrair o pós-aprovação mexe em código de venda que já funciona (mitigado por testes de unidade e revisão linha a linha).
 
-Em `src/pages/alunos/ContratoFinanceiro.tsx`, linha 801, restringir o selo ao estorno realmente parcial:
+Decisões que dependem de você:
+1. Um clique sem nenhuma confirmação em qualquer valor, ou pedir confirmação acima de um limite (ex.: R$ 1.000)?
+2. Parcelas no cartão salvo: manter até 12x como hoje, ou travar em 1x?
+3. Quem pode usar: manter coordenador e admin, como hoje?
+4. Adotar a função de leitura de cartões elegíveis (fecha o acesso a `rede_tokenizacoes` no frontend)?
 
-```tsx
-const estornoParcial =
-  totalEstornado > 0 &&
-  c.status !== "estornado" &&
-  totalEstornado < Number(c.valor) - 0.001;
-```
+## 8. Teste sem cobrar cartão real
 
-Opcional (também só de tela): quando `totalEstornado >= valor` e o status já é `pago` de novo, mostrar um selo neutro do tipo "Estornado e recebido novamente", para o histórico ficar legível.
+- Testes de unidade das validações (cartão de outro aluno, cartão vencido, sem tokenização, venda já paga, chave repetida) com a operadora simulada.
+- Chamadas à função sem login e sem permissão: devem recusar antes de qualquer contato com a operadora.
+- Repetição da mesma chave de idempotência: segunda chamada não deve gerar segunda cobrança.
+- Conferência visual do diálogo nos três estados (um cartão, vários cartões, nenhum cartão) sem apertar o botão de cobrar.
+- Único teste real: uma cobrança autorizada por você, feita por você na tela.
 
-Nada mais precisa mudar: migrações, edge function, saldo, comprovante e Fiscal já cobrem as regras 1 a 4.
+## 9. Fases
+
+1. Extração do pós-aprovação compartilhado, sem mudança de comportamento, com testes.
+2. Nova função de cobrança com cartão salvo (validações, idempotência, limite) e testes com operadora simulada.
+3. Diálogo com o modo cartão salvo e o link "Usar outro cartão".
+4. Verificação completa sem cobrar e, por último, a cobrança real autorizada por você.
