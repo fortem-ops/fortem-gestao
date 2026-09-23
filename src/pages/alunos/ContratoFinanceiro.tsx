@@ -932,7 +932,7 @@ function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, isAdmin, alu
               return_message: comp.return_message,
               motivo: comp.motivo,
               executado_em: comp.executado_em,
-              executado_por_nome: "Administrador",
+              executado_por_nome: meuNome || "Administrador",
             });
           }}
         />
