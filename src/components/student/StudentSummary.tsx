@@ -1112,6 +1112,16 @@ export function StudentSummary({ student }: { student: Aluno }) {
                 <span className="text-xs text-muted-foreground">Contrato</span>
               </div>
               <div className="flex items-center gap-2">
+                {isCoordAdmin && contratoDoc && !contratoDoc.aceite && (
+                  <button
+                    onClick={copiarLinkAceite}
+                    disabled={copiandoLinkAceite}
+                    className="text-muted-foreground hover:text-primary disabled:opacity-50"
+                    title="Copiar link de aceite"
+                  >
+                    {copiandoLinkAceite ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
+                  </button>
+                )}
                 {isCoordAdmin && (
                   <button
                     onClick={() => setMarkingPresential(true)}
