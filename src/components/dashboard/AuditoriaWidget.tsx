@@ -7,6 +7,7 @@ import { useAuditoriaResumo } from "@/hooks/useAuditoria";
 const CATEGORIA_LABEL: Record<string, string> = {
   pagamento: "Pagamentos",
   integracao: "Integrações",
+  creditos: "Créditos",
 };
 
 export function AuditoriaWidget() {
