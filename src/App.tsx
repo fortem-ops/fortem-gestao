@@ -25,6 +25,7 @@ const ClientesAvulsos = lazyWithReload(() => import("./pages/ClientesAvulsos"));
 const StudentProfile = lazyWithReload(() => import("./pages/StudentProfile"));
 const TaskCenter = lazyWithReload(() => import("./pages/TaskCenter"));
 const Admin = lazyWithReload(() => import("./pages/Admin"));
+const Auditoria = lazyWithReload(() => import("./pages/Auditoria"));
 const Loja = lazyWithReload(() => import("./pages/Loja"));
 const AdminNotificacoesEmail = lazyWithReload(() => import("./pages/AdminNotificacoesEmail"));
 
@@ -549,6 +550,14 @@ const App = () => (
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <DiagnosticoBancoHoras />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/auditoria"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <Auditoria />
                   </Suspense>
                 }
               />

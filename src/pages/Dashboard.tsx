@@ -13,6 +13,7 @@ import { PipelineWidget } from "@/components/dashboard/PipelineWidget";
 import { ClubeWidget } from "@/components/dashboard/ClubeWidget";
 import { PontoWidget } from "@/components/dashboard/PontoWidget";
 import { ClientesCreditosWidget } from "@/components/dashboard/ClientesCreditosWidget";
+import { AuditoriaWidget } from "@/components/dashboard/AuditoriaWidget";
 import { LembretePontoBanner } from "@/components/ponto/LembretePontoBanner";
 import { LembreteAvaliacoesPendentesBanner } from "@/components/dashboard/LembreteAvaliacoesPendentesBanner";
 import { SortableWidget } from "@/components/dashboard/SortableWidget";
