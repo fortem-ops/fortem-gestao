@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreditCard, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { useCartoesCobranca, useCobrarCartaoSalvo, type CartaoCobravel } from "@/hooks/useCartoesCobranca";
 
 type Props = {
   open: boolean;
@@ -60,6 +62,14 @@ const brandLabel: Record<string, string> = {
   visa: "Visa", master: "Mastercard", elo: "Elo", hipercard: "Hipercard",
   amex: "Amex", diners: "Diners", desconhecida: "Bandeira",
 };
+
+/** "Mastercard ••••7452 · vence 10/2029" (curto: sem a validade). */
+function rotuloCartao(c: CartaoCobravel, curto = false): string {
+  const bandeira = brandLabel[(c.brand ?? "").toLowerCase()] ?? (c.brand ?? "Cartão");
+  const base = `${bandeira} ••••${c.last4 ?? "????"}`;
+  if (curto || !c.expiration_month || !c.expiration_year) return base;
+  return `${base} · vence ${String(c.expiration_month).padStart(2, "0")}/${c.expiration_year}`;
+}
 
 export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor, onSuccess, recorrencia, parcelasTotais = 12, servicosInclusos = null }: Props) {
   const [num, setNum] = useState("");
@@ -205,6 +215,7 @@ export function PagarCartaoDialog({ open, onOpenChange, vendaId, alunoId, valor,
   function reset() {
     setNum(""); setHolder(""); setMes(""); setAno(""); setCvv("");
     setParcelas("1"); setSalvar(false); setResultado(null);
+    setTravado(false); emCursoRef.current = false;
   }
 
   return (
