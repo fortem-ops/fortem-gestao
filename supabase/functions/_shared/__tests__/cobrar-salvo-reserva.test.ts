@@ -3,6 +3,7 @@ import {
   respostaIdempotente,
   decidirConflitoReserva,
   isUniqueViolation,
+  classificarResultadoTransacao,
 } from "../cobrar-salvo-reserva";
 
 describe("respostaIdempotente", () => {
@@ -48,5 +49,35 @@ describe("isUniqueViolation", () => {
     expect(isUniqueViolation({ code: "23505" })).toBe(true);
     expect(isUniqueViolation({ code: "23503" })).toBe(false);
     expect(isUniqueViolation(null)).toBe(false);
+  });
+});
+
+describe("classificarResultadoTransacao", () => {
+  const base = { errorKind: null as string | null, stage: "transaction" as const, httpStatus: 200, returnCode: "00", approved: true };
+
+  it("HTTP 5xx na transação é resultado incerto", () => {
+    expect(classificarResultadoTransacao({ ...base, httpStatus: 502, approved: false, returnCode: null }))
+      .toEqual({ tipo: "incerto", httpStatus: 502 });
+  });
+
+  it("corpo sem returnCode é resultado incerto", () => {
+    expect(classificarResultadoTransacao({ ...base, returnCode: "", approved: false }))
+      .toEqual({ tipo: "incerto", httpStatus: 200 });
+  });
+
+  it("recusa normal (51) é conclusiva", () => {
+    expect(classificarResultadoTransacao({ ...base, returnCode: "51", approved: false }))
+      .toEqual({ tipo: "concluido", aprovado: false });
+  });
+
+  it("aprovada (00) é conclusiva", () => {
+    expect(classificarResultadoTransacao(base)).toEqual({ tipo: "concluido", aprovado: true });
+  });
+
+  it("erro de rede na transação é incerto e no criptograma é falha limpa", () => {
+    expect(classificarResultadoTransacao({ ...base, errorKind: "network", httpStatus: 0, returnCode: null }))
+      .toEqual({ tipo: "incerto", httpStatus: 0 });
+    expect(classificarResultadoTransacao({ ...base, errorKind: "criptograma", stage: "cryptogram" as any, httpStatus: 400, returnCode: null }))
+      .toEqual({ tipo: "falha_limpa" });
   });
 });

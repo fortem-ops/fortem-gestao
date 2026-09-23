@@ -68,3 +68,42 @@ export function decidirConflitoReserva(linhaMesmaChave: LinhaPagamento | null | 
 export function isUniqueViolation(err: { code?: string | null } | null | undefined): boolean {
   return err?.code === "23505";
 }
+
+// ─────────────────────────────────────────────────────────────
+// Classificação do resultado da transação.
+//
+// `cobrarComToken` devolve errorKind null quando conseguiu ler uma
+// resposta HTTP da Rede — mesmo que seja 5xx ou um corpo sem
+// returnCode. Nesses casos a transação pode ter sido efetivada e
+// tratar como "denied" liberaria uma segunda cobrança do mesmo valor.
+// Só é recusa quando existe returnCode interpretável.
+// ─────────────────────────────────────────────────────────────
+
+export interface ResultadoTransacaoLike {
+  errorKind: string | null;
+  stage: "cryptogram" | "transaction";
+  approved?: boolean;
+  httpStatus: number;
+  returnCode: string | null;
+}
+
+export type ClassificacaoTransacao =
+  /** Reserva apagada; nada foi cobrado. */
+  | { tipo: "falha_limpa" }
+  /** Reserva mantida em pending; pode ter sido cobrado. */
+  | { tipo: "incerto"; httpStatus: number }
+  /** Resposta interpretável da Rede: aprovada ou recusada. */
+  | { tipo: "concluido"; aprovado: boolean };
+
+export function classificarResultadoTransacao(r: ResultadoTransacaoLike): ClassificacaoTransacao {
+  if (r.errorKind) {
+    return r.stage === "transaction"
+      ? { tipo: "incerto", httpStatus: r.httpStatus }
+      : { tipo: "falha_limpa" };
+  }
+  const semReturnCode = r.returnCode == null || String(r.returnCode).trim() === "";
+  if (r.stage === "transaction" && (r.httpStatus >= 500 || semReturnCode)) {
+    return { tipo: "incerto", httpStatus: r.httpStatus };
+  }
+  return { tipo: "concluido", aprovado: !!r.approved };
+}
