@@ -217,11 +217,15 @@ serve(async (req) => {
     tokenServiceBaseUrl: resolveTokenServiceUrl(ambiente),
   });
 
-  // ── 9. Falha técnica ──────────────────────────────────────
-  if (resultado.errorKind) {
-    const incerto = resultado.stage === "transaction";
+  // ── 9. Classificação do resultado ─────────────────────────
+  // HTTP 5xx ou corpo sem returnCode = resultado INCERTO (a Rede pode
+  // ter cobrado): a reserva fica em pending e trava nova tentativa.
+  const classificacao = classificarResultadoTransacao(resultado);
+
+  if (classificacao.tipo !== "concluido") {
+    const incerto = classificacao.tipo === "incerto";
     console.error(
-      "[rede-cobrar-salvo] falha técnica —", resultado.stage,
+      "[rede-cobrar-salvo] resultado não conclusivo —", resultado.stage,
       "http:", resultado.httpStatus, "returnCode:", resultado.returnCode,
     );
     try {
@@ -245,7 +249,6 @@ serve(async (req) => {
     }
 
     if (incerto) {
-      // A Rede pode ter cobrado: a reserva fica em pending e trava novas tentativas.
       return json({
         success: false,
         incerto: true,
@@ -257,7 +260,8 @@ serve(async (req) => {
     return json({ success: false, error: "Erro de comunicação com a operadora. Nada foi cobrado." }, 502);
   }
 
-  const approved = resultado.approved;
+  const approved = classificacao.aprovado;
+
 
   // ── 10. Conclusão da reserva ──────────────────────────────
   const { error: updErr } = await supabase.from("pagamentos_rede").update({
