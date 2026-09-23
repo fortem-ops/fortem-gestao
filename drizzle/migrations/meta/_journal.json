@@ -351,6 +351,13 @@
       "when": 1790198474250,
       "tag": "0049_fiscal_pipeline",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1790198762829,
+      "tag": "0050_pipeline_fiscal_exclui_agregadoras",
+      "breakpoints": true
     }
   ]
 }
