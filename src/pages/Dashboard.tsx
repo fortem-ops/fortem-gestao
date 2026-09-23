@@ -246,6 +246,8 @@ export default function Dashboard() {
       {!isNutriFisioOnly && <LembretePontoBanner />}
       {!isNutriFisioOnly && <LembreteAvaliacoesPendentesBanner />}
 
+      {isCoordAdmin && <AuditoriaWidget />}
+
 
       <StatsCards professorId={effectiveProfessorId} />
 
