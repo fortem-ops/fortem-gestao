@@ -1,33 +1,43 @@
-# Fiscal de Créditos — nova categoria "creditos" na Auditoria
+# Corrigir erro ao preencher relatório (etapas de CRM desativadas)
 
-Reaproveita toda a infraestrutura já existente: tabela `auditoria_inconsistencias`, aba `/auditoria`, widget do Dashboard e contador no menu. A lógica nova fica em uma função irmã `fn_auditoria_fiscal_creditos()`, chamada pela mesma edge function agendada.
+## O que está acontecendo
 
-## O que foi confirmado no banco
+Ao salvar um relatório, o sistema tenta mover o cadastro automaticamente para a etapa
+"Avaliação realizada". Essa etapa foi desativada na reorganização do funil (junto com
+"Avaliação agendada" e "Avaliação confirmada"), então a movimentação falha com
+"Pipeline stage Avaliação realizada not found" — e, como o relatório não chega a ser gravado,
+aparece em seguida "Preencha ao menos um campo antes de finalizar".
 
-- Os créditos ficam em `creditos_aluno` (aluno, atividade, origem, quantidade inicial, quantidade usada, ilimitado, validade, ativo). A tela "Serviços e Créditos Contratados" lê exatamente essa tabela.
-- Cada uso/estorno é registrado em `creditos_movimentos` (crédito, tipo, quantidade, agendamento, consumo).
-- A origem do crédito de plano aponta para a venda (`vendas`), que aponta para o plano; o número esperado de créditos do contrato está em `contratos.creditos_total` (já é frequência × período).
-- Situação atual medida: 11 créditos ativos com "usado" diferente da soma dos movimentos, 8 movimentos de consumo apontando para um agendamento que não existe mais, nenhum saldo negativo hoje.
+Isso só acontece com cadastros sem etapa definida ou em "Novo lead" — o caso do cliente avulso,
+que não passa pelo funil comercial.
 
-## As três checagens
+O mesmo problema existe na agenda: ao agendar uma avaliação ou um treino experimental, o sistema
+tenta usar as etapas "Avaliação agendada" e "Aula experimental agendada", que também não existem
+mais como etapas ativas.
 
-1. **Saldo não bate com o esperado** (atenção)
-   Para créditos de Treino vindos de plano, compara a quantidade inicial do crédito com o total de créditos do contrato vigente daquele aluno (frequência × período). Também compara o "usado" registrado com a soma real dos movimentos (consumos menos estornos). Só dispara quando existe contrato vigente com total definido, para não gerar ruído em cadastros antigos sem contrato.
+## O que muda
 
-2. **Saldo negativo** (crítico)
-   Crédito ativo, não ilimitado, com restante menor que zero (usado maior que o inicial).
-
-3. **Consumo sem agendamento correspondente** (atenção)
-   Movimento de consumo cujo agendamento não existe mais na agenda de serviços nem nos agendamentos de treino, ou que não tem nenhum vínculo (nem agendamento nem registro de consumo).
-
-Todos os itens são gravados com categoria `creditos`, com o nome do aluno e a atividade na descrição, e o mesmo anti-duplicidade já usado hoje: se já existe um item aberto com mesma categoria, subtipo e registros afetados, não cria de novo.
+- Clientes avulsos deixam de entrar em qualquer movimentação automática de CRM — nem pelo
+  relatório, nem pela agenda. Eles seguem fora do funil, como esperado.
+- Quando a etapa de destino não existir mais (ou estiver desativada), a movimentação simplesmente
+  não acontece: o relatório e o agendamento são salvos normalmente, sem mensagem de erro.
+- Na agenda, o treino experimental passa a usar a etapa ativa atual, "Treino experimental
+  agendado", em vez do nome antigo.
+- Quem está em etapa ativa do funil continua avançando exatamente como hoje.
 
 ## Detalhes técnicos
 
-- Migração: `fn_auditoria_fiscal_creditos()` em plpgsql `SECURITY DEFINER`, mesmo padrão de `fn_auditoria_fiscal_pagamentos()`, com subtipos `saldo_divergente_formula`, `usado_divergente_movimentos`, `saldo_negativo`, `consumo_sem_agendamento`; retorna JSON com a contagem por subtipo.
-- `supabase/functions/auditoria-fiscal-pagamentos/index.ts`: passa a invocar também `fn_auditoria_fiscal_creditos` e devolve os dois resultados; sem mudança no cron (09:00 UTC).
-- `src/pages/Auditoria.tsx`: adiciona `creditos` ao filtro de categoria e ao mapa `CATEGORIA_LABEL` ("Créditos").
-- `src/components/dashboard/AuditoriaWidget.tsx`: adiciona "Créditos" ao `CATEGORIA_LABEL`.
-- `src/hooks/useAuditoria.ts`: sem mudança de tipo necessária (categoria é texto livre); contadores e resumo já agregam qualquer categoria.
-- Após aplicar: rodar a função uma vez e reportar a contagem por subtipo; validar com consulta direta no banco antes de dar como concluído.
-- Nada de RLS novo: a tabela já tem leitura para a equipe e escrita/encerramento só para admin.
+Migração com três ajustes, sem mudança de schema:
+
+1. `trg_avaliacao_pipeline`: sai cedo (`RETURN NEW`) quando o aluno tem `status = 'avulso'`;
+   antes de chamar `fn_move_pipeline`, confere se existe `pipeline_stages` com
+   `name = 'Avaliação realizada' AND is_active = true` — se não existir, não move.
+2. `trg_agenda_pipeline`: mesma proteção para `status = 'avulso'` e mesma checagem de existência
+   da etapa; o ramo de experimental passa a mirar `'Treino experimental agendado'` (com fallback
+   silencioso se não estiver ativa).
+3. `fn_move_pipeline` permanece como está (continua levantando exceção em chamada manual com
+   etapa inválida) — a tolerância fica nos gatilhos automáticos.
+
+Validação: registrar um relatório para um cliente avulso e para um lead em etapa ativa, criar um
+agendamento de avaliação e um de experimental, e conferir que nenhum erro aparece e que o
+histórico do funil continua sendo gravado nos casos válidos.
