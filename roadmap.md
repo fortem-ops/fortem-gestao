@@ -1,34 +1,5 @@
 # Roadmap
 
-- [x] Reutilizar os cartões ativos do Portal no checkout da Loja.
-- [x] Adicionar confirmação de cobrança no cartão salvo e alternativa para cadastrar cartão.
-- [x] Preservar o fluxo público e validar os tipos.
-- [ ] Tornar público o bucket `loja-produtos` — bloqueado pela política externa do workspace.
-- [x] Proteger o bucket com leitura pública e escrita exclusiva de Coordenador/Admin.
-- [x] Criar controle reutilizável de upload com validação, prévia e carregamento.
-- [x] Integrar upload ao cadastro de produto.
-- [x] Integrar upload à imagem por cor da variante.
-- [x] Validar tipos, build e políticas do bucket.
-- [x] Ativar validação e aplicação segura de cupons na Loja.
-- [x] Adicionar galerias geral e por cor com imagem principal e ordenação.
-- [x] Exibir as galerias na vitrine, detalhes e carrinho.
-- [x] Mostrar em Encomendas o valor realmente recebido, com filtros e exclusão de pedidos.
-- [x] Gerar reposição automática ao remover aluno de um horário (serviços e treinos).
-- [x] Criar consultor responsável do aluno (campo, migração e propagação do funil).
-- [x] Escopo de carteira (responsável ou consultor) nos quadros do painel e na Central de Tarefas.
-- [x] Nova tela Cadastros > Carteira Consultor com avaliação, frequência e funil.
-- [x] Tarefa automática de reavaliação quando pendente/atrasada.
-- [x] Unificar a nomenclatura de assimetria da equipe e do portal.
-- [x] Restaurar reavaliação, composição e histórico no novo portal e corrigir a classificação de força em 20%.
-- [x] Ocultar Relatórios Técnicos e Atualizar treino para quem vê o aluno só como consultor.
-- [x] Implementar o método "Planilha 5RM" em Banco de Treinos > Métodos (editor, card, autosave e PDF).
-- [ ] Corrigir erro ao preencher relatório (etapas de CRM desativadas) — plano aguardando aprovação.
-- [ ] Investigar por que agendamento retroativo não consome crédito (caso Vítor Labres da Silveira).
-- [x] Corrigir a exibição de total e parcela dos contratos usando venda e modalidade reais.
-- [x] Fase 0: ambiente configurado da Rede confirmado — produção.
-- [x] Fase 1: trava global da cobrança automática no cartão (sistema_config + aviso e interruptor admin).
-- [x] Fase 2: ação "Estornar cobrança" (total/parcial), comprovante e idempotência.
-- [x] Fase 3: status "Estornado" na auditoria fiscal, relatórios e telas financeiras.
-- [x] Cobrança em um clique com cartão salvo — Fase 1 (pós-aprovação compartilhado).
-- [x] Cobrança em um clique com cartão salvo — Fase 2 (função rede-cobrar-salvo + fn_cartoes_cobraveis).
-- [ ] Cobrança em um clique com cartão salvo — Fase 3 (tela), aguardando liberação do usuário.
+- [ ] Aceites Tecnofit: dry run do cruzamento por nome (aguardando o CSV real)
+- [ ] Aceites Tecnofit: aplicar em contratos_documentos depois da confirmação, marcando a origem Tecnofit
+- [ ] Fiscal de Contratos (carência de 7 dias; atenção até 30 dias / crítico acima; sem documento = atenção; Corrida entra; ficha de saúde fica de fora)
