@@ -158,16 +158,7 @@ Banco: `CHECK` de `cobrancas.status` com `estornado`; coluna `idempotency_key` +
 - **Fase 3** — auditoria fiscal e relatórios com o novo status.
 - **Fase 4 (futuro)** — janela de vencimento e modo simulação antes de religar o agendamento.
 
-
 ## Como testar sem gastar dinheiro real
 
-- Fase 1 (trava): testável sem nenhuma cobrança — chamo a função manualmente como admin e confirmo a resposta "pausado" e o registro em `system_logs`. Zero contato com a Rede.
-- Fase 2 (estorno): confirmar primeiro o ambiente configurado. Em produção, o único teste com dinheiro real seria o próprio estorno que você já quer fazer (Rafaela ou um dos ciclos do Leonardo) — ou seja, nenhum gasto extra. Caminhos de erro (sem TID, cobrança não paga, clique duplo, recusa simulada) testo sem chamar a Rede. Se houver credenciais de homologação, faço um ciclo completo lá antes.
-
-## Ordem de execução
-
-- **Fase 0** — confirmar o ambiente da Rede configurado (só imprime "sandbox"/"producao").
-- **Fase 1** — trava global + aviso e interruptor no software. Entrega isolada, sem risco financeiro.
-- **Fase 2** — estorno: extração do miolo da `rede-cancelar`, função nova, migrações, diálogo e rótulos.
-- **Fase 3** — ajustes de auditoria fiscal e relatórios para o novo status, e verificação em tela.
-- **Fase 4 (futuro, só quando você pedir)** — regra da janela de vencimento e modo simulação antes de religar o agendamento.
+- Fase 1 (trava): testada sem nenhuma cobrança — chamada manual da rotina retornou "pausado" e ficou registrada em `system_logs`. Zero contato com a Rede.
+- Fase 2 (estorno): em produção, o único teste com dinheiro real seria o próprio estorno que você já quer fazer. Caminhos de erro (sem TID, cobrança não paga, duplo clique, valor acima do saldo) testo sem chamar a Rede.
