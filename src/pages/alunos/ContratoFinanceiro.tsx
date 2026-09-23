@@ -29,6 +29,7 @@ import {
   Link as LinkIcon,
   Undo2,
   ReceiptText,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -457,15 +458,26 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
                           {cb.status === "atrasado" ? "Atrasado" : cb.status === "estornado" ? "Estornado" : "Pendente"}
                         </span>
                         {podeCancelar && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
-                            onClick={() => pedirBaixa(cb)}
-                          >
-                            <CheckCircle className="h-3 w-3" />
-                            Dar baixa
-                          </Button>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
+                              onClick={() => pedirBaixa(cb)}
+                            >
+                              <CheckCircle className="h-3 w-3" />
+                              Dar baixa
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10"
+                              onClick={() => setExcluirCobranca(cb)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Excluir
+                            </Button>
+                          </div>
                         )}
                       </li>
                     ))}
