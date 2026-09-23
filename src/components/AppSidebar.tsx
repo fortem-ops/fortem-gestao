@@ -4,6 +4,7 @@ import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
 import { usePontoStatus } from "@/hooks/usePontoStatus";
 import { useTarefasBadge } from "@/hooks/useTarefasBadge";
+import { useAuditoriaResumo } from "@/hooks/useAuditoria";
 import { NavLink } from "@/components/NavLink";
 import fortemIcon from "@/assets/fortem-icon.png";
 import fortemWordmark from "@/assets/fortem-wordmark.png";
@@ -207,6 +208,29 @@ function WhatsAppSidebarItem({ isActive, enabled }: { isActive: (p: string) => b
 }
 
 
+
+function AuditoriaSidebarItem({ isActive, enabled }: { isActive: (p: string) => boolean; enabled: boolean }) {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  const { data: resumo } = useAuditoriaResumo(enabled);
+  const total = resumo?.abertos ?? 0;
+  const critico = (resumo?.criticos ?? 0) > 0;
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive("/auditoria")}>
+        <NavLink to="/auditoria" end={false} activeClassName="bg-sidebar-accent text-sidebar-primary">
+          <ShieldAlert className="mr-2 h-4 w-4" />
+          {!collapsed && <span className="flex-1">Auditoria</span>}
+          {total > 0 && (
+            <span className={`${collapsed ? "absolute right-1 top-1" : "ml-auto"} inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold ${critico ? "bg-destructive text-destructive-foreground" : "bg-secondary text-foreground"}`}>
+              {total > 99 ? "99+" : total}
+            </span>
+          )}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 
 function PontoSidebarItem({ item, isActive }: { item: { title: string; url: string; icon: any }; isActive: (p: string) => boolean }) {
   const { state } = useSidebar();
