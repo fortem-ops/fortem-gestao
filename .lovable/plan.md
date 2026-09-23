@@ -64,74 +64,100 @@ Quando chegar a hora, a regra a implementar antes de reativar: a função só co
 
 ---
 
-## Fase 2 — Ação "Estornar cobrança"
+## Fase 2 — Ação "Estornar cobrança" (aprovada em desenho, NÃO implementada)
 
-**Onde:** `src/components/financeiro/TimelineCobrancas.tsx`, na aba Contrato & Pagamentos do aluno. Botão "Estornar" aparece só quando: usuário é admin, `status = 'pago'`, `gateway = 'rede'` e existe `tid`.
+Decisões já fechadas por você:
+1. A venda vinculada vira `estornado` junto com a cobrança. A cobrança `estornado` continua mostrando "Dar baixa" (registro manual de recebimento), nunca é reprocessada pela cobrança automática e nunca gera inadimplência.
+2. Comissionamento: fora do escopo — nada de comissão é tocado.
+3. Créditos do contrato: não são retirados nem alterados no estorno.
+4. Estorno **total ou parcial**.
+5. Comprovante de estorno obrigatório.
 
-**Backend:** nova função `estornar-cobranca`, que valida, chama internamente a lógica de refund já existente em `rede-cancelar` (o miolo vira `_shared/rede-refund.ts`, sem mudar o comportamento atual dela) e só grava no banco depois do "ok" da Rede.
+**Onde:** `src/components/financeiro/TimelineCobrancas.tsx`, aba Contrato & Pagamentos. Botão "Estornar" só para admin, quando `status = 'pago'` (ou já parcialmente estornada), `gateway = 'rede'` e existe `tid`.
 
-Sequência:
-1. Exige admin (`is_admin`). Valida `cobranca_id` e `motivo` (mínimo 10 caracteres).
-2. Trava de idempotência: `SELECT ... FOR UPDATE` na cobrança + recusa se já existir `pagamentos_rede` com status `refunded` para o mesmo `tid`; índice único parcial garante isso mesmo com clique duplo:
-   `CREATE UNIQUE INDEX uniq_refund_por_tid ON public.pagamentos_rede (tid) WHERE status = 'refunded';`
-3. Estorno **total** do valor da cobrança na Rede. Se recusar ou der erro de rede: **nada muda no banco**, retorna erro legível ("A operadora recusou o estorno: ...").
-4. Confirmado: insere linha em `pagamentos_rede` (`status='refunded'`, `tid`, `amount`, `cobranca_id`, `created_by`, resposta bruta), atualiza a cobrança para `estornado` e grava no `audit_log` (quem, quando, motivo, TID, valor).
+**Backend:** nova função `estornar-cobranca`, reaproveitando o miolo de refund que já existe em `rede-cancelar` (extraído para `_shared/rede-refund.ts`, comportamento idêntico: `POST /transactions/{tid}/refunds` com `amount` em centavos, sucesso em `00`/`359`/`360`).
 
-**Migração de status:** ampliar o `CHECK` de `cobrancas.status` para incluir `'estornado'` (hoje aceita pendente/pago/atrasado/cancelado/isento). Escolhi um status novo em vez de voltar para `pendente` justamente para não gerar cobrança nova nem inadimplência.
+### Estorno parcial — como fica
 
-### Efeitos colaterais mapeados (e como ficam)
+A API da Rede recebe o valor no corpo do refund, o que permite devolver menos que o total; vários refunds parciais sobre o mesmo TID são aceitos até somar o valor capturado. Antes de implementar, confirmo esse comportamento no ambiente de homologação (ou com um refund mínimo, se você autorizar), e o código trata recusa por "valor acima do disponível" como erro legível.
 
-| Área | Efeito | Tratamento |
-|---|---|---|
-| Inadimplência (`processar-cobrancas-diario`) | Só transforma `pendente` em `atrasado` | `estornado` fica de fora — nenhuma inadimplência nova |
-| Inadimplência existente da cobrança | `fn_close_inadimplencia_on_pagamento` fechou ao pagar | Continua fechada; o estorno não reabre |
-| Nova tentativa automática | A recorrência filtra `pendente`/`atrasado` | `estornado` nunca é reprocessado, mesmo com a trava ligada |
-| Venda vinculada (`fn_sync_cobranca_to_venda`) | Só age quando vira `pago` | Proponho marcar a venda como `estornado` no mesmo fluxo — **decisão sua** |
-| Créditos do contrato | Nenhum gatilho liga crédito a `cobrancas` | Sem efeito automático; ajuste de crédito, se necessário, fica manual |
-| Comissionamento | Calculado sobre vendas pagas | Se a venda virar `estornado`, a comissão do ciclo precisa de revisão manual — **decisão sua** |
-| Relatórios / dashboards financeiros | Somam por status | Preciso incluir `estornado` nos rótulos e excluir do faturamento |
-| Fiscal de pagamentos (`fn_auditoria_fiscal_pagamentos`) | Pode ler cobrança paga sem pagamento correspondente | Revisar as checagens para ignorar `estornado` e não gerar achado falso |
-| Frontend | `STATUS_META` e tipos `CobrancaStatus` | Novo rótulo "Estornado" (cinza/vermelho) |
+Controle do saldo:
+- `saldo_estornavel = valor_pago − soma dos refunds já confirmados para o TID`.
+- Validação no servidor, dentro de transação com `SELECT ... FOR UPDATE` na cobrança: valor > 0 e ≤ saldo. Nunca é possível estornar mais que o valor pago.
+- Em vez do índice único por TID (que bloquearia parciais legítimos), a proteção passa a ser: trava de linha + chave de idempotência por requisição (`idempotency_key` uuid gerado no diálogo, com índice único em `pagamentos_rede`), impedindo que o duplo clique gere dois refunds.
+
+Status da cobrança:
+- Soma dos estornos < valor pago → status continua `pago`, com marcação "Estorno parcial R$ X de R$ Y" na linha (badge âmbar) a partir dos registros de `pagamentos_rede`; nenhum status novo é inventado.
+- Soma = valor pago → cobrança vira `estornado` e a venda vinculada também.
+
+**Migração de status:** ampliar o `CHECK` de `cobrancas.status` para incluir `'estornado'`.
+
+### Comprovante de estorno
+
+Cada refund confirmado gera um comprovante com: aluno, ciclo, valor estornado, valor original da cobrança, TID, NSU, código e mensagem de retorno da Rede, data/hora, motivo e nome do admin que executou. Abre em diálogo logo após o estorno, com botões "Baixar PDF" e "Imprimir", e pode ser reaberto pela linha da cobrança e pelo histórico de pagamentos. Visual Fortem (mesma base de PDF já usada nos relatórios). Os dados vêm de `pagamentos_rede` + `audit_log`, sem tabela nova.
+
+### Efeitos colaterais mapeados
+
+| Área | Tratamento |
+|---|---|
+| Inadimplência (`processar-cobrancas-diario`) | Só age sobre `pendente`; `estornado` fica de fora |
+| Inadimplência já fechada | Permanece regularizada; o estorno não reabre |
+| Nova tentativa automática | A recorrência filtra `pendente`/`atrasado` — `estornado` nunca volta |
+| Venda vinculada | Marcada como `estornado` no mesmo fluxo |
+| "Dar baixa" manual | Habilitada também no status `estornado` |
+| Créditos | Intocados |
+| Relatórios / dashboards | Rótulo "Estornado" e exclusão do faturamento |
+| Fiscal de pagamentos | Ajustar checagens para ignorar `estornado` |
 
 ### Mockup do diálogo
 
 ```text
 ┌── Estornar cobrança ───────────────────────────────┐
-│ Atenção: esta ação devolve o dinheiro ao aluno e   │
-│ não pode ser desfeita.                             │
+│ Atenção: devolve dinheiro real ao aluno.           │
 │                                                    │
 │ Aluno .......... Leonardo Zimmer Saldanha          │
 │ Ciclo .......... 11                                │
-│ Valor .......... R$ 559,00  (estorno total)        │
-│ Pago em ........ 19/09/2026                        │
+│ Pago ........... R$ 559,00 em 19/09/2026           │
+│ Já estornado ... R$ 0,00                           │
+│ Disponível ..... R$ 559,00                         │
 │ TID ............ 10012345678901234567              │
 │                                                    │
-│ Motivo do estorno (obrigatório)                    │
+│ Tipo: ( • ) Total     (   ) Parcial                │
+│ Valor a estornar: [ R$ 559,00 ]  (trava no saldo)  │
+│                                                    │
+│ Motivo (obrigatório, mín. 10 caracteres)           │
 │ ┌────────────────────────────────────────────────┐ │
-│ │                                                │ │
 │ └────────────────────────────────────────────────┘ │
 │                                                    │
 │              [ Cancelar ]  [ Confirmar estorno ]   │
 └────────────────────────────────────────────────────┘
 ```
-Botão desabilitado enquanto o motivo tiver menos de 10 caracteres e durante o processamento. Resultado em aviso na tela: sucesso com o código da Rede, ou o motivo exato da recusa.
+
+Após a confirmação da Rede, abre o comprovante. Se a Rede recusar: nada muda no banco e o motivo aparece na tela.
 
 ---
 
-## Arquivos e objetos tocados
+## Arquivos e objetos da Fase 2
 
-Código: `supabase/functions/cobrar-recorrencias-diario/index.ts`; nova `supabase/functions/estornar-cobranca/index.ts`; novo `supabase/functions/_shared/rede-refund.ts` (miolo extraído de `rede-cancelar`); `src/components/financeiro/TimelineCobrancas.tsx`; `src/hooks/useContratos.ts`; `src/types/financeiro.ts`; `src/components/admin/AdminIntegracoes.tsx`; novos `src/hooks/useSistemaConfig.ts` e `src/components/financeiro/EstornarCobrancaDialog.tsx`; rótulos de status nos relatórios financeiros.
+Código: nova `supabase/functions/estornar-cobranca/index.ts`; novo `supabase/functions/_shared/rede-refund.ts`; `src/components/financeiro/TimelineCobrancas.tsx`; novos `EstornarCobrancaDialog.tsx` e `ComprovanteEstorno.tsx` (+ export PDF); `src/hooks/useContratos.ts`; `src/types/financeiro.ts`; rótulos nos relatórios financeiros.
 
-Banco: nova tabela `sistema_config`; `CHECK` de `cobrancas.status` com `estornado`; índice único de refund em `pagamentos_rede`; revisão de `fn_auditoria_fiscal_pagamentos`.
+Banco: `CHECK` de `cobrancas.status` com `estornado`; coluna `idempotency_key` + índice único em `pagamentos_rede`; revisão de `fn_auditoria_fiscal_pagamentos`.
 
-## Riscos e decisões que dependem de você
+## Riscos e pontos em aberto
 
-1. **Venda vinculada:** marcar como `estornado` junto, ou deixar como está? (afeta relatórios e comissão)
-2. **Comissionamento:** reverter automaticamente ou tratar manualmente caso a caso?
-3. **Crédito do aluno:** estornar a mensalidade deve retirar os créditos daquele ciclo? Minha recomendação é **não** mexer automaticamente.
-4. **Estorno parcial:** fora do escopo, só total — confirma?
-5. Ampliar o `CHECK` de status é migração em tabela financeira viva; é aditiva e não altera linha nenhuma.
-6. Os quatro casos já cobrados (Rafaela, Leonardo x2) só serão estornados quando você mandar, um a um.
+1. Confirmar com a Rede (homologação) o suporte a refunds parciais múltiplos sobre o mesmo TID.
+2. Ampliar o `CHECK` de status é migração aditiva em tabela financeira viva — nenhuma linha é alterada.
+3. Ambiente é **produção**: o único teste com dinheiro real seria o estorno que você já quer fazer.
+4. Os casos já cobrados (Rafaela, Leonardo x2) só serão estornados quando você mandar, um a um.
+
+## Ordem de execução
+
+- **Fase 0 — concluída.** Ambiente da Rede: **produção**.
+- **Fase 1 — concluída.** Trava global + aviso e interruptor.
+- **Fase 2 — aguardando sua confirmação.** Estorno total/parcial + comprovante.
+- **Fase 3** — auditoria fiscal e relatórios com o novo status.
+- **Fase 4 (futuro)** — janela de vencimento e modo simulação antes de religar o agendamento.
+
 
 ## Como testar sem gastar dinheiro real
 
