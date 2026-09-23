@@ -405,7 +405,7 @@ function HistoricoTemplateDialog({ open, onOpenChange, template }: HistoricoTemp
             {atual ? (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: aplicarMergeFieldsExemplo(atual.conteudo ?? '') }}
+                dangerouslySetInnerHTML={{ __html: atual.conteudo ?? '' }}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Selecione uma versão para visualizar.</p>
@@ -466,7 +466,7 @@ function HistoricoRegulamentoDialog({ open, onOpenChange }: { open: boolean; onO
             {atual ? (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: aplicarMergeFieldsExemplo(atual.conteudo ?? '') }}
+                dangerouslySetInnerHTML={{ __html: atual.conteudo ?? '' }}
               />
             ) : (
               <p className="text-sm text-muted-foreground">Selecione uma versão para visualizar.</p>
