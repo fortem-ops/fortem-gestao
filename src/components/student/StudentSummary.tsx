@@ -1,5 +1,5 @@
 import type { Tables } from "@/integrations/supabase/types";
-import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles, Scale, ShieldCheck, Camera, Eye, Smartphone, CreditCard } from "lucide-react";
+import { CalendarDays, Dumbbell, ClipboardCheck, Heart, Clock, User, AlertTriangle, RefreshCw, UserX, Activity, Calendar, DollarSign, FileText, Pencil, Utensils, Footprints, Sparkles, Scale, ShieldCheck, Camera, Eye, Smartphone, CreditCard, Link2, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +58,7 @@ export function StudentSummary({ student }: { student: Aluno }) {
   const [viewingAnnex, setViewingAnnex] = useState<AnnexDetail | null>(null);
   const [viewingContrato, setViewingContrato] = useState<ContratoDetail | null>(null);
   const [markingPresential, setMarkingPresential] = useState(false);
+  const [copiandoLinkAceite, setCopiandoLinkAceite] = useState(false);
 
   const { data: roleFlags = { isAdmin: false, isCoordAdmin: false } } = useQuery({
     queryKey: ["role_flags_summary"],
@@ -417,6 +418,26 @@ export function StudentSummary({ student }: { student: Aluno }) {
       return (data as ContratoDetail | null) ?? null;
     },
   });
+
+  async function copiarLinkAceite() {
+    if (!contratoDoc?.id) return;
+    setCopiandoLinkAceite(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("fn_criar_link_contrato", {
+        p_contrato_documento_id: contratoDoc.id,
+      });
+      if (error) throw error;
+      if (!data?.ok || !data?.token) {
+        throw new Error(data?.motivo ?? "Não foi possível gerar o link.");
+      }
+      await navigator.clipboard.writeText(`${window.location.origin}/contrato/${data.token}`);
+      toast.success("Link copiado! Válido por 7 dias.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao gerar link. Tente novamente.");
+    } finally {
+      setCopiandoLinkAceite(false);
+    }
+  }
 
 
 
@@ -1091,6 +1112,16 @@ export function StudentSummary({ student }: { student: Aluno }) {
                 <span className="text-xs text-muted-foreground">Contrato</span>
               </div>
               <div className="flex items-center gap-2">
+                {isCoordAdmin && contratoDoc && !contratoDoc.aceite && (
+                  <button
+                    onClick={copiarLinkAceite}
+                    disabled={copiandoLinkAceite}
+                    className="text-muted-foreground hover:text-primary disabled:opacity-50"
+                    title="Copiar link de aceite"
+                  >
+                    {copiandoLinkAceite ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
+                  </button>
+                )}
                 {isCoordAdmin && (
                   <button
                     onClick={() => setMarkingPresential(true)}
