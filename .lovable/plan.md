@@ -1,13 +1,27 @@
-# Corrigir valores exibidos nos contratos
+# Exibir anotações da Evolução na visualização
 
-## Implementação
-- Centralizar o cálculo de total e parcela usando a modalidade real, sem listas de planos.
-- No cartão financeiro, buscar a venda vinculada ao mesmo plano e priorizar `valor_final` e `parcelas`.
-- Para recorrência mensal, calcular o total pela mensalidade e duração real entre início e fim.
-- Para venda tradicional, tratar `valor_final` como total e dividir apenas pelas parcelas.
-- Aplicar o mesmo cálculo aos resumos irmãos que hoje rotulam o valor bruto como mensal.
+## Diagnóstico confirmado
+
+O relatório selecionado possui duas sessões salvas no campo próprio `dados.sessoes`, ambas com texto e finalização registrados. Ao abrir o relatório, a janela usa o visualizador genérico, que lê apenas `dados.answers`; por isso mostra as perguntas antigas “SESSÃO 1–4” vazias. Ao clicar em **Editar**, entra o editor específico de Evolução, que lê `dados.sessoes`, e as anotações aparecem.
+
+## Alteração proposta
+
+- Criar uma visualização somente leitura específica para o protocolo **Reabilitação — EVOLUÇÃO**.
+- Exibir cada sessão salva em ordem numérica, incluindo:
+  - número da sessão;
+  - data do atendimento, quando registrada;
+  - texto completo da evolução, preservando quebras de linha;
+  - data de registro e autor, quando disponíveis.
+- Manter compatibilidade com registros antigos que ainda tenham sessões armazenadas nas perguntas do protocolo.
+- Fazer a janela usar essa visualização específica quando não estiver em edição, mantendo o editor atual ao clicar em **Editar**.
+- Não alterar os dados já salvos, o fluxo de edição, os anexos nem os demais tipos de relatório.
 
 ## Validação
-- Cobrir recorrência, venda tradicional, fallback sem venda e duração real com testes.
-- Conferir no banco os sete contratos identificados, sem alterar qualquer dado.
-- Verificar na tela que Frederico exibe total de R$ 4.908,00.
+
+- Conferir o relatório selecionado e confirmar que suas duas anotações aparecem sem clicar em **Editar**.
+- Confirmar que **Editar**, anexos, fechamento e demais relatórios continuam funcionando.
+- Executar as verificações de tipos e do aplicativo.
+
+## Detalhes técnicos
+
+A correção ficará restrita aos componentes de Reabilitação/Evolução e à decisão de renderização da janela de visualização. Nenhuma mudança no banco de dados é necessária.
