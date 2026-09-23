@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ArrowLeft, CreditCard, Loader2, AlertCircle, CheckCircle2, Clock, XCircle, Plus, Star, Trash2 } from "lucide-react";
 import { CadastrarCartaoDialog } from "@/components/pagamentos/CadastrarCartaoDialog";
 import { usePortalCartoes } from "@/hooks/usePortalCartoes";
+import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
 
 
 function statusInfo(status: string) {
@@ -56,6 +57,24 @@ function ContratoBloco({ contrato }: { contrato: any }) {
       return data || [];
     },
   });
+
+  const { data: venda } = useQuery({
+    queryKey: ["portal-venda-contrato", contrato.plano_id],
+    queryFn: async () => {
+      if (!contrato.plano_id) return null;
+      const { data } = await (supabase as any)
+        .from("vendas")
+        .select("valor_final, parcelas, tipo_cobranca")
+        .eq("plano_id", contrato.plano_id)
+        .eq("tipo", "plano")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as VendaVinculada | null;
+    },
+    enabled: !!contrato.plano_id,
+  });
+  const valoresContrato = calcularValoresContrato(contrato, venda);
 
   const hoje = new Date();
   const totalParcelas = cobrancas.length > 0 ? cobrancas.length : (contrato?.parcelas ?? 1);
@@ -141,9 +160,11 @@ function ContratoBloco({ contrato }: { contrato: any }) {
           </div>
           <div>
             <p className="text-2xl font-black text-foreground" style={{fontFamily:'Archivo,sans-serif'}}>
-              R$ {Number(contrato.valor_cobrado ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
+              R$ {valoresContrato.parcela.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Mensalidade</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {valoresContrato.recorrente ? "Mensalidade" : "Parcela"}
+            </p>
           </div>
         </div>
         <div className="flex items-center justify-between gap-2 px-1">
@@ -241,7 +262,7 @@ export default function PortalPagamentos() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("contratos")
-        .select("id, plano_tipo, vigencia_tipo, parcelas, valor_cobrado, data_inicio, data_fim, status")
+        .select("id, plano_id, plano_tipo, vigencia_tipo, forma_pagamento, parcelas, valor_cobrado, data_inicio, data_fim, status")
         .eq("aluno_id", student!.id)
         .eq("status", "ativo")
         .order("created_at", { ascending: false });

@@ -63,6 +63,7 @@ import {
   labelFormaPagamento,
 } from "@/lib/formasRecebimento";
 import { propagarBaixaParaVenda } from "@/lib/baixaVenda";
+import { calcularValoresContrato, type VendaVinculada } from "@/lib/contratoValores";
 
 
 
@@ -102,6 +103,27 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
       return (data ?? []) as unknown as Contrato[];
     },
   });
+
+  const { data: vendasPlano = [] } = useQuery({
+    queryKey: ["vendas-planos-contratos", alunoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vendas")
+        .select("id, plano_id, valor_final, parcelas, tipo_cobranca, created_at")
+        .eq("aluno_id", alunoId)
+        .eq("tipo", "plano")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as (VendaVinculada & { id: string; plano_id: string | null })[];
+    },
+  });
+
+  const vendaPorPlano = new Map<string, VendaVinculada>();
+  for (const venda of vendasPlano) {
+    if (venda.plano_id && !vendaPorPlano.has(venda.plano_id)) {
+      vendaPorPlano.set(venda.plano_id, venda);
+    }
+  }
 
   const ativos = contratos
     .filter((c) => (STATUS_ATIVOS as readonly string[]).includes(c.status))
@@ -310,6 +332,7 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
             <ContratoAtivoCard
               key={c.id}
               contrato={c}
+              venda={c.plano_id ? vendaPorPlano.get(c.plano_id) : undefined}
               rotulo={rotulo}
               podeCancelar={podeCancelar}
               onCancelar={() => setRescContrato(c)}
@@ -335,7 +358,10 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-2 mt-2">
-            {historico.map((c) => (
+            {historico.map((c) => {
+              const venda = c.plano_id ? vendaPorPlano.get(c.plano_id) : undefined;
+              const valores = calcularValoresContrato(c, venda);
+              return (
               <Card key={c.id} className="p-3 flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div className="flex flex-wrap gap-2 items-center">
                   <Badge className={LABEL_STATUS[c.status]?.color ?? "bg-gray-500"}>
@@ -347,10 +373,11 @@ export default function ContratoFinanceiro({ alunoId }: Props) {
                   </span>
                 </div>
                 <span className="font-medium">
-                  {c.vigencia_tipo === "mensal" ? `${fmt(c.valor_cobrado)}/mês` : `${fmt(c.valor_cobrado)} total`}
+                  {valores.recorrente ? `${fmt(valores.parcela)}/mês` : `${fmt(valores.total)} total`}
                 </span>
               </Card>
-            ))}
+              );
+            })}
           </CollapsibleContent>
         </Collapsible>
       )}
@@ -444,13 +471,14 @@ function Info({ label, value }: { label: string; value: string }) {
 
 interface ContratoAtivoCardProps {
   contrato: Contrato;
+  venda?: VendaVinculada;
   rotulo: { label: string; variant: "default" | "secondary" | "outline" } | null;
   podeCancelar: boolean;
   onCancelar: () => void;
   onPedirBaixa: (cobranca: any) => void;
 }
 
-function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedirBaixa }: ContratoAtivoCardProps) {
+function ContratoAtivoCard({ contrato, venda, rotulo, podeCancelar, onCancelar, onPedirBaixa }: ContratoAtivoCardProps) {
   const [alterarOpen, setAlterarOpen] = useState(false);
   const { toast } = useToast();
   const [copiandoLink, setCopiandoLink] = useState(false);
@@ -540,33 +568,23 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
     (c: any) => Number(c.tentativas ?? 0) > 0 && c.status !== "pago",
   );
 
-  // Valores exibidos: as cobranças são a fonte de verdade quando existem.
-  // Sem cobranças, planos anuais mensalizados (start_plus/power/pro/max)
-  // guardam a MENSALIDADE em valor_cobrado — os demais guardam o total.
+  // A venda vinculada define total, parcelas e modalidade. Sem venda, usamos
+  // a modalidade do contrato; cobranças existentes continuam sendo a fonte
+  // mais precisa para contratos legados sem uma venda vinculada.
   const valores = (() => {
+    const calculados = calcularValoresContrato(contrato, venda);
+    if (venda) return calculados;
     const somaCob = cobrancas.reduce((s, c: any) => s + (Number(c.valor) || 0), 0);
     if (cobrancas.length > 0 && somaCob > 0) {
-      return { total: somaCob, mensal: somaCob / cobrancas.length };
+      return {
+        ...calculados,
+        total: somaCob,
+        parcela: somaCob / cobrancas.length,
+        quantidadeParcelas: cobrancas.length,
+      };
     }
-    const meses =
-      contrato.vigencia_tipo === "anual" ? 12 : contrato.vigencia_tipo === "semestral" ? 6 : 1;
-    const mensalizados = ["start_plus", "power", "pro", "max"];
-    if (contrato.vigencia_tipo !== "mensal" && mensalizados.includes(contrato.plano_tipo)) {
-      return { total: contrato.valor_cobrado * meses, mensal: contrato.valor_cobrado };
-    }
-    return {
-      total: contrato.valor_cobrado,
-      mensal: contrato.parcelas ? contrato.valor_cobrado / contrato.parcelas : contrato.valor_cobrado,
-    };
+    return calculados;
   })();
-
-  // Alerta de inconsistência: mensalidade gravada como total do período.
-  // Sinal: contrato não mensal cujo valor_cobrado é ~igual ao total do contrato.
-  const inconsistenciaValor =
-    contrato.vigencia_tipo !== "mensal" &&
-    Number(contrato.parcelas ?? 1) > 1 &&
-    valores.total > 0 &&
-    Number(contrato.valor_cobrado ?? 0) >= valores.total * 0.9;
 
 
   return (
@@ -623,23 +641,17 @@ function ContratoAtivoCard({ contrato, rotulo, podeCancelar, onCancelar, onPedir
           </div>
         </div>
 
-        {inconsistenciaValor && (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            Atenção: a mensalidade deste contrato está gravada com o valor total do
-            período ({fmt(Number(contrato.valor_cobrado))}). O valor mensal correto é
-            aproximadamente {fmt(valores.total / Number(contrato.parcelas ?? 1))}. Ajuste
-            em "Alterar dados da venda".
-          </div>
-        )}
-
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
 
-          {contrato.vigencia_tipo === "mensal" ? (
-            <Info label="Valor mensal" value={fmt(valores.mensal)} />
+          {valores.recorrente && valores.meses === 1 ? (
+            <Info label="Valor mensal" value={fmt(valores.parcela)} />
           ) : (
             <>
               <Info label="Valor total do contrato" value={fmt(valores.total)} />
-              <Info label="Valor mensal" value={fmt(valores.mensal)} />
+              <Info
+                label={valores.recorrente ? "Valor mensal" : "Valor da parcela"}
+                value={fmt(valores.parcela)}
+              />
             </>
           )}
           <Info
